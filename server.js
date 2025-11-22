@@ -887,6 +887,13 @@ try {
         const limit = parseInt(req.query.limit) || 5000;
         const offset = (page - 1) * limit;
 
+        // Filter parameters (applied to entire database before pagination)
+        const search = req.query.search || '';
+        const type = req.query.type || '';
+        const security = req.query.security || '';
+        const minSignal = req.query.minSignal ? parseInt(req.query.minSignal) : null;
+        const maxSignal = req.query.maxSignal ? parseInt(req.query.maxSignal) : null;
+
         // Get home location for distance calculation
         const homeResult = await query(`
           SELECT
@@ -955,9 +962,25 @@ try {
           LEFT JOIN observation_counts oc ON n.bssid = oc.bssid
           WHERE n.bssid IS NOT NULL
             AND (n.lasttime IS NULL OR n.lasttime >= $1)
+            ${search ? `AND (LOWER(n.ssid) LIKE '%' || LOWER($6) || '%' OR LOWER(n.bssid) LIKE '%' || LOWER($6) || '%')` : ''}
+            ${type ? `AND n.type = $7` : ''}
+            ${security ? `AND LOWER(n.encryption) LIKE '%' || LOWER($8) || '%'` : ''}
+            ${minSignal !== null ? `AND n.level >= $9` : ''}
+            ${maxSignal !== null ? `AND n.level <= $10` : ''}
           ORDER BY n.lasttime DESC NULLS LAST
           LIMIT $4 OFFSET $5
-        `, [MIN_VALID_TIMESTAMP, home?.lat || null, home?.lon || null, limit, offset]);
+        `, [
+          MIN_VALID_TIMESTAMP,
+          home?.lat || null,
+          home?.lon || null,
+          limit,
+          offset,
+          ...(search ? [search] : []),
+          ...(type ? [type] : []),
+          ...(security ? [security] : []),
+          ...(minSignal !== null ? [minSignal] : []),
+          ...(maxSignal !== null ? [maxSignal] : [])
+        ]);
 
         const networks = rows.map(row => ({
           id: row.unified_id,
