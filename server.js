@@ -882,6 +882,11 @@ try {
     // API endpoint to get networks with location data
     app.get('/api/networks', async (req, res) => {
       try {
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5000;
+        const offset = (page - 1) * limit;
+
         // Get home location for distance calculation
         const homeResult = await query(`
           SELECT
@@ -951,7 +956,8 @@ try {
           WHERE n.bssid IS NOT NULL
             AND (n.lasttime IS NULL OR n.lasttime >= $1)
           ORDER BY n.lasttime DESC NULLS LAST
-        `, [MIN_VALID_TIMESTAMP, home?.lat || null, home?.lon || null]);
+          LIMIT $4 OFFSET $5
+        `, [MIN_VALID_TIMESTAMP, home?.lat || null, home?.lon || null, limit, offset]);
 
         const networks = rows.map(row => ({
           id: row.unified_id,
