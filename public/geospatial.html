@@ -2131,16 +2131,26 @@
                 }
 
                 // Enrich network data with formatted fields
-                networks = networks.map(net => ({
-                    ...net,
-                    type: net.type || 'W',
-                    typeDisplay: getNetworkTypeName(net.type),
-                    security: net.security || parseSecurityType(net.capabilities, net.encryption),
-                    timestamp: net.lastSeen || net.time || Date.now(),
-                    observations: net.observationCount || 1,
-                    latitude: net.location?.lat,
-                    longitude: net.location?.lng
-                }));
+                networks = networks.map(net => {
+                    const parsedSecurity = parseSecurityType(net.capabilities, net.encryption);
+                    if (window.DEBUG_SECURITY) {
+                        console.log('Security parse:', {
+                            capabilities: net.capabilities,
+                            encryption: net.encryption,
+                            result: parsedSecurity
+                        });
+                    }
+                    return {
+                        ...net,
+                        type: net.type || 'W',
+                        typeDisplay: getNetworkTypeName(net.type),
+                        security: parsedSecurity,
+                        timestamp: net.lastSeen || net.time || Date.now(),
+                        observations: net.observationCount || 1,
+                        latitude: net.location?.lat,
+                        longitude: net.location?.lng
+                    };
+                });
 
                 console.log(`📊 Enriched ${networks.length} networks, setting data...`);
 
