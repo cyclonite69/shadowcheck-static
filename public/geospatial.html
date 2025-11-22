@@ -2122,12 +2122,11 @@
                     return;
                 }
 
-                // Initialize table manager on first load (abbreviated mode for geospatial)
+                // Initialize table manager with full grid (same as networks page)
                 if (!networkTable) {
                     console.log('📊 Initializing NetworkTableManager for geospatial...');
-                    networkTable = new NetworkTableManager('geospatial', true);
-                    // Override to use abbreviated columns for geospatial
-                    networkTable.visibleColumns = ['type', 'ssid', 'signal', 'observations'];
+                    networkTable = new NetworkTableManager('geospatial', false);
+                    window.networkTable = networkTable; // Make globally accessible
                 }
 
                 // Enrich network data with formatted fields
