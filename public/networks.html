@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowCheck - Network Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            gap: 20px;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .header-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .header-right-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .nav-link {
+            border: none;
+            background: rgba(59, 130, 246, 0.1);
+            color: #e0e7ff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.2s;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-link:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .nav-link.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main {
+            flex: 1;
+            overflow: hidden;
+            padding: 12px;
+        }
+
+        .panel {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .panel-count {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        input[type="search"] {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            min-width: 200px;
+        }
+
+        button {
+            border: none;
+            background: rgba(59, 130, 246, 0.1);
+            color: #e0e7ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        button:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .network-table {
+            width: 100%;
+            font-size: 12px;
+            border-collapse: collapse;
+        }
+
+        .network-table thead {
+            position: sticky;
+            top: 0;
+            background: rgba(30, 41, 59, 0.95);
+            border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+            z-index: 10;
+        }
+
+        .network-table th {
+            padding: 12px 16px;
+            text-align: left;
+            color: #94a3b8;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .network-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .network-table tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+            cursor: pointer;
+        }
+
+        .network-ssid {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .network-bssid {
+            color: #94a3b8;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .badge-wifi {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .badge-ble {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+        }
+
+        .signal-strong {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .signal-medium {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .signal-weak {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 4px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 12px;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">🌐</div>
+                <div class="header-title">Network Explorer</div>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link" data-page="dashboard">Dashboard</a>
+                <a href="/geospatial.html" class="nav-link" data-page="geospatial">Geospatial</a>
+                <a href="/analytics.html" class="nav-link" data-page="analytics">Analytics</a>
+                <a href="/surveillance.html" class="nav-link" data-page="surveillance">Surveillance</a>
+                <a href="/networks.html" class="nav-link active" data-page="networks">Networks</a>
+            </div>
+            <div class="header-right-group">
+                <div class="status">
+                    <div class="status-dot"></div>
+                    <span>Online</span>
+                </div>
+                <div class="controls">
+                    <input type="search" id="search-input" placeholder="Search SSID or BSSID...">
+                    <button id="refresh-btn">🔄 Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="main">
+            <div class="panel">
+                <div class="panel-header">
+                    📡 All Networks
+                    <span class="panel-count" id="network-count">0</span>
+                </div>
+                <div class="panel-content">
+                    <table class="network-table">
+                        <thead>
+                            <tr>
+                                <th>SSID</th>
+                                <th>BSSID</th>
+                                <th>Type</th>
+                                <th>Signal</th>
+                                <th>Security</th>
+                                <th>Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="networks-tbody">
+                            <tr>
+                                <td colspan="6" class="loading">Loading networks...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001/api';
+        let allNetworks = [];
+        let displayedCount = 0;
+        const BATCH_SIZE = 50;
+        let isSearching = false;
+        let isLoading = false;
+
+        // Highlight active nav
+        function highlightActiveNav() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('a.nav-link').forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+
+                if ((currentPath === '/' || currentPath === '/index.html') && (href === '/' || href === '/index.html')) {
+                    link.classList.add('active');
+                } else if (href !== '/' && currentPath.includes(href.replace('/', ''))) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Load networks
+        async function loadNetworks() {
+            try {
+                console.log('📡 Loading all networks...');
+                isLoading = true;
+                const response = await fetch(`${API_BASE}/networks`);
+
+                if (!response.ok) {
+                    console.error('✗ Networks API failed:', response.status);
+                    document.getElementById('networks-tbody').innerHTML = '<tr><td colspan="6" class="loading">API Error</td></tr>';
+                    return;
+                }
+
+                const networks = await response.json();
+
+                if (Array.isArray(networks)) {
+                    allNetworks = networks;
+                    displayedCount = 0;
+                    isSearching = false;
+                    document.getElementById('networks-tbody').innerHTML = '';
+                    loadMoreNetworks();
+                    document.getElementById('network-count').textContent = networks.length;
+                    console.log(`✓ Loaded ${networks.length} networks`);
+                } else {
+                    console.error('✗ Invalid response format');
+                    document.getElementById('networks-tbody').innerHTML = '<tr><td colspan="6" class="loading">Invalid data format</td></tr>';
+                }
+            } catch (error) {
+                console.error('✗ Error loading networks:', error);
+                document.getElementById('networks-tbody').innerHTML = '<tr><td colspan="6" class="loading">Error loading networks</td></tr>';
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        // Load more networks (infinite scroll)
+        function loadMoreNetworks() {
+            const networksToShow = allNetworks.slice(displayedCount, displayedCount + BATCH_SIZE);
+            displayNetworks(networksToShow, true);
+            displayedCount += networksToShow.length;
+        }
+
+        // Display networks in table
+        function displayNetworks(networks, append = false) {
+            const tbody = document.getElementById('networks-tbody');
+
+            if (!append) {
+                tbody.innerHTML = '';
+            }
+
+            if (networks.length === 0 && !append) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">No networks found</td></tr>';
+                return;
+            }
+
+            networks.forEach(network => {
+                const row = document.createElement('tr');
+
+                const typeBadge = getTypeBadge(network.type);
+                const signalClass = getSignalClass(network.signal);
+                const lastSeen = network.lastSeen ? new Date(network.lastSeen).toLocaleString() : 'Unknown';
+
+                row.innerHTML = `
+                    <td class="network-ssid">${network.ssid || '&lt;Hidden&gt;'}</td>
+                    <td class="network-bssid">${network.bssid || 'N/A'}</td>
+                    <td>${typeBadge}</td>
+                    <td class="${signalClass}">${network.signal ? network.signal + ' dBm' : 'N/A'}</td>
+                    <td>${network.security || 'Unknown'}</td>
+                    <td>${lastSeen}</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Get type badge
+        function getTypeBadge(type) {
+            const typeMap = {
+                'W': '<span class="badge badge-wifi">WiFi</span>',
+                'E': '<span class="badge badge-ble">BLE</span>',
+                'B': '<span class="badge badge-ble">BT</span>',
+                'L': '<span class="badge badge-wifi">LTE</span>',
+                'N': '<span class="badge badge-wifi">5G</span>',
+                'G': '<span class="badge badge-wifi">GSM</span>'
+            };
+            return typeMap[type] || '<span class="badge badge-wifi">Unknown</span>';
+        }
+
+        // Get signal class
+        function getSignalClass(signal) {
+            if (!signal) return '';
+            if (signal > -50) return 'signal-strong';
+            if (signal > -70) return 'signal-medium';
+            return 'signal-weak';
+        }
+
+        // Search functionality
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+
+            if (!query) {
+                // Reset to show all networks
+                console.log('🔍 Search cleared, resetting view');
+                isSearching = false;
+                displayedCount = 0;
+                document.getElementById('networks-tbody').innerHTML = '';
+                loadMoreNetworks();
+                document.getElementById('network-count').textContent = allNetworks.length;
+                return;
+            }
+
+            // Filter networks
+            console.log(`🔍 Searching for: "${query}"`);
+            isSearching = true;
+            const filtered = allNetworks.filter(n =>
+                (n.ssid && n.ssid.toLowerCase().includes(query)) ||
+                (n.bssid && n.bssid.toLowerCase().includes(query))
+            );
+
+            // Show filtered results (all at once, no infinite scroll during search)
+            displayNetworks(filtered, false);
+            document.getElementById('network-count').textContent = `${filtered.length} / ${allNetworks.length}`;
+            console.log(`✓ Found ${filtered.length} matching networks`);
+        });
+
+        // Refresh button
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            loadNetworks();
+            document.getElementById('search-input').value = '';
+        });
+
+        // Setup infinite scroll
+        function setupInfiniteScroll() {
+            const panelContent = document.querySelector('.panel-content');
+
+            panelContent.addEventListener('scroll', () => {
+                // Don't trigger infinite scroll during search or if already loading
+                if (isSearching || isLoading) return;
+
+                const { scrollTop, scrollHeight, clientHeight } = panelContent;
+
+                // Trigger when 200px from bottom
+                if (scrollTop + clientHeight >= scrollHeight - 200) {
+                    if (displayedCount < allNetworks.length) {
+                        console.log(`📜 Loading more networks (${displayedCount}/${allNetworks.length})`);
+                        loadMoreNetworks();
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            highlightActiveNav();
+            loadNetworks();
+            setupInfiniteScroll();
+        });
+    </script>
+</body>
+</html>

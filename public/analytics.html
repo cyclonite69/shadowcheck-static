@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowCheck - Analytics Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            gap: 20px;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .header-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .header-right-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .nav-link {
+            border: none;
+            background: rgba(59, 130, 246, 0.1);
+            color: #e0e7ff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.2s;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-link:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .nav-link.active {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #8b5cf6;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            padding: 12px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            flex-shrink: 0;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 3px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 12px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">📊</div>
+                <div class="header-title">Analytics Dashboard</div>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link" data-page="dashboard">Dashboard</a>
+                <a href="/geospatial.html" class="nav-link" data-page="geospatial">Geospatial</a>
+                <a href="/analytics.html" class="nav-link active" data-page="analytics">Analytics</a>
+                <a href="/surveillance.html" class="nav-link" data-page="surveillance">Surveillance</a>
+                <a href="/networks.html" class="nav-link" data-page="networks">Networks</a>
+            </div>
+            <div class="header-right-group">
+                <div class="status">
+                    <div class="status-dot"></div>
+                    <span id="status-text">Online</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="main">
+            <!-- Network Types -->
+            <div class="panel">
+                <div class="panel-header">📡 Network Types Distribution</div>
+                <div class="panel-content">
+                    <div class="chart-container">
+                        <canvas id="networkTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signal Strength -->
+            <div class="panel">
+                <div class="panel-header">📶 Signal Strength Distribution</div>
+                <div class="panel-content">
+                    <div class="chart-container">
+                        <canvas id="signalStrengthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Types -->
+            <div class="panel">
+                <div class="panel-header">🔐 Security Distribution</div>
+                <div class="panel-content">
+                    <div class="chart-container">
+                        <canvas id="securityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Temporal Activity -->
+            <div class="panel">
+                <div class="panel-header">⏰ Temporal Activity Patterns</div>
+                <div class="panel-content">
+                    <div class="chart-container">
+                        <canvas id="temporalChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001/api';
+        const charts = {};
+
+        // Highlight active nav
+        function highlightActiveNav() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('a.nav-link').forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+
+                if ((currentPath === '/' || currentPath === '/index.html') && (href === '/' || href === '/index.html')) {
+                    link.classList.add('active');
+                } else if (href !== '/' && currentPath.includes(href.replace('/', ''))) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Create chart
+        function createChart(canvasId, type, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#3b82f6', '#10b981', '#8b5cf6', '#ec4899',
+                            '#f59e0b', '#06b6d4', '#ef4444', '#a78bfa'
+                        ],
+                        borderColor: 'transparent'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#cbd5e1' }
+                        }
+                    },
+                    scales: (type !== 'doughnut' && type !== 'pie') ? {
+                        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+                    } : undefined
+                }
+            });
+        }
+
+        // Load network types
+        async function loadNetworkTypes() {
+            try {
+                console.log('📡 Loading network types...');
+                const res = await fetch(`${API_BASE}/analytics/network-types`);
+
+                if (!res.ok) {
+                    console.error('✗ Network types API failed:', res.status);
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (!data || !data.data || !Array.isArray(data.data)) {
+                    console.warn('⚠️ No network types data available');
+                    return;
+                }
+
+                const typeMap = { 'W': 'WiFi', 'E': 'BLE', 'B': 'BT', 'L': 'LTE', 'N': '5G NR', 'G': 'GSM' };
+                const labels = data.data.map(d => typeMap[d.type] || d.type);
+                const values = data.data.map(d => d.count);
+
+                createChart('networkTypesChart', 'doughnut', labels, values);
+                console.log('✓ Network types chart rendered');
+            } catch (err) {
+                console.error('✗ Error loading network types:', err);
+            }
+        }
+
+        // Load signal strength
+        async function loadSignalStrength() {
+            try {
+                console.log('📶 Loading signal strength...');
+                const res = await fetch(`${API_BASE}/analytics/signal-strength`);
+
+                if (!res.ok) {
+                    console.error('✗ Signal strength API failed:', res.status);
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (!data || !data.data || !Array.isArray(data.data)) {
+                    console.warn('⚠️ No signal strength data available');
+                    return;
+                }
+
+                const labels = data.data.map(d => d.range + ' dBm');
+                const values = data.data.map(d => d.count);
+
+                createChart('signalStrengthChart', 'line', labels, values);
+                console.log('✓ Signal strength chart rendered');
+            } catch (err) {
+                console.error('✗ Error loading signal strength:', err);
+            }
+        }
+
+        // Load security
+        async function loadSecurity() {
+            try {
+                console.log('🔐 Loading security distribution...');
+                const res = await fetch(`${API_BASE}/analytics/security`);
+
+                if (!res.ok) {
+                    console.error('✗ Security API failed:', res.status);
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (!data || !data.data || !Array.isArray(data.data)) {
+                    console.warn('⚠️ No security data available');
+                    return;
+                }
+
+                const labels = data.data.map(d => d.type);
+                const values = data.data.map(d => d.count);
+
+                createChart('securityChart', 'doughnut', labels, values);
+                console.log('✓ Security chart rendered');
+            } catch (err) {
+                console.error('✗ Error loading security:', err);
+            }
+        }
+
+        // Load temporal activity
+        async function loadTemporal() {
+            try {
+                console.log('⏰ Loading temporal activity...');
+                const res = await fetch(`${API_BASE}/analytics/temporal-activity`);
+
+                if (!res.ok) {
+                    console.error('✗ Temporal activity API failed:', res.status);
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (!data || !data.data || !Array.isArray(data.data)) {
+                    console.warn('⚠️ No temporal activity data available');
+                    return;
+                }
+
+                const labels = data.data.map(d => `${d.hour}:00`);
+                const values = data.data.map(d => d.count);
+
+                createChart('temporalChart', 'bar', labels, values);
+                console.log('✓ Temporal activity chart rendered');
+            } catch (err) {
+                console.error('✗ Error loading temporal activity:', err);
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            highlightActiveNav();
+            loadNetworkTypes();
+            loadSignalStrength();
+            loadSecurity();
+            loadTemporal();
+        });
+    </script>
+</body>
+</html>
