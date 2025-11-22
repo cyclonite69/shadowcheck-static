@@ -988,13 +988,16 @@ try {
           bssid: row.bssid,
           type: row.type || 'W',
           security: row.security,
+          capabilities: row.misc, // Capabilities are in misc field
+          encryption: row.security,
           frequency: row.frequency ? parseFloat(row.frequency) / 1000 : null, // Convert MHz to GHz
           channel: row.channel,
           signal: row.signal,
           accuracy: row.accuracy,
           observations: row.observations,
-          lastSeen: row.lastSeen,
-          timestamp: row.lastSeen, // Alias for consistency
+          lastSeen: row.lastSeen ? parseInt(row.lastSeen) : null, // Ensure it's a number
+          timestamp: row.lastSeen ? parseInt(row.lastSeen) : null, // Ensure it's a number
+          time: row.lastSeen ? parseInt(row.lastSeen) : null, // Alias
           status: row.status,
           distanceFromHome: row.distance_from_home,
           latitude: row.lat ? parseFloat(row.lat) : null,
