@@ -607,7 +607,18 @@
 
             <!-- THREATS PANEL -->
             <div class="panel" id="threats-panel">
-                <div class="panel-header">⚠️ Active Threats</div>
+                <div class="panel-header">
+                    <span>⚠️ Active Threats</span>
+                    <div style="display: flex; gap: 6px; flex: 1; max-width: 600px;">
+                        <input type="text" id="threat-search" placeholder="Search threats..." style="flex: 1; min-width: 120px; padding: 4px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #e0e7ff; border-radius: 4px;">
+                        <select id="threat-type-filter" style="padding: 4px 8px; font-size: 11px;">
+                            <option value="">All Types</option>
+                            <option value="W">WiFi</option>
+                            <option value="E">BLE</option>
+                            <option value="B">Bluetooth</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="panel-content">
                     <div class="threat-list" id="threat-list">
                         <div class="loading">Loading threats...</div>
@@ -618,8 +629,23 @@
             <!-- NETWORKS PANEL -->
             <div class="panel" id="networks-panel">
                 <div class="panel-header">
-                    📡 Recent Networks
-                    <span class="panel-count" id="networks-count">0</span>
+                    <span>📡 Recent Networks <span class="panel-count" id="networks-count">0</span></span>
+                    <div style="display: flex; gap: 6px; flex: 1; max-width: 700px;">
+                        <input type="text" id="network-search" placeholder="Search SSID/BSSID..." style="flex: 1; min-width: 120px; padding: 4px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #e0e7ff; border-radius: 4px;">
+                        <select id="network-type-filter" style="padding: 4px 8px; font-size: 11px;">
+                            <option value="">All Types</option>
+                            <option value="W">WiFi</option>
+                            <option value="E">BLE</option>
+                            <option value="B">Bluetooth</option>
+                        </select>
+                        <select id="network-security-filter" style="padding: 4px 8px; font-size: 11px;">
+                            <option value="">All Security</option>
+                            <option value="OPEN">Open</option>
+                            <option value="WEP">WEP</option>
+                            <option value="WPA">WPA/WPA2</option>
+                            <option value="WPA3">WPA3</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="panel-content">
                     <table class="network-table" id="networks-table">
@@ -2243,6 +2269,60 @@
             loadThreats();
             loadNetworks();
             // Don't reload map points - user selects threat
+        });
+
+        // Wire up filter controls
+        document.addEventListener('DOMContentLoaded', () => {
+            // Network search
+            const networkSearch = document.getElementById('network-search');
+            if (networkSearch && window.networkTable) {
+                networkSearch.addEventListener('input', (e) => {
+                    networkTable.applySearch(e.target.value);
+                    renderNetworkTable('networks-table', (network) => {
+                        loadObservationsToMap(network.bssid, network.ssid);
+                    });
+                });
+            }
+
+            // Network type filter
+            const networkTypeFilter = document.getElementById('network-type-filter');
+            if (networkTypeFilter) {
+                networkTypeFilter.addEventListener('change', (e) => {
+                    // Filter logic will be added in next iteration
+                    console.log('Network type filter:', e.target.value);
+                });
+            }
+
+            // Network security filter
+            const networkSecurityFilter = document.getElementById('network-security-filter');
+            if (networkSecurityFilter) {
+                networkSecurityFilter.addEventListener('change', (e) => {
+                    // Filter logic will be added in next iteration
+                    console.log('Network security filter:', e.target.value);
+                });
+            }
+
+            // Threat search
+            const threatSearch = document.getElementById('threat-search');
+            if (threatSearch) {
+                threatSearch.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const threats = document.querySelectorAll('.threat-row');
+                    threats.forEach(threat => {
+                        const text = threat.textContent.toLowerCase();
+                        threat.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+
+            // Threat type filter
+            const threatTypeFilter = document.getElementById('threat-type-filter');
+            if (threatTypeFilter) {
+                threatTypeFilter.addEventListener('change', (e) => {
+                    // Filter logic will be added in next iteration
+                    console.log('Threat type filter:', e.target.value);
+                });
+            }
         });
     </script>
 </body>
