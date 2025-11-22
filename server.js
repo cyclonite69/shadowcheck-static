@@ -1,13 +1,14 @@
 console.log('Starting server...');
 
 try {
-    require('dotenv').config();
+    require('dotenv').config({ override: true });
     const express = require('express');
     const path = require('path');
     const { Pool } = require('pg');
 
     const app = express();
     const port = process.env.PORT || 3000;
+
 
     // Database connection configuration
     const pool = new Pool({
@@ -44,14 +45,14 @@ try {
     // Test database connection
     pool.connect((err, client, release) => {
       if (err) {
-        return console.error('Error acquiring client from pool:', err.message, err.stack);
+        return console.error('✗ Database connection failed:', err.message);
       }
       client.query('SELECT NOW()', (err, result) => {
         release();
         if (err) {
-          return console.error('Error executing query:', err.message, err.stack);
+          return console.error('✗ Database connection failed:', err.message);
         }
-        console.log('Database connected successfully at:', result.rows[0].now);
+        console.log('✓ Database connected successfully');
       });
     });
 
@@ -250,10 +251,43 @@ try {
     // API endpoint for analytics - radio type over time (last 30 days)
     app.get('/api/analytics/radio-type-over-time', async (req, res) => {
       try {
+        const range = req.query.range || '30d';
+
+        // Determine time interval and grouping
+        let interval = '30 days';
+        let dateFormat = 'DATE(last_seen)';
+
+        switch(range) {
+          case '24h':
+            interval = '24 hours';
+            dateFormat = "DATE_TRUNC('hour', last_seen)";
+            break;
+          case '7d':
+            interval = '7 days';
+            dateFormat = 'DATE(last_seen)';
+            break;
+          case '30d':
+            interval = '30 days';
+            dateFormat = 'DATE(last_seen)';
+            break;
+          case '90d':
+            interval = '90 days';
+            dateFormat = 'DATE(last_seen)';
+            break;
+          case 'all':
+            interval = '100 years'; // Effectively all time
+            dateFormat = "DATE_TRUNC('week', last_seen)";
+            break;
+        }
+
+        const whereClause = range === 'all'
+          ? 'WHERE last_seen IS NOT NULL AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1'
+          : `WHERE last_seen >= NOW() - INTERVAL '${interval}' AND last_seen IS NOT NULL AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1`;
+
         const { rows } = await query(`
-          WITH daily_counts AS (
+          WITH time_counts AS (
             SELECT
-              DATE(last_seen) as date,
+              ${dateFormat} as date,
               CASE
                 WHEN type = 'W' THEN 'WiFi'
                 WHEN type = 'E' THEN 'BLE'
@@ -267,13 +301,11 @@ try {
               END as network_type,
               COUNT(*) as count
             FROM app.networks_legacy
-            WHERE last_seen >= NOW() - INTERVAL '30 days'
-              AND last_seen IS NOT NULL
-              AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1
+            ${whereClause}
             GROUP BY date, network_type
             ORDER BY date, network_type
           )
-          SELECT * FROM daily_counts
+          SELECT * FROM time_counts
         `, [MIN_VALID_TIMESTAMP]);
 
         res.json({
@@ -851,6 +883,17 @@ try {
     // API endpoint to get networks with location data
     app.get('/api/networks', async (req, res) => {
       try {
+        // Get home location for distance calculation
+        const homeResult = await query(`
+          SELECT
+            ST_X(location_point::geometry) as lon,
+            ST_Y(location_point::geometry) as lat
+          FROM app.location_markers
+          WHERE marker_type = 'home'
+          LIMIT 1
+        `);
+        const home = homeResult.rows[0] || null;
+
         // Join networks_legacy with locations_legacy to get the latest location data
         const { rows } = await query(`
           WITH latest_locations AS (
@@ -859,11 +902,20 @@ try {
               lat,
               lon,
               level,
+              accuracy,
               time
             FROM app.locations_legacy
             WHERE lat IS NOT NULL AND lon IS NOT NULL
               AND time >= $1
             ORDER BY bssid, time DESC
+          ),
+          observation_counts AS (
+            SELECT
+              bssid,
+              COUNT(*) as obs_count
+            FROM app.locations_legacy
+            WHERE time >= $1
+            GROUP BY bssid
           )
           SELECT
             n.unified_id,
@@ -871,32 +923,56 @@ try {
             n.bssid,
             n.type,
             n.encryption as security,
+            n.frequency,
+            n.channel,
             COALESCE(l.level, n.bestlevel) as signal,
+            COALESCE(l.accuracy, 0) as accuracy,
             n.lasttime as "lastSeen",
             COALESCE(l.lat, n.bestlat, n.lastlat, n.trilaterated_lat) as lat,
             COALESCE(l.lon, n.bestlon, n.lastlon, n.trilaterated_lon) as lng,
+            COALESCE(oc.obs_count, 1) as observations,
+            n.capabilities as misc,
             CASE
               WHEN COALESCE(l.level, n.bestlevel) > -50 THEN 'threat'
               WHEN COALESCE(l.level, n.bestlevel) > -70 THEN 'warning'
               ELSE 'safe'
-            END as status
+            END as status,
+            CASE
+              WHEN $2::double precision IS NOT NULL AND $3::double precision IS NOT NULL
+                AND COALESCE(l.lat, n.bestlat) IS NOT NULL AND COALESCE(l.lon, n.bestlon) IS NOT NULL
+              THEN ST_Distance(
+                ST_SetSRID(ST_MakePoint($3, $2), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(COALESCE(l.lon, n.bestlon), COALESCE(l.lat, n.bestlat)), 4326)::geography
+              ) / 1000.0
+              ELSE NULL
+            END as distance_from_home
           FROM app.networks_legacy n
           LEFT JOIN latest_locations l ON n.bssid = l.bssid
+          LEFT JOIN observation_counts oc ON n.bssid = oc.bssid
           WHERE n.bssid IS NOT NULL
             AND (n.lasttime IS NULL OR n.lasttime >= $1)
           ORDER BY n.lasttime DESC NULLS LAST
           LIMIT 1000
-        `, [MIN_VALID_TIMESTAMP]);
+        `, [MIN_VALID_TIMESTAMP, home?.lat || null, home?.lon || null]);
 
         const networks = rows.map(row => ({
           id: row.unified_id,
           ssid: row.ssid,
           bssid: row.bssid,
-          type: row.type || 'wifi',
+          type: row.type || 'W',
           security: row.security,
+          frequency: row.frequency ? parseFloat(row.frequency) / 1000 : null, // Convert MHz to GHz
+          channel: row.channel,
           signal: row.signal,
+          accuracy: row.accuracy,
+          observations: row.observations,
           lastSeen: row.lastSeen,
+          timestamp: row.lastSeen, // Alias for consistency
           status: row.status,
+          distanceFromHome: row.distance_from_home,
+          latitude: row.lat ? parseFloat(row.lat) : null,
+          longitude: row.lng ? parseFloat(row.lng) : null,
+          misc: row.misc,
           location: {
             lat: row.lat ? parseFloat(row.lat) : null,
             lng: row.lng ? parseFloat(row.lng) : null,

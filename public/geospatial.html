@@ -624,15 +624,11 @@
                 <div class="panel-content">
                     <table class="network-table" id="networks-table">
                         <thead>
-                            <tr>
-                                <th>SSID</th>
-                                <th>Type</th>
-                                <th>Signal</th>
-                            </tr>
+                            <!-- Headers generated dynamically by renderNetworkTable() -->
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="3" class="loading">Loading networks...</td>
+                                <td colspan="4" class="loading">Loading networks...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -652,7 +648,17 @@
                 width: '60px',
                 sortable: true,
                 default: true,
-                format: (val) => val || 'WiFi'
+                format: (val) => {
+                    const typeMap = {
+                        'W': 'WiFi',
+                        'E': 'BLE',
+                        'B': 'BT',
+                        'L': 'LTE',
+                        'N': '5G NR',
+                        'G': 'GSM'
+                    };
+                    return typeMap[val] || 'WiFi';
+                }
             },
             ssid: {
                 label: 'SSID',
@@ -778,6 +784,8 @@
                 this.currentSort = { column: null, direction: null };
                 this.visibleColumns = this.loadColumnPreferences();
                 this.searchTerm = '';
+                this.displayedCount = 0;
+                this.batchSize = abbreviatedMode ? 20 : 50; // Smaller batch for abbreviated mode
             }
 
             // Load column visibility preferences from localStorage
@@ -849,6 +857,18 @@
                         return ssid.includes(this.searchTerm) || bssid.includes(this.searchTerm);
                     });
                 }
+                this.displayedCount = 0; // Reset on filter change
+            }
+
+            // Load more networks (for infinite scroll)
+            loadMore() {
+                this.displayedCount += this.batchSize;
+            }
+
+            // Check if more networks available
+            hasMore() {
+                const sorted = this.getSortedNetworks();
+                return this.displayedCount < sorted.length;
             }
 
             // Get sorted networks
@@ -947,7 +967,7 @@
         });
 
         // Render network table with current settings
-        function renderNetworkTable(tableId = 'networks-table', onRowClick = null) {
+        function renderNetworkTable(tableId = 'networks-table', onRowClick = null, append = false) {
             if (!window.networkTable) return;
 
             const table = document.getElementById(tableId);
@@ -958,44 +978,50 @@
             if (!tbody || !thead) return;
 
             // Get sorted networks
-            const networks = networkTable.getSortedNetworks();
+            const allNetworks = networkTable.getSortedNetworks();
 
-            // Render table headers
-            const headerRow = document.createElement('tr');
-            networkTable.visibleColumns.forEach(colKey => {
-                const col = NETWORK_COLUMNS[colKey];
-                const th = document.createElement('th');
-                th.style.width = col.width;
-                th.textContent = col.label;
+            // Render table headers (unless appending)
+            if (!append) {
+                const headerRow = document.createElement('tr');
+                networkTable.visibleColumns.forEach(colKey => {
+                    const col = NETWORK_COLUMNS[colKey];
+                    const th = document.createElement('th');
+                    th.style.width = col.width;
+                    th.textContent = col.label;
 
-                if (col.sortable) {
-                    th.className = 'sortable';
-                    th.onclick = () => {
-                        networkTable.setSort(colKey);
-                        renderNetworkTable(tableId, onRowClick);
-                    };
+                    if (col.sortable) {
+                        th.className = 'sortable';
+                        th.onclick = () => {
+                            networkTable.setSort(colKey);
+                            renderNetworkTable(tableId, onRowClick);
+                        };
 
-                    // Add sort indicator
-                    const indicator = document.createElement('span');
-                    indicator.className = 'sort-indicator';
-                    if (networkTable.currentSort.column === colKey) {
-                        th.classList.add('sorted');
-                        indicator.textContent = networkTable.currentSort.direction === 'asc' ? '▲' : '▼';
-                    } else {
-                        indicator.textContent = '▲';
+                        // Add sort indicator
+                        const indicator = document.createElement('span');
+                        indicator.className = 'sort-indicator';
+                        if (networkTable.currentSort.column === colKey) {
+                            th.classList.add('sorted');
+                            indicator.textContent = networkTable.currentSort.direction === 'asc' ? '▲' : '▼';
+                        } else {
+                            indicator.textContent = '▲';
+                        }
+                        th.appendChild(indicator);
                     }
-                    th.appendChild(indicator);
-                }
 
-                headerRow.appendChild(th);
-            });
-            thead.innerHTML = '';
-            thead.appendChild(headerRow);
+                    headerRow.appendChild(th);
+                });
+                thead.innerHTML = '';
+                thead.appendChild(headerRow);
+            }
 
-            // Render table body
-            tbody.innerHTML = '';
+            // Clear body if not appending
+            if (!append) {
+                tbody.innerHTML = '';
+                networkTable.displayedCount = 0;
+            }
 
-            if (networks.length === 0) {
+            // Check if empty
+            if (allNetworks.length === 0 && !append) {
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
                 td.colSpan = networkTable.visibleColumns.length;
@@ -1006,7 +1032,13 @@
                 return;
             }
 
-            networks.forEach(network => {
+            // Get the batch to render
+            const startIdx = networkTable.displayedCount;
+            const endIdx = Math.min(startIdx + networkTable.batchSize, allNetworks.length);
+            const networksToRender = allNetworks.slice(startIdx, endIdx);
+
+            // Render networks
+            networksToRender.forEach(network => {
                 const tr = document.createElement('tr');
                 tr.dataset.bssid = network.bssid;
 
@@ -1043,6 +1075,9 @@
 
                 tbody.appendChild(tr);
             });
+
+            // Update displayed count
+            networkTable.displayedCount = endIdx;
 
             // Update count display
             updateNetworkCount();
@@ -1441,6 +1476,21 @@
             return ouiMap[oui] || null;
         }
 
+        // Convert decimal degrees to DMS (Degrees Minutes Seconds)
+        function decimalToDMS(decimal, isLat) {
+            const absolute = Math.abs(decimal);
+            const degrees = Math.floor(absolute);
+            const minutesFloat = (absolute - degrees) * 60;
+            const minutes = Math.floor(minutesFloat);
+            const seconds = ((minutesFloat - minutes) * 60).toFixed(2);
+
+            const direction = isLat
+                ? (decimal >= 0 ? 'N' : 'S')
+                : (decimal >= 0 ? 'E' : 'W');
+
+            return `${degrees}° ${minutes}' ${seconds}" ${direction}`;
+        }
+
         // Highlight active nav
         function highlightActiveNav() {
             const currentPath = window.location.pathname;
@@ -1525,6 +1575,8 @@
                         status: 'threat',
                         lastSeen: obs.time,
                         distanceFromHome: obs.distance_from_home_km,
+                        altitude: obs.alt,
+                        accuracy: obs.acc,
                         observationIndex: index + 1,
                         totalObservations: totalObservations
                     }
@@ -1621,12 +1673,29 @@
                 // Add popup on click
                 map.on('click', 'network-points', (e) => {
                     const props = e.features[0].properties;
+                    const coords = e.lngLat;
 
                     // Format timestamp
                     const timestamp = props.lastSeen ? new Date(parseInt(props.lastSeen)).toLocaleString() : 'Unknown';
 
                     // Manufacturer lookup
                     const manufacturer = props.bssid ? getManufacturerFromBSSID(props.bssid) : null;
+
+                    // Convert coordinates to DMS
+                    const latDMS = decimalToDMS(coords.lat, true);
+                    const lngDMS = decimalToDMS(coords.lng, false);
+
+                    // Altitude field
+                    let altitudeField = '';
+                    if (props.altitude !== undefined && props.altitude !== null && props.altitude !== 'null') {
+                        altitudeField = `<div class="tooltip-field"><span class="tooltip-label">Altitude:</span><span class="tooltip-value">${parseFloat(props.altitude).toFixed(2)} m MSL</span></div>`;
+                    }
+
+                    // Accuracy field
+                    let accuracyField = '';
+                    if (props.accuracy !== undefined && props.accuracy !== null && props.accuracy !== 'null') {
+                        accuracyField = `<div class="tooltip-field"><span class="tooltip-label">Accuracy:</span><span class="tooltip-value">±${parseFloat(props.accuracy).toFixed(1)} m</span></div>`;
+                    }
 
                     // Distance from home
                     let distanceFromHome = '';
@@ -1641,25 +1710,15 @@
                     }
 
                     // Network type icon
-                    const networkType = (props.type || 'wifi').toLowerCase();
-                    let iconSvg = '';
-                    if (networkType.includes('ble') || networkType.includes('bluetooth') || networkType === 'b' || networkType === 'e') {
-                        iconSvg = `<svg class="tooltip-icon" viewBox="0 0 24 24" fill="#22d3ee" width="16" height="16">
-                            <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
-                        </svg>`;
-                    } else if (networkType.includes('cellular') || networkType.includes('cell') || networkType.includes('gsm') || networkType.includes('lte') || networkType.includes('5g') || networkType === 'g' || networkType === 'l' || networkType === 'n') {
-                        iconSvg = `<svg class="tooltip-icon" viewBox="0 0 24 24" fill="#22d3ee" width="16" height="16">
-                            <path d="M17.77 3.77L16 2 6 12l10 10 1.77-1.77L9.54 12z"/>
-                            <path d="M6 12l10-10 1.77 1.77L9.54 12l8.23 8.23L16 22z"/>
-                            <path d="M6 12l5-5v10z"/>
-                        </svg>`;
-                    } else {
-                        iconSvg = `<svg class="tooltip-icon" viewBox="0 0 24 24" fill="#22d3ee" width="16" height="16">
-                            <path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/>
-                            <path d="M12 14c-1.7 0-3.3.6-4.6 1.8a1 1 0 1 0 1.4 1.4A5 5 0 0 1 12 16a5 5 0 0 1 3.2 1.2 1 1 0 1 0 1.3-1.5A6.9 6.9 0 0 0 12 14z"/>
-                            <path d="M12 9.5c-3 0-5.8 1.1-8 3.2a1 1 0 1 0 1.4 1.4c1.8-1.8 4.1-2.7 6.6-2.7 2.5 0 4.8.9 6.6 2.7a1 1 0 1 0 1.4-1.4c-2.2-2.1-5.1-3.2-8-3.2z"/>
-                            <path d="M12 5c-4.3 0-8.3 1.6-11.3 4.6a1 1 0 1 0 1.4 1.4C4.6 7.5 8.2 6 12 6s7.4 1.5 9.9 4a1 1 0 1 0 1.4-1.4C20.3 6.6 16.3 5 12 5z"/>
-                        </svg>`;
+                    const iconSvg = getNetworkIcon(props.type);
+
+                    // Signal strength with color class
+                    const signal = props.signal || 'N/A';
+                    let signalClass = '';
+                    if (signal !== 'N/A') {
+                        if (signal >= -50) signalClass = 'signal-strong';
+                        else if (signal >= -70) signalClass = 'signal-medium';
+                        else signalClass = 'signal-weak';
                     }
 
                     new mapboxgl.Popup({
@@ -1682,6 +1741,12 @@
                                 </div>
                                 ${manufacturer ? `<div class="tooltip-field"><span class="tooltip-label">Manufacturer:</span><span class="tooltip-value">${manufacturer}</span></div>` : ''}
                                 <div class="tooltip-field">
+                                    <span class="tooltip-label">Coordinates:</span>
+                                    <span class="tooltip-value mono">${latDMS}<br>${lngDMS}</span>
+                                </div>
+                                ${altitudeField}
+                                ${accuracyField}
+                                <div class="tooltip-field">
                                     <span class="tooltip-label">Type:</span>
                                     <span class="tooltip-value">${props.typeDisplay || getNetworkTypeName(props.type)}</span>
                                 </div>
@@ -1691,7 +1756,7 @@
                                 </div>
                                 <div class="tooltip-field">
                                     <span class="tooltip-label">Signal:</span>
-                                    <span class="tooltip-value">${props.signal} dBm</span>
+                                    <span class="tooltip-value ${signalClass}">${signal} dBm</span>
                                 </div>
                                 ${distanceFromHome}
                                 <div class="tooltip-timestamp">
@@ -1944,17 +2009,34 @@
             }
         }
 
-        async function loadThreats() {
+        // Threats infinite scroll state
+        let threatPage = 1;
+        let allThreatsLoaded = false;
+
+        async function loadThreats(append = false) {
             try {
-                const res = await fetch(`${API_BASE}/threats/quick?page=1&limit=20`);
+                const res = await fetch(`${API_BASE}/threats/quick?page=${threatPage}&limit=50`);
                 const data = await res.json();
 
                 const threatList = document.getElementById('threat-list');
-                threatList.innerHTML = '';
+
+                if (!append) {
+                    threatList.innerHTML = '';
+                    threatPage = 1;
+                    allThreatsLoaded = false;
+                }
 
                 if (!data.threats || data.threats.length === 0) {
-                    threatList.innerHTML = '<div class="loading">No threats detected</div>';
+                    if (!append) {
+                        threatList.innerHTML = '<div class="loading">No threats detected</div>';
+                    }
+                    allThreatsLoaded = true;
                     return;
+                }
+
+                // Check if we got fewer threats than requested (end of list)
+                if (data.threats.length < 50) {
+                    allThreatsLoaded = true;
                 }
 
                 data.threats.forEach(threat => {
@@ -1978,6 +2060,8 @@
 
                     threatList.appendChild(row);
                 });
+
+                console.log(`✓ Loaded ${data.threats.length} threats (page ${threatPage})`);
             } catch (err) {
                 console.error('Error loading threats:', err);
             }
@@ -1993,19 +2077,28 @@
 
                 if (!res.ok) {
                     console.error('✗ Networks API failed:', res.status);
+                    const tbody = document.querySelector('#networks-table tbody');
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="loading">API Error: ' + res.status + '</td></tr>';
+                    }
                     return;
                 }
 
                 let networks = await res.json();
+                console.log(`📡 API returned ${networks?.length || 0} networks`);
 
                 if (!Array.isArray(networks) || networks.length === 0) {
+                    console.warn('⚠️ No networks returned from API');
                     const tbody = document.querySelector('#networks-table tbody');
-                    tbody.innerHTML = '<tr><td colspan="4" class="loading">No networks found</td></tr>';
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="loading">No networks found</td></tr>';
+                    }
                     return;
                 }
 
                 // Initialize table manager on first load (abbreviated mode for geospatial)
                 if (!networkTable) {
+                    console.log('📊 Initializing NetworkTableManager for geospatial...');
                     networkTable = new NetworkTableManager('geospatial', true);
                     // Override to use abbreviated columns for geospatial
                     networkTable.visibleColumns = ['type', 'ssid', 'signal', 'observations'];
@@ -2023,11 +2116,12 @@
                     longitude: net.location?.lng
                 }));
 
-                // Limit to 50 most recent for geospatial view
-                networks = networks.slice(0, 50);
+                console.log(`📊 Enriched ${networks.length} networks, setting data...`);
 
-                // Set networks data
+                // Set networks data (no artificial limits)
                 networkTable.setNetworks(networks);
+
+                console.log(`📊 Rendering table with ${networkTable.filteredNetworks.length} filtered networks...`);
 
                 // Render table with click handler to load observations
                 renderNetworkTable('networks-table', (network) => {
@@ -2044,12 +2138,12 @@
                     }
                 });
 
-                console.log(`✓ Displayed ${networkTable.filteredNetworks.length} networks in table`);
+                console.log(`✓ Displayed ${networkTable.displayedCount} of ${networkTable.filteredNetworks.length} networks in table`);
             } catch (err) {
                 console.error('✗ Error loading networks:', err);
                 const tbody = document.querySelector('#networks-table tbody');
                 if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="loading">Error loading networks</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="loading">Error: ' + err.message + '</td></tr>';
                 }
             }
         }
@@ -2073,12 +2167,76 @@
         }
 
         // Initialize on load
+        // Setup infinite scroll for both threats and networks panels
+        function setupInfiniteScroll() {
+            // Threats panel infinite scroll
+            const threatsPanel = document.querySelector('#threats-panel .panel-content');
+            if (threatsPanel) {
+                let isLoadingThreats = false;
+
+                threatsPanel.addEventListener('scroll', () => {
+                    if (isLoadingThreats || allThreatsLoaded) return;
+
+                    const { scrollTop, scrollHeight, clientHeight } = threatsPanel;
+
+                    // Trigger when 100px from bottom
+                    if (scrollTop + clientHeight >= scrollHeight - 100) {
+                        isLoadingThreats = true;
+                        threatPage++;
+                        console.log(`📜 Loading more threats (page ${threatPage})`);
+
+                        loadThreats(true).then(() => {
+                            isLoadingThreats = false;
+                        });
+                    }
+                });
+            }
+
+            // Networks panel infinite scroll
+            const networksPanel = document.querySelector('#networks-panel .panel-content');
+            if (networksPanel) {
+                let isLoadingNetworks = false;
+
+                networksPanel.addEventListener('scroll', () => {
+                    if (isLoadingNetworks || !window.networkTable) return;
+
+                    const { scrollTop, scrollHeight, clientHeight } = networksPanel;
+
+                    // Trigger when 100px from bottom (smaller trigger for abbreviated mode)
+                    if (scrollTop + clientHeight >= scrollHeight - 100) {
+                        if (networkTable.hasMore()) {
+                            isLoadingNetworks = true;
+                            console.log(`📜 Loading more networks (${networkTable.displayedCount}/${networkTable.getSortedNetworks().length})`);
+
+                            networkTable.loadMore();
+                            renderNetworkTable('networks-table', (network) => {
+                                console.log(`📡 Network selected: ${network.ssid || 'Hidden'} (${network.bssid})`);
+                                loadObservationsToMap(network.bssid, network.ssid);
+
+                                // Highlight selected row
+                                document.querySelectorAll('#networks-table tbody tr').forEach(r => {
+                                    r.style.background = '';
+                                });
+                                const selectedRow = document.querySelector(`#networks-table tbody tr[data-bssid="${network.bssid}"]`);
+                                if (selectedRow) {
+                                    selectedRow.style.background = 'rgba(59, 130, 246, 0.2)';
+                                }
+                            }, true); // append = true
+
+                            setTimeout(() => { isLoadingNetworks = false; }, 100);
+                        }
+                    }
+                });
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             highlightActiveNav();
             setTimeout(() => initMap(), 100);
             loadThreats();
             loadNetworks();
             checkURLParameters();
+            setupInfiniteScroll();
         });
 
         document.getElementById('refresh-btn').addEventListener('click', () => {
