@@ -26,6 +26,7 @@ npm-debug.log*
 *.backup
 *.old
 *.bak
+*.tar.gz
 
 # Database dumps
 *.sql.gz
