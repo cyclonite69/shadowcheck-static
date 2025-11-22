@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>ShadowCheck - SIGINT Forensics Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #1e40af;
+            --secondary-color: #3b82f6;
+            --accent-color: #60a5fa;
+            --dark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1e293b 100%);
+            color: var(--text-primary);
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, var(--card-bg) 0%, #334155 100%);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-online { background: #10b981; }
+        .status-offline { background: #ef4444; }
+        .status-warning { background: #f59e0b; }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(148, 163, 184, 0.2);
+            border-color: rgba(148, 163, 184, 0.5);
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes navPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        a.nav-link {
+            transition: all 0.2s !important;
+            text-decoration: none !important;
+        }
+
+        a.nav-link:hover {
+            background: rgba(59, 130, 246, 0.2) !important;
+            border-color: rgba(148, 163, 184, 0.4) !important;
+        }
+
+        a.nav-link.active {
+            background: rgba(59, 130, 246, 0.3) !important;
+            border-color: #3b82f6 !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header class="glass-card">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between gap-4">
+                <!-- Left: Logo + Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-broadcast-tower text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-white">ShadowCheck</h1>
+                        <p class="text-xs text-gray-400">SIGINT Platform</p>
+                    </div>
+                </div>
+
+                <!-- Center: Navigation Links -->
+                <div class="flex items-center space-x-2">
+                    <a href="/" class="nav-link active" data-page="dashboard" style="
+                        border: none;
+                        background: rgba(59, 130, 246, 0.1);
+                        color: #e0e7ff;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        border: 1px solid rgba(148, 163, 184, 0.2);
+                    ">Dashboard</a>
+
+                    <a href="/geospatial.html" class="nav-link" data-page="geospatial" style="
+                        border: none;
+                        background: rgba(59, 130, 246, 0.1);
+                        color: #e0e7ff;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        border: 1px solid rgba(148, 163, 184, 0.2);
+                    ">Geospatial</a>
+
+                    <a href="/analytics.html" class="nav-link" data-page="analytics" style="
+                        border: none;
+                        background: rgba(59, 130, 246, 0.1);
+                        color: #e0e7ff;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        border: 1px solid rgba(148, 163, 184, 0.2);
+                    ">Analytics</a>
+
+                    <a href="/surveillance.html" class="nav-link" data-page="surveillance" style="
+                        border: none;
+                        background: rgba(59, 130, 246, 0.1);
+                        color: #e0e7ff;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        border: 1px solid rgba(148, 163, 184, 0.2);
+                    ">Surveillance</a>
+
+                    <a href="/networks.html" class="nav-link" data-page="networks" style="
+                        border: none;
+                        background: rgba(59, 130, 246, 0.1);
+                        color: #e0e7ff;
+                        padding: 8px 16px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        border: 1px solid rgba(148, 163, 184, 0.2);
+                    ">Networks</a>
+                </div>
+
+                <!-- Right: Status -->
+                <div class="flex items-center space-x-2">
+                    <span class="status-indicator status-online pulse"></span>
+                    <span class="text-sm text-gray-400">Online</span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 pb-8 pt-6">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">SIGINT Operations Dashboard</h2>
+            <p class="text-gray-400">Real-time wireless network forensics and analysis</p>
+        </div>
+        
+        <!-- Key Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="metric-card p-6 rounded-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm mb-1">Total Networks</p>
+                        <p class="text-2xl font-bold text-white" id="total-networks">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-wifi text-blue-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metric-card p-6 rounded-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm mb-1">Threats Detected</p>
+                        <p class="text-2xl font-bold text-white" id="threats-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metric-card p-6 rounded-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm mb-1">Active Surveillance</p>
+                        <p class="text-2xl font-bold text-white" id="surveillance-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-eye text-yellow-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metric-card p-6 rounded-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm mb-1">Data Enriched</p>
+                        <p class="text-2xl font-bold text-white" id="enriched-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-database text-purple-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="glass-card p-6 mb-8">
+            <h3 class="text-xl font-semibold text-white mb-4">Quick Actions</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="/geospatial.html" class="btn-primary">
+                    <i class="fas fa-map mr-2"></i>View Geospatial Map
+                </a>
+                <button class="btn-secondary" onclick="runSurveillanceScan()">
+                    <i class="fas fa-search mr-2"></i>Run Surveillance Scan
+                </button>
+                <button class="btn-secondary" onclick="exportData()">
+                    <i class="fas fa-download mr-2"></i>Export Data
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-card mt-12">
+        <div class="container mx-auto px-6 py-8">
+            <div class="border-t border-gray-600 pt-8 text-center">
+                <p class="text-gray-400 text-sm">&copy; 2024 ShadowCheck. Professional SIGINT Forensics Platform.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Highlight active page in navigation
+        function highlightActiveNav() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('a.nav-link').forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                
+                if ((currentPath === '/' || currentPath === '/index.html') && (href === '/' || href === '/index.html')) {
+                    link.classList.add('active');
+                } else if (href !== '/' && currentPath.includes(href.replace('/', ''))) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Load dashboard metrics
+        async function loadMetrics() {
+            try {
+                const response = await fetch('/api/dashboard-metrics');
+                const data = await response.json();
+                
+                document.getElementById('total-networks').textContent = data.totalNetworks.toLocaleString();
+                document.getElementById('threats-count').textContent = data.threatsCount.toLocaleString();
+                document.getElementById('surveillance-count').textContent = data.surveillanceCount.toLocaleString();
+                document.getElementById('enriched-count').textContent = data.enrichedCount.toLocaleString();
+            } catch (err) {
+                console.error('Error loading metrics:', err);
+            }
+        }
+
+        function runSurveillanceScan() {
+            alert('Starting surveillance scan...');
+        }
+
+        function exportData() {
+            alert('Exporting data...');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            highlightActiveNav();
+            loadMetrics();
+        });
+    </script>
+</body>
+</html>
