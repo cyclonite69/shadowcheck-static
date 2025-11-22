@@ -127,7 +127,7 @@
 
         .main {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             grid-template-rows: 1fr 1fr;
             gap: 12px;
             padding: 12px;
@@ -253,6 +253,25 @@
                 <div class="panel-content">
                     <div class="chart-container">
                         <canvas id="temporalChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Radio Type Over Time -->
+            <div class="panel">
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📊 Network Types Over Time</span>
+                    <select id="timeRange" onchange="loadRadioTypeTime()" style="background: rgba(30, 41, 59, 0.8); color: #e0e7ff; border: 1px solid rgba(148, 163, 184, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                        <option value="24h">24 Hours</option>
+                        <option value="7d">7 Days</option>
+                        <option value="30d" selected>30 Days</option>
+                        <option value="90d">90 Days</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+                <div class="panel-content">
+                    <div class="chart-container">
+                        <canvas id="radioTypeTimeChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -428,6 +447,143 @@
             }
         }
 
+        // Load radio type over time
+        async function loadRadioTypeTime() {
+            try {
+                const range = document.getElementById('timeRange')?.value || '30d';
+                console.log(`📊 Loading radio type over time (${range})...`);
+
+                const res = await fetch(`${API_BASE}/analytics/radio-type-over-time?range=${range}`);
+
+                if (!res.ok) {
+                    console.error('✗ Radio type over time API failed:', res.status);
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (!data || !data.data || !Array.isArray(data.data)) {
+                    console.warn('⚠️ No radio type time data available');
+                    return;
+                }
+
+                // Group data by date and type, maintaining chronological order
+                const dateMap = new Map();
+                const types = new Set();
+
+                // First, collect unique dates and types
+                data.data.forEach(item => {
+                    const date = new Date(item.date);
+                    const timestamp = date.getTime();
+
+                    if (!dateMap.has(timestamp)) {
+                        dateMap.set(timestamp, { date: date, types: {} });
+                    }
+
+                    dateMap.get(timestamp).types[item.type] = item.count;
+                    types.add(item.type);
+                });
+
+                // Sort by timestamp and format labels
+                const sortedEntries = Array.from(dateMap.entries()).sort((a, b) => a[0] - b[0]);
+
+                const dates = sortedEntries.map(([timestamp, data]) => {
+                    const date = data.date;
+
+                    // Format based on time range
+                    if (range === '24h') {
+                        return date.toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            hour12: true
+                        });
+                    } else if (range === 'all') {
+                        return date.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: '2-digit'
+                        });
+                    } else {
+                        return date.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                        });
+                    }
+                });
+
+                const typesList = Array.from(types).sort();
+
+                console.log(`  ↳ Time range: ${range}`);
+                console.log(`  ↳ Data points: ${sortedEntries.length}`);
+                console.log(`  ↳ Network types: ${typesList.join(', ')}`);
+                console.log(`  ↳ Date range: ${dates[0]} → ${dates[dates.length - 1]}`);
+
+                // Create datasets for each network type
+                const datasets = typesList.map((type, idx) => {
+                    const colors = {
+                        'WiFi': 'rgb(59, 130, 246)',
+                        'BLE': 'rgb(139, 92, 246)',
+                        'BT': 'rgb(168, 85, 247)',
+                        'LTE': 'rgb(16, 185, 129)',
+                        'NR': 'rgb(34, 197, 94)',
+                        'GSM': 'rgb(245, 158, 11)'
+                    };
+
+                    return {
+                        label: type,
+                        data: sortedEntries.map(([timestamp, entry]) => entry.types[type] || 0),
+                        borderColor: colors[type] || `hsl(${idx * 60}, 70%, 50%)`,
+                        backgroundColor: (colors[type] || `hsl(${idx * 60}, 70%, 50%)`) + '40',
+                        fill: true,
+                        tension: 0.4
+                    };
+                });
+
+                const ctx = document.getElementById('radioTypeTimeChart');
+                if (!ctx) return;
+
+                // Destroy existing chart if it exists
+                if (charts['radioTypeTimeChart']) {
+                    charts['radioTypeTimeChart'].destroy();
+                }
+
+                charts['radioTypeTimeChart'] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: { color: '#cbd5e1', font: { size: 11 } }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#94a3b8', font: { size: 10 } },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                            },
+                            y: {
+                                ticks: { color: '#94a3b8', font: { size: 10 } },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                stacked: false
+                            }
+                        }
+                    }
+                });
+
+                console.log('✓ Radio type over time chart rendered');
+            } catch (err) {
+                console.error('✗ Error loading radio type over time:', err);
+            }
+        }
+
         // Initialize on load
         document.addEventListener('DOMContentLoaded', () => {
             highlightActiveNav();
@@ -435,6 +591,7 @@
             loadSignalStrength();
             loadSecurity();
             loadTemporal();
+            loadRadioTypeTime();
         });
     </script>
 </body>

@@ -303,6 +303,136 @@
             font-size: 12px;
             padding: 40px;
         }
+
+        /* Column Selector Styles */
+        .column-selector {
+            position: relative;
+            display: inline-block;
+        }
+
+        .column-selector-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        .column-selector-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .column-selector-header {
+            padding: 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .reset-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .reset-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .column-selector-list {
+            padding: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .column-selector-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            gap: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .column-selector-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .column-selector-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .column-selector-item span {
+            color: #e0e7ff;
+        }
+
+        /* Sortable Table Headers */
+        .network-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 24px;
+        }
+
+        .network-table th.sortable:hover {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .network-table th .sort-indicator {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #60a5fa;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .network-table th.sorted .sort-indicator {
+            opacity: 1;
+        }
+
+        .network-table th.sortable:hover .sort-indicator {
+            opacity: 0.5;
+        }
+
+        /* Network Table Enhancements */
+        .network-table tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        .network-table tbody tr:nth-child(even) {
+            background: rgba(30, 41, 59, 0.3);
+        }
+
+        .network-table tbody tr:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .network-table td.mono {
+            font-family: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        .network-count-info {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
@@ -338,20 +468,22 @@
                 <div class="panel-header">
                     📡 All Networks
                     <span class="panel-count" id="network-count">0</span>
+                    <span class="network-count-info" id="network-count-info"></span>
+                    <div id="column-selector-container"></div>
                 </div>
                 <div class="panel-content">
-                    <table class="network-table">
+                    <table class="network-table" id="networks-table">
                         <thead>
                             <tr>
+                                <th>Type</th>
                                 <th>SSID</th>
                                 <th>BSSID</th>
-                                <th>Type</th>
                                 <th>Signal</th>
                                 <th>Security</th>
                                 <th>Last Seen</th>
                             </tr>
                         </thead>
-                        <tbody id="networks-tbody">
+                        <tbody>
                             <tr>
                                 <td colspan="6" class="loading">Loading networks...</td>
                             </tr>
@@ -364,11 +496,467 @@
 
     <script>
         const API_BASE = 'http://localhost:5001/api';
-        let allNetworks = [];
-        let displayedCount = 0;
-        const BATCH_SIZE = 50;
-        let isSearching = false;
-        let isLoading = false;
+
+        // Advanced Network Table Configuration (Full Schema)
+        const NETWORK_COLUMNS = {
+            type: {
+                label: 'Type',
+                width: '60px',
+                sortable: true,
+                default: true,
+                format: (val) => {
+                    const typeMap = {
+                        'W': 'WiFi',
+                        'E': 'BLE',
+                        'B': 'BT',
+                        'L': 'LTE',
+                        'N': '5G NR',
+                        'G': 'GSM'
+                    };
+                    return typeMap[val] || 'WiFi';
+                }
+            },
+            ssid: {
+                label: 'SSID',
+                width: '150px',
+                sortable: true,
+                default: true,
+                format: (val) => val || '(hidden)'
+            },
+            bssid: {
+                label: 'BSSID',
+                width: '120px',
+                sortable: true,
+                default: true,
+                monospace: true,
+                format: (val) => val || 'N/A'
+            },
+            signal: {
+                label: 'Signal (dBm)',
+                width: '100px',
+                sortable: true,
+                default: true,
+                format: (val) => val !== null && val !== undefined ? `${val} dBm` : 'N/A',
+                sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : -999
+            },
+            security: {
+                label: 'Security',
+                width: '140px',
+                sortable: true,
+                default: true,
+                format: (val) => val || 'Unknown'
+            },
+            frequency: {
+                label: 'Frequency (GHz)',
+                width: '120px',
+                sortable: true,
+                default: false,
+                format: (val) => val ? `${parseFloat(val).toFixed(3)} GHz` : 'N/A',
+                sortValue: (val) => val ? parseFloat(val) : 0
+            },
+            channel: {
+                label: 'Channel',
+                width: '80px',
+                sortable: true,
+                default: false,
+                format: (val) => val || 'N/A'
+            },
+            observations: {
+                label: 'Observations',
+                width: '110px',
+                sortable: true,
+                default: false,
+                format: (val) => val || '1',
+                sortValue: (val) => val ? parseInt(val) : 1
+            },
+            latitude: {
+                label: 'Latitude',
+                width: '110px',
+                sortable: true,
+                default: false,
+                format: (val) => val !== null && val !== undefined ? parseFloat(val).toFixed(6) : 'N/A',
+                sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : 0
+            },
+            longitude: {
+                label: 'Longitude',
+                width: '110px',
+                sortable: true,
+                default: false,
+                format: (val) => val !== null && val !== undefined ? parseFloat(val).toFixed(6) : 'N/A',
+                sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : 0
+            },
+            distanceFromHome: {
+                label: 'Distance (km)',
+                width: '110px',
+                sortable: true,
+                default: false,
+                format: (val) => val !== null && val !== undefined ? `${parseFloat(val).toFixed(2)} km` : 'N/A',
+                sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : 999999
+            },
+            accuracy: {
+                label: 'Accuracy (m)',
+                width: '100px',
+                sortable: true,
+                default: false,
+                format: (val) => val !== null && val !== undefined ? `${parseFloat(val).toFixed(1)} m` : 'N/A',
+                sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : 0
+            },
+            timestamp: {
+                label: 'Last Seen',
+                width: '160px',
+                sortable: true,
+                default: true,
+                format: (val) => {
+                    if (!val) return 'Unknown';
+                    try {
+                        const date = typeof val === 'number' ? new Date(val) : new Date(val);
+                        return date.toLocaleString();
+                    } catch (e) {
+                        return 'Unknown';
+                    }
+                },
+                sortValue: (val) => {
+                    if (!val) return 0;
+                    return typeof val === 'number' ? val : new Date(val).getTime();
+                }
+            },
+            misc: {
+                label: 'Misc',
+                width: '200px',
+                sortable: false,
+                default: false,
+                format: (val) => val || ''
+            }
+        };
+
+        // Network Table State Management
+        class NetworkTableManager {
+            constructor(pageId, abbreviatedMode = false) {
+                this.pageId = pageId;
+                this.abbreviatedMode = abbreviatedMode;
+                this.storageKey = `networkListColumns-${pageId}`;
+                this.networks = [];
+                this.filteredNetworks = [];
+                this.currentSort = { column: null, direction: null };
+                this.visibleColumns = this.loadColumnPreferences();
+                this.searchTerm = '';
+                this.displayedCount = 0;
+                this.batchSize = 50;
+            }
+
+            // Load column visibility preferences from localStorage
+            loadColumnPreferences() {
+                const saved = localStorage.getItem(this.storageKey);
+                if (saved) {
+                    try {
+                        return JSON.parse(saved);
+                    } catch (e) {
+                        console.error('Error loading column preferences:', e);
+                    }
+                }
+                // Return default columns
+                return Object.keys(NETWORK_COLUMNS).filter(col => NETWORK_COLUMNS[col].default);
+            }
+
+            // Save column visibility preferences to localStorage
+            saveColumnPreferences() {
+                localStorage.setItem(this.storageKey, JSON.stringify(this.visibleColumns));
+            }
+
+            // Reset to default columns
+            resetToDefaults() {
+                this.visibleColumns = Object.keys(NETWORK_COLUMNS).filter(col => NETWORK_COLUMNS[col].default);
+                this.saveColumnPreferences();
+            }
+
+            // Toggle column visibility
+            toggleColumn(columnKey) {
+                const index = this.visibleColumns.indexOf(columnKey);
+                if (index > -1) {
+                    this.visibleColumns.splice(index, 1);
+                } else {
+                    this.visibleColumns.push(columnKey);
+                }
+                this.saveColumnPreferences();
+            }
+
+            // Set sort column
+            setSort(column) {
+                if (!NETWORK_COLUMNS[column] || !NETWORK_COLUMNS[column].sortable) return;
+
+                if (this.currentSort.column === column) {
+                    // Cycle through: asc -> desc -> null
+                    if (this.currentSort.direction === 'asc') {
+                        this.currentSort.direction = 'desc';
+                    } else if (this.currentSort.direction === 'desc') {
+                        this.currentSort = { column: null, direction: null };
+                    }
+                } else {
+                    this.currentSort = { column, direction: 'asc' };
+                }
+            }
+
+            // Apply search filter
+            setSearch(term) {
+                this.searchTerm = term.toLowerCase();
+                this.applyFilters();
+            }
+
+            // Apply filters (search)
+            applyFilters() {
+                if (!this.searchTerm) {
+                    this.filteredNetworks = [...this.networks];
+                } else {
+                    this.filteredNetworks = this.networks.filter(net => {
+                        const ssid = (net.ssid || '').toLowerCase();
+                        const bssid = (net.bssid || '').toLowerCase();
+                        return ssid.includes(this.searchTerm) || bssid.includes(this.searchTerm);
+                    });
+                }
+                this.displayedCount = 0; // Reset on filter change
+            }
+
+            // Load more networks (for infinite scroll)
+            loadMore() {
+                this.displayedCount += this.batchSize;
+            }
+
+            // Check if more networks available
+            hasMore() {
+                const sorted = this.getSortedNetworks();
+                return this.displayedCount < sorted.length;
+            }
+
+            // Get sorted networks
+            getSortedNetworks() {
+                let sorted = [...this.filteredNetworks];
+
+                if (this.currentSort.column) {
+                    const col = NETWORK_COLUMNS[this.currentSort.column];
+                    const direction = this.currentSort.direction === 'asc' ? 1 : -1;
+
+                    sorted.sort((a, b) => {
+                        let aVal = a[this.currentSort.column];
+                        let bVal = b[this.currentSort.column];
+
+                        // Use sortValue function if available
+                        if (col.sortValue) {
+                            aVal = col.sortValue(aVal);
+                            bVal = col.sortValue(bVal);
+                        }
+
+                        // Handle null/undefined
+                        if (aVal === null || aVal === undefined) return direction;
+                        if (bVal === null || bVal === undefined) return -direction;
+
+                        // Numeric comparison
+                        if (typeof aVal === 'number' && typeof bVal === 'number') {
+                            return (aVal - bVal) * direction;
+                        }
+
+                        // String comparison (case-insensitive)
+                        const aStr = String(aVal).toLowerCase();
+                        const bStr = String(bVal).toLowerCase();
+                        return aStr.localeCompare(bStr) * direction;
+                    });
+                }
+
+                return sorted;
+            }
+
+            // Set networks data
+            setNetworks(networks) {
+                this.networks = networks;
+                this.applyFilters();
+            }
+
+            // Render column selector UI
+            renderColumnSelector(containerId) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+
+                const html = `
+                    <div class="column-selector">
+                        <button class="column-selector-btn" onclick="toggleColumnSelectorDropdown()">
+                            ⚙️ Columns
+                        </button>
+                        <div class="column-selector-dropdown" id="column-selector-dropdown" style="display: none;">
+                            <div class="column-selector-header">
+                                <span>Show/Hide Columns</span>
+                                <button onclick="networkTable.resetToDefaults(); renderNetworkTable();" class="reset-btn">Reset</button>
+                            </div>
+                            <div class="column-selector-list">
+                                ${Object.keys(NETWORK_COLUMNS).map(key => `
+                                    <label class="column-selector-item">
+                                        <input
+                                            type="checkbox"
+                                            ${this.visibleColumns.includes(key) ? 'checked' : ''}
+                                            onchange="networkTable.toggleColumn('${key}'); renderNetworkTable();"
+                                        />
+                                        <span>${NETWORK_COLUMNS[key].label}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML = html;
+            }
+        }
+
+        // Toggle column selector dropdown
+        function toggleColumnSelectorDropdown() {
+            const dropdown = document.getElementById('column-selector-dropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('column-selector-dropdown');
+            const btn = document.querySelector('.column-selector-btn');
+            if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Render network table with current settings
+        function renderNetworkTable(tableId = 'networks-table', onRowClick = null, append = false) {
+            if (!window.networkTable) return;
+
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            const tbody = table.querySelector('tbody');
+            const thead = table.querySelector('thead');
+            if (!tbody || !thead) return;
+
+            // Get sorted networks
+            const allNetworks = networkTable.getSortedNetworks();
+
+            // Render table headers (unless appending)
+            if (!append) {
+                const headerRow = document.createElement('tr');
+                networkTable.visibleColumns.forEach(colKey => {
+                    const col = NETWORK_COLUMNS[colKey];
+                    const th = document.createElement('th');
+                    th.style.width = col.width;
+                    th.textContent = col.label;
+
+                    if (col.sortable) {
+                        th.className = 'sortable';
+                        th.onclick = () => {
+                            networkTable.setSort(colKey);
+                            renderNetworkTable(tableId, onRowClick);
+                        };
+
+                        // Add sort indicator
+                        const indicator = document.createElement('span');
+                        indicator.className = 'sort-indicator';
+                        if (networkTable.currentSort.column === colKey) {
+                            th.classList.add('sorted');
+                            indicator.textContent = networkTable.currentSort.direction === 'asc' ? '▲' : '▼';
+                        } else {
+                            indicator.textContent = '▲';
+                        }
+                        th.appendChild(indicator);
+                    }
+
+                    headerRow.appendChild(th);
+                });
+                thead.innerHTML = '';
+                thead.appendChild(headerRow);
+            }
+
+            // Clear body if not appending
+            if (!append) {
+                tbody.innerHTML = '';
+                networkTable.displayedCount = 0;
+            }
+
+            // Check if empty
+            if (allNetworks.length === 0 && !append) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = networkTable.visibleColumns.length;
+                td.className = 'loading';
+                td.textContent = networkTable.searchTerm ? 'No networks found matching search' : 'No networks found';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+
+            // Get the batch to render
+            const startIdx = networkTable.displayedCount;
+            const endIdx = Math.min(startIdx + networkTable.batchSize, allNetworks.length);
+            const networksToRender = allNetworks.slice(startIdx, endIdx);
+
+            // Render networks
+            networksToRender.forEach(network => {
+                const tr = document.createElement('tr');
+                tr.dataset.bssid = network.bssid;
+
+                // Add click handler if provided
+                if (onRowClick) {
+                    tr.style.cursor = 'pointer';
+                    tr.onclick = () => onRowClick(network);
+                }
+
+                networkTable.visibleColumns.forEach(colKey => {
+                    const col = NETWORK_COLUMNS[colKey];
+                    const td = document.createElement('td');
+
+                    // Get value from network data
+                    let value = network[colKey];
+
+                    // Special handling for latitude/longitude from location object
+                    if (colKey === 'latitude' && network.location) {
+                        value = network.location.lat;
+                    } else if (colKey === 'longitude' && network.location) {
+                        value = network.location.lng;
+                    }
+
+                    // Format value
+                    td.textContent = col.format ? col.format(value) : (value || 'N/A');
+
+                    // Apply monospace style if needed
+                    if (col.monospace) {
+                        td.className = 'mono';
+                    }
+
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            });
+
+            // Update displayed count
+            networkTable.displayedCount = endIdx;
+
+            // Update count display
+            updateNetworkCount();
+        }
+
+        // Update network count display
+        function updateNetworkCount() {
+            if (!window.networkTable) return;
+
+            const countEl = document.getElementById('network-count');
+            const infoEl = document.getElementById('network-count-info');
+
+            const total = networkTable.networks.length;
+            const filtered = networkTable.filteredNetworks.length;
+
+            if (networkTable.searchTerm) {
+                countEl.textContent = filtered;
+                if (infoEl) infoEl.textContent = `of ${total}`;
+            } else {
+                countEl.textContent = total;
+                if (infoEl) infoEl.textContent = '';
+            }
+        }
 
         // Highlight active nav
         function highlightActiveNav() {
@@ -385,129 +973,40 @@
             });
         }
 
-        // Load networks
+        // Load networks from API
         async function loadNetworks() {
             try {
-                console.log('📡 Loading all networks...');
-                isLoading = true;
+                console.log('📡 Loading networks with all fields...');
                 const response = await fetch(`${API_BASE}/networks`);
 
                 if (!response.ok) {
                     console.error('✗ Networks API failed:', response.status);
-                    document.getElementById('networks-tbody').innerHTML = '<tr><td colspan="6" class="loading">API Error</td></tr>';
                     return;
                 }
 
                 const networks = await response.json();
+                console.log(`✓ Loaded ${networks.length} networks with fields:`, Object.keys(networks[0] || {}));
 
-                if (Array.isArray(networks)) {
-                    allNetworks = networks;
-                    displayedCount = 0;
-                    isSearching = false;
-                    document.getElementById('networks-tbody').innerHTML = '';
-                    loadMoreNetworks();
-                    document.getElementById('network-count').textContent = networks.length;
-                    console.log(`✓ Loaded ${networks.length} networks`);
-                } else {
-                    console.error('✗ Invalid response format');
-                    document.getElementById('networks-tbody').innerHTML = '<tr><td colspan="6" class="loading">Invalid data format</td></tr>';
+                // Initialize table manager if not exists
+                if (!window.networkTable) {
+                    window.networkTable = new NetworkTableManager('networks', false);
                 }
+
+                // Set networks and render
+                networkTable.setNetworks(networks);
+                networkTable.renderColumnSelector('column-selector-container');
+                renderNetworkTable();
             } catch (error) {
                 console.error('✗ Error loading networks:', error);
-                document.getElementById('networks-tbody').innerHTML = '<tr><td colspan="6" class="loading">Error loading networks</td></tr>';
-            } finally {
-                isLoading = false;
             }
-        }
-
-        // Load more networks (infinite scroll)
-        function loadMoreNetworks() {
-            const networksToShow = allNetworks.slice(displayedCount, displayedCount + BATCH_SIZE);
-            displayNetworks(networksToShow, true);
-            displayedCount += networksToShow.length;
-        }
-
-        // Display networks in table
-        function displayNetworks(networks, append = false) {
-            const tbody = document.getElementById('networks-tbody');
-
-            if (!append) {
-                tbody.innerHTML = '';
-            }
-
-            if (networks.length === 0 && !append) {
-                tbody.innerHTML = '<tr><td colspan="6" class="loading">No networks found</td></tr>';
-                return;
-            }
-
-            networks.forEach(network => {
-                const row = document.createElement('tr');
-
-                const typeBadge = getTypeBadge(network.type);
-                const signalClass = getSignalClass(network.signal);
-                const lastSeen = network.lastSeen ? new Date(network.lastSeen).toLocaleString() : 'Unknown';
-
-                row.innerHTML = `
-                    <td class="network-ssid">${network.ssid || '&lt;Hidden&gt;'}</td>
-                    <td class="network-bssid">${network.bssid || 'N/A'}</td>
-                    <td>${typeBadge}</td>
-                    <td class="${signalClass}">${network.signal ? network.signal + ' dBm' : 'N/A'}</td>
-                    <td>${network.security || 'Unknown'}</td>
-                    <td>${lastSeen}</td>
-                `;
-
-                tbody.appendChild(row);
-            });
-        }
-
-        // Get type badge
-        function getTypeBadge(type) {
-            const typeMap = {
-                'W': '<span class="badge badge-wifi">WiFi</span>',
-                'E': '<span class="badge badge-ble">BLE</span>',
-                'B': '<span class="badge badge-ble">BT</span>',
-                'L': '<span class="badge badge-wifi">LTE</span>',
-                'N': '<span class="badge badge-wifi">5G</span>',
-                'G': '<span class="badge badge-wifi">GSM</span>'
-            };
-            return typeMap[type] || '<span class="badge badge-wifi">Unknown</span>';
-        }
-
-        // Get signal class
-        function getSignalClass(signal) {
-            if (!signal) return '';
-            if (signal > -50) return 'signal-strong';
-            if (signal > -70) return 'signal-medium';
-            return 'signal-weak';
         }
 
         // Search functionality
         document.getElementById('search-input').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-
-            if (!query) {
-                // Reset to show all networks
-                console.log('🔍 Search cleared, resetting view');
-                isSearching = false;
-                displayedCount = 0;
-                document.getElementById('networks-tbody').innerHTML = '';
-                loadMoreNetworks();
-                document.getElementById('network-count').textContent = allNetworks.length;
-                return;
+            if (window.networkTable) {
+                networkTable.setSearch(e.target.value);
+                renderNetworkTable();
             }
-
-            // Filter networks
-            console.log(`🔍 Searching for: "${query}"`);
-            isSearching = true;
-            const filtered = allNetworks.filter(n =>
-                (n.ssid && n.ssid.toLowerCase().includes(query)) ||
-                (n.bssid && n.bssid.toLowerCase().includes(query))
-            );
-
-            // Show filtered results (all at once, no infinite scroll during search)
-            displayNetworks(filtered, false);
-            document.getElementById('network-count').textContent = `${filtered.length} / ${allNetworks.length}`;
-            console.log(`✓ Found ${filtered.length} matching networks`);
         });
 
         // Refresh button
@@ -519,18 +1018,25 @@
         // Setup infinite scroll
         function setupInfiniteScroll() {
             const panelContent = document.querySelector('.panel-content');
+            if (!panelContent) return;
+
+            let isLoading = false;
 
             panelContent.addEventListener('scroll', () => {
-                // Don't trigger infinite scroll during search or if already loading
-                if (isSearching || isLoading) return;
+                if (isLoading || !window.networkTable) return;
 
                 const { scrollTop, scrollHeight, clientHeight } = panelContent;
 
                 // Trigger when 200px from bottom
                 if (scrollTop + clientHeight >= scrollHeight - 200) {
-                    if (displayedCount < allNetworks.length) {
-                        console.log(`📜 Loading more networks (${displayedCount}/${allNetworks.length})`);
-                        loadMoreNetworks();
+                    if (networkTable.hasMore()) {
+                        isLoading = true;
+                        console.log(`📜 Loading more networks (${networkTable.displayedCount}/${networkTable.getSortedNetworks().length})`);
+
+                        networkTable.loadMore();
+                        renderNetworkTable('networks-table', null, true); // append = true
+
+                        setTimeout(() => { isLoading = false; }, 100);
                     }
                 }
             });

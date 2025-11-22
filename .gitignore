@@ -33,3 +33,10 @@ npm-debug.log*
 
 # OS files
 Thumbs.db
+
+# From plan
+dist/
+build/
+shadowcheck-static.backup/
+tooltip-search.js
+tooltip-search-backup.js
