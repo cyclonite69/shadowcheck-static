@@ -679,7 +679,6 @@ try {
               OR max_distance_between_obs_km > 5
             )
           ORDER BY threat_score DESC, total_observations DESC
-          LIMIT 100
         `, [MIN_VALID_TIMESTAMP]);
 
         res.json({
@@ -952,7 +951,6 @@ try {
           WHERE n.bssid IS NOT NULL
             AND (n.lasttime IS NULL OR n.lasttime >= $1)
           ORDER BY n.lasttime DESC NULLS LAST
-          LIMIT 1000
         `, [MIN_VALID_TIMESTAMP, home?.lat || null, home?.lon || null]);
 
         const networks = rows.map(row => ({
