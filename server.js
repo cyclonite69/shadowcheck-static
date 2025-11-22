@@ -5,9 +5,23 @@ try {
     const express = require('express');
     const path = require('path');
     const { Pool } = require('pg');
+    const errorHandler = require('./utils/errorHandler');
+    const rateLimit = require('express-rate-limit');
 
     const app = express();
-    const port = process.env.PORT || 3000;
+    const port = process.env.PORT || 3001;
+
+    // Apply to all requests
+    // Rate limiting to prevent abuse
+    const apiLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // Limit each IP to 100 requests per windowMs
+      message: 'Too many requests from this IP, please try again after 15 minutes'
+    });
+
+    // Apply the rate limiting middleware to API calls only
+    app.use('/api/', apiLimiter);
+
 
 
     // Database connection configuration
@@ -146,8 +160,7 @@ try {
 
         res.json(metrics);
       } catch (err) {
-        console.error('Error fetching dashboard metrics:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
 
@@ -182,8 +195,7 @@ try {
           }))
         });
       } catch (err) {
-        console.error('Error fetching network types:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
 
@@ -216,8 +228,7 @@ try {
           }))
         });
       } catch (err) {
-        console.error('Error fetching signal strength:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
 
@@ -243,8 +254,7 @@ try {
           }))
         });
       } catch (err) {
-        console.error('Error fetching temporal activity:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
 
@@ -317,8 +327,7 @@ try {
           }))
         });
       } catch (err) {
-        console.error('Error fetching radio type over time:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
 
@@ -367,16 +376,23 @@ try {
           }))
         });
       } catch (err) {
-        console.error('Error fetching security analysis:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
 
     // API endpoint for quick threat detection with pagination
-    app.get('/api/threats/quick', async (req, res) => {
+    app.get('/api/threats/quick', async (req, res, next) => {
       try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 100;
+        const page = parseInt(req.query.page);
+        const limit = parseInt(req.query.limit);
+
+        if (isNaN(page) || page <= 0) {
+          return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
+        }
+        if (isNaN(limit) || limit <= 0) {
+          return res.status(400).json({ error: 'Invalid limit parameter. Must be a positive integer.' });
+        }
+        
         const offset = (page - 1) * limit;
 
         const { rows } = await query(`
@@ -435,13 +451,16 @@ try {
             (ns.last_seen - ns.first_seen) as observation_timespan_ms,
             ns.seen_at_home,
             ns.seen_away_from_home,
-            (
+            COALESCE(nt.threat_score * 100, (
               CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 40 ELSE 0 END +
               CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.2 THEN 25 ELSE 0 END +
               CASE WHEN ns.unique_days >= 7 THEN 15 WHEN ns.unique_days >= 3 THEN 10 WHEN ns.unique_days >= 2 THEN 5 ELSE 0 END +
               CASE WHEN ns.observation_count >= 50 THEN 10 WHEN ns.observation_count >= 20 THEN 5 ELSE 0 END
-            ) as threat_score,
+            )) as threat_score,
             CASE
+              WHEN nt.tag_type = 'THREAT' THEN 'User Tagged Threat'
+              WHEN nt.tag_type = 'INVESTIGATE' THEN 'User Tagged Investigate'
+              WHEN nt.tag_type = 'FALSE_POSITIVE' THEN 'User Tagged False Positive'
               WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 'Potential Tracking Device'
               WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 1 THEN 'Mobile Device Pattern'
               ELSE 'Movement Detected'
@@ -449,7 +468,11 @@ try {
             -- Include user tags and ML threat scores
             nt.tag_type as user_tag,
             nt.threat_score as user_threat_score,
-            nt.ml_confidence,
+            COALESCE(nt.ml_confidence, (CASE
+              WHEN ns.observation_count >= 10 THEN 0.9
+              WHEN ns.observation_count >= 5 THEN 0.7
+              ELSE 0.4
+            END)) as ml_confidence,
             nt.confidence as user_confidence,
             nt.notes as user_notes,
             nt.user_override,
@@ -457,12 +480,13 @@ try {
             COUNT(*) OVER() as total_count
           FROM network_stats ns
           LEFT JOIN app.network_tags nt ON ns.bssid = nt.bssid
-          WHERE (
-            CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 40 ELSE 0 END +
-            CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.2 THEN 25 ELSE 0 END +
-            CASE WHEN ns.unique_days >= 7 THEN 15 WHEN ns.unique_days >= 3 THEN 10 WHEN ns.unique_days >= 2 THEN 5 ELSE 0 END +
-            CASE WHEN ns.observation_count >= 50 THEN 10 WHEN ns.observation_count >= 20 THEN 5 ELSE 0 END
-          ) >= 30
+          WHERE
+            COALESCE(nt.threat_score * 100, (
+              CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 40 ELSE 0 END +
+              CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.2 THEN 25 ELSE 0 END +
+              CASE WHEN ns.unique_days >= 7 THEN 15 WHEN ns.unique_days >= 3 THEN 10 WHEN ns.unique_days >= 2 THEN 5 ELSE 0 END +
+              CASE WHEN ns.observation_count >= 50 THEN 10 WHEN ns.observation_count >= 20 THEN 5 ELSE 0 END
+            )) >= 30
           -- Filter out cellular networks (GSM, LTE, 5G) unless they have >5km distance range
           AND (
             ns.type NOT IN ('G', 'L', 'N')
@@ -470,15 +494,9 @@ try {
           )
           ORDER BY
             ns.max_distance_from_home_km DESC,
-            (
-              CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 40 ELSE 0 END +
-              CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.2 THEN 25 ELSE 0 END +
-              CASE WHEN ns.unique_days >= 7 THEN 15 WHEN ns.unique_days >= 3 THEN 10 WHEN ns.unique_days >= 2 THEN 5 ELSE 0 END +
-              CASE WHEN ns.observation_count >= 50 THEN 10 WHEN ns.observation_count >= 20 THEN 5 ELSE 0 END
-            ) DESC,
+            threat_score DESC,
             ns.unique_days DESC,
             ns.observation_count DESC
-          LIMIT $2 OFFSET $3
         `, [MIN_VALID_TIMESTAMP, limit, offset]);
 
         const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
@@ -497,7 +515,7 @@ try {
             totalObservations: row.observation_count,
             threatScore: parseInt(row.threat_score),
             threatType: row.threat_type,
-            confidence: row.observation_count >= 10 ? 'High' : row.observation_count >= 5 ? 'Medium' : 'Low',
+            confidence: (row.ml_confidence * 100).toFixed(0),
             firstSeen: row.first_seen,
             lastSeen: row.last_seen,
             timespanDays: Math.round(parseInt(row.observation_timespan_ms) / (1000 * 60 * 60 * 24)),
@@ -520,8 +538,7 @@ try {
           }))
         });
       } catch (err) {
-        console.error('Error detecting threats (quick):', err);
-        res.status(500).json({ error: 'Internal server error', details: err.message });
+        next(err);
       }
     });
 
@@ -603,57 +620,65 @@ try {
           ),
           threat_classification AS (
             SELECT
-              *,
+              ta.*,
+              nt.tag_type as user_tag,
+              nt.confidence as user_confidence,
+              nt.notes as user_notes,
+              nt.user_override,
               -- Threat Score Calculation (0-100)
-              (
+              COALESCE(nt.threat_score * 100, (
                 -- High threat: Seen at home AND away (possible tracking device)
-                CASE WHEN seen_at_home AND seen_away_from_home THEN 40 ELSE 0 END +
+                CASE WHEN ta.seen_at_home AND ta.seen_away_from_home THEN 40 ELSE 0 END +
 
                 -- Medium threat: Multiple distant observations beyond WiFi range (200m)
-                CASE WHEN max_distance_between_obs_km > 0.2 THEN 25 ELSE 0 END +
+                CASE WHEN ta.max_distance_between_obs_km > 0.2 THEN 25 ELSE 0 END +
 
                 -- High threat: Rapid movement (>50 km/h suggests vehicle tracking)
                 CASE
-                  WHEN max_speed_kmh > 100 THEN 20  -- Very fast movement
-                  WHEN max_speed_kmh > 50 THEN 15   -- Highway speed
-                  WHEN max_speed_kmh > 20 THEN 10   -- City driving
+                  WHEN ta.max_speed_kmh > 100 THEN 20  -- Very fast movement
+                  WHEN ta.max_speed_kmh > 50 THEN 15   -- Highway speed
+                  WHEN ta.max_speed_kmh > 20 THEN 10   -- City driving
                   ELSE 0
                 END +
 
                 -- Medium threat: Observed over multiple days (persistent tracking)
                 CASE
-                  WHEN unique_days_observed >= 7 THEN 15
-                  WHEN unique_days_observed >= 3 THEN 10
-                  WHEN unique_days_observed >= 2 THEN 5
+                  WHEN ta.unique_days_observed >= 7 THEN 15
+                  WHEN ta.unique_days_observed >= 3 THEN 10
+                  WHEN ta.unique_days_observed >= 2 THEN 5
                   ELSE 0
                 END +
 
                 -- Low threat: Many observations (could be legitimate or surveillance)
                 CASE
-                  WHEN total_observations >= 50 THEN 10
-                  WHEN total_observations >= 20 THEN 5
+                  WHEN ta.total_observations >= 50 THEN 10
+                  WHEN ta.total_observations >= 20 THEN 5
                   ELSE 0
                 END
-              ) as threat_score,
+              )) as threat_score,
 
               -- Threat Type Classification
               CASE
-                WHEN seen_at_home AND seen_away_from_home AND max_speed_kmh > 20 THEN 'Mobile Tracking Device'
-                WHEN seen_at_home AND seen_away_from_home THEN 'Potential Stalking Device'
-                WHEN max_distance_between_obs_km > 1 AND unique_days_observed > 1 THEN 'Following Pattern Detected'
-                WHEN max_speed_kmh > 100 THEN 'High-Speed Vehicle Tracker'
-                WHEN NOT seen_at_home AND max_distance_between_obs_km > 0.5 THEN 'Mobile Device (Non-Home)'
+                WHEN nt.tag_type = 'THREAT' THEN 'User Tagged Threat'
+                WHEN nt.tag_type = 'INVESTIGATE' THEN 'User Tagged Investigate'
+                WHEN nt.tag_type = 'FALSE_POSITIVE' THEN 'User Tagged False Positive'
+                WHEN ta.seen_at_home AND ta.seen_away_from_home AND ta.max_speed_kmh > 20 THEN 'Mobile Tracking Device'
+                WHEN ta.seen_at_home AND ta.seen_away_from_home THEN 'Potential Stalking Device'
+                WHEN ta.max_distance_between_obs_km > 1 AND ta.unique_days_observed > 1 THEN 'Following Pattern Detected'
+                WHEN ta.max_speed_kmh > 100 THEN 'High-Speed Vehicle Tracker'
+                WHEN NOT ta.seen_at_home AND ta.max_distance_between_obs_km > 0.5 THEN 'Mobile Device (Non-Home)'
                 ELSE 'Low Risk Movement'
               END as threat_type,
 
               -- Confidence Level
-              CASE
-                WHEN total_observations >= 10 AND unique_days_observed >= 3 THEN 'High'
-                WHEN total_observations >= 5 THEN 'Medium'
-                ELSE 'Low'
-              END as confidence
+              COALESCE(nt.ml_confidence, (CASE
+                WHEN ta.total_observations >= 10 AND ta.unique_days_observed >= 3 THEN 0.9
+                WHEN ta.total_observations >= 5 THEN 0.7
+                ELSE 0.4
+              END)) as confidence
 
-            FROM threat_analysis
+            FROM threat_analysis ta
+            LEFT JOIN app.network_tags nt ON ta.bssid = nt.bssid
           )
           SELECT
             bssid,
@@ -670,7 +695,11 @@ try {
             observation_timespan_ms,
             unique_days_observed,
             ROUND(max_speed_kmh::numeric, 2) as max_speed_kmh,
-            distances_from_home_km
+            distances_from_home_km,
+            user_tag,
+            user_confidence,
+            user_notes,
+            user_override
           FROM threat_classification
           WHERE threat_score >= 30  -- Only return significant threats
             -- Filter out cellular networks (GSM, LTE, 5G) unless they have >5km distance range
@@ -691,7 +720,7 @@ try {
             totalObservations: row.total_observations,
             threatScore: parseInt(row.threat_score),
             threatType: row.threat_type,
-            confidence: row.confidence,
+            confidence: (row.confidence * 100).toFixed(0),
             patterns: {
               seenAtHome: row.seen_at_home,
               seenAwayFromHome: row.seen_away_from_home,
@@ -700,12 +729,15 @@ try {
               uniqueDaysObserved: row.unique_days_observed,
               maxSpeedKmh: parseFloat(row.max_speed_kmh),
               distancesFromHomeKm: row.distances_from_home_km
-            }
+            },
+            userTag: row.user_tag,
+            userConfidence: row.user_confidence,
+            userNotes: row.user_notes,
+            userOverride: row.user_override
           }))
         });
       } catch (err) {
-        console.error('Error detecting threats:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
 
@@ -766,85 +798,49 @@ try {
           count: rows.length
         });
       } catch (err) {
-        console.error('Error fetching network observations:', err);
-        res.status(500).json({ error: 'Internal server error', details: err.message });
+        next(err);
       }
     });
 
     // API endpoint to tag a network
-    app.post('/api/tag-network', async (req, res) => {
+    app.post('/api/tag-network', async (req, res, next) => {
       try {
         const { bssid, tag_type, confidence, notes } = req.body;
 
-        if (!bssid || !tag_type) {
-          return res.status(400).json({ error: 'BSSID and tag_type are required' });
+        // Validate bssid
+        if (!bssid || !/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/i.test(bssid)) {
+          return res.status(400).json({ error: 'Valid BSSID is required (e.g., AA:BB:CC:DD:EE:FF)' });
         }
 
-        // Get network SSID
-        const networkResult = await query(`
-          SELECT ssid FROM app.networks_legacy WHERE bssid = $1 LIMIT 1
-        `, [bssid]);
+        // Validate tag_type
+        const validTagTypes = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
+        if (!tag_type || !validTagTypes.includes(tag_type.toUpperCase())) {
+          return res.status(400).json({ error: `Valid tag_type is required (one of: ${validTagTypes.join(', ')})` });
+        }
 
-        const ssid = networkResult.rows[0]?.ssid || null;
+        // Validate confidence
+        const parsedConfidence = parseFloat(confidence);
+        if (isNaN(parsedConfidence) || parsedConfidence < 0 || parsedConfidence > 100) {
+          return res.status(400).json({ error: 'Confidence must be a number between 0 and 100' });
+        }
 
-        // Map confidence 0-100 to 0.0-1.0
-        const confidenceDecimal = confidence ? confidence / 100.0 : 0.5;
+        // Validate notes
+        if (notes !== undefined && typeof notes !== 'string') {
+          return res.status(400).json({ error: 'Notes must be a string' });
+        }
 
-        // Map tag_type to threat_score
-        const threatScoreMap = {
-          'LEGIT': 0.0,
-          'FALSE_POSITIVE': 0.05,
-          'INVESTIGATE': 0.7,
-          'THREAT': 1.0
-        };
-        const threatScore = threatScoreMap[tag_type] || 0.5;
-
-        // Upsert tag
+        // Call the PostgreSQL function app.upsert_network_tag
         const result = await query(`
-          INSERT INTO app.network_tags (
-            bssid, ssid, tag_type, confidence, notes,
-            threat_score, ml_confidence, user_override,
-            tagged_at, tag_history, model_version
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, 1)
-          ON CONFLICT (bssid, tag_type)
-          DO UPDATE SET
-            confidence = $4,
-            notes = COALESCE($5, network_tags.notes),
-            threat_score = $6,
-            tagged_at = NOW(),
-            tag_history = network_tags.tag_history || $10
-          RETURNING id, bssid, tag_type, threat_score, ml_confidence, confidence
-        `, [
-          bssid,
-          ssid,
-          tag_type,
-          confidenceDecimal,
-          notes || null,
-          threatScore,
-          confidenceDecimal,  // Use user confidence as initial ML confidence
-          true,  // user_override
-          JSON.stringify([{
-            tag_type: tag_type,
-            confidence: confidenceDecimal,
-            timestamp: new Date().toISOString(),
-            source: 'quick_tag'
-          }]),
-          JSON.stringify({
-            tag_type: tag_type,
-            confidence: confidenceDecimal,
-            timestamp: new Date().toISOString(),
-            source: 'quick_tag'
-          })
-        ]);
+          SELECT tag_id, bssid, tag_type, threat_score, ml_confidence, confidence
+          FROM app.upsert_network_tag($1, $2, $3, $4)
+        `, [bssid, tag_type, parsedConfidence / 100.0, notes || null]);
 
         res.json({
           ok: true,
           tag: result.rows[0]
         });
       } catch (err) {
-        console.error('Error tagging network:', err);
-        res.status(500).json({ error: 'Internal server error', details: err.message });
+        next(err);
       }
     });
 
@@ -852,6 +848,12 @@ try {
     app.get('/api/manufacturer/:bssid', async (req, res) => {
       try {
         const { bssid } = req.params;
+
+        // Validate bssid
+        if (!bssid || !/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/i.test(bssid)) {
+          return res.status(400).json({ error: 'Valid BSSID is required (e.g., AA:BB:CC:DD:EE:FF)' });
+        }
+
 
         // Query the radio_manufacturers table
         // Remove colons from BSSID for matching (e.g., "AA:BB:CC:DD:EE:FF" -> "AABBCC")
@@ -874,25 +876,82 @@ try {
           });
         }
       } catch (err) {
-        console.error('Error fetching manufacturer:', err);
-        res.status(500).json({ ok: false, error: 'Internal server error' });
+        next(err);
       }
     });
 
     // API endpoint to get networks with location data
-    app.get('/api/networks', async (req, res) => {
+    app.get('/api/networks', async (req, res, next) => {
       try {
         // Pagination parameters
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5000;
+        const page = parseInt(req.query.page);
+        const limit = parseInt(req.query.limit);
+
+        if (isNaN(page) || page <= 0) {
+          return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
+        }
+        if (isNaN(limit) || limit <= 0) {
+          return res.status(400).json({ error: 'Invalid limit parameter. Must be a positive integer.' });
+        }
+        
         const offset = (page - 1) * limit;
 
-        // Filter parameters (applied to entire database before pagination)
+        // Filter parameters
         const search = req.query.search || '';
         const type = req.query.type || '';
         const security = req.query.security || '';
         const minSignal = req.query.minSignal ? parseInt(req.query.minSignal) : null;
         const maxSignal = req.query.maxSignal ? parseInt(req.query.maxSignal) : null;
+
+        // Validate filter parameters if they are present
+        if (search && typeof search !== 'string') {
+          return res.status(400).json({ error: 'Search parameter must be a string.' });
+        }
+        if (type && typeof type !== 'string') {
+          return res.status(400).json({ error: 'Type parameter must be a string.' });
+        }
+        if (security && typeof security !== 'string') {
+          return res.status(400).json({ error: 'Security parameter must be a string.' });
+        }
+        if (minSignal !== null && (isNaN(minSignal) || typeof minSignal !== 'number')) {
+          return res.status(400).json({ error: 'minSignal parameter must be a number.' });
+        }
+        if (maxSignal !== null && (isNaN(maxSignal) || typeof maxSignal !== 'number')) {
+          return res.status(400).json({ error: 'maxSignal parameter must be a number.' });
+        }
+
+        // Sorting parameters
+        const sort = req.query.sort || 'lastSeen'; // Default sort column
+        const order = (req.query.order || 'DESC').toUpperCase();   // Default sort order
+
+        // Map frontend sort columns to database fields
+        const sortColumnMap = {
+          type: 'n.type',
+          ssid: 'n.ssid',
+          bssid: 'n.bssid',
+          signal: 'COALESCE(l.level, n.bestlevel)',
+          security: 'n.encryption',
+          frequency: 'n.frequency',
+          channel: 'n.channel',
+          observations: 'oc.obs_count',
+          latitude: 'COALESCE(l.lat, n.bestlat, n.lastlat, n.trilaterated_lat)',
+          longitude: 'COALESCE(l.lon, n.bestlon, n.lastlon, n.trilaterated_lon)',
+          distanceFromHome: 'distance_from_home', // Alias from subquery
+          accuracy: 'COALESCE(l.accuracy, 0)',
+          lastSeen: 'n.lasttime',
+        };
+
+        // Validate sort column
+        if (!sortColumnMap[sort]) {
+          return res.status(400).json({ error: `Invalid sort column: ${sort}. Allowed: ${Object.keys(sortColumnMap).join(', ')}` });
+        }
+
+        // Validate sort order
+        if (!['ASC', 'DESC'].includes(order)) {
+          return res.status(400).json({ error: 'Invalid sort order. Must be ASC or DESC.' });
+        }
+
+        const orderByClause = `${sortColumnMap[sort]} ${order}`;
 
         // Get home location for distance calculation
         const homeResult = await query(`
@@ -905,44 +964,28 @@ try {
         `);
         const home = homeResult.rows[0] || null;
 
-        // Join networks_legacy with locations_legacy to get the latest location data
-        const { rows } = await query(`
+        // Base query with filtering and sorting applied before pagination
+        let queryText = `
           WITH latest_locations AS (
             SELECT DISTINCT ON (bssid)
-              bssid,
-              lat,
-              lon,
-              level,
-              accuracy,
-              time
+              bssid, lat, lon, level, accuracy, time
             FROM app.locations_legacy
-            WHERE lat IS NOT NULL AND lon IS NOT NULL
-              AND time >= $1
+            WHERE lat IS NOT NULL AND lon IS NOT NULL AND time >= $1
             ORDER BY bssid, time DESC
           ),
           observation_counts AS (
-            SELECT
-              bssid,
-              COUNT(*) as obs_count
+            SELECT bssid, COUNT(*) as obs_count
             FROM app.locations_legacy
             WHERE time >= $1
             GROUP BY bssid
           )
           SELECT
-            n.unified_id,
-            n.ssid,
-            n.bssid,
-            n.type,
-            n.encryption as security,
-            n.frequency,
-            n.channel,
-            COALESCE(l.level, n.bestlevel) as signal,
-            COALESCE(l.accuracy, 0) as accuracy,
-            n.lasttime as "lastSeen",
+            n.unified_id, n.ssid, n.bssid, n.type, n.encryption as security,
+            n.frequency, n.channel, COALESCE(l.level, n.bestlevel) as signal,
+            COALESCE(l.accuracy, 0) as accuracy, n.lasttime as "lastSeen",
             COALESCE(l.lat, n.bestlat, n.lastlat, n.trilaterated_lat) as lat,
             COALESCE(l.lon, n.bestlon, n.lastlon, n.trilaterated_lon) as lng,
-            COALESCE(oc.obs_count, 1) as observations,
-            n.capabilities as misc,
+            COALESCE(oc.obs_count, 1) as observations, n.capabilities as misc,
             CASE
               WHEN COALESCE(l.level, n.bestlevel) > -50 THEN 'threat'
               WHEN COALESCE(l.level, n.bestlevel) > -70 THEN 'warning'
@@ -956,31 +999,56 @@ try {
                 ST_SetSRID(ST_MakePoint(COALESCE(l.lon, n.bestlon), COALESCE(l.lat, n.bestlat)), 4326)::geography
               ) / 1000.0
               ELSE NULL
-            END as distance_from_home
+            END as distance_from_home,
+            COUNT(*) OVER() as total_networks_count -- Total count before LIMIT/OFFSET
           FROM app.networks_legacy n
           LEFT JOIN latest_locations l ON n.bssid = l.bssid
           LEFT JOIN observation_counts oc ON n.bssid = oc.bssid
-          WHERE n.bssid IS NOT NULL
-            AND (n.lasttime IS NULL OR n.lasttime >= $1)
-            ${search ? `AND (LOWER(n.ssid) LIKE '%' || LOWER($6) || '%' OR LOWER(n.bssid) LIKE '%' || LOWER($6) || '%')` : ''}
-            ${type ? `AND n.type = $7` : ''}
-            ${security ? `AND LOWER(n.encryption) LIKE '%' || LOWER($8) || '%'` : ''}
-            ${minSignal !== null ? `AND n.level >= $9` : ''}
-            ${maxSignal !== null ? `AND n.level <= $10` : ''}
-          ORDER BY n.lasttime DESC NULLS LAST
-          LIMIT $4 OFFSET $5
-        `, [
+        `;
+
+        // Parameters for the query
+        const params = [
           MIN_VALID_TIMESTAMP,
           home?.lat || null,
           home?.lon || null,
-          limit,
-          offset,
-          ...(search ? [search] : []),
-          ...(type ? [type] : []),
-          ...(security ? [security] : []),
-          ...(minSignal !== null ? [minSignal] : []),
-          ...(maxSignal !== null ? [maxSignal] : [])
-        ]);
+        ];
+
+        // WHERE clauses
+        const whereClauses = ["n.bssid IS NOT NULL", "(n.lasttime IS NULL OR n.lasttime >= $1)"];
+
+        if (search) {
+          params.push(`%${search.toLowerCase()}%`);
+          whereClauses.push(`(LOWER(n.ssid) LIKE $${params.length} OR LOWER(n.bssid) LIKE $${params.length})`);
+        }
+        if (type) {
+          params.push(type);
+          whereClauses.push(`n.type = $${params.length}`);
+        }
+        if (security) {
+          params.push(`%${security.toLowerCase()}%`);
+          whereClauses.push(`LOWER(n.encryption) LIKE $${params.length}`);
+        }
+        if (minSignal !== null) {
+          params.push(minSignal);
+          whereClauses.push(`COALESCE(l.level, n.bestlevel) >= $${params.length}`);
+        }
+        if (maxSignal !== null) {
+          params.push(maxSignal);
+          whereClauses.push(`COALESCE(l.level, n.bestlevel) <= $${params.length}`);
+        }
+
+        if (whereClauses.length > 0) {
+          queryText += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        // Add ordering, pagination
+        queryText += ` ORDER BY ${orderByClause} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, offset);
+        
+        // Join networks_legacy with locations_legacy to get the latest location data
+        const { rows } = await query(queryText, params);
+
+        const totalCount = rows.length > 0 ? parseInt(rows[0].total_networks_count) : 0;
 
         const networks = rows.map(row => ({
           id: row.unified_id,
@@ -1009,10 +1077,14 @@ try {
           },
         }));
 
-        res.json(networks);
+        res.json({
+          networks,
+          totalCount,
+          page,
+          limit
+        });
       } catch (err) {
-        console.error('Error fetching networks:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
 
@@ -1020,6 +1092,11 @@ try {
     app.get('/api/networks/search/:ssid', async (req, res) => {
       try {
         const { ssid } = req.params;
+
+        // Validate ssid
+        if (!ssid || typeof ssid !== 'string' || ssid.trim() === '') {
+          return res.status(400).json({ error: 'SSID parameter is required and cannot be empty.' });
+        }
         const searchPattern = `%${ssid}%`;
 
         const { rows } = await query(`
@@ -1047,10 +1124,12 @@ try {
           networks: rows
         });
       } catch (err) {
-        console.error('Error searching networks:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        next(err);
       }
     });
+
+    // Centralized error handling middleware
+    app.use(errorHandler);
 
     app.listen(port, () => {
       console.log(`Server listening on port ${port}`);

@@ -495,7 +495,7 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:3002/api';
+        const API_BASE = 'http://localhost:3001/api';
 
         // Advanced Network Table Configuration (Full Schema)
         const NETWORK_COLUMNS = {
@@ -513,7 +513,9 @@
                         'N': '5G NR',
                         'G': 'GSM'
                     };
-                    return typeMap[val] || 'WiFi';
+                    const typeText = typeMap[val] || 'WiFi';
+                    const typeClass = typeText.toLowerCase().replace(/\s/g, ''); // wifi, ble, bt, lte, nr, gsm
+                    return `<span class="badge badge-${typeClass}">${typeText}</span>`;
                 }
             },
             ssid: {
@@ -631,17 +633,16 @@
 
         // Network Table State Management
         class NetworkTableManager {
-            constructor(pageId, abbreviatedMode = false) {
+            constructor(pageId) {
                 this.pageId = pageId;
-                this.abbreviatedMode = abbreviatedMode;
                 this.storageKey = `networkListColumns-${pageId}`;
                 this.networks = [];
-                this.filteredNetworks = [];
-                this.currentSort = { column: null, direction: null };
+                this.currentSort = { column: 'lastSeen', direction: 'desc' }; // Default sort
                 this.visibleColumns = this.loadColumnPreferences();
                 this.searchTerm = '';
-                this.displayedCount = 0;
-                this.batchSize = 50;
+                this.currentPage = 1;
+                this.totalNetworks = 0;
+                this.currentLimit = 100; // Matches API default
             }
 
             // Load column visibility preferences from localStorage
@@ -694,80 +695,33 @@
                 } else {
                     this.currentSort = { column, direction: 'asc' };
                 }
+                loadNetworks(); // Reload networks with new sort
             }
 
             // Apply search filter
             setSearch(term) {
                 this.searchTerm = term.toLowerCase();
-                this.applyFilters();
-            }
-
-            // Apply filters (search)
-            applyFilters() {
-                if (!this.searchTerm) {
-                    this.filteredNetworks = [...this.networks];
-                } else {
-                    this.filteredNetworks = this.networks.filter(net => {
-                        const ssid = (net.ssid || '').toLowerCase();
-                        const bssid = (net.bssid || '').toLowerCase();
-                        return ssid.includes(this.searchTerm) || bssid.includes(this.searchTerm);
-                    });
-                }
-                this.displayedCount = 0; // Reset on filter change
+                this.currentPage = 1; // Reset page on new search
+                loadNetworks(); // Reload networks with new search term
             }
 
             // Load more networks (for infinite scroll)
             loadMore() {
-                this.displayedCount += this.batchSize;
+                this.currentPage++;
+                loadNetworks(true); // append = true
             }
 
             // Check if more networks available
             hasMore() {
-                const sorted = this.getSortedNetworks();
-                return this.displayedCount < sorted.length;
-            }
-
-            // Get sorted networks
-            getSortedNetworks() {
-                let sorted = [...this.filteredNetworks];
-
-                if (this.currentSort.column) {
-                    const col = NETWORK_COLUMNS[this.currentSort.column];
-                    const direction = this.currentSort.direction === 'asc' ? 1 : -1;
-
-                    sorted.sort((a, b) => {
-                        let aVal = a[this.currentSort.column];
-                        let bVal = b[this.currentSort.column];
-
-                        // Use sortValue function if available
-                        if (col.sortValue) {
-                            aVal = col.sortValue(aVal);
-                            bVal = col.sortValue(bVal);
-                        }
-
-                        // Handle null/undefined
-                        if (aVal === null || aVal === undefined) return direction;
-                        if (bVal === null || bVal === undefined) return -direction;
-
-                        // Numeric comparison
-                        if (typeof aVal === 'number' && typeof bVal === 'number') {
-                            return (aVal - bVal) * direction;
-                        }
-
-                        // String comparison (case-insensitive)
-                        const aStr = String(aVal).toLowerCase();
-                        const bStr = String(bVal).toLowerCase();
-                        return aStr.localeCompare(bStr) * direction;
-                    });
-                }
-
-                return sorted;
+                return (this.currentPage * this.currentLimit) < this.totalNetworks;
             }
 
             // Set networks data
-            setNetworks(networks) {
-                this.networks = networks;
-                this.applyFilters();
+            setNetworks(data) {
+                this.networks = data.networks;
+                this.totalNetworks = data.totalCount;
+                this.currentPage = data.page;
+                this.currentLimit = data.limit;
             }
 
             // Render column selector UI
@@ -833,9 +787,6 @@
             const thead = table.querySelector('thead');
             if (!tbody || !thead) return;
 
-            // Get sorted networks
-            const allNetworks = networkTable.getSortedNetworks();
-
             // Render table headers (unless appending)
             if (!append) {
                 const headerRow = document.createElement('tr');
@@ -873,11 +824,10 @@
             // Clear body if not appending
             if (!append) {
                 tbody.innerHTML = '';
-                networkTable.displayedCount = 0;
             }
 
             // Check if empty
-            if (allNetworks.length === 0 && !append) {
+            if (networkTable.networks.length === 0 && !append) {
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
                 td.colSpan = networkTable.visibleColumns.length;
@@ -888,13 +838,8 @@
                 return;
             }
 
-            // Get the batch to render
-            const startIdx = networkTable.displayedCount;
-            const endIdx = Math.min(startIdx + networkTable.batchSize, allNetworks.length);
-            const networksToRender = allNetworks.slice(startIdx, endIdx);
-
             // Render networks
-            networksToRender.forEach(network => {
+            networkTable.networks.forEach(network => { // Iterate over networkTable.networks directly
                 const tr = document.createElement('tr');
                 tr.dataset.bssid = network.bssid;
 
@@ -919,7 +864,7 @@
                     }
 
                     // Format value
-                    td.textContent = col.format ? col.format(value) : (value || 'N/A');
+                    td.innerHTML = col.format ? col.format(value) : (value || 'N/A');
 
                     // Apply monospace style if needed
                     if (col.monospace) {
@@ -932,9 +877,6 @@
                 tbody.appendChild(tr);
             });
 
-            // Update displayed count
-            networkTable.displayedCount = endIdx;
-
             // Update count display
             updateNetworkCount();
         }
@@ -946,15 +888,14 @@
             const countEl = document.getElementById('network-count');
             const infoEl = document.getElementById('network-count-info');
 
-            const total = networkTable.networks.length;
-            const filtered = networkTable.filteredNetworks.length;
+            const total = networkTable.totalNetworks;
+            const currentDisplayed = networkTable.networks.length;
 
+            countEl.textContent = currentDisplayed;
             if (networkTable.searchTerm) {
-                countEl.textContent = filtered;
-                if (infoEl) infoEl.textContent = `of ${total}`;
+                if (infoEl) infoEl.textContent = `of ${total} (filtered)`;
             } else {
-                countEl.textContent = total;
-                if (infoEl) infoEl.textContent = '';
+                if (infoEl) infoEl.textContent = `of ${total}`;
             }
         }
 
@@ -974,28 +915,46 @@
         }
 
         // Load networks from API
-        async function loadNetworks() {
+        async function loadNetworks(append = false) { // Add append parameter
             try {
-                console.log('📡 Loading networks with all fields...');
-                const response = await fetch(`${API_BASE}/networks`);
+                // Construct URL with parameters
+                const params = new URLSearchParams({
+                    page: networkTable.currentPage,
+                    limit: networkTable.currentLimit,
+                    sort: networkTable.currentSort.column,
+                    order: networkTable.currentSort.direction,
+                    search: networkTable.searchTerm
+                });
+
+                console.log(`📡 Loading networks with all fields: ${API_BASE}/networks?${params.toString()}`);
+                const response = await fetch(`${API_BASE}/networks?${params.toString()}`);
 
                 if (!response.ok) {
                     console.error('✗ Networks API failed:', response.status);
                     return;
                 }
 
-                const networks = await response.json();
-                console.log(`✓ Loaded ${networks.length} networks with fields:`, Object.keys(networks[0] || {}));
+                const data = await response.json(); // API now returns {networks, totalCount, page, limit}
+                console.log(`✓ Loaded ${data.networks.length} networks, Total: ${data.totalCount}`);
 
                 // Initialize table manager if not exists
                 if (!window.networkTable) {
-                    window.networkTable = new NetworkTableManager('networks', false);
+                    window.networkTable = new NetworkTableManager('networks'); // No abbreviatedMode needed
                 }
 
-                // Set networks and render
-                networkTable.setNetworks(networks);
+                if (append) {
+                    // Append new networks to existing list
+                    networkTable.networks = networkTable.networks.concat(data.networks);
+                    networkTable.totalNetworks = data.totalCount; // Update total count
+                    networkTable.currentPage = data.page;
+                    networkTable.currentLimit = data.limit;
+                } else {
+                    // Set networks and render
+                    networkTable.setNetworks(data);
+                }
+                
                 networkTable.renderColumnSelector('column-selector-container');
-                renderNetworkTable();
+                renderNetworkTable('networks-table', null, append); // Pass append to render
             } catch (error) {
                 console.error('✗ Error loading networks:', error);
             }
@@ -1031,10 +990,10 @@
                 if (scrollTop + clientHeight >= scrollHeight - 200) {
                     if (networkTable.hasMore()) {
                         isLoading = true;
-                        console.log(`📜 Loading more networks (${networkTable.displayedCount}/${networkTable.getSortedNetworks().length})`);
+                        console.log(`📜 Loading more networks (${networkTable.networks.length}/${networkTable.totalNetworks})`);
 
                         networkTable.loadMore();
-                        renderNetworkTable('networks-table', null, true); // append = true
+                        // No need to call renderNetworkTable here, loadNetworks already does it.
 
                         setTimeout(() => { isLoading = false; }, 100);
                     }
