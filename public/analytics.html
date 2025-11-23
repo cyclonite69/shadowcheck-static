@@ -275,6 +275,14 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Top Networks -->
+            <div class="panel">
+                <div class="panel-header">🏆 Top Networks by Observations</div>
+                <div class="panel-content" style="overflow-y: auto;">
+                    <div id="topNetworksList" style="padding: 8px;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -535,8 +543,8 @@
                         label: type,
                         data: sortedEntries.map(([timestamp, entry]) => entry.types[type] || 0),
                         borderColor: colors[type] || `hsl(${idx * 60}, 70%, 50%)`,
-                        backgroundColor: (colors[type] || `hsl(${idx * 60}, 70%, 50%)`) + '40',
-                        fill: true,
+                        borderWidth: 2,
+                        fill: false,
                         tension: 0.4
                     };
                 });
@@ -585,6 +593,30 @@
             }
         }
 
+        // Load top networks by observations
+        async function loadTopNetworks() {
+            try {
+                const response = await fetch(`${API_BASE}/networks?sortBy=observations&sortOrder=desc&limit=10`);
+                const data = await response.json();
+                
+                const list = document.getElementById('topNetworksList');
+                const typeIcons = { W: '📶', E: '🔵', B: '🔷', L: '📱', N: '🚀', G: '📞' };
+                
+                list.innerHTML = data.networks.map((net, idx) => `
+                    <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(30, 41, 59, 0.4); border-radius: 6px; margin-bottom: 6px; border-left: 3px solid ${idx < 3 ? '#fbbf24' : 'rgba(148, 163, 184, 0.3)'};">
+                        <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 0;">
+                            <span style="font-weight: 600; color: #94a3b8; min-width: 20px;">#${idx + 1}</span>
+                            <span>${typeIcons[net.type] || '📡'}</span>
+                            <span style="font-family: monospace; font-size: 11px; color: #e0e7ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${net.bssid}</span>
+                        </div>
+                        <span style="background: rgba(59, 130, 246, 0.2); padding: 2px 8px; border-radius: 4px; font-size: 11px; border: 1px solid rgba(59, 130, 246, 0.3); white-space: nowrap;">${net.observations.toLocaleString()}</span>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('✗ Error loading top networks:', err);
+            }
+        }
+
         // Initialize on load
         document.addEventListener('DOMContentLoaded', () => {
             highlightActiveNav();
@@ -593,6 +625,7 @@
             loadSecurity();
             loadTemporal();
             loadRadioTypeTime();
+            loadTopNetworks();
         });
     </script>
 </body>
