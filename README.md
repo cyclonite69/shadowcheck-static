@@ -1,22 +1,42 @@
 # ShadowCheck - SIGINT Forensics Platform
 
-ShadowCheck is a web-based platform for Signals Intelligence (SIGINT) forensics and analysis. It allows you to analyze wireless network data to identify potential threats and gain insights into network activity.
+ShadowCheck is a production-grade web platform for Signals Intelligence (SIGINT) forensics and analysis. It provides comprehensive wireless network analysis, threat detection, and intelligence gathering capabilities.
 
 ## Features
 
-*   **Dashboard:** Get a real-time overview of your network environment.
-*   **Geospatial Analysis:** Visualize network data on a map.
-*   **Analytics:** Explore network data with various charts and graphs.
-*   **Threat Detection:** Automatically identify potential threats and surveillance devices.
-*   **Network Analysis:** Dive deep into individual network data.
+### Core Capabilities
+*   **Dashboard:** Real-time overview of network environment with threat indicators
+*   **Geospatial Analysis:** Interactive map visualization with Mapbox integration
+*   **Analytics:** Advanced charts and graphs for network pattern analysis
+*   **Threat Detection:** ML-powered identification of surveillance devices and anomalies
+*   **Network Analysis:** Deep dive into individual network characteristics and behavior
+
+### Intelligence Features
+*   **Address Enrichment:** Multi-API venue and business identification (4 sources)
+*   **Device Classification:** Automatic identification of device types (vehicles, IoT, smartphones)
+*   **Contextual Analysis:** Government, education, and commercial facility detection
+*   **Trilateration:** AP location calculation from multiple observations
+*   **UUID Tracking:** Device movement pattern analysis and behavioral profiling
 
 ## Architecture
 
-ShadowCheck consists of a Node.js/Express backend and a static frontend.
+### Backend
+*   **Node.js/Express** server with REST API
+*   **PostgreSQL** with PostGIS for geospatial data
+*   **Multi-API enrichment** system with intelligent conflict resolution
+*   **ML threat detection** with confidence scoring
 
-*   **Backend:** The backend is responsible for querying a PostgreSQL database and providing a REST API for the frontend.
-*   **Frontend:** The frontend is built with HTML, Tailwind CSS, and JavaScript. It uses Chart.js for data visualization and Mapbox for geospatial analysis.
-*   **Database:** The database is a PostgreSQL database that stores network data.
+### Frontend
+*   **HTML5** with Tailwind CSS
+*   **Chart.js** for data visualization
+*   **Mapbox GL JS** for geospatial analysis
+*   **Real-time updates** via API polling
+
+### Database
+*   **PostgreSQL 18** with PostGIS extension
+*   **566,400+ location records**
+*   **173,326+ unique networks**
+*   **Trilateration and enrichment** data
 
 ## Getting Started
 
@@ -46,9 +66,11 @@ ShadowCheck consists of a Node.js/Express backend and a static frontend.
         DB_PORT=your_database_port
         ```
 4.  Run the database migrations:
-    *   `psql -f create_scoring_function.sql`
-    *   `psql -f fix_kismet_functions.sql`
-    *   `psql -f migrate_network_tags_v2.sql`
+    ```bash
+    psql -f sql/functions/create_scoring_function.sql
+    psql -f sql/functions/fix_kismet_functions.sql
+    psql -f sql/migrations/migrate_network_tags_v2.sql
+    ```
 
 ### Running the Application
 
@@ -57,6 +79,25 @@ npm start
 ```
 
 The application will be available at `http://localhost:3001`.
+
+## Directory Structure
+
+```
+shadowcheck-static/
+├── server.js              # Main Express server
+├── scripts/               # Utility scripts
+│   ├── enrichment/        # Address enrichment
+│   ├── geocoding/         # Reverse geocoding
+│   └── ml/                # Machine learning
+├── sql/                   # Database files
+│   ├── migrations/        # Schema migrations
+│   └── functions/         # SQL functions
+├── public/                # Frontend files
+├── docs/                  # Documentation
+└── data/                  # Data files (not in git)
+```
+
+See [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md) for complete details.
 
 ## Pages
 - Dashboard: `/`

@@ -1,4 +1,0 @@
-MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type
-AA:BB:CC:DD:EE:01,WhiteHouse_Guest,[OPEN],2025-11-23 16:59:43,6,-70,38.897684,-77.036574,0,10,WIFI
-AA:BB:CC:DD:EE:02,Empire_WiFi,[OPEN],2025-11-23 16:59:43,6,-70,40.672196,-73.984612,0,10,WIFI
-AA:BB:CC:DD:EE:03,Apple_Campus,[OPEN],2025-11-23 16:59:43,6,-70,37.331522,-122.03023,0,10,WIFI
