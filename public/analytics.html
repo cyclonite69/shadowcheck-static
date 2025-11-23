@@ -604,16 +604,29 @@
                 const typeIcons = { W: '📶', E: '🔵', B: '🔷', L: '📱', N: '🚀', G: '📞' };
                 const medals = ['🥇', '🥈', '🥉'];
                 
-                list.innerHTML = data.networks.map((net, idx) => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(30, 41, 59, 0.3)); border-radius: 8px; margin-bottom: 8px; border: 1px solid ${idx < 3 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(148, 163, 184, 0.15)'}; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                        <div style="display: flex; gap: 10px; align-items: center; flex: 1; min-width: 0;">
-                            <span style="font-size: 18px; min-width: 24px;">${idx < 3 ? medals[idx] : `<span style="color: #64748b; font-weight: 600; font-size: 12px;">#${idx + 1}</span>`}</span>
-                            <span style="font-size: 20px;">${typeIcons[net.type] || '📡'}</span>
-                            <span style="font-family: 'Courier New', monospace; font-size: 12px; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;">${net.bssid}</span>
+                list.innerHTML = data.networks.map((net, idx) => {
+                    const lastSeen = net.lastSeen ? new Date(net.lastSeen).toLocaleDateString() : 'Unknown';
+                    const ssid = net.ssid || 'Hidden';
+                    return `
+                    <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(30, 41, 59, 0.3)); border-radius: 8px; margin-bottom: 8px; border: 1px solid ${idx < 3 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(148, 163, 184, 0.15)'}; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; gap: 10px; align-items: center; flex: 1; min-width: 0;">
+                                <span style="font-size: 18px; min-width: 24px;">${idx < 3 ? medals[idx] : `<span style="color: #64748b; font-weight: 600; font-size: 12px;">#${idx + 1}</span>`}</span>
+                                <span style="font-size: 20px;">${typeIcons[net.type] || '📡'}</span>
+                                <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
+                                    <span style="font-family: 'Courier New', monospace; font-size: 12px; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500;">${net.bssid}</span>
+                                    <span style="font-size: 11px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${ssid}</span>
+                                </div>
+                            </div>
+                            <span style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3)); padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid rgba(99, 102, 241, 0.4); color: #e0e7ff; white-space: nowrap; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">${net.observations.toLocaleString()}</span>
                         </div>
-                        <span style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3)); padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid rgba(99, 102, 241, 0.4); color: #e0e7ff; white-space: nowrap; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">${net.observations.toLocaleString()}</span>
+                        <div style="display: flex; gap: 12px; font-size: 10px; color: #64748b; padding-left: 54px;">
+                            <span>📡 ${net.security || 'N/A'}</span>
+                            <span>📶 ${net.signal ? net.signal + ' dBm' : 'N/A'}</span>
+                            <span>🕐 ${lastSeen}</span>
+                        </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (err) {
                 console.error('✗ Error loading top networks:', err);
             }
