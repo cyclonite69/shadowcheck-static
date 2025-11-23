@@ -41,3 +41,8 @@ build/
 shadowcheck-static.backup/
 tooltip-search.js
 tooltip-search-backup.js
+# Data files
+data/csv/*.csv
+data/logs/*.log
+*.csv
+*.log
