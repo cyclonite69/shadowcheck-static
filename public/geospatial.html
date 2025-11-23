@@ -127,12 +127,93 @@
 
         .main {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto 1fr;
             gap: 12px;
             padding: 12px;
             flex: 1;
             overflow: hidden;
+            transition: grid-template-columns 0.3s ease, grid-template-rows 0.3s ease;
+        }
+
+        /* Layout modes */
+        .main.layout-side-by-side {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .main.layout-side-by-side #map-panel {
+            grid-column: 1;
+            grid-row: 1 / 3;
+        }
+
+        .main.layout-side-by-side #threats-panel {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .main.layout-side-by-side #networks-panel {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .main.layout-vertical {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+        }
+
+        .main.layout-vertical #map-panel {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        .main.layout-vertical #threats-panel {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .main.layout-vertical #networks-panel {
+            grid-column: 1;
+            grid-row: 3;
+        }
+
+        .main.layout-map-focus {
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .main.layout-map-focus #map-panel {
+            grid-column: 1;
+            grid-row: 1 / 3;
+        }
+
+        .main.layout-map-focus #threats-panel {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .main.layout-map-focus #networks-panel {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .layout-toggle {
+            display: flex;
+            gap: 4px;
+            background: rgba(30, 41, 59, 0.6);
+            padding: 4px;
+            border-radius: 6px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .layout-toggle button {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: transparent;
+            border: none;
+        }
+
+        .layout-toggle button.active {
+            background: rgba(59, 130, 246, 0.3);
+            border: 1px solid #3b82f6;
         }
 
         .panel {
@@ -649,6 +730,11 @@
                 <a href="/networks.html" class="nav-link" data-page="networks">Networks</a>
             </div>
             <div class="header-right-group">
+                <div class="layout-toggle">
+                    <button id="layout-side" class="active" title="Side by side">⬌ Side</button>
+                    <button id="layout-vertical" title="Vertical stack">⬍ Vertical</button>
+                    <button id="layout-map" title="Map focus">⬌ Map</button>
+                </div>
                 <div class="status">
                     <div class="status-dot"></div>
                     <span id="status-text">Online</span>
@@ -658,7 +744,7 @@
         </div>
 
         <!-- MAIN GRID -->
-        <div class="main">
+        <div class="main layout-side-by-side" id="main-grid">
             <!-- MAP PANEL -->
             <div class="panel" id="map-panel">
                 <div class="panel-header">
@@ -1981,7 +2067,18 @@
                     };
                 });
 
-                // Add source
+                // Remove old layers first (must remove layers before source)
+                if (map.getLayer('network-points')) {
+                    map.removeLayer('network-points');
+                }
+                if (map.getLayer('cluster-count')) {
+                    map.removeLayer('cluster-count');
+                }
+                if (map.getLayer('clusters')) {
+                    map.removeLayer('clusters');
+                }
+
+                // Remove and add source with clustering
                 if (map.getSource('networks')) {
                     map.removeSource('networks');
                 }
@@ -1991,18 +2088,60 @@
                     data: {
                         type: 'FeatureCollection',
                         features: features
+                    },
+                    cluster: true,
+                    clusterMaxZoom: 16, // Max zoom to cluster points on
+                    clusterRadius: 50 // Radius of each cluster when clustering points
+                });
+
+                // Add cluster circles layer
+                map.addLayer({
+                    id: 'clusters',
+                    type: 'circle',
+                    source: 'networks',
+                    filter: ['has', 'point_count'],
+                    paint: {
+                        'circle-color': [
+                            'step',
+                            ['get', 'point_count'],
+                            '#3b82f6', 10,
+                            '#f59e0b', 50,
+                            '#ef4444'
+                        ],
+                        'circle-radius': [
+                            'step',
+                            ['get', 'point_count'],
+                            15, 10,
+                            20, 50,
+                            25
+                        ],
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#ffffff'
                     }
                 });
 
-                // Add layer
-                if (map.getLayer('network-points')) {
-                    map.removeLayer('network-points');
-                }
+                // Add cluster count labels
+                map.addLayer({
+                    id: 'cluster-count',
+                    type: 'symbol',
+                    source: 'networks',
+                    filter: ['has', 'point_count'],
+                    layout: {
+                        'text-field': '{point_count_abbreviated}',
+                        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+                        'text-size': 12
+                    },
+                    paint: {
+                        'text-color': '#ffffff'
+                    }
+                });
 
+                // Add unclustered points layer
                 map.addLayer({
                     id: 'network-points',
                     type: 'circle',
                     source: 'networks',
+                    filter: ['!', ['has', 'point_count']],
                     paint: {
                         'circle-radius': 8,
                         'circle-color': [
@@ -2025,7 +2164,33 @@
                     }
                 });
 
-                // Add popup on click
+                // Click handler for clusters - zoom in
+                map.on('click', 'clusters', (e) => {
+                    const features = map.queryRenderedFeatures(e.point, {
+                        layers: ['clusters']
+                    });
+                    const clusterId = features[0].properties.cluster_id;
+                    map.getSource('networks').getClusterExpansionZoom(
+                        clusterId,
+                        (err, zoom) => {
+                            if (err) return;
+                            map.easeTo({
+                                center: features[0].geometry.coordinates,
+                                zoom: zoom
+                            });
+                        }
+                    );
+                });
+
+                // Change cursor on cluster hover
+                map.on('mouseenter', 'clusters', () => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+                map.on('mouseleave', 'clusters', () => {
+                    map.getCanvas().style.cursor = '';
+                });
+
+                // Add popup on click for unclustered points
                 map.on('click', 'network-points', (e) => {
                     const props = e.features[0].properties;
 
@@ -2427,10 +2592,11 @@
 
                 console.log(`📊 Rendering table with ${networkTable.filteredNetworks.length} filtered networks...`);
 
-                // Render table with click handler to load observations
+                // Render table with click handler to load observations and render on map
                 renderNetworkTable('networks-table', (network) => {
                     console.log(`📡 Network selected: ${network.ssid || 'Hidden'} (${network.bssid})`);
                     loadObservationsToMap(network.bssid, network.ssid);
+                    handleNetworkRowClick(network); // Render network on map
 
                     // Highlight selected row
                     document.querySelectorAll('#networks-table tbody tr').forEach(r => {
@@ -2611,6 +2777,110 @@
                     console.log('🎚️ Threat type filter changed to:', selectedThreatType || 'all');
                     loadThreats();
                 });
+            }
+
+            // Layout toggle functionality
+            const mainGrid = document.getElementById('main-grid');
+            const layoutButtons = {
+                'layout-side': 'layout-side-by-side',
+                'layout-vertical': 'layout-vertical',
+                'layout-map': 'layout-map-focus'
+            };
+
+            // Load saved layout preference
+            const savedLayout = localStorage.getItem('geospatial-layout') || 'layout-side-by-side';
+            mainGrid.className = `main ${savedLayout}`;
+            Object.keys(layoutButtons).forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (layoutButtons[btnId] === savedLayout) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Add click handlers for layout buttons
+            Object.keys(layoutButtons).forEach(btnId => {
+                document.getElementById(btnId).addEventListener('click', () => {
+                    const layoutClass = layoutButtons[btnId];
+                    mainGrid.className = `main ${layoutClass}`;
+                    localStorage.setItem('geospatial-layout', layoutClass);
+                    
+                    // Update active button
+                    Object.keys(layoutButtons).forEach(id => {
+                        document.getElementById(id).classList.remove('active');
+                    });
+                    document.getElementById(btnId).classList.add('active');
+                    
+                    // Resize map after layout change
+                    setTimeout(() => {
+                        if (map) map.resize();
+                    }, 350);
+                });
+            });
+
+            // Network row click handler - render on map
+            function handleNetworkRowClick(network) {
+                if (!network.location || !network.location.lat || !network.location.lng) {
+                    console.log('Network has no location data');
+                    return;
+                }
+
+                // Center map on network location
+                map.flyTo({
+                    center: [network.location.lng, network.location.lat],
+                    zoom: 16,
+                    duration: 1000
+                });
+
+                // Add or update marker for this network
+                const markerId = `selected-${network.bssid}`;
+                
+                // Remove previous selected marker
+                if (map.getLayer(markerId)) {
+                    map.removeLayer(markerId);
+                    map.removeSource(markerId);
+                }
+
+                // Add new marker
+                map.addSource(markerId, {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [network.location.lng, network.location.lat]
+                        },
+                        properties: {
+                            bssid: network.bssid,
+                            ssid: network.ssid || 'Hidden',
+                            type: network.type
+                        }
+                    }
+                });
+
+                map.addLayer({
+                    id: markerId,
+                    type: 'circle',
+                    source: markerId,
+                    paint: {
+                        'circle-radius': 12,
+                        'circle-color': '#3b82f6',
+                        'circle-stroke-width': 3,
+                        'circle-stroke-color': '#ffffff',
+                        'circle-opacity': 0.8
+                    }
+                });
+
+                // Show popup
+                new mapboxgl.Popup()
+                    .setLngLat([network.location.lng, network.location.lat])
+                    .setHTML(`
+                        <div style="color: #1e293b; font-size: 12px;">
+                            <strong>${network.ssid || 'Hidden Network'}</strong><br>
+                            ${network.bssid}<br>
+                            Type: ${network.type} | Signal: ${network.signal || 'N/A'} dBm
+                        </div>
+                    `)
+                    .addTo(map);
             }
         });
     </script>
