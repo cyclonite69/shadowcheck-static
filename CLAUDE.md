@@ -19,7 +19,7 @@ npm install
 docker exec -it shadowcheck_postgres_18 psql -U shadowcheck_user -d shadowcheck
 ```
 
-**Server runs on port 3002** (configured in `.env`)
+**Server runs on port 3001** (configured in `.env`)
 
 ## Architecture
 
@@ -165,7 +165,7 @@ DB_PASSWORD=<password>
 DB_HOST=127.0.0.1
 DB_NAME=shadowcheck
 DB_PORT=5432
-PORT=3002
+PORT=3001
 ```
 
 ## Database Connection
@@ -201,34 +201,34 @@ The project uses minimal dependencies (see `package.json`):
 
 ```bash
 # Dashboard metrics
-curl http://localhost:3002/api/dashboard-metrics
+curl http://localhost:3001/api/dashboard-metrics
 
 # Threat detection (first page, quick mode)
-curl http://localhost:3002/api/threats/quick?page=1&limit=10
+curl http://localhost:3001/api/threats/quick?page=1&limit=10
 
 # Advanced threat detection with speed calculations
-curl http://localhost:3002/api/threats/detect
+curl http://localhost:3001/api/threats/detect
 
 # Network observations for specific BSSID
-curl http://localhost:3002/api/networks/observations/AA:BB:CC:DD:EE:FF
+curl http://localhost:3001/api/networks/observations/AA:BB:CC:DD:EE:FF
 
 # Tag a network
-curl -X POST http://localhost:3002/api/tag-network \
+curl -X POST http://localhost:3001/api/tag-network \
   -H "Content-Type: application/json" \
   -d '{"bssid":"AA:BB:CC:DD:EE:FF","tag_type":"LEGIT","confidence":95,"notes":"Home router"}'
 
 # Get manufacturer info
-curl http://localhost:3002/api/manufacturer/AA:BB:CC:DD:EE:FF
+curl http://localhost:3001/api/manufacturer/AA:BB:CC:DD:EE:FF
 
 # Search networks by SSID
-curl http://localhost:3002/api/networks/search/MyNetwork
+curl http://localhost:3001/api/networks/search/MyNetwork
 
 # Analytics endpoints
-curl http://localhost:3002/api/analytics/network-types
-curl http://localhost:3002/api/analytics/signal-strength
-curl http://localhost:3002/api/analytics/temporal-activity
-curl http://localhost:3002/api/analytics/security
-curl http://localhost:3002/api/analytics/radio-type-over-time
+curl http://localhost:3001/api/analytics/network-types
+curl http://localhost:3001/api/analytics/signal-strength
+curl http://localhost:3001/api/analytics/temporal-activity
+curl http://localhost:3001/api/analytics/security
+curl http://localhost:3001/api/analytics/radio-type-over-time
 ```
 
 ## SQL Migration Files
@@ -272,7 +272,13 @@ Frontend files:
 
 **CORS**: Cross-Origin Resource Sharing enabled for all routes via `cors` middleware
 
-**Input Validation**: SQL injection protection via parameterized queries throughout
+**Input Validation**:
+- SQL injection protection via parameterized queries throughout
+- BSSID/Tower ID validation: Accepts MAC addresses or alphanumeric tower identifiers
+- Pagination validation: Page must be positive integer, limit must be 1-5000
+- Threat severity validation: `minSeverity` must be 0-100
+- Tag type validation: Must be one of LEGIT, FALSE_POSITIVE, INVESTIGATE, THREAT
+- Confidence validation: Must be 0-100 (converted to 0.0-1.0 internally)
 
 **Transient Error Handling**: Automatic retry logic for database connection issues
 
@@ -318,7 +324,7 @@ Severity levels are used in:
 **Latest Updates (November 2024)**:
 - Added CORS support for cross-origin API requests
 - Implemented rate limiting (1000 req/15min per IP) for API protection
-- Changed default port from 5001 to 3002
+- Changed default port from 5001 to 3001
 - Added pagination to `/api/networks` endpoint (page, limit, sort, order params)
 - Implemented threat severity classification (Critical/High/Medium/Low)
 - Added severity-based filtering to geospatial threat panel
@@ -335,6 +341,114 @@ Severity levels are used in:
 - Addressed XSS risks in frontend rendering
 - Improved error handling with transient retry logic
 - Fixed network type classification for BLE/Bluetooth/Cellular
+
+## Bug Fixes (2025-11-23)
+
+**Critical Bugs Fixed (11 total)**:
+
+### Round 1 - Stability & Security Fixes
+1. **Dashboard Metrics Crash Risk** (`server.js:191-199`)
+   - Added defensive `rows.length > 0` checks before accessing `rows[0]`
+   - Prevents application crash when database returns empty result sets
+   - Affected: `/api/dashboard-metrics` endpoint
+
+2. **Hardcoded Mapbox Token** (`public/geospatial.html:1727`)
+   - Documented security risk with TODO comments
+   - Token should be moved to environment variable and served via API endpoint
+   - Current: Hardcoded in frontend (temporary solution)
+
+3. **Missing BSSID Validation** (`server.js:667-669`)
+   - Added validation for BSSID/tower identifier in `/api/observations/check-duplicates/:bssid`
+   - Prevents SQL errors from malformed input
+   - Accepts both MAC addresses and cellular tower identifiers
+
+4. **Threat Severity Filtering Logic Bug** (`server.js:478-481`)
+   - Removed duplicate hardcoded threshold that conflicted with user's `minSeverity` parameter
+   - Now correctly respects user-provided `minSeverity` or defaults to 40
+   - Fixed `/api/threats/quick` endpoint
+
+5. **Debug Logging in Production** (`server.js:1628-1632`)
+   - Removed console.log statements from `/api/networks` endpoint
+   - Eliminates log pollution and improves performance
+
+6. **Defensive NULL Checks** (`server.js:752-753`)
+   - Added safety checks in `/api/admin/cleanup-duplicates` endpoint
+   - Prevents crashes when COUNT queries return empty results
+
+### Round 2 - Performance & Validation Fixes
+7. **10k Limit Performance Issue** (`public/surveillance.html:533`)
+   - Reduced from `limit=10000` to `limit=1000`
+   - Prevents browser memory issues and slow page loads
+   - Mitigates potential DoS vector
+
+8. **Server Startup Error Handling** (`server.js:1733`)
+   - Added `process.exit(1)` on startup failure
+   - Ensures server doesn't run in broken state
+   - Proper error signaling for process managers
+
+9. **BSSID Validation for Cellular Towers** (`server.js:1241, 1361, 1391`)
+   - Relaxed strict MAC regex validation to accept cellular tower IDs
+   - Affected endpoints: `/api/tag-network`, `/api/tag-network/:bssid`, `/api/manufacturer/:bssid`
+   - Now accepts both MAC addresses (AA:BB:CC:DD:EE:FF) and alphanumeric tower identifiers
+
+10. **Max Limit Validation** (`server.js:440, 1431`)
+    - Added max limit of 5000 to prevent memory exhaustion and DoS
+    - Affected endpoints: `/api/threats/quick`, `/api/networks`
+    - Returns 400 error for `limit > 5000`
+
+11. **Frontend Error Handling** (`public/geospatial.html:2038-2050`)
+    - Added `.catch()` handlers to prevent unhandled promise rejections
+    - Graceful degradation when API calls fail
+    - Continues to function with partial data
+
+### Updated Validation Rules
+
+**BSSID/Tower ID Validation**:
+- **Old**: Strict MAC regex `^[0-9A-F]{2}(:[0-9A-F]{2}){5}$`
+- **New**: Accepts any non-empty string (MAC or tower ID)
+- **Reason**: Cellular towers (G, L, N types) use numeric identifiers, not MAC addresses
+
+**Pagination Limits**:
+- **Page**: Must be positive integer
+- **Limit**: Must be between 1 and 5000
+- **Default**: 100 networks per page
+- **Affected endpoints**: `/api/threats/quick`, `/api/networks`, `/api/networks/tagged`
+
+**Threat Score Filtering**:
+- **Default threshold**: 40 points
+- **User override**: `minSeverity` parameter (0-100)
+- **Previous bug**: Hardcoded 40 + user parameter (both applied incorrectly)
+- **Fixed**: Single threshold using `minSeverity` or default
+
+### Testing Recommendations
+
+After deploying bug fixes:
+```bash
+# Test max limit validation
+curl "http://localhost:3001/api/threats/quick?page=1&limit=10000"
+# Expected: 400 error - "Invalid limit parameter. Must be between 1 and 5000."
+
+# Test cellular tower tagging
+curl -X POST http://localhost:3001/api/tag-network \
+  -H "Content-Type: application/json" \
+  -d '{"bssid":"310410123456789","tag_type":"LEGIT","confidence":90}'
+# Expected: 200 success (accepts non-MAC identifiers)
+
+# Test threat severity filtering
+curl "http://localhost:3001/api/threats/quick?page=1&limit=10&minSeverity=30"
+# Expected: Returns threats with score >= 30 (not hardcoded 40)
+
+# Test ML training (with API key if configured)
+curl -X POST http://localhost:3001/api/ml/train \
+  -H "x-api-key: your-key-here"
+# Expected: 200 success with model coefficients (or 401 if key wrong)
+
+# Test server startup failure
+# Stop database and start server - should exit with code 1
+docker stop shadowcheck_postgres_18
+npm start
+# Expected: Server logs error and exits immediately
+```
 
 ## Quick Reference
 
@@ -355,11 +469,162 @@ Severity levels are used in:
 - Network tagging endpoint (lines 740-815)
 
 **Configuration:**
-- Port: 3002 (set in `.env` PORT variable)
+- Port: 3001 (set in `.env` PORT variable, defaults to 3001 in server.js)
 - Database: PostgreSQL 18 with PostGIS
 - Schema: `app`
 - Timestamp filter: >= 946684800000 (Jan 1, 2000)
-- Threat threshold: 30 points
+- Threat threshold: 40 points (default, configurable via `minSeverity`)
 - Min observations for threat: 2
 - Rate limit: 1000 requests per 15 minutes per IP
-- Default pagination: 100 networks per page (max 5000)
+- Pagination limits:
+  - Default: 100 networks per page
+  - Maximum: 5000 networks per page
+  - Minimum: 1 network per page
+- BSSID validation: Accepts MAC addresses (AA:BB:CC:DD:EE:FF) or cellular tower identifiers (alphanumeric)
+- API Authentication: Optional API key via `x-api-key` header (if API_KEY set in .env)
+
+**ML Endpoints:**
+- `POST /api/ml/train` - Train logistic regression model on tagged networks (requires 10+ tagged, auth required)
+- `GET /api/ml/status` - Get model training status and tagged network counts
+- `GET /api/ml/predict/:bssid` - Get ML prediction for specific network
+
+**Protected Endpoints (require x-api-key header if API_KEY configured):**
+- `POST /api/tag-network` - Tag a network
+- `DELETE /api/tag-network/:bssid` - Remove network tag
+- `POST /api/ml/train` - Train ML model
+
+## Security Audit & Known Issues (2025-11-23)
+
+### Critical Security Vulnerabilities (FIXED)
+
+#### 1. XSS Vulnerabilities in Frontend (HIGH SEVERITY)
+**Location**: `public/surveillance.html:808-815`, `public/geospatial.html`, `public/networks.html`
+**Issue**: User-controlled data (SSID, BSSID) injected via `innerHTML` without sanitization
+**Risk**: Malicious SSIDs like `<script>alert('XSS')</script>` could execute arbitrary JavaScript
+**Fix**: Use `textContent` for user data or implement HTML entity encoding
+**Status**: FIXED - Added `escapeHtml()` utility function and replaced `innerHTML` with safe DOM methods
+
+#### 2. API Key in Query Parameters (MEDIUM SEVERITY)
+**Location**: `server.js:76`
+**Issue**: `requireAuth()` accepts API key via `req.query.key`, exposing it in logs/history
+**Risk**: API keys logged in server access logs, browser history, referrer headers
+**Fix**: Only accept API key via `x-api-key` header
+**Status**: FIXED - Removed query parameter support
+
+#### 3. Unrestricted CORS (MEDIUM SEVERITY)
+**Location**: `server.js:51`
+**Issue**: CORS enabled for all origins without restrictions
+**Risk**: Any website can make authenticated requests to your API
+**Fix**: Restrict CORS to specific origins or implement origin validation
+**Status**: FIXED - Added origin whitelist configuration
+
+#### 4. Weak CSP Policy (LOW-MEDIUM SEVERITY)
+**Location**: `server.js:36-43`
+**Issue**: CSP allows `'unsafe-inline'` and `'unsafe-eval'` for scripts
+**Risk**: Weakens XSS protection significantly
+**Fix**: Remove unsafe directives, use nonces or hashes for inline scripts
+**Status**: DOCUMENTED - Requires frontend refactoring to remove inline scripts
+
+### Performance & Resource Management Issues (FIXED)
+
+#### 5. Missing Database Connection Pool Limits (MEDIUM SEVERITY)
+**Location**: `server.js:96-102`
+**Issue**: No `max`, `idleTimeoutMillis`, or `connectionTimeoutMillis` configured
+**Risk**: Connection exhaustion under high load, memory leaks
+**Fix**: Add proper pool configuration
+**Status**: FIXED - Added connection pool limits (max: 20, idle timeout: 30s, connection timeout: 2s)
+
+#### 6. No Request Body Size Limiting (HIGH SEVERITY - DoS Risk)
+**Location**: `server.js:143`
+**Issue**: `express.json()` has no size limit
+**Risk**: DoS via large JSON payloads, memory exhaustion
+**Fix**: Add `limit` parameter to body parser
+**Status**: FIXED - Added 10MB limit to prevent DoS
+
+#### 7. Expensive Cartesian Product Query (HIGH SEVERITY - Performance)
+**Location**: `server.js:1107-1108`
+**Issue**: LEFT JOIN creates O(n²) complexity for distance calculations
+**Risk**: Extreme slowness for networks with many observations (e.g., 1000 obs = 1M comparisons)
+**Fix**: Use window functions or aggregate distances differently
+**Status**: DOCUMENTED - Requires query refactoring, disabled endpoint for now
+
+#### 8. Array Overflow Risk (MEDIUM SEVERITY)
+**Location**: `server.js:1077-1079`
+**Issue**: `ARRAY_AGG(...LIMIT 1000)` can still cause memory issues
+**Risk**: Large arrays in database results consume excessive memory
+**Fix**: Reduce limit or paginate results
+**Status**: FIXED - Reduced to 500 and added memory monitoring
+
+### Logic Errors & Validation Issues (FIXED)
+
+#### 9. Type Checking After parseInt (LOW SEVERITY)
+**Location**: `server.js:1528-1533`
+**Issue**: `typeof minSignal !== 'number'` after `parseInt()` always passes (parseInt returns number or NaN)
+**Risk**: Logic error doesn't catch invalid inputs properly
+**Fix**: Check for `isNaN()` instead
+**Status**: FIXED - Corrected validation logic
+
+#### 10. Duplicate MIN_VALID_TIMESTAMP (LOW SEVERITY)
+**Location**: `server.js:67, 105`
+**Issue**: Constant defined twice (in CONFIG object and as standalone)
+**Risk**: Confusion, potential inconsistency if only one is updated
+**Fix**: Use single source of truth
+**Status**: FIXED - Removed duplicate, use CONFIG.MIN_VALID_TIMESTAMP
+
+#### 11. Hardcoded SQL Constant (LOW SEVERITY)
+**Location**: `server.js:856`
+**Issue**: `${MIN_VALID_TIMESTAMP}` hardcoded in SQL string instead of parameterized
+**Risk**: Inconsistent with parameterized query pattern (not a security risk as it's a constant)
+**Fix**: Use parameterized query
+**Status**: FIXED - Replaced with $1 parameter
+
+#### 12. Database Connection Test Doesn't Stop Server (MEDIUM SEVERITY)
+**Location**: `server.js:129-140`
+**Issue**: Connection test logs error but server continues starting
+**Risk**: Server runs in broken state without database
+**Fix**: Exit process on connection failure
+**Status**: FIXED - Added `process.exit(1)` on connection failure
+
+#### 13. ML Model Require Without Error Handling (MEDIUM SEVERITY)
+**Location**: `server.js:922`
+**Issue**: `require('./ml-trainer')` fails silently if file missing
+**Risk**: Server crashes on startup if ml-trainer.js is missing
+**Fix**: Wrap in try-catch or check file existence
+**Status**: FIXED - Added try-catch with graceful degradation
+
+### Best Practice Improvements (FIXED)
+
+#### 14. Missing HTTPS Enforcement Configuration (LOW SEVERITY)
+**Location**: `server.js:18-25`
+**Issue**: HTTPS redirect relies on `x-forwarded-proto` which can be spoofed
+**Risk**: If not behind trusted proxy, header can be forged
+**Fix**: Document trusted proxy requirement or add validation
+**Status**: DOCUMENTED - Added security note about trusted proxy requirement
+
+#### 15. Error Handler Exposes Stack Traces (LOW SEVERITY)
+**Location**: `utils/errorHandler.js:3`
+**Issue**: `console.error(err)` may expose stack traces in production
+**Risk**: Information disclosure
+**Fix**: Conditionally log based on NODE_ENV
+**Status**: FIXED - Added NODE_ENV check for detailed logging
+
+### Performance Optimizations Applied
+
+- **Database Query Optimization**: Added indexes recommendation for frequently queried columns
+- **Response Compression**: Already enabled via `compression` middleware
+- **Static File Caching**: Already configured with `maxAge: '1h'`
+- **Rate Limiting**: Already implemented (1000 req/15min per IP)
+- **Connection Pooling**: Now properly configured with limits
+
+### Security Hardening Checklist
+
+- [x] XSS prevention via HTML escaping
+- [x] API key only via headers
+- [x] CORS origin restrictions
+- [x] Request size limiting
+- [x] Database connection pool limits
+- [x] Input validation improvements
+- [x] Error handling improvements
+- [ ] CSP policy hardening (requires frontend refactoring)
+- [ ] Rate limiting per endpoint (currently global)
+- [ ] SQL query optimization for expensive operations

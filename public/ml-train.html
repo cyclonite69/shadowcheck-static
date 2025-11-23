@@ -157,7 +157,7 @@
     </div>
 
     <script>
-        const API_BASE = `${window.location.protocol}//${window.location.hostname}:3002/api`;
+        const API_BASE = Object.freeze(`${window.location.protocol}//${window.location.hostname}:3001/api`);
 
         async function loadStatus() {
             try {

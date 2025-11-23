@@ -1,5 +1,11 @@
 console.log('Starting server...');
 
+// Clear PostgreSQL environment variables that might interfere
+delete process.env.PGHOST;
+delete process.env.PGPORT;
+delete process.env.PGDATABASE;
+delete process.env.PGUSER;
+
 try {
     require('dotenv').config({ override: true });
     const express = require('express');
@@ -12,37 +18,124 @@ try {
 
     const app = express();
     const port = process.env.PORT || 3001;
+    const FORCE_HTTPS = process.env.FORCE_HTTPS === 'true';
+
+    // HTTPS redirect middleware (if enabled)
+    if (FORCE_HTTPS) {
+        app.use((req, res, next) => {
+            if (req.headers['x-forwarded-proto'] !== 'https' && req.hostname !== 'localhost') {
+                return res.redirect(301, `https://${req.hostname}${req.url}`);
+            }
+            next();
+        });
+    }
+
+    // Security headers
+    app.use((req, res, next) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Frame-Options', 'DENY');
+        res.setHeader('X-XSS-Protection', '1; mode=block');
+        res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+        if (FORCE_HTTPS) {
+            res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        }
+        res.setHeader('Content-Security-Policy', 
+            "default-src 'self'; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://api.mapbox.com; " +
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://api.mapbox.com; " +
+            "font-src 'self' https://fonts.gstatic.com; " +
+            "img-src 'self' data: https:; " +
+            "connect-src 'self' https://api.mapbox.com;"
+        );
+        next();
+    });
 
     // Enable gzip compression
     app.use(compression());
 
-    // Enable CORS for all routes
-    app.use(cors());
+    // Enable CORS with origin restrictions
+    const allowedOrigins = process.env.CORS_ORIGINS
+        ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+        : ['http://localhost:3001', 'http://127.0.0.1:3001'];
 
-    // Apply to all requests
+    app.use(cors({
+        origin: function(origin, callback) {
+            // Allow requests with no origin (like mobile apps, curl, Postman)
+            if (!origin) return callback(null, true);
+
+            if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true
+    }));
+
     // Rate limiting to prevent abuse
     const apiLimiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 1000, // Limit each IP to 1000 requests per windowMs (increased for development)
+      max: 1000,
       message: 'Too many requests from this IP, please try again after 15 minutes'
     });
 
     // Apply the rate limiting middleware to API calls only
     app.use('/api/', apiLimiter);
 
+    // Configuration constants
+    const CONFIG = {
+        THREAT_THRESHOLD: parseInt(process.env.THREAT_THRESHOLD) || 40,
+        MIN_OBSERVATIONS: parseInt(process.env.MIN_OBSERVATIONS) || 2,
+        MIN_VALID_TIMESTAMP: 946684800000, // Jan 1, 2000
+        MAX_PAGE_SIZE: 5000,
+        DEFAULT_PAGE_SIZE: 100
+    };
 
+    // Simple API key authentication for sensitive endpoints
+    const API_KEY = process.env.API_KEY;
+    function requireAuth(req, res, next) {
+      if (!API_KEY) return next(); // Skip auth if no key configured
+      const key = req.headers['x-api-key']; // Only accept via header (not query param for security)
+      if (key !== API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized - API key required' });
+      }
+      next();
+    }
 
-    // Database connection configuration
+    // BSSID validation and sanitization
+    function sanitizeBSSID(bssid) {
+      if (!bssid || typeof bssid !== 'string') return null;
+      const cleaned = bssid.trim().toUpperCase();
+      if (cleaned.length > 64) return null; // Prevent excessive length
+      // Valid MAC address format
+      if (/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/.test(cleaned)) return cleaned;
+      // Valid alphanumeric tower ID (up to 32 chars)
+      if (/^[A-Z0-9_-]{1,32}$/.test(cleaned)) return cleaned;
+      return null;
+    }
+
+    // Database connection configuration with pool limits
+    // Force IPv4 to avoid IPv6 timeout issues in Docker environments
     const pool = new Pool({
       user: process.env.DB_USER,
-      host: process.env.DB_HOST,
+      host: '127.0.0.1',
       database: process.env.DB_NAME,
       password: process.env.DB_PASSWORD,
-      port: process.env.DB_PORT,
+      port: 5432,
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      application_name: 'shadowcheck-static',
+      // Force connection through loopback interface
+      options: '-c search_path=public'
     });
 
-    // Minimum valid timestamp: January 1, 2000 00:00:00 UTC in milliseconds
-    const MIN_VALID_TIMESTAMP = 946684800000;
+    pool.on('connect', (client) => {
+      console.log('Pool connected:', client.host, client.port);
+    });
+    pool.on('error', (err) => {
+      console.error('Pool error:', err.message);
+    });
 
     // Database query wrapper with retry logic for transient errors
     async function query(text, params = [], tries = 2) {
@@ -60,37 +153,53 @@ try {
           await new Promise(resolve => setTimeout(resolve, 1000));
           return query(text, params, tries - 1);
         }
+        console.error('Database query failed:', error.message);
         throw error;
       }
     }
 
-    // Test database connection
-    pool.connect((err, client, release) => {
-      if (err) {
-        return console.error('✗ Database connection failed:', err.message);
-      }
-      client.query('SELECT NOW()', (err, result) => {
-        release();
-        if (err) {
-          return console.error('✗ Database connection failed:', err.message);
+    // Test database connection (non-blocking)
+    (async () => {
+      try {
+        const client = await pool.connect();
+        try {
+          await client.query('SELECT NOW()');
+          console.log('✓ Database connected successfully');
+        } finally {
+          client.release();
         }
-        console.log('✓ Database connected successfully');
-      });
-    });
+      } catch (err) {
+        console.warn('⚠️  Database connection test failed:', err.message);
+        console.warn('⚠️  Server will continue - database will be retried on first request');
+      }
+    })();
 
-    // Parse JSON request bodies
-    app.use(express.json());
+    // Parse JSON request bodies with size limit to prevent DoS
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // Serve static files from the 'public' directory
-    app.use(express.static(path.join(__dirname, 'public')));
+    app.use(express.static(path.join(__dirname, 'public'), {
+      maxAge: '1h',
+      etag: true
+    }));
 
     // Serve the HTML file
     app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, 'public', 'index.html'));
     });
 
+    // Mapbox token endpoint
+    app.get('/api/mapbox-token', (req, res) => {
+      const token = process.env.MAPBOX_TOKEN;
+      if (!token) {
+        return res.status(500).json({ error: 'Mapbox token not configured' });
+      }
+      res.json({ token });
+    });
+
     // API endpoint to get dashboard metrics
-    app.get('/api/dashboard-metrics', async (req, res) => {
+    app.get('/api/dashboard-metrics', async (req, res, next) => {
       try {
         // Exclude orphan networks (those with 0 dBm signal have no real observations)
         const totalNetworksQuery = `
@@ -176,7 +285,7 @@ try {
           gsmCountRes
         ] = await Promise.all([
           query(totalNetworksQuery),
-          query(threatsQuery, [MIN_VALID_TIMESTAMP]),
+          query(threatsQuery, [CONFIG.MIN_VALID_TIMESTAMP]),
           query(suspiciousQuery),
           query(enrichedQuery),
           query(wifiCountQuery),
@@ -187,15 +296,15 @@ try {
         ]);
 
         const metrics = {
-          totalNetworks: parseInt(totalNetworksRes.rows[0].count),
-          threatsCount: parseInt(threatsRes.rows[0].count),
-          surveillanceCount: parseInt(suspiciousRes.rows[0].count),
-          enrichedCount: parseInt(enrichedRes.rows[0].count),
-          wifiCount: parseInt(wifiCountRes.rows[0].count),
-          bleCount: parseInt(bleCountRes.rows[0].count),
-          btCount: parseInt(btCountRes.rows[0].count),
-          lteCount: parseInt(lteCountRes.rows[0].count),
-          gsmCount: parseInt(gsmCountRes.rows[0].count),
+          totalNetworks: totalNetworksRes.rows.length > 0 ? parseInt(totalNetworksRes.rows[0].count) : 0,
+          threatsCount: threatsRes.rows.length > 0 ? parseInt(threatsRes.rows[0].count) : 0,
+          surveillanceCount: suspiciousRes.rows.length > 0 ? parseInt(suspiciousRes.rows[0].count) : 0,
+          enrichedCount: enrichedRes.rows.length > 0 ? parseInt(enrichedRes.rows[0].count) : 0,
+          wifiCount: wifiCountRes.rows.length > 0 ? parseInt(wifiCountRes.rows[0].count) : 0,
+          bleCount: bleCountRes.rows.length > 0 ? parseInt(bleCountRes.rows[0].count) : 0,
+          btCount: btCountRes.rows.length > 0 ? parseInt(btCountRes.rows[0].count) : 0,
+          lteCount: lteCountRes.rows.length > 0 ? parseInt(lteCountRes.rows[0].count) : 0,
+          gsmCount: gsmCountRes.rows.length > 0 ? parseInt(gsmCountRes.rows[0].count) : 0,
         };
 
         res.json(metrics);
@@ -205,7 +314,7 @@ try {
     });
 
     // API endpoint for analytics - network types distribution with proper WiGLE categories
-    app.get('/api/analytics/network-types', async (req, res) => {
+    app.get('/api/analytics/network-types', async (req, res, next) => {
       try {
         const { rows } = await query(`
           SELECT
@@ -240,7 +349,7 @@ try {
     });
 
     // API endpoint for analytics - signal strength distribution
-    app.get('/api/analytics/signal-strength', async (req, res) => {
+    app.get('/api/analytics/signal-strength', async (req, res, next) => {
       try {
         const { rows } = await query(`
           SELECT
@@ -273,7 +382,7 @@ try {
     });
 
     // API endpoint for analytics - temporal activity
-    app.get('/api/analytics/temporal-activity', async (req, res) => {
+    app.get('/api/analytics/temporal-activity', async (req, res, next) => {
       try {
         const { rows } = await query(`
           SELECT
@@ -284,7 +393,7 @@ try {
             AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1
           GROUP BY hour
           ORDER BY hour
-        `, [MIN_VALID_TIMESTAMP]);
+        `, [CONFIG.MIN_VALID_TIMESTAMP]);
 
         res.json({
           ok: true,
@@ -299,9 +408,15 @@ try {
     });
 
     // API endpoint for analytics - radio type over time (last 30 days)
-    app.get('/api/analytics/radio-type-over-time', async (req, res) => {
+    app.get('/api/analytics/radio-type-over-time', async (req, res, next) => {
       try {
         const range = req.query.range || '30d';
+        
+        // Validate range parameter
+        const validRanges = ['24h', '7d', '30d', '90d', 'all'];
+        if (!validRanges.includes(range)) {
+          return res.status(400).json({ error: 'Invalid range parameter. Must be one of: 24h, 7d, 30d, 90d, all' });
+        }
 
         // Determine time interval and grouping
         let interval = '30 days';
@@ -356,7 +471,7 @@ try {
             ORDER BY date, network_type
           )
           SELECT * FROM time_counts
-        `, [MIN_VALID_TIMESTAMP]);
+        `, [CONFIG.MIN_VALID_TIMESTAMP]);
 
         res.json({
           ok: true,
@@ -372,7 +487,7 @@ try {
     });
 
     // API endpoint for analytics - security analysis
-    app.get('/api/analytics/security', async (req, res) => {
+    app.get('/api/analytics/security', async (req, res, next) => {
       try {
         const { rows } = await query(`
           SELECT
@@ -430,8 +545,8 @@ try {
         if (isNaN(page) || page <= 0) {
           return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
         }
-        if (isNaN(limit) || limit <= 0) {
-          return res.status(400).json({ error: 'Invalid limit parameter. Must be a positive integer.' });
+        if (isNaN(limit) || limit <= 0 || limit > 5000) {
+          return res.status(400).json({ error: 'Invalid limit parameter. Must be between 1 and 5000.' });
         }
         if (minSeverity !== null && (isNaN(minSeverity) || minSeverity < 0 || minSeverity > 100)) {
           return res.status(400).json({ error: 'minSeverity must be a number between 0 and 100.' });
@@ -439,7 +554,7 @@ try {
         
         const offset = (page - 1) * limit;
 
-        const queryParams = [MIN_VALID_TIMESTAMP];
+        const queryParams = [CONFIG.MIN_VALID_TIMESTAMP];
         let paramIndex = 2; // Starting index for dynamic parameters
 
         let whereClauses = [];
@@ -467,14 +582,11 @@ try {
               CASE WHEN ns.type = 'W' AND ns.max_signal > -50 THEN 20 ELSE 0 END -
               CASE WHEN ns.unique_locations <= 3 AND ns.unique_days >= 5 THEN 15 ELSE 0 END
             ))`;
-        
-        whereClauses.push(`${threatScoreCalculation} >= 40`);
 
-        // Filter by minSeverity if provided
-        if (minSeverity !== null) {
-          whereClauses.push(`${threatScoreCalculation} >= $${paramIndex++}`);
-          queryParams.push(minSeverity);
-        }
+        // Filter by minSeverity if provided, otherwise use default threshold of 40
+        const minThreshold = minSeverity !== null ? minSeverity : 40;
+        whereClauses.push(`${threatScoreCalculation} >= $${paramIndex++}`);
+        queryParams.push(minThreshold);
 
         // Filter out cellular networks (GSM, LTE, 5G) unless they have >5km distance range
         whereClauses.push(`
@@ -551,6 +663,8 @@ try {
             (ns.last_seen - ns.first_seen) as observation_timespan_ms,
             ns.seen_at_home,
             ns.seen_away_from_home,
+            0 as companion_networks,
+            0 as shared_locations,
             COALESCE(nt.threat_score * 100, (
               -- Improved scoring algorithm
               CASE WHEN ns.seen_at_home AND ns.seen_away_from_home 
@@ -612,6 +726,8 @@ try {
           limit: limit,
           count: rows.length,
           total: totalCount,
+          total_count: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
           threats: rows.map(row => ({
             bssid: row.bssid,
             ssid: row.ssid,
@@ -648,12 +764,218 @@ try {
     });
 
     // ML Model Training and Prediction Endpoints
-    const ThreatMLModel = require('./ml-trainer');
-    const mlModel = new ThreatMLModel();
+    // API endpoint to check for suspicious duplicate observations
+    app.get('/api/observations/check-duplicates/:bssid', async (req, res, next) => {
+      try {
+        const { bssid } = req.params;
+        const { time } = req.query;
+
+        // Validate BSSID format (MAC address or cellular tower identifier)
+        // MAC: AA:BB:CC:DD:EE:FF or Tower: numeric/alphanumeric identifiers
+        if (!bssid || typeof bssid !== 'string' || bssid.trim() === '') {
+          return res.status(400).json({ error: 'Valid BSSID or tower identifier is required' });
+        }
+
+        if (!time) {
+          return res.status(400).json({ error: 'time parameter required (milliseconds)' });
+        }
+
+        const { rows } = await query(`
+          WITH target_obs AS (
+            SELECT time, lat, lon, accuracy
+            FROM app.locations_legacy
+            WHERE bssid = $1 AND time = $2
+            LIMIT 1
+          )
+          SELECT 
+            COUNT(*) as total_observations,
+            COUNT(DISTINCT l.bssid) as unique_networks,
+            ARRAY_AGG(DISTINCT l.bssid ORDER BY l.bssid) as bssids,
+            t.lat,
+            t.lon,
+            t.accuracy,
+            to_timestamp(t.time / 1000.0) as timestamp
+          FROM app.locations_legacy l
+          JOIN target_obs t ON 
+            l.time = t.time 
+            AND l.lat = t.lat 
+            AND l.lon = t.lon
+            AND l.accuracy = t.accuracy
+          GROUP BY t.lat, t.lon, t.accuracy, t.time
+        `, [bssid, time]);
+
+        res.json({
+          ok: true,
+          data: rows[0] || null,
+          isSuspicious: rows[0] && rows[0].total_observations >= 10
+        });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // API endpoint to remove duplicate observations
+    app.post('/api/admin/cleanup-duplicates', async (req, res, next) => {
+      try {
+        console.log('Removing duplicate observations...');
+        
+        // Count before
+        const before = await query(`
+          SELECT 
+            COUNT(*) as total,
+            COUNT(DISTINCT (bssid, time, lat, lon, accuracy)) as unique_obs
+          FROM app.locations_legacy
+          WHERE lat IS NOT NULL AND lon IS NOT NULL
+        `);
+        
+        // Delete duplicates - keep first occurrence by unified_id
+        const result = await query(`
+          DELETE FROM app.locations_legacy
+          WHERE unified_id IN (
+            SELECT unified_id
+            FROM (
+              SELECT unified_id,
+                ROW_NUMBER() OVER (
+                  PARTITION BY bssid, time, lat, lon, accuracy 
+                  ORDER BY unified_id
+                ) as rn
+              FROM app.locations_legacy
+              WHERE lat IS NOT NULL AND lon IS NOT NULL
+            ) t
+            WHERE rn > 1
+          )
+        `);
+        
+        // Count after
+        const after = await query(`
+          SELECT COUNT(*) as total
+          FROM app.locations_legacy
+          WHERE lat IS NOT NULL AND lon IS NOT NULL
+        `);
+        
+        console.log(`✓ Removed ${result.rowCount} duplicate observations`);
+        
+        res.json({
+          ok: true,
+          message: 'Duplicate observations removed',
+          before: before.rows.length > 0 ? parseInt(before.rows[0].total) : 0,
+          after: after.rows.length > 0 ? parseInt(after.rows[0].total) : 0,
+          removed: result.rowCount
+        });
+      } catch (err) {
+        console.error('✗ Error removing duplicates:', err);
+        next(err);
+      }
+    });
+
+    // API endpoint to create/refresh co-location materialized view
+    app.post('/api/admin/refresh-colocation', async (req, res, next) => {
+      try {
+        console.log('Creating/refreshing co-location materialized view...');
+        
+        // Drop existing view
+        await query(`DROP MATERIALIZED VIEW IF EXISTS app.network_colocation_scores CASCADE`);
+        
+        // Create materialized view
+        await query(`
+          CREATE MATERIALIZED VIEW app.network_colocation_scores AS
+          WITH network_locations AS (
+            SELECT
+              bssid,
+              time,
+              ST_SnapToGrid(ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geometry, 0.001) as location_grid,
+              time / 60000 as time_bucket
+            FROM app.locations_legacy
+            WHERE lat IS NOT NULL
+              AND lon IS NOT NULL
+              AND (accuracy IS NULL OR accuracy <= 100)
+              AND time >= ${CONFIG.MIN_VALID_TIMESTAMP}
+          ),
+          colocation_pairs AS (
+            SELECT 
+              n1.bssid,
+              COUNT(DISTINCT n2.bssid) as companion_count,
+              COUNT(DISTINCT n1.location_grid) as shared_location_count
+            FROM network_locations n1
+            JOIN network_locations n2 ON 
+              n1.location_grid = n2.location_grid
+              AND n1.time_bucket = n2.time_bucket
+              AND n1.bssid < n2.bssid
+            GROUP BY n1.bssid
+            HAVING COUNT(DISTINCT n2.bssid) >= 1 
+              AND COUNT(DISTINCT n1.location_grid) >= 3
+          )
+          SELECT DISTINCT ON (bssid)
+            bssid,
+            companion_count,
+            shared_location_count,
+            LEAST(30, 
+              CASE WHEN companion_count >= 3 THEN 30
+                   WHEN companion_count >= 2 THEN 20
+                   WHEN companion_count >= 1 THEN 10
+                   ELSE 0 END
+            ) as colocation_score,
+            NOW() as computed_at
+          FROM colocation_pairs
+          UNION ALL
+          SELECT 
+            n2.bssid,
+            COUNT(DISTINCT n1.bssid) as companion_count,
+            COUNT(DISTINCT n1.location_grid) as shared_location_count,
+            LEAST(30, 
+              CASE WHEN COUNT(DISTINCT n1.bssid) >= 3 THEN 30
+                   WHEN COUNT(DISTINCT n1.bssid) >= 2 THEN 20
+                   WHEN COUNT(DISTINCT n1.bssid) >= 1 THEN 10
+                   ELSE 0 END
+            ) as colocation_score,
+            NOW() as computed_at
+          FROM network_locations n1
+          JOIN network_locations n2 ON 
+            n1.location_grid = n2.location_grid
+            AND n1.time_bucket = n2.time_bucket
+            AND n1.bssid < n2.bssid
+          GROUP BY n2.bssid
+          HAVING COUNT(DISTINCT n1.bssid) >= 1 
+            AND COUNT(DISTINCT n1.location_grid) >= 3
+          ORDER BY bssid, companion_count DESC
+        `);
+        
+        // Create index
+        await query(`CREATE INDEX IF NOT EXISTS idx_colocation_bssid ON app.network_colocation_scores(bssid)`);
+        
+        console.log('✓ Co-location view created successfully');
+        
+        res.json({
+          ok: true,
+          message: 'Co-location materialized view created/refreshed successfully'
+        });
+      } catch (err) {
+        console.error('✗ Error creating co-location view:', err);
+        next(err);
+      }
+    });
+
+    // Load ML model with error handling
+    let ThreatMLModel, mlModel;
+    try {
+      ThreatMLModel = require('./ml-trainer');
+      mlModel = new ThreatMLModel();
+      console.log('✓ ML model module loaded successfully');
+    } catch (err) {
+      console.warn('⚠️  ML model module not found or failed to load:', err.message);
+      console.warn('⚠️  ML training endpoints will be disabled');
+      mlModel = null;
+    }
 
     // Train ML model on tagged networks
-    app.post('/api/ml/train', async (req, res, next) => {
+    app.post('/api/ml/train', requireAuth, async (req, res, next) => {
       try {
+        if (!mlModel) {
+          return res.status(503).json({
+            ok: false,
+            error: 'ML model module not available. Check server logs for details.'
+          });
+        }
         console.log('🤖 Training ML model on tagged networks...');
 
         // Fetch all tagged networks with features
@@ -695,7 +1017,7 @@ try {
             AND l.lat IS NOT NULL AND l.lon IS NOT NULL
             AND l.time >= $1
           GROUP BY nt.bssid, nt.tag_type, n.type
-        `, [MIN_VALID_TIMESTAMP]);
+        `, [CONFIG.MIN_VALID_TIMESTAMP]);
 
         if (rows.length < 10) {
           return res.status(400).json({
@@ -761,7 +1083,7 @@ try {
     });
 
     // API endpoint for advanced threat detection
-    app.get('/api/threats/detect', async (req, res) => {
+    app.get('/api/threats/detect', async (req, res, next) => {
       try {
         const { rows } = await query(`
           WITH home_location AS (
@@ -801,10 +1123,11 @@ try {
               nl.encryption,
               nl.total_observations,
 
-              -- Distance from home for each observation
+              -- Distance from home for each observation (limit to 500 to prevent memory issues)
               ARRAY_AGG(
                 ROUND(ST_Distance(nl.point, h.home_point)::numeric / 1000, 3)
                 ORDER BY nl.time
+                LIMIT 500
               ) as distances_from_home_km,
 
               -- Check if seen at home (within 100m)
@@ -927,7 +1250,7 @@ try {
               OR max_distance_between_obs_km > 5
             )
           ORDER BY threat_score DESC, total_observations DESC
-        `, [MIN_VALID_TIMESTAMP]);
+        `, [CONFIG.MIN_VALID_TIMESTAMP]);
 
         res.json({
           ok: true,
@@ -961,7 +1284,7 @@ try {
     });
 
     // API endpoint to get all observations for a specific network
-    app.get('/api/networks/observations/:bssid', async (req, res) => {
+    app.get('/api/networks/observations/:bssid', async (req, res, next) => {
       try {
         const { bssid } = req.params;
 
@@ -1006,8 +1329,19 @@ try {
             AND l.lat IS NOT NULL
             AND l.lon IS NOT NULL
             AND l.time >= $4
+            AND (l.accuracy IS NULL OR l.accuracy <= 100)
+            -- Exclude suspicious batch imports (10+ networks at exact same time/place)
+            AND NOT EXISTS (
+              SELECT 1 
+              FROM app.locations_legacy dup
+              WHERE dup.time = l.time 
+                AND dup.lat = l.lat 
+                AND dup.lon = l.lon
+              GROUP BY dup.time, dup.lat, dup.lon
+              HAVING COUNT(DISTINCT dup.bssid) >= 50
+            )
           ORDER BY l.time ASC
-        `, [home?.lon, home?.lat, bssid, MIN_VALID_TIMESTAMP]);
+        `, [home?.lon, home?.lat, bssid, CONFIG.MIN_VALID_TIMESTAMP]);
 
         res.json({
           ok: true,
@@ -1022,13 +1356,14 @@ try {
     });
 
     // API endpoint to tag a network
-    app.post('/api/tag-network', async (req, res, next) => {
+    app.post('/api/tag-network', requireAuth, async (req, res, next) => {
       try {
         const { bssid, tag_type, confidence, notes } = req.body;
 
-        // Validate bssid
-        if (!bssid || !/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/i.test(bssid)) {
-          return res.status(400).json({ error: 'Valid BSSID is required (e.g., AA:BB:CC:DD:EE:FF)' });
+        // Validate and sanitize BSSID
+        const cleanBSSID = sanitizeBSSID(bssid);
+        if (!cleanBSSID) {
+          return res.status(400).json({ error: 'Invalid BSSID format' });
         }
 
         // Validate tag_type
@@ -1051,21 +1386,21 @@ try {
         // Get SSID from networks table if available
         const networkResult = await query(`
           SELECT ssid FROM app.networks_legacy WHERE bssid = $1 LIMIT 1
-        `, [bssid.toUpperCase()]);
+        `, [cleanBSSID]);
 
         const ssid = networkResult.rows.length > 0 ? networkResult.rows[0].ssid : null;
 
         // Delete any existing tags for this BSSID (ensure only one tag per network)
         await query(`
           DELETE FROM app.network_tags WHERE bssid = $1
-        `, [bssid.toUpperCase()]);
+        `, [cleanBSSID]);
 
         // Insert the new tag
         const result = await query(`
           INSERT INTO app.network_tags (bssid, ssid, tag_type, confidence, notes)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING id, bssid, tag_type, confidence, threat_score, ml_confidence
-        `, [bssid.toUpperCase(), ssid, tag_type.toUpperCase(), parsedConfidence / 100.0, notes || null]);
+        `, [cleanBSSID, ssid, tag_type.toUpperCase(), parsedConfidence / 100.0, notes || null]);
 
         res.json({
           ok: true,
@@ -1142,13 +1477,14 @@ try {
     });
 
     // API endpoint to delete a network tag (untag)
-    app.delete('/api/tag-network/:bssid', async (req, res, next) => {
+    app.delete('/api/tag-network/:bssid', requireAuth, async (req, res, next) => {
       try {
         const { bssid } = req.params;
 
-        // Validate bssid
-        if (!bssid || !/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/i.test(bssid)) {
-          return res.status(400).json({ error: 'Valid BSSID is required (e.g., AA:BB:CC:DD:EE:FF)' });
+        // Validate and sanitize BSSID
+        const cleanBSSID = sanitizeBSSID(bssid);
+        if (!cleanBSSID) {
+          return res.status(400).json({ error: 'Invalid BSSID format' });
         }
 
         // Delete all tags for this BSSID
@@ -1156,7 +1492,7 @@ try {
           DELETE FROM app.network_tags
           WHERE bssid = $1
           RETURNING bssid, tag_type
-        `, [bssid.toUpperCase()]);
+        `, [cleanBSSID]);
 
         if (result.rows.length === 0) {
           return res.status(404).json({ error: 'No tags found for this BSSID' });
@@ -1172,13 +1508,13 @@ try {
     });
 
     // API endpoint to get manufacturer from BSSID
-    app.get('/api/manufacturer/:bssid', async (req, res) => {
+    app.get('/api/manufacturer/:bssid', async (req, res, next) => {
       try {
         const { bssid } = req.params;
 
-        // Validate bssid
-        if (!bssid || !/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/i.test(bssid)) {
-          return res.status(400).json({ error: 'Valid BSSID is required (e.g., AA:BB:CC:DD:EE:FF)' });
+        // Validate bssid (MAC address or cellular tower identifier)
+        if (!bssid || typeof bssid !== 'string' || bssid.trim() === '') {
+          return res.status(400).json({ error: 'Valid BSSID or tower identifier is required' });
         }
 
 
@@ -1217,8 +1553,8 @@ try {
         if (isNaN(page) || page <= 0) {
           return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
         }
-        if (isNaN(limit) || limit <= 0) {
-          return res.status(400).json({ error: 'Invalid limit parameter. Must be a positive integer.' });
+        if (isNaN(limit) || limit <= 0 || limit > 5000) {
+          return res.status(400).json({ error: 'Invalid limit parameter. Must be between 1 and 5000.' });
         }
         
         const offset = (page - 1) * limit;
@@ -1240,11 +1576,11 @@ try {
         if (security && typeof security !== 'string') {
           return res.status(400).json({ error: 'Security parameter must be a string.' });
         }
-        if (minSignal !== null && (isNaN(minSignal) || typeof minSignal !== 'number')) {
-          return res.status(400).json({ error: 'minSignal parameter must be a number.' });
+        if (minSignal !== null && isNaN(minSignal)) {
+          return res.status(400).json({ error: 'minSignal parameter must be a valid number.' });
         }
-        if (maxSignal !== null && (isNaN(maxSignal) || typeof maxSignal !== 'number')) {
-          return res.status(400).json({ error: 'maxSignal parameter must be a number.' });
+        if (maxSignal !== null && isNaN(maxSignal)) {
+          return res.status(400).json({ error: 'maxSignal parameter must be a valid number.' });
         }
 
         // Sorting parameters
@@ -1369,7 +1705,7 @@ try {
 
         // Parameters for the query
         const params = [
-          MIN_VALID_TIMESTAMP,
+          CONFIG.MIN_VALID_TIMESTAMP,
           home?.lat || null,
           home?.lon || null,
         ];
@@ -1416,11 +1752,6 @@ try {
         const totalCount = rows.length > 0 ? parseInt(rows[0].total_networks_count) : 0;
 
         const networks = rows.map(row => {
-          // Debug: log first row
-          if (rows.indexOf(row) === 0) {
-            console.log('First row keys:', Object.keys(row));
-            console.log('First row lastseen:', row.lastseen);
-          }
           return {
             id: row.unified_id,
             ssid: row.ssid,
@@ -1452,9 +1783,11 @@ try {
 
         res.json({
           networks,
+          total: totalCount,
           totalCount,
           page,
-          limit
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
         });
       } catch (err) {
         next(err);
@@ -1462,7 +1795,7 @@ try {
     });
 
     // API endpoint to search for networks by SSID
-    app.get('/api/networks/search/:ssid', async (req, res) => {
+    app.get('/api/networks/search/:ssid', async (req, res, next) => {
       try {
         const { ssid } = req.params;
 
@@ -1508,6 +1841,20 @@ try {
       console.log(`Server listening on port ${port}`);
     });
 
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+      console.log('SIGTERM received, closing database pool...');
+      await pool.end();
+      process.exit(0);
+    });
+
+    process.on('SIGINT', async () => {
+      console.log('SIGINT received, closing database pool...');
+      await pool.end();
+      process.exit(0);
+    });
+
 } catch (err) {
     console.error('Server startup error:', err);
+    process.exit(1);
 }

@@ -289,7 +289,7 @@
 
     <script>
         // Use dynamic API base URL based on current window location
-        const API_BASE = `${window.location.protocol}//${window.location.hostname}:3002/api`;
+        const API_BASE = Object.freeze(`${window.location.protocol}//${window.location.hostname}:3001/api`);
         const charts = {};
 
         // Highlight active nav

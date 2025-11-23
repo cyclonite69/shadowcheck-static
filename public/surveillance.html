@@ -498,8 +498,16 @@
     </div>
 
     <script>
+        // HTML escaping utility to prevent XSS
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Use dynamic API base URL based on current window location
-        const API_BASE = `${window.location.protocol}//${window.location.hostname}:3002/api`;
+        const API_BASE = Object.freeze(`${window.location.protocol}//${window.location.hostname}:3001/api`);
         let threatChart = null;
         let temporalChart = null;
         let minThreatSeverity = 'all'; // Default: show all
@@ -530,7 +538,8 @@
         async function loadMetrics() {
             try {
                 console.log('📊 Loading threat metrics...');
-                const response = await fetch(`${API_BASE}/threats/quick?page=1&limit=10000`);
+                // Reduced from 10000 to 1000 to prevent memory issues
+                const response = await fetch(`${API_BASE}/threats/quick?page=1&limit=1000`);
 
                 if (!response.ok) {
                     console.error('✗ Metrics API failed:', response.status);
@@ -808,10 +817,10 @@
                         <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 600; color: #fca5a5; margin-bottom: 4px;">
-                                    ${network.ssid || 'Hidden Network'}
+                                    ${escapeHtml(network.ssid) || 'Hidden Network'}
                                 </div>
                                 <div style="font-size: 10px; color: #94a3b8;">
-                                    ${network.bssid}${network.observation_count ? ` • ${network.observation_count} obs` : ''}${network.first_seen && network.last_seen ? ` • ${new Date(parseInt(network.first_seen)).toLocaleDateString()} - ${new Date(parseInt(network.last_seen)).toLocaleDateString()} (${timespanDays}d)` : ''}
+                                    ${escapeHtml(network.bssid)}${network.observation_count ? ` • ${network.observation_count} obs` : ''}${network.first_seen && network.last_seen ? ` • ${new Date(parseInt(network.first_seen)).toLocaleDateString()} - ${new Date(parseInt(network.last_seen)).toLocaleDateString()} (${timespanDays}d)` : ''}
                                 </div>
                             </div>
                             <button class="untag-btn" style="
@@ -918,10 +927,10 @@
                         <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 600; color: #4ade80; margin-bottom: 4px;">
-                                    ${network.ssid || 'Hidden Network'}
+                                    ${escapeHtml(network.ssid) || 'Hidden Network'}
                                 </div>
                                 <div style="font-size: 10px; color: #94a3b8;">
-                                    ${network.bssid}${network.observation_count ? ` • ${network.observation_count} obs` : ''}${network.first_seen && network.last_seen ? ` • ${new Date(parseInt(network.first_seen)).toLocaleDateString()} - ${new Date(parseInt(network.last_seen)).toLocaleDateString()} (${timespanDays}d)` : ''}
+                                    ${escapeHtml(network.bssid)}${network.observation_count ? ` • ${network.observation_count} obs` : ''}${network.first_seen && network.last_seen ? ` • ${new Date(parseInt(network.first_seen)).toLocaleDateString()} - ${new Date(parseInt(network.last_seen)).toLocaleDateString()} (${timespanDays}d)` : ''}
                                 </div>
                             </div>
                             <button class="untag-btn" style="
@@ -1064,12 +1073,12 @@
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                 <div style="font-weight: 600; font-size: 13px; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    ${threat.ssid || 'Hidden Network'}
+                                    ${escapeHtml(threat.ssid) || 'Hidden Network'}
                                 </div>
-                                <span class="threat-score ${severityClass}">${severityLabel}: ${threat.threatScore}</span>
+                                <span class="threat-score ${severityClass}">${escapeHtml(severityLabel)}: ${threat.threatScore}</span>
                             </div>
                             <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                                ${threat.bssid} • ${threat.totalObservations} obs • ${new Date(parseInt(threat.firstSeen)).toLocaleDateString()} - ${new Date(parseInt(threat.lastSeen)).toLocaleDateString()} (${threat.timespanDays}d)
+                                ${escapeHtml(threat.bssid)} • ${threat.totalObservations} obs • ${new Date(parseInt(threat.firstSeen)).toLocaleDateString()} - ${new Date(parseInt(threat.lastSeen)).toLocaleDateString()} (${threat.timespanDays}d)
                             </div>
                         </div>
                         <div style="display: flex; gap: 6px; flex-shrink: 0;">
@@ -1120,14 +1129,45 @@
                     const threatBtn = item.querySelector('.tag-threat-btn');
                     const investigateBtn = item.querySelector('.investigate-btn');
 
+                    // Check if already tagged and update button state
+                    if (threat.isTagged) {
+                        if (threat.userTag === 'FALSE_POSITIVE') {
+                            safeBtn.style.background = 'rgba(34, 197, 94, 0.5)';
+                            safeBtn.style.borderColor = '#22c55e';
+                            safeBtn.disabled = true;
+                            safeBtn.style.opacity = '1';
+                            safeBtn.style.cursor = 'not-allowed';
+                        } else if (threat.userTag === 'THREAT') {
+                            threatBtn.style.background = 'rgba(239, 68, 68, 0.5)';
+                            threatBtn.style.borderColor = '#ef4444';
+                            threatBtn.disabled = true;
+                            threatBtn.style.opacity = '1';
+                            threatBtn.style.cursor = 'not-allowed';
+                        }
+                    }
+
                     safeBtn.addEventListener('click', async (e) => {
                         e.stopPropagation();
-                        await tagNetwork(threat.bssid, 'FALSE_POSITIVE', 90);
+                        const success = await tagNetwork(threat.bssid, 'FALSE_POSITIVE', 90);
+                        if (success) {
+                            safeBtn.style.background = 'rgba(34, 197, 94, 0.5)';
+                            safeBtn.style.borderColor = '#22c55e';
+                            safeBtn.disabled = true;
+                            safeBtn.style.opacity = '1';
+                            safeBtn.style.cursor = 'not-allowed';
+                        }
                     });
 
                     threatBtn.addEventListener('click', async (e) => {
                         e.stopPropagation();
-                        await tagNetwork(threat.bssid, 'THREAT', 90);
+                        const success = await tagNetwork(threat.bssid, 'THREAT', 90);
+                        if (success) {
+                            threatBtn.style.background = 'rgba(239, 68, 68, 0.5)';
+                            threatBtn.style.borderColor = '#ef4444';
+                            threatBtn.disabled = true;
+                            threatBtn.style.opacity = '1';
+                            threatBtn.style.cursor = 'not-allowed';
+                        }
                     });
 
                     investigateBtn.addEventListener('click', (e) => {

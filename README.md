@@ -56,7 +56,7 @@ ShadowCheck consists of a Node.js/Express backend and a static frontend.
 npm start
 ```
 
-The application will be available at `http://localhost:3000`.
+The application will be available at `http://localhost:3001`.
 
 ## Pages
 - Dashboard: `/`
@@ -72,6 +72,25 @@ The application will be available at `http://localhost:3000`.
 - `GET /api/networks/observations/:bssid` - Network observations
 
 See `server.js` for full API documentation.
+
+## Machine Learning
+
+ShadowCheck includes ML-powered threat detection:
+
+### Node.js ML Trainer
+```bash
+# Train model on tagged networks (via API)
+curl -X POST http://localhost:3001/api/ml/train
+```
+
+### Python ML Iteration (Advanced)
+Test multiple algorithms with hyperparameter tuning:
+```bash
+pip install -r requirements.txt
+python3 ml-iterate.py
+```
+
+See [ML_ITERATION_GUIDE.md](ML_ITERATION_GUIDE.md) for details.
 
 ## Documentation
 
