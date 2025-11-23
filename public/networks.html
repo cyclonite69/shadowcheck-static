@@ -501,6 +501,7 @@
                     📡 All Networks
                     <span class="panel-count" id="network-count">0</span>
                     <span class="network-count-info" id="network-count-info"></span>
+                    <span style="font-size: 10px; color: #94a3b8; margin-left: 12px;">💡 Click headers to sort • Shift+Click for multi-column</span>
                     <div id="column-selector-container"></div>
                 </div>
                 <div class="panel-content">
@@ -630,7 +631,10 @@
                 width: '110px',
                 sortable: true,
                 default: false,
-                format: (val) => val || '1',
+                format: (val) => {
+                    const count = val || '1';
+                    return `<span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.3);">${count}</span>`;
+                },
                 sortValue: (val) => val ? parseInt(val) : 1
             },
             latitude: {
@@ -699,7 +703,7 @@
                 this.pageId = pageId;
                 this.storageKey = `networkListColumns-${pageId}`;
                 this.networks = [];
-                this.currentSort = { column: 'lastSeen', direction: 'desc' }; // Default sort
+                this.currentSort = [{ column: 'lastSeen', direction: 'desc' }]; // Array for multi-column sort
                 this.visibleColumns = this.loadColumnPreferences();
                 this.searchTerm = '';
                 this.threatFilter = ''; // '' = all, 'threat', 'warning', 'safe'
@@ -744,19 +748,35 @@
                 this.saveColumnPreferences();
             }
 
-            // Set sort column
-            setSort(column) {
+            // Set sort column (supports multi-column with Shift key)
+            setSort(column, shiftKey = false) {
                 if (!NETWORK_COLUMNS[column] || !NETWORK_COLUMNS[column].sortable) return;
 
-                if (this.currentSort.column === column) {
-                    // Cycle through: asc -> desc -> null
-                    if (this.currentSort.direction === 'asc') {
-                        this.currentSort.direction = 'desc';
-                    } else if (this.currentSort.direction === 'desc') {
-                        this.currentSort = { column: null, direction: null };
+                if (shiftKey) {
+                    // Multi-column sort: add/update this column in the sort array
+                    const existingIndex = this.currentSort.findIndex(s => s.column === column);
+                    if (existingIndex > -1) {
+                        // Toggle direction for existing column
+                        if (this.currentSort[existingIndex].direction === 'asc') {
+                            this.currentSort[existingIndex].direction = 'desc';
+                        } else {
+                            // Remove this column from sort
+                            this.currentSort.splice(existingIndex, 1);
+                        }
+                    } else {
+                        // Add new column to sort
+                        this.currentSort.push({ column, direction: 'asc' });
                     }
                 } else {
-                    this.currentSort = { column, direction: 'asc' };
+                    // Single column sort
+                    const existing = this.currentSort.find(s => s.column === column);
+                    if (existing && this.currentSort.length === 1) {
+                        // Toggle direction
+                        existing.direction = existing.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        // Replace with new single column sort
+                        this.currentSort = [{ column, direction: 'asc' }];
+                    }
                 }
                 loadNetworks(); // Reload networks with new sort
             }
@@ -868,21 +888,29 @@
 
                     if (col.sortable) {
                         th.className = 'sortable';
-                        th.onclick = () => {
-                            networkTable.setSort(colKey);
+                        th.onclick = (e) => {
+                            networkTable.setSort(colKey, e.shiftKey);
                             renderNetworkTable(tableId, onRowClick);
                         };
 
                         // Add sort indicator
-                        const indicator = document.createElement('span');
-                        indicator.className = 'sort-indicator';
-                        if (networkTable.currentSort.column === colKey) {
+                        const sortIndex = networkTable.currentSort.findIndex(s => s.column === colKey);
+                        if (sortIndex > -1) {
                             th.classList.add('sorted');
-                            indicator.textContent = networkTable.currentSort.direction === 'asc' ? '▲' : '▼';
+                            const indicator = document.createElement('span');
+                            indicator.className = 'sort-indicator';
+                            const sort = networkTable.currentSort[sortIndex];
+                            indicator.textContent = sort.direction === 'asc' ? '▲' : '▼';
+                            if (networkTable.currentSort.length > 1) {
+                                indicator.textContent += ` ${sortIndex + 1}`;
+                            }
+                            th.appendChild(indicator);
                         } else {
+                            const indicator = document.createElement('span');
+                            indicator.className = 'sort-indicator';
                             indicator.textContent = '▲';
+                            th.appendChild(indicator);
                         }
-                        th.appendChild(indicator);
                     }
 
                     headerRow.appendChild(th);
@@ -1001,8 +1029,9 @@
                 const params = new URLSearchParams();
                 params.append('page', networkTable.currentPage);
                 params.append('limit', networkTable.currentLimit);
-                params.append('sort', networkTable.currentSort.column || 'lastSeen');
-                params.append('order', (networkTable.currentSort.direction || 'desc').toUpperCase());
+                const primarySort = networkTable.currentSort[0] || { column: 'lastSeen', direction: 'desc' };
+                params.append('sort', primarySort.column);
+                params.append('order', (primarySort.direction || 'desc').toUpperCase());
                 if (networkTable.searchTerm) {
                     params.append('search', networkTable.searchTerm);
                 }
