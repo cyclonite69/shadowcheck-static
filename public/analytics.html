@@ -597,7 +597,7 @@
         // Load top networks by observations
         async function loadTopNetworks() {
             try {
-                const response = await fetch(`${API_BASE}/networks?sortBy=observations&sortOrder=desc&limit=10`);
+                const response = await fetch(`${API_BASE}/networks?page=1&limit=10&sort=observations&order=DESC`);
                 const data = await response.json();
                 
                 const list = document.getElementById('topNetworksList');
