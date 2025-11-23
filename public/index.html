@@ -212,7 +212,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-6 pb-8 pt-6">
+    <main class="px-6 pb-8 pt-6" style="max-width: 100%; width: 100%;">
         <div class="mb-8">
             <h2 class="text-3xl font-bold text-white mb-2">SIGINT Operations Dashboard</h2>
             <p class="text-gray-400">Real-time wireless network forensics and analysis</p>
@@ -268,7 +268,49 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- Radio Type Metrics -->
+        <div class="glass-card p-6 mb-8">
+            <h3 class="text-xl font-semibold text-white mb-4">Radio Types</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div class="metric-card p-4 rounded-lg">
+                    <div class="flex flex-col items-center">
+                        <i class="fas fa-wifi text-blue-400 text-2xl mb-2"></i>
+                        <p class="text-gray-400 text-xs mb-1">WiFi</p>
+                        <p class="text-xl font-bold text-white" id="wifi-count">0</p>
+                    </div>
+                </div>
+                <div class="metric-card p-4 rounded-lg">
+                    <div class="flex flex-col items-center">
+                        <i class="fas fa-bluetooth text-purple-400 text-2xl mb-2"></i>
+                        <p class="text-gray-400 text-xs mb-1">Bluetooth</p>
+                        <p class="text-xl font-bold text-white" id="bt-count">0</p>
+                    </div>
+                </div>
+                <div class="metric-card p-4 rounded-lg">
+                    <div class="flex flex-col items-center">
+                        <i class="fas fa-satellite text-indigo-400 text-2xl mb-2"></i>
+                        <p class="text-gray-400 text-xs mb-1">BLE</p>
+                        <p class="text-xl font-bold text-white" id="ble-count">0</p>
+                    </div>
+                </div>
+                <div class="metric-card p-4 rounded-lg">
+                    <div class="flex flex-col items-center">
+                        <i class="fas fa-tower-cell text-green-400 text-2xl mb-2"></i>
+                        <p class="text-gray-400 text-xs mb-1">LTE</p>
+                        <p class="text-xl font-bold text-white" id="lte-count">0</p>
+                    </div>
+                </div>
+                <div class="metric-card p-4 rounded-lg">
+                    <div class="flex flex-col items-center">
+                        <i class="fas fa-signal text-yellow-400 text-2xl mb-2"></i>
+                        <p class="text-gray-400 text-xs mb-1">GSM</p>
+                        <p class="text-xl font-bold text-white" id="gsm-count">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="glass-card p-6 mb-8">
             <h3 class="text-xl font-semibold text-white mb-4">Quick Actions</h3>
@@ -316,11 +358,18 @@
             try {
                 const response = await fetch('/api/dashboard-metrics');
                 const data = await response.json();
-                
+
                 document.getElementById('total-networks').textContent = data.totalNetworks.toLocaleString();
                 document.getElementById('threats-count').textContent = data.threatsCount.toLocaleString();
                 document.getElementById('surveillance-count').textContent = data.surveillanceCount.toLocaleString();
                 document.getElementById('enriched-count').textContent = data.enrichedCount.toLocaleString();
+
+                // Radio type counts
+                document.getElementById('wifi-count').textContent = (data.wifiCount || 0).toLocaleString();
+                document.getElementById('bt-count').textContent = (data.btCount || 0).toLocaleString();
+                document.getElementById('ble-count').textContent = (data.bleCount || 0).toLocaleString();
+                document.getElementById('lte-count').textContent = (data.lteCount || 0).toLocaleString();
+                document.getElementById('gsm-count').textContent = (data.gsmCount || 0).toLocaleString();
             } catch (err) {
                 console.error('Error loading metrics:', err);
             }
