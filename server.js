@@ -646,6 +646,119 @@ try {
       }
     });
 
+    // ML Model Training and Prediction Endpoints
+    const ThreatMLModel = require('./ml-trainer');
+    const mlModel = new ThreatMLModel();
+
+    // Train ML model on tagged networks
+    app.post('/api/ml/train', async (req, res, next) => {
+      try {
+        console.log('🤖 Training ML model on tagged networks...');
+
+        // Fetch all tagged networks with features
+        const { rows } = await query(`
+          WITH home_location AS (
+            SELECT location_point::geography as home_point
+            FROM app.location_markers
+            WHERE marker_type = 'home'
+            LIMIT 1
+          )
+          SELECT
+            nt.bssid,
+            nt.tag_type,
+            n.type,
+            COUNT(DISTINCT l.unified_id) as observation_count,
+            COUNT(DISTINCT DATE(to_timestamp(l.time / 1000.0))) as unique_days,
+            COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geometry, 0.001)) as unique_locations,
+            MAX(l.level) as max_signal,
+            MAX(ST_Distance(
+              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+              h.home_point
+            )) / 1000.0 - MIN(ST_Distance(
+              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+              h.home_point
+            )) / 1000.0 as distance_range_km,
+            BOOL_OR(ST_Distance(
+              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+              h.home_point
+            ) < 100) as seen_at_home,
+            BOOL_OR(ST_Distance(
+              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+              h.home_point
+            ) > 500) as seen_away_from_home
+          FROM app.network_tags nt
+          JOIN app.networks_legacy n ON nt.bssid = n.bssid
+          JOIN app.locations_legacy l ON n.bssid = l.bssid
+          CROSS JOIN home_location h
+          WHERE nt.tag_type IN ('THREAT', 'FALSE_POSITIVE')
+            AND l.lat IS NOT NULL AND l.lon IS NOT NULL
+            AND l.time >= $1
+          GROUP BY nt.bssid, nt.tag_type, n.type
+        `, [MIN_VALID_TIMESTAMP]);
+
+        if (rows.length < 10) {
+          return res.status(400).json({
+            ok: false,
+            error: 'Need at least 10 tagged networks to train model',
+            currentCount: rows.length
+          });
+        }
+
+        const trainingResult = await mlModel.train(rows);
+        const sqlFormula = mlModel.generateSQLFormula();
+
+        // Store model coefficients in database for persistence
+        await query(`
+          INSERT INTO app.ml_model_config (model_type, coefficients, intercept, feature_names, created_at)
+          VALUES ('threat_logistic_regression', $1, $2, $3, NOW())
+          ON CONFLICT (model_type) DO UPDATE
+          SET coefficients = $1, intercept = $2, feature_names = $3, updated_at = NOW()
+        `, [JSON.stringify(trainingResult.coefficients), trainingResult.intercept, JSON.stringify(trainingResult.featureNames)]);
+
+        console.log('✓ ML model trained successfully');
+        console.log('  Features:', trainingResult.featureNames.join(', '));
+        console.log('  Training samples:', trainingResult.trainingSamples);
+        console.log('  Threats:', trainingResult.threatCount, 'Safe:', trainingResult.safeCount);
+
+        res.json({
+          ok: true,
+          message: 'Model trained successfully',
+          ...trainingResult,
+          sqlFormula: sqlFormula
+        });
+      } catch (err) {
+        console.error('✗ ML training error:', err);
+        next(err);
+      }
+    });
+
+    // Get ML model status
+    app.get('/api/ml/status', async (req, res, next) => {
+      try {
+        const { rows } = await query(`
+          SELECT model_type, feature_names, created_at, updated_at
+          FROM app.ml_model_config
+          WHERE model_type = 'threat_logistic_regression'
+        `);
+
+        const tagCount = await query(`
+          SELECT tag_type, COUNT(*) as count
+          FROM app.network_tags
+          WHERE tag_type IN ('THREAT', 'FALSE_POSITIVE')
+          GROUP BY tag_type
+        `);
+
+        res.json({
+          ok: true,
+          modelTrained: rows.length > 0,
+          modelInfo: rows[0] || null,
+          taggedNetworks: tagCount.rows
+        });
+      } catch (err) {
+        next(err);
+      }
+    });
+
     // API endpoint for advanced threat detection
     app.get('/api/threats/detect', async (req, res) => {
       try {
