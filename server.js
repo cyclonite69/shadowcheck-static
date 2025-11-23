@@ -1164,6 +1164,9 @@ try {
             n.unified_id, n.ssid, n.bssid, n.type,
             -- Parse security from capabilities field
             CASE
+              -- Bluetooth/BLE use different security models
+              WHEN n.type IN ('B', 'E') THEN 'N/A'
+              -- WiFi security parsing
               WHEN UPPER(n.capabilities) LIKE '%WPA3%' OR UPPER(n.capabilities) LIKE '%SAE%' THEN
                 CASE WHEN UPPER(n.capabilities) LIKE '%EAP%' OR UPPER(n.capabilities) LIKE '%MGT%' THEN 'WPA3-E' ELSE 'WPA3-P' END
               WHEN UPPER(n.capabilities) LIKE '%WPA2%' OR UPPER(n.capabilities) LIKE '%RSN%' THEN
