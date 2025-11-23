@@ -8,9 +8,13 @@ try {
     const errorHandler = require('./utils/errorHandler');
     const rateLimit = require('express-rate-limit');
     const cors = require('cors');
+    const compression = require('compression');
 
     const app = express();
     const port = process.env.PORT || 3001;
+
+    // Enable gzip compression
+    app.use(compression());
 
     // Enable CORS for all routes
     app.use(cors());
