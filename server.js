@@ -444,16 +444,31 @@ try {
 
         let whereClauses = [];
 
-        // Base threat score condition
+        // Improved threat score calculation with reduced false positives
         let threatScoreCalculation = `
             COALESCE(nt.threat_score * 100, (
-              CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 40 ELSE 0 END +
-              CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.2 THEN 25 ELSE 0 END +
-              CASE WHEN ns.unique_days >= 7 THEN 15 WHEN ns.unique_days >= 3 THEN 10 WHEN ns.unique_days >= 2 THEN 5 ELSE 0 END +
-              CASE WHEN ns.observation_count >= 50 THEN 10 WHEN ns.observation_count >= 20 THEN 5 ELSE 0 END
+              -- Base scoring (more conservative)
+              CASE WHEN ns.seen_at_home AND ns.seen_away_from_home 
+                   AND (ns.max_distance_from_home_km - ns.min_distance_from_home_km) > 1.0 THEN 50
+                   WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 30
+                   ELSE 0 END +
+              CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 1.0 THEN 30
+                   WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.5 THEN 20
+                   ELSE 0 END +
+              CASE WHEN ns.unique_days >= 10 THEN 20 
+                   WHEN ns.unique_days >= 5 THEN 15 
+                   WHEN ns.unique_days >= 3 THEN 10 
+                   ELSE 0 END +
+              CASE WHEN ns.observation_count >= 100 THEN 15 
+                   WHEN ns.observation_count >= 50 THEN 10 
+                   WHEN ns.observation_count >= 20 THEN 5 
+                   ELSE 0 END -
+              -- Penalties to reduce false positives
+              CASE WHEN ns.type = 'W' AND ns.max_signal > -50 THEN 20 ELSE 0 END -
+              CASE WHEN ns.unique_locations <= 3 AND ns.unique_days >= 5 THEN 15 ELSE 0 END
             ))`;
         
-        whereClauses.push(`${threatScoreCalculation} >= 30`);
+        whereClauses.push(`${threatScoreCalculation} >= 40`);
 
         // Filter by minSeverity if provided
         if (minSeverity !== null) {
@@ -490,6 +505,8 @@ try {
               n.encryption,
               COUNT(DISTINCT l.unified_id) as observation_count,
               COUNT(DISTINCT DATE(to_timestamp(l.time / 1000.0))) as unique_days,
+              COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geometry, 0.001)) as unique_locations,
+              MAX(l.level) as max_signal,
               MIN(l.time) as first_seen,
               MAX(l.time) as last_seen,
               MIN(ST_Distance(
@@ -523,6 +540,8 @@ try {
             ns.encryption,
             ns.observation_count,
             ns.unique_days,
+            ns.unique_locations,
+            ns.max_signal,
             ns.first_seen,
             ns.last_seen,
             ns.min_distance_from_home_km,
@@ -532,10 +551,25 @@ try {
             ns.seen_at_home,
             ns.seen_away_from_home,
             COALESCE(nt.threat_score * 100, (
-              CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 40 ELSE 0 END +
-              CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.2 THEN 25 ELSE 0 END +
-              CASE WHEN ns.unique_days >= 7 THEN 15 WHEN ns.unique_days >= 3 THEN 10 WHEN ns.unique_days >= 2 THEN 5 ELSE 0 END +
-              CASE WHEN ns.observation_count >= 50 THEN 10 WHEN ns.observation_count >= 20 THEN 5 ELSE 0 END
+              -- Improved scoring algorithm
+              CASE WHEN ns.seen_at_home AND ns.seen_away_from_home 
+                   AND (ns.max_distance_from_home_km - ns.min_distance_from_home_km) > 1.0 THEN 50
+                   WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 30
+                   ELSE 0 END +
+              CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 1.0 THEN 30
+                   WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.5 THEN 20
+                   ELSE 0 END +
+              CASE WHEN ns.unique_days >= 10 THEN 20 
+                   WHEN ns.unique_days >= 5 THEN 15 
+                   WHEN ns.unique_days >= 3 THEN 10 
+                   ELSE 0 END +
+              CASE WHEN ns.observation_count >= 100 THEN 15 
+                   WHEN ns.observation_count >= 50 THEN 10 
+                   WHEN ns.observation_count >= 20 THEN 5 
+                   ELSE 0 END -
+              -- Penalties to reduce false positives
+              CASE WHEN ns.type = 'W' AND ns.max_signal > -50 THEN 20 ELSE 0 END -
+              CASE WHEN ns.unique_locations <= 3 AND ns.unique_days >= 5 THEN 15 ELSE 0 END
             )) as threat_score,
             CASE
               WHEN nt.tag_type = 'THREAT' THEN 'User Tagged Threat'
