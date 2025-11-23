@@ -64,10 +64,15 @@ class ThreatMLModel {
     const classifier = this.model.classifiers[0];
     console.log('Classifier keys:', Object.keys(classifier));
     
-    this.coefficients = classifier.weights ? Array.from(classifier.weights.to1DArray()) : [];
-    this.intercept = 0;
+    if (!classifier.weights) {
+      throw new Error('Model training failed: no weights found');
+    }
+    
+    this.coefficients = Array.from(classifier.weights.to1DArray());
+    this.intercept = classifier.bias || 0;
     
     console.log('Extracted coefficients:', this.coefficients);
+    console.log('Extracted intercept:', this.intercept);
 
     return {
       coefficients: this.coefficients,

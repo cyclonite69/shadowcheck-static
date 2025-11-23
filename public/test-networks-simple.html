@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Networks Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #1e293b; color: #fff; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+        th { background: #334155; }
+        #status { padding: 10px; background: #334155; border-radius: 4px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Networks API Test</h1>
+    <div id="status">Loading...</div>
+    <table id="networks-table">
+        <thead><tr><th>BSSID</th><th>SSID</th><th>Type</th><th>Signal</th><th>Last Seen</th></tr></thead>
+        <tbody></tbody>
+    </table>
+    <script>
+        const API_BASE = Object.freeze('http://localhost:3001/api');
+        
+        async function loadNetworks() {
+            const status = document.getElementById('status');
+            const tbody = document.querySelector('#networks-table tbody');
+            
+            try {
+                status.textContent = 'Fetching networks...';
+                console.log('Fetching from:', `${API_BASE}/networks?page=1&limit=10`);
+                
+                const response = await fetch(`${API_BASE}/networks?page=1&limit=10`);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Data received:', data);
+                
+                status.textContent = `Loaded ${data.networks.length} of ${data.total} networks`;
+                
+                tbody.innerHTML = '';
+                data.networks.forEach(net => {
+                    const row = tbody.insertRow();
+                    row.insertCell().textContent = net.bssid;
+                    row.insertCell().textContent = net.ssid || '(hidden)';
+                    row.insertCell().textContent = net.type;
+                    row.insertCell().textContent = net.signal || 'N/A';
+                    row.insertCell().textContent = net.lastSeen ? new Date(net.lastSeen).toLocaleString() : 'N/A';
+                });
+                
+            } catch (error) {
+                console.error('Error:', error);
+                status.textContent = 'Error: ' + error.message;
+                status.style.background = '#dc2626';
+            }
+        }
+        
+        loadNetworks();
+    </script>
+</body>
+</html>

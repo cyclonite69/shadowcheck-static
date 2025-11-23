@@ -458,6 +458,59 @@
             box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
         }
 
+        /* Network tooltip styles */
+        .network-tooltip {
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            max-width: 320px;
+            pointer-events: none;
+        }
+
+        .dark-tooltip {
+            color: #e2e8f0;
+            font-size: 12px;
+        }
+
+        .tooltip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .tooltip-ssid {
+            font-weight: 600;
+            color: #22d3ee;
+            font-size: 13px;
+        }
+
+        .tooltip-field {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            gap: 12px;
+        }
+
+        .tooltip-label {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        .tooltip-value {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+
+        .tooltip-value.mono {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+
         /* Removed threat level borders - using badges instead */
     </style>
 </head>
@@ -499,7 +552,7 @@
             <div class="panel">
                 <div class="panel-header">
                     📡 All Networks
-                    <span class="panel-count" id="network-count">0</span>
+                    <span class="panel-count" id="network-count">Loading...</span>
                     <span class="network-count-info" id="network-count-info"></span>
                     <span style="font-size: 10px; color: #94a3b8; margin-left: 12px;">💡 Click headers to sort • Shift+Click for multi-column</span>
                     <div id="column-selector-container"></div>
@@ -529,26 +582,25 @@
 
     <script>
         // Use dynamic API base URL based on current window location
-        const API_BASE = `${window.location.protocol}//${window.location.hostname}:3002/api`;
+        const API_BASE = Object.freeze(`${window.location.protocol}//${window.location.hostname}:3001/api`);
 
-        // Advanced Network Table Configuration (Full Schema)
+        // Advanced Network Table Configuration (matches geospatial.html)
         const NETWORK_COLUMNS = {
             type: {
                 label: 'Type',
-                width: '80px',
+                width: '60px',
                 sortable: true,
                 default: true,
                 format: (val) => {
-                    const typeConfig = {
-                        'W': { label: 'WiFi', icon: '📶', color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.2)' },
-                        'E': { label: 'BLE', icon: '🔵', color: '#a78bfa', bg: 'rgba(139, 92, 246, 0.2)' },
-                        'B': { label: 'BT', icon: '🔷', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.2)' },
-                        'L': { label: 'LTE', icon: '📱', color: '#34d399', bg: 'rgba(52, 211, 153, 0.2)' },
-                        'N': { label: '5G', icon: '🚀', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.2)' },
-                        'G': { label: 'GSM', icon: '📞', color: '#fb923c', bg: 'rgba(251, 146, 60, 0.2)' }
+                    const typeMap = {
+                        'W': 'WiFi',
+                        'E': 'BLE',
+                        'B': 'BT',
+                        'L': 'LTE',
+                        'N': '5G NR',
+                        'G': 'GSM'
                     };
-                    const config = typeConfig[val] || typeConfig['W'];
-                    return `<span class="badge" style="background: ${config.bg}; color: ${config.color}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">${config.icon} ${config.label}</span>`;
+                    return typeMap[val] || 'WiFi';
                 }
             },
             ssid: {
@@ -571,42 +623,12 @@
                 width: '100px',
                 sortable: true,
                 default: true,
-                format: (val) => {
-                    if (val === null || val === undefined) return 'N/A';
-                    const strength = parseFloat(val);
-                    let colorClass, bgColor, textColor;
-
-                    if (strength >= -50) {
-                        // Strong signal
-                        colorClass = 'signal-strong';
-                        bgColor = 'rgba(34, 197, 94, 0.2)';
-                        textColor = '#4ade80';
-                    } else if (strength >= -70) {
-                        // Medium signal
-                        colorClass = 'signal-medium';
-                        bgColor = 'rgba(234, 179, 8, 0.2)';
-                        textColor = '#fde047';
-                    } else {
-                        // Weak signal
-                        colorClass = 'signal-weak';
-                        bgColor = 'rgba(239, 68, 68, 0.2)';
-                        textColor = '#fca5a5';
-                    }
-
-                    return `<span class="${colorClass}" style="background: ${bgColor}; color: ${textColor}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">${val} dBm</span>`;
-                },
+                format: (val) => val !== null && val !== undefined ? `${val} dBm` : 'N/A',
                 sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : -999
             },
             security: {
                 label: 'Security',
                 width: '140px',
-                sortable: true,
-                default: true,
-                format: (val) => val || 'Unknown'
-            },
-            manufacturer: {
-                label: 'Manufacturer',
-                width: '150px',
                 sortable: true,
                 default: true,
                 format: (val) => val || 'Unknown'
@@ -866,6 +888,55 @@
             }
         });
 
+        // Generate network tooltip (same as geospatial.html)
+        function generateNetworkTooltip(network) {
+            const signal = network.signal || 'N/A';
+            let signalClass = '';
+            if (signal !== 'N/A') {
+                if (signal >= -50) signalClass = 'signal-strong';
+                else if (signal >= -70) signalClass = 'signal-medium';
+                else signalClass = 'signal-weak';
+            }
+
+            const distanceFromHome = network.distance_from_home 
+                ? `<div class="tooltip-field"><span class="tooltip-label">Distance from Home:</span><span class="tooltip-value">${parseFloat(network.distance_from_home).toFixed(2)} km</span></div>`
+                : '';
+
+            const manufacturer = network.manufacturer 
+                ? `<div class="tooltip-field"><span class="tooltip-label">Manufacturer:</span><span class="tooltip-value">${network.manufacturer}</span></div>`
+                : '';
+
+            return `
+                <div class="dark-tooltip">
+                    <div class="tooltip-header">
+                        <span class="tooltip-ssid">${network.ssid || '(hidden)'}</span>
+                    </div>
+                    <div class="tooltip-field">
+                        <span class="tooltip-label">BSSID:</span>
+                        <span class="tooltip-value mono">${network.bssid}</span>
+                    </div>
+                    ${manufacturer}
+                    <div class="tooltip-field">
+                        <span class="tooltip-label">Signal:</span>
+                        <span class="tooltip-value ${signalClass}">${signal} dBm</span>
+                    </div>
+                    <div class="tooltip-field">
+                        <span class="tooltip-label">Security:</span>
+                        <span class="tooltip-value">${network.security || 'Unknown'}</span>
+                    </div>
+                    <div class="tooltip-field">
+                        <span class="tooltip-label">Type:</span>
+                        <span class="tooltip-value">${network.type || 'WiFi'}</span>
+                    </div>
+                    ${distanceFromHome}
+                    <div class="tooltip-field">
+                        <span class="tooltip-label">Observations:</span>
+                        <span class="tooltip-value">${network.observations || '1'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
         // Render network table with current settings
         function renderNetworkTable(tableId = 'networks-table', onRowClick = null, append = false) {
             if (!window.networkTable) return;
@@ -946,6 +1017,33 @@
                 const tr = document.createElement('tr');
                 tr.dataset.bssid = network.bssid;
 
+                // Add hover tooltip
+                let tooltip = null;
+                tr.addEventListener('mouseenter', (e) => {
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'network-tooltip';
+                    tooltip.innerHTML = generateNetworkTooltip(network);
+                    tooltip.style.position = 'fixed';
+                    tooltip.style.left = (e.clientX + 10) + 'px';
+                    tooltip.style.top = (e.clientY + 10) + 'px';
+                    tooltip.style.zIndex = '10000';
+                    document.body.appendChild(tooltip);
+                });
+
+                tr.addEventListener('mousemove', (e) => {
+                    if (tooltip) {
+                        tooltip.style.left = (e.clientX + 10) + 'px';
+                        tooltip.style.top = (e.clientY + 10) + 'px';
+                    }
+                });
+
+                tr.addEventListener('mouseleave', () => {
+                    if (tooltip) {
+                        tooltip.remove();
+                        tooltip = null;
+                    }
+                });
+
                 // Add click handler if provided
                 if (onRowClick) {
                     tr.style.cursor = 'pointer';
@@ -1020,8 +1118,11 @@
         // Load networks from API
         async function loadNetworks(append = false) { // Add append parameter
             try {
+                console.log('📥 loadNetworks called, append:', append);
+                
                 // Initialize table manager if not exists
                 if (!window.networkTable) {
+                    console.log('🔧 Creating NetworkTableManager...');
                     window.networkTable = new NetworkTableManager('networks');
                 }
 
@@ -1029,7 +1130,7 @@
                 const params = new URLSearchParams();
                 params.append('page', networkTable.currentPage);
                 params.append('limit', networkTable.currentLimit);
-                const primarySort = networkTable.currentSort[0] || { column: 'lastSeen', direction: 'desc' };
+                const primarySort = (networkTable.currentSort && networkTable.currentSort[0]) || { column: 'lastSeen', direction: 'desc' };
                 params.append('sort', primarySort.column);
                 params.append('order', (primarySort.direction || 'desc').toUpperCase());
                 if (networkTable.searchTerm) {
@@ -1045,7 +1146,7 @@
                 }
 
                 const data = await response.json(); // API now returns {networks, totalCount, page, limit}
-                console.log(`✓ Loaded ${data.networks?.length || 0} networks, Total: ${data.totalCount}`);
+                console.log(`✓ Loaded ${data.networks?.length || 0} networks, Total: ${data.totalCount || data.total}`);
 
                 if (!data.networks || data.networks.length === 0) {
                     console.warn('⚠️ No networks returned from API');
@@ -1056,21 +1157,34 @@
                     return;
                 }
 
+                // Normalize data format
+                const normalizedData = {
+                    networks: data.networks,
+                    totalCount: data.totalCount || data.total,
+                    page: data.page,
+                    limit: data.limit
+                };
+
                 if (append) {
                     // Append new networks to existing list
-                    networkTable.networks = networkTable.networks.concat(data.networks);
-                    networkTable.totalNetworks = data.totalCount; // Update total count
-                    networkTable.currentPage = data.page;
-                    networkTable.currentLimit = data.limit;
+                    networkTable.networks = networkTable.networks.concat(normalizedData.networks);
+                    networkTable.totalNetworks = normalizedData.totalCount;
+                    networkTable.currentPage = normalizedData.page;
+                    networkTable.currentLimit = normalizedData.limit;
                 } else {
                     // Set networks and render
-                    networkTable.setNetworks(data);
+                    networkTable.setNetworks(normalizedData);
                 }
                 
                 networkTable.renderColumnSelector('column-selector-container');
                 renderNetworkTable('networks-table', null, append); // Pass append to render
+                console.log('✅ Networks rendered successfully');
             } catch (error) {
                 console.error('✗ Error loading networks:', error);
+                const tbody = document.querySelector('#networks-table tbody');
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color: #ef4444;">Error: ${error.message}</td></tr>`;
+                }
             }
         }
 
@@ -1130,7 +1244,10 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Networks page initializing...');
+            console.log('API_BASE:', API_BASE);
             highlightActiveNav();
+            console.log('📡 Calling loadNetworks()...');
             loadNetworks();
             setupInfiniteScroll();
         });

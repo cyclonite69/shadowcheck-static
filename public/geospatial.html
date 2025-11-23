@@ -840,8 +840,16 @@
     </div>
 
     <script>
+        // HTML escaping utility to prevent XSS
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Use dynamic API base URL based on current window location
-        const API_BASE = `${window.location.protocol}//${window.location.hostname}:3002/api`;
+        const API_BASE = Object.freeze(`${window.location.protocol}//${window.location.hostname}:3001/api`);
         let map = null;
 
         // Advanced Network Table Configuration
@@ -1724,17 +1732,19 @@
         function initMap() {
             if (map) return;
 
-            mapboxgl.accessToken = 'REDACTED_MAPBOX_TOKEN_1';
+            // Mapbox token should be set via environment variable and served by backend
+            // For now, using a public token - replace with your own token
+            mapboxgl.accessToken = 'REDACTED_MAPBOX_TOKEN_2';
+            // TODO: Fetch token from API endpoint instead: fetch('/api/mapbox-token').then(r => r.json()).then(data => mapboxgl.accessToken = data.token)
 
             map = new mapboxgl.Map({
                 container: 'map',
-                style: 'mapbox://styles/mapbox/standard',
+                style: 'mapbox://styles/mapbox/dark-v11',
                 center: [-83.69, 43.02],
                 zoom: 12
             });
 
-            map.on('style.load', () => {
-                map.setConfigProperty('basemap', 'lightPreset', 'night');
+            map.on('load', () => {
                 console.log('✓ Map initialized - click a threat to view observations');
                 // Don't load points initially - user selects threat first
             });
@@ -2033,12 +2043,18 @@
 
                 // Fetch tagged networks to apply visual styling
                 const [threatsRes, safeRes] = await Promise.all([
-                    fetch(`${API_BASE}/networks/tagged?tag_type=THREAT`),
-                    fetch(`${API_BASE}/networks/tagged?tag_type=FALSE_POSITIVE`)
+                    fetch(`${API_BASE}/networks/tagged?tag_type=THREAT`).catch(err => {
+                        console.warn('Failed to fetch threats:', err);
+                        return { ok: false };
+                    }),
+                    fetch(`${API_BASE}/networks/tagged?tag_type=FALSE_POSITIVE`).catch(err => {
+                        console.warn('Failed to fetch safe networks:', err);
+                        return { ok: false };
+                    })
                 ]);
 
-                const threatsData = await threatsRes.json();
-                const safeData = await safeRes.json();
+                const threatsData = threatsRes.ok ? await threatsRes.json() : { ok: false, networks: [] };
+                const safeData = safeRes.ok ? await safeRes.json() : { ok: false, networks: [] };
 
                 const threatBssids = new Set((threatsData.networks || []).map(n => n.bssid));
                 const safeBssids = new Set((safeData.networks || []).map(n => n.bssid));
@@ -2475,12 +2491,12 @@
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                 <div style="font-weight: 600; font-size: 13px; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    ${threat.ssid || 'Hidden Network'}
+                                    ${escapeHtml(threat.ssid) || 'Hidden Network'}
                                 </div>
-                                <span class="threat-score ${severityClass}">${severityLabel}: ${threat.threatScore}</span>
+                                <span class="threat-score ${severityClass}">${escapeHtml(severityLabel)}: ${threat.threatScore}</span>
                             </div>
                             <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                                ${threat.bssid} • ${threat.totalObservations} obs • ${new Date(parseInt(threat.firstSeen)).toLocaleDateString()} - ${new Date(parseInt(threat.lastSeen)).toLocaleDateString()} (${threat.timespanDays}d)
+                                ${escapeHtml(threat.bssid)} • ${threat.totalObservations} obs • ${new Date(parseInt(threat.firstSeen)).toLocaleDateString()} - ${new Date(parseInt(threat.lastSeen)).toLocaleDateString()} (${threat.timespanDays}d)
                             </div>
                         </div>
                         <div style="display: flex; gap: 4px; flex-shrink: 0;">
