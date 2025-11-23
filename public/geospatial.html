@@ -125,6 +125,11 @@
             50% { opacity: 0.5; }
         }
 
+        @keyframes flash {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+
         .main {
             display: grid;
             gap: 12px;
@@ -2511,16 +2516,22 @@
 
                     safeBtn.addEventListener('click', async (e) => {
                         e.stopPropagation();
+                        safeBtn.style.animation = 'flash 0.3s ease';
+                        setTimeout(() => safeBtn.style.animation = '', 300);
                         await tagNetwork(threat.bssid, 'FALSE_POSITIVE', 90);
                     });
 
                     threatBtn.addEventListener('click', async (e) => {
                         e.stopPropagation();
+                        threatBtn.style.animation = 'flash 0.3s ease';
+                        setTimeout(() => threatBtn.style.animation = '', 300);
                         await tagNetwork(threat.bssid, 'THREAT', 90);
                     });
 
                     mapBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
+                        mapBtn.style.animation = 'flash 0.3s ease';
+                        setTimeout(() => mapBtn.style.animation = '', 300);
                         loadObservationsToMap(threat.bssid, threat.ssid);
                         
                         // Highlight selected threat
