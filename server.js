@@ -7,15 +7,19 @@ try {
     const { Pool } = require('pg');
     const errorHandler = require('./utils/errorHandler');
     const rateLimit = require('express-rate-limit');
+    const cors = require('cors');
 
     const app = express();
     const port = process.env.PORT || 3001;
+
+    // Enable CORS for all routes
+    app.use(cors());
 
     // Apply to all requests
     // Rate limiting to prevent abuse
     const apiLimiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // Limit each IP to 100 requests per windowMs
+      max: 1000, // Limit each IP to 1000 requests per windowMs (increased for development)
       message: 'Too many requests from this IP, please try again after 15 minutes'
     });
 
@@ -84,7 +88,12 @@ try {
     // API endpoint to get dashboard metrics
     app.get('/api/dashboard-metrics', async (req, res) => {
       try {
-        const totalNetworksQuery = 'SELECT COUNT(*) FROM app.networks_legacy';
+        // Exclude orphan networks (those with 0 dBm signal have no real observations)
+        const totalNetworksQuery = `
+          SELECT COUNT(*)
+          FROM app.networks_legacy
+          WHERE bestlevel != 0
+        `;
         // Count actual detected threats using threat detection logic
         const threatsQuery = `
           WITH home_location AS (
@@ -144,11 +153,33 @@ try {
           WHERE trilaterated_lat IS NOT NULL OR first_seen IS NOT NULL
         `;
 
-        const [totalNetworksRes, threatsRes, suspiciousRes, enrichedRes] = await Promise.all([
+        // New queries for radio types (exclude orphans)
+        const wifiCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'W' AND bestlevel != 0";
+        const bleCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'E' AND bestlevel != 0";
+        const btCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'B' AND bestlevel != 0";
+        const lteCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'L' AND bestlevel != 0";
+        const gsmCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'G' AND bestlevel != 0";
+
+        const [
+          totalNetworksRes,
+          threatsRes,
+          suspiciousRes,
+          enrichedRes,
+          wifiCountRes,
+          bleCountRes,
+          btCountRes,
+          lteCountRes,
+          gsmCountRes
+        ] = await Promise.all([
           query(totalNetworksQuery),
           query(threatsQuery, [MIN_VALID_TIMESTAMP]),
           query(suspiciousQuery),
           query(enrichedQuery),
+          query(wifiCountQuery),
+          query(bleCountQuery),
+          query(btCountQuery),
+          query(lteCountQuery),
+          query(gsmCountQuery)
         ]);
 
         const metrics = {
@@ -156,6 +187,11 @@ try {
           threatsCount: parseInt(threatsRes.rows[0].count),
           surveillanceCount: parseInt(suspiciousRes.rows[0].count),
           enrichedCount: parseInt(enrichedRes.rows[0].count),
+          wifiCount: parseInt(wifiCountRes.rows[0].count),
+          bleCount: parseInt(bleCountRes.rows[0].count),
+          btCount: parseInt(btCountRes.rows[0].count),
+          lteCount: parseInt(lteCountRes.rows[0].count),
+          gsmCount: parseInt(gsmCountRes.rows[0].count),
         };
 
         res.json(metrics);
@@ -385,6 +421,7 @@ try {
       try {
         const page = parseInt(req.query.page);
         const limit = parseInt(req.query.limit);
+        const minSeverity = req.query.minSeverity ? parseInt(req.query.minSeverity) : null;
 
         if (isNaN(page) || page <= 0) {
           return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
@@ -392,8 +429,47 @@ try {
         if (isNaN(limit) || limit <= 0) {
           return res.status(400).json({ error: 'Invalid limit parameter. Must be a positive integer.' });
         }
+        if (minSeverity !== null && (isNaN(minSeverity) || minSeverity < 0 || minSeverity > 100)) {
+          return res.status(400).json({ error: 'minSeverity must be a number between 0 and 100.' });
+        }
         
         const offset = (page - 1) * limit;
+
+        const queryParams = [MIN_VALID_TIMESTAMP];
+        let paramIndex = 2; // Starting index for dynamic parameters
+
+        let whereClauses = [];
+
+        // Base threat score condition
+        let threatScoreCalculation = `
+            COALESCE(nt.threat_score * 100, (
+              CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 40 ELSE 0 END +
+              CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.2 THEN 25 ELSE 0 END +
+              CASE WHEN ns.unique_days >= 7 THEN 15 WHEN ns.unique_days >= 3 THEN 10 WHEN ns.unique_days >= 2 THEN 5 ELSE 0 END +
+              CASE WHEN ns.observation_count >= 50 THEN 10 WHEN ns.observation_count >= 20 THEN 5 ELSE 0 END
+            ))`;
+        
+        whereClauses.push(`${threatScoreCalculation} >= 30`);
+
+        // Filter by minSeverity if provided
+        if (minSeverity !== null) {
+          whereClauses.push(`${threatScoreCalculation} >= $${paramIndex++}`);
+          queryParams.push(minSeverity);
+        }
+
+        // Filter out cellular networks (GSM, LTE, 5G) unless they have >5km distance range
+        whereClauses.push(`
+          (
+            ns.type NOT IN ('G', 'L', 'N')
+            OR (ns.max_distance_from_home_km - ns.min_distance_from_home_km) > 5
+          )
+        `);
+
+        // Construct the full WHERE clause
+        const fullWhereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        // Add limit and offset parameters
+        queryParams.push(limit, offset);
 
         const { rows } = await query(`
           WITH home_location AS (
@@ -480,24 +556,14 @@ try {
             COUNT(*) OVER() as total_count
           FROM network_stats ns
           LEFT JOIN app.network_tags nt ON ns.bssid = nt.bssid
-          WHERE
-            COALESCE(nt.threat_score * 100, (
-              CASE WHEN ns.seen_at_home AND ns.seen_away_from_home THEN 40 ELSE 0 END +
-              CASE WHEN ns.max_distance_from_home_km - ns.min_distance_from_home_km > 0.2 THEN 25 ELSE 0 END +
-              CASE WHEN ns.unique_days >= 7 THEN 15 WHEN ns.unique_days >= 3 THEN 10 WHEN ns.unique_days >= 2 THEN 5 ELSE 0 END +
-              CASE WHEN ns.observation_count >= 50 THEN 10 WHEN ns.observation_count >= 20 THEN 5 ELSE 0 END
-            )) >= 30
-          -- Filter out cellular networks (GSM, LTE, 5G) unless they have >5km distance range
-          AND (
-            ns.type NOT IN ('G', 'L', 'N')
-            OR (ns.max_distance_from_home_km - ns.min_distance_from_home_km) > 5
-          )
+          ${fullWhereClause}
           ORDER BY
             ns.max_distance_from_home_km DESC,
             threat_score DESC,
             ns.unique_days DESC,
             ns.observation_count DESC
-        `, [MIN_VALID_TIMESTAMP, limit, offset]);
+          LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        `, queryParams);
 
         const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
 
@@ -829,15 +895,123 @@ try {
           return res.status(400).json({ error: 'Notes must be a string' });
         }
 
-        // Call the PostgreSQL function app.upsert_network_tag
+        // Get SSID from networks table if available
+        const networkResult = await query(`
+          SELECT ssid FROM app.networks_legacy WHERE bssid = $1 LIMIT 1
+        `, [bssid.toUpperCase()]);
+
+        const ssid = networkResult.rows.length > 0 ? networkResult.rows[0].ssid : null;
+
+        // Delete any existing tags for this BSSID (ensure only one tag per network)
+        await query(`
+          DELETE FROM app.network_tags WHERE bssid = $1
+        `, [bssid.toUpperCase()]);
+
+        // Insert the new tag
         const result = await query(`
-          SELECT tag_id, bssid, tag_type, threat_score, ml_confidence, confidence
-          FROM app.upsert_network_tag($1, $2, $3, $4)
-        `, [bssid, tag_type, parsedConfidence / 100.0, notes || null]);
+          INSERT INTO app.network_tags (bssid, ssid, tag_type, confidence, notes)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING id, bssid, tag_type, confidence, threat_score, ml_confidence
+        `, [bssid.toUpperCase(), ssid, tag_type.toUpperCase(), parsedConfidence / 100.0, notes || null]);
 
         res.json({
           ok: true,
           tag: result.rows[0]
+        });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // API endpoint to get tagged networks by tag type
+    app.get('/api/networks/tagged', async (req, res, next) => {
+      try {
+        const { tag_type } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+
+        // Validate tag_type
+        const validTagTypes = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
+        if (!tag_type || !validTagTypes.includes(tag_type.toUpperCase())) {
+          return res.status(400).json({ error: `Valid tag_type is required (one of: ${validTagTypes.join(', ')})` });
+        }
+
+        // Validate pagination
+        if (page <= 0) {
+          return res.status(400).json({ error: 'Invalid page parameter. Must be a positive integer.' });
+        }
+        if (limit <= 0 || limit > 1000) {
+          return res.status(400).json({ error: 'Invalid limit parameter. Must be between 1 and 1000.' });
+        }
+
+        const offset = (page - 1) * limit;
+
+        // Query networks with the specified tag with pagination
+        const result = await query(`
+          SELECT
+            nt.bssid,
+            nt.ssid,
+            nt.tag_type,
+            nt.confidence,
+            nt.notes,
+            nt.tagged_at,
+            nt.threat_score,
+            nt.final_threat_score,
+            n.type,
+            n.bestlevel,
+            n.last_seen,
+            COUNT(l.unified_id) as observation_count,
+            MIN(l.time) as first_seen,
+            MAX(l.time) as last_seen,
+            (MAX(l.time) - MIN(l.time)) as observation_timespan_ms,
+            COUNT(*) OVER() as total_count
+          FROM app.network_tags nt
+          LEFT JOIN app.networks_legacy n ON nt.bssid = n.bssid
+          LEFT JOIN app.locations_legacy l ON nt.bssid = l.bssid
+          WHERE nt.tag_type = $1
+          GROUP BY nt.bssid, nt.ssid, nt.tag_type, nt.confidence, nt.notes, nt.tagged_at, nt.threat_score, nt.final_threat_score, n.type, n.bestlevel, n.last_seen
+          ORDER BY nt.tagged_at DESC
+          LIMIT $2 OFFSET $3
+        `, [tag_type.toUpperCase(), limit, offset]);
+
+        const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+        res.json({
+          ok: true,
+          networks: result.rows,
+          totalCount,
+          page,
+          limit
+        });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // API endpoint to delete a network tag (untag)
+    app.delete('/api/tag-network/:bssid', async (req, res, next) => {
+      try {
+        const { bssid } = req.params;
+
+        // Validate bssid
+        if (!bssid || !/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/i.test(bssid)) {
+          return res.status(400).json({ error: 'Valid BSSID is required (e.g., AA:BB:CC:DD:EE:FF)' });
+        }
+
+        // Delete all tags for this BSSID
+        const result = await query(`
+          DELETE FROM app.network_tags
+          WHERE bssid = $1
+          RETURNING bssid, tag_type
+        `, [bssid.toUpperCase()]);
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'No tags found for this BSSID' });
+        }
+
+        res.json({
+          ok: true,
+          removed: result.rows
         });
       } catch (err) {
         next(err);
@@ -938,7 +1112,7 @@ try {
           longitude: 'COALESCE(l.lon, n.bestlon, n.lastlon, n.trilaterated_lon)',
           distanceFromHome: 'distance_from_home', // Alias from subquery
           accuracy: 'COALESCE(l.accuracy, 0)',
-          lastSeen: 'n.lasttime',
+          lastSeen: 'lastseen',
         };
 
         // Validate sort column
@@ -951,7 +1125,7 @@ try {
           return res.status(400).json({ error: 'Invalid sort order. Must be ASC or DESC.' });
         }
 
-        const orderByClause = `${sortColumnMap[sort]} ${order}`;
+        const orderByClause = sort === 'lastSeen' ? `${sortColumnMap[sort]} ${order} NULLS LAST` : `${sortColumnMap[sort]} ${order}`;
 
         // Get home location for distance calculation
         const homeResult = await query(`
@@ -973,6 +1147,13 @@ try {
             WHERE lat IS NOT NULL AND lon IS NOT NULL AND time >= $1
             ORDER BY bssid, time DESC
           ),
+          latest_times AS (
+            SELECT DISTINCT ON (bssid)
+              bssid, time as last_time
+            FROM app.locations_legacy
+            WHERE time IS NOT NULL
+            ORDER BY bssid, time DESC
+          ),
           observation_counts AS (
             SELECT bssid, COUNT(*) as obs_count
             FROM app.locations_legacy
@@ -980,13 +1161,35 @@ try {
             GROUP BY bssid
           )
           SELECT
-            n.unified_id, n.ssid, n.bssid, n.type, n.encryption as security,
-            n.frequency, n.channel, COALESCE(l.level, n.bestlevel) as signal,
-            COALESCE(l.accuracy, 0) as accuracy, n.lasttime as "lastSeen",
+            n.unified_id, n.ssid, n.bssid, n.type,
+            -- Parse security from capabilities field
+            CASE
+              WHEN UPPER(n.capabilities) LIKE '%WPA3%' OR UPPER(n.capabilities) LIKE '%SAE%' THEN
+                CASE WHEN UPPER(n.capabilities) LIKE '%EAP%' OR UPPER(n.capabilities) LIKE '%MGT%' THEN 'WPA3-E' ELSE 'WPA3-P' END
+              WHEN UPPER(n.capabilities) LIKE '%WPA2%' OR UPPER(n.capabilities) LIKE '%RSN%' THEN
+                CASE WHEN UPPER(n.capabilities) LIKE '%EAP%' OR UPPER(n.capabilities) LIKE '%MGT%' THEN 'WPA2-E' ELSE 'WPA2-P' END
+              WHEN UPPER(n.capabilities) LIKE '%WPA-%' AND UPPER(n.capabilities) NOT LIKE '%WPA2%' THEN 'WPA'
+              WHEN UPPER(n.capabilities) LIKE '%WEP%' OR LOWER(n.encryption) = 'wep' THEN 'WEP'
+              WHEN UPPER(n.capabilities) LIKE '%WPS%' AND UPPER(n.capabilities) NOT LIKE '%WPA%' THEN 'WPS'
+              WHEN LOWER(n.encryption) = 'wpa3' THEN 'WPA3-P'
+              WHEN LOWER(n.encryption) = 'wpa2' THEN 'WPA2-P'
+              WHEN LOWER(n.encryption) = 'wpa' THEN 'WPA'
+              WHEN n.capabilities IS NOT NULL AND n.capabilities != '' AND n.capabilities != 'Misc' AND n.capabilities != 'Uncategorized;10' THEN 'Unknown'
+              ELSE 'OPEN'
+            END as security,
+            n.frequency, n.channel,
+            CASE
+              WHEN COALESCE(l.level, n.bestlevel, 0) = 0 THEN NULL
+              ELSE COALESCE(l.level, n.bestlevel)
+            END as signal,
+            COALESCE(l.accuracy, 0) as accuracy,
+            COALESCE(lt.last_time, l.time, n.lasttime) as lastseen,
             COALESCE(l.lat, n.bestlat, n.lastlat, n.trilaterated_lat) as lat,
             COALESCE(l.lon, n.bestlon, n.lastlon, n.trilaterated_lon) as lng,
             COALESCE(oc.obs_count, 1) as observations, n.capabilities as misc,
+            rm.organization_name as manufacturer,
             CASE
+              WHEN COALESCE(l.level, n.bestlevel, -999) = 0 OR COALESCE(l.level, n.bestlevel) IS NULL THEN 'safe'
               WHEN COALESCE(l.level, n.bestlevel) > -50 THEN 'threat'
               WHEN COALESCE(l.level, n.bestlevel) > -70 THEN 'warning'
               ELSE 'safe'
@@ -1003,7 +1206,9 @@ try {
             COUNT(*) OVER() as total_networks_count -- Total count before LIMIT/OFFSET
           FROM app.networks_legacy n
           LEFT JOIN latest_locations l ON n.bssid = l.bssid
+          LEFT JOIN latest_times lt ON n.bssid = lt.bssid
           LEFT JOIN observation_counts oc ON n.bssid = oc.bssid
+          LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', '')) = rm.oui_prefix_24bit
         `;
 
         // Parameters for the query
@@ -1014,7 +1219,11 @@ try {
         ];
 
         // WHERE clauses
-        const whereClauses = ["n.bssid IS NOT NULL", "(n.lasttime IS NULL OR n.lasttime >= $1)"];
+        const whereClauses = [
+          "n.bssid IS NOT NULL",
+          "(n.lasttime IS NULL OR n.lasttime >= $1)",
+          "n.bestlevel != 0" // Exclude orphans (those with 0 dBm have no real observations)
+        ];
 
         if (search) {
           params.push(`%${search.toLowerCase()}%`);
@@ -1050,32 +1259,40 @@ try {
 
         const totalCount = rows.length > 0 ? parseInt(rows[0].total_networks_count) : 0;
 
-        const networks = rows.map(row => ({
-          id: row.unified_id,
-          ssid: row.ssid,
-          bssid: row.bssid,
-          type: row.type || 'W',
-          security: row.security,
-          capabilities: row.misc, // Capabilities are in misc field
-          encryption: row.security,
-          frequency: row.frequency ? parseFloat(row.frequency) / 1000 : null, // Convert MHz to GHz
-          channel: row.channel,
-          signal: row.signal,
-          accuracy: row.accuracy,
-          observations: row.observations,
-          lastSeen: row.lastSeen ? parseInt(row.lastSeen) : null, // Ensure it's a number
-          timestamp: row.lastSeen ? parseInt(row.lastSeen) : null, // Ensure it's a number
-          time: row.lastSeen ? parseInt(row.lastSeen) : null, // Alias
-          status: row.status,
-          distanceFromHome: row.distance_from_home,
-          latitude: row.lat ? parseFloat(row.lat) : null,
-          longitude: row.lng ? parseFloat(row.lng) : null,
-          misc: row.misc,
-          location: {
-            lat: row.lat ? parseFloat(row.lat) : null,
-            lng: row.lng ? parseFloat(row.lng) : null,
-          },
-        }));
+        const networks = rows.map(row => {
+          // Debug: log first row
+          if (rows.indexOf(row) === 0) {
+            console.log('First row keys:', Object.keys(row));
+            console.log('First row lastseen:', row.lastseen);
+          }
+          return {
+            id: row.unified_id,
+            ssid: row.ssid,
+            bssid: row.bssid,
+            type: row.type || 'W',
+            security: row.security,
+            capabilities: row.misc,
+            encryption: row.security,
+            frequency: row.frequency ? parseFloat(row.frequency) / 1000 : null,
+            channel: row.channel,
+            signal: row.signal,
+            accuracy: row.accuracy,
+            observations: row.observations,
+            manufacturer: row.manufacturer || 'Unknown',
+            lastSeen: row.lastseen ? parseInt(row.lastseen) : null,
+            timestamp: row.lastseen ? parseInt(row.lastseen) : null,
+            time: row.lastseen ? parseInt(row.lastseen) : null,
+            status: row.status,
+            distanceFromHome: row.distance_from_home,
+            latitude: row.lat ? parseFloat(row.lat) : null,
+            longitude: row.lng ? parseFloat(row.lng) : null,
+            misc: row.misc,
+            location: {
+              lat: row.lat ? parseFloat(row.lat) : null,
+              lng: row.lng ? parseFloat(row.lng) : null,
+            },
+          };
+        });
 
         res.json({
           networks,

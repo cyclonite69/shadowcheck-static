@@ -234,10 +234,85 @@
             cursor: pointer;
             transition: all 0.2s;
             font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
 
         .threat-row:hover {
             background: rgba(239, 68, 68, 0.15);
+        }
+
+        /* Severity level colors */
+        .threat-row.severity-critical {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.4);
+            border-left-color: #dc2626;
+        }
+
+        .threat-row.severity-critical:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .threat-row.severity-high {
+            background: rgba(251, 146, 60, 0.1);
+            border-color: rgba(251, 146, 60, 0.4);
+            border-left-color: #ea580c;
+        }
+
+        .threat-row.severity-high:hover {
+            background: rgba(251, 146, 60, 0.2);
+        }
+
+        .threat-row.severity-medium {
+            background: rgba(234, 179, 8, 0.1);
+            border-color: rgba(234, 179, 8, 0.4);
+            border-left-color: #ca8a04;
+        }
+
+        .threat-row.severity-medium:hover {
+            background: rgba(234, 179, 8, 0.2);
+        }
+
+        .threat-row.severity-low {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.4);
+            border-left-color: #2563eb;
+        }
+
+        .threat-row.severity-low:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .threat-score {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .threat-score.severity-critical {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .threat-score.severity-high {
+            background: rgba(251, 146, 60, 0.3);
+            color: #fdba74;
+        }
+
+        .threat-score.severity-medium {
+            background: rgba(234, 179, 8, 0.3);
+            color: #fde047;
+        }
+
+        .threat-score.severity-low {
+            background: rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
         }
 
         .network-table {
@@ -608,9 +683,16 @@
             <!-- THREATS PANEL -->
             <div class="panel" id="threats-panel">
                 <div class="panel-header">
-                    <span>⚠️ Active Threats</span>
-                    <div style="display: flex; gap: 6px; flex: 1; max-width: 600px;">
+                    <span>⚠️ Active Threats <span class="panel-count" id="threats-count">0</span></span>
+                    <div style="display: flex; gap: 6px; flex: 1; max-width: 700px;">
                         <input type="text" id="threat-search" placeholder="Search threats..." style="flex: 1; min-width: 120px; padding: 4px 8px; font-size: 11px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #e0e7ff; border-radius: 4px;">
+                        <select id="threat-severity-filter" style="padding: 4px 8px; font-size: 11px;">
+                            <option value="all">All Severity</option>
+                            <option value="critical">Critical (80+)</option>
+                            <option value="high">High (70-79)</option>
+                            <option value="medium">Medium (50-69)</option>
+                            <option value="low">Low (30-49)</option>
+                        </select>
                         <select id="threat-type-filter" style="padding: 4px 8px; font-size: 11px;">
                             <option value="">All Types</option>
                             <option value="W">WiFi</option>
@@ -664,7 +746,8 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:3002/api';
+        // Use dynamic API base URL based on current window location
+        const API_BASE = `${window.location.protocol}//${window.location.hostname}:3002/api`;
         let map = null;
 
         // Advanced Network Table Configuration
@@ -1747,7 +1830,7 @@
                         else signalClass = 'signal-weak';
                     }
 
-                    new mapboxgl.Popup({
+                    const popup = new mapboxgl.Popup({
                         className: 'dark-tooltip-popup',
                         closeButton: true,
                         closeOnClick: false,
@@ -1755,7 +1838,7 @@
                     })
                         .setLngLat(e.lngLat)
                         .setHTML(`
-                            <div class="dark-tooltip">
+                            <div class="dark-tooltip" style="cursor: pointer;">
                                 ${observationInfo}
                                 <div class="tooltip-header">
                                     <span class="tooltip-ssid">${props.ssid || '(hidden)'}</span>
@@ -1792,6 +1875,17 @@
                             </div>
                         `)
                         .addTo(map);
+
+                    // Add click-to-close functionality
+                    setTimeout(() => {
+                        const tooltipEl = popup.getElement();
+                        if (tooltipEl) {
+                            const contentEl = tooltipEl.querySelector('.dark-tooltip');
+                            if (contentEl) {
+                                contentEl.addEventListener('click', () => popup.remove());
+                            }
+                        }
+                    }, 0);
                 });
 
                 map.on('mouseenter', 'network-points', () => {
@@ -1822,14 +1916,29 @@
 
             try {
                 console.log('📍 Loading networks to map...');
-                const res = await fetch(`${API_BASE}/networks`);
+                const res = await fetch(`${API_BASE}/networks?page=1&limit=5000&sort=lastSeen&order=DESC`);
 
                 if (!res.ok) {
                     console.error('✗ API request failed:', res.status);
                     return;
                 }
 
-                const networks = await res.json();
+                const data = await res.json();
+                const networks = data.networks || [];
+
+                // Fetch tagged networks to apply visual styling
+                const [threatsRes, safeRes] = await Promise.all([
+                    fetch(`${API_BASE}/networks/tagged?tag_type=THREAT`),
+                    fetch(`${API_BASE}/networks/tagged?tag_type=FALSE_POSITIVE`)
+                ]);
+
+                const threatsData = await threatsRes.json();
+                const safeData = await safeRes.json();
+
+                const threatBssids = new Set((threatsData.networks || []).map(n => n.bssid));
+                const safeBssids = new Set((safeData.networks || []).map(n => n.bssid));
+
+                console.log(`🏷️ Found ${threatBssids.size} confirmed threats, ${safeBssids.size} safe networks`);
 
                 if (!Array.isArray(networks) || networks.length === 0) {
                     console.warn('⚠️ No networks returned from API');
@@ -1846,22 +1955,31 @@
 
                 console.log(`✓ Found ${validNetworks.length} networks with valid coordinates out of ${networks.length} total`);
 
-                // Create GeoJSON features
-                const features = validNetworks.map(net => ({
-                    type: 'Feature',
-                    geometry: {
-                        type: 'Point',
-                        coordinates: [net.location.lng, net.location.lat]
-                    },
-                    properties: {
-                        bssid: net.bssid || 'Unknown',
-                        ssid: net.ssid || 'Hidden',
-                        type: net.type || 'W',
-                        signal: net.signal || 'N/A',
-                        security: net.security || 'Unknown',
-                        status: net.status || 'safe'
+                // Create GeoJSON features with tag-based status
+                const features = validNetworks.map(net => {
+                    let status = 'normal';
+                    if (threatBssids.has(net.bssid)) {
+                        status = 'threat';
+                    } else if (safeBssids.has(net.bssid)) {
+                        status = 'safe';
                     }
-                }));
+
+                    return {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [net.location.lng, net.location.lat]
+                        },
+                        properties: {
+                            bssid: net.bssid || 'Unknown',
+                            ssid: net.ssid || 'Hidden',
+                            type: net.type || 'W',
+                            signal: net.signal || 'N/A',
+                            security: net.security || 'Unknown',
+                            status: status
+                        }
+                    };
+                });
 
                 // Add source
                 if (map.getSource('networks')) {
@@ -1890,14 +2008,20 @@
                         'circle-color': [
                             'match',
                             ['get', 'status'],
-                            'threat', '#ef4444',
-                            'warning', '#f59e0b',
-                            'safe', '#10b981',
-                            '#94a3b8'
+                            'threat', '#ef4444',      // Red for confirmed threats
+                            'warning', '#f59e0b',     // Orange for warnings
+                            'safe', '#10b981',        // Green for safe networks
+                            '#3b82f6'                 // Blue for normal/untoggled networks
                         ],
                         'circle-stroke-width': 2,
                         'circle-stroke-color': '#ffffff',
-                        'circle-opacity': 0.8
+                        'circle-opacity': [
+                            'match',
+                            ['get', 'status'],
+                            'threat', 1.0,            // Full opacity for threats (highlight)
+                            'safe', 0.3,              // Dimmed for safe networks
+                            0.7                       // Normal opacity for untoggled
+                        ]
                     }
                 });
 
@@ -1948,7 +2072,7 @@
                         </svg>`;
                     }
 
-                    new mapboxgl.Popup({
+                    const popup = new mapboxgl.Popup({
                         className: 'dark-tooltip-popup',
                         closeButton: true,
                         closeOnClick: false,
@@ -1956,7 +2080,7 @@
                     })
                         .setLngLat(e.lngLat)
                         .setHTML(`
-                            <div class="dark-tooltip">
+                            <div class="dark-tooltip" style="cursor: pointer;">
                                 ${observationInfo}
                                 <div class="tooltip-header">
                                     <span class="tooltip-ssid">${props.ssid || '(hidden)'}</span>
@@ -1987,6 +2111,17 @@
                             </div>
                         `)
                         .addTo(map);
+
+                    // Add click-to-close functionality
+                    setTimeout(() => {
+                        const tooltipEl = popup.getElement();
+                        if (tooltipEl) {
+                            const contentEl = tooltipEl.querySelector('.dark-tooltip');
+                            if (contentEl) {
+                                contentEl.addEventListener('click', () => popup.remove());
+                            }
+                        }
+                    }, 0);
                 });
 
                 map.on('mouseenter', 'network-points', () => {
@@ -2035,16 +2170,69 @@
             }
         }
 
+        // Get severity class based on threat score
+        function getSeverityClass(score) {
+            if (score >= 80) return 'severity-critical';
+            if (score >= 70) return 'severity-high';
+            if (score >= 50) return 'severity-medium';
+            return 'severity-low';
+        }
+
+        // Get severity label based on threat score
+        function getSeverityLabel(score) {
+            if (score >= 80) return 'Critical';
+            if (score >= 70) return 'High';
+            if (score >= 50) return 'Medium';
+            return 'Low';
+        }
+
+        // Tag a network as safe or threat
+        async function tagNetwork(bssid, tagType, confidence = 50) {
+            try {
+                const response = await fetch(`${API_BASE}/tag-network`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bssid: bssid,
+                        tag_type: tagType,
+                        confidence: confidence,
+                        notes: `User tagged as ${tagType}`
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error('✗ Tag network failed:', response.status);
+                    return false;
+                }
+
+                const result = await response.json();
+                console.log(`✓ Network tagged: ${bssid} as ${tagType}`);
+
+                // Reload the threat list to reflect changes
+                await loadThreats(false);
+                return true;
+            } catch (err) {
+                console.error('✗ Error tagging network:', err);
+                return false;
+            }
+        }
+
         // Threats infinite scroll state
         let threatPage = 1;
         let allThreatsLoaded = false;
+        let minThreatSeverity = 'all'; // Default: show all
+        let selectedThreatType = ''; // Default: show all types
 
         async function loadThreats(append = false) {
             try {
-                const res = await fetch(`${API_BASE}/threats/quick?page=${threatPage}&limit=50`);
+                // Always fetch all threats, then filter client-side
+                const url = `${API_BASE}/threats/quick?page=${threatPage}&limit=200`;
+
+                const res = await fetch(url);
                 const data = await res.json();
 
                 const threatList = document.getElementById('threat-list');
+                const threatsCount = document.getElementById('threats-count');
 
                 if (!append) {
                     threatList.innerHTML = '';
@@ -2055,23 +2243,99 @@
                 if (!data.threats || data.threats.length === 0) {
                     if (!append) {
                         threatList.innerHTML = '<div class="loading">No threats detected</div>';
+                        if (threatsCount) threatsCount.textContent = '0';
                     }
                     allThreatsLoaded = true;
                     return;
                 }
 
+                // Filter threats by selected severity level and type
+                let filteredThreats = data.threats;
+                if (minThreatSeverity !== 'all') {
+                    filteredThreats = filteredThreats.filter(threat => {
+                        const severityClass = getSeverityClass(threat.threatScore);
+                        return severityClass === `severity-${minThreatSeverity}`;
+                    });
+                }
+                
+                if (selectedThreatType) {
+                    filteredThreats = filteredThreats.filter(threat => threat.type === selectedThreatType);
+                }
+
+                if (filteredThreats.length === 0) {
+                    if (!append) {
+                        threatList.innerHTML = '<div class="loading">No threats match filters</div>';
+                        if (threatsCount) threatsCount.textContent = '0';
+                    }
+                    allThreatsLoaded = true;
+                    return;
+                }
+
+                // Update count with total from API
+                if (!append && threatsCount) {
+                    threatsCount.textContent = data.total || filteredThreats.length;
+                }
+
                 // Check if we got fewer threats than requested (end of list)
-                if (data.threats.length < 50) {
+                if (data.threats.length < 200) {
                     allThreatsLoaded = true;
                 }
 
-                data.threats.forEach(threat => {
+                filteredThreats.forEach(threat => {
                     const row = document.createElement('div');
-                    row.className = 'threat-row';
+                    const severityClass = getSeverityClass(threat.threatScore);
+                    const severityLabel = getSeverityLabel(threat.threatScore);
+
+                    row.className = `threat-row ${severityClass}`;
                     row.innerHTML = `
-                        <strong>${threat.ssid || 'Hidden'}</strong><br>
-                        <span style="color: #94a3b8;">Score: ${threat.threatScore} • ${threat.totalObservations} obs</span>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <div style="font-weight: 600; font-size: 13px; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${threat.ssid || 'Hidden Network'}
+                                </div>
+                                <span class="threat-score ${severityClass}">${severityLabel}: ${threat.threatScore}</span>
+                            </div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                                ${threat.bssid} • ${threat.totalObservations} obs • ${new Date(parseInt(threat.firstSeen)).toLocaleDateString()} - ${new Date(parseInt(threat.lastSeen)).toLocaleDateString()} (${threat.timespanDays}d)
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                            <button class="tag-safe-btn" style="
+                                background: rgba(34, 197, 94, 0.2);
+                                border: 1px solid rgba(34, 197, 94, 0.4);
+                                color: #4ade80;
+                                padding: 3px 6px;
+                                border-radius: 4px;
+                                font-size: 9px;
+                                font-weight: 600;
+                                cursor: pointer;
+                            " title="Mark as safe">✓</button>
+                            <button class="tag-threat-btn" style="
+                                background: rgba(239, 68, 68, 0.2);
+                                border: 1px solid rgba(239, 68, 68, 0.4);
+                                color: #f87171;
+                                padding: 3px 6px;
+                                border-radius: 4px;
+                                font-size: 9px;
+                                font-weight: 600;
+                                cursor: pointer;
+                            " title="Confirm threat">⚠</button>
+                        </div>
                     `;
+
+                    // Add event listeners for tagging buttons
+                    const safeBtn = row.querySelector('.tag-safe-btn');
+                    const threatBtn = row.querySelector('.tag-threat-btn');
+
+                    safeBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await tagNetwork(threat.bssid, 'FALSE_POSITIVE', 90);
+                    });
+
+                    threatBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await tagNetwork(threat.bssid, 'THREAT', 90);
+                    });
 
                     // Add click handler to load observations
                     row.style.cursor = 'pointer';
@@ -2080,8 +2344,12 @@
                         loadObservationsToMap(threat.bssid, threat.ssid);
 
                         // Highlight selected threat
-                        document.querySelectorAll('.threat-row').forEach(r => r.style.background = 'rgba(239, 68, 68, 0.05)');
-                        row.style.background = 'rgba(239, 68, 68, 0.25)';
+                        document.querySelectorAll('.threat-row').forEach(r => {
+                            r.style.background = '';
+                            r.style.opacity = '0.6';
+                        });
+                        row.style.background = 'rgba(59, 130, 246, 0.2)';
+                        row.style.opacity = '1';
                     });
 
                     threatList.appendChild(row);
@@ -2099,7 +2367,7 @@
         async function loadNetworks() {
             try {
                 console.log('📡 Loading recent networks...');
-                const res = await fetch(`${API_BASE}/networks`);
+                const res = await fetch(`${API_BASE}/networks?page=1&limit=1000&sort=lastSeen&order=DESC`);
 
                 if (!res.ok) {
                     console.error('✗ Networks API failed:', res.status);
@@ -2110,8 +2378,9 @@
                     return;
                 }
 
-                let networks = await res.json();
-                console.log(`📡 API returned ${networks?.length || 0} networks`);
+                const data = await res.json();
+                let networks = data.networks || [];
+                console.log(`📡 API returned ${networks?.length || 0} networks (total: ${data.totalCount || 0})`);
 
                 if (!Array.isArray(networks) || networks.length === 0) {
                     console.warn('⚠️ No networks returned from API');
@@ -2324,12 +2593,23 @@
                 });
             }
 
+            // Threat severity filter
+            const threatSeverityFilter = document.getElementById('threat-severity-filter');
+            if (threatSeverityFilter) {
+                threatSeverityFilter.addEventListener('change', (e) => {
+                    minThreatSeverity = e.target.value;
+                    console.log(`🎚️ Threat severity filter changed to: ${minThreatSeverity}`);
+                    loadThreats(false); // Reload threats with new filter
+                });
+            }
+
             // Threat type filter
             const threatTypeFilter = document.getElementById('threat-type-filter');
             if (threatTypeFilter) {
                 threatTypeFilter.addEventListener('change', (e) => {
-                    // Filter logic will be added in next iteration
-                    console.log('Threat type filter:', e.target.value);
+                    selectedThreatType = e.target.value;
+                    console.log('🎚️ Threat type filter changed to:', selectedThreatType || 'all');
+                    loadThreats();
                 });
             }
         });

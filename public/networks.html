@@ -433,6 +433,32 @@
             color: #94a3b8;
             margin-left: 8px;
         }
+
+        /* Threat Level Indicators */
+        .threat-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .threat-indicator.threat {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        }
+
+        .threat-indicator.warning {
+            background: #f59e0b;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+        }
+
+        .threat-indicator.safe {
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+        }
+
+        /* Removed threat level borders - using badges instead */
     </style>
 </head>
 <body>
@@ -457,6 +483,12 @@
                 </div>
                 <div class="controls">
                     <input type="search" id="search-input" placeholder="Search SSID or BSSID...">
+                    <select id="threat-filter" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: 12px;">
+                        <option value="">All Threats</option>
+                        <option value="threat">🔴 Threats Only</option>
+                        <option value="warning">🟡 Warnings Only</option>
+                        <option value="safe">🟢 Safe Only</option>
+                    </select>
                     <button id="refresh-btn">🔄 Refresh</button>
                 </div>
             </div>
@@ -495,27 +527,27 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:3001/api';
+        // Use dynamic API base URL based on current window location
+        const API_BASE = `${window.location.protocol}//${window.location.hostname}:3002/api`;
 
         // Advanced Network Table Configuration (Full Schema)
         const NETWORK_COLUMNS = {
             type: {
                 label: 'Type',
-                width: '60px',
+                width: '80px',
                 sortable: true,
                 default: true,
                 format: (val) => {
-                    const typeMap = {
-                        'W': 'WiFi',
-                        'E': 'BLE',
-                        'B': 'BT',
-                        'L': 'LTE',
-                        'N': '5G NR',
-                        'G': 'GSM'
+                    const typeConfig = {
+                        'W': { label: 'WiFi', icon: '📶', color: '#60a5fa', bg: 'rgba(59, 130, 246, 0.2)' },
+                        'E': { label: 'BLE', icon: '🔵', color: '#a78bfa', bg: 'rgba(139, 92, 246, 0.2)' },
+                        'B': { label: 'BT', icon: '🔷', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.2)' },
+                        'L': { label: 'LTE', icon: '📱', color: '#34d399', bg: 'rgba(52, 211, 153, 0.2)' },
+                        'N': { label: '5G', icon: '🚀', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.2)' },
+                        'G': { label: 'GSM', icon: '📞', color: '#fb923c', bg: 'rgba(251, 146, 60, 0.2)' }
                     };
-                    const typeText = typeMap[val] || 'WiFi';
-                    const typeClass = typeText.toLowerCase().replace(/\s/g, ''); // wifi, ble, bt, lte, nr, gsm
-                    return `<span class="badge badge-${typeClass}">${typeText}</span>`;
+                    const config = typeConfig[val] || typeConfig['W'];
+                    return `<span class="badge" style="background: ${config.bg}; color: ${config.color}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">${config.icon} ${config.label}</span>`;
                 }
             },
             ssid: {
@@ -538,12 +570,42 @@
                 width: '100px',
                 sortable: true,
                 default: true,
-                format: (val) => val !== null && val !== undefined ? `${val} dBm` : 'N/A',
+                format: (val) => {
+                    if (val === null || val === undefined) return 'N/A';
+                    const strength = parseFloat(val);
+                    let colorClass, bgColor, textColor;
+
+                    if (strength >= -50) {
+                        // Strong signal
+                        colorClass = 'signal-strong';
+                        bgColor = 'rgba(34, 197, 94, 0.2)';
+                        textColor = '#4ade80';
+                    } else if (strength >= -70) {
+                        // Medium signal
+                        colorClass = 'signal-medium';
+                        bgColor = 'rgba(234, 179, 8, 0.2)';
+                        textColor = '#fde047';
+                    } else {
+                        // Weak signal
+                        colorClass = 'signal-weak';
+                        bgColor = 'rgba(239, 68, 68, 0.2)';
+                        textColor = '#fca5a5';
+                    }
+
+                    return `<span class="${colorClass}" style="background: ${bgColor}; color: ${textColor}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;">${val} dBm</span>`;
+                },
                 sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : -999
             },
             security: {
                 label: 'Security',
                 width: '140px',
+                sortable: true,
+                default: true,
+                format: (val) => val || 'Unknown'
+            },
+            manufacturer: {
+                label: 'Manufacturer',
+                width: '150px',
                 sortable: true,
                 default: true,
                 format: (val) => val || 'Unknown'
@@ -603,7 +665,7 @@
                 format: (val) => val !== null && val !== undefined ? `${parseFloat(val).toFixed(1)} m` : 'N/A',
                 sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : 0
             },
-            timestamp: {
+            lastSeen: {
                 label: 'Last Seen',
                 width: '160px',
                 sortable: true,
@@ -611,7 +673,7 @@
                 format: (val) => {
                     if (!val) return 'Unknown';
                     try {
-                        const date = typeof val === 'number' ? new Date(val) : new Date(val);
+                        const date = new Date(parseInt(val));
                         return date.toLocaleString();
                     } catch (e) {
                         return 'Unknown';
@@ -640,6 +702,7 @@
                 this.currentSort = { column: 'lastSeen', direction: 'desc' }; // Default sort
                 this.visibleColumns = this.loadColumnPreferences();
                 this.searchTerm = '';
+                this.threatFilter = ''; // '' = all, 'threat', 'warning', 'safe'
                 this.currentPage = 1;
                 this.totalNetworks = 0;
                 this.currentLimit = 100; // Matches API default
@@ -703,6 +766,13 @@
                 this.searchTerm = term.toLowerCase();
                 this.currentPage = 1; // Reset page on new search
                 loadNetworks(); // Reload networks with new search term
+            }
+
+            // Apply threat level filter
+            setThreatFilter(level) {
+                this.threatFilter = level;
+                this.currentPage = 1; // Reset page on new filter
+                loadNetworks(); // Reload networks with new filter
             }
 
             // Load more networks (for infinite scroll)
@@ -840,6 +910,11 @@
 
             // Render networks
             networkTable.networks.forEach(network => { // Iterate over networkTable.networks directly
+                // Apply threat filter
+                if (networkTable.threatFilter && network.status !== networkTable.threatFilter) {
+                    return; // Skip networks that don't match the filter
+                }
+
                 const tr = document.createElement('tr');
                 tr.dataset.bssid = network.bssid;
 
@@ -849,7 +924,7 @@
                     tr.onclick = () => onRowClick(network);
                 }
 
-                networkTable.visibleColumns.forEach(colKey => {
+                networkTable.visibleColumns.forEach((colKey, index) => {
                     const col = NETWORK_COLUMNS[colKey];
                     const td = document.createElement('td');
 
@@ -917,14 +992,20 @@
         // Load networks from API
         async function loadNetworks(append = false) { // Add append parameter
             try {
+                // Initialize table manager if not exists
+                if (!window.networkTable) {
+                    window.networkTable = new NetworkTableManager('networks');
+                }
+
                 // Construct URL with parameters
-                const params = new URLSearchParams({
-                    page: networkTable.currentPage,
-                    limit: networkTable.currentLimit,
-                    sort: networkTable.currentSort.column,
-                    order: networkTable.currentSort.direction,
-                    search: networkTable.searchTerm
-                });
+                const params = new URLSearchParams();
+                params.append('page', networkTable.currentPage);
+                params.append('limit', networkTable.currentLimit);
+                params.append('sort', networkTable.currentSort.column || 'lastSeen');
+                params.append('order', (networkTable.currentSort.direction || 'desc').toUpperCase());
+                if (networkTable.searchTerm) {
+                    params.append('search', networkTable.searchTerm);
+                }
 
                 console.log(`📡 Loading networks with all fields: ${API_BASE}/networks?${params.toString()}`);
                 const response = await fetch(`${API_BASE}/networks?${params.toString()}`);
@@ -935,11 +1016,15 @@
                 }
 
                 const data = await response.json(); // API now returns {networks, totalCount, page, limit}
-                console.log(`✓ Loaded ${data.networks.length} networks, Total: ${data.totalCount}`);
+                console.log(`✓ Loaded ${data.networks?.length || 0} networks, Total: ${data.totalCount}`);
 
-                // Initialize table manager if not exists
-                if (!window.networkTable) {
-                    window.networkTable = new NetworkTableManager('networks'); // No abbreviatedMode needed
+                if (!data.networks || data.networks.length === 0) {
+                    console.warn('⚠️ No networks returned from API');
+                    const tbody = document.querySelector('#networks-table tbody');
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="loading">No networks found</td></tr>';
+                    }
+                    return;
                 }
 
                 if (append) {
@@ -968,10 +1053,19 @@
             }
         });
 
+        // Threat filter functionality
+        document.getElementById('threat-filter').addEventListener('change', (e) => {
+            if (window.networkTable) {
+                networkTable.setThreatFilter(e.target.value);
+                renderNetworkTable();
+            }
+        });
+
         // Refresh button
         document.getElementById('refresh-btn').addEventListener('click', () => {
             loadNetworks();
             document.getElementById('search-input').value = '';
+            document.getElementById('threat-filter').value = '';
         });
 
         // Setup infinite scroll

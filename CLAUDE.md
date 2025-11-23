@@ -19,7 +19,7 @@ npm install
 docker exec -it shadowcheck_postgres_18 psql -U shadowcheck_user -d shadowcheck
 ```
 
-**Server runs on port 5001** (configured in `.env`)
+**Server runs on port 3002** (configured in `.env`)
 
 ## Architecture
 
@@ -105,7 +105,9 @@ The core threat scoring algorithm evaluates networks based on:
 
 ### Utility Endpoints
 - `GET /api/manufacturer/:bssid`: Lookup manufacturer from MAC address
-- `GET /api/networks`: List networks with location data (limit 1000)
+- `GET /api/networks`: List networks with pagination support
+  - Query params: `page` (default: 1), `limit` (default: 100, max: 5000), `sort` (default: lastSeen), `order` (ASC/DESC)
+  - Returns: `{ networks: [], total: number, page: number, limit: number, totalPages: number }`
 - `GET /api/networks/search/:ssid`: Search networks by SSID pattern
 
 ## Important Constants
@@ -163,7 +165,7 @@ DB_PASSWORD=<password>
 DB_HOST=127.0.0.1
 DB_NAME=shadowcheck
 DB_PORT=5432
-PORT=5001
+PORT=3002
 ```
 
 ## Database Connection
@@ -178,9 +180,11 @@ Connection pooling handled by `pg.Pool` with automatic transient error retry.
 ## Dependencies
 
 The project uses minimal dependencies (see `package.json`):
-- `express`: ^5.1.0 - Web server framework
+- `express`: ^4.18.2 - Web server framework
 - `pg`: ^8.16.3 - PostgreSQL client with connection pooling
-- `dotenv`: ^17.2.3 - Environment variable loader
+- `dotenv`: ^16.3.1 - Environment variable loader
+- `cors`: ^2.8.5 - CORS middleware for cross-origin requests
+- `express-rate-limit`: ^8.2.1 - Rate limiting middleware (1000 requests per 15 min per IP)
 - `geojson`: ^0.5.0 - GeoJSON utilities
 - `wellknown`: ^0.5.0 - WKT/GeoJSON conversion
 
@@ -189,42 +193,42 @@ The project uses minimal dependencies (see `package.json`):
 - CommonJS (`require`, `module.exports`)
 - No TypeScript
 - No linting/formatting configured
-- Single-file architecture (no modularization)
+- Single-file architecture (no modularization, except errorHandler utility)
 - Inline SQL queries (no query builder or ORM)
-- Express v5 (note: different from Express v4 in error handling)
+- Express v4 (with CORS and rate limiting enabled)
 
 ## Testing the API
 
 ```bash
 # Dashboard metrics
-curl http://localhost:5001/api/dashboard-metrics
+curl http://localhost:3002/api/dashboard-metrics
 
 # Threat detection (first page, quick mode)
-curl http://localhost:5001/api/threats/quick?page=1&limit=10
+curl http://localhost:3002/api/threats/quick?page=1&limit=10
 
 # Advanced threat detection with speed calculations
-curl http://localhost:5001/api/threats/detect
+curl http://localhost:3002/api/threats/detect
 
 # Network observations for specific BSSID
-curl http://localhost:5001/api/networks/observations/AA:BB:CC:DD:EE:FF
+curl http://localhost:3002/api/networks/observations/AA:BB:CC:DD:EE:FF
 
 # Tag a network
-curl -X POST http://localhost:5001/api/tag-network \
+curl -X POST http://localhost:3002/api/tag-network \
   -H "Content-Type: application/json" \
   -d '{"bssid":"AA:BB:CC:DD:EE:FF","tag_type":"LEGIT","confidence":95,"notes":"Home router"}'
 
 # Get manufacturer info
-curl http://localhost:5001/api/manufacturer/AA:BB:CC:DD:EE:FF
+curl http://localhost:3002/api/manufacturer/AA:BB:CC:DD:EE:FF
 
 # Search networks by SSID
-curl http://localhost:5001/api/networks/search/MyNetwork
+curl http://localhost:3002/api/networks/search/MyNetwork
 
 # Analytics endpoints
-curl http://localhost:5001/api/analytics/network-types
-curl http://localhost:5001/api/analytics/signal-strength
-curl http://localhost:5001/api/analytics/temporal-activity
-curl http://localhost:5001/api/analytics/security
-curl http://localhost:5001/api/analytics/radio-type-over-time
+curl http://localhost:3002/api/analytics/network-types
+curl http://localhost:3002/api/analytics/signal-strength
+curl http://localhost:3002/api/analytics/temporal-activity
+curl http://localhost:3002/api/analytics/security
+curl http://localhost:3002/api/analytics/radio-type-over-time
 ```
 
 ## SQL Migration Files
@@ -250,7 +254,40 @@ The HTML frontend fetches data from API endpoints and renders:
 - Chart.js visualizations (signal strength, network types, temporal activity)
 - Threat detection table with tagging interface
 
-Frontend is self-contained in `public/index.html` with inline JavaScript.
+Frontend files:
+- `public/index.html` - Main dashboard (deprecated/legacy)
+- `public/geospatial.html` - Geospatial network visualization with threat severity levels
+- `public/analytics.html` - Analytics dashboards and charts
+- `public/networks.html` - Network list with advanced filtering
+- `public/surveillance.html` - Surveillance-focused threat analysis
+
+**Dynamic API URLs**: Frontend uses `window.location` to construct API base URL, supporting deployment flexibility.
+
+## Security Features
+
+**Rate Limiting**: API endpoints are protected with rate limiting (1000 requests per 15 minutes per IP)
+- Applied to all `/api/*` routes
+- Configurable via `express-rate-limit` middleware
+- Returns 429 status when limit exceeded
+
+**CORS**: Cross-Origin Resource Sharing enabled for all routes via `cors` middleware
+
+**Input Validation**: SQL injection protection via parameterized queries throughout
+
+**Transient Error Handling**: Automatic retry logic for database connection issues
+
+## Threat Severity Classification
+
+Networks are classified by severity based on threat score:
+- **Critical** (80+): Red styling, highest priority
+- **High** (70-79): Orange styling, immediate investigation
+- **Medium** (50-69): Yellow styling, monitor closely
+- **Low** (30-49): Blue styling, potential concern
+
+Severity levels are used in:
+- `geospatial.html` threat panel with color-coded rows
+- Threat filtering dropdowns
+- Visual indicators on map markers
 
 ## Troubleshooting
 
@@ -276,6 +313,29 @@ Frontend is self-contained in `public/index.html` with inline JavaScript.
 - Confirm observations have valid lat/lon coordinates (`WHERE lat IS NOT NULL AND lon IS NOT NULL`)
 - Threat score threshold is 30 - networks below this won't appear
 
+## Recent Changes & Improvements
+
+**Latest Updates (November 2024)**:
+- Added CORS support for cross-origin API requests
+- Implemented rate limiting (1000 req/15min per IP) for API protection
+- Changed default port from 5001 to 3002
+- Added pagination to `/api/networks` endpoint (page, limit, sort, order params)
+- Implemented threat severity classification (Critical/High/Medium/Low)
+- Added severity-based filtering to geospatial threat panel
+- Fixed security type parsing with debug logging
+- Updated all frontend files to use dynamic API base URLs
+- Added capabilities field to network responses
+- Fixed timestamp formatting for network lists
+- Improved geospatial page with full network grid layout
+- Enhanced search and filter controls across frontend pages
+- Removed artificial limits on infinite scroll lists for better UX
+
+**Bug Fixes**:
+- Fixed SQL injection vulnerabilities via parameterized queries
+- Addressed XSS risks in frontend rendering
+- Improved error handling with transient retry logic
+- Fixed network type classification for BLE/Bluetooth/Cellular
+
 ## Quick Reference
 
 **Key Database Tables:**
@@ -295,9 +355,11 @@ Frontend is self-contained in `public/index.html` with inline JavaScript.
 - Network tagging endpoint (lines 740-815)
 
 **Configuration:**
-- Port: 5001 (set in `.env` PORT variable)
+- Port: 3002 (set in `.env` PORT variable)
 - Database: PostgreSQL 18 with PostGIS
 - Schema: `app`
 - Timestamp filter: >= 946684800000 (Jan 1, 2000)
 - Threat threshold: 30 points
 - Min observations for threat: 2
+- Rate limit: 1000 requests per 15 minutes per IP
+- Default pagination: 100 networks per page (max 5000)
