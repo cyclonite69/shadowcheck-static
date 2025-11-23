@@ -1598,10 +1598,21 @@
         }
 
         // Manufacturer lookup from BSSID (OUI-based)
-        function getManufacturerFromBSSID(bssid) {
+        async function getManufacturerFromBSSID(bssid) {
             if (!bssid) return null;
 
-            // Extract OUI (first 3 octets)
+            // Try API first for complete database
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/manufacturer/${bssid}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.manufacturer) return data.manufacturer;
+                }
+            } catch (err) {
+                console.warn('API manufacturer lookup failed, using local map');
+            }
+
+            // Fallback to local OUI map
             const oui = bssid.substring(0, 8).toUpperCase().replace(/:/g, '');
 
             // Common manufacturers (simplified lookup)
@@ -1874,7 +1885,7 @@
                 });
 
                 // Add popup on click
-                map.on('click', 'network-points', (e) => {
+                map.on('click', 'network-points', async (e) => {
                     const props = e.features[0].properties;
                     const coords = e.lngLat;
 
@@ -1882,7 +1893,7 @@
                     const timestamp = props.lastSeen ? new Date(parseInt(props.lastSeen)).toLocaleString() : 'Unknown';
 
                     // Manufacturer lookup
-                    const manufacturer = props.bssid ? getManufacturerFromBSSID(props.bssid) : null;
+                    const manufacturer = props.bssid ? await getManufacturerFromBSSID(props.bssid) : null;
 
                     // Convert coordinates to DMS
                     const latDMS = decimalToDMS(coords.lat, true);
@@ -1927,7 +1938,7 @@
                     const popup = new mapboxgl.Popup({
                         className: 'dark-tooltip-popup',
                         closeButton: true,
-                        closeOnClick: false,
+                        closeOnClick: true,
                         maxWidth: '320px'
                     })
                         .setLngLat(e.lngLat)
@@ -2199,14 +2210,14 @@
                 });
 
                 // Add popup on click for unclustered points
-                map.on('click', 'network-points', (e) => {
+                map.on('click', 'network-points', async (e) => {
                     const props = e.features[0].properties;
 
                     // Format timestamp
                     const timestamp = props.lastSeen ? new Date(parseInt(props.lastSeen)).toLocaleString() : 'Unknown';
 
                     // Manufacturer lookup (simple OUI-based)
-                    const manufacturer = props.bssid ? getManufacturerFromBSSID(props.bssid) : null;
+                    const manufacturer = props.bssid ? await getManufacturerFromBSSID(props.bssid) : null;
 
                     // Calculate distance from home if available
                     let distanceFromHome = '';
@@ -2248,7 +2259,7 @@
                     const popup = new mapboxgl.Popup({
                         className: 'dark-tooltip-popup',
                         closeButton: true,
-                        closeOnClick: false,
+                        closeOnClick: true,
                         maxWidth: '320px'
                     })
                         .setLngLat(e.lngLat)

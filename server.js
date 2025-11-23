@@ -530,6 +530,7 @@ try {
             CROSS JOIN home_location h
             WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
               AND l.time >= $1
+              AND (l.accuracy IS NULL OR l.accuracy <= 100)
             GROUP BY n.bssid, n.ssid, n.type, n.encryption
             HAVING COUNT(DISTINCT l.unified_id) >= 2
           )
@@ -790,6 +791,7 @@ try {
             JOIN app.locations_legacy l ON n.bssid = l.bssid
             WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
               AND l.time >= $1
+              AND (l.accuracy IS NULL OR l.accuracy <= 100)
           ),
           threat_analysis AS (
             SELECT

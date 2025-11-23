@@ -1,5 +1,6 @@
 // Machine Learning Threat Scoring Model
 const LogisticRegression = require('ml-logistic-regression');
+const { Matrix } = require('ml-matrix');
 
 class ThreatMLModel {
   constructor() {
@@ -30,6 +31,8 @@ class ThreatMLModel {
 
   // Train model on tagged networks
   async train(taggedNetworks) {
+    console.log('ML train() called with', taggedNetworks.length, 'networks');
+    
     if (taggedNetworks.length < 10) {
       throw new Error('Need at least 10 tagged networks to train');
     }
@@ -40,16 +43,31 @@ class ThreatMLModel {
 
     taggedNetworks.forEach(net => {
       X.push(this.extractFeatures(net));
-      y.push(net.tag_type === 'THREAT' ? 1 : 0);
+      y.push([net.tag_type === 'THREAT' ? 1 : 0]);
     });
 
-    // Train logistic regression
+    console.log('Training with X:', X.length, 'samples, y:', y.length, 'labels');
+
+    // Train logistic regression with Matrix objects
+    const XMatrix = new Matrix(X);
+    const YMatrix = Matrix.columnVector(y.flat());
+    
+    console.log('Created matrices, training...');
     this.model = new LogisticRegression({ numSteps: 1000, learningRate: 0.01 });
-    this.model.train(X, y);
+    this.model.train(XMatrix, YMatrix);
 
     // Store coefficients for SQL usage
-    this.coefficients = this.model.weights;
-    this.intercept = this.model.bias || 0;
+    console.log('Model keys:', Object.keys(this.model));
+    console.log('Model classifiers:', this.model.classifiers);
+    
+    // For binary classification, get the first classifier
+    const classifier = this.model.classifiers[0];
+    console.log('Classifier keys:', Object.keys(classifier));
+    
+    this.coefficients = classifier.weights ? Array.from(classifier.weights.to1DArray()) : [];
+    this.intercept = 0;
+    
+    console.log('Extracted coefficients:', this.coefficients);
 
     return {
       coefficients: this.coefficients,
