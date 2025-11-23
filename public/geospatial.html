@@ -2720,14 +2720,18 @@
 
         // Wire up filter controls
         document.addEventListener('DOMContentLoaded', () => {
-            // Network search
+            // Network search with debounce
             const networkSearch = document.getElementById('network-search');
+            let networkSearchTimeout;
             if (networkSearch && window.networkTable) {
                 networkSearch.addEventListener('input', (e) => {
-                    networkTable.applySearch(e.target.value);
-                    renderNetworkTable('networks-table', (network) => {
-                        loadObservationsToMap(network.bssid, network.ssid);
-                    });
+                    clearTimeout(networkSearchTimeout);
+                    networkSearchTimeout = setTimeout(() => {
+                        networkTable.applySearch(e.target.value);
+                        renderNetworkTable('networks-table', (network) => {
+                            loadObservationsToMap(network.bssid, network.ssid);
+                        });
+                    }, 300);
                 });
             }
 

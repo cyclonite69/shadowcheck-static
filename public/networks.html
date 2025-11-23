@@ -1074,12 +1074,16 @@
             }
         }
 
-        // Search functionality
+        // Search functionality with debounce
+        let searchTimeout;
         document.getElementById('search-input').addEventListener('input', (e) => {
-            if (window.networkTable) {
-                networkTable.setSearch(e.target.value);
-                renderNetworkTable();
-            }
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (window.networkTable) {
+                    networkTable.setSearch(e.target.value);
+                    renderNetworkTable();
+                }
+            }, 300);
         });
 
         // Threat filter functionality
