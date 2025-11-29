@@ -117,16 +117,84 @@ ShadowCheck includes multi-algorithm threat detection with model training and hy
 - **LLM Enrichment:** AWS Bedrock integration for contextual threat analysis
 - **Training:** Requires minimum 10 tagged networks; uses geospatial features + behavioral patterns
 
-### Quick Training
+### Training Endpoint
 
-Train the model on tagged networks via API:
+**POST** `/api/ml/train`
 
+Trains logistic regression model on all tagged networks in database.
+
+**Authentication:**
 ```bash
-curl -X POST http://localhost:3001/api/ml/train \
-  -H "Content-Type: application/json"
+-H "x-api-key: YOUR_API_KEY"
 ```
 
-Requires `Authorization` header (see `.env`).
+(Set `API_KEY` in `.env`; optional if not configured)
+
+**Request:**
+```bash
+curl -X POST http://localhost:3001/api/ml/train \
+  -H "x-api-key: your_api_key"
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "model": {
+    "type": "logistic_regression",
+    "accuracy": 0.92,
+    "precision": 0.88,
+    "recall": 0.95,
+    "f1": 0.91,
+    "rocAuc": 0.94
+  },
+  "trainingData": {
+    "totalNetworks": 45,
+    "threats": 18,
+    "falsePositives": 27
+  },
+  "message": "Model trained successfully"
+}
+```
+
+**Errors:**
+- `400`: Fewer than 10 tagged networks (minimum required)
+- `503`: ML model module unavailable
+- `401`: Invalid or missing API key
+
+### Status Endpoint
+
+**GET** `/api/ml/status`
+
+Check model training status and tag statistics.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "modelTrained": true,
+  "modelInfo": {
+    "model_type": "threat_logistic_regression",
+    "feature_names": ["observation_count", "unique_days", "distance_range_km", ...],
+    "created_at": "2025-11-23T19:01:00Z",
+    "updated_at": "2025-11-23T21:36:00Z"
+  },
+  "taggedNetworks": [
+    { "tag_type": "THREAT", "count": 18 },
+    { "tag_type": "FALSE_POSITIVE", "count": 27 }
+  ]
+}
+```
+
+### Threat Detection Endpoints
+
+**GET** `/api/threats/quick`
+
+Quick threat scoring for all networks (uses trained model if available).
+
+**GET** `/api/threats/detect`
+
+Detailed threat analysis with confidence scores and reasoning.
 
 ### Advanced ML Iteration
 
