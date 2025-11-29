@@ -1,204 +1,239 @@
-# ShadowCheck
+# ShadowCheck - SIGINT Forensics Platform
 
-![ShadowCheck Logo](docs/assets/logo.png)
+[![Release](https://img.shields.io/github/v/release/your-username/shadowcheck-static?style=flat-square)](https://github.com/your-username/shadowcheck-static/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/your-username/shadowcheck-static/ci.yml?branch=main&style=flat-square)](https://github.com/your-username/shadowcheck-static/actions)
+[![License](https://img.shields.io/github/license/your-username/shadowcheck-static?style=flat-square)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D18-blue?style=flat-square)](https://www.postgresql.org/)
+[![Coverage](https://img.shields.io/codecov/c/gh/your-username/shadowcheck-static?style=flat-square)](https://codecov.io/gh/your-username/shadowcheck-static)
+[![Code Size](https://img.shields.io/github/languages/code-size/your-username/shadowcheck-static?style=flat-square)](https://github.com/your-username/shadowcheck-static)
+[![Repo Size](https://img.shields.io/github/repo-size/your-username/shadowcheck-static?style=flat-square)](https://github.com/your-username/shadowcheck-static)
+[![Open Issues](https://img.shields.io/github/issues/your-username/shadowcheck-static?style=flat-square)](https://github.com/your-username/shadowcheck-static/issues)
+[![Stars](https://img.shields.io/github/stars/your-username/shadowcheck-static?style=social)](https://github.com/your-username/shadowcheck-static)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-brightgreen?style=flat-square)](https://dependabot.com/)
+[![Security](https://img.shields.io/badge/security-policy-blue?style=flat-square)](SECURITY.md)
 
-Professional SIGINT forensics & wireless network analysis platform with PostGIS spatial correlation, real-time surveillance detection, and interactive geospatial visualization.
+Production-grade SIGINT forensics and wireless network analysis platform. Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
-A full-stack platform built for security researchers, incident responders, and RF analysts. Core technologies: TypeScript, React, PostgreSQL + PostGIS, with components for packet ingestion, geospatial correlation, detection rules, and interactive dashboards.
+## Features
 
-Badges
-- Release / Version: ![Release](https://img.shields.io/github/v/release/cyclonite69/shadowcheck?style=flat-square)
-- Build (replace WORKFLOW_FILE with your action file): ![CI](https://img.shields.io/github/actions/workflow/status/cyclonite69/shadowcheck/ci.yml?branch=main&style=flat-square)
-- License: ![License](https://img.shields.io/github/license/cyclonite69/shadowcheck?style=flat-square)
-- Top language: ![Top language](https://img.shields.io/github/languages/top/cyclonite69/shadowcheck?style=flat-square)
-- Repo size: ![Repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck?style=flat-square)
-- Issues: ![Open issues](https://img.shields.io/github/issues/cyclonite69/shadowcheck?style=flat-square)
-- Stars (social): ![Stars](https://img.shields.io/github/stars/cyclonite69/shadowcheck?style=social)
-- Code coverage (example provider): ![Coverage](https://img.shields.io/codecov/c/gh/cyclonite69/shadowcheck?style=flat-square)
-- Dependabot / Security (example): ![Dependabot](https://img.shields.io/badge/dependabot-enabled-brightgreen?style=flat-square)
-- Docker pulls (if published): ![Docker Pulls](https://img.shields.io/docker/pulls/cyclonite69/shadowcheck?style=flat-square)
+- **Dashboard:** Real-time network environment overview with threat indicators
+- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation
+- **Network Analysis:** Deep dive into individual network characteristics and behavior patterns
+- **Threat Detection:** ML-powered identification of surveillance devices and anomalies
+- **Analytics:** Advanced charts and graphs for network pattern analysis
+- **Address Enrichment:** Multi-API venue and business identification
+- **Device Classification:** Automatic identification of device types and behavioral profiling
+- **Trilateration:** AP location calculation from multiple observations
 
-Table of contents
-- About
-- Highlights & Features
-- Architecture
-- Quickstart (dev & docker)
-- Production / Deployment
-- Database (PostGIS) setup
-- Configuration & Environment variables
-- API / CLI usage
-- Visualizations & dashboards
-- Testing & CI
-- Security & Privacy
-- Contributing
-- Governance & best practices
-- License
-- Roadmap
-- Support & contact
+## Architecture
 
-About
-ShadowCheck ingests wireless telemetry and SIGINT artifacts (passive RF observations, decoded frames, metadata), enriches events with spatial correlation using PostGIS, applies real-time detection rules (surveillance signatures, beacon anomalies, tracking patterns), and exposes a responsive React UI and APIs for investigation and visualization.
+**Backend:** Node.js/Express REST API with PostgreSQL + PostGIS  
+**Frontend:** Vanilla HTML5 with Tailwind CSS, Chart.js, Mapbox GL JS  
+**Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)
 
-Highlights & Features
-- Real-time ingestion pipeline for RF/sensor metadata
-- Geospatial correlation with PostgreSQL + PostGIS
-- Interactive maps and timelines (React + TypeScript)
-- Detection engine with rule definitions and alerting
-- Data retention, partitioning, and fast spatial queries
-- Exportable reports and evidence packaging
-- Extensible plugin architecture for additional decoders or input sources
-- Role-based access control and audit logging (recommended to enable for production)
+## Prerequisites
 
-Architecture (high level)
-- frontend/: React + TypeScript single-page application for visualization and investigation
-- server/: Node/TypeScript API server implementing ingestion, enrichment, rule engine, and REST/WS endpoints
-- db/: PostgreSQL + PostGIS schema, PL/pgSQL functions, spatial indexes, and CDC scripts
-- infra/: Docker Compose and example Kubernetes manifests (Helm charts recommended)
-- scripts/: utilities for import/export, evidence packaging, and migrations
+- Node.js 18+
+- PostgreSQL 18+ with PostGIS
 
-Quickstart (development)
-Prerequisites: Node.js 16+, Docker, Docker Compose, yarn or npm
+## Quick Start
 
-1. Clone
-   ```bash
-   git clone https://github.com/cyclonite69/shadowcheck.git
-   cd shadowcheck
-   ```
+### 1. Clone and Install
 
-2. Local dev with Docker Compose (starts DB, API, frontend)
-   ```bash
-   docker compose up --build
-   # by default:
-   # - Postgres+PostGIS on 5432
-   # - API on http://localhost:3000
-   # - Frontend on http://localhost:8080
-   ```
+```bash
+git clone https://github.com/your-username/shadowcheck-static.git
+cd shadowcheck-static
+npm install
+```
 
-3. Install client/server deps (if running outside containers)
-   ```bash
-   cd server && yarn && yarn dev
-   cd ../frontend && yarn && yarn start
-   ```
+### 2. Database Setup
 
-Postgres + PostGIS setup (manual)
-- Create database user and DB:
-  ```sql
-  CREATE ROLE shadowcheck WITH LOGIN PASSWORD 'changeme';
-  CREATE DATABASE shadowcheck OWNER shadowcheck;
-  \c shadowcheck
-  CREATE EXTENSION postgis;
-  CREATE EXTENSION pg_trgm; -- optional for text similarity searches
-  ```
-- Run migrations:
-  ```bash
-  ./scripts/db/migrate.sh
-  ```
-- Seed sample data for development:
-  ```bash
-  ./scripts/db/seed_dev.sh
-  ```
+Create PostgreSQL database with PostGIS:
 
-Configuration & Environment Variables
-- server/.env.example contains a full list. Key items:
-  - DATABASE_URL=postgres://shadowcheck:password@db:5432/shadowcheck
-  - JWT_SECRET=...
-  - NODE_ENV=development|production
-  - PORT=3000
-  - POSTGIS_MIGRATIONS_PATH=...
-- frontend/.env.example:
-  - REACT_APP_API_URL=http://localhost:3000
-  - REACT_APP_MAPBOX_TOKEN=... (or other map provider)
+```sql
+CREATE ROLE shadowcheck WITH LOGIN PASSWORD 'your_password';
+CREATE DATABASE shadowcheck OWNER shadowcheck;
+\c shadowcheck
+CREATE EXTENSION postgis;
+```
 
-Authentication & Authorization
-- The reference implementation uses JWT for API auth and role-based permissions for UI actions.
-- For production, integrate with SSO/OAuth2 (e.g., Keycloak) and enable HTTPS/TLS termination at the edge.
+### 3. Environment Configuration
 
-API & CLI
-- REST endpoints for searches, ingestion, and alerts: see server/docs/openapi.yml
-- WebSocket endpoints for live alerts and map updates
-- CLI tool (scripts/cli) for bulk ingestion and exports:
-  ```bash
-  node ./scripts/cli ingest --file examples/sample-telemetry.json
-  ```
+Create `.env` in project root:
 
-Visualizations & Dashboards
-- Interactive map with clustered events, heatmaps, and timeline scrubber.
-- Evidence cards with metadata and geo-trace views.
-- Export PNG/PDF snapshots for reporting.
+```
+DB_USER=shadowcheck
+DB_HOST=localhost
+DB_NAME=shadowcheck
+DB_PASSWORD=your_password
+DB_PORT=5432
+PORT=3001
+```
 
-Rule Engine & Detection
-- Rules are JSON/TS definitions in server/rules.
-- Example rule: suspicious-device-tracking.json
-- Rules can be hot-reloaded and tested with built-in simulator.
+See `.env.example` for all options.
 
-Testing & CI
-- Unit tests: Jest (server & frontend)
-- Integration tests: Playwright (UI flows) and Postgres test fixtures
-- Coverage: codecov integrations recommended
-- Recommended GitHub Actions:
-  - ci.yml: build/test/lint
-  - release.yml: semantic-release
-  - dependabot.yml: automated dependency updates
+### 4. Run Migrations
 
-Security & Privacy
-- Keep PII and sensitive payloads encrypted at rest and in transit.
-- Use Postgres row-level-security (RLS) if multi-tenant or to restrict access per role.
-- Enable GitHub Secret Scanning and Dependabot alerts.
-- Add SAST/DAST in CI (e.g., CodeQL, OWASP ZAP).
+```bash
+psql -U shadowcheck -d shadowcheck -f sql/functions/create_scoring_function.sql
+psql -U shadowcheck -d shadowcheck -f sql/functions/fix_kismet_functions.sql
+psql -U shadowcheck -d shadowcheck -f sql/migrations/migrate_network_tags_v2.sql
+```
 
-Contributing
-We welcome contributions! Please follow these files when contributing:
-- CONTRIBUTING.md (code standards, commit messages, branching)
-- CODE_OF_CONDUCT.md
-- .github/ISSUE_TEMPLATE and .github/PULL_REQUEST_TEMPLATE
-- Use Conventional Commits for automated changelogs and releases.
+### 5. Start Server
 
-Suggested repository governance / best practices
-- Protect main branch with required reviews and CI passing
-- Use CODEOWNERS to assign reviewers for server/, frontend/, infra/
-- Enable Dependabot, GitHub Actions, and branch protection rules
-- Use semantic-release for automated releases and CHANGELOG generation
-- Provide clear issue labels (bug, enhancement, help wanted, security)
+```bash
+npm start
+```
 
-Release & Versioning
-- Use semantic versioning (MAJOR.MINOR.PATCH)
-- Use GitHub Releases and attach build artifacts (docker images, binaries)
-- Publish Docker images and tag by semantic version and commit SHA
+Server runs on `http://localhost:3001`
 
-Roadmap
-Planned improvements:
-- Harden RBAC + SSO integration
-- Plugin marketplace for decoders and enrichment modules
-- ML-assisted anomaly detection
-- Multi-region replication for geoplace-aware queries
-- Export formats for court-admissible evidence packages
+## Pages
 
-Troubleshooting & FAQs
-- DB connection errors: ensure POSTGRES_USER/POSTGRES_PASSWORD and that migrations ran
-- Map tiles not loading: configure REACT_APP_MAPBOX_TOKEN or switch providers
-- Slow spatial queries: ensure GiST/GIST indexes on geometry columns and use ST_DWithin with proper indexes
+- Dashboard: `/`
+- Geospatial: `/geospatial.html`
+- Networks: `/networks.html`
+- Analytics: `/analytics.html`
+- Surveillance: `/surveillance.html`
 
-License
-- This repository is licensed under the MIT License. See LICENSE for details.
+## API Endpoints
 
-Acknowledgements
-- Built with open source geospatial tools (PostGIS), mapping libraries (Mapbox/Leaflet), and the TypeScript/React ecosystem.
+- `GET /api/networks` - All networks
+- `GET /api/threats/quick` - Quick threat detection
+- `GET /api/analytics/*` - Analytics data
+- `GET /api/networks/observations/:bssid` - Network observations
 
-Contact & Support
-- For support or security issues, please open an issue or contact the maintainers at the repository's issue tracker.
-- For security vulnerabilities, prefer a private disclosure via the repository's SECURITY.md process.
+See `server.js` for full endpoint documentation.
 
-Appendices & Links
-- Schema reference: db/README.md
-- OpenAPI: server/docs/openapi.yml
-- Architecture diagrams: docs/architecture.png
-- Example datasets: examples/
+## Machine Learning
 
----
-Notes for maintainers (what I included and next steps)
-- This README collects project goals, quickstart, architecture, recommended GitHub best practices, and actionable next steps (CI, CODEOWNERS, CONTRIBUTING).
-- Suggestions: add CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, and ISSUE/PR templates to the repo root; enable Dependabot and GitHub Actions; add a CODEOWNERS file to guide reviews.
-- If you want, I can:
-  - create a branch with this README update and push it to the repository,
-  - open a PR with additional suggested files (CONTRIBUTING.md, SECURITY.md, CODEOWNERS, PR/issue templates),
-  - or generate the supplementary files now. Tell me which action you'd like me to take.
+ShadowCheck includes multi-algorithm threat detection with model training and hyperparameter optimization.
+
+### Architecture
+
+- **Runtime:** Logistic Regression via `ml-logistic-regression` (Node.js)
+- **Advanced:** Python ML iteration with scikit-learn (RandomForest, GradientBoosting, LogisticRegression)
+- **LLM Enrichment:** AWS Bedrock integration for contextual threat analysis
+- **Training:** Requires minimum 10 tagged networks; uses geospatial features + behavioral patterns
+
+### Quick Training
+
+Train the model on tagged networks via API:
+
+```bash
+curl -X POST http://localhost:3001/api/ml/train \
+  -H "Content-Type: application/json"
+```
+
+Requires `Authorization` header (see `.env`).
+
+### Advanced ML Iteration
+
+Test multiple algorithms with grid search and cross-validation:
+
+```bash
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Run iterative training with hyperparameter tuning
+python3 ml-iterate.py
+```
+
+Tests:
+- **Logistic Regression** (C: 0.01–100)
+- **Random Forest** (max_depth: 5–20, n_estimators: 50–200)
+- **Gradient Boosting** (learning_rate: 0.01–0.1, n_estimators: 100–500)
+
+Outputs classification metrics, ROC-AUC, and confusion matrices for model comparison.
+
+### Features Used for Training
+
+- Observation count (network detections)
+- Unique days seen
+- Geographic distribution (location clustering)
+- Signal strength (RSSI max)
+- Distance range from home location
+- Behavioral flags (seen at home vs. away)
+
+### ML UI Dashboard
+
+Access the training interface at `/ml-train.html` for visual model management and performance tracking.
+
+### Environment Variables
+
+```
+AWS_REGION=us-east-1          # Bedrock region (optional)
+AWS_ACCESS_KEY_ID=...         # AWS credentials (optional)
+AWS_SECRET_ACCESS_KEY=...     # AWS credentials (optional)
+```
+
+## Project Structure
+
+```
+shadowcheck-static/
+├── server.js              # Express API server
+├── package.json           # Dependencies
+├── .env                   # Configuration
+├── public/                # Frontend static files
+│   ├── index.html
+│   ├── geospatial.html
+│   ├── networks.html
+│   ├── analytics.html
+│   ├── surveillance.html
+│   └── js/, css/          # Assets
+├── scripts/               # Utility scripts
+│   ├── enrichment/        # Address enrichment
+│   ├── geocoding/         # Reverse geocoding
+│   └── ml/                # ML utilities
+├── sql/                   # Database
+│   ├── migrations/        # Schema migrations
+│   └── functions/         # SQL functions
+├── utils/                 # Helper modules
+├── tests/                 # Test files
+└── docs/                  # Documentation
+```
+
+## Development
+
+**Run dev server:**
+```bash
+npm run dev
+```
+
+**Run tests:**
+```bash
+npm test
+```
+
+## Configuration
+
+Key environment variables (see `.env.example`):
+
+- `DB_*` - PostgreSQL connection
+- `PORT` - Server port (default: 3001)
+- `NODE_ENV` - development or production
+- `AWS_REGION` - For Bedrock ML integration (optional)
+
+## Security
+
+- Use strong database credentials in production
+- Enable HTTPS/TLS at reverse proxy layer
+- Restrict API access via rate limiting (already enabled)
+- See `SECURITY.md` for detailed security guidelines
+
+## Contributing
+
+See `CONTRIBUTING.md` for code standards and workflow.
+
+## Code of Conduct
+
+See `CODE_OF_CONDUCT.md`.
+
+## License
+
+MIT. See `LICENSE` for details.
+
+## Support
+
+For issues, open a GitHub issue or see `SECURITY.md` for security vulnerability reporting.
