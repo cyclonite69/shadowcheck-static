@@ -100,6 +100,59 @@
         }
 
         .nav-link.active {
+        }
+
+        .nav-link.active[href="/"],
+        .nav-link.active[href="/index.html"] {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+            color: #60a5fa;
+        }
+
+        .nav-link.active[href="/geospatial.html"] {
+            background: rgba(16, 185, 129, 0.3);
+            border-color: #10b981;
+            color: #34d399;
+        }
+
+        .nav-link.active[href="/analytics.html"] {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #8b5cf6;
+            color: #a78bfa;
+        }
+
+        .nav-link.active[href="/surveillance.html"] {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
+            color: #f87171;
+        }
+
+        .nav-link.active[href="/networks.html"] {
+            background: rgba(6, 182, 212, 0.3);
+            border-color: #06b6d4;
+            color: #22d3ee;
+        }
+
+        .nav-link.active[href="/admin.html"] {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #ffffff;
+            color: #ffffff;
+        }
+
+            color: #3b82f6;
+        }
+
+            color: #3b82f6;
+        }
+
+        }
+
+        }
+
+            color: #3b82f6;
+        }
+
+            color: #ffffff;
             background: rgba(59, 130, 246, 0.3);
             border-color: #3b82f6;
         }
@@ -736,6 +789,7 @@
                 <a href="/analytics.html" class="nav-link" data-page="analytics">Analytics</a>
                 <a href="/surveillance.html" class="nav-link" data-page="surveillance">Surveillance</a>
                 <a href="/networks.html" class="nav-link" data-page="networks">Networks</a>
+                <a href="/admin.html" class="nav-link">Admin</a>
             </div>
             <div class="header-right-group">
                 <div class="layout-toggle">
@@ -766,6 +820,7 @@
                             <option value="dark">🌑 Dark</option>
                             <option value="satellite">🛰️ Satellite</option>
                         </select>
+                        <button onclick="setHomeLocation()" id="set-home-btn">🏠 Set Home</button>
                         <button onclick="centerMapOnLocation()">🎯 Center</button>
                     </div>
                 </div>
@@ -1732,22 +1787,135 @@
         function initMap() {
             if (map) return;
 
-            // Fetch Mapbox token from backend API (never hardcode tokens!)
-            mapboxgl.accessToken = 'PLACEHOLDER_LOADED_FROM_API';
+            // Load Mapbox token from API
+            fetch('/api/mapbox-token')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.token && data.token !== 'your-mapbox-token-here') {
+                        mapboxgl.accessToken = data.token;
+                        
+                        // Initialize map with caching
+                        map = new mapboxgl.Map({
+                            container: 'map',
+                            style: 'mapbox://styles/mapbox/standard',
+                            center: [-83.6968, 43.0234],
+                            zoom: 13,
+                            // Enable tile caching
+                            transformRequest: (url, resourceType) => {
+                                if (resourceType === 'Tile' && url.startsWith('http')) {
+                                    return {
+                                        url: url,
+                                        headers: {},
+                                        credentials: 'same-origin'
+                                    };
+                                }
+                            }
+                        });
 
-            map = new mapboxgl.Map({
-                container: 'map',
-                style: 'mapbox://styles/mapbox/dark-v11',
-                center: [-83.69, 43.02],
-                zoom: 12
-            });
+                        // Enable browser cache for tiles
+                        if ('serviceWorker' in navigator && 'caches' in window) {
+                            caches.open('mapbox-tiles-v1').then(cache => {
+                                console.log('✓ Tile cache enabled');
+                            });
+                        }
 
-            map.on('load', () => {
-                console.log('✓ Map initialized - click a threat to view observations');
-                // Don't load points initially - user selects threat first
-            });
+                        map.on('load', () => {
+                            console.log('✓ Map loaded successfully');
+                            loadHomeMarker();
+                            loadNetworksToMap();
+                        });
 
-            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+                        map.on('error', (e) => {
+                            console.error('Map error:', e);
+                        });
+
+                        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+                    } else {
+                        console.error('Mapbox token not configured');
+                        document.getElementById('map').innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444;">Mapbox token not configured. Please set in Admin settings.</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to load Mapbox token:', error);
+                    document.getElementById('map').innerHTML = '<div style="padding: 20px; text-align: center; color: #ef4444;">Failed to load map. Check console for errors.</div>';
+                });
+        }
+
+        // Load networks and add to map
+        async function loadNetworks() {
+            try {
+                // Get all networks without limit - use filters instead
+                const res = await fetch(`${API_BASE}/networks?page=1&limit=10000`);
+                const data = await res.json();
+                
+                if (!data.networks || data.networks.length === 0) {
+                    console.warn('No networks to display');
+                    return;
+                }
+
+                console.log(`Loading ${data.networks.length} networks to map...`);
+
+                // Add network points to map
+                const features = data.networks
+                    .filter(n => n.latitude && n.longitude)
+                    .map(n => ({
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [n.longitude, n.latitude]
+                        },
+                        properties: {
+                            bssid: n.bssid,
+                            ssid: n.ssid || '<Hidden>',
+                            signal: n.signal || 0,
+                            type: n.type || 'W'
+                        }
+                    }));
+
+                console.log(`Filtered to ${features.length} networks with coordinates`);
+
+                map.addSource('networks', {
+                    type: 'geojson',
+                    data: {
+                        type: 'FeatureCollection',
+                        features: features
+                    }
+                });
+
+                map.addLayer({
+                    id: 'networks-layer',
+                    type: 'circle',
+                    source: 'networks',
+                    paint: {
+                        'circle-radius': 6,
+                        'circle-color': '#3b82f6',
+                        'circle-opacity': 0.7,
+                        'circle-stroke-width': 1,
+                        'circle-stroke-color': '#ffffff'
+                    }
+                });
+
+                // Add click handler
+                map.on('click', 'networks-layer', (e) => {
+                    const props = e.features[0].properties;
+                    new mapboxgl.Popup()
+                        .setLngLat(e.lngLat)
+                        .setHTML(`<strong>${props.ssid}</strong><br>${props.bssid}<br>Signal: ${props.signal} dBm`)
+                        .addTo(map);
+                });
+
+                map.on('mouseenter', 'networks-layer', () => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+
+                map.on('mouseleave', 'networks-layer', () => {
+                    map.getCanvas().style.cursor = '';
+                });
+
+                console.log(`✓ Loaded ${features.length} networks to map`);
+            } catch (error) {
+                console.error('Failed to load networks:', error);
+            }
         }
 
         // Load observations for a specific BSSID and render with sequence numbers
@@ -2368,6 +2536,125 @@
             }
         }
 
+        // Set home location at map center
+        async function setHomeLocation() {
+            if (!map) return;
+            
+            const center = map.getCenter();
+            const btn = document.getElementById('set-home-btn');
+            
+            try {
+                btn.textContent = '⏳ Setting...';
+                btn.disabled = true;
+                
+                const response = await fetch(`${API_BASE}/location-markers/home`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        latitude: center.lat,
+                        longitude: center.lng
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to set home location');
+                }
+                
+                const data = await response.json();
+                console.log('✓ Home location set:', data.marker);
+                
+                // Add home marker to map
+                if (map.getLayer('home-marker')) {
+                    map.removeLayer('home-marker');
+                    map.removeSource('home-marker');
+                }
+                
+                map.addSource('home-marker', {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [center.lng, center.lat]
+                        }
+                    }
+                });
+                
+                map.addLayer({
+                    id: 'home-marker',
+                    type: 'circle',
+                    source: 'home-marker',
+                    paint: {
+                        'circle-radius': 10,
+                        'circle-color': '#10b981',
+                        'circle-stroke-width': 3,
+                        'circle-stroke-color': '#ffffff'
+                    }
+                });
+                
+                btn.textContent = '✓ Home Set';
+                setTimeout(() => {
+                    btn.textContent = '🏠 Set Home';
+                    btn.disabled = false;
+                }, 2000);
+                
+                // Reload threats to recalculate distances
+                loadThreats();
+            } catch (err) {
+                console.error('Error setting home location:', err);
+                btn.textContent = '✗ Failed';
+                setTimeout(() => {
+                    btn.textContent = '🏠 Set Home';
+                    btn.disabled = false;
+                }, 2000);
+            }
+        }
+
+        // Load home marker on map init
+        async function loadHomeMarker() {
+            if (!map) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/location-markers`);
+                const data = await response.json();
+                
+                const homeMarker = data.markers?.find(m => m.marker_type === 'home');
+                if (!homeMarker) return;
+                
+                if (map.getLayer('home-marker')) {
+                    map.removeLayer('home-marker');
+                    map.removeSource('home-marker');
+                }
+                
+                map.addSource('home-marker', {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [homeMarker.longitude, homeMarker.latitude]
+                        }
+                    }
+                });
+                
+                map.addLayer({
+                    id: 'home-marker',
+                    type: 'circle',
+                    source: 'home-marker',
+                    paint: {
+                        'circle-radius': 10,
+                        'circle-color': '#10b981',
+                        'circle-stroke-width': 3,
+                        'circle-stroke-color': '#ffffff'
+                    }
+                });
+                
+                console.log('✓ Home marker loaded');
+            } catch (err) {
+                console.log('No home marker set');
+            }
+        }
+
         // Get severity class based on threat score
         function getSeverityClass(score) {
             if (score >= 80) return 'severity-critical';
@@ -2767,6 +3054,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Register service worker for tile caching
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw-map-cache.js')
+                    .then(reg => console.log('✓ Map tile cache service worker registered'))
+                    .catch(err => console.warn('Service worker registration failed:', err));
+            }
+
             highlightActiveNav();
             setTimeout(() => initMap(), 100);
             loadThreats();
