@@ -70,7 +70,7 @@ git reflog expire --expire=now --all && git gc --prune=now --aggressive
 **Issue:**
 The `.env` file contains actual database credentials:
 ```env
-DB_PASSWORD=PjUKZCNXUaRd9HCLjv@yj0wSSvU9hoDO
+DB_PASSWORD=YOUR_ACTUAL_PASSWORD_HERE
 ```
 
 **Current Status:**
