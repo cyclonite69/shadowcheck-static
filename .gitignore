@@ -23,6 +23,7 @@ nohup.out
 
 # Claude Code
 .claude/
+.claude/settings.local.json
 
 # Backup files
 *.backup
@@ -88,3 +89,4 @@ temp/
 *.png
 *.webp
 *.xz
+tests/
