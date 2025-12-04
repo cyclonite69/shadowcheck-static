@@ -1,0 +1,71 @@
+# Node modules
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Data files
+data/
+*.csv
+*.db
+*.sqlite
+*.backup
+backup-*.sqlite
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+tests/
+coverage/
+__tests__/
+*.test.js
+*.spec.js
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Build artifacts
+dist/
+build/
+
+# Database admin files
+pgadmin-servers.json
+pgpass
+.pgpass
+
+# Scripts that aren't needed in production
+scripts/import/
+scripts/ml/ml-iterate.py
+scripts/ml/requirements.txt
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
