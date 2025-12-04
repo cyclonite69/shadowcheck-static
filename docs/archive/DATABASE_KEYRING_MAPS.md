@@ -14,7 +14,7 @@ python3 -c "import keyring; print(keyring.get_keyring())"
 ### Initialize All API Keys
 ```bash
 # Database credentials
-python3 -c "import keyring; keyring.set_password('shadowcheck', 'postgres_password', 'PjUKZCNXUaRd9HCLjv@yj0wSSvU9hoDO')"
+python3 -c "import keyring; keyring.set_password('shadowcheck', 'postgres_password', 'YOUR_ACTUAL_PASSWORD_HERE')"
 python3 -c "import keyring; keyring.set_password('shadowcheck', 'pgadmin_password', 'admin')"
 
 # Map services
