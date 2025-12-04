@@ -1,0 +1,71 @@
+version: '3.8'
+
+# This docker-compose connects to SHARED PostgreSQL and PgAdmin containers
+# The postgres and pgadmin services are managed externally and shared across all ShadowCheck projects
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shadowcheck_static_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3001}
+      # Connect to SHARED external PostgreSQL container
+      DB_HOST: shadowcheck_postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-shadowcheck_user}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      DB_NAME: ${DB_NAME:-shadowcheck}
+      API_KEY: ${API_KEY}
+      MAPBOX_TOKEN: ${MAPBOX_TOKEN}
+      FORCE_HTTPS: ${FORCE_HTTPS:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # Connect to SHARED Redis (if available)
+      REDIS_HOST: ${REDIS_HOST:-shadowcheck_redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    ports:
+      - "${PORT:-3001}:3001"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - shadowcheck_net
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/dashboard-metrics', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: shadowcheck_static_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - shadowcheck_net
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+volumes:
+  redis_data:
+    driver: local
+
+# Use EXISTING external network that connects to shared postgres/pgadmin
+networks:
+  shadowcheck_net:
+    external: true
+    name: shadowcheck_net

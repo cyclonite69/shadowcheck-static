@@ -3,13 +3,15 @@ node_modules/
 
 # Environment variables
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Logs
 logs/
 *.log
 npm-debug.log*
+server.log
+nohup.out
 
 # Editor directories and files
 .vscode/
@@ -27,10 +29,29 @@ npm-debug.log*
 *.old
 *.bak
 *.tar.gz
-
-# Database dumps
-*.sql.gz
+backup-*.sql
 *.dump
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+backup-*.sqlite
+
+# Credentials and secrets
+.pgpass
+pgadmin-servers.json
+credentials.json
+*.key
+*.pem
+*.p12
+*.pfx
+*password*
+*secret*
+get-keyring-password.py
+list-keyring-items.py
+setup-postgres-keyring.sh
+install-keyring-tool.sh
 
 # OS files
 Thumbs.db
@@ -41,8 +62,29 @@ build/
 shadowcheck-static.backup/
 tooltip-search.js
 tooltip-search-backup.js
+
 # Data files
 data/csv/*.csv
 data/logs/*.log
 *.csv
-*.log
+/tmp/*.csv
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Test results
+test-results/
+junit.xml
+
+# Temporary files
+/tmp/
+temp/
+
+# Random executables and images
+*.exe
+*.jpeg
+*.jpg
+*.png
+*.webp
+*.xz
