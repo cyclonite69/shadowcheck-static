@@ -1,0 +1,25 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Build output
+dist
+build
+coverage
+
+# Data files
+data/
+*.csv
+*.db
+*.sqlite
+
+# Documentation
+docs/
+*.md
+
+# Configuration
+.eslintrc.js
+jest.config.js
+
+# Public assets
+public/

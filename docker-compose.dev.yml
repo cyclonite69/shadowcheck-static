@@ -1,0 +1,32 @@
+version: '3.8'
+
+# Development overrides for ShadowCheckStatic
+# Connects to shared PostgreSQL on shadowcheck_net network
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage for development
+    container_name: shadowcheck_static_api_dev
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      # Connect to SHARED PostgreSQL
+      DB_HOST: shadowcheck_postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-shadowcheck_user}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      DB_NAME: ${DB_NAME:-shadowcheck}
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+      - ./data:/app/data
+      - ./logs:/app/logs
+    command: npm run dev  # Use nodemon for hot-reload
+
+  redis:
+    container_name: shadowcheck_static_redis_dev
+    ports:
+      - "6380:6379"  # Different port for dev to avoid conflicts

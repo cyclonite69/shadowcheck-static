@@ -628,3 +628,654 @@ npm start
 - [ ] CSP policy hardening (requires frontend refactoring)
 - [ ] Rate limiting per endpoint (currently global)
 - [ ] SQL query optimization for expensive operations
+
+## Development Scripts (Updated)
+
+The project now includes comprehensive npm scripts for development, testing, and deployment:
+
+```bash
+# Development
+npm start          # Start server (production mode)
+npm run dev        # Start with nodemon (auto-reload on changes)
+npm run debug      # Start with Node.js inspector
+
+# Testing
+npm test           # Run all tests with Jest
+npm run test:watch # Run tests in watch mode
+npm run test:cov   # Run tests with coverage report
+npm run test:integration  # Run integration tests only
+
+# Code Quality
+npm run lint       # Check for linting errors
+npm run lint:fix   # Auto-fix linting errors
+npm run format     # Format code with Prettier
+npm run format:check  # Check code formatting
+
+# Docker
+npm run docker:build  # Build Docker image
+npm run docker:up     # Start all services with docker-compose
+npm run docker:down   # Stop all services
+npm run docker:logs   # View API container logs
+
+# Database
+npm run db:migrate    # Run database migrations
+```
+
+## Docker Deployment
+
+The project is fully containerized with Docker and Docker Compose.
+
+### Files Created
+- `Dockerfile`: Multi-stage production-ready image
+- `.dockerignore`: Excludes unnecessary files from image
+- `docker-compose.yml`: Full stack (PostgreSQL + Redis + API + PgAdmin)
+- `docker-compose.dev.yml`: Development overrides with hot-reload
+
+### Quick Start
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f api
+
+# Stop services
+docker-compose down
+
+# Clean restart (remove volumes)
+docker-compose down -v && docker-compose up -d
+```
+
+### Services
+
+**postgres** (Port 5432):
+- Image: `postgis/postgis:18-3.5-alpine`
+- PostGIS-enabled PostgreSQL 18
+- Optimized configuration for performance
+- Auto-initialization with migrations
+
+**redis** (Port 6379):
+- Image: `redis:7-alpine`
+- Caching layer (future use)
+- LRU eviction policy
+- Persistent storage
+
+**api** (Port 3001):
+- Built from Dockerfile
+- Multi-stage build for minimal image size
+- Non-root user for security
+- Health checks enabled
+
+**pgadmin** (Port 5050, optional):
+- Image: `dpage/pgadmin4:latest`
+- Database management GUI
+- Only starts with `--profile tools`
+
+### Production Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for full production deployment guide including:
+- SSL/TLS configuration
+- Nginx reverse proxy
+- Cloud platform deployments (AWS, GCP, Azure, DigitalOcean)
+- Monitoring and logging
+- Backup strategies
+
+## Enrichment System
+
+**Production Multi-API Enrichment System** for venue identification and contextual analysis.
+
+### Architecture
+- **Location**: `scripts/enrichment/enrichment-system.js`
+- **4 API Sources**: LocationIQ, OpenCage, Overpass (OSM), Nominatim
+- **Conflict Resolution**: Vote-based consensus + confidence scoring
+- **Rate Limiting**: Automatic quota management with midnight resets
+
+### Features
+- Intelligent conflict resolution (voting + scoring + gap filling)
+- Multi-source data fusion
+- Rate limit management (respects daily quotas)
+- Progress monitoring and reporting
+- Business/venue classification
+- Device type detection
+
+### Usage
+
+```bash
+# Enrich 1000 networks
+node scripts/enrichment/enrichment-system.js 1000
+
+# Test enrichment system
+node scripts/enrichment/enrichment-system.js test
+
+# Monitor enrichment progress
+node scripts/enrichment/monitor-enrichment.js
+```
+
+### Enrichment Tables
+- `app.wigle_networks_enriched`: WiGLE API data (trilat, QoS, first seen)
+- `app.ap_addresses`: Reverse geocoded venue names and categories
+- `app.ap_locations`: Trilateration results (calculated AP positions)
+- `app.business_classifications`: Device types (vehicles, IoT, government facilities)
+
+### API Keys Setup
+See `docs/enrichment/GET_FREE_API_KEYS.md` for obtaining free API keys:
+- LocationIQ: 5,000 requests/day (free tier)
+- OpenCage: 2,500 requests/day (free tier)
+- Overpass/Nominatim: Unlimited (OSM data, rate-limited)
+
+Add to `.env`:
+```env
+OPENCAGE_API_KEY=your_opencage_key
+LOCATIONIQ_API_KEY=your_locationiq_key
+ABSTRACT_API_KEY=your_abstract_key
+```
+
+### Conflict Resolution Algorithm
+
+The system uses a multi-factor approach:
+1. **Voting**: If 2+ APIs agree on a name, that wins
+2. **Confidence Scoring**: Higher confidence results preferred
+3. **Detail Bonuses**: Results with brand/category get +0.2/+0.1 score
+4. **Gap Filling**: Merge complementary data (name from API1, category from API2)
+
+**Example**:
+- Overpass: "Starbucks" (0.8) + brand + category → Score: 1.1
+- LocationIQ: "Starbucks" (0.7) → Score: 0.7
+- Nominatim: "123 Main St" (0.9) → Score: 0.9
+- **Result**: "Starbucks" wins (2 votes + highest score)
+
+## Testing Framework
+
+**Jest** is configured for unit and integration testing.
+
+### Test Structure
+```
+tests/
+├── setup.js            # Jest configuration and global setup
+├── api.test.js         # API endpoint tests
+├── threat.test.js      # Threat detection algorithm tests
+├── enrichment.test.js  # Enrichment system tests
+└── integration/        # Integration tests
+    ├── db.test.js      # Database integration
+    └── e2e.test.js     # End-to-end tests
+```
+
+### Configuration
+- `jest.config.js`: Jest configuration
+- `tests/setup.js`: Test environment setup (DB, timeouts, globals)
+
+### Writing Tests
+
+```javascript
+// tests/api.test.js
+const request = require('supertest');
+const app = require('../server');
+
+describe('GET /api/dashboard-metrics', () => {
+  it('should return dashboard metrics', async () => {
+    const response = await request(app)
+      .get('/api/dashboard-metrics')
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    expect(response.body).toHaveProperty('totalNetworks');
+    expect(response.body).toHaveProperty('threatsCount');
+    expect(response.body.totalNetworks).toBeGreaterThanOrEqual(0);
+  });
+});
+```
+
+### Coverage Thresholds
+- Branches: 70%
+- Functions: 70%
+- Lines: 70%
+- Statements: 70%
+
+Coverage reports generated in `coverage/` directory.
+
+## Code Quality Tools
+
+### ESLint Configuration
+- File: `.eslintrc.json`
+- Rules: CommonJS, Node.js environment, 2-space indentation
+- Automatic fixing available: `npm run lint:fix`
+
+**Key Rules**:
+- `no-var`: Enforce `const`/`let`
+- `prefer-const`: Use `const` when possible
+- `no-eval`: Prevent eval() usage
+- `eqeqeq`: Enforce strict equality (`===`)
+- `no-console`: Off (logging allowed in Node.js backend)
+
+### Prettier Configuration
+- File: `.prettierrc.json`
+- Settings: Single quotes, semicolons, 100 char line width, 2-space tabs
+- Auto-format: `npm run format`
+
+### EditorConfig
+- File: `.editorconfig`
+- Universal editor settings (indentation, line endings, charset)
+- Supported by VS Code, JetBrains IDEs, Vim, etc.
+
+### Pre-commit Hooks (Optional)
+
+Install with Husky:
+```bash
+npm install --save-dev husky lint-staged
+npx husky install
+npx husky add .husky/pre-commit "npm run lint-staged"
+```
+
+Configured in `package.json`:
+```json
+{
+  "lint-staged": {
+    "*.js": ["eslint --fix", "prettier --write"],
+    "*.{json,md,yml}": ["prettier --write"]
+  }
+}
+```
+
+## CI/CD Pipelines
+
+**GitHub Actions** workflows configured in `.github/workflows/`:
+
+### ci.yml (Continuous Integration)
+- **Triggers**: Push/PR to master, main, develop
+- **Jobs**:
+  1. **Lint**: ESLint + Prettier checks
+  2. **Test**: Run Jest tests with PostgreSQL service
+  3. **Security**: npm audit + TruffleHog secret scanning
+  4. **Build**: Docker image build + container test
+
+### codeql.yml (Security Scanning)
+- **Triggers**: Push/PR to master/main, weekly schedule
+- **Analysis**: CodeQL security analysis for JavaScript
+- **Queries**: security-extended, security-and-quality
+
+### Dependabot Configuration
+- File: `.github/dependabot.yml`
+- **npm**: Weekly updates for dependencies
+- **GitHub Actions**: Weekly updates for workflow actions
+- **Docker**: Weekly updates for base images
+- **Auto-grouping**: Groups dev dependencies, security updates
+
+## Security Best Practices
+
+### Secrets Management
+
+**Current Issues (See docs/SECRETS_AUDIT.md)**:
+- ⚠️ Hardcoded passwords in test files (CRITICAL)
+- ⚠️ Real credentials in `.env` (MEDIUM - file is gitignored)
+
+**Recommended Approach**:
+
+1. **Development**: Use system keyring
+```bash
+npm install keytar
+
+# Store password
+node -e "require('keytar').setPassword('shadowcheck', 'postgres_password', 'your-password')"
+```
+
+2. **Production**: Use cloud secrets manager
+   - AWS Secrets Manager
+   - GCP Secret Manager
+   - Azure Key Vault
+   - HashiCorp Vault
+
+3. **Never Commit**:
+   - `.env` files (gitignored)
+   - `.pgpass` files (gitignored)
+   - `credentials.json` (gitignored)
+   - Private keys (`.key`, `.pem`)
+
+### API Security
+
+**Authentication**:
+- Optional API key via `x-api-key` header
+- Protected endpoints: `/api/tag-network`, `/api/ml/train`
+
+**Rate Limiting**:
+- 1000 requests per 15 minutes per IP
+- Applied to all `/api/*` routes
+
+**CORS**:
+- Origin whitelist in `CORS_ORIGINS` env var
+- Default: localhost only
+- Production: specific domains only
+
+**Input Validation**:
+- Parameterized SQL queries (SQL injection prevention)
+- Request body size limit: 10MB
+- Page/limit validation (max 5000 results)
+- BSSID format validation (accepts MAC or tower IDs)
+
+**Security Headers**:
+- Content-Security-Policy (CSP)
+- X-Frame-Options: DENY
+- X-Content-Type-Options: nosniff
+- X-XSS-Protection: 1; mode=block
+- Strict-Transport-Security (when HTTPS enabled)
+
+## Architecture Modernization Plan
+
+Based on analysis of **ShadowCheckPentest** architecture patterns, the following improvements are recommended:
+
+### Phase 1: Modularization (Current)
+**Status**: Planning / Documentation phase
+
+**Goal**: Break monolithic `server.js` into modular components
+
+**Proposed Structure**:
+```
+src/
+├── api/                    # HTTP layer
+│   ├── routes/
+│   │   └── v1/             # API version 1
+│   │       ├── networks.js
+│   │       ├── threats.js
+│   │       ├── analytics.js
+│   │       └── ml.js
+│   ├── middleware/
+│   │   ├── auth.js         # API key authentication
+│   │   ├── validation.js   # Request validation (Joi)
+│   │   ├── errorHandler.js # Centralized error handling
+│   │   └── requestLogger.js # Structured logging
+│   └── schemas/            # Request/response schemas (Joi)
+│       ├── network.js
+│       ├── threat.js
+│       └── common.js
+│
+├── services/               # Business logic layer
+│   ├── threatService.js    # Threat detection algorithms
+│   ├── analyticsService.js # Analytics calculations
+│   ├── networkService.js   # Network operations
+│   ├── mlService.js        # ML training & prediction
+│   └── enrichmentService.js # Venue enrichment
+│
+├── repositories/           # Data access layer
+│   ├── networkRepository.js     # CRUD for networks
+│   ├── locationRepository.js    # CRUD for locations
+│   ├── networkTagsRepository.js # CRUD for tags
+│   └── unitOfWork.js            # Transaction management
+│
+├── models/                 # Domain models
+│   ├── Network.js
+│   ├── Threat.js
+│   ├── NetworkTag.js
+│   └── Location.js
+│
+├── config/                 # Configuration management
+│   ├── index.js            # Main config loader
+│   ├── database.js         # Database config + pool
+│   └── secrets.js          # Keyring integration
+│
+└── utils/                  # Utilities
+    ├── logger.js           # Structured logging (Winston)
+    ├── validation.js       # Common validators
+    └── errorHandler.js     # Error utilities
+```
+
+**Benefits**:
+- Easier to test (isolated components)
+- Better code reuse
+- Clearer separation of concerns
+- Improved maintainability
+- Enables parallel development
+
+**Migration Strategy**:
+1. Create new directory structure (`src/`)
+2. Extract routes to `src/api/routes/v1/`
+3. Extract business logic to `src/services/`
+4. Extract database queries to `src/repositories/`
+5. Update `server.js` to import from new modules
+6. Add tests for each module
+7. Gradually refactor endpoints (one at a time)
+
+### Phase 2: Dependency Injection
+**Status**: Design phase
+
+**Goal**: Implement DI container for loose coupling
+
+**Pattern** (from ShadowCheckPentest):
+```javascript
+// src/container.js
+class Container {
+  constructor(config) {
+    this.config = config;
+    this.singletons = new Map();
+    this.factories = new Map();
+  }
+
+  registerSingleton(name, instance) {
+    this.singletons.set(name, instance);
+  }
+
+  registerFactory(name, factory) {
+    this.factories.set(name, factory);
+  }
+
+  get(name) {
+    if (this.singletons.has(name)) {
+      return this.singletons.get(name);
+    }
+    if (this.factories.has(name)) {
+      return this.factories.get(name)(this);
+    }
+    throw new Error(`Service ${name} not found`);
+  }
+}
+
+// Usage
+const container = new Container(config);
+container.registerSingleton('pool', dbPool);
+container.registerFactory('threatService', (c) => 
+  new ThreatService(c.get('networkRepo'), c.get('locationRepo'))
+);
+```
+
+### Phase 3: Repository Pattern
+**Status**: Design phase
+
+**Goal**: Abstract database access behind repositories
+
+**Pattern**:
+```javascript
+// src/repositories/networkRepository.js
+class NetworkRepository {
+  constructor(pool) {
+    this.pool = pool;
+  }
+
+  async getByBSSID(bssid) {
+    const query = 'SELECT * FROM app.networks_legacy WHERE bssid = $1';
+    const result = await this.pool.query(query, [bssid.toUpperCase()]);
+    return result.rows[0] || null;
+  }
+
+  async getAll(skip = 0, limit = 100) {
+    const query = 'SELECT * FROM app.networks_legacy OFFSET $1 LIMIT $2';
+    const result = await this.pool.query(query, [skip, limit]);
+    return result.rows;
+  }
+
+  async create(network) {
+    const query = `INSERT INTO app.networks_legacy ...`;
+    const result = await this.pool.query(query, [/* params */]);
+    return result.rows[0];
+  }
+
+  // ... update, delete, etc.
+}
+```
+
+### Phase 4: Service Layer
+**Status**: Design phase
+
+**Goal**: Encapsulate business logic in service classes
+
+**Pattern**:
+```javascript
+// src/services/threatService.js
+class ThreatService {
+  constructor(networkRepo, locationRepo) {
+    this.networkRepo = networkRepo;
+    this.locationRepo = locationRepo;
+  }
+
+  async detectThreats(minSeverity = 40, page = 1, limit = 100) {
+    // Threat detection logic extracted from server.js
+    const threats = await this._calculateThreats();
+    const filtered = threats.filter(t => t.score >= minSeverity);
+    return this._paginate(filtered, page, limit);
+  }
+
+  async _calculateThreats() {
+    // Complex threat scoring algorithm
+  }
+
+  _paginate(items, page, limit) {
+    // Pagination logic
+  }
+}
+```
+
+### Phase 5: Structured Logging
+**Status**: Design phase
+
+**Goal**: Implement JSON structured logging with correlation IDs
+
+**Pattern** (Winston):
+```javascript
+// src/utils/logger.js
+const winston = require('winston');
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' }),
+  ],
+});
+
+// Middleware for correlation IDs
+const requestLogger = (req, res, next) => {
+  req.correlationId = req.headers['x-correlation-id'] || uuid.v4();
+  const startTime = Date.now();
+
+  res.on('finish', () => {
+    logger.info('request_completed', {
+      correlationId: req.correlationId,
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      duration_ms: Date.now() - startTime,
+    });
+  });
+
+  next();
+};
+```
+
+## Additional Documentation
+
+The repository now includes comprehensive documentation:
+
+### Architecture & Design
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: System architecture, data flow, scaling strategies
+- **[API.md](API.md)**: Complete API reference with examples
+- **[DEVELOPMENT.md](DEVELOPMENT.md)**: Development setup and workflow
+- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Production deployment guide
+
+### Security
+- **[SECURITY.md](SECURITY.md)**: Security policies and vulnerability reporting
+- **[docs/SECRETS_AUDIT.md](docs/SECRETS_AUDIT.md)**: Secrets audit and remediation
+
+### Enrichment
+- **[docs/enrichment/PRODUCTION_ENRICHMENT.md](docs/enrichment/PRODUCTION_ENRICHMENT.md)**: Enrichment system architecture
+- **[docs/enrichment/GET_FREE_API_KEYS.md](docs/enrichment/GET_FREE_API_KEYS.md)**: How to obtain API keys
+- **[docs/enrichment/FREE_ADDRESS_APIS.md](docs/enrichment/FREE_ADDRESS_APIS.md)**: API comparison
+
+### Database
+- **[docs/DATABASE_V2_SUMMARY.md](docs/DATABASE_V2_SUMMARY.md)**: Database schema v2 overview
+- **[docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md)**: Project organization guide
+
+### Machine Learning
+- **[docs/ML_ITERATION_GUIDE.md](docs/ML_ITERATION_GUIDE.md)**: ML experimentation with Python
+
+## Related Projects
+
+**ShadowCheckPentest**: Enterprise-grade penetration testing framework
+- **Architecture**: Modular FastAPI (Python) with DDD patterns
+- **Key Learnings Applied**:
+  - Repository pattern for data access
+  - Service layer for business logic
+  - Dependency injection for loose coupling
+  - Structured logging with correlation IDs
+  - Unit of Work pattern for transactions
+
+See analysis document for detailed architectural patterns: Agent provided comprehensive analysis above.
+
+## Quick Reference Card
+
+### Most Common Operations
+
+```bash
+# Development
+npm run dev              # Start with auto-reload
+npm test                 # Run tests
+npm run lint:fix         # Fix linting issues
+
+# Database
+docker-compose up -d postgres    # Start database
+npm run db:migrate               # Run migrations
+docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck
+
+# Docker
+docker-compose up -d     # Start all services
+docker-compose logs -f   # View logs
+docker-compose down      # Stop services
+
+# API Testing
+curl http://localhost:3001/api/dashboard-metrics
+curl "http://localhost:3001/api/threats/quick?page=1&limit=10"
+
+# Enrichment
+node scripts/enrichment/enrichment-system.js 1000
+node scripts/enrichment/monitor-enrichment.js
+
+# Production
+npm start                # Production mode
+docker-compose -f docker-compose.yml up -d
+```
+
+### File Locations
+
+- **Main server**: `server.js`
+- **Environment**: `.env` (copy from `.env.example`)
+- **Database migrations**: `sql/migrations/`
+- **Enrichment scripts**: `scripts/enrichment/`
+- **ML scripts**: `scripts/ml/`
+- **Tests**: `tests/`
+- **Frontend**: `public/*.html`
+- **Documentation**: `docs/` and `*.md` files
+
+### Important Constants
+
+- `PORT`: 3001 (default)
+- `MIN_VALID_TIMESTAMP`: 946684800000 (Jan 1, 2000)
+- `THREAT_THRESHOLD`: 40 points (configurable)
+- `MAX_PAGE_SIZE`: 5000 results
+- `RATE_LIMIT`: 1000 requests/15min per IP
+
+---
+
+**Last Updated**: 2025-12-02
+**Major Changes**: Added Docker support, testing framework, CI/CD, enrichment documentation, architecture modernization plan

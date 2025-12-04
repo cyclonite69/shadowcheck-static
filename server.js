@@ -198,19 +198,36 @@ try {
       res.json({ token });
     });
 
-    // API endpoint to get dashboard metrics
-    app.get('/api/dashboard-metrics', async (req, res, next) => {
+    // ============================================
+    // PHASE 1 MODERNIZATION: Modular Architecture
+    // ============================================
+    // Initialize dependency injection container
+    const { initContainer } = require('./src/config/container');
+    const container = initContainer();
+
+    // Initialize dashboard routes (modular)
+    const { initDashboardRoutes } = require('./src/api/routes/v1/dashboard');
+    const dashboardRoutes = initDashboardRoutes({
+      dashboardService: container.get('dashboardService'),
+    });
+    app.use('/api', dashboardRoutes);
+
+    console.log('✓ Modular routes initialized (Phase 1)');
+    // ============================================
+
+    // API endpoint to get dashboard metrics (LEGACY - keeping for now)
+    app.get('/api/dashboard-metrics-legacy', async (req, res, next) => {
       try {
         // Exclude orphan networks (those with 0 dBm signal have no real observations)
         const totalNetworksQuery = `
           SELECT COUNT(*)
-          FROM app.networks_legacy
+          FROM app.networks
           WHERE bestlevel != 0
         `;
         // Count actual detected threats using threat detection logic
         const threatsQuery = `
           WITH home_location AS (
-            SELECT location_point::geography as home_point
+            SELECT location::geography as home_point
             FROM app.location_markers
             WHERE marker_type = 'home'
             LIMIT 1
@@ -220,27 +237,27 @@ try {
               n.bssid,
               n.type,
               COUNT(DISTINCT l.unified_id) as observation_count,
-              COUNT(DISTINCT DATE(to_timestamp(l.time / 1000.0))) as unique_days,
+              COUNT(DISTINCT DATE(to_timestamp(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 / 1000.0))) as unique_days,
               BOOL_OR(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                 h.home_point
               ) < 100) as seen_at_home,
               BOOL_OR(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                 h.home_point
               ) > 500) as seen_away_from_home,
               MAX(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                 h.home_point
               )) / 1000.0 - MIN(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                 h.home_point
               )) / 1000.0 as distance_range_km
-            FROM app.networks_legacy n
-            JOIN app.locations_legacy l ON n.bssid = l.bssid
+            FROM app.networks n
+            JOIN app.observations l ON n.bssid = l.bssid
             CROSS JOIN home_location h
-            WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
-              AND l.time >= $1
+            WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+              AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
             GROUP BY n.bssid, n.type
             HAVING COUNT(DISTINCT l.unified_id) >= 2
           )
@@ -258,7 +275,7 @@ try {
           )
         `;
         // Count networks with privacy concerns (open networks)
-        const suspiciousQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE encryption = 'Open' OR encryption IS NULL";
+        const suspiciousQuery = "SELECT COUNT(*) FROM app.networks WHERE encryption = 'Open' OR encryption IS NULL";
         // Count networks that have WiGLE enrichment data
         const enrichedQuery = `
           SELECT COUNT(DISTINCT bssid)
@@ -267,11 +284,11 @@ try {
         `;
 
         // New queries for radio types (exclude orphans)
-        const wifiCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'W' AND bestlevel != 0";
-        const bleCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'E' AND bestlevel != 0";
-        const btCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'B' AND bestlevel != 0";
-        const lteCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'L' AND bestlevel != 0";
-        const gsmCountQuery = "SELECT COUNT(*) FROM app.networks_legacy WHERE type = 'G' AND bestlevel != 0";
+        const wifiCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'W' AND bestlevel != 0";
+        const bleCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'E' AND bestlevel != 0";
+        const btCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'B' AND bestlevel != 0";
+        const lteCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'L' AND bestlevel != 0";
+        const gsmCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'G' AND bestlevel != 0";
 
         const [
           totalNetworksRes,
@@ -330,7 +347,7 @@ try {
               ELSE type
             END as network_type,
             COUNT(*) as count
-          FROM app.networks_legacy
+          FROM app.networks
           WHERE type IS NOT NULL
           GROUP BY network_type
           ORDER BY count DESC
@@ -363,7 +380,7 @@ try {
               ELSE '-90'
             END as signal_range,
             COUNT(*) as count
-          FROM app.networks_legacy
+          FROM app.networks
           WHERE bestlevel IS NOT NULL
           GROUP BY signal_range
           ORDER BY signal_range DESC
@@ -388,7 +405,7 @@ try {
           SELECT
             EXTRACT(HOUR FROM last_seen) as hour,
             COUNT(*) as count
-          FROM app.networks_legacy
+          FROM app.networks
           WHERE last_seen IS NOT NULL
             AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1
           GROUP BY hour
@@ -465,7 +482,7 @@ try {
                 ELSE 'Other'
               END as network_type,
               COUNT(*) as count
-            FROM app.networks_legacy
+            FROM app.networks
             ${whereClause}
             GROUP BY date, network_type
             ORDER BY date, network_type
@@ -517,7 +534,7 @@ try {
               ELSE 'OPEN'
             END as security_type,
             COUNT(*) as count
-          FROM app.networks_legacy
+          FROM app.networks
           WHERE type = 'W'  -- WiFi networks only
           GROUP BY security_type
           ORDER BY count DESC
@@ -604,7 +621,7 @@ try {
 
         const { rows } = await query(`
           WITH home_location AS (
-            SELECT location_point::geography as home_point
+            SELECT location::geography as home_point
             FROM app.location_markers
             WHERE marker_type = 'home'
             LIMIT 1
@@ -616,33 +633,33 @@ try {
               n.type,
               n.encryption,
               COUNT(DISTINCT l.unified_id) as observation_count,
-              COUNT(DISTINCT DATE(to_timestamp(l.time / 1000.0))) as unique_days,
-              COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geometry, 0.001)) as unique_locations,
-              MAX(l.level) as max_signal,
-              MIN(l.time) as first_seen,
-              MAX(l.time) as last_seen,
+              COUNT(DISTINCT DATE(to_timestamp(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 / 1000.0))) as unique_days,
+              COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geometry, 0.001)) as unique_locations,
+              MAX(l.signal_dbm) as max_signal,
+              MIN(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) as first_seen,
+              MAX(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) as last_seen,
               MIN(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                 h.home_point
               )) / 1000.0 as min_distance_from_home_km,
               MAX(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                 h.home_point
               )) / 1000.0 as max_distance_from_home_km,
               BOOL_OR(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                 h.home_point
               ) < 100) as seen_at_home,
               BOOL_OR(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                 h.home_point
               ) > 500) as seen_away_from_home
-            FROM app.networks_legacy n
-            JOIN app.locations_legacy l ON n.bssid = l.bssid
+            FROM app.networks n
+            JOIN app.observations l ON n.bssid = l.bssid
             CROSS JOIN home_location h
-            WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
-              AND l.time >= $1
-              AND (l.accuracy IS NULL OR l.accuracy <= 100)
+            WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+              AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
+              AND (l.accuracy_meters IS NULL OR l.accuracy_meters <= 100)
             GROUP BY n.bssid, n.ssid, n.type, n.encryption
             HAVING COUNT(DISTINCT l.unified_id) >= 2
           )
@@ -783,8 +800,8 @@ try {
         const { rows } = await query(`
           WITH target_obs AS (
             SELECT time, lat, lon, accuracy
-            FROM app.locations_legacy
-            WHERE bssid = $1 AND time = $2
+            FROM app.observations
+            WHERE bssid = $1 AND observed_at = $2
             LIMIT 1
           )
           SELECT 
@@ -795,14 +812,14 @@ try {
             t.lon,
             t.accuracy,
             to_timestamp(t.time / 1000.0) as timestamp
-          FROM app.locations_legacy l
+          FROM app.observations l
           JOIN target_obs t ON 
-            l.time = t.time 
-            AND l.lat = t.lat 
-            AND l.lon = t.lon
-            AND l.accuracy = t.accuracy
-          GROUP BY t.lat, t.lon, t.accuracy, t.time
-        `, [bssid, time]);
+            l.observed_at = t.observed_at 
+            AND l.latitudeitude = t.latitude 
+            AND l.longitudegitude = t.longitude
+            AND l.accuracy_meters_meters = t.accuracy_meters
+          GROUP BY t.latitude, t.longitude, t.accuracy_meters, t.observed_at
+        `, [bssid, observed_at]);
 
         res.json({
           ok: true,
@@ -823,24 +840,24 @@ try {
         const before = await query(`
           SELECT 
             COUNT(*) as total,
-            COUNT(DISTINCT (bssid, time, lat, lon, accuracy)) as unique_obs
-          FROM app.locations_legacy
-          WHERE lat IS NOT NULL AND lon IS NOT NULL
+            COUNT(DISTINCT (bssid, observed_at, latitude, longitude, accuracy_meters)) as unique_obs
+          FROM app.observations
+          WHERE latitude IS NOT NULL AND longitude IS NOT NULL
         `);
         
         // Delete duplicates - keep first occurrence by unified_id
         const result = await query(`
-          DELETE FROM app.locations_legacy
+          DELETE FROM app.observations
           WHERE unified_id IN (
             SELECT unified_id
             FROM (
               SELECT unified_id,
                 ROW_NUMBER() OVER (
-                  PARTITION BY bssid, time, lat, lon, accuracy 
+                  PARTITION BY bssid, observed_at, latitude, longitude, accuracy_meters 
                   ORDER BY unified_id
                 ) as rn
-              FROM app.locations_legacy
-              WHERE lat IS NOT NULL AND lon IS NOT NULL
+              FROM app.observations
+              WHERE latitude IS NOT NULL AND longitude IS NOT NULL
             ) t
             WHERE rn > 1
           )
@@ -849,8 +866,8 @@ try {
         // Count after
         const after = await query(`
           SELECT COUNT(*) as total
-          FROM app.locations_legacy
-          WHERE lat IS NOT NULL AND lon IS NOT NULL
+          FROM app.observations
+          WHERE latitude IS NOT NULL AND longitude IS NOT NULL
         `);
         
         console.log(`✓ Removed ${result.rowCount} duplicate observations`);
@@ -882,14 +899,14 @@ try {
           WITH network_locations AS (
             SELECT
               bssid,
-              time,
-              ST_SnapToGrid(ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geometry, 0.001) as location_grid,
-              time / 60000 as time_bucket
-            FROM app.locations_legacy
-            WHERE lat IS NOT NULL
-              AND lon IS NOT NULL
-              AND (accuracy IS NULL OR accuracy <= 100)
-              AND time >= ${CONFIG.MIN_VALID_TIMESTAMP}
+              observed_at,
+              ST_SnapToGrid(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geometry, 0.001) as location_grid,
+              observed_at / 60000 as time_bucket
+            FROM app.observations
+            WHERE latitude IS NOT NULL
+              AND longitude IS NOT NULL
+              AND (accuracy_meters IS NULL OR accuracy_meters <= 100)
+              AND observed_at >= ${CONFIG.MIN_VALID_TIMESTAMP}
           ),
           colocation_pairs AS (
             SELECT 
@@ -981,7 +998,7 @@ try {
         // Fetch all tagged networks with features
         const { rows } = await query(`
           WITH home_location AS (
-            SELECT location_point::geography as home_point
+            SELECT location::geography as home_point
             FROM app.location_markers
             WHERE marker_type = 'home'
             LIMIT 1
@@ -991,31 +1008,31 @@ try {
             nt.tag_type,
             n.type,
             COUNT(DISTINCT l.unified_id) as observation_count,
-            COUNT(DISTINCT DATE(to_timestamp(l.time / 1000.0))) as unique_days,
-            COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geometry, 0.001)) as unique_locations,
-            MAX(l.level) as max_signal,
+            COUNT(DISTINCT DATE(to_timestamp(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 / 1000.0))) as unique_days,
+            COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geometry, 0.001)) as unique_locations,
+            MAX(l.signal_dbm) as max_signal,
             MAX(ST_Distance(
-              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+              ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
               h.home_point
             )) / 1000.0 - MIN(ST_Distance(
-              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+              ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
               h.home_point
             )) / 1000.0 as distance_range_km,
             BOOL_OR(ST_Distance(
-              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+              ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
               h.home_point
             ) < 100) as seen_at_home,
             BOOL_OR(ST_Distance(
-              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+              ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
               h.home_point
             ) > 500) as seen_away_from_home
           FROM app.network_tags nt
-          JOIN app.networks_legacy n ON nt.bssid = n.bssid
-          JOIN app.locations_legacy l ON n.bssid = l.bssid
+          JOIN app.networks n ON nt.bssid = n.bssid
+          JOIN app.observations l ON n.bssid = l.bssid
           CROSS JOIN home_location h
           WHERE nt.tag_type IN ('THREAT', 'FALSE_POSITIVE')
-            AND l.lat IS NOT NULL AND l.lon IS NOT NULL
-            AND l.time >= $1
+            AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+            AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
           GROUP BY nt.bssid, nt.tag_type, n.type
         `, [CONFIG.MIN_VALID_TIMESTAMP]);
 
@@ -1089,9 +1106,9 @@ try {
           WITH home_location AS (
             -- Get home coordinates from location_markers
             SELECT
-              ST_X(location_point::geometry) as home_lon,
-              ST_Y(location_point::geometry) as home_lat,
-              location_point::geography as home_point
+              ST_X(location::geometry) as home_lon,
+              ST_Y(location::geometry) as home_lat,
+              location::geography as home_point
             FROM app.location_markers
             WHERE marker_type = 'home'
             LIMIT 1
@@ -1103,17 +1120,17 @@ try {
               n.ssid,
               n.type,
               n.encryption,
-              l.lat,
-              l.lon,
-              l.time,
-              ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography as point,
-              ROW_NUMBER() OVER (PARTITION BY n.bssid ORDER BY l.time) as obs_number,
+              l.latitude,
+              l.longitude,
+              EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 AS time,
+              ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography as point,
+              ROW_NUMBER() OVER (PARTITION BY n.bssid ORDER BY EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) as obs_number,
               COUNT(*) OVER (PARTITION BY n.bssid) as total_observations
-            FROM app.networks_legacy n
-            JOIN app.locations_legacy l ON n.bssid = l.bssid
-            WHERE l.lat IS NOT NULL AND l.lon IS NOT NULL
-              AND l.time >= $1
-              AND (l.accuracy IS NULL OR l.accuracy <= 100)
+            FROM app.networks n
+            JOIN app.observations l ON n.bssid = l.bssid
+            WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+              AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
+              AND (l.accuracy_meters IS NULL OR l.accuracy_meters <= 100)
           ),
           threat_analysis AS (
             SELECT
@@ -1291,8 +1308,8 @@ try {
         // Get home location
         const homeResult = await query(`
           SELECT
-            ST_X(location_point::geometry) as lon,
-            ST_Y(location_point::geometry) as lat
+            ST_X(location::geometry) as lon,
+            ST_Y(location::geometry) as lat
           FROM app.location_markers
           WHERE marker_type = 'home'
           LIMIT 1
@@ -1309,38 +1326,38 @@ try {
             n.type,
             n.encryption,
             n.capabilities,
-            l.lat,
-            l.lon,
-            l.level as signal,
-            l.time,
-            l.accuracy,
+            l.latitude,
+            l.longitude,
+            l.signal_dbm as signal,
+            EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000,
+            l.accuracy_meters,
             l.altitude,
             CASE
               WHEN $1::numeric IS NOT NULL AND $2::numeric IS NOT NULL THEN
                 ST_Distance(
-                  ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geography,
+                  ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
                   ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
                 ) / 1000.0
               ELSE NULL
             END as distance_from_home_km
-          FROM app.locations_legacy l
-          LEFT JOIN app.networks_legacy n ON l.bssid = n.bssid
+          FROM app.observations l
+          LEFT JOIN app.networks n ON l.bssid = n.bssid
           WHERE l.bssid = $3
-            AND l.lat IS NOT NULL
-            AND l.lon IS NOT NULL
-            AND l.time >= $4
-            AND (l.accuracy IS NULL OR l.accuracy <= 100)
-            -- Exclude suspicious batch imports (10+ networks at exact same time/place)
+            AND l.latitudeitude IS NOT NULL
+            AND l.longitudegitude IS NOT NULL
+            AND l.observed_at >= $4
+            AND (l.accuracy_meters_meters IS NULL OR l.accuracy_meters_meters <= 100)
+            -- Exclude suspicious batch imports (10+ networks at exact same observed_at/place)
             AND NOT EXISTS (
               SELECT 1 
-              FROM app.locations_legacy dup
-              WHERE dup.time = l.time 
-                AND dup.lat = l.lat 
-                AND dup.lon = l.lon
-              GROUP BY dup.time, dup.lat, dup.lon
+              FROM app.observations dup
+              WHERE dup.observed_at = l.observed_at 
+                AND dup.latitude = l.latitudeitude 
+                AND dup.longitude = l.longitudegitude
+              GROUP BY dup.observed_at, dup.latitude, dup.longitude
               HAVING COUNT(DISTINCT dup.bssid) >= 50
             )
-          ORDER BY l.time ASC
+          ORDER BY l.observed_at ASC
         `, [home?.lon, home?.lat, bssid, CONFIG.MIN_VALID_TIMESTAMP]);
 
         res.json({
@@ -1385,7 +1402,7 @@ try {
 
         // Get SSID from networks table if available
         const networkResult = await query(`
-          SELECT ssid FROM app.networks_legacy WHERE bssid = $1 LIMIT 1
+          SELECT ssid FROM app.networks WHERE bssid = $1 LIMIT 1
         `, [cleanBSSID]);
 
         const ssid = networkResult.rows.length > 0 ? networkResult.rows[0].ssid : null;
@@ -1449,13 +1466,13 @@ try {
             n.bestlevel,
             n.last_seen,
             COUNT(l.unified_id) as observation_count,
-            MIN(l.time) as first_seen,
-            MAX(l.time) as last_seen,
-            (MAX(l.time) - MIN(l.time)) as observation_timespan_ms,
+            MIN(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) as first_seen,
+            MAX(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) as last_seen,
+            (MAX(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) - MIN(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000)) as observation_timespan_ms,
             COUNT(*) OVER() as total_count
           FROM app.network_tags nt
-          LEFT JOIN app.networks_legacy n ON nt.bssid = n.bssid
-          LEFT JOIN app.locations_legacy l ON nt.bssid = l.bssid
+          LEFT JOIN app.networks n ON nt.bssid = n.bssid
+          LEFT JOIN app.observations l ON nt.bssid = l.bssid
           WHERE nt.tag_type = $1
           GROUP BY nt.bssid, nt.ssid, nt.tag_type, nt.confidence, nt.notes, nt.tagged_at, nt.threat_score, nt.final_threat_score, n.type, n.bestlevel, n.last_seen
           ORDER BY nt.tagged_at DESC
@@ -1592,15 +1609,15 @@ try {
           type: 'n.type',
           ssid: 'n.ssid',
           bssid: 'n.bssid',
-          signal: 'COALESCE(l.level, n.bestlevel)',
+          signal: 'COALESCE(l.signal_dbm, n.bestlevel)',
           security: 'n.encryption',
           frequency: 'n.frequency',
           channel: 'n.channel',
           observations: 'COALESCE(oc.obs_count, 1)',
-          latitude: 'COALESCE(l.lat, n.bestlat, n.lastlat, n.trilaterated_lat)',
-          longitude: 'COALESCE(l.lon, n.bestlon, n.lastlon, n.trilaterated_lon)',
+          latitude: 'COALESCE(l.latitude, n.bestlat, n.lastlat, n.trilaterated_lat)',
+          longitude: 'COALESCE(l.longitude, n.bestlon, n.lastlon, n.trilaterated_lon)',
           distanceFromHome: 'distance_from_home', // Alias from subquery
-          accuracy: 'COALESCE(l.accuracy, 0)',
+          accuracy: 'COALESCE(l.accuracy_meters, 0)',
           lastSeen: 'lastseen',
         };
 
@@ -1619,8 +1636,8 @@ try {
         // Get home location for distance calculation
         const homeResult = await query(`
           SELECT
-            ST_X(location_point::geometry) as lon,
-            ST_Y(location_point::geometry) as lat
+            ST_X(location::geometry) as lon,
+            ST_Y(location::geometry) as lat
           FROM app.location_markers
           WHERE marker_type = 'home'
           LIMIT 1
@@ -1631,22 +1648,22 @@ try {
         let queryText = `
           WITH latest_locations AS (
             SELECT DISTINCT ON (bssid)
-              bssid, lat, lon, level, accuracy, time
-            FROM app.locations_legacy
-            WHERE lat IS NOT NULL AND lon IS NOT NULL AND time >= $1
-            ORDER BY bssid, time DESC
+              bssid, latitude, longitude, signal_dbm, accuracy_meters, observed_at
+            FROM app.observations
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND observed_at >= to_timestamp($1 / 1000.0)
+            ORDER BY bssid, observed_at DESC
           ),
           latest_times AS (
             SELECT DISTINCT ON (bssid)
-              bssid, time as last_time
-            FROM app.locations_legacy
-            WHERE time IS NOT NULL
-            ORDER BY bssid, time DESC
+              bssid, observed_at as last_time
+            FROM app.observations
+            WHERE observed_at IS NOT NULL
+            ORDER BY bssid, observed_at DESC
           ),
           observation_counts AS (
             SELECT bssid, COUNT(*) as obs_count
-            FROM app.locations_legacy
-            WHERE time >= $1
+            FROM app.observations
+            WHERE observed_at >= to_timestamp($1 / 1000.0)
             GROUP BY bssid
           )
           SELECT
@@ -1671,32 +1688,32 @@ try {
             END as security,
             n.frequency, n.channel,
             CASE
-              WHEN COALESCE(l.level, n.bestlevel, 0) = 0 THEN NULL
-              ELSE COALESCE(l.level, n.bestlevel)
+              WHEN COALESCE(l.signal_dbm, n.bestlevel, 0) = 0 THEN NULL
+              ELSE COALESCE(l.signal_dbm, n.bestlevel)
             END as signal,
-            COALESCE(l.accuracy, 0) as accuracy,
-            COALESCE(lt.last_time, l.time, n.lasttime) as lastseen,
-            COALESCE(l.lat, n.bestlat, n.lastlat, n.trilaterated_lat) as lat,
-            COALESCE(l.lon, n.bestlon, n.lastlon, n.trilaterated_lon) as lng,
+            COALESCE(l.accuracy_meters, 0) as accuracy_meters,
+            COALESCE(lt.last_time, l.observed_at, to_timestamp(n.lasttime / 1000.0)) as lastseen,
+            COALESCE(l.latitude, n.bestlat, n.lastlat, n.trilaterated_lat) as lat,
+            COALESCE(l.longitude, n.bestlon, n.lastlon, n.trilaterated_lon) as lng,
             COALESCE(oc.obs_count, 1) as observations, n.capabilities as misc,
             rm.organization_name as manufacturer,
             CASE
-              WHEN COALESCE(l.level, n.bestlevel, -999) = 0 OR COALESCE(l.level, n.bestlevel) IS NULL THEN 'safe'
-              WHEN COALESCE(l.level, n.bestlevel) > -50 THEN 'threat'
-              WHEN COALESCE(l.level, n.bestlevel) > -70 THEN 'warning'
+              WHEN COALESCE(l.signal_dbm, n.bestlevel, -999) = 0 OR COALESCE(l.signal_dbm, n.bestlevel) IS NULL THEN 'safe'
+              WHEN COALESCE(l.signal_dbm, n.bestlevel) > -50 THEN 'threat'
+              WHEN COALESCE(l.signal_dbm, n.bestlevel) > -70 THEN 'warning'
               ELSE 'safe'
             END as status,
             CASE
               WHEN $2::double precision IS NOT NULL AND $3::double precision IS NOT NULL
-                AND COALESCE(l.lat, n.bestlat) IS NOT NULL AND COALESCE(l.lon, n.bestlon) IS NOT NULL
+                AND COALESCE(l.latitude, n.bestlat) IS NOT NULL AND COALESCE(l.longitude, n.bestlon) IS NOT NULL
               THEN ST_Distance(
                 ST_SetSRID(ST_MakePoint($3, $2), 4326)::geography,
-                ST_SetSRID(ST_MakePoint(COALESCE(l.lon, n.bestlon), COALESCE(l.lat, n.bestlat)), 4326)::geography
+                ST_SetSRID(ST_MakePoint(COALESCE(l.longitude, n.bestlon), COALESCE(l.latitude, n.bestlat)), 4326)::geography
               ) / 1000.0
               ELSE NULL
             END as distance_from_home,
             COUNT(*) OVER() as total_networks_count -- Total count before LIMIT/OFFSET
-          FROM app.networks_legacy n
+          FROM app.networks n
           LEFT JOIN latest_locations l ON n.bssid = l.bssid
           LEFT JOIN latest_times lt ON n.bssid = lt.bssid
           LEFT JOIN observation_counts oc ON n.bssid = oc.bssid
@@ -1706,14 +1723,14 @@ try {
         // Parameters for the query
         const params = [
           CONFIG.MIN_VALID_TIMESTAMP,
-          home?.lat || null,
-          home?.lon || null,
+          home?.latitude || null,
+          home?.longitude || null,
         ];
 
         // WHERE clauses
         const whereClauses = [
           "n.bssid IS NOT NULL",
-          "(n.lasttime IS NULL OR n.lasttime >= $1)",
+          "(n.lasttime IS NULL OR to_timestamp(n.lasttime / 1000.0) >= to_timestamp($1 / 1000.0))",
           "n.bestlevel != 0" // Exclude orphans (those with 0 dBm have no real observations)
         ];
 
@@ -1731,11 +1748,11 @@ try {
         }
         if (minSignal !== null) {
           params.push(minSignal);
-          whereClauses.push(`COALESCE(l.level, n.bestlevel) >= $${params.length}`);
+          whereClauses.push(`COALESCE(l.signal_dbm, n.bestlevel) >= $${params.length}`);
         }
         if (maxSignal !== null) {
           params.push(maxSignal);
-          whereClauses.push(`COALESCE(l.level, n.bestlevel) <= $${params.length}`);
+          whereClauses.push(`COALESCE(l.signal_dbm, n.bestlevel) <= $${params.length}`);
         }
 
         if (whereClauses.length > 0) {
@@ -1746,7 +1763,7 @@ try {
         queryText += ` ORDER BY ${orderByClause} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
         params.push(limit, offset);
         
-        // Join networks_legacy with locations_legacy to get the latest location data
+        // Join networks with observations to get the latest location data
         const { rows } = await query(queryText, params);
 
         const totalCount = rows.length > 0 ? parseInt(rows[0].total_networks_count) : 0;
@@ -1815,8 +1832,8 @@ try {
             n.bestlevel as signal,
             n.lasttime,
             COUNT(DISTINCT l.unified_id) as observation_count
-          FROM app.networks_legacy n
-          LEFT JOIN app.locations_legacy l ON n.bssid = l.bssid
+          FROM app.networks n
+          LEFT JOIN app.observations l ON n.bssid = l.bssid
           WHERE n.ssid ILIKE $1
           GROUP BY n.unified_id, n.ssid, n.bssid, n.type, n.encryption, n.bestlevel, n.lasttime
           ORDER BY observation_count DESC
