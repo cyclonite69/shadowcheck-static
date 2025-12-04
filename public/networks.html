@@ -640,21 +640,29 @@
 
         // Advanced Network Table Configuration (matches geospatial.html)
         const NETWORK_COLUMNS = {
+            select: {
+                label: '☑',
+                width: '40px',
+                sortable: false,
+                default: true,
+                format: (val, network) => `<input type="checkbox" class="network-checkbox" data-bssid="${network.bssid}" onclick="event.stopPropagation()">`
+            },
             type: {
                 label: 'Type',
-                width: '60px',
+                width: '80px',
                 sortable: true,
                 default: true,
                 format: (val) => {
-                    const typeMap = {
-                        'W': 'WiFi',
-                        'E': 'BLE',
-                        'B': 'BT',
-                        'L': 'LTE',
-                        'N': '5G NR',
-                        'G': 'GSM'
+                    const types = {
+                        'W': { label: 'WiFi', icon: '📶', color: '#3b82f6' },
+                        'E': { label: 'BLE', icon: '🔵', color: '#8b5cf6' },
+                        'B': { label: 'BT', icon: '🔵', color: '#3b82f6' },
+                        'L': { label: 'LTE', icon: '📡', color: '#10b981' },
+                        'N': { label: '5G', icon: '🚀', color: '#f59e0b' },
+                        'G': { label: 'GSM', icon: '📞', color: '#6b7280' }
                     };
-                    return typeMap[val] || 'WiFi';
+                    const t = types[val] || types['W'];
+                    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:${t.color}22;border:1px solid ${t.color}44;border-radius:6px;font-size:11px;font-weight:500;color:${t.color}"><span>${t.icon}</span><span>${t.label}</span></span>`;
                 }
             },
             ssid: {
@@ -733,7 +741,7 @@
                 label: 'Distance (km)',
                 width: '110px',
                 sortable: true,
-                default: false,
+                default: true,
                 format: (val) => val !== null && val !== undefined ? `${parseFloat(val).toFixed(2)} km` : 'N/A',
                 sortValue: (val) => val !== null && val !== undefined ? parseFloat(val) : 999999
             },
@@ -1118,8 +1126,12 @@
                         value = network.location.lng;
                     }
 
-                    // Format value
-                    td.innerHTML = col.format ? col.format(value) : (value || 'N/A');
+                    // Format value - pass network object for select column
+                    if (colKey === 'select') {
+                        td.innerHTML = col.format(value, network);
+                    } else {
+                        td.innerHTML = col.format ? col.format(value) : (value || 'N/A');
+                    }
 
                     // Apply monospace style if needed
                     if (col.monospace) {
