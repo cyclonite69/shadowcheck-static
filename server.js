@@ -42,10 +42,11 @@ try {
         res.setHeader('Content-Security-Policy', 
             "default-src 'self'; " +
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://api.mapbox.com; " +
+            "worker-src 'self' blob:; " +
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://api.mapbox.com; " +
             "font-src 'self' https://fonts.gstatic.com; " +
             "img-src 'self' data: https:; " +
-            "connect-src 'self' https://api.mapbox.com;"
+            "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com;"
         );
         next();
     });
@@ -190,12 +191,105 @@ try {
     });
 
     // Mapbox token endpoint
-    app.get('/api/mapbox-token', (req, res) => {
-      const token = process.env.MAPBOX_TOKEN;
-      if (!token) {
-        return res.status(500).json({ error: 'Mapbox token not configured' });
+    app.get('/api/mapbox-token', async (req, res) => {
+      try {
+        const keyringService = require('./src/services/keyringService');
+        const token = await keyringService.getMapboxToken();
+        
+        if (!token || token === 'your-mapbox-token-here') {
+          return res.status(500).json({ error: 'Mapbox token not configured' });
+        }
+        
+        res.json({ token });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to load Mapbox token' });
       }
-      res.json({ token });
+    });
+
+    // Location markers endpoints
+    app.get('/api/location-markers', async (req, res, next) => {
+      try {
+        const result = await query(`
+          SELECT 
+            marker_id,
+            marker_type,
+            ST_X(location::geometry) as longitude,
+            ST_Y(location::geometry) as latitude,
+            created_at,
+            updated_at
+          FROM app.location_markers
+          ORDER BY created_at DESC
+        `);
+        res.json({ ok: true, markers: result.rows });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.post('/api/location-markers/home', async (req, res, next) => {
+      try {
+        const { latitude, longitude } = req.body;
+        if (!latitude || !longitude) {
+          return res.status(400).json({ ok: false, error: 'Latitude and longitude are required' });
+        }
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          return res.status(400).json({ ok: false, error: 'Invalid coordinates' });
+        }
+        await query(`DELETE FROM app.location_markers WHERE marker_type = 'home'`);
+        const result = await query(`
+          INSERT INTO app.location_markers (marker_type, location)
+          VALUES ('home', ST_SetSRID(ST_MakePoint($1, $2), 4326))
+          RETURNING marker_id, marker_type, ST_X(location::geometry) as longitude, ST_Y(location::geometry) as latitude, created_at
+        `, [lng, lat]);
+        res.json({ ok: true, marker: result.rows[0] });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.delete('/api/location-markers/home', async (req, res, next) => {
+      try {
+        await query(`DELETE FROM app.location_markers WHERE marker_type = 'home'`);
+        res.json({ ok: true });
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    // WiGLE API v2/v3 integration endpoints
+    app.get('/api/wigle/network/:bssid', async (req, res, next) => {
+      try {
+        const keyringService = require('./src/services/keyringService');
+        const creds = await keyringService.getWigleCredentials();
+        if (!creds) return res.status(401).json({ error: 'WiGLE credentials not configured' });
+
+        const response = await fetch(`https://api.wigle.net/api/v2/network/detail?netid=${req.params.bssid}`, {
+          headers: { 'Authorization': `Basic ${creds.encoded}` }
+        });
+        const data = await response.json();
+        res.json(data);
+      } catch (err) {
+        next(err);
+      }
+    });
+
+    app.get('/api/wigle/search', async (req, res, next) => {
+      try {
+        const keyringService = require('./src/services/keyringService');
+        const creds = await keyringService.getWigleCredentials();
+        if (!creds) return res.status(401).json({ error: 'WiGLE credentials not configured' });
+
+        const params = new URLSearchParams(req.query);
+        const response = await fetch(`https://api.wigle.net/api/v2/network/search?${params}`, {
+          headers: { 'Authorization': `Basic ${creds.encoded}` }
+        });
+        const data = await response.json();
+        res.json(data);
+      } catch (err) {
+        next(err);
+      }
     });
 
     // ============================================
@@ -212,125 +306,26 @@ try {
     });
     app.use('/api', dashboardRoutes);
 
+    // Initialize settings routes
+    const settingsRoutes = require('./src/api/routes/v1/settings');
+    app.use('/api/settings', settingsRoutes);
+
+    // Initialize export routes
+    const exportRoutes = require('./src/api/routes/v1/export');
+    app.use('/api/export', exportRoutes);
+
+    // Initialize backup routes
+    const backupRoutes = require('./src/api/routes/v1/backup');
+    app.use('/api/backup', backupRoutes);
+
+    // Initialize threats routes
+    const threatsRoutes = require('./src/api/routes/v1/threats');
+    app.use('/api/threats', threatsRoutes);
+
     console.log('✓ Modular routes initialized (Phase 1)');
     // ============================================
 
     // API endpoint to get dashboard metrics (LEGACY - keeping for now)
-    app.get('/api/dashboard-metrics-legacy', async (req, res, next) => {
-      try {
-        // Exclude orphan networks (those with 0 dBm signal have no real observations)
-        const totalNetworksQuery = `
-          SELECT COUNT(*)
-          FROM app.networks
-          WHERE bestlevel != 0
-        `;
-        // Count actual detected threats using threat detection logic
-        const threatsQuery = `
-          WITH home_location AS (
-            SELECT location::geography as home_point
-            FROM app.location_markers
-            WHERE marker_type = 'home'
-            LIMIT 1
-          ),
-          network_stats AS (
-            SELECT
-              n.bssid,
-              n.type,
-              COUNT(DISTINCT l.unified_id) as observation_count,
-              COUNT(DISTINCT DATE(to_timestamp(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 / 1000.0))) as unique_days,
-              BOOL_OR(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-                h.home_point
-              ) < 100) as seen_at_home,
-              BOOL_OR(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-                h.home_point
-              ) > 500) as seen_away_from_home,
-              MAX(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-                h.home_point
-              )) / 1000.0 - MIN(ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-                h.home_point
-              )) / 1000.0 as distance_range_km
-            FROM app.networks n
-            JOIN app.observations l ON n.bssid = l.bssid
-            CROSS JOIN home_location h
-            WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
-              AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
-            GROUP BY n.bssid, n.type
-            HAVING COUNT(DISTINCT l.unified_id) >= 2
-          )
-          SELECT COUNT(*) FROM network_stats
-          WHERE (
-            CASE WHEN seen_at_home AND seen_away_from_home THEN 40 ELSE 0 END +
-            CASE WHEN distance_range_km > 0.2 THEN 25 ELSE 0 END +
-            CASE WHEN unique_days >= 7 THEN 15 WHEN unique_days >= 3 THEN 10 WHEN unique_days >= 2 THEN 5 ELSE 0 END +
-            CASE WHEN observation_count >= 50 THEN 10 WHEN observation_count >= 20 THEN 5 ELSE 0 END
-          ) >= 30
-          -- Filter out cellular networks (GSM, LTE, 5G) unless they have >5km distance range
-          AND (
-            type NOT IN ('G', 'L', 'N')
-            OR distance_range_km > 5
-          )
-        `;
-        // Count networks with privacy concerns (open networks)
-        const suspiciousQuery = "SELECT COUNT(*) FROM app.networks WHERE encryption = 'Open' OR encryption IS NULL";
-        // Count networks that have WiGLE enrichment data
-        const enrichedQuery = `
-          SELECT COUNT(DISTINCT bssid)
-          FROM app.wigle_networks_enriched
-          WHERE trilaterated_lat IS NOT NULL OR first_seen IS NOT NULL
-        `;
-
-        // New queries for radio types (exclude orphans)
-        const wifiCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'W' AND bestlevel != 0";
-        const bleCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'E' AND bestlevel != 0";
-        const btCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'B' AND bestlevel != 0";
-        const lteCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'L' AND bestlevel != 0";
-        const gsmCountQuery = "SELECT COUNT(*) FROM app.networks WHERE type = 'G' AND bestlevel != 0";
-
-        const [
-          totalNetworksRes,
-          threatsRes,
-          suspiciousRes,
-          enrichedRes,
-          wifiCountRes,
-          bleCountRes,
-          btCountRes,
-          lteCountRes,
-          gsmCountRes
-        ] = await Promise.all([
-          query(totalNetworksQuery),
-          query(threatsQuery, [CONFIG.MIN_VALID_TIMESTAMP]),
-          query(suspiciousQuery),
-          query(enrichedQuery),
-          query(wifiCountQuery),
-          query(bleCountQuery),
-          query(btCountQuery),
-          query(lteCountQuery),
-          query(gsmCountQuery)
-        ]);
-
-        const metrics = {
-          totalNetworks: totalNetworksRes.rows.length > 0 ? parseInt(totalNetworksRes.rows[0].count) : 0,
-          threatsCount: threatsRes.rows.length > 0 ? parseInt(threatsRes.rows[0].count) : 0,
-          surveillanceCount: suspiciousRes.rows.length > 0 ? parseInt(suspiciousRes.rows[0].count) : 0,
-          enrichedCount: enrichedRes.rows.length > 0 ? parseInt(enrichedRes.rows[0].count) : 0,
-          wifiCount: wifiCountRes.rows.length > 0 ? parseInt(wifiCountRes.rows[0].count) : 0,
-          bleCount: bleCountRes.rows.length > 0 ? parseInt(bleCountRes.rows[0].count) : 0,
-          btCount: btCountRes.rows.length > 0 ? parseInt(btCountRes.rows[0].count) : 0,
-          lteCount: lteCountRes.rows.length > 0 ? parseInt(lteCountRes.rows[0].count) : 0,
-          gsmCount: gsmCountRes.rows.length > 0 ? parseInt(gsmCountRes.rows[0].count) : 0,
-        };
-
-        res.json(metrics);
-      } catch (err) {
-        next(err);
-      }
-    });
-
-    // API endpoint for analytics - network types distribution with proper WiGLE categories
     app.get('/api/analytics/network-types', async (req, res, next) => {
       try {
         const { rows } = await query(`
@@ -1326,12 +1321,12 @@ try {
             n.type,
             n.encryption,
             n.capabilities,
-            l.latitude,
-            l.longitude,
+            l.latitude as lat,
+            l.longitude as lon,
             l.signal_dbm as signal,
-            EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000,
-            l.accuracy_meters,
-            l.altitude,
+            EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 as time,
+            l.accuracy_meters as acc,
+            l.altitude_meters as alt,
             CASE
               WHEN $1::numeric IS NOT NULL AND $2::numeric IS NOT NULL THEN
                 ST_Distance(
@@ -1343,17 +1338,17 @@ try {
           FROM app.observations l
           LEFT JOIN app.networks n ON l.bssid = n.bssid
           WHERE l.bssid = $3
-            AND l.latitudeitude IS NOT NULL
-            AND l.longitudegitude IS NOT NULL
-            AND l.observed_at >= $4
-            AND (l.accuracy_meters_meters IS NULL OR l.accuracy_meters_meters <= 100)
+            AND l.latitude IS NOT NULL
+            AND l.longitude IS NOT NULL
+            AND l.observed_at >= to_timestamp($4 / 1000.0)
+            AND (l.accuracy_meters IS NULL OR l.accuracy_meters <= 100)
             -- Exclude suspicious batch imports (10+ networks at exact same observed_at/place)
             AND NOT EXISTS (
               SELECT 1 
               FROM app.observations dup
               WHERE dup.observed_at = l.observed_at 
-                AND dup.latitude = l.latitudeitude 
-                AND dup.longitude = l.longitudegitude
+                AND dup.latitude = l.latitude 
+                AND dup.longitude = l.longitude
               GROUP BY dup.observed_at, dup.latitude, dup.longitude
               HAVING COUNT(DISTINCT dup.bssid) >= 50
             )
@@ -1455,16 +1450,14 @@ try {
         const result = await query(`
           SELECT
             nt.bssid,
-            nt.ssid,
+            n.ssid,
             nt.tag_type,
             nt.confidence,
             nt.notes,
             nt.tagged_at,
             nt.threat_score,
-            nt.final_threat_score,
             n.type,
             n.bestlevel,
-            n.last_seen,
             COUNT(l.unified_id) as observation_count,
             MIN(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) as first_seen,
             MAX(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) as last_seen,
@@ -1474,7 +1467,7 @@ try {
           LEFT JOIN app.networks n ON nt.bssid = n.bssid
           LEFT JOIN app.observations l ON nt.bssid = l.bssid
           WHERE nt.tag_type = $1
-          GROUP BY nt.bssid, nt.ssid, nt.tag_type, nt.confidence, nt.notes, nt.tagged_at, nt.threat_score, nt.final_threat_score, n.type, n.bestlevel, n.last_seen
+          GROUP BY nt.bssid, n.ssid, nt.tag_type, nt.confidence, nt.notes, nt.tagged_at, nt.threat_score, n.type, n.bestlevel
           ORDER BY nt.tagged_at DESC
           LIMIT $2 OFFSET $3
         `, [tag_type.toUpperCase(), limit, offset]);

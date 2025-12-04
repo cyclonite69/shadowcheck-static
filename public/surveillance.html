@@ -100,6 +100,59 @@
         }
 
         .nav-link.active {
+        }
+
+        .nav-link.active[href="/"],
+        .nav-link.active[href="/index.html"] {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+            color: #60a5fa;
+        }
+
+        .nav-link.active[href="/geospatial.html"] {
+            background: rgba(16, 185, 129, 0.3);
+            border-color: #10b981;
+            color: #34d399;
+        }
+
+        .nav-link.active[href="/analytics.html"] {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #8b5cf6;
+            color: #a78bfa;
+        }
+
+        .nav-link.active[href="/surveillance.html"] {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
+            color: #f87171;
+        }
+
+        .nav-link.active[href="/networks.html"] {
+            background: rgba(6, 182, 212, 0.3);
+            border-color: #06b6d4;
+            color: #22d3ee;
+        }
+
+        .nav-link.active[href="/admin.html"] {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #ffffff;
+            color: #ffffff;
+        }
+
+            color: #3b82f6;
+        }
+
+            color: #3b82f6;
+        }
+
+        }
+
+        }
+
+            color: #3b82f6;
+        }
+
+            color: #ffffff;
             background: rgba(239, 68, 68, 0.3);
             border-color: #ef4444;
         }
@@ -390,6 +443,7 @@
                 <a href="/analytics.html" class="nav-link" data-page="analytics">Analytics</a>
                 <a href="/surveillance.html" class="nav-link active" data-page="surveillance">Surveillance</a>
                 <a href="/networks.html" class="nav-link" data-page="networks">Networks</a>
+                <a href="/admin.html" class="nav-link">Admin</a>
             </div>
             <div class="header-right-group">
                 <div class="status">
@@ -538,8 +592,8 @@
         async function loadMetrics() {
             try {
                 console.log('📊 Loading threat metrics...');
-                // Reduced from 10000 to 1000 to prevent memory issues
-                const response = await fetch(`${API_BASE}/threats/quick?page=1&limit=1000`);
+                // Fetch ALL threats to get accurate counts
+                const response = await fetch(`${API_BASE}/threats/quick?page=1&limit=10000`);
 
                 if (!response.ok) {
                     console.error('✗ Metrics API failed:', response.status);
@@ -548,6 +602,8 @@
 
                 const data = await response.json();
                 const threats = data.threats || [];
+
+                console.log(`✓ Loaded ${threats.length} threats from API`);
 
                 // Count threats by severity
                 let criticalCount = 0;
@@ -722,9 +778,14 @@
         // Tag a network as safe or threat
         async function tagNetwork(bssid, tagType, confidence = 50) {
             try {
+                const API_KEY = localStorage.getItem('shadowcheck_api_key') || 'your-secure-random-key-here';
+                
                 const response = await fetch(`${API_BASE}/tag-network`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-API-Key': API_KEY
+                    },
                     body: JSON.stringify({
                         bssid: bssid,
                         tag_type: tagType,
