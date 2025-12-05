@@ -6,10 +6,10 @@ async function testConnection() {
   // TRY 1: Direct localhost bypass
   const client = new Client({
     user: process.env.DB_USER,
-    host: '127.0.0.1',  // Force numeric IP, no DNS
+    host: '127.0.0.1', // Force numeric IP, no DNS
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
-    port: 5432,  // Force numeric port
+    port: 5432, // Force numeric port
     connectionTimeoutMillis: 10000,
     query_timeout: 5000,
     keepAlive: true,
