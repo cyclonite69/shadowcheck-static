@@ -415,5 +415,11 @@
         }
     </script>
     <script src="/assets/js/base-components.js"></script>
+        // Initialize base components
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.baseComponents) {
+                window.baseComponents.init('admin');
+            }
+        });
 </body>
 </html>
