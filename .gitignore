@@ -6,6 +6,10 @@ node_modules/
 .env.*
 !.env.example
 
+# Secrets (Docker secrets directory)
+secrets/
+*.secret
+
 # Logs
 logs/
 *.log

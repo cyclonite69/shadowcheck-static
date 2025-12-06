@@ -17,15 +17,16 @@ services:
       DB_HOST: shadowcheck_postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-shadowcheck_user}
-      DB_PASSWORD: ${DB_PASSWORD:-changeme}
       DB_NAME: ${DB_NAME:-shadowcheck}
-      API_KEY: ${API_KEY}
-      MAPBOX_TOKEN: ${MAPBOX_TOKEN}
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       # Connect to SHARED Redis (if available)
       REDIS_HOST: ${REDIS_HOST:-shadowcheck_redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
+    secrets:
+      - db_password
+      - mapbox_token
+      - api_key
     ports:
       - "${PORT:-3001}:3001"
     volumes:
@@ -59,6 +60,14 @@ services:
     networks:
       - shadowcheck_net
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  mapbox_token:
+    file: ./secrets/mapbox_token.txt
+  api_key:
+    file: ./secrets/api_key.txt
 
 volumes:
   redis_data:

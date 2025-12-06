@@ -16,18 +16,31 @@ class NetworkRepository extends BaseRepository {
    * @returns {Promise<Object>} Dashboard statistics
    */
   async getDashboardMetrics() {
-    const queries = {
-      totalNetworks: 'SELECT COUNT(*) as count FROM app.networks',
-      threatsCount: `
+    try {
+      // Query 1: Total networks
+      const totalNetworks = await this.query('SELECT COUNT(*) as count FROM app.networks');
+
+      // Query 2: Threats count (parameterized to prevent SQL injection)
+      const threatsResult = await this.query(`
         SELECT COUNT(DISTINCT bssid) as count
         FROM app.observations
-        WHERE observed_at_epoch >= ${CONFIG.MIN_VALID_TIMESTAMP}
+        WHERE observed_at_epoch >= $1
         GROUP BY bssid
-        HAVING COUNT(*) >= ${CONFIG.MIN_OBSERVATIONS}
-      `,
-      surveillanceCount: 'SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type IN (\'INVESTIGATE\', \'THREAT\')',
-      enrichedCount: 'SELECT COUNT(*) as count FROM app.wigle_networks_enriched',
-      radioTypes: `
+        HAVING COUNT(*) >= $2
+      `, [CONFIG.MIN_VALID_TIMESTAMP, CONFIG.MIN_OBSERVATIONS]);
+
+      // Query 3: Surveillance count
+      const surveillanceCount = await this.query(
+        'SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type IN (\'INVESTIGATE\', \'THREAT\')'
+      );
+
+      // Query 4: Enriched count
+      const enrichedCount = await this.query(
+        'SELECT COUNT(*) as count FROM app.wigle_networks_enriched'
+      );
+
+      // Query 5: Radio types distribution
+      const radioTypes = await this.query(`
         SELECT
           CASE
             WHEN type = 'W' THEN 'WiFi'
@@ -42,17 +55,7 @@ class NetworkRepository extends BaseRepository {
         FROM app.networks
         WHERE type IS NOT NULL
         GROUP BY radio_type
-      `,
-    };
-
-    try {
-      const [totalNetworks, threatsResult, surveillanceCount, enrichedCount, radioTypes] = await Promise.all([
-        this.query(queries.totalNetworks),
-        this.query(queries.threatsCount),
-        this.query(queries.surveillanceCount),
-        this.query(queries.enrichedCount),
-        this.query(queries.radioTypes),
-      ]);
+      `);
 
       const radioCounts = {};
       radioTypes.rows.forEach(row => {
@@ -91,13 +94,18 @@ class NetworkRepository extends BaseRepository {
    * @returns {Promise<Array>}
    */
   async searchBySSID(ssid) {
+    const { escapeLikePattern } = require('../utils/escapeSQL');
+
+    // Escape special LIKE characters (%, _) to prevent wildcard injection
+    const escapedSSID = escapeLikePattern(ssid);
+
     const sql = `
       SELECT * FROM ${this.tableName}
       WHERE ssid ILIKE $1
       ORDER BY last_seen DESC
       LIMIT 100
     `;
-    const result = await this.query(sql, [`%${ssid}%`]);
+    const result = await this.query(sql, [`%${escapedSSID}%`]);
     return result.rows;
   }
 
@@ -105,6 +113,7 @@ class NetworkRepository extends BaseRepository {
    * Get networks with pagination
    * @param {Object} options - Query options
    * @returns {Promise<Object>} Paginated results
+   * @throws {Error} If sort column or order direction is invalid
    */
   async getPaginated(options = {}) {
     const {
@@ -114,13 +123,25 @@ class NetworkRepository extends BaseRepository {
       order = 'DESC',
     } = options;
 
+    // Whitelist valid sort columns to prevent SQL injection
+    const validSortColumns = ['last_seen', 'first_seen', 'bssid', 'ssid', 'type', 'encryption', 'bestlevel', 'lasttime'];
+    const validOrders = ['ASC', 'DESC'];
+
+    if (!validSortColumns.includes(sort)) {
+      throw new Error(`Invalid sort column: ${sort}. Must be one of: ${validSortColumns.join(', ')}`);
+    }
+
+    if (!validOrders.includes(order.toUpperCase())) {
+      throw new Error(`Invalid order direction: ${order}. Must be ASC or DESC`);
+    }
+
     const offset = (page - 1) * limit;
     const validLimit = Math.min(limit, CONFIG.MAX_PAGE_SIZE);
 
     const sql = `
       SELECT *
       FROM ${this.tableName}
-      ORDER BY ${sort} ${order}
+      ORDER BY ${sort} ${order.toUpperCase()}
       LIMIT $1 OFFSET $2
     `;
 

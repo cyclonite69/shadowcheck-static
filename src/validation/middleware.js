@@ -188,7 +188,7 @@ function coordinatesMiddleware(source = 'body') {
     const source_obj = source === 'body' ? req.body : req.query;
     const validation = schemas.validateCoordinates(
       source_obj.latitude,
-      source_obj.longitude,
+      source_obj.longitude
     );
 
     if (!validation.valid) {
