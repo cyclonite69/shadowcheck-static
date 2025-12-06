@@ -1057,7 +1057,8 @@
                         map.on('load', () => {
                             console.log('✓ Map loaded successfully');
                             loadHomeMarker();
-                            loadNetworksToMap();
+                            // Don't load all networks automatically - only when user selects one
+                            // loadNetworksToMap();
                         });
 
                         map.on('error', (e) => {
