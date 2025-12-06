@@ -7,14 +7,22 @@ const secretsManager = require('../../../services/secretsManager');
 const requireAuth = (req, res, next) => {
   const apiKey = req.headers['x-api-key'] || req.query.api_key;
   const validKey = secretsManager.get('api_key');
-  if (!validKey || !apiKey || apiKey !== validKey) {
+  
+  // If no API key is configured, allow access (development mode)
+  if (!validKey) {
+    return next();
+  }
+  
+  // If API key is configured, require it
+  if (!apiKey || apiKey !== validKey) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+  
   next();
 };
 
 // Get WiGLE credentials (masked)
-router.get('/wigle', requireAuth, async (req, res) => {
+router.get('/settings/wigle', requireAuth, async (req, res) => {
   try {
     const creds = await keyringService.getWigleCredentials();
     if (!creds) {
@@ -32,7 +40,7 @@ router.get('/wigle', requireAuth, async (req, res) => {
 });
 
 // Set WiGLE credentials
-router.post('/wigle', requireAuth, async (req, res) => {
+router.post('/settings/wigle', requireAuth, async (req, res) => {
   try {
     const { apiName, apiToken } = req.body;
 
@@ -55,7 +63,7 @@ router.post('/wigle', requireAuth, async (req, res) => {
 });
 
 // Test WiGLE credentials
-router.get('/wigle/test', requireAuth, async (req, res) => {
+router.get('/settings/wigle/test', requireAuth, async (req, res) => {
   try {
     const result = await keyringService.testWigleCredentials();
     res.json(result);
@@ -65,7 +73,7 @@ router.get('/wigle/test', requireAuth, async (req, res) => {
 });
 
 // Get Mapbox tokens (all)
-router.get('/mapbox', requireAuth, async (req, res) => {
+router.get('/settings/mapbox', requireAuth, async (req, res) => {
   try {
     const tokens = await keyringService.listMapboxTokens();
     const tokensWithMasked = await Promise.all(tokens.map(async (t) => {
@@ -83,7 +91,7 @@ router.get('/mapbox', requireAuth, async (req, res) => {
 });
 
 // Set Mapbox token
-router.post('/mapbox', requireAuth, async (req, res) => {
+router.post('/settings/mapbox', requireAuth, async (req, res) => {
   try {
     const { token, label = 'default' } = req.body;
 
@@ -100,7 +108,7 @@ router.post('/mapbox', requireAuth, async (req, res) => {
 });
 
 // Set primary Mapbox token
-router.post('/mapbox/primary', requireAuth, async (req, res) => {
+router.post('/settings/mapbox/primary', requireAuth, async (req, res) => {
   try {
     const { label } = req.body;
     if (!label) {
@@ -114,7 +122,7 @@ router.post('/mapbox/primary', requireAuth, async (req, res) => {
 });
 
 // Delete Mapbox token
-router.delete('/mapbox/:label', requireAuth, async (req, res) => {
+router.delete('/settings/mapbox/:label', requireAuth, async (req, res) => {
   try {
     await keyringService.deleteMapboxToken(req.params.label);
     res.json({ success: true });
@@ -124,7 +132,7 @@ router.delete('/mapbox/:label', requireAuth, async (req, res) => {
 });
 
 // List all stored credentials (names only)
-router.get('/list', requireAuth, async (req, res) => {
+router.get('/settings/list', requireAuth, async (req, res) => {
   try {
     const keys = await keyringService.listCredentials();
     res.json({ keys });
