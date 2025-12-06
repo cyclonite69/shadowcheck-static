@@ -87,7 +87,7 @@ try {
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://api.mapbox.com; " +
             "font-src 'self' https://fonts.gstatic.com; " +
             "img-src 'self' data: https:; " +
-            "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com;"
+            "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com;"
     );
     next();
   });
