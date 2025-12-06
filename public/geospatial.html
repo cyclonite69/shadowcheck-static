@@ -2187,7 +2187,6 @@
                 renderNetworkTable('networks-table', (network) => {
                     console.log(`📡 Network selected: ${network.ssid || 'Hidden'} (${network.bssid})`);
                     loadObservationsToMap(network.bssid, network.ssid);
-                    handleNetworkRowClick(network); // Render network on map
 
                     // Highlight selected row
                     document.querySelectorAll('#networks-table tbody tr').forEach(r => {
