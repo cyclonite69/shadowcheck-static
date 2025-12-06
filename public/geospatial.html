@@ -2390,7 +2390,6 @@
 
             // Load saved layout preference
             const savedLayout = localStorage.getItem('geospatial-layout') || 'layout-side-by-side';
-            const mainGrid = document.getElementById('main-grid');
             if (mainGrid) {
                 mainGrid.className = `main ${savedLayout}`;
             }
