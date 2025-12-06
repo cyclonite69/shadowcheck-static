@@ -2402,22 +2402,29 @@
 
             // Add click handlers for layout buttons
             Object.keys(layoutButtons).forEach(btnId => {
-                document.getElementById(btnId).addEventListener('click', () => {
-                    const layoutClass = layoutButtons[btnId];
-                    mainGrid.className = `main ${layoutClass}`;
-                    localStorage.setItem('geospatial-layout', layoutClass);
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        const layoutClass = layoutButtons[btnId];
+                        if (mainGrid) {
+                            mainGrid.className = `main ${layoutClass}`;
+                        }
+                        localStorage.setItem('geospatial-layout', layoutClass);
+                        
+                        // Update active button
+                        Object.keys(layoutButtons).forEach(id => {
+                            const button = document.getElementById(id);
+                            if (button) button.classList.remove('active');
+                        });
+                        if (btn) btn.classList.add('active');
                     
-                    // Update active button
-                    Object.keys(layoutButtons).forEach(id => {
-                        document.getElementById(id).classList.remove('active');
+                        // Resize map after layout change
+                        setTimeout(() => {
+                            if (map) map.resize();
+                        }, 350);
                     });
-                    document.getElementById(btnId).classList.add('active');
-                    
-                    // Resize map after layout change
-                    setTimeout(() => {
-                        if (map) map.resize();
-                    }, 350);
-                });
+                }
+            });
             });
 
             // Network row click handler - render on map
