@@ -50,7 +50,7 @@ const format = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.errors({ stack: true }), // Capture stack traces
   winston.format.splat(), // String interpolation
-  winston.format.json(), // JSON format
+  winston.format.json() // JSON format
 );
 
 /**
@@ -61,8 +61,8 @@ const consoleTransport = new winston.transports.Console({
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.colorize({ all: true }),
     winston.format.printf(
-      (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-    ),
+      (info) => `${info.timestamp} ${info.level}: ${info.message}`
+    )
   ),
 });
 
@@ -119,7 +119,7 @@ logger.stream = {
 /**
  * Helper: Log API request
  */
-logger.logRequest = function(req) {
+logger.logRequest = function (req) {
   this.http({
     message: `${req.method} ${req.path}`,
     method: req.method,
@@ -132,7 +132,7 @@ logger.logRequest = function(req) {
 /**
  * Helper: Log API response
  */
-logger.logResponse = function(req, statusCode, duration) {
+logger.logResponse = function (req, statusCode, duration) {
   const level = statusCode >= 400 ? 'warn' : 'info';
   this[level]({
     message: `${req.method} ${req.path} ${statusCode}`,
@@ -147,7 +147,7 @@ logger.logResponse = function(req, statusCode, duration) {
 /**
  * Helper: Log database query
  */
-logger.logQuery = function(query, params, duration) {
+logger.logQuery = function (query, params, duration) {
   this.debug({
     message: 'Database query',
     query: query.substring(0, 200), // Truncate for logs
@@ -159,7 +159,7 @@ logger.logQuery = function(query, params, duration) {
 /**
  * Helper: Log security event
  */
-logger.logSecurityEvent = function(event, details) {
+logger.logSecurityEvent = function (event, details) {
   this.warn({
     message: `Security: ${event}`,
     event,
@@ -170,7 +170,7 @@ logger.logSecurityEvent = function(event, details) {
 /**
  * Helper: Log performance metric
  */
-logger.logPerformance = function(metric, value, unit = 'ms') {
+logger.logPerformance = function (metric, value, unit = 'ms') {
   this.info({
     message: `Performance: ${metric}`,
     metric,
@@ -183,7 +183,7 @@ logger.logPerformance = function(metric, value, unit = 'ms') {
  * Helper: Create request-scoped logger
  * Automatically includes request ID in all logs from this logger
  */
-logger.createRequestLogger = function(requestId) {
+logger.createRequestLogger = function (requestId) {
   return {
     debug: (msg, meta) => this.debug(msg, { ...meta, requestId }),
     info: (msg, meta) => this.info(msg, { ...meta, requestId }),

@@ -39,7 +39,7 @@ function requestLoggingMiddleware(req, res, next) {
 
   // Override res.json to log response
   const originalJson = res.json;
-  res.json = function(data) {
+  res.json = function (data) {
     const duration = Date.now() - startTime;
     const statusCode = res.statusCode;
 
@@ -104,7 +104,7 @@ function performanceMiddleware(slowThresholdMs = 1000) {
 
     // Override res.json to check duration
     const originalJson = res.json;
-    res.json = function(data) {
+    res.json = function (data) {
       const duration = Date.now() - startTime;
 
       if (duration > slowThresholdMs) {
@@ -155,9 +155,9 @@ function logQueryError(query, params = [], error) {
  * HTTP status code to log level mapper
  */
 function getLogLevelForStatus(statusCode) {
-  if (statusCode >= 500) return 'error';
-  if (statusCode >= 400) return 'warn';
-  if (statusCode >= 300) return 'info';
+  if (statusCode >= 500) {return 'error';}
+  if (statusCode >= 400) {return 'warn';}
+  if (statusCode >= 300) {return 'info';}
   return 'info';
 }
 

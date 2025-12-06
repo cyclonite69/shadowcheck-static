@@ -321,7 +321,7 @@ function toAppError(error) {
       ? error.message
       : 'An unexpected error occurred',
     500,
-    'INTERNAL_ERROR',
+    'INTERNAL_ERROR'
   );
 }
 

@@ -38,16 +38,38 @@ class BaseRepository {
    * @param {Array} params - Query parameters
    * @param {Object} options - Query options (limit, offset, orderBy)
    * @returns {Promise<Array>} Array of rows
+   * @throws {Error} If orderBy contains invalid column or direction
    */
   async findMany(whereClause = '1=1', params = [], options = {}) {
     const { limit = 100, offset = 0, orderBy = 'id DESC' } = options;
+
+    // Whitelist valid columns to prevent SQL injection via ORDER BY
+    const validColumns = ['id', 'created_at', 'updated_at', 'bssid', 'ssid', 'last_seen', 'first_seen', 'type', 'signal'];
+    const validDirections = ['ASC', 'DESC'];
+
+    // Parse orderBy (e.g., "id DESC" or "last_seen ASC")
+    const [column, direction = 'DESC'] = orderBy.trim().split(/\s+/);
+
+    if (!validColumns.includes(column)) {
+      throw new Error(`Invalid orderBy column: ${column}. Must be one of: ${validColumns.join(', ')}`);
+    }
+
+    if (!validDirections.includes(direction.toUpperCase())) {
+      throw new Error(`Invalid orderBy direction: ${direction}. Must be ASC or DESC`);
+    }
+
+    // Validate and sanitize limit/offset
+    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 100), 1000);
+    const safeOffset = Math.max(0, parseInt(offset) || 0);
+
     const sql = `
       SELECT * FROM ${this.tableName}
       WHERE ${whereClause}
-      ORDER BY ${orderBy}
-      LIMIT ${limit} OFFSET ${offset}
+      ORDER BY ${column} ${direction.toUpperCase()}
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
-    const result = await this.query(sql, params);
+
+    const result = await this.query(sql, [...params, safeLimit, safeOffset]);
     return result.rows;
   }
 
