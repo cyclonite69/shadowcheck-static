@@ -187,7 +187,7 @@
         async function loadNetworkTypes() {
             try {
                 console.log('📡 Loading network types...');
-                const res = await fetch(`${API_BASE}/analytics/network-types`);
+                const res = await fetch(`${API_BASE}/network-types`);
 
                 if (!res.ok) {
                     console.error('✗ Network types API failed:', res.status);
@@ -216,7 +216,7 @@
         async function loadSignalStrength() {
             try {
                 console.log('📶 Loading signal strength...');
-                const res = await fetch(`${API_BASE}/analytics/signal-strength`);
+                const res = await fetch(`${API_BASE}/signal-strength`);
 
                 if (!res.ok) {
                     console.error('✗ Signal strength API failed:', res.status);
@@ -244,7 +244,7 @@
         async function loadSecurity() {
             try {
                 console.log('🔐 Loading security distribution...');
-                const res = await fetch(`${API_BASE}/analytics/security`);
+                const res = await fetch(`${API_BASE}/security`);
 
                 if (!res.ok) {
                     console.error('✗ Security API failed:', res.status);
@@ -272,7 +272,7 @@
         async function loadTemporal() {
             try {
                 console.log('⏰ Loading temporal activity...');
-                const res = await fetch(`${API_BASE}/analytics/temporal-activity`);
+                const res = await fetch(`${API_BASE}/temporal-activity`);
 
                 if (!res.ok) {
                     console.error('✗ Temporal activity API failed:', res.status);
@@ -302,7 +302,7 @@
                 const range = document.getElementById('timeRange')?.value || '30d';
                 console.log(`📊 Loading radio type over time (${range})...`);
 
-                const res = await fetch(`${API_BASE}/analytics/radio-type-over-time?range=${range}`);
+                const res = await fetch(`${API_BASE}/radio-type-over-time?range=${range}`);
 
                 if (!res.ok) {
                     console.error('✗ Radio type over time API failed:', res.status);
