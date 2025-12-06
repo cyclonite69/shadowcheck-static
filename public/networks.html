@@ -571,11 +571,12 @@
 
         /* Removed threat level borders - using badges instead */
     </style>
+    <link rel="stylesheet" href="/assets/styles/unified.css">
 </head>
 <body>
     <div class="container">
         <!-- HEADER -->
-        <div class="header">
+        <header class="app-header">
             <div class="header-left">
                 <div class="logo">🌐</div>
                 <div class="header-title">Network Explorer</div>
@@ -1361,5 +1362,8 @@
             window.location.href = '/geospatial.html?selected=' + encodeURIComponent(selected.join(','));
         }
     </script>
+    <script src="/assets/js/unified-header.js"></script>
+    <script src="/assets/js/unified-card-library.js"></script>
+    <script src="/assets/js/unified-components.js"></script>
 </body>
 </html>
