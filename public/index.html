@@ -2,468 +2,130 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>ShadowCheck - SIGINT Forensics Platform</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/main.css">
-    <style>
-            --primary-color: #1e40af;
-            --secondary-color: #3b82f6;
-            --accent-color: #60a5fa;
-            --dark-bg: #0f172a;
-            --card-bg: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--dark-bg) 0%, #1e293b 100%);
-            color: var(--text-primary);
-        }
-        
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 12px;
-        }
-        
-        .metric-card {
-            background: rgba(30, 41, 59, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 120px;
-            transition: all 0.3s ease;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .metric-card.blue {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: rgba(59, 130, 246, 0.3);
-            border-left: 4px solid #3b82f6;
-        }
-
-        .metric-card.red {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: rgba(239, 68, 68, 0.3);
-            border-left: 4px solid #ef4444;
-        }
-
-        .metric-card.yellow {
-            background: rgba(234, 179, 8, 0.1);
-            border-color: rgba(234, 179, 8, 0.3);
-            border-left: 4px solid #eab308;
-        }
-
-        .metric-card.purple {
-            background: rgba(139, 92, 246, 0.1);
-            border-color: rgba(139, 92, 246, 0.3);
-            border-left: 4px solid #8b5cf6;
-        }
-
-        .metric-label {
-            font-size: 12px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 500;
-        }
-
-        .metric-value {
-            font-size: 36px;
-            font-weight: 700;
-            color: #f8fafc;
-            margin-top: 8px;
-        }
-
-        .metric-card.blue .metric-value {
-            color: #60a5fa;
-        }
-
-        .metric-card.red .metric-value {
-            color: #ef4444;
-        }
-
-        .metric-card.yellow .metric-value {
-            color: #eab308;
-        }
-
-        .metric-card.purple .metric-value {
-            color: #a78bfa;
-        }
-        
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-        
-        .status-online { background: #10b981; }
-        .status-offline { background: #ef4444; }
-        .status-warning { background: #f59e0b; }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
-        }
-        
-        .btn-secondary {
-            background: rgba(148, 163, 184, 0.1);
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            color: var(--text-primary);
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(148, 163, 184, 0.2);
-            border-color: rgba(148, 163, 184, 0.5);
-        }
-
-        .chart-container {
-            height: 300px;
-            position: relative;
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.6s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes navPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        a.nav-link {
-            transition: all 0.2s !important;
-            text-decoration: none !important;
-        }
-
-        a.nav-link:hover {
-            background: rgba(59, 130, 246, 0.2) !important;
-            border-color: rgba(148, 163, 184, 0.4) !important;
-        }
-
-        a.nav-link.active {
-        }
-
-        .nav-link.active[href="/"],
-        .nav-link.active[href="/index.html"] {
-            background: rgba(59, 130, 246, 0.3);
-            border-color: #3b82f6;
-            color: #60a5fa;
-        }
-
-        .nav-link.active[href="/geospatial.html"] {
-            background: rgba(16, 185, 129, 0.3);
-            border-color: #10b981;
-            color: #34d399;
-        }
-
-        .nav-link.active[href="/analytics.html"] {
-            background: rgba(139, 92, 246, 0.3);
-            border-color: #8b5cf6;
-            color: #a78bfa;
-        }
-
-        .nav-link.active[href="/surveillance.html"] {
-            background: rgba(239, 68, 68, 0.3);
-            border-color: #ef4444;
-            color: #f87171;
-        }
-
-        .nav-link.active[href="/networks.html"] {
-            background: rgba(6, 182, 212, 0.3);
-            border-color: #06b6d4;
-            color: #22d3ee;
-        }
-
-        .nav-link.active[href="/admin.html"] {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: #ffffff;
-            color: #ffffff;
-        }
-
-            color: #3b82f6;
-        }
-
-            color: #3b82f6;
-        }
-
-        }
-
-        }
-
-            color: #3b82f6;
-        }
-
-            color: #ffffff;
-            background: rgba(59, 130, 246, 0.3) !important;
-            border-color: #3b82f6 !important;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowCheck - Dashboard</title>
+    <link rel="stylesheet" href="/assets/styles/unified.css">
 </head>
-<body>
-    <!-- Header Navigation -->
-    <header class="glass-card">
-        <nav class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between gap-4">
-                <!-- Left: Logo + Title -->
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-broadcast-tower text-white text-lg"></i>
-                    </div>
+<body data-page="dashboard">
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">SC</div>
+                <span class="font-semibold">ShadowCheck</span>
+            </div>
+            <nav class="nav-links">
+                <a href="/" class="nav-link active">Dashboard</a>
+                <a href="/networks.html" class="nav-link">Networks</a>
+                <a href="/geospatial.html" class="nav-link">Geospatial</a>
+                <a href="/surveillance.html" class="nav-link">Surveillance</a>
+                <a href="/analytics.html" class="nav-link">Analytics</a>
+                <a href="/admin.html" class="nav-link">Admin</a>
+            </nav>
+            <div class="header-right">
+                <button class="btn btn-sm" onclick="loadMetrics()">Refresh</button>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <div class="grid grid-4 mb-3">
+                <div class="metric-card">
                     <div>
-                        <h1 class="text-lg font-bold text-white">ShadowCheck</h1>
-                        <p class="text-xs text-gray-400">SIGINT Platform</p>
+                        <div class="metric-label">Total Networks</div>
+                        <div class="metric-value" id="total-networks">0</div>
                     </div>
                 </div>
-
-                <!-- Center: Navigation Links -->
-                <div class="flex items-center space-x-2">
-                    <a href="/" class="nav-link active" data-page="dashboard" style="
-                        border: none;
-                        background: rgba(59, 130, 246, 0.1);
-                        color: #e0e7ff;
-                        padding: 8px 16px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                    ">Dashboard</a>
-
-                    <a href="/geospatial.html" class="nav-link" data-page="geospatial" style="
-                        border: none;
-                        background: rgba(59, 130, 246, 0.1);
-                        color: #e0e7ff;
-                        padding: 8px 16px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                    ">Geospatial</a>
-
-                    <a href="/analytics.html" class="nav-link" data-page="analytics" style="
-                        border: none;
-                        background: rgba(59, 130, 246, 0.1);
-                        color: #e0e7ff;
-                        padding: 8px 16px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                    ">Analytics</a>
-
-                    <a href="/surveillance.html" class="nav-link" data-page="surveillance" style="
-                        border: none;
-                        background: rgba(59, 130, 246, 0.1);
-                        color: #e0e7ff;
-                        padding: 8px 16px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                    ">Surveillance</a>
-
-                    <a href="/networks.html" class="nav-link" data-page="networks" style="
-                        border: none;
-                        background: rgba(59, 130, 246, 0.1);
-                        color: #e0e7ff;
-                        padding: 8px 16px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                    ">Networks</a>
-
-                    <a href="/admin.html" class="nav-link" data-page="admin" style="
-                        border: none;
-                        background: rgba(59, 130, 246, 0.1);
-                        color: #e0e7ff;
-                        padding: 8px 16px;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                    ">Admin</a>
-                </div>
-
-                <!-- Right: Status -->
-                <div class="flex items-center space-x-2">
-                    <span class="status-indicator status-online pulse"></span>
-                    <span class="text-sm text-gray-400">Online</span>
-                </div>
-            </div>
-        </nav>
-    </header>
-
-    <!-- Main Content -->
-    <main class="px-6 pb-8 pt-6" style="max-width: 100%; width: 100%;">
-        <div class="mb-8">
-            <h2 class="text-3xl font-bold text-white mb-2">SIGINT Operations Dashboard</h2>
-            <p class="text-gray-400">Real-time wireless network forensics and analysis</p>
-        </div>
-        
-        <!-- Key Metrics -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
-            <div class="metric-card blue">
-                <div class="metric-label">Total Networks</div>
-                <div class="metric-value" id="total-networks">0</div>
-            </div>
-
-            <div class="metric-card red">
-                <div class="metric-label">Threats Detected</div>
-                <div class="metric-value" id="threats-count">0</div>
-            </div>
-
-            <div class="metric-card yellow">
-                <div class="metric-label">Active Surveillance</div>
-                <div class="metric-value" id="surveillance-count">0</div>
-            </div>
-
-            <div class="metric-card purple">
-                <div class="metric-label">Data Enriched</div>
-                <div class="metric-value" id="enriched-count">0</div>
-            </div>
-        </div>
-
-        <!-- Radio Type Metrics -->
-        <div class="glass-card p-6 mb-8">
-            <h3 class="text-xl font-semibold text-white mb-4">Radio Types</h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div class="metric-card p-4 rounded-lg">
-                    <div class="flex flex-col items-center">
-                        <i class="fas fa-wifi text-blue-400 text-2xl mb-2"></i>
-                        <p class="text-gray-400 text-xs mb-1">WiFi</p>
-                        <p class="text-xl font-bold text-white" id="wifi-count">0</p>
+                <div class="metric-card">
+                    <div>
+                        <div class="metric-label">Threats Detected</div>
+                        <div class="metric-value" id="threats-count">0</div>
                     </div>
                 </div>
-                <div class="metric-card p-4 rounded-lg">
-                    <div class="flex flex-col items-center">
-                        <i class="fas fa-bluetooth text-purple-400 text-2xl mb-2"></i>
-                        <p class="text-gray-400 text-xs mb-1">Bluetooth</p>
-                        <p class="text-xl font-bold text-white" id="bt-count">0</p>
+                <div class="metric-card">
+                    <div>
+                        <div class="metric-label">Active Surveillance</div>
+                        <div class="metric-value" id="surveillance-count">0</div>
                     </div>
                 </div>
-                <div class="metric-card p-4 rounded-lg">
-                    <div class="flex flex-col items-center">
-                        <i class="fas fa-satellite text-indigo-400 text-2xl mb-2"></i>
-                        <p class="text-gray-400 text-xs mb-1">BLE</p>
-                        <p class="text-xl font-bold text-white" id="ble-count">0</p>
-                    </div>
-                </div>
-                <div class="metric-card p-4 rounded-lg">
-                    <div class="flex flex-col items-center">
-                        <i class="fas fa-tower-cell text-green-400 text-2xl mb-2"></i>
-                        <p class="text-gray-400 text-xs mb-1">LTE</p>
-                        <p class="text-xl font-bold text-white" id="lte-count">0</p>
-                    </div>
-                </div>
-                <div class="metric-card p-4 rounded-lg">
-                    <div class="flex flex-col items-center">
-                        <i class="fas fa-signal text-yellow-400 text-2xl mb-2"></i>
-                        <p class="text-gray-400 text-xs mb-1">GSM</p>
-                        <p class="text-xl font-bold text-white" id="gsm-count">0</p>
+                <div class="metric-card">
+                    <div>
+                        <div class="metric-label">Data Enriched</div>
+                        <div class="metric-value" id="enriched-count">0</div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Quick Actions -->
-        <div class="glass-card p-6 mb-8">
-            <h3 class="text-xl font-semibold text-white mb-4">Quick Actions</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="/geospatial.html" class="btn-primary">
-                    <i class="fas fa-map mr-2"></i>View Geospatial Map
-                </a>
-                <button class="btn-secondary" onclick="runSurveillanceScan()">
-                    <i class="fas fa-search mr-2"></i>Run Surveillance Scan
-                </button>
-                <button class="btn-secondary" onclick="exportData()">
-                    <i class="fas fa-download mr-2"></i>Export Data
-                </button>
-            </div>
-        </div>
-    </main>
+            <div class="grid grid-2" style="flex: 1;">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Radio Type Distribution</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="grid grid-2 gap-3">
+                            <div class="metric-card">
+                                <div>
+                                    <div class="metric-label">WiFi</div>
+                                    <div class="metric-value" id="wifi-count">0</div>
+                                </div>
+                            </div>
+                            <div class="metric-card">
+                                <div>
+                                    <div class="metric-label">Bluetooth</div>
+                                    <div class="metric-value" id="bt-count">0</div>
+                                </div>
+                            </div>
+                            <div class="metric-card">
+                                <div>
+                                    <div class="metric-label">BLE</div>
+                                    <div class="metric-value" id="ble-count">0</div>
+                                </div>
+                            </div>
+                            <div class="metric-card">
+                                <div>
+                                    <div class="metric-label">LTE</div>
+                                    <div class="metric-value" id="lte-count">0</div>
+                                </div>
+                            </div>
+                            <div class="metric-card">
+                                <div>
+                                    <div class="metric-label">GSM</div>
+                                    <div class="metric-value" id="gsm-count">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Footer -->
-    <footer class="glass-card mt-12">
-        <div class="container mx-auto px-6 py-8">
-            <div class="border-t border-gray-600 pt-8 text-center">
-                <p class="text-gray-400 text-sm">&copy; 2024 ShadowCheck. Professional SIGINT Forensics Platform.</p>
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Quick Actions</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="flex flex-col gap-3">
+                            <button class="btn" onclick="runSurveillanceScan()">Run Surveillance Scan</button>
+                            <button class="btn" onclick="exportData()">Export Data</button>
+                            <button class="btn" onclick="window.location.href='/networks.html'">View All Networks</button>
+                            <button class="btn" onclick="window.location.href='/geospatial.html'">Open Map View</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </footer>
+        </main>
+    </div>
 
     <script>
-        // Highlight active page in navigation
-        function highlightActiveNav() {
-            const currentPath = window.location.pathname;
-            document.querySelectorAll('a.nav-link').forEach(link => {
-                link.classList.remove('active');
-                const href = link.getAttribute('href');
-                
-                if ((currentPath === '/' || currentPath === '/index.html') && (href === '/' || href === '/index.html')) {
-                    link.classList.add('active');
-                } else if (href !== '/' && currentPath.includes(href.replace('/', ''))) {
-                    link.classList.add('active');
-                }
-            });
-        }
-
-        // Load dashboard metrics
         async function loadMetrics() {
             try {
-                const response = await fetch('/api/dashboard-metrics');
-                const data = await response.json();
-
-                document.getElementById('total-networks').textContent = data.totalNetworks.toLocaleString();
-                document.getElementById('threats-count').textContent = data.threatsCount.toLocaleString();
-                document.getElementById('surveillance-count').textContent = data.surveillanceCount.toLocaleString();
-                document.getElementById('enriched-count').textContent = data.enrichedCount.toLocaleString();
-
-                // Radio type counts
-                document.getElementById('wifi-count').textContent = (data.wifiCount || 0).toLocaleString();
-                document.getElementById('bt-count').textContent = (data.btCount || 0).toLocaleString();
-                document.getElementById('ble-count').textContent = (data.bleCount || 0).toLocaleString();
-                document.getElementById('lte-count').textContent = (data.lteCount || 0).toLocaleString();
-                document.getElementById('gsm-count').textContent = (data.gsmCount || 0).toLocaleString();
+                const res = await fetch('/api/dashboard-metrics');
+                const data = await res.json();
+                document.getElementById('total-networks').textContent = data.totalNetworks || 0;
+                document.getElementById('threats-count').textContent = data.threatsCount || 0;
+                document.getElementById('surveillance-count').textContent = data.surveillanceCount || 0;
+                document.getElementById('enriched-count').textContent = data.enrichedCount || 0;
+                document.getElementById('wifi-count').textContent = data.wifiCount || 0;
+                document.getElementById('bt-count').textContent = data.btCount || 0;
+                document.getElementById('ble-count').textContent = data.bleCount || 0;
+                document.getElementById('lte-count').textContent = data.lteCount || 0;
+                document.getElementById('gsm-count').textContent = data.gsmCount || 0;
             } catch (err) {
                 console.error('Error loading metrics:', err);
             }
@@ -477,11 +139,10 @@
             alert('Exporting data...');
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            highlightActiveNav();
-            loadMetrics();
-        });
+        loadMetrics();
     </script>
+    <script src="/assets/js/unified-header.js"></script>
+    <script src="/assets/js/unified-card-library.js"></script>
+    <script src="/assets/js/unified-components.js"></script>
 </body>
 </html>
