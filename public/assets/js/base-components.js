@@ -27,9 +27,6 @@ class UnifiedHeader {
                     <a href="/admin.html" class="nav-link ${this.activePage === 'admin' ? 'active' : ''}">Admin</a>
                 </nav>
                 <div class="header-right">
-                    <button class="btn btn-sm" onclick="window.baseComponents.showCardLibrary()">➕ Add Card</button>
-                    <button class="btn btn-sm" onclick="window.baseComponents.toggleSnap(this)">🔲 Snap: ON</button>
-                    <button class="btn btn-sm" onclick="window.baseComponents.resetLayout()">↺ Reset</button>
                     <div class="status-indicator">
                         <div class="status-dot"></div>
                         <span>Online</span>
