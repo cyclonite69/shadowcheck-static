@@ -22,7 +22,10 @@
                 <a href="/admin.html" class="nav-link">Admin</a>
             </nav>
             <div class="header-right">
-                <button class="btn btn-sm" onclick="loadMetrics()">Refresh</button>
+                <button class="btn btn-sm" onclick="window.baseComponents?.showCardLibrary()">➕ Add Card</button>
+                <button class="btn btn-sm" onclick="window.baseComponents?.toggleSnap(this)">🔲 Snap: ON</button>
+                <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">↺ Reset</button>
+                <button class="btn btn-sm" onclick="loadMetrics()">🔄 Refresh</button>
             </div>
         </header>
 
