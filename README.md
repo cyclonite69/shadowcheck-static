@@ -1,105 +1,87 @@
 # ShadowCheck - SIGINT Forensics Platform
 
-ShadowCheck is a production-grade web platform for Signals Intelligence (SIGINT) forensics and analysis. It provides comprehensive wireless network analysis, threat detection, and intelligence gathering capabilities.
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D18-blue?style=flat-square)](https://www.postgresql.org/)
+[![License](https://img.shields.io/github/license/your-username/shadowcheck-static?style=flat-square)](LICENSE)
+
+Production-grade SIGINT forensics and wireless network analysis platform. Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
 ## Features
 
-### Core Capabilities
-*   **Dashboard:** Real-time overview of network environment with threat indicators
-*   **Geospatial Analysis:** Interactive map visualization with Mapbox integration
-*   **Analytics:** Advanced charts and graphs for network pattern analysis
-*   **Threat Detection:** ML-powered identification of surveillance devices and anomalies
-*   **Network Analysis:** Deep dive into individual network characteristics and behavior
-
-### Intelligence Features
-*   **Address Enrichment:** Multi-API venue and business identification (4 sources)
-*   **Device Classification:** Automatic identification of device types (vehicles, IoT, smartphones)
-*   **Contextual Analysis:** Government, education, and commercial facility detection
-*   **Trilateration:** AP location calculation from multiple observations
-*   **UUID Tracking:** Device movement pattern analysis and behavioral profiling
+- **Dashboard:** Real-time network environment overview with threat indicators
+- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation
+- **Network Analysis:** Deep dive into individual network characteristics and behavior patterns
+- **Threat Detection:** ML-powered identification of surveillance devices and anomalies
+- **Analytics:** Advanced charts and graphs for network pattern analysis
+- **Address Enrichment:** Multi-API venue and business identification (4 sources)
+- **Device Classification:** Automatic identification of device types and behavioral profiling
+- **Trilateration:** AP location calculation from multiple observations
 
 ## Architecture
 
-### Backend
-*   **Node.js/Express** server with REST API
-*   **PostgreSQL** with PostGIS for geospatial data
-*   **Multi-API enrichment** system with intelligent conflict resolution
-*   **ML threat detection** with confidence scoring
+**Backend:** Node.js/Express REST API with PostgreSQL + PostGIS  
+**Frontend:** Vanilla HTML5 with Tailwind CSS, Chart.js, Mapbox GL JS  
+**Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)
 
-### Frontend
-*   **HTML5** with Tailwind CSS
-*   **Chart.js** for data visualization
-*   **Mapbox GL JS** for geospatial analysis
-*   **Real-time updates** via API polling
+## Prerequisites
 
-### Database
-*   **PostgreSQL 18** with PostGIS extension
-*   **566,400+ location records**
-*   **173,326+ unique networks**
-*   **Trilateration and enrichment** data
+- Node.js 18+
+- PostgreSQL 18+ with PostGIS
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
+### 1. Clone and Install
 
-*   Node.js
-*   PostgreSQL
+```bash
+git clone https://github.com/your-username/shadowcheck-static.git
+cd shadowcheck-static
+npm install
+```
 
-### Installation
+### 2. Database Setup
 
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/your-username/shadowcheck-static.git
-    ```
-2.  Install the dependencies:
-    ```bash
-    npm install
-    ```
-3.  Set up the database:
-    *   Create a PostgreSQL database.
-    *   Create a `.env` file in the root of the project with the following content:
-        ```
-        DB_USER=your_database_user
-        DB_HOST=your_database_host
-        DB_NAME=your_database_name
-        DB_PASSWORD=your_database_password
-        DB_PORT=your_database_port
-        ```
-4.  Run the database migrations:
-    ```bash
-    psql -f sql/functions/create_scoring_function.sql
-    psql -f sql/functions/fix_kismet_functions.sql
-    psql -f sql/migrations/migrate_network_tags_v2.sql
-    ```
+Create PostgreSQL database with PostGIS:
 
-### Running the Application
+```sql
+CREATE ROLE shadowcheck WITH LOGIN PASSWORD 'your_password';
+CREATE DATABASE shadowcheck OWNER shadowcheck;
+\c shadowcheck
+CREATE EXTENSION postgis;
+```
+
+### 3. Environment Configuration
+
+Create `.env` in project root:
+
+```
+DB_USER=shadowcheck
+DB_HOST=localhost
+DB_NAME=shadowcheck
+DB_PASSWORD=your_password
+DB_PORT=5432
+PORT=3001
+```
+
+See `.env.example` for all options.
+
+### 4. Run Migrations
+
+```bash
+psql -U shadowcheck -d shadowcheck -f sql/functions/create_scoring_function.sql
+psql -U shadowcheck -d shadowcheck -f sql/functions/fix_kismet_functions.sql
+psql -U shadowcheck -d shadowcheck -f sql/migrations/migrate_network_tags_v2.sql
+```
+
+### 5. Start Server
 
 ```bash
 npm start
 ```
 
-The application will be available at `http://localhost:3001`.
-
-## Directory Structure
-
-```
-shadowcheck-static/
-├── server.js              # Main Express server
-├── scripts/               # Utility scripts
-│   ├── enrichment/        # Address enrichment
-│   ├── geocoding/         # Reverse geocoding
-│   └── ml/                # Machine learning
-├── sql/                   # Database files
-│   ├── migrations/        # Schema migrations
-│   └── functions/         # SQL functions
-├── public/                # Frontend files
-├── docs/                  # Documentation
-└── data/                  # Data files (not in git)
-```
-
-See [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md) for complete details.
+Server runs on `http://localhost:3001`
 
 ## Pages
+
 - Dashboard: `/`
 - Geospatial: `/geospatial.html`
 - Networks: `/networks.html`
@@ -107,40 +89,147 @@ See [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md) for complete deta
 - Surveillance: `/surveillance.html`
 
 ## API Endpoints
+
 - `GET /api/networks` - All networks
 - `GET /api/threats/quick` - Quick threat detection
 - `GET /api/analytics/*` - Analytics data
 - `GET /api/networks/observations/:bssid` - Network observations
 
-See `server.js` for full API documentation.
+See `server.js` for full endpoint documentation.
 
 ## Machine Learning
 
-ShadowCheck includes ML-powered threat detection:
+ShadowCheck includes multi-algorithm threat detection with model training and hyperparameter optimization.
 
-### Node.js ML Trainer
+### Training Endpoint
+
+**POST** `/api/ml/train`
+
+Trains logistic regression model on all tagged networks in database.
+
+**Request:**
 ```bash
-# Train model on tagged networks (via API)
 curl -X POST http://localhost:3001/api/ml/train
 ```
 
-### Python ML Iteration (Advanced)
-Test multiple algorithms with hyperparameter tuning:
+**Response:**
+```json
+{
+  "ok": true,
+  "model": {
+    "type": "logistic_regression",
+    "accuracy": 0.92,
+    "precision": 0.88,
+    "recall": 0.95,
+    "f1": 0.91,
+    "rocAuc": 0.94
+  },
+  "trainingData": {
+    "totalNetworks": 45,
+    "threats": 18,
+    "falsePositives": 27
+  },
+  "message": "Model trained successfully"
+}
+```
+
+**Errors:**
+- `400`: Fewer than 10 tagged networks (minimum required)
+- `503`: ML model module unavailable
+
+### Status Endpoint
+
+**GET** `/api/ml/status`
+
+Check model training status and tag statistics.
+
+### Advanced ML Iteration
+
+Test multiple algorithms with grid search and cross-validation:
+
 ```bash
 pip install -r requirements.txt
 python3 ml-iterate.py
 ```
 
-See [ML_ITERATION_GUIDE.md](ML_ITERATION_GUIDE.md) for details.
+Tests Logistic Regression, Random Forest, and Gradient Boosting with hyperparameter tuning.
+
+### Features Used for Training
+
+- Observation count (network detections)
+- Unique days seen
+- Geographic distribution (location clustering)
+- Signal strength (RSSI max)
+- Distance range from home location
+- Behavioral flags (seen at home vs. away)
+
+## Project Structure
+
+```
+shadowcheck-static/
+├── server.js              # Express API server
+├── public/                # Frontend static files
+│   ├── index.html
+│   ├── geospatial.html
+│   ├── networks.html
+│   ├── analytics.html
+│   └── surveillance.html
+├── scripts/               # Utility scripts
+│   ├── enrichment/        # Address enrichment
+│   ├── geocoding/         # Reverse geocoding
+│   └── ml/                # ML utilities
+├── sql/                   # Database
+│   ├── migrations/        # Schema migrations
+│   └── functions/         # SQL functions
+├── docs/                  # Documentation
+│   ├── architecture/      # System design docs
+│   ├── features/          # Feature documentation
+│   ├── guides/            # User guides
+│   └── security/          # Security policies
+└── data/                  # Data files (not in git)
+```
+
+See [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md) for complete details.
+
+## Development
+
+**Run dev server:**
+```bash
+npm run dev
+```
+
+**Run tests:**
+```bash
+npm test
+```
+
+## Configuration
+
+Key environment variables (see `.env.example`):
+
+- `DB_*` - PostgreSQL connection
+- `PORT` - Server port (default: 3001)
+- `NODE_ENV` - development or production
+
+## Security
+
+- Use strong database credentials in production
+- Enable HTTPS/TLS at reverse proxy layer
+- Restrict API access via rate limiting (already enabled)
+- See `SECURITY.md` for detailed security guidelines
 
 ## Documentation
 
-Additional documentation is available in the `docs` directory.
+Additional documentation is available in the `docs` directory. See [docs/INDEX.md](docs/INDEX.md) for navigation.
 
 ## Contributing
 
-Please see our [Contributing Guidelines](CONTRIBUTING.md).
+See `CONTRIBUTING.md` for code standards and workflow.
 
 ## Code of Conduct
 
-Please see our [Code of Conduct](CODE_OF_CONDUCT.md).
+See `CODE_OF_CONDUCT.md`.
+
+## License
+
+MIT. See `LICENSE` for details.
