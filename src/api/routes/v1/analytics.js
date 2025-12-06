@@ -92,7 +92,7 @@ router.get('/radio-type-over-time', asyncHandler(async (req, res) => {
 
   const data = await analyticsService.getRadioTypeOverTime(
     rangeValidation.value,
-    CONFIG.MIN_VALID_TIMESTAMP,
+    CONFIG.MIN_VALID_TIMESTAMP
   );
 
   req.logger?.info('Radio type over time retrieved', {

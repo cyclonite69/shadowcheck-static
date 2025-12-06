@@ -1,9 +1,14 @@
+/**
+ * Threats Routes (v1)
+ * Handles threat detection endpoints
+ */
+
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
+const { query, CONFIG } = require('../../../config/database');
 
-// Simple threat detection based on observation patterns
-router.get('/quick', async (req, res) => {
+// GET /api/threats/quick - Quick threat detection
+router.get('/threats/quick', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
@@ -85,4 +90,173 @@ router.get('/quick', async (req, res) => {
   }
 });
 
+// GET /api/threats/detect - Detailed threat analysis
+router.get('/threats/detect', async (req, res, next) => {
+  try {
+    const { rows } = await query(`
+      WITH home_location AS (
+        SELECT
+          ST_X(location::geometry) as home_lon,
+          ST_Y(location::geometry) as home_lat,
+          location::geography as home_point
+        FROM app.location_markers
+        WHERE marker_type = 'home'
+        LIMIT 1
+      ),
+      network_locations AS (
+        SELECT
+          n.bssid,
+          n.ssid,
+          n.type,
+          n.encryption,
+          l.latitude,
+          l.longitude,
+          EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 AS time,
+          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography as point,
+          ROW_NUMBER() OVER (PARTITION BY n.bssid ORDER BY EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000) as obs_number,
+          COUNT(*) OVER (PARTITION BY n.bssid) as total_observations
+        FROM app.networks n
+        JOIN app.observations l ON n.bssid = l.bssid
+        WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+          AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
+          AND (l.accuracy_meters IS NULL OR l.accuracy_meters <= 100)
+      ),
+      threat_analysis AS (
+        SELECT
+          nl.bssid,
+          nl.ssid,
+          nl.type,
+          nl.encryption,
+          nl.total_observations,
+          ARRAY_AGG(
+            ROUND(ST_Distance(nl.point, h.home_point)::numeric / 1000, 3)
+            ORDER BY nl.time
+            LIMIT 500
+          ) as distances_from_home_km,
+          BOOL_OR(ST_Distance(nl.point, h.home_point) < 100) as seen_at_home,
+          BOOL_OR(ST_Distance(nl.point, h.home_point) > 500) as seen_away_from_home,
+          MAX(ST_Distance(nl1.point, nl2.point)) / 1000 as max_distance_between_obs_km,
+          MAX(nl.time) - MIN(nl.time) as observation_timespan_ms,
+          COUNT(DISTINCT DATE(to_timestamp(nl.time / 1000.0))) as unique_days_observed,
+          CASE
+            WHEN MAX(nl.time) > MIN(nl.time) THEN
+              (MAX(ST_Distance(nl1.point, nl2.point)) / 1000.0) /
+              (EXTRACT(EPOCH FROM (to_timestamp(MAX(nl.time) / 1000.0) - to_timestamp(MIN(nl.time) / 1000.0))) / 3600.0)
+            ELSE 0
+          END as max_speed_kmh
+        FROM network_locations nl
+        CROSS JOIN home_location h
+        LEFT JOIN network_locations nl1 ON nl.bssid = nl1.bssid
+        LEFT JOIN network_locations nl2 ON nl.bssid = nl2.bssid AND nl1.obs_number < nl2.obs_number
+        WHERE nl.total_observations >= 2
+        GROUP BY nl.bssid, nl.ssid, nl.type, nl.encryption, nl.total_observations
+      ),
+      threat_classification AS (
+        SELECT
+          ta.*,
+          nt.tag_type as user_tag,
+          nt.confidence as user_confidence,
+          nt.notes as user_notes,
+          nt.user_override,
+          COALESCE(nt.threat_score * 100, (
+            CASE WHEN ta.seen_at_home AND ta.seen_away_from_home THEN 40 ELSE 0 END +
+            CASE WHEN ta.max_distance_between_obs_km > 0.2 THEN 25 ELSE 0 END +
+            CASE
+              WHEN ta.max_speed_kmh > 100 THEN 20
+              WHEN ta.max_speed_kmh > 50 THEN 15
+              WHEN ta.max_speed_kmh > 20 THEN 10
+              ELSE 0
+            END +
+            CASE
+              WHEN ta.unique_days_observed >= 7 THEN 15
+              WHEN ta.unique_days_observed >= 3 THEN 10
+              WHEN ta.unique_days_observed >= 2 THEN 5
+              ELSE 0
+            END +
+            CASE
+              WHEN ta.total_observations >= 50 THEN 10
+              WHEN ta.total_observations >= 20 THEN 5
+              ELSE 0
+            END
+          )) as threat_score,
+          CASE
+            WHEN nt.tag_type = 'THREAT' THEN 'User Tagged Threat'
+            WHEN nt.tag_type = 'INVESTIGATE' THEN 'User Tagged Investigate'
+            WHEN nt.tag_type = 'FALSE_POSITIVE' THEN 'User Tagged False Positive'
+            WHEN ta.seen_at_home AND ta.seen_away_from_home AND ta.max_speed_kmh > 20 THEN 'Mobile Tracking Device'
+            WHEN ta.seen_at_home AND ta.seen_away_from_home THEN 'Potential Stalking Device'
+            WHEN ta.max_distance_between_obs_km > 1 AND ta.unique_days_observed > 1 THEN 'Following Pattern Detected'
+            WHEN ta.max_speed_kmh > 100 THEN 'High-Speed Vehicle Tracker'
+            WHEN NOT ta.seen_at_home AND ta.max_distance_between_obs_km > 0.5 THEN 'Mobile Device (Non-Home)'
+            ELSE 'Low Risk Movement'
+          END as threat_type,
+          COALESCE(nt.ml_confidence, (CASE
+            WHEN ta.total_observations >= 10 AND ta.unique_days_observed >= 3 THEN 0.9
+            WHEN ta.total_observations >= 5 THEN 0.7
+            ELSE 0.4
+          END)) as confidence
+        FROM threat_analysis ta
+        LEFT JOIN app.network_tags nt ON ta.bssid = nt.bssid
+      )
+      SELECT
+        bssid,
+        ssid,
+        type,
+        encryption,
+        total_observations,
+        threat_score,
+        threat_type,
+        confidence,
+        seen_at_home,
+        seen_away_from_home,
+        max_distance_between_obs_km,
+        observation_timespan_ms,
+        unique_days_observed,
+        ROUND(max_speed_kmh::numeric, 2) as max_speed_kmh,
+        distances_from_home_km,
+        user_tag,
+        user_confidence,
+        user_notes,
+        user_override
+      FROM threat_classification
+      WHERE threat_score >= 30
+        AND (
+          type NOT IN ('G', 'L', 'N')
+          OR max_distance_between_obs_km > 5
+        )
+      ORDER BY threat_score DESC, total_observations DESC
+    `, [CONFIG.MIN_VALID_TIMESTAMP]);
+
+    res.json({
+      ok: true,
+      threats: rows.map(row => ({
+        bssid: row.bssid,
+        ssid: row.ssid,
+        type: row.type,
+        encryption: row.encryption,
+        totalObservations: row.total_observations,
+        threatScore: parseInt(row.threat_score),
+        threatType: row.threat_type,
+        confidence: (row.confidence * 100).toFixed(0),
+        patterns: {
+          seenAtHome: row.seen_at_home,
+          seenAwayFromHome: row.seen_away_from_home,
+          maxDistanceBetweenObsKm: parseFloat(row.max_distance_between_obs_km),
+          observationTimespanMs: row.observation_timespan_ms,
+          uniqueDaysObserved: row.unique_days_observed,
+          maxSpeedKmh: parseFloat(row.max_speed_kmh),
+          distancesFromHomeKm: row.distances_from_home_km,
+        },
+        userTag: row.user_tag,
+        userConfidence: row.user_confidence,
+        userNotes: row.user_notes,
+        userOverride: row.user_override,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
+

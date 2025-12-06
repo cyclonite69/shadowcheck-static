@@ -1,10 +1,12 @@
 // centralized error handler
 const errorHandler = (err, req, res, next) => {
+  const requestId = req.requestId || 'unknown';
+
   // Only log full error details in development
   if (process.env.NODE_ENV === 'development') {
-    console.error('Error details:', err);
+    console.error(`[${requestId}] Error details:`, err);
   } else {
-    console.error('Error:', err.message);
+    console.error(`[${requestId}] Error:`, err.message);
   }
 
   if (res.headersSent) {
@@ -18,6 +20,7 @@ const errorHandler = (err, req, res, next) => {
   const errorResponse = {
     error: {
       message,
+      requestId,
     },
   };
 

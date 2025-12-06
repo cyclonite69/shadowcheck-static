@@ -111,7 +111,7 @@ async function getTemporalActivity(minTimestamp) {
 async function getRadioTypeOverTime(range, minTimestamp) {
   try {
     // Determine SQL CASE expressions based on range
-    let dateFormatCase = "DATE(last_seen)";
+    let dateFormatCase = 'DATE(last_seen)';
     let timeFilterCase = "last_seen >= NOW() - INTERVAL '30 days'";
 
     switch (range) {
@@ -120,20 +120,20 @@ async function getRadioTypeOverTime(range, minTimestamp) {
         timeFilterCase = "last_seen >= NOW() - INTERVAL '24 hours'";
         break;
       case '7d':
-        dateFormatCase = "DATE(last_seen)";
+        dateFormatCase = 'DATE(last_seen)';
         timeFilterCase = "last_seen >= NOW() - INTERVAL '7 days'";
         break;
       case '30d':
-        dateFormatCase = "DATE(last_seen)";
+        dateFormatCase = 'DATE(last_seen)';
         timeFilterCase = "last_seen >= NOW() - INTERVAL '30 days'";
         break;
       case '90d':
-        dateFormatCase = "DATE(last_seen)";
+        dateFormatCase = 'DATE(last_seen)';
         timeFilterCase = "last_seen >= NOW() - INTERVAL '90 days'";
         break;
       case 'all':
         dateFormatCase = "DATE_TRUNC('week', last_seen)";
-        timeFilterCase = "TRUE";
+        timeFilterCase = 'TRUE';
         break;
     }
 
@@ -287,8 +287,8 @@ async function getDashboardStats() {
         GROUP BY n.bssid
         HAVING COUNT(DISTINCT o.unified_id) >= 2
       `),
-      query(`SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type = 'THREAT'`),
-      query(`SELECT COUNT(*) as count FROM app.networks WHERE manufacturer IS NOT NULL OR address IS NOT NULL`),
+      query('SELECT COUNT(*) as count FROM app.network_tags WHERE tag_type = \'THREAT\''),
+      query('SELECT COUNT(*) as count FROM app.networks WHERE manufacturer IS NOT NULL OR address IS NOT NULL'),
       query(`
         SELECT
           CASE
