@@ -1125,7 +1125,7 @@ try {
   // Load ML model with error handling
   let ThreatMLModel, mlModel;
   try {
-    ThreatMLModel = require('./ml-trainer');
+    ThreatMLModel = require('./scripts/ml/ml-trainer');
     mlModel = new ThreatMLModel();
     console.log('✓ ML model module loaded successfully');
   } catch (err) {
