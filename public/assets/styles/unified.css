@@ -103,6 +103,63 @@ html, body {
     min-height: 0;
 }
 
+/* Toolbar below header */
+.app-toolbar {
+    height: 56px;
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+    flex-shrink: 0;
+    z-index: 999;
+}
+
+.app-toolbar input[type="search"],
+.app-toolbar select {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.app-toolbar input[type="search"] {
+    flex: 1;
+    max-width: 300px;
+}
+
+.app-toolbar .spacer {
+    flex: 1;
+}
+
+/* Buttons */
+.btn {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(148, 163, 184, 0.4);
+    color: var(--accent);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 11px;
+}
+
 /* Panel system */
 .panel {
     background: rgba(30, 41, 59, 0.6);
