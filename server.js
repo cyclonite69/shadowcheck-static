@@ -494,41 +494,19 @@ try {
         return res.status(400).json({ error: 'Invalid range parameter. Must be one of: 24h, 7d, 30d, 90d, all' });
       }
 
-      // Determine time interval and grouping
-      let interval = '30 days';
-      let dateFormat = 'DATE(last_seen)';
-
-      switch (range) {
-        case '24h':
-          interval = '24 hours';
-          dateFormat = "DATE_TRUNC('hour', last_seen)";
-          break;
-        case '7d':
-          interval = '7 days';
-          dateFormat = 'DATE(last_seen)';
-          break;
-        case '30d':
-          interval = '30 days';
-          dateFormat = 'DATE(last_seen)';
-          break;
-        case '90d':
-          interval = '90 days';
-          dateFormat = 'DATE(last_seen)';
-          break;
-        case 'all':
-          interval = '100 years'; // Effectively all time
-          dateFormat = "DATE_TRUNC('week', last_seen)";
-          break;
-      }
-
-      const whereClause = range === 'all'
-        ? 'WHERE last_seen IS NOT NULL AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1'
-        : `WHERE last_seen >= NOW() - INTERVAL '${interval}' AND last_seen IS NOT NULL AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1`;
-
+      // SECURE: Use parameterized query with CASE statement instead of template literals
+      // This eliminates SQL injection vectors while maintaining dynamic behavior
       const { rows } = await query(`
           WITH time_counts AS (
             SELECT
-              ${dateFormat} as date,
+              -- Date truncation based on range (CASE in SQL, not template literal)
+              CASE $1
+                WHEN '24h' THEN DATE_TRUNC('hour', last_seen)
+                WHEN '7d' THEN DATE(last_seen)
+                WHEN '30d' THEN DATE(last_seen)
+                WHEN '90d' THEN DATE(last_seen)
+                WHEN 'all' THEN DATE_TRUNC('week', last_seen)
+              END as date,
               CASE
                 WHEN type = 'W' THEN 'WiFi'
                 WHEN type = 'E' THEN 'BLE'
@@ -542,12 +520,22 @@ try {
               END as network_type,
               COUNT(*) as count
             FROM app.networks
-            ${whereClause}
+            WHERE last_seen IS NOT NULL
+              AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $2
+              -- Time range filter using CASE statement (no template literals)
+              AND CASE $1
+                    WHEN 'all' THEN TRUE
+                    WHEN '24h' THEN last_seen >= NOW() - INTERVAL '24 hours'
+                    WHEN '7d' THEN last_seen >= NOW() - INTERVAL '7 days'
+                    WHEN '30d' THEN last_seen >= NOW() - INTERVAL '30 days'
+                    WHEN '90d' THEN last_seen >= NOW() - INTERVAL '90 days'
+                    ELSE FALSE
+                  END
             GROUP BY date, network_type
             ORDER BY date, network_type
           )
           SELECT * FROM time_counts
-        `, [CONFIG.MIN_VALID_TIMESTAMP]);
+        `, [range, CONFIG.MIN_VALID_TIMESTAMP]);
 
       res.json({
         ok: true,
