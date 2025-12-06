@@ -1135,7 +1135,7 @@ try {
   }
 
   // Train ML model on tagged networks
-  app.post('/api/ml/train', requireAuth, async (req, res, next) => {
+  app.post('/api/ml/train', async (req, res, next) => {
     try {
       if (!mlModel) {
         return res.status(503).json({
