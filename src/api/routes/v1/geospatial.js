@@ -11,17 +11,17 @@ router.get('/', (req, res) => {
 router.get('/api/mapbox-token', async (req, res) => {
   try {
     const token = secretsManager.get('mapbox_token');
-    
+
     if (!token) {
       return res.status(500).json({
         error: 'Mapbox token not configured',
-        message: 'MAPBOX_TOKEN is not available in secrets'
+        message: 'MAPBOX_TOKEN is not available in secrets',
       });
     }
 
     res.json({
       token: token,
-      ok: true
+      ok: true,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
