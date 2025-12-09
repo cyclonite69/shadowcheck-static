@@ -7,17 +7,17 @@ const secretsManager = require('../../../services/secretsManager');
 const requireAuth = (req, res, next) => {
   const apiKey = req.headers['x-api-key'] || req.query.api_key;
   const validKey = secretsManager.get('api_key');
-  
+
   // If no API key is configured, allow access (development mode)
   if (!validKey) {
     return next();
   }
-  
+
   // If API key is configured, require it
   if (!apiKey || apiKey !== validKey) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  
+
   next();
 };
 

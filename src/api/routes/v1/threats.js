@@ -79,28 +79,28 @@ router.get('/threats/quick', async (req, res) => {
         ssid: row.ssid || '<Hidden>',
         radioType: row.radio_type || 'wifi',
         type: row.radio_type || 'wifi',
-        
+
         // Network properties
         channel: row.channel,
         signal: row.signal_dbm,
         signalDbm: row.signal_dbm,
         maxSignal: row.max_signal,
         encryption: row.encryption,
-        
+
         // Location
         latitude: row.latitude,
         longitude: row.longitude,
-        
+
         // Timestamps from observations
         firstSeen: row.first_seen,
         lastSeen: row.last_seen,
-        
+
         // Observations
         observations: parseInt(row.observations),
         totalObservations: parseInt(row.observations),
         uniqueDays: parseInt(row.unique_days),
         uniqueLocations: parseInt(row.unique_locations),
-        
+
         // Threat metrics
         distanceRangeKm: parseFloat(row.distance_range_km).toFixed(2),
         threatScore: parseInt(row.threat_score),
@@ -266,27 +266,27 @@ router.get('/threats/detect', async (req, res, next) => {
         bssid: row.bssid,
         ssid: row.ssid,
         type: row.type,
-        
+
         // Network properties
         encryption: row.encryption,
         channel: row.channel,
         signal: row.signal_dbm,
         signalDbm: row.signal_dbm,
-        
+
         // Location
         latitude: row.network_latitude,
         longitude: row.network_longitude,
-        
+
         // Observations
         totalObservations: row.total_observations,
         observations: row.total_observations,
-        
+
         // Threat analysis
         threatScore: parseInt(row.threat_score),
         threatType: row.threat_type,
         threatLevel: row.threat_score >= 70 ? 'high' : row.threat_score >= 50 ? 'medium' : 'low',
         confidence: (row.confidence * 100).toFixed(0),
-        
+
         // Threat patterns
         patterns: {
           seenAtHome: row.seen_at_home,
@@ -297,7 +297,7 @@ router.get('/threats/detect', async (req, res, next) => {
           maxSpeedKmh: parseFloat(row.max_speed_kmh),
           distancesFromHomeKm: row.distances_from_home_km,
         },
-        
+
         // User tags
         userTag: row.user_tag,
         userConfidence: row.user_confidence,
