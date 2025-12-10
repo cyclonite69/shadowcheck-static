@@ -160,57 +160,35 @@ router.post('/ml/reassess', async (req, res, next) => {
 
     console.log('🔄 Reassessing all networks with trained ML model...');
 
-    // Get all networks and calculate features
+    // Get all networks and calculate features (simplified - no home location required)
     const { rows: networks } = await query(`
-      WITH home_location AS (
-        SELECT location::geography as home_point
-        FROM app.location_markers
-        WHERE marker_type = 'home'
-        LIMIT 1
-      )
       SELECT
         n.bssid,
         COUNT(DISTINCT l.unified_id) as observation_count,
         COUNT(DISTINCT DATE(to_timestamp(EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 / 1000.0))) as unique_days,
         COUNT(DISTINCT ST_SnapToGrid(ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geometry, 0.001)) as unique_locations,
-        MAX(l.signal_dbm) as max_signal,
-        COALESCE(MAX(ST_Distance(
-          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-          h.home_point
-        )) / 1000.0 - MIN(ST_Distance(
-          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-          h.home_point
-        )) / 1000.0, 0) as distance_range_km,
-        COALESCE(BOOL_OR(ST_Distance(
-          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-          h.home_point
-        ) < 100) AND BOOL_OR(ST_Distance(
-          ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-          h.home_point
-        ) > 500), false) as seen_both_locations
+        MAX(l.signal_dbm) as max_signal
       FROM app.networks n
       JOIN app.observations l ON n.bssid = l.bssid
-      CROSS JOIN home_location h
       WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
-        AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
       GROUP BY n.bssid
-      LIMIT 1000
-    `, [CONFIG.MIN_VALID_TIMESTAMP]);
+      LIMIT 100
+    `);
 
     let updated = 0;
 
     // Process networks and get ML scores
     for (const network of networks) {
       try {
-        // Use the ML model to predict threat score
-        const features = {
-          distance_range_km: network.distance_range_km || 0,
-          unique_days: network.unique_days || 0,
-          observation_count: network.observation_count || 0,
-          max_signal: network.max_signal || -100,
-          unique_locations: network.unique_locations || 0,
-          seen_both_locations: network.seen_both_locations ? 1 : 0
-        };
+        // Use the ML model to predict threat score (array format)
+        const features = [
+          0, // distance_range_km (default since no home location)
+          network.unique_days || 0,
+          network.observation_count || 0,
+          network.max_signal || -100,
+          network.unique_locations || 0,
+          0  // seen_both_locations (default since no home location)
+        ];
 
         // Get ML prediction (returns probability 0-1)
         const prediction = mlModel.predict([features]);
