@@ -25,7 +25,7 @@
             <div class="header-right">
                 <button class="btn btn-sm" onclick="window.baseComponents?.showCardLibrary()">➕ Add Card</button>
                 <button class="btn btn-sm" onclick="window.baseComponents?.toggleSnap(this)">🔲 Snap: ON</button>
-                <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">↺ Reset</button>
+                <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">🎯 Demo Layout</button>
                 <div class="status-indicator">
                     <div class="status-dot"></div>
                     <span>Online</span>
@@ -35,7 +35,7 @@
 
         <main class="app-main">
             <div class="grid grid-3 mb-3" style="grid-template-rows: 1fr 1fr; flex: 1; gap: 12px;">
-                <div class="panel">
+                <div class="panel" id="sqlite-import">
                     <div class="panel-header">📦 SQLite Import</div>
                     <div class="panel-body">
                         <div class="text-sm text-secondary mb-2">Import WiGLE SQLite databases</div>
@@ -102,7 +102,7 @@
                     </div>
                 </div>
 
-                <div class="panel">
+                <div class="panel" id="mapbox-tokens">
                     <div class="panel-header">🗺️ Mapbox Tokens</div>
                     <div class="panel-body">
                         <div id="mapbox-tokens-list" style="margin-bottom: 15px;"></div>
@@ -124,7 +124,7 @@
                     </div>
                 </div>
 
-                <div class="panel">
+                <div class="panel" id="database-panel">
                     <div class="panel-header">💾 Database</div>
                     <div class="panel-body">
                         <button class="btn btn-secondary mb-2" onclick="backup()" style="width: 100%;">Backup Database</button>
@@ -132,7 +132,7 @@
                     </div>
                 </div>
 
-                <div class="panel">
+                <div class="panel" id="home-location">
                     <div class="panel-header">🏠 Home Location</div>
                     <div class="panel-body">
                         <button class="btn mb-2" onclick="setHomeFromGPS()" style="width: 100%;">📍 Set Home from GPS</button>
@@ -140,21 +140,21 @@
                     </div>
                 </div>
 
-                <div class="panel">
+                <div class="panel" id="export-geojson">
                     <div class="panel-header">🌍 Export GeoJSON</div>
                     <div class="panel-body">
                         <button class="btn btn-secondary" onclick="exportGeoJSON()" style="width: 100%;">Download GeoJSON</button>
                     </div>
                 </div>
 
-                <div class="panel">
+                <div class="panel" id="export-json">
                     <div class="panel-header">📄 Export JSON</div>
                     <div class="panel-body">
                         <button class="btn btn-secondary" onclick="exportJSON()" style="width: 100%;">Download JSON</button>
                     </div>
                 </div>
 
-                <div class="panel">
+                <div class="panel" id="export-csv">
                     <div class="panel-header">📊 Export CSV</div>
                     <div class="panel-body">
                         <button class="btn btn-secondary" onclick="exportCSV()" style="width: 100%;">Download CSV</button>
