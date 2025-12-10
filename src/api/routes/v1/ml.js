@@ -180,19 +180,24 @@ router.post('/ml/reassess', async (req, res, next) => {
     // Process networks and get ML scores
     for (const network of networks) {
       try {
-        // Use the ML model to predict threat score (array format)
+        // Use basic threat scoring algorithm instead of ML prediction
         const features = [
-          0, // distance_range_km (default since no home location)
+          0, // distance_range_km 
           network.unique_days || 0,
           network.observation_count || 0,
           network.max_signal || -100,
           network.unique_locations || 0,
-          0  // seen_both_locations (default since no home location)
+          0  // seen_both_locations
         ];
 
-        // Get ML prediction (returns probability 0-1)
-        const prediction = mlModel.predict([features]);
-        const mlScore = Math.round(prediction * 100);
+        // Simple scoring: more observations + stronger signal + more locations = higher threat
+        let score = 0;
+        score += Math.min(network.observation_count * 2, 30); // Max 30 points for observations
+        score += Math.min(network.unique_days * 3, 30);       // Max 30 points for days
+        score += Math.min(network.unique_locations * 5, 20);  // Max 20 points for locations
+        if (network.max_signal > -60) score += 20;           // Strong signal bonus
+        
+        const mlScore = Math.min(score, 100); // Cap at 100
 
         // Update network with ML score
         await query(`
