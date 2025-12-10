@@ -29,7 +29,7 @@ class UnifiedHeader {
                 <div class="header-right">
                     <button class="btn btn-sm" onclick="window.baseComponents?.showCardLibrary()">➕ Add Card</button>
                     <button class="btn btn-sm" onclick="window.baseComponents?.toggleSnap(this)">🔲 Snap: ON</button>
-                    <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">↺ Reset</button>
+                    <button class="btn btn-sm" onclick="window.baseComponents?.resetLayout()">🎯 Demo Layout</button>
                     <button class="btn btn-sm" onclick="window.location.reload()">🔄 Refresh</button>
                     <div class="status-indicator">
                         <div class="status-dot"></div>
@@ -91,8 +91,72 @@ class BaseComponents {
             const page = window.location.pathname;
             delete this.layouts[page];
             this.saveLayouts();
-            location.reload();
+            this.setDemoLayout(); // Use demo layout instead of reload
         }
+    }
+
+    // Set demo-ready layout for each page
+    setDemoLayout() {
+        const page = document.body.dataset.page;
+        let layout;
+        
+        switch(page) {
+            case 'dashboard':
+                layout = {
+                    'threat-summary': { x: 0, y: 0, w: 4, h: 2 },
+                    'network-count': { x: 4, y: 0, w: 4, h: 2 },
+                    'recent-activity': { x: 8, y: 0, w: 4, h: 2 },
+                    'threat-map': { x: 0, y: 2, w: 8, h: 4 },
+                    'activity-chart': { x: 8, y: 2, w: 4, h: 4 }
+                };
+                break;
+            case 'geospatial':
+                layout = {
+                    'map-panel': { x: 0, y: 0, w: 8, h: 6 },
+                    'network-list': { x: 8, y: 0, w: 4, h: 3 },
+                    'map-controls': { x: 8, y: 3, w: 4, h: 3 }
+                };
+                break;
+            case 'networks':
+                layout = {
+                    'network-explorer': { x: 0, y: 0, w: 12, h: 4 },
+                    'network-details': { x: 0, y: 4, w: 6, h: 2 },
+                    'network-stats': { x: 6, y: 4, w: 6, h: 2 }
+                };
+                break;
+            case 'analytics':
+                layout = {
+                    'signal-strength-chart': { x: 0, y: 0, w: 6, h: 3 },
+                    'network-types-chart': { x: 6, y: 0, w: 6, h: 3 },
+                    'timeline-chart': { x: 0, y: 3, w: 12, h: 3 }
+                };
+                break;
+            case 'surveillance':
+                layout = {
+                    'threat-detection': { x: 0, y: 0, w: 8, h: 4 },
+                    'threat-list': { x: 8, y: 0, w: 4, h: 4 },
+                    'ml-status': { x: 0, y: 4, w: 6, h: 2 },
+                    'detection-stats': { x: 6, y: 4, w: 6, h: 2 }
+                };
+                break;
+        }
+        
+        if (layout) {
+            this.layouts[window.location.pathname] = layout;
+            this.saveLayouts();
+            this.applyLayout(layout);
+        }
+    }
+
+    // Apply layout to cards
+    applyLayout(layout) {
+        Object.entries(layout).forEach(([cardId, pos]) => {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.style.gridColumn = `${pos.x + 1} / span ${pos.w}`;
+                card.style.gridRow = `${pos.y + 1} / span ${pos.h}`;
+            }
+        });
     }
 
     // Make card resizable
