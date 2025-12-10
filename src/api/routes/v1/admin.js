@@ -38,10 +38,10 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
     const sqliteFile = req.file.path;
     const originalName = req.file.originalname;
     
-    console.log(`Starting parallel SQLite import: ${originalName}`);
+    console.log(`Starting turbo SQLite import: ${originalName}`);
 
-    // Use the faster parallel import script
-    const scriptPath = path.join(__dirname, '../../../../scripts/import/import-wigle-parallel.js');
+    // Use the fastest turbo import script
+    const scriptPath = path.join(__dirname, '../../../../scripts/import/turbo-import.js');
     
     const importProcess = spawn('node', [scriptPath, sqliteFile], {
       cwd: path.dirname(scriptPath)
@@ -79,11 +79,11 @@ router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, ne
           
           const result = counts.rows[0] || { observations: 0, networks: 0 };
           
-          console.log(`✓ Parallel SQLite import completed: ${result.observations} observations, ${result.networks} networks`);
+          console.log(`✓ Turbo SQLite import completed: ${result.observations} observations, ${result.networks} networks`);
           
           res.json({
             ok: true,
-            message: 'SQLite database imported successfully (parallel processing)',
+            message: 'SQLite database imported successfully (turbo processing)',
             observations: parseInt(result.observations),
             networks: parseInt(result.networks),
             output: output
