@@ -18,6 +18,9 @@ delete process.env.PGUSER;
     const cors = require('cors');
     const compression = require('compression');
     const rateLimit = require('express-rate-limit');
+    const multer = require('multer');
+    const fs = require('fs').promises;
+    const { spawn } = require('child_process');
 
     // ============================================================================
     // 2. SECRETS MANAGEMENT
@@ -90,7 +93,7 @@ delete process.env.PGUSER;
       "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://api.mapbox.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: https:; " +
-      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com;"
+      "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://d1a3f4spazzrp4.cloudfront.net;"
       );
       next();
     });
@@ -210,6 +213,127 @@ delete process.env.PGUSER;
     app.use('/api', backupRoutes);
     app.use('/api', exportRoutes);
     app.use('/api', settingsRoutes);
+
+    // Kepler.gl data endpoint
+    app.get('/api/kepler/data', async (req, res) => {
+      try {
+        const { bbox, limit } = req.query;
+        
+        let queryText = `
+          SELECT bssid, 
+                 COALESCE(ssid, 'Hidden Network') as ssid,
+                 ST_AsGeoJSON(location)::json as geometry,
+                 bestlevel, max_signal, first_seen, last_seen, 
+                 COALESCE(manufacturer, 'Unknown') as manufacturer, 
+                 COALESCE(device_type, 'Unknown') as device_type, 
+                 COALESCE(encryption, 'Open/Unknown') as encryption,
+                 COALESCE(channel::text, 'Unknown') as channel,
+                 COALESCE(frequency::text, 'Unknown') as frequency,
+                 COALESCE(type, 'WiFi') as type,
+                 COALESCE(capabilities, 'Unknown') as capabilities
+          FROM app.networks WHERE location IS NOT NULL
+        `;
+        
+        let params = [];
+        if (bbox) {
+          const coords = bbox.split(',').map(Number);
+          queryText += ` AND ST_Intersects(location, ST_MakeEnvelope($1,$2,$3,$4,4326))`;
+          params = coords;
+        }
+        
+        queryText += ` ORDER BY bestlevel DESC`;
+        
+        // Only add LIMIT if explicitly provided
+        if (limit) {
+          queryText += ` LIMIT ${parseInt(limit)}`;
+        }
+        
+        const result = await query(queryText, params);
+        
+        const geojson = {
+          type: 'FeatureCollection',
+          features: result.rows.map(row => ({
+            type: 'Feature',
+            geometry: row.geometry,
+            properties: {
+              bssid: row.bssid,
+              ssid: row.ssid,
+              bestlevel: row.bestlevel || 0,
+              max_signal: row.max_signal || 0,
+              first_seen: row.first_seen,
+              last_seen: row.last_seen,
+              manufacturer: row.manufacturer,
+              device_type: row.device_type,
+              encryption: row.encryption,
+              channel: row.channel,
+              frequency: row.frequency,
+              type: row.type,
+              capabilities: row.capabilities
+            }
+          }))
+        };
+        
+        res.json(geojson);
+      } catch (error) {
+        console.error('Kepler data error:', error);
+        res.status(500).json({ error: 'Failed to fetch kepler data' });
+      }
+    });
+
+    // All observations endpoint - THE FULL DATASET!
+    app.get('/api/kepler/observations', async (req, res) => {
+      try {
+        const { bbox, limit } = req.query;
+        
+        let queryText = `
+          SELECT bssid, 
+                 ST_AsGeoJSON(location)::json as geometry,
+                 signal_dbm, observed_at, source_type, source_device,
+                 accuracy_meters, altitude_meters, fingerprint
+          FROM app.observations 
+          WHERE location IS NOT NULL
+        `;
+        
+        let params = [];
+        if (bbox) {
+          const coords = bbox.split(',').map(Number);
+          queryText += ` AND ST_Intersects(location, ST_MakeEnvelope($1,$2,$3,$4,4326))`;
+          params = coords;
+        }
+        
+        queryText += ` ORDER BY observed_at DESC`;
+        
+        if (limit) {
+          queryText += ` LIMIT ${parseInt(limit)}`;
+        }
+        
+        const result = await query(queryText, params);
+        
+        const geojson = {
+          type: 'FeatureCollection',
+          features: result.rows.map(row => ({
+            type: 'Feature',
+            geometry: row.geometry,
+            properties: {
+              bssid: row.bssid,
+              ssid: 'Network-' + row.bssid.substring(0,8),
+              signal: row.signal_dbm || 0,
+              timestamp: row.observed_at,
+              source: row.source_type,
+              device: row.source_device,
+              accuracy: row.accuracy_meters,
+              altitude: row.altitude_meters,
+              fingerprint: row.fingerprint
+            }
+          }))
+        };
+        
+        res.json(geojson);
+      } catch (error) {
+        console.error('Observations data error:', error);
+        res.status(500).json({ error: 'Failed to fetch observations data' });
+      }
+    });
 
     console.log('✓ All routes mounted successfully');
 
