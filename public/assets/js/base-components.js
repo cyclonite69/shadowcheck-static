@@ -131,6 +131,17 @@ class BaseComponents {
                     'timeline-chart': { x: 0, y: 3, w: 12, h: 3 }
                 };
                 break;
+            case 'admin':
+                layout = {
+                    'sqlite-import': { x: 0, y: 0, w: 4, h: 3 },
+                    'mapbox-tokens': { x: 4, y: 0, w: 4, h: 3 },
+                    'database-panel': { x: 8, y: 0, w: 4, h: 3 },
+                    'home-location': { x: 0, y: 3, w: 4, h: 2 },
+                    'export-geojson': { x: 4, y: 3, w: 2, h: 2 },
+                    'export-json': { x: 6, y: 3, w: 2, h: 2 },
+                    'export-csv': { x: 8, y: 3, w: 2, h: 2 }
+                };
+                break;
             case 'surveillance':
                 layout = {
                     'threat-detection': { x: 0, y: 0, w: 8, h: 4 },
