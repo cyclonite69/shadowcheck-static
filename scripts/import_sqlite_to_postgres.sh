@@ -2,22 +2,58 @@
 
 set -e
 
-SQLITE_DB="backup-1764309125210.sqlite"
-PGUSER="shadowcheck_user"
-PGHOST="localhost"
-PGDB="shadowcheck_db"
-PGPASSWORD="PjUKZCNXUaRd9HCLjv@yj0wSSvU9hoDO"
+# Use environment variable or default
+SQLITE_DB="${SQLITE_DB:-backup-1764309125210.sqlite}"
+
+# Get database credentials from environment
+PGUSER="${DB_USER:-shadowcheck}"
+PGHOST="${DB_HOST:-localhost}"
+PGDB="${DB_NAME:-shadowcheck}"
+PGPORT="${DB_PORT:-5432}"
+
+# Get password from keyring or environment
+if command -v node >/dev/null 2>&1; then
+    PGPASSWORD=$(node -e "
+        const keyring = require('keyring');
+        try {
+            const password = keyring.getPassword('shadowcheck', 'db_password');
+            console.log(password);
+        } catch (e) {
+            console.log(process.env.DB_PASSWORD || '');
+        }
+    " 2>/dev/null)
+else
+    PGPASSWORD="${DB_PASSWORD:-}"
+fi
 
 export PGPASSWORD
 
 echo "=== SQLite to PostgreSQL Import ==="
 echo "Source: $SQLITE_DB"
-echo "Target: $PGDB"
+echo "Target: $PGDB@$PGHOST:$PGPORT"
 echo ""
+
+# Verify SQLite file exists
+if [ ! -f "$SQLITE_DB" ]; then
+    echo "❌ SQLite file not found: $SQLITE_DB"
+    exit 1
+fi
+
+# Test PostgreSQL connection
+if ! psql -U "$PGUSER" -h "$PGHOST" -p "$PGPORT" -d "$PGDB" -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "❌ Cannot connect to PostgreSQL database"
+    exit 1
+fi
+
+# Create staging schema if not exists
+echo "Creating staging schema..."
+psql -U "$PGUSER" -h "$PGHOST" -p "$PGPORT" -d "$PGDB" <<SQL
+CREATE SCHEMA IF NOT EXISTS import;
+SQL
 
 # Create staging tables
 echo "Creating staging tables..."
-psql -U "$PGUSER" -h "$PGHOST" -d "$PGDB" <<SQL
+psql -U "$PGUSER" -h "$PGHOST" -p "$PGPORT" -d "$PGDB" <<SQL
 DROP TABLE IF EXISTS import.sqlite_location CASCADE;
 DROP TABLE IF EXISTS import.sqlite_network CASCADE;
 
@@ -75,31 +111,21 @@ echo ""
 
 # Load into staging tables
 echo "Loading location data into staging..."
-psql -U "$PGUSER" -h "$PGHOST" -d "$PGDB" <<SQL
+psql -U "$PGUSER" -h "$PGHOST" -p "$PGPORT" -d "$PGDB" <<SQL
 \COPY import.sqlite_location FROM '/tmp/location.csv' WITH CSV;
 SQL
 
 echo "Loading network data into staging..."
-psql -U "$PGUSER" -h "$PGHOST" -d "$PGDB" <<SQL
+psql -U "$PGUSER" -h "$PGHOST" -p "$PGPORT" -d "$PGDB" <<SQL
 \COPY import.sqlite_network FROM '/tmp/network.csv' WITH CSV;
 SQL
 
 echo "✓ Data loaded into staging"
 echo ""
 
-# Truncate target tables
-echo "Truncating target tables..."
-psql -U "$PGUSER" -h "$PGHOST" -d "$PGDB" <<SQL
-TRUNCATE TABLE app.observations CASCADE;
-TRUNCATE TABLE app.networks CASCADE;
-SQL
-
-echo "✓ Tables truncated"
-echo ""
-
-# Transform and load observations
+# Transform and load observations (append, don't truncate)
 echo "Transforming and loading observations..."
-psql -U "$PGUSER" -h "$PGHOST" -d "$PGDB" <<SQL
+psql -U "$PGUSER" -h "$PGHOST" -p "$PGPORT" -d "$PGDB" <<SQL
 INSERT INTO app.observations (
     bssid, latitude, longitude, altitude_meters, accuracy_meters, 
     signal_dbm, observed_at, observed_at_epoch, location, source_type
@@ -121,15 +147,16 @@ WHERE lat BETWEEN -90 AND 90
   AND bssid IS NOT NULL
   AND bssid != ''
   AND time >= 946684800000
-  AND time <= EXTRACT(EPOCH FROM NOW()) * 1000 + 86400000;
+  AND time <= EXTRACT(EPOCH FROM NOW()) * 1000 + 86400000
+ON CONFLICT (bssid, observed_at_epoch, latitude, longitude) DO NOTHING;
 SQL
 
 echo "✓ Observations loaded"
 echo ""
 
-# Networks will be auto-populated by triggers, but let's also backfill channel/frequency
+# Backfill channel/frequency
 echo "Backfilling channel from frequency..."
-psql -U "$PGUSER" -h "$PGHOST" -d "$PGDB" <<SQL
+psql -U "$PGUSER" -h "$PGHOST" -p "$PGPORT" -d "$PGDB" <<SQL
 -- Update channel from frequency for WiFi networks
 UPDATE app.networks
 SET channel = CASE
@@ -160,7 +187,7 @@ echo ""
 
 # Show final counts
 echo "=== Import Summary ==="
-psql -U "$PGUSER" -h "$PGHOST" -d "$PGDB" <<SQL
+psql -U "$PGUSER" -h "$PGHOST" -p "$PGPORT" -d "$PGDB" <<SQL
 SELECT 'observations' as table_name, COUNT(*) as count FROM app.observations
 UNION ALL
 SELECT 'networks', COUNT(*) FROM app.networks;
