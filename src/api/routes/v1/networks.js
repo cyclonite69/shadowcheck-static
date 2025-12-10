@@ -561,4 +561,59 @@ router.get('/manufacturer/:bssid', async (req, res, next) => {
   }
 });
 
+// POST /api/networks/tag-threats - Tag multiple networks as threats
+router.post('/networks/tag-threats', async (req, res, next) => {
+  try {
+    const { bssids, reason } = req.body;
+    
+    if (!bssids || !Array.isArray(bssids) || bssids.length === 0) {
+      return res.status(400).json({ error: 'BSSIDs array is required' });
+    }
+
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const bssid of bssids) {
+      try {
+        const cleanBSSID = sanitizeBSSID(bssid);
+        if (!cleanBSSID) {
+          results.push({ bssid, error: 'Invalid BSSID format' });
+          errorCount++;
+          continue;
+        }
+
+        const result = await query(`
+          INSERT INTO app.network_tags (bssid, tag_type, confidence, threat_score, notes, created_at)
+          VALUES ($1, 'THREAT', 0.9, 0.8, $2, NOW())
+          ON CONFLICT (bssid) DO UPDATE SET
+            tag_type = 'THREAT',
+            confidence = 0.9,
+            threat_score = 0.8,
+            notes = $2,
+            updated_at = NOW()
+          RETURNING bssid, tag_type, confidence, threat_score
+        `, [cleanBSSID, reason || 'Manual threat tag']);
+
+        results.push({ bssid: cleanBSSID, success: true, tag: result.rows[0] });
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to tag ${bssid}:`, err.message);
+        results.push({ bssid, error: err.message });
+        errorCount++;
+      }
+    }
+
+    res.json({
+      ok: true,
+      message: `Tagged ${successCount} networks as threats`,
+      successCount,
+      errorCount,
+      results
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
