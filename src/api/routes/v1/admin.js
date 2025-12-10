@@ -5,7 +5,133 @@
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
+const { spawn } = require('child_process');
 const { query, CONFIG } = require('../../../config/database');
+
+// Configure multer for SQLite file uploads
+const upload = multer({
+  dest: '/tmp/',
+  fileFilter: (req, file, cb) => {
+    const allowedExts = ['.sqlite', '.db', '.sqlite3'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only SQLite files (.sqlite, .db, .sqlite3) are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 500 * 1024 * 1024 // 500MB limit
+  }
+});
+
+// POST /api/admin/import-sqlite - Import SQLite database
+router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No SQLite file uploaded' });
+    }
+
+    const sqliteFile = req.file.path;
+    const originalName = req.file.originalname;
+    
+    console.log(`Starting parallel SQLite import: ${originalName}`);
+
+    // Use the faster parallel import script
+    const scriptPath = path.join(__dirname, '../../../../scripts/import/import-wigle-parallel.js');
+    
+    const importProcess = spawn('node', [scriptPath, sqliteFile], {
+      cwd: path.dirname(scriptPath)
+    });
+
+    let output = '';
+    let errorOutput = '';
+
+    importProcess.stdout.on('data', (data) => {
+      output += data.toString();
+      console.log(data.toString());
+    });
+
+    importProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+      console.error(data.toString());
+    });
+
+    importProcess.on('close', async (code) => {
+      try {
+        // Clean up uploaded file
+        await fs.unlink(sqliteFile);
+      } catch (e) {
+        console.warn('Failed to clean up temp file:', e.message);
+      }
+
+      if (code === 0) {
+        // Get final counts
+        try {
+          const counts = await query(`
+            SELECT 
+              (SELECT COUNT(*) FROM app.observations) as observations,
+              (SELECT COUNT(*) FROM app.networks) as networks
+          `);
+          
+          const result = counts.rows[0] || { observations: 0, networks: 0 };
+          
+          console.log(`✓ Parallel SQLite import completed: ${result.observations} observations, ${result.networks} networks`);
+          
+          res.json({
+            ok: true,
+            message: 'SQLite database imported successfully (parallel processing)',
+            observations: parseInt(result.observations),
+            networks: parseInt(result.networks),
+            output: output
+          });
+        } catch (e) {
+          console.error('Error getting final counts:', e);
+          res.json({
+            ok: true,
+            message: 'SQLite database imported successfully (counts unavailable)',
+            output: output
+          });
+        }
+      } else {
+        console.error(`Import script failed with code ${code}`);
+        res.status(500).json({
+          error: 'Import script failed',
+          code: code,
+          output: output,
+          errorOutput: errorOutput
+        });
+      }
+    });
+
+    importProcess.on('error', async (error) => {
+      console.error('Failed to start import script:', error);
+      try {
+        await fs.unlink(sqliteFile);
+      } catch (e) {
+        console.warn('Failed to clean up temp file:', e.message);
+      }
+      res.status(500).json({
+        error: 'Failed to start import process',
+        details: error.message
+      });
+    });
+
+  } catch (err) {
+    // Clean up file on error
+    if (req.file) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (e) {
+        console.warn('Failed to clean up temp file:', e.message);
+      }
+    }
+    next(err);
+  }
+});
 
 // GET /api/observations/check-duplicates/:bssid - Check for duplicate observations
 router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {

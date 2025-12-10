@@ -36,7 +36,29 @@
         <main class="app-main">
             <div class="grid grid-3 mb-3" style="grid-template-rows: 1fr 1fr; flex: 1; gap: 12px;">
                 <div class="panel">
-                    <div class="panel-header">📡 WiGLE API</div>
+                    <div class="panel-header">📦 SQLite Import</div>
+                    <div class="panel-body">
+                        <div class="text-sm text-secondary mb-2">Import WiGLE SQLite databases</div>
+                        
+                        <div class="mb-2">
+                            <label class="text-xs font-medium mb-1" style="display: block;">Select SQLite Database</label>
+                            <input type="file" id="sqlite-file" accept=".sqlite,.db,.sqlite3" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; font-size: 12px;">
+                        </div>
+                        
+                        <div class="mb-2">
+                            <button onclick="importSQLite()" class="btn btn-sm" style="width: 100%; background: #22c55e;">
+                                📥 Import Database
+                            </button>
+                        </div>
+                        
+                        <div id="import-status" class="text-xs"></div>
+                        <div id="import-progress" style="display: none; margin-top: 8px;">
+                            <div style="background: rgba(148, 163, 184, 0.2); border-radius: 4px; height: 8px; overflow: hidden;">
+                                <div id="progress-bar" style="background: #22c55e; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                     <div class="panel-body">
                         <div class="text-sm text-secondary mb-2">🔒 Stored in system keyring</div>
                         <div id="wigle-status"></div>
@@ -469,6 +491,61 @@
                 }
             };
             input.click();
+        }
+        
+        async function importSQLite() {
+            const fileInput = document.getElementById('sqlite-file');
+            const statusDiv = document.getElementById('import-status');
+            const progressDiv = document.getElementById('import-progress');
+            const progressBar = document.getElementById('progress-bar');
+            
+            if (!fileInput.files[0]) {
+                statusDiv.innerHTML = '❌ Please select a SQLite file first';
+                return;
+            }
+            
+            if (!API_KEY) {
+                statusDiv.innerHTML = '❌ API key not set. Refresh the page.';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            statusDiv.innerHTML = `📤 Uploading ${file.name}...`;
+            progressDiv.style.display = 'block';
+            progressBar.style.width = '10%';
+            
+            try {
+                const formData = new FormData();
+                formData.append('sqlite', file);
+                
+                progressBar.style.width = '30%';
+                
+                const res = await fetch('/api/admin/import-sqlite', {
+                    method: 'POST',
+                    headers: { 'X-API-Key': API_KEY },
+                    body: formData
+                });
+                
+                progressBar.style.width = '70%';
+                
+                if (res.ok) {
+                    const result = await res.json();
+                    progressBar.style.width = '100%';
+                    statusDiv.innerHTML = `✅ Import complete! ${result.observations || 0} observations, ${result.networks || 0} networks`;
+                    fileInput.value = '';
+                    setTimeout(() => {
+                        progressDiv.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 3000);
+                } else {
+                    const err = await res.json();
+                    statusDiv.innerHTML = '❌ Import failed: ' + (err.error || res.statusText);
+                    progressDiv.style.display = 'none';
+                }
+            } catch (e) {
+                statusDiv.innerHTML = '❌ Import failed: ' + e.message;
+                progressDiv.style.display = 'none';
+            }
         }
         
         function exportGeoJSON() { 
