@@ -146,7 +146,7 @@ router.post('/ml/reassess', async (req, res, next) => {
 
     // Check if model is trained
     const { rows: modelRows } = await query(`
-      SELECT coefficients, intercept, feature_names
+      SELECT model_type, feature_names, created_at
       FROM app.ml_model_config
       WHERE model_type = 'threat_logistic_regression'
     `);
@@ -160,7 +160,7 @@ router.post('/ml/reassess', async (req, res, next) => {
 
     console.log('🔄 Reassessing all networks with trained ML model...');
 
-    // Get all networks and calculate ML scores
+    // Get all networks and calculate features
     const { rows: networks } = await query(`
       WITH home_location AS (
         SELECT location::geography as home_point
@@ -194,41 +194,27 @@ router.post('/ml/reassess', async (req, res, next) => {
       WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
         AND EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 >= $1
       GROUP BY n.bssid
+      LIMIT 1000
     `, [CONFIG.MIN_VALID_TIMESTAMP]);
 
-    // Load model coefficients
-    const model = modelRows[0];
-    const coefficients = JSON.parse(model.coefficients);
-    const intercept = model.intercept;
-    const featureNames = JSON.parse(model.feature_names);
-
     let updated = 0;
-    const batchSize = 100;
 
-    // Process networks in batches
-    for (let i = 0; i < networks.length; i += batchSize) {
-      const batch = networks.slice(i, i + batchSize);
-      
-      for (const network of batch) {
-        // Calculate ML score using the same logic as the model
-        const features = [
-          network.distance_range_km || 0,
-          network.unique_days || 0,
-          network.observation_count || 0,
-          network.max_signal || -100,
-          network.unique_locations || 0,
-          network.seen_both_locations ? 1 : 0
-        ];
+    // Process networks and get ML scores
+    for (const network of networks) {
+      try {
+        // Use the ML model to predict threat score
+        const features = {
+          distance_range_km: network.distance_range_km || 0,
+          unique_days: network.unique_days || 0,
+          observation_count: network.observation_count || 0,
+          max_signal: network.max_signal || -100,
+          unique_locations: network.unique_locations || 0,
+          seen_both_locations: network.seen_both_locations ? 1 : 0
+        };
 
-        // Calculate logistic regression score
-        let score = intercept;
-        for (let j = 0; j < coefficients.length; j++) {
-          score += coefficients[j] * features[j];
-        }
-        
-        // Convert to probability (0-100)
-        const probability = 1 / (1 + Math.exp(-score));
-        const mlScore = Math.round(probability * 100);
+        // Get ML prediction (returns probability 0-1)
+        const prediction = mlModel.predict([features]);
+        const mlScore = Math.round(prediction * 100);
 
         // Update network with ML score
         await query(`
@@ -238,6 +224,8 @@ router.post('/ml/reassess', async (req, res, next) => {
         `, [mlScore, network.bssid]);
 
         updated++;
+      } catch (err) {
+        console.warn(`Failed to score network ${network.bssid}:`, err.message);
       }
     }
 
@@ -245,11 +233,11 @@ router.post('/ml/reassess', async (req, res, next) => {
 
     res.json({
       ok: true,
-      message: 'All networks reassessed with ML model',
+      message: 'Networks reassessed with ML model',
       networksUpdated: updated,
       modelUsed: {
         type: 'threat_logistic_regression',
-        features: featureNames
+        features: modelRows[0].feature_names || []
       }
     });
 
