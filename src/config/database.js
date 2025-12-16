@@ -7,6 +7,14 @@ const { Pool } = require('pg');
 require('dotenv').config();
 const secretsManager = require('../services/secretsManager');
 
+// Normalized connection settings with safe defaults for shared Docker postgres
+const DB_USER = process.env.DB_USER || 'shadowcheck_user';
+const DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
+const DB_HOST = process.env.DB_HOST || 'shadowcheck_postgres';
+const DB_PORT = parseInt(process.env.DB_PORT, 10) || 5432;
+const DB_APP_NAME = process.env.DB_APP_NAME || 'shadowcheck-static';
+const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'public,app';
+
 // Configuration constants
 const CONFIG = {
   MIN_VALID_TIMESTAMP: 946684800000, // Jan 1, 2000 in milliseconds
@@ -18,15 +26,17 @@ const CONFIG = {
 
 // Create connection pool
 const pool = new Pool({
-  user: process.env.DB_USER,
+  user: DB_USER,
   password: secretsManager.getOrThrow('db_password'),
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
+  host: DB_HOST,
+  port: DB_PORT,
+  database: DB_NAME,
   max: 5, // Reduced from 20 to avoid overwhelming the connection
   idleTimeoutMillis: 30000, // 30 seconds
   connectionTimeoutMillis: 30000, // Increased to 30 seconds
   statement_timeout: 60000, // 60 seconds
+  application_name: DB_APP_NAME,
+  options: `-c search_path=${DB_SEARCH_PATH}`,
 });
 
 // Pool error handler
@@ -36,29 +46,13 @@ pool.on('error', (err) => {
 });
 
 /**
- * Query wrapper with automatic retry for transient errors
+ * Query wrapper without retries (fail fast for visibility)
  * @param {string} text - SQL query
  * @param {Array} params - Query parameters
- * @param {number} tries - Number of retry attempts
  * @returns {Promise<Object>} Query result
  */
-async function query(text, params = [], tries = 2) {
-  const transientErrors = ['57P01', '53300', '08006', '08003', '08000'];
-
-  try {
-    return await pool.query(text, params);
-  } catch (err) {
-    // Retry on transient errors
-    if (
-      tries > 1 &&
-      (transientErrors.includes(err.code) || ['ETIMEDOUT', 'ECONNRESET'].includes(err.errno))
-    ) {
-      console.warn(`Transient error ${err.code || err.errno}, retrying...`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return query(text, params, tries - 1);
-    }
-    throw err;
-  }
+async function query(text, params = []) {
+  return pool.query(text, params);
 }
 
 /**
@@ -66,14 +60,12 @@ async function query(text, params = [], tries = 2) {
  * @returns {Promise<boolean>}
  */
 async function testConnection() {
-  try {
-    await query('SELECT NOW()');
-    console.log('✓ Database connection successful');
-    return true;
-  } catch (err) {
-    console.error('✗ Database connection failed:', err.message);
-    return false;
-  }
+  const result = await query('SELECT current_user, current_database()');
+  const row = result.rows[0] || {};
+  console.log(
+    `✓ Database connection successful as ${row.current_user || 'unknown'} on ${row.current_database || 'unknown'}`
+  );
+  return true;
 }
 
 /**

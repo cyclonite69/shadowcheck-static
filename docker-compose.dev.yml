@@ -18,7 +18,7 @@ services:
       DB_PORT: 5432
       DB_USER: ${DB_USER:-shadowcheck_user}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
-      DB_NAME: ${DB_NAME:-shadowcheck}
+      DB_NAME: ${DB_NAME:-shadowcheck_db}
     volumes:
       - .:/app:cached
       - /app/node_modules

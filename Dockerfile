@@ -37,6 +37,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 
 # Copy application code
 COPY --chown=nodejs:nodejs server.js ./
+COPY --chown=nodejs:nodejs src ./src/
 COPY --chown=nodejs:nodejs utils ./utils/
 COPY --chown=nodejs:nodejs scripts ./scripts/
 COPY --chown=nodejs:nodejs public ./public/

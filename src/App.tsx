@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import DashboardPage from './components/DashboardPage';
 import GeospatialPage from './components/GeospatialPage';
 import GeospatialIntelligencePage from './components/GeospatialIntelligencePage';
+import GeospatialExplorer from './components/GeospatialExplorer';
 import AnalyticsPage from './components/AnalyticsPage';
 import AdminPage from './components/AdminPage';
 import MLTrainingPage from './components/MLTrainingPage';
@@ -22,6 +23,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/geospatial" element={<GeospatialIntelligencePage />} />
         <Route path="/geospatial-intel" element={<GeospatialIntelligencePage />} />
+        <Route path="/geospatial-explorer" element={<GeospatialExplorer />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/ml-training" element={<MLTrainingPage />} />
         <Route path="/kepler-test" element={<KeplerTestPage />} />
