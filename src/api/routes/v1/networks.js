@@ -103,36 +103,42 @@ router.get('/networks', async (req, res, next) => {
         ? `${sortColumnMap[sort]} ${order} NULLS LAST`
         : `${sortColumnMap[sort]} ${order}`;
 
-    // Get home location for distance calculation
-    const homeResult = await query(`
-      SELECT
-        ST_X(location::geometry) as lon,
-        ST_Y(location::geometry) as lat
-      FROM app.location_markers
-      WHERE marker_type = 'home'
-      LIMIT 1
-    `);
-    const home = homeResult.rows[0] || null;
+    // Get home location for distance calculation (optional)
+    let home = null;
+    try {
+      const homeResult = await query(`
+        SELECT
+          ST_X(location::geometry) as lon,
+          ST_Y(location::geometry) as lat
+        FROM public.location_markers
+        WHERE marker_type = 'home'
+        LIMIT 1
+      `);
+      home = homeResult.rows[0] || null;
+    } catch (err) {
+      // Table doesn't exist, use fallback
+      home = null;
+    }
 
     // Base query
     let queryText = `
       WITH latest_locations AS (
         SELECT DISTINCT ON (bssid)
           bssid, latitude, longitude, signal_dbm, accuracy_meters, observed_at
-        FROM app.observations
+        FROM public.observations
         WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND observed_at >= to_timestamp($1 / 1000.0)
         ORDER BY bssid, observed_at DESC
       ),
       latest_times AS (
         SELECT DISTINCT ON (bssid)
           bssid, observed_at as last_time
-        FROM app.observations
+        FROM public.observations
         WHERE observed_at IS NOT NULL
         ORDER BY bssid, observed_at DESC
       ),
       observation_counts AS (
         SELECT bssid, COUNT(*) as obs_count
-        FROM app.observations
+        FROM public.observations
         WHERE observed_at >= to_timestamp($1 / 1000.0)
         GROUP BY bssid
       )
@@ -293,7 +299,7 @@ router.get('/networks/search/:ssid', async (req, res, next) => {
         n.lasttime,
         COUNT(DISTINCT l.unified_id) as observation_count
       FROM app.networks n
-      LEFT JOIN app.observations l ON n.bssid = l.bssid
+      LEFT JOIN public.observations l ON n.bssid = l.bssid
       WHERE n.ssid ILIKE $1
       GROUP BY n.unified_id, n.ssid, n.bssid, n.type, n.encryption, n.bestlevel, n.lasttime
       ORDER BY observation_count DESC
@@ -318,56 +324,51 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const homeResult = await query(`
-      SELECT
-        ST_X(location::geometry) as lon,
-        ST_Y(location::geometry) as lat
-      FROM app.location_markers
-      WHERE marker_type = 'home'
-      LIMIT 1
-    `);
-    const home = homeResult.rows[0] || null;
+    let home = null;
+    try {
+      const homeResult = await query(`
+        SELECT
+          ST_X(location::geometry) as lon,
+          ST_Y(location::geometry) as lat
+        FROM public.location_markers
+        WHERE marker_type = 'home'
+        LIMIT 1
+      `);
+      home = homeResult.rows[0] || null;
+    } catch (err) {
+      // Table doesn't exist, use fallback
+      home = null;
+    }
 
     const { rows } = await query(
       `
       SELECT
-        l.unified_id as id,
-        l.bssid,
-        n.ssid,
-        n.type,
-        n.encryption,
-        n.capabilities,
-        l.latitude as lat,
-        l.longitude as lon,
-        l.signal_dbm as signal,
-        EXTRACT(EPOCH FROM l.observed_at)::BIGINT * 1000 as time,
-        l.accuracy_meters as acc,
-        l.altitude_meters as alt,
+        ROW_NUMBER() OVER (ORDER BY o.time) as id,
+        o.bssid,
+        o.bssid as ssid,
+        NULL as type,
+        NULL as encryption,
+        NULL as capabilities,
+        o.lat,
+        o.lon,
+        o.level as signal,
+        EXTRACT(EPOCH FROM o.time)::BIGINT * 1000 as time,
+        o.accuracy as acc,
+        NULL as alt,
         CASE
           WHEN $1::numeric IS NOT NULL AND $2::numeric IS NOT NULL THEN
             ST_Distance(
-              ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+              ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
               ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
             ) / 1000.0
           ELSE NULL
         END as distance_from_home_km
-      FROM app.observations l
-      LEFT JOIN app.networks n ON l.bssid = n.bssid
-      WHERE l.bssid = $3
-        AND l.latitude IS NOT NULL
-        AND l.longitude IS NOT NULL
-        AND l.observed_at >= to_timestamp($4 / 1000.0)
-        AND (l.accuracy_meters IS NULL OR l.accuracy_meters <= 100)
-        AND NOT EXISTS (
-          SELECT 1 
-          FROM app.observations dup
-          WHERE dup.observed_at = l.observed_at 
-            AND dup.latitude = l.latitude 
-            AND dup.longitude = l.longitude
-          GROUP BY dup.observed_at, dup.latitude, dup.longitude
-          HAVING COUNT(DISTINCT dup.bssid) >= 50
-        )
-      ORDER BY l.observed_at ASC
+      FROM observations o
+      WHERE o.bssid = $3
+        AND o.lat IS NOT NULL
+        AND o.lon IS NOT NULL
+        AND o.time >= to_timestamp($4 / 1000.0)
+      ORDER BY o.time ASC
     `,
       [home?.lon, home?.lat, bssid, CONFIG.MIN_VALID_TIMESTAMP]
     );

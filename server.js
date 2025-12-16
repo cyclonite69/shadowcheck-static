@@ -14,7 +14,6 @@ delete process.env.PGUSER;
     require('dotenv').config({ override: true });
     const express = require('express');
     const path = require('path');
-    const { Pool } = require('pg');
     const cors = require('cors');
     const compression = require('compression');
     const rateLimit = require('express-rate-limit');
@@ -56,6 +55,7 @@ delete process.env.PGUSER;
     // ============================================================================
     const app = express();
     const port = process.env.PORT || 3001;
+    const host = process.env.HOST || '0.0.0.0';
     const FORCE_HTTPS = process.env.FORCE_HTTPS === 'true';
 
     // ============================================================================
@@ -137,42 +137,14 @@ delete process.env.PGUSER;
     // ============================================================================
     // 7. DATABASE SETUP
     // ============================================================================
-    const pool = new Pool({
-      user: process.env.DB_USER,
-      host: '127.0.0.1',
-      database: process.env.DB_NAME,
-      password: secretsManager.getOrThrow('db_password'),
-      port: 5432,
-      max: 5,
-      idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 5000,
-      application_name: 'shadowcheck-static',
-      options: '-c search_path=public',
-    });
+    const { pool, query, testConnection } = require('./src/config/database');
 
     pool.on('connect', (client) => {
       console.log('Pool connected:', client.host, client.port);
     });
 
-    pool.on('error', (err) => {
-      console.error('Pool error:', err.message);
-    });
-
-    // Test database connection (non-blocking)
-    (async () => {
-      try {
-        const client = await pool.connect();
-        try {
-          await client.query('SELECT NOW()');
-          console.log('✓ Database connected successfully');
-        } finally {
-          client.release();
-        }
-      } catch (err) {
-        console.warn('⚠️  Database connection test failed:', err.message);
-        console.warn('⚠️  Server will continue - database will be retried on first request');
-      }
-    })();
+    // Fail fast if the database is unreachable or misconfigured
+    await testConnection();
 
     // ============================================================================
     // 8. STATIC FILES
@@ -200,9 +172,6 @@ delete process.env.PGUSER;
 
     // Make secretsManager available to routes
     app.locals.secretsManager = secretsManager;
-
-    // Import database query function for routes that need it
-    const { query } = require('./src/config/database');
 
     // Initialize dashboard routes with dependencies
     const NetworkRepository = require('./src/repositories/networkRepository');
@@ -375,7 +344,7 @@ delete process.env.PGUSER;
     // ============================================================================
     // 12. SERVER STARTUP
     // ============================================================================
-    app.listen(port, () => {
+    app.listen(port, host, () => {
       console.log(`✓ Server listening on port ${port}`);
       console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`✓ HTTPS redirect: ${FORCE_HTTPS ? 'enabled' : 'disabled'}`);

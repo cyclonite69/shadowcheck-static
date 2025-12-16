@@ -183,6 +183,18 @@ class BaseComponents {
     handle.addEventListener('mousedown', (e) => {
       e.preventDefault();
       e.stopPropagation();
+
+      // If the card is still in the grid flow, convert it to absolute positioning
+      const rect = element.getBoundingClientRect();
+      const isAbsolute = element.style.position === 'absolute';
+      if (!isAbsolute) {
+        element.style.position = 'absolute';
+        element.style.left = rect.left + 'px';
+        element.style.top = rect.top + 'px';
+        element.style.width = rect.width + 'px';
+        element.style.height = rect.height + 'px';
+      }
+
       const startX = e.clientX;
       const startY = e.clientY;
       const startWidth = element.offsetWidth;

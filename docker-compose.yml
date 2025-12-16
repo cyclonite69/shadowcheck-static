@@ -17,7 +17,7 @@ services:
       DB_HOST: shadowcheck_postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-shadowcheck_user}
-      DB_NAME: ${DB_NAME:-shadowcheck}
+      DB_NAME: ${DB_NAME:-shadowcheck_db}
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       # Connect to SHARED Redis (if available)

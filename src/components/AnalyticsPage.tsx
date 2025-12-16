@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -218,59 +218,89 @@ export default function Analytics() {
   const [dragging, setDragging] = useState(null);
   const [resizing, setResizing] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const resizeStartRef = useRef({
+    startX: 0,
+    startY: 0,
+    startWidthPx: 0,
+    startHeightPx: 0,
+    cardXPercent: 0,
+  });
 
   const handleMouseDown = (e, cardId, mode = 'move') => {
+    e.preventDefault();
     if (mode === 'move') {
       const card = cards.find((c) => c.id === cardId);
+      if (!card) return;
       setDragging(cardId);
       setDragOffset({
         x: e.clientX - (card.x * window.innerWidth) / 100,
         y: e.clientY - card.y,
       });
     } else if (mode === 'resize') {
+      const card = cards.find((c) => c.id === cardId);
+      if (!card) return;
+      resizeStartRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startWidthPx: (card.w / 100) * window.innerWidth,
+        startHeightPx: card.h,
+        cardXPercent: card.x,
+      };
       setResizing(cardId);
     }
   };
 
-  const handleMouseMove = (e) => {
-    if (dragging) {
-      setCards(
-        cards.map((card) => {
-          if (card.id === dragging) {
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (dragging) {
+        setCards((prev) =>
+          prev.map((card) => {
+            if (card.id !== dragging) return card;
             const newX = Math.max(
               0,
               Math.min(100 - card.w, ((e.clientX - dragOffset.x) / window.innerWidth) * 100)
             );
             const newY = Math.max(0, e.clientY - dragOffset.y);
             return { ...card, x: newX, y: newY };
-          }
-          return card;
-        })
-      );
-    } else if (resizing) {
-      setCards(
-        cards.map((card) => {
-          if (card.id === resizing) {
+          })
+        );
+      } else if (resizing) {
+        const start = resizeStartRef.current;
+        setCards((prev) =>
+          prev.map((card) => {
+            if (card.id !== resizing) return card;
+            const widthPx = Math.max(200, start.startWidthPx + (e.clientX - start.startX));
             const newW = Math.max(
               20,
-              Math.min(
-                100 - card.x,
-                ((e.clientX - (card.x * window.innerWidth) / 100) / window.innerWidth) * 100
-              )
+              Math.min(100 - start.cardXPercent, (widthPx / window.innerWidth) * 100)
             );
-            const newH = Math.max(150, e.clientY - card.y);
+            const newH = Math.max(150, start.startHeightPx + (e.clientY - start.startY));
             return { ...card, w: newW, h: newH };
-          }
-          return card;
-        })
-      );
-    }
-  };
+          })
+        );
+      }
+    },
+    [dragOffset.x, dragOffset.y, dragging, resizing]
+  );
 
-  const handleMouseUp = () => {
-    setDragging(null);
-    setResizing(null);
-  };
+  const handleMouseUp = useCallback(() => {
+    if (dragging) {
+      setDragging(null);
+    }
+    if (resizing) {
+      setResizing(null);
+    }
+  }, [dragging, resizing]);
+
+  useEffect(() => {
+    if (!dragging && !resizing) return;
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragging, resizing, handleMouseMove, handleMouseUp]);
 
   const renderChart = (card) => {
     const height = card.h - 50;
@@ -415,7 +445,8 @@ export default function Analytics() {
     <div
       className="relative w-full min-h-screen overflow-hidden"
       style={{
-        background: 'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
+        background:
+          'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
       }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -436,17 +467,18 @@ export default function Analytics() {
         return (
           <div
             key={card.id}
-          style={{
-            position: 'absolute',
-            left: left,
-            top: `${card.y}px`,
-            width: width,
-            height: `${card.h}px`,
+            style={{
+              position: 'absolute',
+              left: left,
+              top: `${card.y}px`,
+              width: width,
+              height: `${card.h}px`,
               transition: dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
               cursor: dragging === card.id ? 'grabbing' : 'grab',
+              userSelect: dragging || resizing ? 'none' : 'auto',
             }}
             onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-            className="relative overflow-hidden rounded-lg border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
+            className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
           >
             <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
             {/* Header */}
@@ -468,12 +500,13 @@ export default function Analytics() {
             <div
               onMouseDown={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 handleMouseDown(e, card.id, 'resize');
               }}
-              className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
               style={{
-                background: 'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.4) 50%)',
-                borderRadius: '0 0 8px 0',
+                background: 'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.35) 50%)',
+                borderRadius: '0 0 10px 0',
               }}
             />
           </div>
