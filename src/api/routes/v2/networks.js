@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 
-// Map frontend sort keys to SQL columns
+// Map frontend sort keys to SQL columns (use outer select aliases)
 const SORT_MAP = {
-  observed_at: 'ml.observed_at',
-  ssid: 'ml.ssid',
-  bssid: 'ml.bssid',
-  signal: 'ml.level',
-  frequency: 'sn.frequency',
-  observations: 'COALESCE(ap.total_observations, 0)',
+  observed_at: 'observed_at',
+  ssid: 'ssid',
+  bssid: 'bssid',
+  signal: 'level',
+  frequency: 'frequency',
+  observations: 'observations',
 };
 
 router.get('/v2/networks', async (req, res, next) => {
@@ -49,18 +49,11 @@ router.get('/v2/networks', async (req, res, next) => {
           ap.is_5ghz,
           ap.is_6ghz,
           ap.is_hidden,
-          sn.type,
-          sn.frequency,
-          sn.capabilities
+          NULL::text AS type,
+          NULL::numeric AS frequency,
+          NULL::text AS capabilities
         FROM mv_network_latest ml
         LEFT JOIN access_points ap ON ap.bssid = ml.bssid
-        LEFT JOIN LATERAL (
-          SELECT type, frequency, capabilities
-          FROM staging_networks s
-          WHERE s.bssid = ml.bssid
-          ORDER BY s.lasttime DESC
-          LIMIT 1
-        ) sn ON true
         ${whereClause}
       )
       SELECT
