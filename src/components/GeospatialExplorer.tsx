@@ -275,11 +275,14 @@ export default function GeospatialExplorer() {
         });
         if (searchTerm.trim()) params.set('search', searchTerm.trim());
 
+        console.log('Fetching networks from:', `/api/explorer/networks?${params.toString()}`);
         const res = await fetch(`/api/explorer/networks?${params.toString()}`, {
           signal: controller.signal,
         });
+        console.log('Networks response status:', res.status);
         if (!res.ok) throw new Error(`networks ${res.status}`);
         const data = await res.json();
+        console.log('Networks data received:', data);
         const rows = data.rows || [];
 
         const mapped: NetworkRow[] = rows.map((row: any, idx: number) => {
@@ -701,7 +704,7 @@ export default function GeospatialExplorer() {
                       colSpan={visibleColumns.length}
                       style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}
                     >
-                      No networks found
+                      {error ? `Error: ${error}` : 'No networks found'}
                     </td>
                   </tr>
                 )}
