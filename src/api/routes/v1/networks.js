@@ -345,16 +345,14 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
       SELECT
         ROW_NUMBER() OVER (ORDER BY o.time) as id,
         o.bssid,
-        o.bssid as ssid,
-        NULL as type,
-        NULL as encryption,
-        NULL as capabilities,
+        COALESCE(NULLIF(o.ssid, ''), '(hidden)') as ssid,
+        'W' as type,
         o.lat,
         o.lon,
         o.level as signal,
         EXTRACT(EPOCH FROM o.time)::BIGINT * 1000 as time,
-        o.accuracy as acc,
-        NULL as alt,
+        COALESCE(o.accuracy, 3.79) as acc,
+        o.altitude as alt,
         CASE
           WHEN $1::numeric IS NOT NULL AND $2::numeric IS NOT NULL THEN
             ST_Distance(
@@ -363,14 +361,14 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
             ) / 1000.0
           ELSE NULL
         END as distance_from_home_km
-      FROM observations o
+      FROM public.observations o
       WHERE o.bssid = $3
         AND o.lat IS NOT NULL
         AND o.lon IS NOT NULL
-        AND o.time >= to_timestamp($4 / 1000.0)
       ORDER BY o.time ASC
+      LIMIT 1000
     `,
-      [home?.lon, home?.lat, bssid, CONFIG.MIN_VALID_TIMESTAMP]
+      [home?.lon, home?.lat, bssid]
     );
 
     res.json({
