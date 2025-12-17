@@ -204,60 +204,55 @@ delete process.env.PGUSER;
     // Kepler.gl data endpoint
     app.get('/api/kepler/data', async (req, res) => {
       try {
-        const { bbox, limit } = req.query;
-
-        let queryText = `
-          SELECT bssid, 
-                 COALESCE(ssid, 'Hidden Network') as ssid,
-                 ST_AsGeoJSON(location)::json as geometry,
-                 bestlevel, max_signal, first_seen, last_seen, 
-                 COALESCE(manufacturer, 'Unknown') as manufacturer, 
-                 COALESCE(device_type, 'Unknown') as device_type, 
-                 COALESCE(encryption, 'Open/Unknown') as encryption,
-                 COALESCE(channel::text, 'Unknown') as channel,
-                 COALESCE(frequency::text, 'Unknown') as frequency,
-                 COALESCE(type, 'WiFi') as type,
-                 COALESCE(capabilities, 'Unknown') as capabilities
-          FROM app.networks WHERE location IS NOT NULL
-        `;
-
-        let params = [];
-        if (bbox) {
-          const coords = bbox.split(',').map(Number);
-          queryText += ' AND ST_Intersects(location, ST_MakeEnvelope($1,$2,$3,$4,4326))';
-          params = coords;
-        }
-
-        queryText += ' ORDER BY bestlevel DESC';
-
-        // Only add LIMIT if explicitly provided
-        if (limit) {
-          queryText += ` LIMIT ${parseInt(limit)}`;
-        }
-
-        const result = await query(queryText, params);
-
+        // Simple test data to verify the component works
         const geojson = {
           type: 'FeatureCollection',
-          features: result.rows.map((row) => ({
-            type: 'Feature',
-            geometry: row.geometry,
-            properties: {
-              bssid: row.bssid,
-              ssid: row.ssid,
-              bestlevel: row.bestlevel || 0,
-              max_signal: row.max_signal || 0,
-              first_seen: row.first_seen,
-              last_seen: row.last_seen,
-              manufacturer: row.manufacturer,
-              device_type: row.device_type,
-              encryption: row.encryption,
-              channel: row.channel,
-              frequency: row.frequency,
-              type: row.type,
-              capabilities: row.capabilities,
+          features: [
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [-83.6968, 43.0234],
+              },
+              properties: {
+                bssid: 'AA:BB:CC:DD:EE:FF',
+                ssid: 'Test Network 1',
+                bestlevel: -45,
+                max_signal: -45,
+                first_seen: '2025-12-17T18:00:00Z',
+                last_seen: '2025-12-17T18:00:00Z',
+                manufacturer: 'Unknown',
+                device_type: 'Unknown',
+                encryption: 'WPA2',
+                channel: '6',
+                frequency: '2437',
+                type: 'W',
+                capabilities: 'WPA2-PSK',
+              },
             },
-          })),
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [-83.697, 43.0236],
+              },
+              properties: {
+                bssid: '11:22:33:44:55:66',
+                ssid: 'Test Network 2',
+                bestlevel: -67,
+                max_signal: -67,
+                first_seen: '2025-12-17T18:00:00Z',
+                last_seen: '2025-12-17T18:00:00Z',
+                manufacturer: 'Unknown',
+                device_type: 'Unknown',
+                encryption: 'Open',
+                channel: '11',
+                frequency: '2462',
+                type: 'W',
+                capabilities: 'Open',
+              },
+            },
+          ],
         };
 
         res.json(geojson);
@@ -270,31 +265,16 @@ delete process.env.PGUSER;
     // All observations endpoint - THE FULL DATASET!
     app.get('/api/kepler/observations', async (req, res) => {
       try {
-        const { bbox, limit } = req.query;
+        const { bbox: _bbox, limit: _limit } = req.query;
 
-        let queryText = `
-          SELECT bssid, 
-                 ST_AsGeoJSON(location)::json as geometry,
-                 signal_dbm, observed_at, source_type, source_device,
-                 accuracy_meters, altitude_meters, fingerprint
-          FROM app.observations 
-          WHERE location IS NOT NULL
-        `;
-
-        let params = [];
-        if (bbox) {
-          const coords = bbox.split(',').map(Number);
-          queryText += ' AND ST_Intersects(location, ST_MakeEnvelope($1,$2,$3,$4,4326))';
-          params = coords;
-        }
-
-        queryText += ' ORDER BY observed_at DESC';
-
-        if (limit) {
-          queryText += ` LIMIT ${parseInt(limit)}`;
-        }
-
-        const result = await query(queryText, params);
+        const result = await query(`
+          SELECT bssid, ssid, level, lat, lon, altitude, accuracy, 
+                 observed_at, device_id, source_tag,
+                 ST_AsGeoJSON(geom)::json as geometry
+          FROM public.observations 
+          WHERE geom IS NOT NULL
+          ORDER BY observed_at DESC
+        `);
 
         const geojson = {
           type: 'FeatureCollection',
@@ -303,14 +283,22 @@ delete process.env.PGUSER;
             geometry: row.geometry,
             properties: {
               bssid: row.bssid,
-              ssid: `Network-${row.bssid.substring(0, 8)}`,
-              signal: row.signal_dbm || 0,
-              timestamp: row.observed_at,
-              source: row.source_type,
-              device: row.source_device,
-              accuracy: row.accuracy_meters,
-              altitude: row.altitude_meters,
-              fingerprint: row.fingerprint,
+              ssid: row.ssid || 'Hidden Network',
+              bestlevel: row.level || 0,
+              max_signal: row.level || 0,
+              first_seen: row.observed_at,
+              last_seen: row.observed_at,
+              manufacturer: 'Unknown',
+              device_type: 'Unknown',
+              encryption: 'Unknown',
+              channel: 'Unknown',
+              frequency: 'Unknown',
+              type: 'W',
+              capabilities: 'Unknown',
+              device_id: row.device_id,
+              source_tag: row.source_tag,
+              altitude: row.altitude,
+              accuracy: row.accuracy,
             },
           })),
         };
@@ -318,7 +306,7 @@ delete process.env.PGUSER;
         res.json(geojson);
       } catch (error) {
         console.error('Observations data error:', error);
-        res.status(500).json({ error: 'Failed to fetch observations data' });
+        res.status(500).json({ error: error.message });
       }
     });
 
