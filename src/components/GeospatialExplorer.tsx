@@ -973,6 +973,8 @@ export default function GeospatialExplorer() {
                       borderRadius: '6px',
                       zIndex: 50,
                       minWidth: '200px',
+                      maxHeight: '400px',
+                      overflowY: 'auto',
                       backdropFilter: 'blur(8px)',
                     }}
                   >
