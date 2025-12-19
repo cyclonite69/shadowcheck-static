@@ -697,7 +697,7 @@ export default function GeospatialExplorer() {
             },
           });
 
-          // Home circle (100m radius)
+          // Home circle (100 yard radius ≈ 91m)
           map.addLayer({
             id: 'home-circle',
             type: 'circle',
@@ -708,13 +708,13 @@ export default function GeospatialExplorer() {
                 ['exponential', 2],
                 ['zoom'],
                 10,
-                2,
+                1.8,
                 15,
-                50,
+                45,
                 18,
-                200,
+                180,
                 20,
-                400,
+                360,
               ],
               'circle-color': '#10b981',
               'circle-opacity': 0.1,
@@ -724,15 +724,32 @@ export default function GeospatialExplorer() {
             },
           });
 
-          // Home marker
+          // Home marker dot
+          map.addLayer({
+            id: 'home-dot',
+            type: 'circle',
+            source: 'home-location',
+            paint: {
+              'circle-radius': 8,
+              'circle-color': '#10b981',
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#ffffff',
+            },
+          });
+
+          // Home marker label
           map.addLayer({
             id: 'home-marker',
             type: 'symbol',
             source: 'home-location',
             layout: {
-              'text-field': '🏠',
-              'text-size': 20,
+              'text-field': 'H',
+              'text-size': 14,
               'text-anchor': 'center',
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            },
+            paint: {
+              'text-color': '#ffffff',
             },
           });
 
