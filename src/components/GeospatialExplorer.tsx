@@ -603,7 +603,30 @@ export default function GeospatialExplorer() {
             new mapboxgl.Popup({ offset: 15 }).setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
           });
 
-          // Show tooltip on hover
+          // Add hover circle source and layer
+          map.addSource('hover-circle', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [],
+            },
+          });
+
+          map.addLayer({
+            id: 'hover-circle-fill',
+            type: 'circle',
+            source: 'hover-circle',
+            paint: {
+              'circle-radius': ['get', 'radius'],
+              'circle-color': ['get', 'color'],
+              'circle-opacity': 0.15,
+              'circle-stroke-width': 2,
+              'circle-stroke-color': ['get', 'strokeColor'],
+              'circle-stroke-opacity': 0.6,
+            },
+          });
+
+          // Show tooltip and signal circle on hover
           map.on('mouseenter', 'observation-points', (e) => {
             map.getCanvas().style.cursor = 'pointer';
 
@@ -619,8 +642,30 @@ export default function GeospatialExplorer() {
             }
 
             const currentZoom = map.getZoom();
-            const signalRadius = calculateSignalRange(props.signal, null, currentZoom);
+            const signalRadius = calculateSignalRange(props.signal, props.frequency, currentZoom);
             const bssidColor = macColor(props.bssid);
+
+            // Add signal range circle to map
+            const hoverCircleSource = map.getSource('hover-circle') as mapboxgl.GeoJSONSource;
+            if (hoverCircleSource) {
+              hoverCircleSource.setData({
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: [e.lngLat.lng, e.lngLat.lat],
+                    },
+                    properties: {
+                      radius: signalRadius,
+                      color: bssidColor,
+                      strokeColor: bssidColor,
+                    },
+                  },
+                ],
+              });
+            }
 
             // Create signal strength class
             let signalClass = 'signal-weak';
@@ -682,6 +727,15 @@ export default function GeospatialExplorer() {
             if (hoverPopupRef.current) {
               hoverPopupRef.current.remove();
               hoverPopupRef.current = null;
+            }
+
+            // Clear hover circle from map
+            const hoverCircleSource = map.getSource('hover-circle') as mapboxgl.GeoJSONSource;
+            if (hoverCircleSource) {
+              hoverCircleSource.setData({
+                type: 'FeatureCollection',
+                features: [],
+              });
             }
           });
 
