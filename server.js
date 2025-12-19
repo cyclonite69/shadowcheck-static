@@ -7,6 +7,126 @@ delete process.env.PGDATABASE;
 delete process.env.PGUSER;
 
 (async () => {
+  // ============================================================================
+  // HELPER FUNCTIONS
+  // ============================================================================
+
+  // WiGLE Network Type Classifications (https://api.wigle.net/csvFormat.html)
+  // W = WiFi, B = Bluetooth, E = BLE, G = GSM, C = CDMA, D = WCDMA, L = LTE, N = NR (5G), F = NFC
+  function inferRadioType(radioType, ssid, frequency, capabilities) {
+    // If database has a valid radio_type, use it
+    if (radioType && radioType !== '' && radioType !== null) {
+      return radioType;
+    }
+
+    const ssidUpper = String(ssid || '').toUpperCase();
+    const capUpper = String(capabilities || '').toUpperCase();
+
+    // Check for 5G NR (New Radio)
+    if (ssidUpper.includes('5G') || capUpper.includes('NR') || capUpper.includes('5G NR')) {
+      return 'N';
+    }
+
+    // Check for LTE (4G)
+    if (
+      ssidUpper.includes('LTE') ||
+      ssidUpper.includes('4G') ||
+      capUpper.includes('LTE') ||
+      capUpper.includes('EARFCN')
+    ) {
+      return 'L';
+    }
+
+    // Check for WCDMA (3G)
+    if (
+      ssidUpper.includes('WCDMA') ||
+      ssidUpper.includes('3G') ||
+      ssidUpper.includes('UMTS') ||
+      capUpper.includes('WCDMA') ||
+      capUpper.includes('UMTS') ||
+      capUpper.includes('UARFCN')
+    ) {
+      return 'D';
+    }
+
+    // Check for GSM (2G)
+    if (
+      ssidUpper.includes('GSM') ||
+      ssidUpper.includes('2G') ||
+      capUpper.includes('GSM') ||
+      capUpper.includes('ARFCN')
+    ) {
+      return 'G';
+    }
+
+    // Check for CDMA
+    if (ssidUpper.includes('CDMA') || capUpper.includes('CDMA')) {
+      return 'C';
+    }
+
+    // Check for generic cellular keywords
+    const cellularKeywords = ['T-MOBILE', 'VERIZON', 'AT&T', 'ATT', 'SPRINT', 'CARRIER', '3GPP'];
+    if (cellularKeywords.some((keyword) => ssidUpper.includes(keyword))) {
+      return 'L'; // Default cellular to LTE
+    }
+
+    // Check for BLE (Bluetooth Low Energy)
+    if (
+      ssidUpper.includes('[UNKNOWN / SPOOFED RADIO]') ||
+      ssidUpper.includes('BLE') ||
+      ssidUpper.includes('BTLE') ||
+      capUpper.includes('BLE') ||
+      capUpper.includes('BTLE') ||
+      capUpper.includes('BLUETOOTH LOW ENERGY')
+    ) {
+      return 'E';
+    }
+
+    // Check for Bluetooth Classic
+    if (ssidUpper.includes('BLUETOOTH') || capUpper.includes('BLUETOOTH')) {
+      if (!capUpper.includes('LOW ENERGY') && !capUpper.includes('BLE')) {
+        return 'B';
+      }
+      return 'E'; // Default Bluetooth to BLE if ambiguous
+    }
+
+    // Check frequency ranges
+    if (frequency) {
+      const freq = parseInt(frequency, 10);
+
+      // WiFi 2.4GHz band (2400-2500 MHz)
+      if (freq >= 2412 && freq <= 2484) {
+        return 'W';
+      }
+
+      // WiFi 5GHz band (5000-6000 MHz)
+      if (freq >= 5000 && freq <= 5900) {
+        return 'W';
+      }
+
+      // WiFi 6GHz band (5925-7125 MHz)
+      if (freq >= 5925 && freq <= 7125) {
+        return 'W';
+      }
+    }
+
+    // Check capabilities for WiFi keywords
+    if (
+      capUpper.includes('WPA') ||
+      capUpper.includes('WEP') ||
+      capUpper.includes('WPS') ||
+      capUpper.includes('RSN') ||
+      capUpper.includes('ESS') ||
+      capUpper.includes('CCMP') ||
+      capUpper.includes('TKIP')
+    ) {
+      return 'W';
+    }
+
+    // Unknown - don't default to WiFi
+    return '?';
+  }
+
   try {
     // ============================================================================
     // 1. CORE DEPENDENCIES
@@ -342,7 +462,12 @@ delete process.env.PGUSER;
               timestamp: row.observed_at,
               manufacturer: 'Unknown',
               device_type: 'Unknown',
-              type: row.radio_type || 'W',
+              type: inferRadioType(
+                row.radio_type,
+                row.ssid,
+                row.radio_frequency,
+                row.radio_capabilities
+              ),
               channel: row.radio_frequency ? Math.floor((row.radio_frequency - 2407) / 5) : null,
               frequency: row.radio_frequency || null,
               capabilities: row.radio_capabilities || '',
