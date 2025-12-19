@@ -677,6 +677,53 @@ export default function GeospatialExplorer() {
             }
           });
 
+          // Add home marker and circle
+          map.addSource('home-location', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Point',
+                    coordinates: INITIAL_VIEW.center,
+                  },
+                  properties: {
+                    title: 'Home',
+                  },
+                },
+              ],
+            },
+          });
+
+          // Home circle (100m radius)
+          map.addLayer({
+            id: 'home-circle',
+            type: 'circle',
+            source: 'home-location',
+            paint: {
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 8, 15, 25, 20, 100],
+              'circle-color': '#10b981',
+              'circle-opacity': 0.1,
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#10b981',
+              'circle-stroke-opacity': 0.8,
+            },
+          });
+
+          // Home marker
+          map.addLayer({
+            id: 'home-marker',
+            type: 'symbol',
+            source: 'home-location',
+            layout: {
+              'text-field': '🏠',
+              'text-size': 20,
+              'text-anchor': 'center',
+            },
+          });
+
           setMapReady(true);
         });
 
