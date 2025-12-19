@@ -14,6 +14,7 @@ CREATE UNLOGGED TABLE staging_locations_all_enriched (
   altitude double precision NOT NULL,
   accuracy double precision NOT NULL,
   time_ms bigint NOT NULL,
+  observed_at_ms bigint NOT NULL,
   observed_at timestamptz NOT NULL,
   external boolean NOT NULL,
   mfgrid integer NOT NULL,
@@ -23,7 +24,7 @@ CREATE UNLOGGED TABLE staging_locations_all_enriched (
 
 INSERT INTO staging_locations_all_enriched (
   device_id, source_pk, bssid, ssid, level, lat, lon, altitude, accuracy,
-  time_ms, observed_at, external, mfgrid, source_tag, geom
+  time_ms, observed_at_ms, observed_at, external, mfgrid, source_tag, geom
 )
 SELECT
   l.device_id,
@@ -36,6 +37,7 @@ SELECT
   l.altitude,
   l.accuracy,
   l.time_ms,
+  l.time_ms AS observed_at_ms,
   to_timestamp(l.time_ms / 1000.0) AS observed_at,
   CASE WHEN l.external IS NOT NULL AND l.external <> 0 THEN true ELSE false END AS external,
   l.mfgrid,

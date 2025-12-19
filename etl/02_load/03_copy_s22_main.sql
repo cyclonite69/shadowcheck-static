@@ -15,3 +15,10 @@ DELETE FROM staging_networks WHERE device_id = 's22_main';
   device_id, bssid, ssid, frequency, capabilities, lasttime, lastlat, lastlon,
   type, bestlevel, bestlat, bestlon, rcois, mfgrid, service
 ) FROM :'networks_csv' CSV;
+
+\if :{?device_locale}
+DO $$
+BEGIN
+  UPDATE device_sources SET locale = :'device_locale' WHERE code = 's22_main';
+END$$;
+\endif
