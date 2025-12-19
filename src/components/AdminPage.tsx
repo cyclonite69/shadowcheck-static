@@ -631,6 +631,74 @@ const AdminPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Geocoding Panel */}
+        <div
+          className="panel"
+          style={{
+            background: '#0f1e34',
+            opacity: 0.95,
+            border: '1px solid #20324d',
+            borderRadius: '12px',
+            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
+            outline: '1px solid rgba(19, 34, 58, 0.6)',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+            <div className="flex items-center gap-2">
+              <Settings size={18} className="text-yellow-400" />
+              <h3 className="text-sm font-semibold text-white">Geocoding</h3>
+            </div>
+          </div>
+          <div className="panel-content" style={{ padding: '16px' }}>
+            <div className="text-sm text-secondary mb-4">Convert addresses to coordinates</div>
+
+            <div className="mb-4">
+              <label className="text-xs font-medium mb-2 block">Address</label>
+              <input
+                type="text"
+                placeholder="123 Main St, City, State"
+                className="w-full p-2 rounded bg-slate-800 border border-slate-600 text-white text-sm"
+                id="geocode-input"
+              />
+            </div>
+
+            <button
+              onClick={async () => {
+                const input = document.getElementById('geocode-input') as HTMLInputElement;
+                const address = input?.value;
+                if (!address) return;
+
+                try {
+                  setIsLoading(true);
+                  const response = await fetch('/api/geocode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address }),
+                  });
+                  const data = await response.json();
+
+                  if (response.ok && data.lat && data.lng) {
+                    alert(
+                      `Coordinates: ${data.lat}, ${data.lng}\nFormatted: ${data.formatted_address || address}`
+                    );
+                  } else {
+                    alert('Geocoding failed: ' + (data.error || 'Unknown error'));
+                  }
+                } catch (error) {
+                  alert('Geocoding request failed');
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+              className="btn btn-sm w-full bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50"
+            >
+              🌍 Geocode Address
+            </button>
+          </div>
+        </div>
+
         {/* Export/Data Management Panel */}
         <div
           className="panel"
