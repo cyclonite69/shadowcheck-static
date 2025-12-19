@@ -6,7 +6,7 @@ import PageTitle from './PageTitle';
 type NetworkRow = {
   bssid: string;
   ssid: string;
-  type: 'W' | 'E' | 'B' | 'L' | null;
+  type: 'W' | 'E' | 'B' | 'G' | 'C' | 'D' | 'L' | 'N' | 'F' | '?' | null;
   signal: number | null;
   security: string | null;
   frequency: number | null;
@@ -51,13 +51,20 @@ const NETWORK_COLUMNS: Record<
 };
 
 const TypeBadge = ({ type }: { type: NetworkRow['type'] }) => {
+  // WiGLE Network Type Classifications
   const types: Record<string, { label: string; color: string }> = {
     W: { label: 'WiFi', color: '#3b82f6' },
     E: { label: 'BLE', color: '#8b5cf6' },
     B: { label: 'BT', color: '#06b6d4' },
+    G: { label: 'GSM', color: '#f59e0b' },
+    C: { label: 'CDMA', color: '#f97316' },
+    D: { label: '3G', color: '#84cc16' },
     L: { label: 'LTE', color: '#10b981' },
+    N: { label: '5G', color: '#ec4899' },
+    F: { label: 'NFC', color: '#6366f1' },
+    '?': { label: 'Unknown', color: '#6b7280' },
   };
-  const config = types[type || 'W'] || types.W;
+  const config = types[type || '?'] || types['?'];
   return (
     <span
       className="px-2 py-1 rounded text-xs font-semibold"
@@ -810,7 +817,7 @@ export default function GeospatialExplorer() {
           return {
             bssid: bssidValue,
             ssid: row.ssid || '(hidden)',
-            type: (row.type || 'W') as NetworkRow['type'],
+            type: (row.type || '?') as NetworkRow['type'],
             signal: typeof row.signal === 'number' ? row.signal : null,
             security: securityValue,
             frequency: typeof row.frequency === 'number' ? row.frequency : null,
@@ -1848,7 +1855,7 @@ export default function GeospatialExplorer() {
                           );
                         }
                         if (col === 'type') {
-                          content = <TypeBadge type={(value as NetworkRow['type']) || 'W'} />;
+                          content = <TypeBadge type={(value as NetworkRow['type']) || '?'} />;
                         } else if (col === 'signal') {
                           const signalValue = value as number | null;
                           let color = '#6b7280';
