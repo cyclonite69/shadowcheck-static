@@ -635,6 +635,20 @@ export default function GeospatialExplorer() {
     setSelectedNetworks(new Set([bssid]));
   };
 
+  const toggleSelectAll = () => {
+    if (selectedNetworks.size === filteredNetworks.length) {
+      // All selected, deselect all
+      setSelectedNetworks(new Set());
+    } else {
+      // Some or none selected, select all visible
+      setSelectedNetworks(new Set(filteredNetworks.map((n) => n.bssid)));
+    }
+  };
+
+  const allSelected =
+    filteredNetworks.length > 0 && selectedNetworks.size === filteredNetworks.length;
+  const someSelected = selectedNetworks.size > 0 && selectedNetworks.size < filteredNetworks.length;
+
   // Update map observations when selection changes
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -1365,7 +1379,19 @@ export default function GeospatialExplorer() {
                         borderRight: '1px solid rgba(71, 85, 105, 0.2)',
                       }}
                     >
-                      {column.label}
+                      {col === 'select' ? (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected;
+                          }}
+                          onChange={toggleSelectAll}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      ) : (
+                        column.label
+                      )}
                     </th>
                   );
                 })}
