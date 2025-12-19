@@ -268,10 +268,22 @@ delete process.env.PGUSER;
         const { bbox: _bbox, limit: _limit } = req.query;
 
         const result = await query(`
-          SELECT bssid, ssid, level, lat, lon, altitude, accuracy, 
-                 observed_at, device_id, source_tag,
-                 ST_AsGeoJSON(geom)::json as geometry
-          FROM public.observations 
+          SELECT
+            bssid,
+            ssid,
+            level,
+            lat,
+            lon,
+            altitude,
+            accuracy,
+            observed_at,
+            device_id,
+            source_tag,
+            radio_type,
+            radio_frequency,
+            radio_capabilities,
+            ST_AsGeoJSON(geom)::json as geometry
+          FROM public.observations
           WHERE geom IS NOT NULL
           ORDER BY observed_at DESC
         `);
@@ -285,16 +297,17 @@ delete process.env.PGUSER;
               bssid: row.bssid,
               ssid: row.ssid || 'Hidden Network',
               bestlevel: row.level || 0,
-              max_signal: row.level || 0,
+              signal: row.level || 0,
               first_seen: row.observed_at,
               last_seen: row.observed_at,
+              timestamp: row.observed_at,
               manufacturer: 'Unknown',
               device_type: 'Unknown',
-              encryption: 'Unknown',
-              channel: 'Unknown',
-              frequency: 'Unknown',
-              type: 'W',
-              capabilities: 'Unknown',
+              type: row.radio_type || 'W',
+              channel: row.radio_frequency ? Math.floor((row.radio_frequency - 2407) / 5) : null,
+              frequency: row.radio_frequency || null,
+              capabilities: row.radio_capabilities || '',
+              encryption: row.radio_capabilities || 'Open/Unknown',
               device_id: row.device_id,
               source_tag: row.source_tag,
               altitude: row.altitude,
