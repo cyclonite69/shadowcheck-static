@@ -138,6 +138,15 @@ const calculateSignalRange = (
   return Math.max(3, Math.min(radiusPixels, 250));
 };
 
+// Signal strength interpretation (from Kepler)
+const interpretSignalStrength = (signal: number): { color: string; text: string } => {
+  if (signal > -50) return { color: '#22c55e', text: 'Excellent' };
+  if (signal > -60) return { color: '#84cc16', text: 'Good' };
+  if (signal > -70) return { color: '#fbbf24', text: 'Fair' };
+  if (signal > -80) return { color: '#f97316', text: 'Weak' };
+  return { color: '#ef4444', text: 'Very Weak' };
+};
+
 // BSSID-based color generation (from ShadowCheckLite)
 const macColor = (mac: string): string => {
   if (!mac || mac.length < 6) return '#999999';
@@ -642,45 +651,59 @@ export default function GeospatialExplorer() {
               });
             }
 
-            // Create signal strength class
-            let signalClass = 'signal-weak';
-            if (props.signal >= -50) signalClass = 'signal-strong';
-            else if (props.signal >= -70) signalClass = 'signal-medium';
+            // Interpret signal strength
+            const signalStrength = interpretSignalStrength(props.signal || 0);
 
             const popupHTML = `
-              <div style="color: #1e293b; font-family: system-ui; max-width: 280px;">
-                <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #0f172a;">
-                  Observation #${props.number}
-                </div>
-                <div style="font-size: 12px; margin-bottom: 6px;">
-                  <strong>BSSID:</strong> <span style="font-family: monospace; color: ${bssidColor};">${props.bssid}</span>
-                </div>
-                <div style="font-size: 12px; margin-bottom: 6px;">
-                  <strong>Signal:</strong>
-                  <span style="color: ${signalClass === 'signal-strong' ? '#10b981' : signalClass === 'signal-medium' ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
-                    ${props.signal ? `${props.signal} dBm` : 'N/A'}
-                  </span>
-                </div>
-                ${
-                  props.signal
-                    ? `
-                  <div style="margin: 8px 0; display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 11px; color: #64748b;">Signal Range:</span>
-                    <div style="
-                      width: ${Math.min(signalRadius / 3, 40)}px;
-                      height: ${Math.min(signalRadius / 3, 40)}px;
-                      border: 2px solid ${bssidColor};
-                      border-radius: 50%;
-                      background: ${bssidColor}20;
-                      display: inline-block;
-                    "></div>
-                    <span style="font-size: 11px; color: #64748b;">${Math.round(signalRadius)}px radius</span>
+              <div style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%); color: #f8fafc; padding: 16px; border-radius: 12px; max-width: 400px; font-size: 11px; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(59, 130, 246, 0.2);">
+                  <div style="background: ${bssidColor}20; border: 2px solid ${bssidColor}; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: ${bssidColor};">
+                    ${props.number}
                   </div>
+                  <div style="flex: 1;">
+                    <div style="color: #60a5fa; font-weight: bold; font-size: 14px;">Observation #${props.number}</div>
+                    <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">${props.bssid}</div>
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                  <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
+                    <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Signal</span>
+                    <div style="margin-top: 3px;">
+                      <span style="color: ${signalStrength.color}; font-weight: bold;">${props.signal || 0} dBm</span>
+                      <div style="color: #64748b; font-size: 9px; margin-top: 2px;">${signalStrength.text}</div>
+                    </div>
+                  </div>
+                  <div style="background: rgba(59, 130, 246, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15);">
+                    <span style="color: #94a3b8; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Range</span>
+                    <div style="margin-top: 3px;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 16px; height: 16px; border: 2px solid ${bssidColor}; border-radius: 50%; background: ${bssidColor}20;"></div>
+                        <span style="color: #e2e8f0; font-size: 10px; font-weight: 600;">${Math.round(signalRadius)}px</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                ${
+                  props.time
+                    ? `
+                <div style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%); padding: 10px; border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.3); margin-bottom: 10px;">
+                  <div style="color: #fbbf24; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;">⏱️ Observed</div>
+                  <div style="color: #fde68a; font-weight: 600; font-size: 11px;">${new Date(props.time).toLocaleString()}</div>
+                </div>
                 `
                     : ''
                 }
-                <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
-                  ${props.time ? new Date(props.time).toLocaleString() : 'Time unknown'}
+
+                <div style="border-top: 1px solid rgba(59, 130, 246, 0.2); padding-top: 8px; margin-top: 8px;">
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 10px;">
+                    <span style="color: #94a3b8;">Network Color:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <div style="width: 12px; height: 12px; background: ${bssidColor}; border-radius: 2px; border: 1px solid rgba(255, 255, 255, 0.2);"></div>
+                      <span style="font-family: 'Courier New', monospace; color: #94a3b8;">${bssidColor}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             `;
