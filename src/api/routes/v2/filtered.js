@@ -115,15 +115,28 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
   if (!enabled.distanceFromHomeMin && !enabled.distanceFromHomeMax) {
     return true;
   }
-  const home = await query("SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1");
-  if (home.rowCount === 0) {
-    res.status(400).json({
-      ok: false,
-      error: 'Home location is required for distance filters.',
-    });
-    return false;
+  try {
+    const home = await query(
+      "SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
+    );
+    if (home.rowCount === 0) {
+      res.status(400).json({
+        ok: false,
+        error: 'Home location is required for distance filters.',
+      });
+      return false;
+    }
+    return true;
+  } catch (err) {
+    if (err && err.code === '42P01') {
+      res.status(400).json({
+        ok: false,
+        error: 'Home location markers table is missing (app.location_markers).',
+      });
+      return false;
+    }
+    throw err;
   }
-  return true;
 };
 
 // GET /api/v2/networks/filtered

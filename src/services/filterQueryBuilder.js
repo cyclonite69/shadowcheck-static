@@ -109,6 +109,41 @@ const WIFI_CHANNEL_EXPR = (alias = 'o') => `
   END
 `;
 
+const NETWORK_CHANNEL_EXPR = (alias = 'ne') => `
+  CASE
+    WHEN ${alias}.frequency BETWEEN 2412 AND 2484 THEN
+      CASE
+        WHEN ${alias}.frequency = 2484 THEN 14
+        ELSE FLOOR((${alias}.frequency - 2412) / 5) + 1
+      END
+    WHEN ${alias}.frequency BETWEEN 5000 AND 5900 THEN FLOOR((${alias}.frequency - 5000) / 5)
+    WHEN ${alias}.frequency BETWEEN 5925 AND 7125 THEN FLOOR((${alias}.frequency - 5925) / 5)
+    ELSE NULL
+  END
+`;
+
+const NETWORK_ONLY_FILTERS = new Set([
+  'ssid',
+  'bssid',
+  'manufacturer',
+  'radioTypes',
+  'frequencyBands',
+  'channelMin',
+  'channelMax',
+  'rssiMin',
+  'rssiMax',
+  'encryptionTypes',
+  'securityFlags',
+  'observationCountMin',
+  'observationCountMax',
+  'gpsAccuracyMax',
+  'excludeInvalidCoords',
+  'distanceFromHomeMin',
+  'distanceFromHomeMax',
+  'threatScoreMin',
+  'threatScoreMax',
+  'threatCategories',
+]);
 const normalizeEnabled = (enabled) => {
   if (!enabled || typeof enabled !== 'object') {
     return { ...DEFAULT_ENABLED };
@@ -233,7 +268,7 @@ class UniversalFilterQueryBuilder {
 
     if (e.manufacturer && f.manufacturer) {
       const cleaned = coerceOui(f.manufacturer);
-      this.obsJoins.add('JOIN public.access_points ap ON ap.bssid = o.bssid');
+      this.obsJoins.add('JOIN public.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       this.obsJoins.add(
         "LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(ap.bssid, 1, 8), ':', '')) = rm.prefix_24bit"
       );
@@ -247,9 +282,8 @@ class UniversalFilterQueryBuilder {
     }
 
     if (e.networkId && f.networkId) {
-      this.obsJoins.add('JOIN app.networks an ON an.bssid = o.bssid');
-      where.push(`an.unified_id = ${this.addParam(f.networkId)}`);
-      this.addApplied('identity', 'networkId', f.networkId);
+      this.addIgnored('identity', 'networkId', 'unsupported_backend');
+      this.warnings.push('networkId filter ignored (app.networks not available).');
     }
 
     if (e.radioTypes && Array.isArray(f.radioTypes) && f.radioTypes.length > 0) {
@@ -363,7 +397,7 @@ class UniversalFilterQueryBuilder {
     if (e.timeframe && f.timeframe) {
       const scope = f.temporalScope || 'observation_time';
       if (scope === 'network_lifetime') {
-        this.obsJoins.add('JOIN public.access_points ap ON ap.bssid = o.bssid');
+        this.obsJoins.add('JOIN public.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
       }
       if (scope === 'threat_window') {
         this.warnings.push(
@@ -537,6 +571,349 @@ class UniversalFilterQueryBuilder {
   }
 
   buildNetworkListQuery({ limit = 500, offset = 0, orderBy = 'last_observed_at DESC' } = {}) {
+    const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
+    if (noFiltersEnabled) {
+      const safeOrderBy = orderBy
+        .replace(/\bl\.observed_at\b/g, 'COALESCE(ola.time, ne.observed_at)')
+        .replace(/\bl\.level\b/g, 'COALESCE(ola.level, ne.signal)')
+        .replace(/\bl\.lat\b/g, 'ne.lat')
+        .replace(/\bl\.lon\b/g, 'ne.lon')
+        .replace(/\bl\.accuracy\b/g, 'COALESCE(ola.accuracy, ne.accuracy_meters)')
+        .replace(/\br\.observation_count\b/g, 'ne.observations')
+        .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
+        .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
+        .replace(/\bs\.stationary_confidence\b/g, 'ne.last_seen');
+
+      const sql = `
+        WITH obs_latest_any AS (
+          SELECT DISTINCT ON (bssid)
+            bssid,
+            ssid,
+            level,
+            accuracy,
+            time,
+            radio_type,
+            radio_frequency,
+            radio_capabilities
+          FROM public.observations
+          WHERE bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF')
+            AND time >= '2000-01-01 00:00:00+00'::timestamptz
+          ORDER BY bssid, time DESC
+        )
+        SELECT
+          ne.bssid,
+          COALESCE(ola.ssid, ne.ssid) AS ssid,
+          CASE
+            WHEN ola.radio_type IS NULL
+              AND ola.radio_frequency IS NULL
+              AND COALESCE(ola.radio_capabilities, '') = ''
+            THEN ne.type
+            ELSE ${OBS_TYPE_EXPR('ola')}
+          END AS type,
+          CASE
+            WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ne.security
+            ELSE ${SECURITY_EXPR('ola')}
+          END AS security,
+          COALESCE(ola.radio_frequency, ne.frequency) AS frequency,
+          COALESCE(ola.radio_capabilities, ne.capabilities) AS capabilities,
+          ne.is_5ghz,
+          ne.is_6ghz,
+          ne.is_hidden,
+          ne.first_seen,
+          ne.last_seen,
+          ne.manufacturer,
+          ne.manufacturer_address,
+          ne.min_altitude_m,
+          ne.max_altitude_m,
+          ne.altitude_span_m,
+          ne.max_distance_meters,
+          ne.last_altitude_m,
+          ne.is_sentinel,
+          ne.distance_from_home_km,
+          ne.observations AS observations,
+          ne.first_seen AS first_observed_at,
+          ne.last_seen AS last_observed_at,
+          NULL::integer AS unique_days,
+          NULL::integer AS unique_locations,
+          NULL::numeric AS avg_signal,
+          NULL::numeric AS min_signal,
+          NULL::numeric AS max_signal,
+          COALESCE(ola.time, ne.observed_at) AS observed_at,
+          COALESCE(ola.level, ne.signal) AS signal,
+          ne.lat,
+          ne.lon,
+          COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
+          NULL::numeric AS stationary_confidence,
+          ne.threat,
+          NULL::text AS network_id
+        FROM public.api_network_explorer ne
+        LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
+        ORDER BY ${safeOrderBy}
+        LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
+      `;
+
+      return {
+        sql,
+        params: [limit, offset],
+        appliedFilters: this.appliedFilters,
+        ignoredFilters: this.ignoredFilters,
+        warnings: this.warnings,
+      };
+    }
+
+    const enabledKeys = Object.entries(this.enabled)
+      .filter(([, value]) => value)
+      .map(([key]) => key);
+    const networkOnly = enabledKeys.length > 0 && enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key));
+    if (networkOnly) {
+      const f = this.filters;
+      const e = this.enabled;
+      const where = [];
+      const networkTypeExpr = `
+        CASE
+          WHEN ola.radio_type IS NULL
+            AND ola.radio_frequency IS NULL
+            AND COALESCE(ola.radio_capabilities, '') = ''
+          THEN ne.type
+          ELSE ${OBS_TYPE_EXPR('ola')}
+        END
+      `;
+      const networkSecurityExpr = `
+        CASE
+          WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ne.security
+          ELSE ${SECURITY_EXPR('ola')}
+        END
+      `;
+      const networkFrequencyExpr = 'COALESCE(ola.radio_frequency, ne.frequency)';
+      const networkSignalExpr = 'COALESCE(ola.level, ne.signal)';
+      const networkChannelExpr = `
+        CASE
+          WHEN ${networkFrequencyExpr} BETWEEN 2412 AND 2484 THEN
+            CASE
+              WHEN ${networkFrequencyExpr} = 2484 THEN 14
+              ELSE FLOOR((${networkFrequencyExpr} - 2412) / 5) + 1
+            END
+          WHEN ${networkFrequencyExpr} BETWEEN 5000 AND 5900 THEN
+            FLOOR((${networkFrequencyExpr} - 5000) / 5)
+          WHEN ${networkFrequencyExpr} BETWEEN 5925 AND 7125 THEN
+            FLOOR((${networkFrequencyExpr} - 5925) / 5)
+          ELSE NULL
+        END
+      `;
+
+      if (e.ssid && f.ssid) {
+        where.push(`ne.ssid ILIKE ${this.addParam(`%${f.ssid}%`)}`);
+        this.addApplied('identity', 'ssid', f.ssid);
+      }
+      if (e.bssid && f.bssid) {
+        const value = String(f.bssid).toUpperCase();
+        if (value.length === 17) {
+          where.push(`UPPER(ne.bssid) = ${this.addParam(value)}`);
+        } else {
+          where.push(`UPPER(ne.bssid) LIKE ${this.addParam(`${value}%`)}`);
+        }
+        this.addApplied('identity', 'bssid', f.bssid);
+      }
+      if (e.manufacturer && f.manufacturer) {
+        const cleaned = coerceOui(f.manufacturer);
+        if (isOui(cleaned)) {
+          where.push(
+            `UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = ${this.addParam(cleaned)}`
+          );
+          this.addApplied('identity', 'manufacturerOui', cleaned);
+        } else {
+          where.push(`ne.manufacturer ILIKE ${this.addParam(`%${f.manufacturer}%`)}`);
+          this.addApplied('identity', 'manufacturer', f.manufacturer);
+        }
+      }
+      if (e.radioTypes && Array.isArray(f.radioTypes) && f.radioTypes.length > 0) {
+        where.push(`${networkTypeExpr} = ANY(${this.addParam(f.radioTypes)})`);
+        this.addApplied('radio', 'radioTypes', f.radioTypes);
+      }
+      if (e.frequencyBands && Array.isArray(f.frequencyBands) && f.frequencyBands.length > 0) {
+        const bandConditions = f.frequencyBands.map((band) => {
+          if (band === '2.4GHz') return `(${networkFrequencyExpr} BETWEEN 2412 AND 2484)`;
+          if (band === '5GHz') return `(${networkFrequencyExpr} BETWEEN 5000 AND 5900)`;
+          if (band === '6GHz') return `(${networkFrequencyExpr} BETWEEN 5925 AND 7125)`;
+          if (band === 'BLE') return `${networkTypeExpr} = 'E'`;
+          if (band === 'Cellular') return `${networkTypeExpr} IN ('L', 'G', 'N')`;
+          return null;
+        });
+        const clauses = bandConditions.filter(Boolean);
+        if (clauses.length > 0) {
+          where.push(`(${clauses.join(' OR ')})`);
+          this.addApplied('radio', 'frequencyBands', f.frequencyBands);
+        }
+      }
+      if (e.channelMin && f.channelMin !== undefined) {
+        where.push(`(${networkChannelExpr} >= ${this.addParam(f.channelMin)})`);
+        this.addApplied('radio', 'channelMin', f.channelMin);
+      }
+      if (e.channelMax && f.channelMax !== undefined) {
+        where.push(`(${networkChannelExpr} <= ${this.addParam(f.channelMax)})`);
+        this.addApplied('radio', 'channelMax', f.channelMax);
+      }
+      if (e.rssiMin && f.rssiMin !== undefined) {
+        where.push(`${networkSignalExpr} >= ${this.addParam(f.rssiMin)}`);
+        this.addApplied('radio', 'rssiMin', f.rssiMin);
+      }
+      if (e.rssiMax && f.rssiMax !== undefined) {
+        where.push(`${networkSignalExpr} <= ${this.addParam(f.rssiMax)}`);
+        this.addApplied('radio', 'rssiMax', f.rssiMax);
+      }
+      if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
+        where.push(`${networkSecurityExpr} = ANY(${this.addParam(f.encryptionTypes)})`);
+        this.addApplied('security', 'encryptionTypes', f.encryptionTypes);
+      }
+      if (e.securityFlags && Array.isArray(f.securityFlags) && f.securityFlags.length > 0) {
+        const flagClauses = [];
+        if (f.securityFlags.includes('insecure')) {
+          flagClauses.push(`${networkSecurityExpr} IN ('OPEN', 'WEP', 'WPS')`);
+        }
+        if (f.securityFlags.includes('deprecated')) {
+          flagClauses.push(`${networkSecurityExpr} = 'WEP'`);
+        }
+        if (f.securityFlags.includes('enterprise')) {
+          flagClauses.push(`${networkSecurityExpr} IN ('WPA2-E', 'WPA3-E')`);
+        }
+        if (f.securityFlags.includes('personal')) {
+          flagClauses.push(`${networkSecurityExpr} IN ('WPA', 'WPA2-P', 'WPA3-P')`);
+        }
+        if (f.securityFlags.includes('unknown')) {
+          flagClauses.push(`${networkSecurityExpr} = 'Unknown'`);
+        }
+        if (flagClauses.length > 0) {
+          where.push(`(${flagClauses.join(' OR ')})`);
+          this.addApplied('security', 'securityFlags', f.securityFlags);
+        }
+      }
+      if (e.observationCountMin && f.observationCountMin !== undefined) {
+        where.push(`ne.observations >= ${this.addParam(f.observationCountMin)}`);
+        this.addApplied('quality', 'observationCountMin', f.observationCountMin);
+      }
+      if (e.observationCountMax && f.observationCountMax !== undefined) {
+        where.push(`ne.observations <= ${this.addParam(f.observationCountMax)}`);
+        this.addApplied('quality', 'observationCountMax', f.observationCountMax);
+      }
+      if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
+        where.push(`ne.accuracy_meters <= ${this.addParam(f.gpsAccuracyMax)}`);
+        this.addApplied('quality', 'gpsAccuracyMax', f.gpsAccuracyMax);
+      }
+      if (e.excludeInvalidCoords && f.excludeInvalidCoords) {
+        where.push('ne.lat IS NOT NULL AND ne.lon IS NOT NULL');
+        this.addApplied('quality', 'excludeInvalidCoords', f.excludeInvalidCoords);
+      }
+      if (e.distanceFromHomeMin && f.distanceFromHomeMin !== undefined) {
+        where.push(`ne.distance_from_home_km >= ${this.addParam(f.distanceFromHomeMin)}`);
+        this.addApplied('spatial', 'distanceFromHomeMin', f.distanceFromHomeMin);
+      }
+      if (e.distanceFromHomeMax && f.distanceFromHomeMax !== undefined) {
+        where.push(`ne.distance_from_home_km <= ${this.addParam(f.distanceFromHomeMax)}`);
+        this.addApplied('spatial', 'distanceFromHomeMax', f.distanceFromHomeMax);
+      }
+      if (e.threatScoreMin && f.threatScoreMin !== undefined) {
+        where.push(`(ne.threat->>'score')::numeric * 100 >= ${this.addParam(f.threatScoreMin)}`);
+        this.addApplied('threat', 'threatScoreMin', f.threatScoreMin);
+      }
+      if (e.threatScoreMax && f.threatScoreMax !== undefined) {
+        where.push(`(ne.threat->>'score')::numeric * 100 <= ${this.addParam(f.threatScoreMax)}`);
+        this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
+      }
+      if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
+        where.push(`LOWER(ne.threat->>'level') = ANY(${this.addParam(f.threatCategories)})`);
+        this.addApplied('threat', 'threatCategories', f.threatCategories);
+      }
+
+      const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+      const safeOrderBy = orderBy
+        .replace(/\bl\.observed_at\b/g, 'COALESCE(ola.time, ne.observed_at)')
+        .replace(/\bl\.level\b/g, 'COALESCE(ola.level, ne.signal)')
+        .replace(/\bl\.lat\b/g, 'ne.lat')
+        .replace(/\bl\.lon\b/g, 'ne.lon')
+        .replace(/\bl\.accuracy\b/g, 'COALESCE(ola.accuracy, ne.accuracy_meters)')
+        .replace(/\br\.observation_count\b/g, 'ne.observations')
+        .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
+        .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
+        .replace(/\bs\.stationary_confidence\b/g, 'ne.last_seen');
+
+      const sql = `
+        WITH obs_latest_any AS (
+          SELECT DISTINCT ON (bssid)
+            bssid,
+            ssid,
+            level,
+            accuracy,
+            time,
+            radio_type,
+            radio_frequency,
+            radio_capabilities
+          FROM public.observations
+          WHERE bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF')
+            AND time >= '2000-01-01 00:00:00+00'::timestamptz
+          ORDER BY bssid, time DESC
+        )
+        SELECT
+          ne.bssid,
+          COALESCE(ola.ssid, ne.ssid) AS ssid,
+          CASE
+            WHEN ola.radio_type IS NULL
+              AND ola.radio_frequency IS NULL
+              AND COALESCE(ola.radio_capabilities, '') = ''
+            THEN ne.type
+            ELSE ${OBS_TYPE_EXPR('ola')}
+          END AS type,
+          CASE
+            WHEN COALESCE(ola.radio_capabilities, '') = '' THEN ne.security
+            ELSE ${SECURITY_EXPR('ola')}
+          END AS security,
+          COALESCE(ola.radio_frequency, ne.frequency) AS frequency,
+          COALESCE(ola.radio_capabilities, ne.capabilities) AS capabilities,
+          ne.is_5ghz,
+          ne.is_6ghz,
+          ne.is_hidden,
+          ne.first_seen,
+          ne.last_seen,
+          ne.manufacturer,
+          ne.manufacturer_address,
+          ne.min_altitude_m,
+          ne.max_altitude_m,
+          ne.altitude_span_m,
+          ne.max_distance_meters,
+          ne.last_altitude_m,
+          ne.is_sentinel,
+          ne.distance_from_home_km,
+          ne.observations AS observations,
+          ne.first_seen AS first_observed_at,
+          ne.last_seen AS last_observed_at,
+          NULL::integer AS unique_days,
+          NULL::integer AS unique_locations,
+          NULL::numeric AS avg_signal,
+          NULL::numeric AS min_signal,
+          NULL::numeric AS max_signal,
+          COALESCE(ola.time, ne.observed_at) AS observed_at,
+          COALESCE(ola.level, ne.signal) AS signal,
+          ne.lat,
+          ne.lon,
+          COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
+          NULL::numeric AS stationary_confidence,
+          ne.threat,
+          NULL::text AS network_id
+        FROM public.api_network_explorer ne
+        LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
+        ${whereClause}
+        ORDER BY ${safeOrderBy}
+        LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
+      `;
+
+      return {
+        sql,
+        params: [...this.params],
+        appliedFilters: this.appliedFilters,
+        ignoredFilters: this.ignoredFilters,
+        warnings: this.warnings,
+      };
+    }
+
     const { cte, params } = this.buildFilteredObservationsCte();
     const networkWhere = this.buildNetworkWhere();
 
@@ -610,11 +987,20 @@ class UniversalFilterQueryBuilder {
       )
       SELECT
         ne.bssid,
-        ne.ssid,
-        ne.type,
-        ne.security,
-        ne.frequency,
-        ne.capabilities,
+        COALESCE(l.ssid, ne.ssid) AS ssid,
+        CASE
+          WHEN l.radio_type IS NULL
+            AND l.radio_frequency IS NULL
+            AND COALESCE(l.radio_capabilities, '') = ''
+          THEN ne.type
+          ELSE ${OBS_TYPE_EXPR('l')}
+        END AS type,
+        CASE
+          WHEN COALESCE(l.radio_capabilities, '') = '' THEN ne.security
+          ELSE ${SECURITY_EXPR('l')}
+        END AS security,
+        COALESCE(l.radio_frequency, ne.frequency) AS frequency,
+        COALESCE(l.radio_capabilities, ne.capabilities) AS capabilities,
         ne.is_5ghz,
         ne.is_6ghz,
         ne.is_hidden,
@@ -638,18 +1024,17 @@ class UniversalFilterQueryBuilder {
         r.min_signal,
         r.max_signal,
         l.observed_at,
-        l.level AS signal,
+        COALESCE(l.level, ne.signal) AS signal,
         l.lat,
         l.lon,
         l.accuracy AS accuracy_meters,
         s.stationary_confidence,
         ne.threat,
-        an.unified_id AS network_id
+        NULL::text AS network_id
       FROM obs_rollup r
       JOIN obs_latest l ON l.bssid = r.bssid
       JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-      LEFT JOIN app.networks an ON an.bssid = r.bssid
       ${whereClause}
       ORDER BY ${orderBy}
       LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
@@ -657,7 +1042,7 @@ class UniversalFilterQueryBuilder {
 
     return {
       sql,
-      params: [...params, limit, offset],
+      params: [...params],
       appliedFilters: this.appliedFilters,
       ignoredFilters: this.ignoredFilters,
       warnings: this.warnings,
@@ -665,6 +1050,132 @@ class UniversalFilterQueryBuilder {
   }
 
   buildNetworkCountQuery() {
+    const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
+    if (noFiltersEnabled) {
+      return {
+        sql: 'SELECT COUNT(*) AS total FROM public.api_network_explorer',
+        params: [],
+      };
+    }
+
+    const enabledKeys = Object.entries(this.enabled)
+      .filter(([, value]) => value)
+      .map(([key]) => key);
+    const networkOnly = enabledKeys.length > 0 && enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key));
+    if (networkOnly) {
+      const f = this.filters;
+      const e = this.enabled;
+      const where = [];
+
+      if (e.ssid && f.ssid) {
+        where.push(`ne.ssid ILIKE ${this.addParam(`%${f.ssid}%`)}`);
+      }
+      if (e.bssid && f.bssid) {
+        const value = String(f.bssid).toUpperCase();
+        if (value.length === 17) {
+          where.push(`UPPER(ne.bssid) = ${this.addParam(value)}`);
+        } else {
+          where.push(`UPPER(ne.bssid) LIKE ${this.addParam(`${value}%`)}`);
+        }
+      }
+      if (e.manufacturer && f.manufacturer) {
+        const cleaned = coerceOui(f.manufacturer);
+        if (isOui(cleaned)) {
+          where.push(
+            `UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = ${this.addParam(cleaned)}`
+          );
+        } else {
+          where.push(`ne.manufacturer ILIKE ${this.addParam(`%${f.manufacturer}%`)}`);
+        }
+      }
+      if (e.radioTypes && Array.isArray(f.radioTypes) && f.radioTypes.length > 0) {
+        where.push(`ne.type = ANY(${this.addParam(f.radioTypes)})`);
+      }
+      if (e.frequencyBands && Array.isArray(f.frequencyBands) && f.frequencyBands.length > 0) {
+        const bandConditions = f.frequencyBands.map((band) => {
+          if (band === '2.4GHz') return '(ne.frequency BETWEEN 2412 AND 2484)';
+          if (band === '5GHz') return '(ne.frequency BETWEEN 5000 AND 5900)';
+          if (band === '6GHz') return '(ne.frequency BETWEEN 5925 AND 7125)';
+          if (band === 'BLE') return "ne.type = 'E'";
+          if (band === 'Cellular') return "ne.type IN ('L', 'G', 'N')";
+          return null;
+        });
+        const clauses = bandConditions.filter(Boolean);
+        if (clauses.length > 0) {
+          where.push(`(${clauses.join(' OR ')})`);
+        }
+      }
+      if (e.channelMin && f.channelMin !== undefined) {
+        where.push(`${NETWORK_CHANNEL_EXPR('ne')} >= ${this.addParam(f.channelMin)}`);
+      }
+      if (e.channelMax && f.channelMax !== undefined) {
+        where.push(`${NETWORK_CHANNEL_EXPR('ne')} <= ${this.addParam(f.channelMax)}`);
+      }
+      if (e.rssiMin && f.rssiMin !== undefined) {
+        where.push(`ne.signal >= ${this.addParam(f.rssiMin)}`);
+      }
+      if (e.rssiMax && f.rssiMax !== undefined) {
+        where.push(`ne.signal <= ${this.addParam(f.rssiMax)}`);
+      }
+      if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
+        where.push(`ne.security = ANY(${this.addParam(f.encryptionTypes)})`);
+      }
+      if (e.securityFlags && Array.isArray(f.securityFlags) && f.securityFlags.length > 0) {
+        const flagClauses = [];
+        if (f.securityFlags.includes('insecure')) {
+          flagClauses.push(`ne.security IN ('OPEN', 'WEP', 'WPS')`);
+        }
+        if (f.securityFlags.includes('deprecated')) {
+          flagClauses.push(`ne.security = 'WEP'`);
+        }
+        if (f.securityFlags.includes('enterprise')) {
+          flagClauses.push(`ne.security IN ('WPA2-E', 'WPA3-E')`);
+        }
+        if (f.securityFlags.includes('personal')) {
+          flagClauses.push(`ne.security IN ('WPA', 'WPA2-P', 'WPA3-P')`);
+        }
+        if (f.securityFlags.includes('unknown')) {
+          flagClauses.push(`ne.security = 'Unknown'`);
+        }
+        if (flagClauses.length > 0) {
+          where.push(`(${flagClauses.join(' OR ')})`);
+        }
+      }
+      if (e.observationCountMin && f.observationCountMin !== undefined) {
+        where.push(`ne.observations >= ${this.addParam(f.observationCountMin)}`);
+      }
+      if (e.observationCountMax && f.observationCountMax !== undefined) {
+        where.push(`ne.observations <= ${this.addParam(f.observationCountMax)}`);
+      }
+      if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
+        where.push(`ne.accuracy_meters <= ${this.addParam(f.gpsAccuracyMax)}`);
+      }
+      if (e.excludeInvalidCoords && f.excludeInvalidCoords) {
+        where.push('ne.lat IS NOT NULL AND ne.lon IS NOT NULL');
+      }
+      if (e.distanceFromHomeMin && f.distanceFromHomeMin !== undefined) {
+        where.push(`ne.distance_from_home_km >= ${this.addParam(f.distanceFromHomeMin)}`);
+      }
+      if (e.distanceFromHomeMax && f.distanceFromHomeMax !== undefined) {
+        where.push(`ne.distance_from_home_km <= ${this.addParam(f.distanceFromHomeMax)}`);
+      }
+      if (e.threatScoreMin && f.threatScoreMin !== undefined) {
+        where.push(`(ne.threat->>'score')::numeric * 100 >= ${this.addParam(f.threatScoreMin)}`);
+      }
+      if (e.threatScoreMax && f.threatScoreMax !== undefined) {
+        where.push(`(ne.threat->>'score')::numeric * 100 <= ${this.addParam(f.threatScoreMax)}`);
+      }
+      if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
+        where.push(`LOWER(ne.threat->>'level') = ANY(${this.addParam(f.threatCategories)})`);
+      }
+
+      const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+      return {
+        sql: `SELECT COUNT(*) AS total FROM public.api_network_explorer ne ${whereClause}`,
+        params: [...this.params],
+      };
+    }
+
     const { cte, params } = this.buildFilteredObservationsCte();
     const networkWhere = this.buildNetworkWhere();
     const whereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
@@ -785,7 +1296,8 @@ class UniversalFilterQueryBuilder {
     const selectionWhere = [];
 
     if (Array.isArray(selectedBssids) && selectedBssids.length > 0) {
-      selectionWhere.push(`o.bssid = ANY(${this.addParam(selectedBssids)})`);
+      const normalized = selectedBssids.map((value) => String(value).toUpperCase());
+      selectionWhere.push(`UPPER(o.bssid) = ANY(${this.addParam(normalized)})`);
     }
 
     const whereClause = selectionWhere.length > 0 ? `AND ${selectionWhere.join(' AND ')}` : '';
@@ -807,7 +1319,7 @@ class UniversalFilterQueryBuilder {
         ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
         ne.threat
       FROM filtered_obs o
-      JOIN public.api_network_explorer ne ON ne.bssid = o.bssid
+      LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
       WHERE o.lat IS NOT NULL
         AND o.lon IS NOT NULL
         ${whereClause}
@@ -817,7 +1329,7 @@ class UniversalFilterQueryBuilder {
 
     return {
       sql,
-      params: [...params, limit],
+      params: [...params],
       appliedFilters: this.appliedFilters,
       ignoredFilters: this.ignoredFilters,
       warnings: this.warnings,

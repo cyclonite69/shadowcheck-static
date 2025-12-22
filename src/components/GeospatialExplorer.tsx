@@ -335,6 +335,7 @@ export default function GeospatialExplorer() {
   const [sort, setSort] = useState<SortState[]>([{ column: 'lastSeen', direction: 'desc' }]);
   const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
   const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [loadingNetworks, setLoadingNetworks] = useState(false);
   const [loadingObservations, setLoadingObservations] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1615,9 +1616,25 @@ export default function GeospatialExplorer() {
           'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
       }}
     >
+      {filtersOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '52px',
+            left: '12px',
+            bottom: '12px',
+            width: '320px',
+            zIndex: 55,
+          }}
+        >
+          <FilterPanel />
+        </div>
+      )}
       <div className="flex h-screen">
-        <FilterPanel />
-        <div className="flex flex-col gap-3 p-3 h-screen flex-1">
+        <div
+          className="flex flex-col gap-3 p-3 h-screen flex-1"
+          style={{ marginLeft: filtersOpen ? '332px' : 0 }}
+        >
           {/* Map Card */}
           <div
             className="overflow-hidden"
@@ -1973,6 +1990,22 @@ export default function GeospatialExplorer() {
                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                   Filters apply across list + map.
                 </span>
+                <button
+                  onClick={() => setFiltersOpen((open) => !open)}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    background: filtersOpen ? 'rgba(59, 130, 246, 0.9)' : 'rgba(30, 41, 59, 0.9)',
+                    border: filtersOpen
+                      ? '1px solid rgba(59, 130, 246, 0.8)'
+                      : '1px solid rgba(148, 163, 184, 0.3)',
+                    color: '#f8fafc',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {filtersOpen ? 'Hide Filters' : 'Show Filters'}
+                </button>
                 <div className="relative" ref={columnDropdownRef}>
                   <button
                     onClick={() => setShowColumnSelector((v) => !v)}
