@@ -194,7 +194,14 @@ router.get('/networks', async (req, res, next) => {
       lat: 'lat',
       lon: 'lon',
       manufacturer: 'manufacturer',
+      manufacturer_address: 'manufacturer_address',
       capabilities: 'capabilities',
+      min_altitude_m: 'min_altitude_m',
+      max_altitude_m: 'max_altitude_m',
+      altitude_span_m: 'altitude_span_m',
+      max_distance_meters: 'max_distance_meters',
+      last_altitude_m: 'last_altitude_m',
+      is_sentinel: 'is_sentinel',
       timespan_days: 'EXTRACT(EPOCH FROM (last_observed_at - first_observed_at)) / 86400.0',
     };
 
