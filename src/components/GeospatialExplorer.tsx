@@ -63,6 +63,7 @@ type Observation = {
   signal?: number | null;
   time?: string;
   frequency?: number | null;
+  altitude?: number | null;
   acc?: number | null;
   distance_from_home_km?: number | null;
 };
@@ -495,7 +496,12 @@ export default function GeospatialExplorer() {
   useEffect(() => {
     setPagination({ offset: 0, hasMore: true });
     setNetworks([]);
-  }, [JSON.stringify(debouncedFilterState), debouncedQuickSearch, JSON.stringify(sort), locationMode]);
+  }, [
+    JSON.stringify(debouncedFilterState),
+    debouncedQuickSearch,
+    JSON.stringify(sort),
+    locationMode,
+  ]);
 
   // Update container height on window resize
   useEffect(() => {
@@ -543,6 +549,13 @@ export default function GeospatialExplorer() {
     () => activeObservationSets.reduce((acc, set) => acc + set.observations.length, 0),
     [activeObservationSets]
   );
+  const networkLookup = useMemo(() => {
+    const map = new Map<string, NetworkRow>();
+    networks.forEach((net) => {
+      map.set(net.bssid, net);
+    });
+    return map;
+  }, [networks]);
 
   // Handle resize drag
   const handleMouseDown = useCallback(
@@ -689,6 +702,8 @@ export default function GeospatialExplorer() {
               'text-field': ['get', 'number'],
               'text-size': 12,
               'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
             },
             paint: {
               'text-color': '#ffffff',
@@ -712,45 +727,98 @@ export default function GeospatialExplorer() {
             if (props.signal >= -50) signalClass = 'signal-strong';
             else if (props.signal >= -70) signalClass = 'signal-medium';
 
+            const formatFrequency = (freq) => {
+              if (!freq) return 'N/A';
+              if (freq >= 1000) return `${(freq / 1000).toFixed(1)} GHz`;
+              return `${freq} MHz`;
+            };
+            const threatLevel = String(props.threatLevel || 'LOW').toUpperCase();
+            const threatColor =
+              threatLevel === 'HIGH' ? '#ef4444' : threatLevel === 'MEDIUM' ? '#f59e0b' : '#10b981';
+            const timespanText =
+              typeof props.timespan_days === 'number'
+                ? `${props.timespan_days} days`
+                : props.first_seen && props.last_seen
+                  ? `${Math.max(
+                      1,
+                      Math.ceil(
+                        (new Date(props.last_seen).getTime() -
+                          new Date(props.first_seen).getTime()) /
+                          86400000
+                      )
+                    )} days`
+                  : 'N/A';
+
             const popupHTML = `
-              <div style="color: #1e293b; font-family: system-ui; max-width: 280px;">
-                <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #0f172a;">
-                  Observation #${props.number}
+              <div style="background: linear-gradient(145deg, #0f1419 0%, #1a1f2e 100%); color: #ffffff; border-radius: 12px; padding: 14px; box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 11px; line-height: 1.4; max-width: 280px; position: relative;">
+                <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent); border-radius: 16px 16px 0 0;"></div>
+                <div style="font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+                  <span>${props.ssid || '(hidden)'}</span>
+                  <span style="background: linear-gradient(135deg, ${bssidColor}55, ${bssidColor}22); border: 2px solid ${bssidColor}; border-radius: 10px; padding: 4px 10px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; color: #f8fafc; box-shadow: 0 0 12px ${bssidColor}33;">
+                    Observation #${props.number}
+                  </span>
                 </div>
-                <div style="font-size: 12px; margin-bottom: 6px;">
-                  <strong>BSSID:</strong> <span style="font-family: monospace; color: ${bssidColor};">${props.bssid}</span>
+
+                <div style="margin-bottom: 3px; color: #d1d5db; display: flex; justify-content: space-between; font-size: 10.5px;">
+                  <span style="color: #9ca3af; font-weight: 500;">MAC</span>
+                  <span style="font-family: monospace; color: ${bssidColor}; font-weight: 600;">${props.bssid}</span>
                 </div>
-                <div style="font-size: 12px; margin-bottom: 6px;">
-                  <strong>Signal:</strong> 
-                  <span style="color: ${signalClass === 'signal-strong' ? '#10b981' : signalClass === 'signal-medium' ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
+                <div style="margin-bottom: 3px; color: #d1d5db; display: flex; justify-content: space-between; font-size: 10.5px;">
+                  <span style="color: #9ca3af; font-weight: 500;">Manufacturer</span>
+                  <span style="font-family: monospace; color: #f3f4f6; font-weight: 500;">${props.manufacturer || 'Unknown'}</span>
+                </div>
+                <div style="margin-bottom: 3px; color: #d1d5db; display: flex; justify-content: space-between; font-size: 10.5px;">
+                  <span style="color: #9ca3af; font-weight: 500;">Frequency</span>
+                  <span style="font-family: monospace; color: #f3f4f6; font-weight: 500;">${formatFrequency(props.frequency)}</span>
+                </div>
+                <div style="margin-bottom: 3px; color: #d1d5db; display: flex; justify-content: space-between; font-size: 10.5px;">
+                  <span style="color: #9ca3af; font-weight: 500;">Signal</span>
+                  <span style="font-family: monospace; font-weight: 600; color: ${signalClass === 'signal-strong' ? '#10b981' : signalClass === 'signal-medium' ? '#f59e0b' : '#ef4444'};">
                     ${props.signal ? `${props.signal} dBm` : 'N/A'}
                   </span>
                 </div>
-                ${
-                  props.signal
-                    ? `
-                  <div style="margin: 8px 0; display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 11px; color: #64748b;">Signal Range:</span>
-                    <div style="
-                      width: ${Math.min(signalRadius / 3, 40)}px; 
-                      height: ${Math.min(signalRadius / 3, 40)}px; 
-                      border: 2px solid ${bssidColor}; 
-                      border-radius: 50%; 
-                      background: ${bssidColor}20; 
-                      display: inline-block;
-                    "></div>
-                    <span style="font-size: 11px; color: #64748b;">${Math.round(signalRadius)}px radius</span>
+                <div style="margin-bottom: 3px; color: #d1d5db; display: flex; justify-content: space-between; font-size: 10.5px;">
+                  <span style="color: #9ca3af; font-weight: 500;">Encryption</span>
+                  <span style="font-family: monospace; color: #f3f4f6; font-weight: 500;">${props.security || 'Unknown'}</span>
+                </div>
+                <div style="margin-bottom: 3px; color: #d1d5db; display: flex; justify-content: space-between; font-size: 10.5px;">
+                  <span style="color: #9ca3af; font-weight: 500;">Threat Level</span>
+                  <span style="font-family: monospace; color: ${threatColor}; font-weight: 600;">${threatLevel}</span>
+                </div>
+
+                <div style="margin: 10px 0; padding: 8px; background: rgba(99, 102, 241, 0.05); border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.15);">
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: #9ca3af;">Latitude</span>
+                    <span style="color: #e5e7eb; font-weight: 600;">${feature.geometry.coordinates[1].toFixed(4)}°</span>
                   </div>
-                `
-                    : ''
-                }
-                <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
-                  ${props.time ? new Date(props.time).toLocaleString() : 'Time unknown'}
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: #9ca3af;">Longitude</span>
+                    <span style="color: #e5e7eb; font-weight: 600;">${feature.geometry.coordinates[0].toFixed(4)}°</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: #9ca3af;">Altitude</span>
+                    <span style="color: #e5e7eb; font-weight: 600;">${props.altitude != null ? `${props.altitude.toFixed(0)} m` : 'N/A'}</span>
+                  </div>
+                </div>
+
+                <div style="margin-top: 10px; padding: 10px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.2);">
+                  <div style="display: flex; flex-direction: column; gap: 4px; font-size: 10px;">
+                    ${props.time ? `<div style="display: flex; justify-content: space-between; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid rgba(139, 92, 246, 0.15);"><span style="color: #a78bfa; font-weight: 600;">Observed</span><span style="color: #e9d5ff; font-weight: 700;">${new Date(props.time).toLocaleString()}</span></div>` : ''}
+                    ${props.first_seen ? `<div style="display: flex; justify-content: space-between;"><span style="color: #9ca3af;">First</span><span style="color: #c4b5fd; font-weight: 600;">${new Date(props.first_seen).toLocaleString()}</span></div>` : ''}
+                    ${props.last_seen ? `<div style="display: flex; justify-content: space-between;"><span style="color: #9ca3af;">Last</span><span style="color: #c4b5fd; font-weight: 600;">${new Date(props.last_seen).toLocaleString()}</span></div>` : ''}
+                  </div>
+                  <div style="padding-top: 6px; border-top: 1px solid rgba(139, 92, 246, 0.2); text-align: center; font-size: 11px; font-weight: 600; color: #a78bfa; letter-spacing: 0.3px; margin-top: 6px;">
+                    <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px; display: block; margin-bottom: 2px;">Timespan</span>
+                    ${timespanText}
+                  </div>
                 </div>
               </div>
             `;
 
-            new mapboxgl.Popup({ offset: 15 }).setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
+            new mapboxgl.Popup({ offset: 15, className: 'sc-popup' })
+              .setLngLat(e.lngLat)
+              .setHTML(popupHTML)
+              .addTo(map);
           });
 
           // Add hover circle source and layer
@@ -785,11 +853,6 @@ export default function GeospatialExplorer() {
             const feature = e.features[0];
             const props = feature.properties;
             if (!props || !e.lngLat) return;
-
-            // Remove existing hover popup
-            if (hoverPopupRef.current) {
-              hoverPopupRef.current.remove();
-            }
 
             const currentZoom = map.getZoom();
             const signalRadius = calculateSignalRange(props.signal, props.frequency, currentZoom);
@@ -842,70 +905,6 @@ export default function GeospatialExplorer() {
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
               return diffDays === 0 ? 'Same day' : `${diffDays} days`;
             };
-
-            const popupHTML = `
-              <div style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%); color: #f8fafc; padding: 12px; border-radius: 8px; max-width: 280px; font-size: 11px; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(59, 130, 246, 0.2);">
-                  <div style="background: ${bssidColor}20; border: 2px solid ${bssidColor}; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: ${bssidColor};">
-                    ${props.number}
-                  </div>
-                  <div style="flex: 1;">
-                    <div style="color: #60a5fa; font-weight: bold; font-size: 12px;">Obs #${props.number}</div>
-                    <div style="color: #94a3b8; font-size: 9px; font-family: monospace;">${props.bssid}</div>
-                  </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; font-size: 10px;">
-                  <div>
-                    <span style="color: #94a3b8; font-size: 8px;">Signal:</span>
-                    <span style="color: ${signalStrength.color}; font-weight: bold; margin-left: 4px;">${props.signal ? `${props.signal}dBm` : 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span style="color: #94a3b8; font-size: 8px;">Freq:</span>
-                    <span style="color: #e2e8f0; font-weight: bold; margin-left: 4px;">${props.frequency ? `${props.frequency}MHz` : 'N/A'}</span>
-                    ${wifiChannel ? `<span style="color: #64748b; font-size: 8px; margin-left: 4px;">(Ch${wifiChannel})</span>` : ''}
-                  </div>
-                </div>
-
-                ${
-                  props.first_seen || props.last_seen
-                    ? `
-                <div style="background: rgba(251, 191, 36, 0.1); padding: 6px; border-radius: 4px; margin-bottom: 8px; font-size: 9px;">
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                    ${props.first_seen ? `<div><span style="color: #92400e;">First:</span> <span style="color: #fbbf24;">${new Date(props.first_seen).toLocaleDateString()}</span></div>` : ''}
-                    ${props.last_seen ? `<div><span style="color: #92400e;">Last:</span> <span style="color: #fbbf24;">${new Date(props.last_seen).toLocaleDateString()}</span></div>` : ''}
-                  </div>
-                </div>
-                `
-                    : ''
-                }
-
-                ${
-                  props.time
-                    ? `
-                <div style="background: rgba(34, 197, 94, 0.1); padding: 6px; border-radius: 4px; margin-bottom: 8px; font-size: 9px;">
-                  <div style="color: #15803d;">This obs:</div>
-                  <div style="color: #22c55e; font-weight: 600;">${new Date(props.time).toLocaleString()}</div>
-                  ${props.accuracy ? `<div style="color: #15803d; margin-top: 2px;">±${props.accuracy}m accuracy</div>` : ''}
-                </div>
-                `
-                    : ''
-                }
-
-                <div style="font-size: 9px; color: #64748b; text-align: center;">
-                  ${feature.geometry.coordinates[1].toFixed(4)}, ${feature.geometry.coordinates[0].toFixed(4)}
-                </div>
-              </div>
-            `;
-
-            hoverPopupRef.current = new mapboxgl.Popup({
-              offset: 15,
-              closeButton: false,
-              closeOnClick: false,
-            })
-              .setLngLat(e.lngLat)
-              .setHTML(popupHTML)
-              .addTo(map);
           });
 
           map.on('mouseleave', 'observation-points', () => {
@@ -1092,7 +1091,11 @@ export default function GeospatialExplorer() {
         if (enabled.bssid && filters.bssid) {
           params.set('bssid', String(filters.bssid));
         }
-        if (enabled.radioTypes && Array.isArray(filters.radioTypes) && filters.radioTypes.length > 0) {
+        if (
+          enabled.radioTypes &&
+          Array.isArray(filters.radioTypes) &&
+          filters.radioTypes.length > 0
+        ) {
           params.set('radioTypes', filters.radioTypes.join(','));
         }
         if (enabled.rssiMin && filters.rssiMin !== undefined) {
@@ -1123,17 +1126,11 @@ export default function GeospatialExplorer() {
         const liveState = useFilterStore.getState().getAPIFilters();
         const liveMaxDistance = toFiniteNumber(liveState.filters.distanceFromHomeMax);
         if (liveState.enabled.distanceFromHomeMax && liveMaxDistance !== null) {
-          params.set(
-            'distance_from_home_km_max',
-            String(liveMaxDistance / 1000)
-          );
+          params.set('distance_from_home_km_max', String(liveMaxDistance / 1000));
         }
         const liveMinDistance = toFiniteNumber(liveState.filters.distanceFromHomeMin);
         if (liveState.enabled.distanceFromHomeMin && liveMinDistance !== null) {
-          params.set(
-            'distance_from_home_km_min',
-            String(liveMinDistance / 1000)
-          );
+          params.set('distance_from_home_km_min', String(liveMinDistance / 1000));
         }
         if (enabled.timeframe && filters.timeframe?.type === 'relative') {
           const window = filters.timeframe.relativeWindow || '30d';
@@ -1259,7 +1256,11 @@ export default function GeospatialExplorer() {
               : null;
 
           const channelValue =
-            typeof row.channel === 'number' ? row.channel : isWiFi ? calculateChannel(frequency) : null;
+            typeof row.channel === 'number'
+              ? row.channel
+              : isWiFi
+                ? calculateChannel(frequency)
+                : null;
 
           return {
             bssid: bssidValue,
@@ -1349,11 +1350,11 @@ export default function GeospatialExplorer() {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         const { scrollTop, scrollHeight, clientHeight } = container;
-    if (scrollHeight - scrollTop <= clientHeight + 200) {
-      // Trigger earlier
-      const currentScrollTop = scrollTop; // Save scroll position
-      setIsLoadingMore(true);
-      loadMore();
+        if (scrollHeight - scrollTop <= clientHeight + 200) {
+          // Trigger earlier
+          const currentScrollTop = scrollTop; // Save scroll position
+          setIsLoadingMore(true);
+          loadMore();
 
           // Restore scroll position after a brief delay
           setTimeout(() => {
@@ -1450,16 +1451,22 @@ export default function GeospatialExplorer() {
 
         const grouped = allRows.reduce((acc: Record<string, Observation[]>, row: any) => {
           const bssid = String(row.bssid || '').toUpperCase();
+          const lat = typeof row.lat === 'number' ? row.lat : parseFloat(row.lat);
+          const lon = typeof row.lon === 'number' ? row.lon : parseFloat(row.lon);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+            return acc;
+          }
           if (!acc[bssid]) acc[bssid] = [];
           acc[bssid].push({
             id: row.obs_number || `${bssid}-${row.time}`,
             bssid,
-            lat: row.lat,
-            lon: row.lon,
+            lat,
+            lon,
             signal: typeof row.level === 'number' ? row.level : (row.level ?? null),
             time: row.time,
             frequency: typeof row.radio_frequency === 'number' ? row.radio_frequency : null,
             acc: row.accuracy ?? null,
+            altitude: typeof row.altitude === 'number' ? row.altitude : null,
           });
           return acc;
         }, {});
@@ -1552,22 +1559,50 @@ export default function GeospatialExplorer() {
     });
 
     // Create numbered point features for each observation (numbered per network)
+    const jitterIndex = new Map<string, number>();
     const features = activeObservationSets.flatMap((set) =>
-      set.observations.map((obs, index) => ({
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [obs.lon, obs.lat],
-        },
-        properties: {
-          bssid: obs.bssid,
-          signal: obs.signal,
-          time: obs.time,
-          frequency: obs.frequency,
-          number: index + 1, // Start at 1 for each network
-          color: bssidColors[obs.bssid],
-        },
-      }))
+      set.observations.map((obs, index) => {
+        const network = networkLookup.get(obs.bssid);
+        const threatLevel = network?.threat?.level || (network?.threat ? 'HIGH' : 'LOW');
+        const lat = obs.lat;
+        const lon = obs.lon;
+        const coordKey = `${lat.toFixed(6)}:${lon.toFixed(6)}`;
+        const seenCount = jitterIndex.get(coordKey) ?? 0;
+        jitterIndex.set(coordKey, seenCount + 1);
+        let displayLat = lat;
+        let displayLon = lon;
+        if (seenCount > 0) {
+          const angle = seenCount * 2.399963229728653; // golden angle in radians
+          const radius = Math.min(0.00015, 0.00002 * Math.sqrt(seenCount));
+          displayLat = lat + Math.sin(angle) * radius;
+          displayLon = lon + Math.cos(angle) * radius;
+        }
+
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [displayLon, displayLat],
+          },
+          properties: {
+            bssid: obs.bssid,
+            signal: obs.signal,
+            time: obs.time,
+            frequency: obs.frequency,
+            altitude: obs.altitude,
+            ssid: network?.ssid || '(hidden)',
+            manufacturer: network?.manufacturer || null,
+            security: network?.security || null,
+            threatLevel,
+            first_seen: network?.firstSeen || null,
+            last_seen: network?.lastSeen || null,
+            timespan_days: typeof network?.timespanDays === 'number' ? network.timespanDays : null,
+            type: network?.type || null,
+            number: index + 1, // Start at 1 for each network
+            color: bssidColors[obs.bssid],
+          },
+        };
+      })
     );
 
     // Create line features connecting observations for each network
@@ -1608,7 +1643,7 @@ export default function GeospatialExplorer() {
       );
       map.fitBounds(bounds, { padding: 50, duration: 1000 });
     }
-  }, [activeObservationSets, mapReady]);
+  }, [activeObservationSets, mapReady, networkLookup]);
 
   const toggleColumn = (col: keyof NetworkRow | 'select') => {
     setVisibleColumns((v) => (v.includes(col) ? v.filter((c) => c !== col) : [...v, col]));
@@ -1698,6 +1733,8 @@ export default function GeospatialExplorer() {
           'text-field': ['get', 'number'],
           'text-size': 12,
           'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
         },
         paint: {
           'text-color': '#ffffff',
@@ -1715,18 +1752,36 @@ export default function GeospatialExplorer() {
       // Re-render observations
       if (activeObservationSets.length > 0) {
         const features = activeObservationSets.flatMap((set) =>
-          set.observations.map((obs) => ({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [obs.lon, obs.lat],
-            },
-            properties: {
-              bssid: obs.bssid,
-              signal: obs.signal,
-              time: obs.time,
-            },
-          }))
+          set.observations.map((obs, index) => {
+            const network = networkLookup.get(obs.bssid);
+            const threatLevel = network?.threat?.level || (network?.threat ? 'HIGH' : 'LOW');
+
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [obs.lon, obs.lat],
+              },
+              properties: {
+                bssid: obs.bssid,
+                signal: obs.signal,
+                time: obs.time,
+                frequency: obs.frequency,
+                altitude: obs.altitude,
+                ssid: network?.ssid || '(hidden)',
+                manufacturer: network?.manufacturer || null,
+                security: network?.security || null,
+                threatLevel,
+                first_seen: network?.firstSeen || null,
+                last_seen: network?.lastSeen || null,
+                timespan_days:
+                  typeof network?.timespanDays === 'number' ? network.timespanDays : null,
+                type: network?.type || null,
+                number: index + 1,
+                color: macColor(obs.bssid),
+              },
+            };
+          })
         );
 
         if (mapRef.current.getSource('observations')) {
@@ -2746,16 +2801,16 @@ export default function GeospatialExplorer() {
                       cursor: isLoadingMore ? 'not-allowed' : 'pointer',
                       opacity: isLoadingMore ? 0.6 : 1,
                     }}
-                >
-                  {isLoadingMore ? 'Loading…' : 'Load more'}
-                </button>
-                {isLoadingMore && (
-                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
-                    Fetching more rows…
-                  </div>
-                )}
-              </div>
-            )}
+                  >
+                    {isLoadingMore ? 'Loading…' : 'Load more'}
+                  </button>
+                  {isLoadingMore && (
+                    <div style={{ marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
+                      Fetching more rows…
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Footer */}

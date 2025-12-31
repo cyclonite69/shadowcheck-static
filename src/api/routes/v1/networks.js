@@ -5,7 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { pool, query, CONFIG } = require('../../../config/database');
+const { pool, query } = require('../../../config/database');
+const { escapeLikePattern } = require('../../../utils/escapeSQL');
 
 // Utility: Sanitize BSSID
 function sanitizeBSSID(bssid) {
@@ -206,9 +207,13 @@ router.get('/networks', async (req, res, next) => {
     };
 
     const parseSortJson = (value) => {
-      if (!value) {return null;}
+      if (!value) {
+        return null;
+      }
       const trimmed = String(value).trim();
-      if (!(trimmed.startsWith('[') || trimmed.startsWith('{'))) {return null;}
+      if (!(trimmed.startsWith('[') || trimmed.startsWith('{'))) {
+        return null;
+      }
       try {
         return JSON.parse(trimmed);
       } catch {
@@ -225,13 +230,21 @@ router.get('/networks', async (req, res, next) => {
     if (Array.isArray(parsedSortJson) || (parsedSortJson && typeof parsedSortJson === 'object')) {
       const entries = Array.isArray(parsedSortJson) ? parsedSortJson : [parsedSortJson];
       entries.forEach((entry) => {
-        if (!entry || typeof entry !== 'object') {return;}
-        const column = String(entry.column || '').trim().toLowerCase();
-        if (!sortColumnMap[column]) {
-          if (column) {ignoredSorts.push(column);}
+        if (!entry || typeof entry !== 'object') {
           return;
         }
-        const dir = String(entry.direction || 'ASC').trim().toUpperCase();
+        const column = String(entry.column || '')
+          .trim()
+          .toLowerCase();
+        if (!sortColumnMap[column]) {
+          if (column) {
+            ignoredSorts.push(column);
+          }
+          return;
+        }
+        const dir = String(entry.direction || 'ASC')
+          .trim()
+          .toUpperCase();
         sortEntries.push({ column, direction: ['ASC', 'DESC'].includes(dir) ? dir : 'ASC' });
       });
     } else {
@@ -242,14 +255,12 @@ router.get('/networks', async (req, res, next) => {
       const orderColumns = Array.isArray(parsedOrderJson)
         ? parsedOrderJson.map((v) => String(v).trim().toUpperCase())
         : String(orderRaw)
-          .split(',')
-          .map((value) => value.trim().toUpperCase())
-          .filter(Boolean);
+            .split(',')
+            .map((value) => value.trim().toUpperCase())
+            .filter(Boolean);
 
       const normalizedOrders =
-        orderColumns.length === 1
-          ? sortColumns.map(() => orderColumns[0])
-          : orderColumns;
+        orderColumns.length === 1 ? sortColumns.map(() => orderColumns[0]) : orderColumns;
 
       sortColumns.forEach((col, idx) => {
         if (!sortColumnMap[col]) {
@@ -482,12 +493,8 @@ router.get('/networks', async (req, res, next) => {
         b.ssid,
         b.type,
         b.observed_at,
-        COALESCE(${
-  locationMode === 'centroid' ? 'c.lat' : 'w.lat'
-}, b.lat) AS lat,
-        COALESCE(${
-  locationMode === 'centroid' ? 'c.lon' : 'w.lon'
-}, b.lon) AS lon,
+        COALESCE(${locationMode === 'centroid' ? 'c.lat' : 'w.lat'}, b.lat) AS lat,
+        COALESCE(${locationMode === 'centroid' ? 'c.lon' : 'w.lon'}, b.lon) AS lon,
         b.lat AS raw_lat,
         b.lon AS raw_lon,
         b.accuracy_meters,
