@@ -149,8 +149,24 @@ const normalizeEnabled = (enabled) => {
     return { ...DEFAULT_ENABLED };
   }
   const normalized = { ...DEFAULT_ENABLED };
+  const toBool = (value) => {
+    if (value === true || value === 'true' || value === 1 || value === '1') {
+      return true;
+    }
+    if (
+      value === false ||
+      value === 'false' ||
+      value === 0 ||
+      value === '0' ||
+      value === null ||
+      value === undefined
+    ) {
+      return false;
+    }
+    return Boolean(value);
+  };
   FILTER_KEYS.forEach((key) => {
-    normalized[key] = Boolean(enabled[key]);
+    normalized[key] = toBool(enabled[key]);
   });
   return normalized;
 };
@@ -646,7 +662,7 @@ class UniversalFilterQueryBuilder {
           NULL::numeric AS stationary_confidence,
           ne.threat,
           NULL::text AS network_id
-        FROM public.api_network_explorer ne
+        FROM public.api_network_explorer_full_mv_v2 ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
@@ -664,7 +680,8 @@ class UniversalFilterQueryBuilder {
     const enabledKeys = Object.entries(this.enabled)
       .filter(([, value]) => value)
       .map(([key]) => key);
-    const networkOnly = enabledKeys.length > 0 && enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key));
+    const networkOnly =
+      enabledKeys.length > 0 && enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key));
     if (networkOnly) {
       const f = this.filters;
       const e = this.enabled;
@@ -732,11 +749,21 @@ class UniversalFilterQueryBuilder {
       }
       if (e.frequencyBands && Array.isArray(f.frequencyBands) && f.frequencyBands.length > 0) {
         const bandConditions = f.frequencyBands.map((band) => {
-          if (band === '2.4GHz') return `(${networkFrequencyExpr} BETWEEN 2412 AND 2484)`;
-          if (band === '5GHz') return `(${networkFrequencyExpr} BETWEEN 5000 AND 5900)`;
-          if (band === '6GHz') return `(${networkFrequencyExpr} BETWEEN 5925 AND 7125)`;
-          if (band === 'BLE') return `${networkTypeExpr} = 'E'`;
-          if (band === 'Cellular') return `${networkTypeExpr} IN ('L', 'G', 'N')`;
+          if (band === '2.4GHz') {
+            return `(${networkFrequencyExpr} BETWEEN 2412 AND 2484)`;
+          }
+          if (band === '5GHz') {
+            return `(${networkFrequencyExpr} BETWEEN 5000 AND 5900)`;
+          }
+          if (band === '6GHz') {
+            return `(${networkFrequencyExpr} BETWEEN 5925 AND 7125)`;
+          }
+          if (band === 'BLE') {
+            return `${networkTypeExpr} = 'E'`;
+          }
+          if (band === 'Cellular') {
+            return `${networkTypeExpr} IN ('L', 'G', 'N')`;
+          }
           return null;
         });
         const clauses = bandConditions.filter(Boolean);
@@ -819,7 +846,11 @@ class UniversalFilterQueryBuilder {
         where.push(`(ne.threat->>'score')::numeric * 100 <= ${this.addParam(f.threatScoreMax)}`);
         this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
       }
-      if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
+      if (
+        e.threatCategories &&
+        Array.isArray(f.threatCategories) &&
+        f.threatCategories.length > 0
+      ) {
         where.push(`LOWER(ne.threat->>'level') = ANY(${this.addParam(f.threatCategories)})`);
         this.addApplied('threat', 'threatCategories', f.threatCategories);
       }
@@ -898,7 +929,7 @@ class UniversalFilterQueryBuilder {
           NULL::numeric AS stationary_confidence,
           ne.threat,
           NULL::text AS network_id
-        FROM public.api_network_explorer ne
+        FROM public.api_network_explorer_full_mv_v2 ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         ${whereClause}
         ORDER BY ${safeOrderBy}
@@ -1033,7 +1064,7 @@ class UniversalFilterQueryBuilder {
         NULL::text AS network_id
       FROM obs_rollup r
       JOIN obs_latest l ON l.bssid = r.bssid
-      JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+      JOIN public.api_network_explorer_full_mv_v2 ne ON ne.bssid = r.bssid
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${whereClause}
       ORDER BY ${orderBy}
@@ -1053,7 +1084,7 @@ class UniversalFilterQueryBuilder {
     const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
     if (noFiltersEnabled) {
       return {
-        sql: 'SELECT COUNT(*) AS total FROM public.api_network_explorer',
+        sql: 'SELECT COUNT(*) AS total FROM public.api_network_explorer_full_mv_v2',
         params: [],
       };
     }
@@ -1061,7 +1092,8 @@ class UniversalFilterQueryBuilder {
     const enabledKeys = Object.entries(this.enabled)
       .filter(([, value]) => value)
       .map(([key]) => key);
-    const networkOnly = enabledKeys.length > 0 && enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key));
+    const networkOnly =
+      enabledKeys.length > 0 && enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key));
     if (networkOnly) {
       const f = this.filters;
       const e = this.enabled;
@@ -1093,11 +1125,21 @@ class UniversalFilterQueryBuilder {
       }
       if (e.frequencyBands && Array.isArray(f.frequencyBands) && f.frequencyBands.length > 0) {
         const bandConditions = f.frequencyBands.map((band) => {
-          if (band === '2.4GHz') return '(ne.frequency BETWEEN 2412 AND 2484)';
-          if (band === '5GHz') return '(ne.frequency BETWEEN 5000 AND 5900)';
-          if (band === '6GHz') return '(ne.frequency BETWEEN 5925 AND 7125)';
-          if (band === 'BLE') return "ne.type = 'E'";
-          if (band === 'Cellular') return "ne.type IN ('L', 'G', 'N')";
+          if (band === '2.4GHz') {
+            return '(ne.frequency BETWEEN 2412 AND 2484)';
+          }
+          if (band === '5GHz') {
+            return '(ne.frequency BETWEEN 5000 AND 5900)';
+          }
+          if (band === '6GHz') {
+            return '(ne.frequency BETWEEN 5925 AND 7125)';
+          }
+          if (band === 'BLE') {
+            return "ne.type = 'E'";
+          }
+          if (band === 'Cellular') {
+            return "ne.type IN ('L', 'G', 'N')";
+          }
           return null;
         });
         const clauses = bandConditions.filter(Boolean);
@@ -1123,19 +1165,19 @@ class UniversalFilterQueryBuilder {
       if (e.securityFlags && Array.isArray(f.securityFlags) && f.securityFlags.length > 0) {
         const flagClauses = [];
         if (f.securityFlags.includes('insecure')) {
-          flagClauses.push(`ne.security IN ('OPEN', 'WEP', 'WPS')`);
+          flagClauses.push("ne.security IN ('OPEN', 'WEP', 'WPS')");
         }
         if (f.securityFlags.includes('deprecated')) {
-          flagClauses.push(`ne.security = 'WEP'`);
+          flagClauses.push("ne.security = 'WEP'");
         }
         if (f.securityFlags.includes('enterprise')) {
-          flagClauses.push(`ne.security IN ('WPA2-E', 'WPA3-E')`);
+          flagClauses.push("ne.security IN ('WPA2-E', 'WPA3-E')");
         }
         if (f.securityFlags.includes('personal')) {
-          flagClauses.push(`ne.security IN ('WPA', 'WPA2-P', 'WPA3-P')`);
+          flagClauses.push("ne.security IN ('WPA', 'WPA2-P', 'WPA3-P')");
         }
         if (f.securityFlags.includes('unknown')) {
-          flagClauses.push(`ne.security = 'Unknown'`);
+          flagClauses.push("ne.security = 'Unknown'");
         }
         if (flagClauses.length > 0) {
           where.push(`(${flagClauses.join(' OR ')})`);
@@ -1165,13 +1207,17 @@ class UniversalFilterQueryBuilder {
       if (e.threatScoreMax && f.threatScoreMax !== undefined) {
         where.push(`(ne.threat->>'score')::numeric * 100 <= ${this.addParam(f.threatScoreMax)}`);
       }
-      if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
+      if (
+        e.threatCategories &&
+        Array.isArray(f.threatCategories) &&
+        f.threatCategories.length > 0
+      ) {
         where.push(`LOWER(ne.threat->>'level') = ANY(${this.addParam(f.threatCategories)})`);
       }
 
       const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
       return {
-        sql: `SELECT COUNT(*) AS total FROM public.api_network_explorer ne ${whereClause}`,
+        sql: `SELECT COUNT(*) AS total FROM public.api_network_explorer_full_mv_v2 ne ${whereClause}`,
         params: [...this.params],
       };
     }
@@ -1223,7 +1269,7 @@ class UniversalFilterQueryBuilder {
       )
       SELECT COUNT(DISTINCT r.bssid) AS total
       FROM obs_rollup r
-      JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+      JOIN public.api_network_explorer_full_mv_v2 ne ON ne.bssid = r.bssid
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${whereClause}
     `;
@@ -1291,7 +1337,7 @@ class UniversalFilterQueryBuilder {
     return networkWhere;
   }
 
-  buildGeospatialQuery({ limit = 5000, selectedBssids = [] } = {}) {
+  buildGeospatialQuery({ limit = 5000, offset = 0, selectedBssids = [] } = {}) {
     const { cte, params } = this.buildFilteredObservationsCte();
     const selectionWhere = [];
 
@@ -1307,8 +1353,8 @@ class UniversalFilterQueryBuilder {
       SELECT
         o.bssid,
         o.ssid,
-        o.lat,
-        o.lon,
+        COALESCE(o.lat, ST_Y(o.geom::geometry)) AS lat,
+        COALESCE(o.lon, ST_X(o.geom::geometry)) AS lon,
         o.level,
         o.accuracy,
         o.time,
@@ -1319,12 +1365,13 @@ class UniversalFilterQueryBuilder {
         ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
         ne.threat
       FROM filtered_obs o
-      LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
-      WHERE o.lat IS NOT NULL
-        AND o.lon IS NOT NULL
+      LEFT JOIN public.api_network_explorer_full_mv_v2 ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+      WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
+        OR o.geom IS NOT NULL
         ${whereClause}
       ORDER BY o.time ASC
       LIMIT ${this.addParam(limit)}
+      OFFSET ${this.addParam(offset)}
     `;
 
     return {
@@ -1333,6 +1380,32 @@ class UniversalFilterQueryBuilder {
       appliedFilters: this.appliedFilters,
       ignoredFilters: this.ignoredFilters,
       warnings: this.warnings,
+    };
+  }
+
+  buildGeospatialCountQuery({ selectedBssids = [] } = {}) {
+    const { cte, params } = this.buildFilteredObservationsCte();
+    const selectionWhere = [];
+
+    if (Array.isArray(selectedBssids) && selectedBssids.length > 0) {
+      const normalized = selectedBssids.map((value) => String(value).toUpperCase());
+      selectionWhere.push(`UPPER(o.bssid) = ANY(${this.addParam(normalized)})`);
+    }
+
+    const whereClause = selectionWhere.length > 0 ? `AND ${selectionWhere.join(' AND ')}` : '';
+
+    const sql = `
+      ${cte}
+      SELECT COUNT(*)::bigint AS total
+      FROM filtered_obs o
+      WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
+        OR o.geom IS NOT NULL
+        ${whereClause}
+    `;
+
+    return {
+      sql,
+      params: [...params],
     };
   }
 
@@ -1358,12 +1431,12 @@ class UniversalFilterQueryBuilder {
           END AS network_type,
           COUNT(DISTINCT ne.bssid) AS count
         FROM filtered_obs o
-        JOIN public.api_network_explorer ne ON ne.bssid = o.bssid
+        JOIN public.api_network_explorer_full_mv_v2 ne ON ne.bssid = o.bssid
         GROUP BY network_type
         ORDER BY count DESC
       `),
       signalStrength: base(`
-        WITH latest AS (
+        , latest AS (
           SELECT DISTINCT ON (bssid)
             bssid,
             level
@@ -1408,7 +1481,7 @@ class UniversalFilterQueryBuilder {
           END AS range,
           COUNT(DISTINCT ne.bssid) AS count
         FROM filtered_obs o
-        JOIN public.api_network_explorer ne ON ne.bssid = o.bssid
+        JOIN public.api_network_explorer_mv ne ON ne.bssid = o.bssid
         GROUP BY range
         ORDER BY range DESC
       `),
@@ -1438,7 +1511,7 @@ class UniversalFilterQueryBuilder {
         ORDER BY date, network_type
       `),
       threatTrends: base(`
-        WITH daily_networks AS (
+        , daily_networks AS (
           SELECT
             DATE_TRUNC('day', o.time) AS date,
             o.bssid
@@ -1454,7 +1527,7 @@ class UniversalFilterQueryBuilder {
           COUNT(*) FILTER (WHERE (ne.threat->>'score')::numeric * 100 >= 40
             AND (ne.threat->>'score')::numeric * 100 < 70) AS medium_count
         FROM daily_networks d
-        JOIN public.api_network_explorer ne ON ne.bssid = d.bssid
+        JOIN public.api_network_explorer_mv ne ON ne.bssid = d.bssid
         GROUP BY d.date
         ORDER BY d.date
       `),
