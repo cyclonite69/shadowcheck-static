@@ -34,6 +34,8 @@ type NetworkRow = {
   observations: number;
   latitude: number | null;
   longitude: number | null;
+  rawLatitude?: number | null;
+  rawLongitude?: number | null;
   distanceFromHome?: number | null;
   accuracy?: number | null;
   firstSeen?: string | null; // Add first seen
@@ -45,7 +47,6 @@ type NetworkRow = {
   stationaryConfidence?: number | null;
   // Enrichment fields (networks-v2 API)
   manufacturer?: string | null;
-  manufacturer_address?: string | null;
   min_altitude_m?: number | null;
   max_altitude_m?: number | null;
   altitude_span_m?: number | null;
@@ -82,6 +83,8 @@ const NETWORK_COLUMNS: Record<
   observations: { label: 'Observations', width: 100, sortable: true, default: true },
   latitude: { label: 'Latitude', width: 100, sortable: true, default: false },
   longitude: { label: 'Longitude', width: 100, sortable: true, default: false },
+  rawLatitude: { label: 'Raw Lat', width: 100, sortable: false, default: false },
+  rawLongitude: { label: 'Raw Lon', width: 100, sortable: false, default: false },
   distanceFromHome: { label: 'Distance (km)', width: 100, sortable: true, default: true },
   accuracy: { label: 'Accuracy (m)', width: 90, sortable: true, default: false },
   stationaryConfidence: { label: 'Stationary Conf.', width: 110, sortable: true, default: false },
@@ -90,30 +93,42 @@ const NETWORK_COLUMNS: Record<
   timespanDays: { label: 'Timespan (days)', width: 120, sortable: true, default: false },
   // Enrichment columns (networks-v2 API) - hidden by default
   manufacturer: { label: 'Manufacturer', width: 150, sortable: true, default: false },
-  manufacturer_address: { label: 'Mfg. Address', width: 200, sortable: true, default: false },
-  min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: true, default: false },
-  max_altitude_m: { label: 'Max Alt (m)', width: 90, sortable: true, default: false },
-  altitude_span_m: { label: 'Alt Span (m)', width: 100, sortable: true, default: false },
-  max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: true, default: false },
-  last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: true, default: false },
-  is_sentinel: { label: 'Sentinel', width: 80, sortable: true, default: false },
+  min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: false, default: false },
+  max_altitude_m: { label: 'Max Alt (m)', width: 90, sortable: false, default: false },
+  altitude_span_m: { label: 'Alt Span (m)', width: 100, sortable: false, default: false },
+  max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: false, default: false },
+  last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: false, default: false },
+  is_sentinel: { label: 'Sentinel', width: 80, sortable: false, default: false },
 };
 
-const SORT_KEY_MAP: Record<string, string> = {
+const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   lastSeen: 'last_seen',
-  firstSeen: 'first_seen',
+  firstSeen: 'first_observed_at',
   observed_at: 'observed_at',
-  observations: 'observations',
+  observations: 'obs_count',
   signal: 'signal',
-  threat: 'threat_score',
+  threat: 'threat',
   distanceFromHome: 'distance_from_home_km',
-  stationaryConfidence: 'stationary_confidence',
   ssid: 'ssid',
   bssid: 'bssid',
-  security: 'security',
-  type: 'type',
   frequency: 'frequency',
+  accuracy: 'accuracy_meters',
+  type: 'type',
+  security: 'security',
+  channel: 'channel',
+  latitude: 'lat',
+  longitude: 'lon',
+  manufacturer: 'manufacturer',
+  min_altitude_m: 'min_altitude_m',
+  max_altitude_m: 'max_altitude_m',
+  altitude_span_m: 'altitude_span_m',
+  max_distance_meters: 'max_distance_meters',
+  last_altitude_m: 'last_altitude_m',
+  is_sentinel: 'is_sentinel',
+  timespanDays: 'timespan_days',
 };
+
+const NETWORK_PAGE_LIMIT = 500;
 
 const TypeBadge = ({ type }: { type: NetworkRow['type'] }) => {
   // WiGLE Network Type Classifications
@@ -340,7 +355,15 @@ export default function GeospatialExplorer() {
   const [loadingObservations, setLoadingObservations] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [observationsByBssid, setObservationsByBssid] = useState<Record<string, Observation[]>>({});
-  const [pagination, setPagination] = useState({ page: 1, hasMore: true });
+  const [observationsTotal, setObservationsTotal] = useState<number | null>(null);
+  const [observationsTruncated, setObservationsTruncated] = useState(false);
+  const [renderBudgetExceeded, setRenderBudgetExceeded] = useState(false);
+  const [renderBudget, setRenderBudget] = useState<number | null>(null);
+  const [expensiveSort, setExpensiveSort] = useState(false);
+  const [networkTotal, setNetworkTotal] = useState<number | null>(null);
+  const [networkTruncated, setNetworkTruncated] = useState(false);
+  const [locationMode, setLocationMode] = useState('latest_observation');
+  const [pagination, setPagination] = useState({ offset: 0, hasMore: true });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -350,6 +373,12 @@ export default function GeospatialExplorer() {
   const [searchingLocation, setSearchingLocation] = useState(false);
   const [homeButtonActive, setHomeButtonActive] = useState(false);
   const [fitButtonActive, setFitButtonActive] = useState(false);
+  const [planCheck, setPlanCheck] = useState(false);
+  const [quickSearch, setQuickSearch] = useState('');
+  const [debouncedQuickSearch, setDebouncedQuickSearch] = useState('');
+  const loadMore = useCallback(() => {
+    setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
+  }, []);
 
   useFilterURLSync();
   const { enabled, setFilter } = useFilterStore();
@@ -357,6 +386,13 @@ export default function GeospatialExplorer() {
     useFilterStore.getState().getAPIFilters()
   );
   useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedQuickSearch(quickSearch);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [quickSearch]);
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -457,9 +493,9 @@ export default function GeospatialExplorer() {
 
   // Reset pagination when filters change
   useEffect(() => {
-    setPagination({ page: 1, hasMore: true });
+    setPagination({ offset: 0, hasMore: true });
     setNetworks([]);
-  }, [JSON.stringify(debouncedFilterState), JSON.stringify(sort)]);
+  }, [JSON.stringify(debouncedFilterState), debouncedQuickSearch, JSON.stringify(sort), locationMode]);
 
   // Update container height on window resize
   useEffect(() => {
@@ -991,6 +1027,34 @@ export default function GeospatialExplorer() {
     };
   }, []);
 
+  const formatSecurity = (capabilities: string | null | undefined, fallback?: string | null) => {
+    const value = String(capabilities || '').toUpperCase();
+    if (!value || value === 'UNKNOWN') {
+      return fallback || 'Open';
+    }
+    const hasWpa3 = value.includes('WPA3');
+    const hasWpa2 = value.includes('WPA2');
+    const hasWpa = value.includes('WPA');
+    const hasWep = value.includes('WEP');
+    const hasPsk = value.includes('PSK');
+    const hasEap = value.includes('EAP');
+    const hasSae = value.includes('SAE');
+    const hasOwe = value.includes('OWE');
+
+    if (hasOwe) return 'OWE';
+    if (hasWpa3 && hasSae) return 'WPA3-SAE';
+    if (hasWpa3 && hasEap) return 'WPA3-EAP';
+    if (hasWpa3) return 'WPA3';
+    if (hasWpa2 && hasEap) return 'WPA2-EAP';
+    if (hasWpa2 && hasPsk) return 'WPA2-PSK';
+    if (hasWpa2) return 'WPA2';
+    if (hasWpa && hasEap) return 'WPA-EAP';
+    if (hasWpa && hasPsk) return 'WPA-PSK';
+    if (hasWpa) return 'WPA';
+    if (hasWep) return 'WEP';
+    return fallback || 'Open';
+  };
+
   // Fetch networks
   useEffect(() => {
     const controller = new AbortController();
@@ -998,30 +1062,108 @@ export default function GeospatialExplorer() {
       // Remove the loadingNetworks guard that was preventing initial fetch
       setLoadingNetworks(true);
       setError(null);
+      setExpensiveSort(false);
       try {
-        // Build sort parameters for API (multi-column support)
-        const sortColumns = sort.map((s) => SORT_KEY_MAP[s.column] || s.column).join(',');
-        const sortOrders = sort.map((s) => s.direction).join(',');
+        const sortKeys = sort
+          .map((entry) => API_SORT_MAP[entry.column])
+          .filter((value): value is string => Boolean(value));
+        if (sortKeys.length !== sort.length) {
+          setError('One or more sort columns are not supported by the API.');
+          setLoadingNetworks(false);
+          return;
+        }
 
         const params = new URLSearchParams({
-          limit: '500',
-          offset: ((pagination.page - 1) * 500).toString(),
-          sort: sortColumns,
-          order: sortOrders,
-          filters: JSON.stringify(debouncedFilterState.filters),
-          enabled: JSON.stringify(debouncedFilterState.enabled),
+          limit: String(NETWORK_PAGE_LIMIT),
+          offset: String(pagination.offset),
+          sort: sortKeys.join(','),
+          order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
         });
+        params.set('location_mode', locationMode);
 
-        const res = await fetch(`/api/v2/networks/filtered?${params.toString()}`, {
+        if (planCheck) {
+          params.set('planCheck', '1');
+        }
+
+        const { filters, enabled } = debouncedFilterState;
+        if (enabled.ssid && filters.ssid) {
+          params.set('ssid', String(filters.ssid));
+        }
+        if (enabled.bssid && filters.bssid) {
+          params.set('bssid', String(filters.bssid));
+        }
+        if (enabled.radioTypes && Array.isArray(filters.radioTypes) && filters.radioTypes.length > 0) {
+          params.set('radioTypes', filters.radioTypes.join(','));
+        }
+        if (enabled.rssiMin && filters.rssiMin !== undefined) {
+          params.set('min_signal', String(filters.rssiMin));
+        }
+        if (enabled.rssiMax && filters.rssiMax !== undefined) {
+          params.set('max_signal', String(filters.rssiMax));
+        }
+        if (enabled.observationCountMin && filters.observationCountMin !== undefined) {
+          params.set('min_obs_count', String(filters.observationCountMin));
+        }
+        if (enabled.observationCountMax && filters.observationCountMax !== undefined) {
+          params.set('max_obs_count', String(filters.observationCountMax));
+        }
+        const toFiniteNumber = (value: unknown) => {
+          const parsed = typeof value === 'number' ? value : Number(value);
+          return Number.isFinite(parsed) ? parsed : null;
+        };
+
+        const maxDistance = toFiniteNumber(filters.distanceFromHomeMax);
+        if (enabled.distanceFromHomeMax && maxDistance !== null) {
+          params.set('distance_from_home_km_max', String(maxDistance / 1000));
+        }
+        const minDistance = toFiniteNumber(filters.distanceFromHomeMin);
+        if (enabled.distanceFromHomeMin && minDistance !== null) {
+          params.set('distance_from_home_km_min', String(minDistance / 1000));
+        }
+        const liveState = useFilterStore.getState().getAPIFilters();
+        const liveMaxDistance = toFiniteNumber(liveState.filters.distanceFromHomeMax);
+        if (liveState.enabled.distanceFromHomeMax && liveMaxDistance !== null) {
+          params.set(
+            'distance_from_home_km_max',
+            String(liveMaxDistance / 1000)
+          );
+        }
+        const liveMinDistance = toFiniteNumber(liveState.filters.distanceFromHomeMin);
+        if (liveState.enabled.distanceFromHomeMin && liveMinDistance !== null) {
+          params.set(
+            'distance_from_home_km_min',
+            String(liveMinDistance / 1000)
+          );
+        }
+        if (enabled.timeframe && filters.timeframe?.type === 'relative') {
+          const window = filters.timeframe.relativeWindow || '30d';
+          const unit = window.slice(-1);
+          const value = parseInt(window.slice(0, -1), 10);
+          if (!Number.isNaN(value)) {
+            const ms =
+              unit === 'h' ? value * 3600000 : unit === 'm' ? value * 60000 : value * 86400000;
+            const since = new Date(Date.now() - ms).toISOString();
+            params.set('last_seen', since);
+          }
+        }
+
+        if (debouncedQuickSearch.trim()) {
+          params.set('q', debouncedQuickSearch.trim());
+        }
+
+        const res = await fetch(`/api/networks?${params.toString()}`, {
           signal: controller.signal,
         });
         console.log('Networks response status:', res.status);
         if (!res.ok) throw new Error(`networks ${res.status}`);
         const data = await res.json();
-        const rows = data.data || [];
+        const rows = data.networks || [];
+        setExpensiveSort(Boolean(data.expensive_sort));
+        setNetworkTotal(typeof data.total === 'number' ? data.total : null);
+        setNetworkTruncated(Boolean(data.truncated));
 
         const mapped: NetworkRow[] = rows.map((row: any, idx: number) => {
-          const securityValue = row.security || row.capabilities || row.encryption || 'OPEN';
+          const securityValue = formatSecurity(row.capabilities, row.security);
           const bssidValue = (row.bssid || `unknown-${idx}`).toString().toUpperCase();
 
           // Calculate WiFi channel from frequency
@@ -1107,6 +1249,18 @@ export default function GeospatialExplorer() {
             return Math.round(diffMs / (1000 * 60 * 60 * 24)); // Convert to days
           };
 
+          const threatInfo: ThreatInfo | null =
+            row.threat === true
+              ? {
+                  score: 1,
+                  level: 'HIGH',
+                  summary: 'Signal above threat threshold',
+                }
+              : null;
+
+          const channelValue =
+            typeof row.channel === 'number' ? row.channel : isWiFi ? calculateChannel(frequency) : null;
+
           return {
             bssid: bssidValue,
             ssid: row.ssid || '(hidden)',
@@ -1114,24 +1268,23 @@ export default function GeospatialExplorer() {
             signal: typeof row.signal === 'number' ? row.signal : null,
             security: securityValue,
             frequency: frequency,
-            channel: isWiFi ? calculateChannel(frequency) : null, // Only show channels for WiFi
-            observations: parseInt(String(row.observations || 0), 10),
+            channel: channelValue, // Only show channels for WiFi
+            observations: parseInt(String(row.obs_count || 0), 10),
             latitude: typeof row.lat === 'number' ? row.lat : null,
             longitude: typeof row.lon === 'number' ? row.lon : null,
             distanceFromHome:
               typeof row.distance_from_home_km === 'number' ? row.distance_from_home_km : null,
             accuracy: typeof row.accuracy_meters === 'number' ? row.accuracy_meters : null,
-            firstSeen: row.first_seen || null,
-            lastSeen: row.last_seen || row.observed_at || null,
-            timespanDays: calculateTimespan(row.first_seen, row.last_seen || row.observed_at),
-            threat: row.threat || null,
-            threatReasons: Array.isArray(row.threatReasons) ? row.threatReasons : [],
-            threatEvidence: Array.isArray(row.threatEvidence) ? row.threatEvidence : [],
+            firstSeen: row.first_observed_at || null,
+            lastSeen: row.last_observed_at || row.observed_at || null,
+            timespanDays: calculateTimespan(row.first_observed_at, row.last_observed_at),
+            threat: threatInfo,
+            threatReasons: [],
+            threatEvidence: [],
             stationaryConfidence:
               typeof row.stationary_confidence === 'number' ? row.stationary_confidence : null,
             // Enrichment fields (networks-v2 API)
             manufacturer: row.manufacturer || null,
-            manufacturer_address: row.manufacturer_address || null,
             min_altitude_m: typeof row.min_altitude_m === 'number' ? row.min_altitude_m : null,
             max_altitude_m: typeof row.max_altitude_m === 'number' ? row.max_altitude_m : null,
             altitude_span_m: typeof row.altitude_span_m === 'number' ? row.altitude_span_m : null,
@@ -1139,11 +1292,23 @@ export default function GeospatialExplorer() {
               typeof row.max_distance_meters === 'number' ? row.max_distance_meters : null,
             last_altitude_m: typeof row.last_altitude_m === 'number' ? row.last_altitude_m : null,
             is_sentinel: typeof row.is_sentinel === 'boolean' ? row.is_sentinel : null,
+            rawLatitude:
+              typeof row.raw_lat === 'number'
+                ? row.raw_lat
+                : typeof row.lat === 'number'
+                  ? row.lat
+                  : null,
+            rawLongitude:
+              typeof row.raw_lon === 'number'
+                ? row.raw_lon
+                : typeof row.lon === 'number'
+                  ? row.lon
+                  : null,
           };
         });
 
         // CRITICAL: Reset networks on page 1, append on subsequent pages
-        if (pagination.page === 1) {
+        if (pagination.offset === 0) {
           setNetworks(mapped);
         } else {
           setNetworks((prev) => [...prev, ...mapped]);
@@ -1151,7 +1316,7 @@ export default function GeospatialExplorer() {
 
         setPagination((prev) => ({
           ...prev,
-          hasMore: data.pagination?.hasMore || mapped.length === 500,
+          hasMore: mapped.length === NETWORK_PAGE_LIMIT,
         }));
       } catch (err: any) {
         if (err.name !== 'AbortError') {
@@ -1164,7 +1329,14 @@ export default function GeospatialExplorer() {
 
     fetchNetworks();
     return () => controller.abort();
-  }, [pagination.page, JSON.stringify(debouncedFilterState), JSON.stringify(sort)]);
+  }, [
+    pagination.offset,
+    JSON.stringify(debouncedFilterState),
+    debouncedQuickSearch,
+    JSON.stringify(sort),
+    planCheck,
+    locationMode,
+  ]);
 
   // Infinite scroll with scroll position preservation
   useEffect(() => {
@@ -1177,11 +1349,11 @@ export default function GeospatialExplorer() {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         const { scrollTop, scrollHeight, clientHeight } = container;
-        if (scrollHeight - scrollTop <= clientHeight + 200) {
-          // Trigger earlier
-          const currentScrollTop = scrollTop; // Save scroll position
-          setIsLoadingMore(true);
-          setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
+    if (scrollHeight - scrollTop <= clientHeight + 200) {
+      // Trigger earlier
+      const currentScrollTop = scrollTop; // Save scroll position
+      setIsLoadingMore(true);
+      loadMore();
 
           // Restore scroll position after a brief delay
           setTimeout(() => {
@@ -1213,25 +1385,70 @@ export default function GeospatialExplorer() {
     const fetchObservations = async () => {
       if (!selectedNetworks.size) {
         setObservationsByBssid({});
+        setObservationsTotal(null);
+        setObservationsTruncated(false);
+        setRenderBudgetExceeded(false);
+        setRenderBudget(null);
         return;
       }
 
       setLoadingObservations(true);
       setError(null);
       try {
-        const params = new URLSearchParams({
-          filters: JSON.stringify(debouncedFilterState.filters),
-          enabled: JSON.stringify(debouncedFilterState.enabled),
-          bssids: JSON.stringify(Array.from(selectedNetworks)),
-        });
-        const res = await fetch(`/api/v2/networks/filtered/observations?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error(`observations ${res.status}`);
-        const data = await res.json();
-        const rows = data.data || [];
+        const selectedBssids = Array.from(selectedNetworks);
+        const limit = 20000;
+        let offset = 0;
+        let total: number | null = null;
+        let truncated = false;
+        let renderBudgetLimit: number | null = null;
+        let allRows: any[] = [];
 
-        const grouped = rows.reduce((acc: Record<string, Observation[]>, row: any) => {
+        while (true) {
+          const params = new URLSearchParams({
+            filters: JSON.stringify(debouncedFilterState.filters),
+            enabled: JSON.stringify(debouncedFilterState.enabled),
+            bssids: JSON.stringify(selectedBssids),
+            limit: String(limit),
+            offset: String(offset),
+          });
+          if (offset === 0) {
+            params.set('include_total', '1');
+          }
+
+          const res = await fetch(`/api/v2/networks/filtered/observations?${params.toString()}`, {
+            signal: controller.signal,
+          });
+          if (!res.ok) throw new Error(`observations ${res.status}`);
+          const data = await res.json();
+          const rows = data.data || [];
+          allRows = allRows.concat(rows);
+          if (offset === 0 && typeof data.total === 'number') {
+            total = data.total;
+          }
+          if (offset === 0 && typeof data.render_budget === 'number') {
+            renderBudgetLimit = data.render_budget;
+          }
+
+          if (!data.truncated || rows.length === 0) {
+            truncated = Boolean(data.truncated);
+            break;
+          }
+
+          offset += limit;
+          if (renderBudgetLimit !== null && allRows.length >= renderBudgetLimit) {
+            truncated = true;
+            break;
+          }
+          if (total !== null && allRows.length >= total) {
+            truncated = false;
+            break;
+          }
+          if (controller.signal.aborted) {
+            return;
+          }
+        }
+
+        const grouped = allRows.reduce((acc: Record<string, Observation[]>, row: any) => {
           const bssid = String(row.bssid || '').toUpperCase();
           if (!acc[bssid]) acc[bssid] = [];
           acc[bssid].push({
@@ -1248,6 +1465,10 @@ export default function GeospatialExplorer() {
         }, {});
 
         setObservationsByBssid(grouped);
+        setObservationsTotal(total);
+        setObservationsTruncated(truncated || (total !== null && allRows.length < total));
+        setRenderBudgetExceeded(Boolean(data.render_budget_exceeded));
+        setRenderBudget(typeof data.render_budget === 'number' ? data.render_budget : null);
       } catch (err: any) {
         if (err.name !== 'AbortError') {
           setError(err.message);
@@ -1266,34 +1487,29 @@ export default function GeospatialExplorer() {
   // Server-side sorting - no client-side sorting needed
   const filteredNetworks = useMemo(() => networks, [networks]);
 
-  const handleColumnSort = (column: keyof NetworkRow, shiftKey: boolean) => {
+  const handleColumnSort = (column: keyof NetworkRow, _shiftKey: boolean) => {
     if (!NETWORK_COLUMNS[column].sortable) return;
+    if (!API_SORT_MAP[column]) {
+      setError(`Sort not supported for ${String(column)}`);
+      return;
+    }
 
     setSort((prevSort) => {
-      // Shift+click: Add to multi-column sort
-      if (shiftKey) {
-        const existing = prevSort.find((s) => s.column === column);
-        if (existing) {
-          // Toggle direction for existing sort column
-          return prevSort.map((s) =>
-            s.column === column ? { ...s, direction: s.direction === 'asc' ? 'desc' : 'asc' } : s
-          );
+      const existingIndex = prevSort.findIndex((s) => s.column === column);
+      const nextDirection =
+        existingIndex >= 0 && prevSort[existingIndex].direction === 'asc' ? 'desc' : 'asc';
+
+      if (_shiftKey) {
+        const next = [...prevSort];
+        if (existingIndex >= 0) {
+          next[existingIndex] = { column, direction: nextDirection };
         } else {
-          // Add new sort column
-          return [...prevSort, { column, direction: 'asc' }];
+          next.push({ column, direction: 'asc' });
         }
+        return next;
       }
-      // Regular click: Single column sort
-      else {
-        const existing = prevSort.find((s) => s.column === column);
-        if (existing && prevSort.length === 1) {
-          // Toggle direction if already sorting by this column only
-          return [{ column, direction: existing.direction === 'asc' ? 'desc' : 'asc' }];
-        } else {
-          // Set as primary sort
-          return [{ column, direction: 'asc' }];
-        }
-      }
+
+      return [{ column, direction: existingIndex >= 0 ? nextDirection : 'asc' }];
     });
   };
 
@@ -1625,9 +1841,56 @@ export default function GeospatialExplorer() {
             bottom: '12px',
             width: '320px',
             zIndex: 55,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
           }}
         >
-          <FilterPanel />
+          <div
+            style={{
+              padding: '10px',
+              borderRadius: '10px',
+              border: '1px solid rgba(71, 85, 105, 0.4)',
+              background: 'rgba(15, 23, 42, 0.9)',
+              color: '#e2e8f0',
+              fontSize: '12px',
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: '8px' }}>Quick List Filters</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+              <input
+                placeholder="Quick Search (SSID, BSSID, Manufacturer)"
+                value={quickSearch}
+                onChange={(e) => setQuickSearch(e.target.value)}
+                style={{
+                  padding: '6px 8px',
+                  background: 'rgba(30, 41, 59, 0.7)',
+                  border: '1px solid rgba(71, 85, 105, 0.4)',
+                  borderRadius: '6px',
+                  color: '#e2e8f0',
+                }}
+              />
+              <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+                Quick Search ignores filter toggles and uses OR matching.
+              </div>
+              <button
+                onClick={() => setQuickSearch('')}
+                style={{
+                  padding: '6px 8px',
+                  background: 'rgba(30, 41, 59, 0.7)',
+                  border: '1px solid rgba(71, 85, 105, 0.4)',
+                  borderRadius: '6px',
+                  color: '#e2e8f0',
+                  cursor: 'pointer',
+                }}
+              >
+                Clear quick search
+              </button>
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <FilterPanel />
+          </div>
         </div>
       )}
       <div className="flex h-screen">
@@ -1990,6 +2253,60 @@ export default function GeospatialExplorer() {
                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                   Filters apply across list + map.
                 </span>
+                {expensiveSort && (
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      color: '#fbbf24',
+                      border: '1px solid rgba(251, 191, 36, 0.4)',
+                      padding: '2px 6px',
+                      borderRadius: '999px',
+                      background: 'rgba(120, 53, 15, 0.3)',
+                    }}
+                  >
+                    Expensive sort
+                  </span>
+                )}
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '11px',
+                    color: '#cbd5e1',
+                    padding: '4px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(71, 85, 105, 0.4)',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                  }}
+                  title="Adds planCheck=1 so the backend logs the query plan for debugging"
+                >
+                  <input
+                    type="checkbox"
+                    checked={planCheck}
+                    onChange={(e) => setPlanCheck(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  PlanCheck (debug)
+                </label>
+                <select
+                  value={locationMode}
+                  onChange={(e) => setLocationMode(e.target.value)}
+                  style={{
+                    padding: '4px 6px',
+                    fontSize: '11px',
+                    background: 'rgba(30, 41, 59, 0.7)',
+                    border: '1px solid rgba(148, 163, 184, 0.3)',
+                    color: '#e2e8f0',
+                    borderRadius: '6px',
+                  }}
+                  title="Network location mode"
+                >
+                  <option value="latest_observation">Location: latest</option>
+                  <option value="centroid">Location: centroid</option>
+                  <option value="weighted_centroid">Location: weighted</option>
+                  <option value="triangulated">Location: triangulated</option>
+                </select>
                 <button
                   onClick={() => setFiltersOpen((open) => !open)}
                   style={{
@@ -2080,12 +2397,16 @@ export default function GeospatialExplorer() {
                     const column = NETWORK_COLUMNS[col];
                     const sortIndex = sort.findIndex((s) => s.column === col);
                     const sortState = sortIndex >= 0 ? sort[sortIndex] : null;
+                    const isSortable =
+                      col !== 'select' &&
+                      Boolean(API_SORT_MAP[col as keyof NetworkRow]) &&
+                      column.sortable;
 
                     return (
                       <th
                         key={col}
                         onClick={(e) =>
-                          col !== 'select' && handleColumnSort(col as keyof NetworkRow, e.shiftKey)
+                          isSortable && handleColumnSort(col as keyof NetworkRow, e.shiftKey)
                         }
                         style={{
                           width: column.width,
@@ -2100,14 +2421,16 @@ export default function GeospatialExplorer() {
                           color: sortState ? '#93c5fd' : '#cbd5e1',
                           fontWeight: '600',
                           borderRight: '1px solid rgba(71, 85, 105, 0.2)',
-                          cursor: column.sortable && col !== 'select' ? 'pointer' : 'default',
+                          cursor: isSortable ? 'pointer' : 'default',
                           userSelect: 'none',
                           position: 'relative',
                         }}
                         title={
-                          column.sortable && col !== 'select'
-                            ? 'Click to sort, Shift+Click for multi-column sort'
-                            : undefined
+                          isSortable
+                            ? 'Click to sort (Shift+click for multi-sort)'
+                            : col === 'select'
+                              ? undefined
+                              : 'Sorting unavailable (API does not support this column)'
                         }
                       >
                         {col === 'select' ? (
@@ -2166,7 +2489,7 @@ export default function GeospatialExplorer() {
                         colSpan={visibleColumns.length}
                         style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}
                       >
-                        {error ? `Error: ${error}` : 'No networks found'}
+                        {error ? `Error: ${error}` : 'No networks match current filters'}
                       </td>
                     </tr>
                   )}
@@ -2292,8 +2615,19 @@ export default function GeospatialExplorer() {
                                 </span>
                               );
                             } else {
-                              content = 'N/A';
+                              content = 'Not computed';
                             }
+                          } else if (
+                            [
+                              'stationaryConfidence',
+                              'min_altitude_m',
+                              'max_altitude_m',
+                              'altitude_span_m',
+                              'max_distance_meters',
+                              'last_altitude_m',
+                            ].includes(col as string)
+                          ) {
+                            content = value == null ? 'Not computed' : value;
                           } else if (col === 'channel') {
                             // Only show channel for WiFi networks
                             const channelValue = value as number | null;
@@ -2390,6 +2724,38 @@ export default function GeospatialExplorer() {
                   Loading more networks...
                 </div>
               )}
+              {pagination.hasMore && (
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderTop: '1px solid rgba(71, 85, 105, 0.2)',
+                    background: 'rgba(15, 23, 42, 0.65)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <button
+                    onClick={() => !isLoadingMore && loadMore()}
+                    disabled={isLoadingMore}
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: '11px',
+                      background: 'rgba(30, 41, 59, 0.7)',
+                      border: '1px solid rgba(71, 85, 105, 0.4)',
+                      color: '#e2e8f0',
+                      borderRadius: '6px',
+                      cursor: isLoadingMore ? 'not-allowed' : 'pointer',
+                      opacity: isLoadingMore ? 0.6 : 1,
+                    }}
+                >
+                  {isLoadingMore ? 'Loading…' : 'Load more'}
+                </button>
+                {isLoadingMore && (
+                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
+                    Fetching more rows…
+                  </div>
+                )}
+              </div>
+            )}
             </div>
 
             {/* Footer */}
@@ -2408,8 +2774,23 @@ export default function GeospatialExplorer() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span>Visible: {filteredNetworks.length}</span>
+                {networkTruncated && (
+                  <span style={{ color: '#fbbf24' }}>
+                    Networks truncated ({filteredNetworks.length}/{networkTotal ?? 'unknown'})
+                  </span>
+                )}
                 <span>Selected: {selectedNetworks.size}</span>
                 <span>Observations: {observationCount}</span>
+                {observationsTruncated && (
+                  <span style={{ color: '#fbbf24' }}>
+                    Observations truncated ({observationCount}/{observationsTotal ?? 'unknown'})
+                  </span>
+                )}
+                {renderBudgetExceeded && (
+                  <span style={{ color: '#f59e0b' }}>
+                    Render budget exceeded ({observationsTotal ?? 'unknown'}/{renderBudget ?? 0})
+                  </span>
+                )}
               </div>
               <div style={{ color: '#94a3b8' }}>
                 {loadingNetworks
