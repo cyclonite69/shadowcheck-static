@@ -93,12 +93,12 @@ const NETWORK_COLUMNS: Record<
   timespanDays: { label: 'Timespan (days)', width: 120, sortable: true, default: false },
   // Enrichment columns (networks-v2 API) - hidden by default
   manufacturer: { label: 'Manufacturer', width: 150, sortable: true, default: false },
-  min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: false, default: false },
-  max_altitude_m: { label: 'Max Alt (m)', width: 90, sortable: false, default: false },
-  altitude_span_m: { label: 'Alt Span (m)', width: 100, sortable: false, default: false },
-  max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: false, default: false },
-  last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: false, default: false },
-  is_sentinel: { label: 'Sentinel', width: 80, sortable: false, default: false },
+  min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: true, default: false },
+  max_altitude_m: { label: 'Max Alt (m)', width: 90, sortable: true, default: false },
+  altitude_span_m: { label: 'Alt Span (m)', width: 100, sortable: true, default: false },
+  max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: true, default: false },
+  last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: true, default: false },
+  is_sentinel: { label: 'Sentinel', width: 80, sortable: true, default: false },
 };
 
 const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
