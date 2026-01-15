@@ -1,10 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FilterPanel } from './FilterPanel';
-import { ActiveFiltersSummary } from './ActiveFiltersSummary';
-import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
-import { useFilterURLSync } from '../hooks/useFilteredData';
-import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
-import { getPageCapabilities } from '../utils/filterCapabilities';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // SVG Icons - Industry Standard
 const AlertTriangle = ({ size = 24, className = '' }) => (
@@ -147,12 +141,8 @@ const GripHorizontal = ({ size = 24, className = '' }) => (
 );
 
 export default function DashboardPage() {
-  const [loading, setLoading] = useState(false); // Start false
-  const [error, setError] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
-
-  // FILTERS COMPLETELY DISABLED - causing infinite loop
-  // Will re-enable after fixing root cause
+  // ALL FETCH LOGIC REMOVED - Debugging infinite loop
+  // Dashboard is completely static until loop is fixed
 
   const [cards, setCards] = useState([
     {
@@ -249,7 +239,6 @@ export default function DashboardPage() {
       y: 710,
       w: 50,
       h: 200,
-      h: 200,
       type: 'analytics-link',
     },
   ]);
@@ -265,123 +254,7 @@ export default function DashboardPage() {
     cardXPercent: 0,
   });
 
-  // Track previous filter key to prevent duplicate fetches
-  const prevFilterKeyRef = useRef<string>('');
-
-  // Stable filter change detection
-  const filterKey = useMemo(() => JSON.stringify(adaptedFilters), [adaptedFilters]);
-
-  // Fetch dashboard data with filters
-  useEffect(() => {
-    // Skip if filterKey hasn't actually changed
-    if (prevFilterKeyRef.current === filterKey) {
-      console.log('[Dashboard] Filter key unchanged, skipping fetch');
-      return;
-    }
-
-    console.log(
-      '[Dashboard] Filter key CHANGED from',
-      prevFilterKeyRef.current.substring(0, 50),
-      'to',
-      filterKey.substring(0, 50)
-    );
-    prevFilterKeyRef.current = filterKey;
-
-    let cancelled = false;
-
-    const fetchData = async () => {
-      console.log('[Dashboard] Fetch triggered, filterKey:', filterKey.substring(0, 100));
-
-      setLoading(true);
-      setError(null);
-      try {
-        const { filtersForPage, enabledForPage } = adaptedFilters;
-        const params = new URLSearchParams({
-          filters: JSON.stringify(filtersForPage),
-          enabled: JSON.stringify(enabledForPage),
-        });
-
-        const response = await fetch(`/api/analytics/network-types?${params}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data');
-        }
-        const result = await response.json();
-
-        if (cancelled) return;
-
-        const data = result.data || [];
-
-        // Convert analytics data to dashboard format
-        const networkCounts = {};
-        let totalNetworks = 0;
-
-        data.forEach((item) => {
-          totalNetworks += item.count;
-          switch (item.type) {
-            case 'WiFi':
-              networkCounts.wifi = item.count;
-              break;
-            case 'BLE':
-              networkCounts.ble = item.count;
-              break;
-            case 'BT':
-              networkCounts.bluetooth = item.count;
-              break;
-            case 'LTE':
-              networkCounts.lte = item.count;
-              break;
-            case 'GSM':
-              networkCounts.gsm = item.count;
-              break;
-            case 'NR':
-              networkCounts.nr = item.count;
-              break;
-          }
-        });
-
-        // Update card values
-        setCards((prevCards) =>
-          prevCards.map((card) => {
-            switch (card.type) {
-              case 'total-networks':
-                return { ...card, value: totalNetworks };
-              case 'wifi-count':
-                return { ...card, value: networkCounts.wifi || 0 };
-              case 'radio-ble':
-                return { ...card, value: networkCounts.ble || 0 };
-              case 'radio-bt':
-                return { ...card, value: networkCounts.bluetooth || 0 };
-              case 'radio-lte':
-                return { ...card, value: networkCounts.lte || 0 };
-              case 'radio-gsm':
-                return { ...card, value: networkCounts.gsm || 0 };
-              case 'radio-nr':
-                return { ...card, value: networkCounts.nr || 0 };
-              case 'analytics-link':
-                return { ...card, value: '→' };
-              default:
-                return card;
-            }
-          })
-        );
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Error fetching dashboard data:', err);
-          setError(err.message);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [filterKey]); // Only depend on stable string
+  // NO FETCH - Dashboard is static for now
 
   const handleMouseDown = (e, cardId, mode = 'move') => {
     e.preventDefault();
@@ -509,28 +382,8 @@ export default function DashboardPage() {
             >
               Real-time network intelligence and threat monitoring
             </p>
-            {/* Filter toggle button */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="pointer-events-auto mt-3 px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg border border-blue-500 shadow-lg transition-all hover:shadow-xl"
-              style={{
-                background: showFilters
-                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              }}
-            >
-              {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
-            </button>
           </div>
         </div>
-
-        {/* Filter Panel */}
-        {showFilters && (
-          <div className="absolute top-24 left-4 right-4 z-40 max-w-md mx-auto space-y-2">
-            <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
-            <FilterPanel density="compact" />
-          </div>
-        )}
 
         {/* Cards */}
         <div style={{ minHeight: '2400px', position: 'relative', paddingTop: '60px' }}>
@@ -584,42 +437,32 @@ export default function DashboardPage() {
                     }
                   }}
                 >
-                  {loading ? (
-                    <div className="text-slate-400 text-sm">Loading...</div>
-                  ) : error ? (
-                    <div className="text-red-400 text-xs">Error</div>
-                  ) : (
-                    <>
-                      {/* Icon */}
-                      <div className="mb-2">
-                        <Icon size={32} className="drop-shadow-lg" style={{ color: card.color }} />
-                      </div>
+                  {/* Icon */}
+                  <div className="mb-2">
+                    <Icon size={32} className="drop-shadow-lg" style={{ color: card.color }} />
+                  </div>
 
-                      {/* Value - Large and Bold */}
-                      <div className="mb-1">
-                        <p
-                          className="font-extrabold drop-shadow-2xl tracking-tight leading-none"
-                          style={{
-                            fontSize: '28px',
-                            color: card.color,
-                          }}
-                        >
-                          {typeof card.value === 'number'
-                            ? card.value.toLocaleString()
-                            : card.value}
-                        </p>
-                      </div>
+                  {/* Value - Large and Bold */}
+                  <div className="mb-1">
+                    <p
+                      className="font-extrabold drop-shadow-2xl tracking-tight leading-none"
+                      style={{
+                        fontSize: '28px',
+                        color: card.color,
+                      }}
+                    >
+                      {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
+                    </p>
+                  </div>
 
-                      {/* Subtitle */}
-                      <div>
-                        <p className="text-xs font-medium text-slate-400">
-                          {card.type === 'analytics-link'
-                            ? 'View detailed analytics'
-                            : 'Active networks detected'}
-                        </p>
-                      </div>
-                    </>
-                  )}
+                  {/* Subtitle */}
+                  <div>
+                    <p className="text-xs font-medium text-slate-400">
+                      {card.type === 'analytics-link'
+                        ? 'View detailed analytics'
+                        : 'Static display (fetch disabled)'}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Resize Handle */}
