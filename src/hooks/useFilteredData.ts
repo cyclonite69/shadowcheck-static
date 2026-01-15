@@ -3,7 +3,7 @@
  * Connects filter state to API calls with debouncing
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { NetworkFilters } from '../types/filters';
 
@@ -161,20 +161,28 @@ export const useFilteredAnalytics = (options: Omit<UseFilteredDataOptions, 'endp
 
 // URL synchronization hook
 export const useFilterURLSync = () => {
-  const { getURLParams, setFromURLParams, filters, enabled } = useFilterStore();
+  const { setFromURLParams } = useFilterStore();
+  const filters = useFilterStore((state) => state.filters);
+  const enabled = useFilterStore((state) => state.enabled);
 
+  // Load from URL on mount only
   useEffect(() => {
-    // Load from URL on mount
     const params = new URLSearchParams(window.location.search);
     if (params.toString()) {
       setFromURLParams(params);
     }
-  }, [setFromURLParams]);
+  }, []); // Only on mount
 
+  // Create stable string from filters
+  const filterString = useMemo(() => JSON.stringify({ filters, enabled }), [filters, enabled]);
+
+  // Update URL when filter string changes
   useEffect(() => {
-    // Update URL when filters change
-    const params = getURLParams();
+    const params = new URLSearchParams({
+      filters: JSON.stringify(filters),
+      enabled: JSON.stringify(enabled),
+    });
     const newURL = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, '', newURL);
-  }, [getURLParams, filters, enabled]);
+  }, [filterString]); // Only when stable string changes
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { attachMapOrientationControls } from '../utils/mapOrientationControls';
 import { FilterPanel } from './FilterPanel';
 import { ActiveFiltersSummary } from './ActiveFiltersSummary';
@@ -476,50 +476,52 @@ const KeplerTestPage: React.FC = () => {
     }
   };
 
+  // Stable filter key
+  const filterKey = useMemo(() => JSON.stringify(adaptedFilters), [adaptedFilters]);
+
+  // Load scripts once
   useEffect(() => {
+    if (scriptsLoadedRef.current) return;
+
     const setup = async () => {
       try {
+        console.log('[Kepler] Loading scripts...');
         await Promise.all([
           loadCss('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css'),
           loadScript('https://cdn.jsdelivr.net/npm/deck.gl@8.9.0/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'),
         ]);
         scriptsLoadedRef.current = true;
-        // Once scripts are loaded, load initial data
-        if (window.deck && window.mapboxgl) {
-          loadData(datasetType);
-        }
+        console.log('[Kepler] Scripts loaded');
       } catch (err: any) {
         console.error('Error loading scripts:', err);
         setError('Failed to load required libraries');
       }
     };
 
-    if (!scriptsLoadedRef.current) {
-      setup();
-    }
-  }, [datasetType, adaptedFilters]);
+    setup();
+  }, []); // Only once
 
-  // Debounced filter updates
-  useDebouncedFilters(() => {
-    if (scriptsLoadedRef.current && window.deck && window.mapboxgl) {
-      loadData(datasetType);
-    }
-  }, 500);
-
+  // Load data when scripts ready or filters/dataset change
   useEffect(() => {
-    // Reload data when datasetType changes (only if scripts are already loaded)
-    if (scriptsLoadedRef.current && window.deck && window.mapboxgl) {
-      loadData(datasetType);
+    if (!scriptsLoadedRef.current || !window.deck || !window.mapboxgl) {
+      console.log('[Kepler] Scripts not ready yet');
+      return;
     }
-  }, [datasetType, adaptedFilters]);
 
+    console.log('[Kepler] Loading data, filterKey:', filterKey.substring(0, 100));
+    loadData(datasetType);
+  }, [datasetType, filterKey]); // Stable dependencies
+
+  // Update visualization when data or settings change
   useEffect(() => {
     if (deckRef.current && networkData.length > 0) {
+      console.log('[Kepler] Updating visualization with', networkData.length, 'points');
       updateVisualization();
     }
   }, [networkData, layerType, pointSize, signalThreshold, height3d]);
 
+  // Update pitch and controller
   useEffect(() => {
     if (deckRef.current) {
       deckRef.current.setProps({

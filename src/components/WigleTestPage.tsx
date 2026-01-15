@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { attachMapOrientationControls } from '../utils/mapOrientationControls';
@@ -343,7 +343,8 @@ const WigleTestPage: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchPoints = async () => {
+  const fetchPoints = useCallback(async () => {
+    console.log('[WiGLE] Fetch triggered');
     setLoading(true);
     setError(null);
     try {
@@ -365,17 +366,24 @@ const WigleTestPage: React.FC = () => {
         throw new Error(`HTTP ${res.status}`);
       }
       const payload = await res.json();
-      setRows(payload.data || []);
+      console.log('[WiGLE] Received', payload.data?.length, 'rows');
+      setRows(payload.data || []); // REPLACE, not append
       setTotal(typeof payload.total === 'number' ? payload.total : null);
     } catch (err: any) {
       setError(err.message || 'Failed to load points');
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, offset, typeFilter, adaptedFilters]);
 
-  // Debounced filter updates
-  useDebouncedFilters(fetchPoints, 500);
+  // Stable filter key for change detection
+  const filterKey = useMemo(
+    () => JSON.stringify({ limit, offset, typeFilter, filters: adaptedFilters }),
+    [limit, offset, typeFilter, adaptedFilters]
+  );
+
+  // Remove useDebouncedFilters - it causes loops
+  // User must click "Load Points" button to fetch
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col relative">
