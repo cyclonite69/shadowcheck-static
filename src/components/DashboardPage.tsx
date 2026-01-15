@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FilterPanel } from './FilterPanel';
 import { ActiveFiltersSummary } from './ActiveFiltersSummary';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
@@ -154,7 +154,8 @@ export default function DashboardPage() {
   // Universal filter system
   const capabilities = getPageCapabilities('dashboard');
   const adaptedFilters = useAdaptedFilters(capabilities);
-  useFilterURLSync();
+  // TEMPORARILY DISABLED - causing loop
+  // useFilterURLSync();
 
   const [cards, setCards] = useState([
     {
@@ -267,92 +268,123 @@ export default function DashboardPage() {
     cardXPercent: 0,
   });
 
+  // Track previous filter key to prevent duplicate fetches
+  const prevFilterKeyRef = useRef<string>('');
+
+  // Stable filter change detection
+  const filterKey = useMemo(() => JSON.stringify(adaptedFilters), [adaptedFilters]);
+
   // Fetch dashboard data with filters
-  const fetchDashboardData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { filtersForPage, enabledForPage } = adaptedFilters;
-      const params = new URLSearchParams({
-        filters: JSON.stringify(filtersForPage),
-        enabled: JSON.stringify(enabledForPage),
-      });
-
-      const response = await fetch(`/api/analytics/network-types?${params}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
-      }
-      const result = await response.json();
-      const data = result.data || [];
-
-      // Convert analytics data to dashboard format
-      const networkCounts = {};
-      let totalNetworks = 0;
-
-      data.forEach((item) => {
-        totalNetworks += item.count;
-        switch (item.type) {
-          case 'WiFi':
-            networkCounts.wifi = item.count;
-            break;
-          case 'BLE':
-            networkCounts.ble = item.count;
-            break;
-          case 'BT':
-            networkCounts.bluetooth = item.count;
-            break;
-          case 'LTE':
-            networkCounts.lte = item.count;
-            break;
-          case 'GSM':
-            networkCounts.gsm = item.count;
-            break;
-          case 'NR':
-            networkCounts.nr = item.count;
-            break;
-        }
-      });
-
-      // Update card values
-      setCards((prevCards) =>
-        prevCards.map((card) => {
-          switch (card.type) {
-            case 'total-networks':
-              return { ...card, value: totalNetworks };
-            case 'wifi-count':
-              return { ...card, value: networkCounts.wifi || 0 };
-            case 'radio-ble':
-              return { ...card, value: networkCounts.ble || 0 };
-            case 'radio-bt':
-              return { ...card, value: networkCounts.bluetooth || 0 };
-            case 'radio-lte':
-              return { ...card, value: networkCounts.lte || 0 };
-            case 'radio-gsm':
-              return { ...card, value: networkCounts.gsm || 0 };
-            case 'radio-nr':
-              return { ...card, value: networkCounts.nr || 0 };
-            case 'analytics-link':
-              return { ...card, value: '→' };
-            default:
-              return card;
-          }
-        })
-      );
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [adaptedFilters]);
-
-  // Debounced filter updates
-  useDebouncedFilters(fetchDashboardData, 500);
-
-  // Initial load
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    // Skip if filterKey hasn't actually changed
+    if (prevFilterKeyRef.current === filterKey) {
+      console.log('[Dashboard] Filter key unchanged, skipping fetch');
+      return;
+    }
+
+    console.log(
+      '[Dashboard] Filter key CHANGED from',
+      prevFilterKeyRef.current.substring(0, 50),
+      'to',
+      filterKey.substring(0, 50)
+    );
+    prevFilterKeyRef.current = filterKey;
+
+    let cancelled = false;
+
+    const fetchData = async () => {
+      console.log('[Dashboard] Fetch triggered, filterKey:', filterKey.substring(0, 100));
+
+      setLoading(true);
+      setError(null);
+      try {
+        const { filtersForPage, enabledForPage } = adaptedFilters;
+        const params = new URLSearchParams({
+          filters: JSON.stringify(filtersForPage),
+          enabled: JSON.stringify(enabledForPage),
+        });
+
+        const response = await fetch(`/api/analytics/network-types?${params}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        const result = await response.json();
+
+        if (cancelled) return;
+
+        const data = result.data || [];
+
+        // Convert analytics data to dashboard format
+        const networkCounts = {};
+        let totalNetworks = 0;
+
+        data.forEach((item) => {
+          totalNetworks += item.count;
+          switch (item.type) {
+            case 'WiFi':
+              networkCounts.wifi = item.count;
+              break;
+            case 'BLE':
+              networkCounts.ble = item.count;
+              break;
+            case 'BT':
+              networkCounts.bluetooth = item.count;
+              break;
+            case 'LTE':
+              networkCounts.lte = item.count;
+              break;
+            case 'GSM':
+              networkCounts.gsm = item.count;
+              break;
+            case 'NR':
+              networkCounts.nr = item.count;
+              break;
+          }
+        });
+
+        // Update card values
+        setCards((prevCards) =>
+          prevCards.map((card) => {
+            switch (card.type) {
+              case 'total-networks':
+                return { ...card, value: totalNetworks };
+              case 'wifi-count':
+                return { ...card, value: networkCounts.wifi || 0 };
+              case 'radio-ble':
+                return { ...card, value: networkCounts.ble || 0 };
+              case 'radio-bt':
+                return { ...card, value: networkCounts.bluetooth || 0 };
+              case 'radio-lte':
+                return { ...card, value: networkCounts.lte || 0 };
+              case 'radio-gsm':
+                return { ...card, value: networkCounts.gsm || 0 };
+              case 'radio-nr':
+                return { ...card, value: networkCounts.nr || 0 };
+              case 'analytics-link':
+                return { ...card, value: '→' };
+              default:
+                return card;
+            }
+          })
+        );
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error fetching dashboard data:', err);
+          setError(err.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filterKey]); // Only depend on stable string
 
   const handleMouseDown = (e, cardId, mode = 'move') => {
     e.preventDefault();

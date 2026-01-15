@@ -203,7 +203,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
       {/* Filter Sections */}
       <div className="flex-1 overflow-y-auto">
         {/* Identity Filters */}
-        <FilterSection title="Identity" defaultOpen compact={isCompact}>
+        <FilterSection title="Identity" compact={isCompact}>
           <FilterInput
             label="SSID"
             enabled={enabled.ssid || false}
@@ -514,7 +514,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
         </FilterSection>
 
         {/* Temporal */}
-        <FilterSection title="Time Range" defaultOpen compact={isCompact}>
+        <FilterSection title="Time Range" compact={isCompact}>
           <FilterInput
             label="Timeframe"
             enabled={enabled.timeframe || false}
