@@ -570,7 +570,7 @@ const KeplerTestPage: React.FC = () => {
         setHasFitBounds(true);
       }
     }
-  }, [networkData, layerType, pointSize, signalThreshold, height3d, hasFitBounds]);
+  }, [networkData, layerType, pointSize, signalThreshold, height3d]);
 
   // Update pitch and controller
   useEffect(() => {
