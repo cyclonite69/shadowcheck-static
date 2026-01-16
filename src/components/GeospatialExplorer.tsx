@@ -328,8 +328,9 @@ const MAP_STYLES = [
   { value: 'google-satellite', label: '🛰️ Google Satellite', isGoogle: true },
   { value: 'google-hybrid', label: '🌐 Google Hybrid', isGoogle: true },
   { value: 'google-terrain', label: '⛰️ Google Terrain', isGoogle: true },
-  // Export option
-  { value: 'google-earth', label: '🌍 Export to Google Earth' },
+  // Google embedded views
+  { value: 'google-street-view', label: '🚶 Google Street View', isGoogle: true },
+  { value: 'google-earth', label: '🌍 Google Earth', isGoogle: true },
 ] as const;
 
 // Helper to create a Google Maps tile style for Mapbox GL
@@ -367,6 +368,7 @@ export default function GeospatialExplorer() {
   });
   const [show3DBuildings, setShow3DBuildings] = useState<boolean>(false);
   const [showTerrain, setShowTerrain] = useState<boolean>(false);
+  const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
   const [resizing, setResizing] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<(keyof NetworkRow | 'select')[]>(() => {
     const saved = localStorage.getItem('shadowcheck_visible_columns');
@@ -1764,11 +1766,23 @@ export default function GeospatialExplorer() {
 
   // Map style change handler
   const changeMapStyle = (styleUrl: string) => {
-    // Handle Google Earth export option
-    if (styleUrl === 'google-earth') {
-      exportToGoogleEarth();
+    // Handle embedded Google views
+    if (styleUrl === 'google-street-view') {
+      setEmbeddedView('street-view');
+      localStorage.setItem('shadowcheck_map_style', styleUrl);
+      setMapStyle(styleUrl);
       return;
     }
+
+    if (styleUrl === 'google-earth') {
+      setEmbeddedView('earth');
+      localStorage.setItem('shadowcheck_map_style', styleUrl);
+      setMapStyle(styleUrl);
+      return;
+    }
+
+    // Clear embedded view when switching to regular map
+    setEmbeddedView(null);
 
     if (!mapRef.current) return;
 
@@ -2374,10 +2388,37 @@ export default function GeospatialExplorer() {
                   {mapError}
                 </div>
               )}
+
+              {/* Embedded Google Views */}
+              {embeddedView === 'street-view' && mapRef.current && (
+                <iframe
+                  src={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mapRef.current.getCenter().lat},${mapRef.current.getCenter().lng}`}
+                  className="w-full h-full"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              )}
+
+              {embeddedView === 'earth' && mapRef.current && (
+                <iframe
+                  src={`https://earth.google.com/web/@${mapRef.current.getCenter().lat},${mapRef.current.getCenter().lng},0a,1000d,35y,0h,0t,0r`}
+                  className="w-full h-full"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              )}
+
               <div
                 ref={mapContainerRef}
                 className="w-full h-full"
-                style={{ background: 'rgba(30, 41, 59, 0.8)' }}
+                style={{
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  display: embeddedView ? 'none' : 'block',
+                }}
               />
             </div>
           </div>
