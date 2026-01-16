@@ -252,26 +252,26 @@ last_seen             TIMESTAMP -- Latest observation
 
 ### Signal Strength Analysis (for ShadowCheck threat model)
 
-| Dimension                   | Ranking | Reason                                          | Current Threshold      | Data Availability                |
-| --------------------------- | ------- | ----------------------------------------------- | ---------------------- | -------------------------------- |
-| **Home & Away Correlation** | 5/5     | **CRITICAL** - Primary stalking indicator       | <100m home, >500m away | 100% (if home set)               |
-| **Multi-Location Spread**   | 5/5     | **CRITICAL** - Follows user to multiple places  | >200m max distance     | 100% (geom required)             |
-| **Temporal Persistence**    | 4/5     | **HIGH** - Sustained surveillance over days     | 2-7+ unique days       | 100% (time always present)       |
-| **Observation Frequency**   | 4/5     | **HIGH** - Repeated detections indicate intent  | 20-50+ observations    | 100% (count always available)    |
-| **Movement Speed**          | 3/5     | **MEDIUM** - Indicates vehicle-based tracking   | 20-100+ km/h           | 100% (calculated from geom+time) |
-| **Off-Hours Activity**      | 3/5     | **MEDIUM** - Night appearances suspicious       | NOT IMPLEMENTED        | 100% (time available)            |
-| **Quick Transitions**       | 3/5     | **MEDIUM** - Active pursuit indicator           | NOT IMPLEMENTED        | 100% (time+geom available)       |
-| **Temporal Regularity**     | 2/5     | **LOW** - Scheduled patterns less threatening   | NOT IMPLEMENTED        | 100% (time available)            |
-| **Device Correlation**      | 2/5     | **LOW** - Coordinated surveillance rare         | NOT IMPLEMENTED        | 100% (spatial+temporal join)     |
-| **Probe Anomalies**         | 2/5     | **LOW** - SSID fishing less relevant            | NOT IMPLEMENTED        | ~50% (SSID may be hidden)        |
-| **Signal Pattern Trends**   | 1/5     | **VERY LOW** - Too variable for reliable signal | NOT IMPLEMENTED        | 100% (level available)           |
+| Dimension                   | Ranking | Reason                                                    | Current Threshold      | Data Availability             |
+| --------------------------- | ------- | --------------------------------------------------------- | ---------------------- | ----------------------------- |
+| **Home & Away Correlation** | 5/5     | **CRITICAL** - Primary stalking indicator                 | <100m home, >500m away | 100% (if home set)            |
+| **Max Distance Traveled**   | 5/5     | **CRITICAL** - Already calculated in movement_metrics CTE | >200m = 25 pts         | 100% (calculated metric)      |
+| **Temporal Persistence**    | 4/5     | **HIGH** - Sustained surveillance over days               | 2-7+ unique days       | 100% (time always present)    |
+| **Observation Frequency**   | 4/5     | **HIGH** - Repeated detections indicate intent            | 20-50+ observations    | 100% (count always available) |
+| **Movement Speed**          | 3/5     | **MEDIUM** - Already calculated from distance/time        | 20-100+ km/h           | 100% (calculated metric)      |
+| **Off-Hours Activity**      | 3/5     | **MEDIUM** - Night appearances suspicious                 | NOT IMPLEMENTED        | 100% (time available)         |
+| **Quick Transitions**       | 3/5     | **MEDIUM** - Active pursuit indicator                     | NOT IMPLEMENTED        | 100% (time+geom available)    |
+| **Temporal Regularity**     | 2/5     | **LOW** - Scheduled patterns less threatening             | NOT IMPLEMENTED        | 100% (time available)         |
+| **Device Correlation**      | 2/5     | **LOW** - Coordinated surveillance rare                   | NOT IMPLEMENTED        | 100% (spatial+temporal join)  |
+| **Probe Anomalies**         | 2/5     | **LOW** - SSID fishing less relevant                      | NOT IMPLEMENTED        | ~50% (SSID may be hidden)     |
+| **Signal Pattern Trends**   | 1/5     | **VERY LOW** - Too variable for reliable signal           | NOT IMPLEMENTED        | 100% (level available)        |
 
 ### Recommended Dimension Weights (for ShadowCheck)
 
 **Tier 1 - Critical Indicators** (60% total weight):
 
 - **Home & Away**: 30% - Strongest stalking signal
-- **Multi-Location**: 30% - Confirms following behavior
+- **Max Distance Traveled**: 30% - Already calculated, confirms following behavior
 
 **Tier 2 - Strong Indicators** (30% total weight):
 
@@ -280,7 +280,7 @@ last_seen             TIMESTAMP -- Latest observation
 
 **Tier 3 - Supporting Indicators** (10% total weight):
 
-- **Movement Speed**: 5% - Vehicle-based tracking
+- **Movement Speed**: 5% - Already calculated, vehicle-based tracking
 - **Off-Hours Activity**: 3% - Suspicious timing
 - **Quick Transitions**: 2% - Active pursuit
 
@@ -290,6 +290,8 @@ last_seen             TIMESTAMP -- Latest observation
 - **Device Correlation**: Insufficient data for reliable detection
 - **Probe Anomalies**: Not relevant to stalking model
 - **Signal Trends**: Too noisy for actionable intelligence
+
+**Note**: Both `max_distance_meters` and `max_speed_kmh` are already calculated in the `movement_metrics` CTE and available in the current threat scoring system.
 
 ---
 
