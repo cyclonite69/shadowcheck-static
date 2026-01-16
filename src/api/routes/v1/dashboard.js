@@ -12,7 +12,22 @@ const sendDashboardMetrics = async (req, res) => {
     if (!dashboardService) {
       return res.status(500).json({ error: 'Dashboard service not initialized' });
     }
-    const metrics = await dashboardService.getMetrics();
+
+    // Parse filters from query params
+    let filters = {};
+    let enabled = {};
+    try {
+      if (req.query.filters) {
+        filters = JSON.parse(req.query.filters);
+      }
+      if (req.query.enabled) {
+        enabled = JSON.parse(req.query.enabled);
+      }
+    } catch (parseErr) {
+      console.warn('Failed to parse filter params:', parseErr.message);
+    }
+
+    const metrics = await dashboardService.getMetrics(filters, enabled);
     res.json({
       threats: {
         critical: metrics.threatsCritical || 0,
@@ -26,9 +41,12 @@ const sendDashboardMetrics = async (req, res) => {
         ble: metrics.bleCount || 0,
         bluetooth: metrics.bluetoothCount || 0,
         lte: metrics.lteCount || 0,
+        nr: metrics.nrCount || 0,
+        gsm: metrics.gsmCount || 0,
       },
       surveillance: metrics.activeSurveillance || 0,
       enriched: metrics.enrichedCount || 0,
+      filtersApplied: metrics.filtersApplied || 0,
       timestamp: metrics.lastUpdated,
     });
   } catch (error) {

@@ -3,9 +3,9 @@ class DashboardService {
     this.networkRepository = networkRepository;
   }
 
-  async getMetrics() {
+  async getMetrics(filters = {}, enabled = {}) {
     try {
-      const metrics = await this.networkRepository.getDashboardMetrics();
+      const metrics = await this.networkRepository.getDashboardMetrics(filters, enabled);
       return {
         ...metrics,
         lastUpdated: new Date().toISOString(),
