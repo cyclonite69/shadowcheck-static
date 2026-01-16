@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FilterPanel } from './FilterPanel';
+import { ActiveFiltersSummary } from './ActiveFiltersSummary';
+import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
+import { getPageCapabilities } from '../utils/filterCapabilities';
 
 // SVG Icons - Industry Standard
 const AlertTriangle = ({ size = 24, className = '' }) => (
@@ -141,9 +145,6 @@ const GripHorizontal = ({ size = 24, className = '' }) => (
 );
 
 export default function DashboardPage() {
-  // ALL FETCH LOGIC REMOVED - Debugging infinite loop
-  // Dashboard is completely static until loop is fixed
-
   const [cards, setCards] = useState([
     {
       id: 1,
@@ -246,6 +247,14 @@ export default function DashboardPage() {
   const [dragging, setDragging] = useState(null);
   const [resizing, setResizing] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Universal filter system
+  const capabilities = getPageCapabilities('dashboard');
+  const adaptedFilters = useAdaptedFilters(capabilities);
+  const [filtersApplied, setFiltersApplied] = useState(0);
   const resizeStartRef = useRef({
     startX: 0,
     startY: 0,
@@ -254,7 +263,67 @@ export default function DashboardPage() {
     cardXPercent: 0,
   });
 
-  // NO FETCH - Dashboard is static for now
+  // Create stable filter key for change detection
+  const filterKey = JSON.stringify({
+    filters: adaptedFilters.filtersForPage,
+    enabled: adaptedFilters.enabledForPage,
+  });
+
+  // Fetch dashboard data - on mount and when filters change (debounced)
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams({
+          filters: JSON.stringify(adaptedFilters.filtersForPage),
+          enabled: JSON.stringify(adaptedFilters.enabledForPage),
+        });
+        const response = await fetch(`/api/dashboard-metrics?${params}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+
+        setCards((prev) =>
+          prev.map((card) => {
+            switch (card.type) {
+              case 'total-networks':
+                return { ...card, value: data.networks?.total || 0 };
+              case 'wifi-count':
+                return { ...card, value: data.networks?.wifi || 0 };
+              case 'radio-ble':
+                return { ...card, value: data.networks?.ble || 0 };
+              case 'radio-bt':
+                return { ...card, value: data.networks?.bluetooth || 0 };
+              case 'radio-lte':
+                return { ...card, value: data.networks?.lte || 0 };
+              case 'radio-gsm':
+                return { ...card, value: data.networks?.gsm || 0 };
+              case 'radio-nr':
+                return { ...card, value: data.networks?.nr || 0 };
+              default:
+                return card;
+            }
+          })
+        );
+        setFiltersApplied(data.filtersApplied || 0);
+        setError(null);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Dashboard fetch error:', err);
+          setError('Failed to load metrics');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [filterKey]); // Re-fetch when filters change
 
   const handleMouseDown = (e, cardId, mode = 'move') => {
     e.preventDefault();
@@ -343,45 +412,72 @@ export default function DashboardPage() {
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
+      {/* Filter Panel */}
+      {showFilters && (
+        <div
+          className="absolute top-16 right-4 z-50 max-w-md space-y-2"
+          style={{ maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}
+        >
+          <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
+          <FilterPanel density="compact" />
+        </div>
+      )}
+
       <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 p-3 z-50 pointer-events-none">
-          <div className="text-center">
-            <h1
-              style={{
-                fontSize: '22px',
-                fontWeight: '900',
-                margin: 0,
-                letterSpacing: '-0.5px',
-                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
-                filter:
-                  'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
-              }}
-            >
-              ShadowCheck Dashboard
-            </h1>
-            <p
-              style={{
-                fontSize: '12px',
-                fontWeight: '300',
-                margin: 0,
-                marginTop: '4px',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
-                opacity: 0.8,
-              }}
-            >
-              Real-time network intelligence and threat monitoring
-            </p>
+        <div className="absolute top-0 left-0 right-0 p-3 z-50">
+          <div className="flex items-center justify-between">
+            <div className="flex-1" />
+            <div className="text-center flex-1">
+              <h1
+                style={{
+                  fontSize: '22px',
+                  fontWeight: '900',
+                  margin: 0,
+                  letterSpacing: '-0.5px',
+                  background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
+                  filter:
+                    'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
+                }}
+              >
+                ShadowCheck Dashboard
+              </h1>
+              <p
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '300',
+                  margin: 0,
+                  marginTop: '4px',
+                  letterSpacing: '1.5px',
+                  textTransform: 'uppercase',
+                  background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
+                  opacity: 0.8,
+                }}
+              >
+                Real-time network intelligence and threat monitoring
+              </p>
+            </div>
+            <div className="flex-1 flex justify-end">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+                style={{
+                  background: showFilters
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                    : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                }}
+              >
+                {showFilters ? 'Hide Filters' : 'Filters'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -460,7 +556,13 @@ export default function DashboardPage() {
                     <p className="text-xs font-medium text-slate-400">
                       {card.type === 'analytics-link'
                         ? 'View detailed analytics'
-                        : 'Static display (fetch disabled)'}
+                        : loading
+                          ? 'Loading...'
+                          : error
+                            ? error
+                            : filtersApplied > 0
+                              ? `Filtered (${filtersApplied} active)`
+                              : 'All networks'}
                     </p>
                   </div>
                 </div>

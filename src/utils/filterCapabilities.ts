@@ -142,17 +142,18 @@ export const PAGE_CAPABILITIES: Record<string, PageFilterCapabilities> = {
   // Analytics - full support
   analytics: createFullCapabilities(),
 
-  // Dashboard - basic support (aggregated data)
+  // Dashboard - supports filters that work with public.networks table
   dashboard: {
     supported: {
+      ssid: true,
+      bssid: true,
       radioTypes: true,
+      rssiMin: true,
+      rssiMax: true,
       timeframe: true,
-      threatScoreMin: true,
-      threatScoreMax: true,
       encryptionTypes: true,
-      securityFlags: true,
     },
-    notes: 'Dashboard shows aggregated metrics',
+    notes: 'Dashboard shows aggregated metrics with filter support',
   },
 
   // Kepler test - visualization support
