@@ -396,8 +396,6 @@ export default function GeospatialExplorer() {
   const [homeButtonActive, setHomeButtonActive] = useState(false);
   const [fitButtonActive, setFitButtonActive] = useState(false);
   const [planCheck, setPlanCheck] = useState(false);
-  const [quickSearch, setQuickSearch] = useState('');
-  const [debouncedQuickSearch, setDebouncedQuickSearch] = useState('');
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
   }, []);
@@ -409,13 +407,6 @@ export default function GeospatialExplorer() {
     useFilterStore.getState().getAPIFilters()
   );
   useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedQuickSearch(quickSearch);
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [quickSearch]);
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -517,12 +508,7 @@ export default function GeospatialExplorer() {
   useEffect(() => {
     setPagination({ offset: 0, hasMore: true });
     setNetworks([]);
-  }, [
-    JSON.stringify(debouncedFilterState),
-    debouncedQuickSearch,
-    JSON.stringify(sort),
-    locationMode,
-  ]);
+  }, [JSON.stringify(debouncedFilterState), JSON.stringify(sort), locationMode]);
 
   // Update container height on window resize
   useEffect(() => {
@@ -1184,10 +1170,6 @@ export default function GeospatialExplorer() {
           }
         }
 
-        if (debouncedQuickSearch.trim()) {
-          params.set('q', debouncedQuickSearch.trim());
-        }
-
         const res = await fetch(`/api/networks?${params.toString()}`, {
           signal: controller.signal,
         });
@@ -1373,7 +1355,6 @@ export default function GeospatialExplorer() {
   }, [
     pagination.offset,
     JSON.stringify(debouncedFilterState),
-    debouncedQuickSearch,
     JSON.stringify(sort),
     planCheck,
     locationMode,
@@ -2056,39 +2037,6 @@ export default function GeospatialExplorer() {
               fontSize: '12px',
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: '8px' }}>Quick List Filters</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-              <input
-                placeholder="Quick Search (SSID, BSSID, Manufacturer)"
-                value={quickSearch}
-                onChange={(e) => setQuickSearch(e.target.value)}
-                style={{
-                  padding: '6px 8px',
-                  background: 'rgba(30, 41, 59, 0.7)',
-                  border: '1px solid rgba(71, 85, 105, 0.4)',
-                  borderRadius: '6px',
-                  color: '#e2e8f0',
-                }}
-              />
-              <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                Quick Search ignores filter toggles and uses OR matching.
-              </div>
-              <button
-                onClick={() => setQuickSearch('')}
-                style={{
-                  padding: '6px 8px',
-                  background: 'rgba(30, 41, 59, 0.7)',
-                  border: '1px solid rgba(71, 85, 105, 0.4)',
-                  borderRadius: '6px',
-                  color: '#e2e8f0',
-                  cursor: 'pointer',
-                }}
-              >
-                Clear quick search
-              </button>
-            </div>
-          </div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
             <FilterPanel density="compact" />
           </div>
         </div>
