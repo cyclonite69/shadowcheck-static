@@ -95,23 +95,116 @@ class NetworkRepository {
     }
   }
 
-  async getDashboardMetrics() {
+  async getDashboardMetrics(filters = {}, enabled = {}) {
     try {
-      const result = await query(`
-        SELECT 
+      // Build WHERE clause from filters
+      // Available columns: bssid, ssid, type, frequency, capabilities, bestlevel, bestlat, bestlon, lastlat, lastlon, lasttime_ms
+      const conditions = [];
+      const params = [];
+      let paramIndex = 1;
+
+      // Radio types filter (type column: W, E, B, L, N, G)
+      if (enabled.radioTypes && filters.radioTypes && filters.radioTypes.length > 0) {
+        conditions.push(`type = ANY($${paramIndex})`);
+        params.push(filters.radioTypes);
+        paramIndex++;
+      }
+
+      // RSSI filters (bestlevel column)
+      if (enabled.rssiMin && filters.rssiMin !== undefined) {
+        conditions.push(`bestlevel >= $${paramIndex}`);
+        params.push(filters.rssiMin);
+        paramIndex++;
+      }
+      if (enabled.rssiMax && filters.rssiMax !== undefined) {
+        conditions.push(`bestlevel <= $${paramIndex}`);
+        params.push(filters.rssiMax);
+        paramIndex++;
+      }
+
+      // Timeframe filter (lasttime_ms column - milliseconds)
+      if (enabled.timeframe && filters.timeframe) {
+        const now = Date.now();
+        let startTime = null;
+
+        if (filters.timeframe.type === 'relative' && filters.timeframe.relativeWindow) {
+          const window = filters.timeframe.relativeWindow;
+          const match = window.match(/^(\d+)([hdwmy])$/);
+          if (match) {
+            const value = parseInt(match[1]);
+            const unit = match[2];
+            const msMultipliers = {
+              h: 3600000, // hour
+              d: 86400000, // day
+              w: 604800000, // week
+              m: 2592000000, // month (30 days)
+              y: 31536000000, // year
+            };
+            startTime = now - value * (msMultipliers[unit] || 86400000);
+          }
+        } else if (filters.timeframe.type === 'absolute' && filters.timeframe.startDate) {
+          startTime = new Date(filters.timeframe.startDate).getTime();
+        }
+
+        if (startTime) {
+          conditions.push(`lasttime_ms >= $${paramIndex}`);
+          params.push(startTime);
+          paramIndex++;
+        }
+
+        if (filters.timeframe.type === 'absolute' && filters.timeframe.endDate) {
+          const endTime = new Date(filters.timeframe.endDate).getTime();
+          conditions.push(`lasttime_ms <= $${paramIndex}`);
+          params.push(endTime);
+          paramIndex++;
+        }
+      }
+
+      // Encryption filter (capabilities column contains encryption info like [WPA2-PSK-CCMP])
+      if (
+        enabled.encryptionTypes &&
+        filters.encryptionTypes &&
+        filters.encryptionTypes.length > 0
+      ) {
+        const encPatterns = filters.encryptionTypes.map((enc) => `%${enc}%`);
+        const encConditions = encPatterns.map((_, i) => `capabilities ILIKE $${paramIndex + i}`);
+        conditions.push(`(${encConditions.join(' OR ')})`);
+        params.push(...encPatterns);
+        paramIndex += encPatterns.length;
+      }
+
+      // SSID filter
+      if (enabled.ssid && filters.ssid) {
+        conditions.push(`ssid ILIKE $${paramIndex}`);
+        params.push(`%${filters.ssid}%`);
+        paramIndex++;
+      }
+
+      // BSSID filter
+      if (enabled.bssid && filters.bssid) {
+        conditions.push(`bssid ILIKE $${paramIndex}`);
+        params.push(`%${filters.bssid.toUpperCase()}%`);
+        paramIndex++;
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+      const result = await query(
+        `
+        SELECT
           COUNT(*) as total_networks,
           COUNT(*) FILTER (WHERE type = 'W') as wifi_count,
           COUNT(*) FILTER (WHERE type = 'E') as ble_count,
           COUNT(*) FILTER (WHERE type = 'B') as bluetooth_count,
           COUNT(*) FILTER (WHERE type = 'L') as lte_count,
-          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 80) as critical_threats,
-          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 60 AND ml_threat_score < 80) as high_threats,
-          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 40 AND ml_threat_score < 60) as medium_threats,
-          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 20 AND ml_threat_score < 40) as low_threats,
-          COUNT(*) FILTER (WHERE type = 'W' AND ml_threat_score >= 40) as active_surveillance,
-          COUNT(*) FILTER (WHERE location IS NOT NULL) as enriched_count
+          COUNT(*) FILTER (WHERE type = 'N') as nr_count,
+          COUNT(*) FILTER (WHERE type = 'G') as gsm_count,
+          COUNT(*) FILTER (WHERE bestlat != 0 AND bestlon != 0) as enriched_count
         FROM public.networks
-      `);
+        ${whereClause}
+      `,
+        params
+      );
 
       const row = result.rows[0] || {};
 
@@ -121,12 +214,16 @@ class NetworkRepository {
         bleCount: parseInt(row.ble_count) || 0,
         bluetoothCount: parseInt(row.bluetooth_count) || 0,
         lteCount: parseInt(row.lte_count) || 0,
-        threatsCritical: parseInt(row.critical_threats) || 0,
-        threatsHigh: parseInt(row.high_threats) || 0,
-        threatsMedium: parseInt(row.medium_threats) || 0,
-        threatsLow: parseInt(row.low_threats) || 0,
-        activeSurveillance: parseInt(row.active_surveillance) || 0,
+        nrCount: parseInt(row.nr_count) || 0,
+        gsmCount: parseInt(row.gsm_count) || 0,
+        // Threat scoring not available without ml_threat_score column
+        threatsCritical: 0,
+        threatsHigh: 0,
+        threatsMedium: 0,
+        threatsLow: 0,
+        activeSurveillance: 0,
         enrichedCount: parseInt(row.enriched_count) || 0,
+        filtersApplied: conditions.length,
       };
     } catch (error) {
       console.error('Error fetching dashboard metrics:', error);
@@ -136,12 +233,15 @@ class NetworkRepository {
         bleCount: 0,
         bluetoothCount: 0,
         lteCount: 0,
+        nrCount: 0,
+        gsmCount: 0,
         threatsCritical: 0,
         threatsHigh: 0,
         threatsMedium: 0,
         threatsLow: 0,
         activeSurveillance: 0,
         enrichedCount: 0,
+        filtersApplied: 0,
       };
     }
   }

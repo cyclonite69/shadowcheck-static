@@ -318,7 +318,10 @@ export const useDebouncedFilters = (
   }) => void,
   delay = 500
 ) => {
-  const filters = useFilterStore((state) => state.getAPIFilters());
+  // Select filters and enabled separately to get stable references
+  // DO NOT use getAPIFilters() as selector - it returns a new object every time!
+  const filters = useFilterStore((state) => state.filters);
+  const enabled = useFilterStore((state) => state.enabled);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -327,7 +330,7 @@ export const useDebouncedFilters = (
     }
 
     timeoutRef.current = setTimeout(() => {
-      callback(filters);
+      callback({ filters, enabled });
     }, delay);
 
     return () => {
@@ -335,5 +338,5 @@ export const useDebouncedFilters = (
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [filters, callback, delay]);
+  }, [filters, enabled, callback, delay]);
 };
