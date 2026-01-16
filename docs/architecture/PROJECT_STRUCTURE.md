@@ -18,9 +18,12 @@ shadowcheck-static/
 │   ├── package.json           # Node.js dependencies & scripts
 │   └── package-lock.json      # Locked dependency versions
 │
+├── 📁 server/                 # Express API modules (legacy v1/v2)
+│   └── routes/                # Route handlers
+│
 ├── 📁 src/                    # Application Source Code
 │   ├── api/                   # Backend API (CommonJS)
-│   │   └── routes/v1/         # API endpoints (networks, threats, analytics, ml)
+│   │   └── routes/            # v1 + v2 route handlers
 │   ├── services/              # Business logic layer
 │   ├── repositories/          # Data access layer
 │   ├── config/                # Configuration (DB pool, DI container)
@@ -45,6 +48,11 @@ shadowcheck-static/
 │   ├── api/                   # API endpoint tests
 │   └── setup.js               # Jest setup
 │
+├── 📁 etl/                    # ETL pipelines (load/transform/promote)
+│   ├── 01_load/
+│   ├── 03_transform/
+│   └── 05_indexes/
+│
 ├── 📁 scripts/                # Utility Scripts
 │   ├── import/                # Data import utilities
 │   ├── geocoding/             # Geocoding & reverse geocoding
@@ -60,7 +68,6 @@ shadowcheck-static/
 │
 ├── 📁 docs/                   # Documentation
 │   ├── README.md              # Documentation index
-│   ├── INDEX.md               # Navigation guide
 │   ├── architecture/          # System architecture guides
 │   ├── architecture/PROJECT_STRUCTURE.md # This file
 │   ├── security/              # Security policies
@@ -110,6 +117,36 @@ shadowcheck-static/
     ├── CODE_OF_CONDUCT.md     # Community guidelines
     └── SECURITY.md            # Security policy
 ```
+
+## Technology Stack
+
+### Backend (Node.js 20+)
+
+- **Language**: JavaScript (CommonJS modules)
+- **Framework**: Express.js
+- **Database**: PostgreSQL 18 + PostGIS
+- **Architecture**: Layered (Routes → Services → Repositories)
+
+### Frontend (React 18)
+
+- **Language**: TypeScript (ES modules)
+- **Framework**: React 18
+- **Build Tool**: Vite
+- **Router**: React Router v6
+- **Styling**: Tailwind CSS
+- **Maps**: Mapbox GL JS
+- **Charts**: Recharts
+
+## File Type Patterns
+
+| File Extension   | Purpose                       | Location                                         |
+| ---------------- | ----------------------------- | ------------------------------------------------ |
+| `*.js` (backend) | Backend JavaScript (CommonJS) | `src/api/`, `src/services/`, `src/repositories/` |
+| `*.tsx`, `*.jsx` | Frontend React components     | `src/components/`, `src/App.tsx`, `src/main.tsx` |
+| `*.ts` (scripts) | TypeScript scripts/utilities  | `scripts/`, `scripts/enrichment/`                |
+| `*.css`          | Frontend styles               | `src/`, `public/css/`                            |
+| `*.sql`          | Database migrations           | `sql/migrations/`                                |
+| `*.test.js`      | Backend tests                 | `tests/`                                         |
 
 ## File Organization Rules
 
@@ -164,7 +201,7 @@ mv *.csv backups/csv/
 
 **Purpose**: Application runtime data (imports, exports, temporary processing).
 
-**Important**: Directory exists but has permission issues (owned by root from Docker volume). Needs manual fix:
+**Important**: Directory is gitignored but kept in repo via `data/.gitkeep`. If owned by root from Docker volume, fix permissions:
 
 ```bash
 sudo chown -R $USER:$USER data/
@@ -340,10 +377,10 @@ mkdir -p data/{csv,imports,exports,analysis}
 
 See:
 
-- [CLAUDE.md](CLAUDE.md) - Development guidance
-- [README.md](README.md) - Project overview
-- [docs/INDEX.md](docs/INDEX.md) - Documentation navigation
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
+- [CLAUDE.md](../../CLAUDE.md) - Development guidance
+- [README.md](../../README.md) - Project overview
+- [docs/README.md](../README.md) - Documentation navigation
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) - Contribution guidelines
 
 ---
 
