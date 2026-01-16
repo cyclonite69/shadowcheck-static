@@ -124,7 +124,7 @@ backups/analysis-reports/
 
 ### 5. Documentation Created
 
-**PROJECT_STRUCTURE.md** (12 KB):
+**docs/architecture/PROJECT_STRUCTURE.md** (12 KB):
 - Comprehensive directory layout diagram
 - File organization rules (DO/DON'T)
 - Special directory explanations
@@ -317,12 +317,12 @@ Some files remain in root that may need further review:
 1. **Data files grow quickly**: 79 MB of data accumulated in root
 2. **Temporary files multiply**: Test scripts, logs, and debug files are easy to forget
 3. **Infrastructure separation**: Shared infrastructure benefits from dedicated directory
-4. **Documentation prevents drift**: PROJECT_STRUCTURE.md helps maintain organization
+4. **Documentation prevents drift**: docs/architecture/PROJECT_STRUCTURE.md helps maintain organization
 5. **.gitignore maintenance**: Regular updates prevent clutter from reoccurring
 
 ## References
 
-- [PROJECT_STRUCTURE.md](../../PROJECT_STRUCTURE.md) - Comprehensive structure guide
+- [PROJECT_STRUCTURE.md](../architecture/PROJECT_STRUCTURE.md) - Comprehensive structure guide
 - [CLAUDE.md](../../CLAUDE.md) - Development guidance (updated)
 - [.gitignore](../../.gitignore) - Updated ignore patterns
 - [docker/infrastructure/README.md](../../docker/infrastructure/README.md) - Infrastructure docs

@@ -62,6 +62,7 @@ shadowcheck-static/
 │   ├── README.md              # Documentation index
 │   ├── INDEX.md               # Navigation guide
 │   ├── architecture/          # System architecture guides
+│   ├── architecture/PROJECT_STRUCTURE.md # This file
 │   ├── security/              # Security policies
 │   ├── archive/               # Historical documentation
 │   └── DATABASE_*.md          # Database schema docs
@@ -107,8 +108,7 @@ shadowcheck-static/
     ├── LICENSE                # MIT License
     ├── CONTRIBUTING.md        # Contribution guidelines
     ├── CODE_OF_CONDUCT.md     # Community guidelines
-    ├── SECURITY.md            # Security policy
-    └── PROJECT_STRUCTURE.md   # This file
+    └── SECURITY.md            # Security policy
 ```
 
 ## File Organization Rules

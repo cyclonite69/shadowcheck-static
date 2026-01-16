@@ -90,6 +90,7 @@ docs/
 - **[Network Explorer](features/NETWORK_EXPLORER_ENHANCEMENTS.md)** - Network browsing
 - **[Analytics Dashboard](features/ANALYTICS_DASHBOARD_IMPROVEMENTS.md)** - Data visualization
 - **[Map Features](features/MAP_JUMP_FEATURE.md)** - Interactive mapping
+- **[Map Controls Implementation](features/IMPLEMENTATION_SUMMARY_MAP_CONTROLS.md)** - Map orientation controls summary
 
 ## 📋 Implementation Guides
 

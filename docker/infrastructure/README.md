@@ -214,7 +214,7 @@ For production deployments:
 
 - [Project Root README](../../README.md)
 - [CLAUDE.md](../../CLAUDE.md) - Development guidance
-- [PROJECT_STRUCTURE.md](../../PROJECT_STRUCTURE.md) - Directory organization
+- [PROJECT_STRUCTURE.md](../../docs/architecture/PROJECT_STRUCTURE.md) - Directory organization
 - [docs/SHARED_INFRASTRUCTURE.md](../../docs/SHARED_INFRASTRUCTURE.md) - Detailed infrastructure docs
 
 ---
