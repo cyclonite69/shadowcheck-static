@@ -4,6 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
+import { usePageFilters } from '../hooks/usePageFilters';
 import { attachMapOrientationControls } from '../utils/mapOrientationControls';
 import { logError, logDebug } from '../logging/clientLogger';
 
@@ -354,6 +355,9 @@ const createGoogleStyle = (type: string) => ({
 });
 
 export default function GeospatialExplorer() {
+  // Set current page for filter scoping
+  usePageFilters('geospatial');
+
   // All state declarations first
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
   const [mapHeight, setMapHeight] = useState<number>(500);
