@@ -385,7 +385,7 @@ export default function GeospatialExplorer() {
   const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [useObservationFilters, setUseObservationFilters] = useState(false);
+  const [useObservationFilters, setUseObservationFilters] = useState(true);
   const [loadingNetworks, setLoadingNetworks] = useState(false);
   const [loadingObservations, setLoadingObservations] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -2443,15 +2443,15 @@ export default function GeospatialExplorer() {
                     border: '1px solid rgba(71, 85, 105, 0.4)',
                     background: 'rgba(15, 23, 42, 0.6)',
                   }}
-                  title="When off, observations ignore global filters and fetch all points for selected networks."
+                  title="Filters apply to both network list and observations on map"
                 >
                   <input
                     type="checkbox"
-                    checked={useObservationFilters}
-                    onChange={(e) => setUseObservationFilters(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
+                    checked={true}
+                    disabled
+                    style={{ cursor: 'not-allowed' }}
                   />
-                  Use filters for observations
+                  Filters apply to list + map
                 </label>
                 {expensiveSort && (
                   <span
