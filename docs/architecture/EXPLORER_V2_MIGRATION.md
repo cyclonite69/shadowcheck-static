@@ -467,7 +467,7 @@ curl "http://localhost:3001/api/explorer/networks-v2?limit=all" | \
 ### Documentation
 
 - [CLAUDE.md](../../CLAUDE.md) - Development guidance
-- [PROJECT_STRUCTURE.md](../../PROJECT_STRUCTURE.md) - Directory organization
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Directory organization
 - [DATABASE_SCHEMA_ENTITIES.md](../DATABASE_SCHEMA_ENTITIES.md) - Database schema
 
 ---
