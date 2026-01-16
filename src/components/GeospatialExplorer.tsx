@@ -403,7 +403,8 @@ export default function GeospatialExplorer() {
   }, []);
 
   useFilterURLSync();
-  const { enabled, setFilter } = useFilterStore();
+  const { getCurrentEnabled, setFilter } = useFilterStore();
+  const enabled = getCurrentEnabled();
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
   );
