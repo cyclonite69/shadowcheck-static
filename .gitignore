@@ -122,6 +122,8 @@ install-keyring-tool.sh
 # CSV data files
 *.csv
 !**/examples/**/*.csv
+data/
+!data/.gitkeep
 data/csv/
 data/imports/
 data/exports/
