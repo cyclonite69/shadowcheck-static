@@ -11,7 +11,7 @@
 All markdown documentation has been organized under `docs/` directory following GitHub best practices:
 
 #### New Documentation Files
-- `docs/INDEX.md` - Complete documentation catalog
+- `docs/README.md` - Complete documentation catalog
 - `docs/FEATURES.md` - Comprehensive feature list
 - `docs/API_REFERENCE.md` - Concise REST API reference
 - `docs/SECURITY_POLICY.md` - Security policy
@@ -29,7 +29,7 @@ All markdown documentation has been organized under `docs/` directory following 
 - `ADMIN_FEATURES.md` → `docs/ADMIN_FEATURES.md`
 - `NAV_COLORS.md` → `docs/NAV_COLORS.md`
 - `WIGLE_ENRICHMENT_PLAN.md` → `docs/WIGLE_ENRICHMENT_PLAN.md`
-- `STATUS_UPDATE.md` → `docs/STATUS_UPDATE.md`
+- `STATUS_UPDATE.md` → `docs/archive/STATUS_UPDATE_2025-12-03.md`
 - `GEOSPATIAL_FIXES.md` → `docs/GEOSPATIAL_FIXES.md`
 - `MAPBOX_CACHING_GUIDE.md` → `docs/MAPBOX_CACHING_GUIDE.md`
 
@@ -87,7 +87,7 @@ shadowcheck-static/
 ├── package.json              # Node.js dependencies
 ├── server.js                 # Express server
 ├── docs/                     # 📚 All documentation
-│   ├── INDEX.md              # Documentation catalog
+│   ├── README.md             # Documentation catalog
 │   ├── README.md             # Docs overview
 │   ├── FEATURES.md           # Feature list
 │   ├── API_REFERENCE.md      # API documentation
@@ -224,7 +224,7 @@ See `docs/API_REFERENCE.md` for concise API documentation covering:
 
 1. **docs: Reorganize documentation and add comprehensive API reference**
    - Move all root-level .md files to docs/
-   - Create INDEX.md, FEATURES.md, API_REFERENCE.md
+   - Create README.md, FEATURES.md, API_REFERENCE.md
    - Archive old documentation
    - Update .gitignore
 

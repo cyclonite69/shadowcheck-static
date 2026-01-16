@@ -208,7 +208,7 @@ shadowcheck-static/
 └── docker-compose.yml     # Docker configuration
 ```
 
-**📖 See [docs/architecture/project-structure.md](docs/architecture/project-structure.md) for detailed frontend/backend organization.**
+**📖 See [docs/architecture/PROJECT_STRUCTURE.md](docs/architecture/PROJECT_STRUCTURE.md) for detailed frontend/backend organization.**
 
 Also see [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md) for complete details.
 
@@ -243,7 +243,7 @@ Key environment variables (see `.env.example`):
 
 ## Documentation
 
-Additional documentation is available in the `docs` directory. See [docs/INDEX.md](docs/INDEX.md) for navigation.
+Additional documentation is available in the `docs` directory. See [docs/README.md](docs/README.md) for navigation.
 
 ## Contributing
 
