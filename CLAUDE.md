@@ -92,19 +92,31 @@ See [docs/architecture/](docs/architecture/) for detailed system design.
 
 ## Database Schema
 
-PostgreSQL 18 with PostGIS extension. Primary tables in `app` schema:
+PostgreSQL 18 with PostGIS extension. Primary tables are in `public` schema:
 
-- `networks` - Network metadata (BSSID, SSID, type, encryption, threat_score)
-- `observations` - Observation records (lat/lon, signal, timestamp) - partitioned by year
-- `network_tags` - User tags (LEGIT, FALSE_POSITIVE, INVESTIGATE, THREAT)
+**Core Tables** (`public` schema):
+
+- `networks` - Network metadata (bssid, ssid, type, frequency, capabilities, bestlevel, bestlat/bestlon, lasttime_ms)
+- `observations` - Observation records with location data
+- `wigle_v2_networks_search` - WiGLE API data
+- `access_points` - Access point details
+- `oui_manufacturers` - MAC address manufacturer lookup
+
+**App Tables** (`app` schema):
+
 - `location_markers` - Home/work locations for threat analysis
-- `wigle_networks_enriched` - WiGLE API enrichment data
+- `radio_manufacturers` - Radio manufacturer data
 
 **Network Types**: W (WiFi), E (BLE), B (Bluetooth), L (LTE), N (5G NR), G (GSM)
 
-**Note**: Legacy tables (`networks_legacy`, `locations_legacy`) exist but are deprecated. All new code uses `app.networks` and `app.observations`.
+**Important**: The `public.networks` table columns differ from documentation. Key columns:
 
-See [docs/DATABASE_SCHEMA_ENTITIES.md](docs/DATABASE_SCHEMA_ENTITIES.md) and related schema docs in `docs/` for full schema details.
+- `bssid`, `ssid`, `type` - Identity
+- `frequency`, `capabilities`, `bestlevel` - Radio properties
+- `bestlat`, `bestlon`, `lastlat`, `lastlon` - Coordinates
+- `lasttime_ms` - Timestamp in milliseconds
+
+See [docs/DATABASE_SCHEMA_ENTITIES.md](docs/DATABASE_SCHEMA_ENTITIES.md) for full schema details.
 
 ## Development Patterns
 
@@ -113,8 +125,8 @@ See [docs/DATABASE_SCHEMA_ENTITIES.md](docs/DATABASE_SCHEMA_ENTITIES.md) and rel
 ```javascript
 const { query } = require('../config/database');
 
-// Always use parameterized queries
-const result = await query('SELECT * FROM app.networks WHERE bssid = $1', [bssid.toUpperCase()]);
+// Always use parameterized queries - use public schema for network data
+const result = await query('SELECT * FROM public.networks WHERE bssid = $1', [bssid.toUpperCase()]);
 ```
 
 ### Error Handling
@@ -316,11 +328,10 @@ Networks are scored based on:
 
 **Empty Threat Results / Dashboard Shows Zeros**:
 
-- Verify data exists: `docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db -c "SELECT COUNT(*) FROM app.networks;"`
-- Check ml_threat_score values: `docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db -c "SELECT COUNT(*) FILTER (WHERE ml_threat_score > 0) FROM app.networks;"`
-- Run ML threat assessment if scores are zero
-- Verify home location set in `location_markers` table
-- Networks need ≥2 observations to appear
+- Verify data exists: `docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db -c "SELECT COUNT(*) FROM public.networks;"`
+- Check network type distribution: `docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db -c "SELECT type, COUNT(*) FROM public.networks GROUP BY type;"`
+- Verify home location set in `app.location_markers` table
+- Note: The `public.networks` table does NOT have `ml_threat_score` column - threat scoring requires separate analysis
 
 ## Documentation
 
@@ -471,5 +482,5 @@ git ls-files --directory ./ --exclude-standard | grep -v '/'
 
 ---
 
-**Last Updated**: 2025-12-19
+**Last Updated**: 2026-01-16
 **See**: [CHANGELOG.md](CHANGELOG.md) for version history
