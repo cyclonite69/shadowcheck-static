@@ -525,7 +525,11 @@ export default function Analytics() {
       case 'network-types':
         if (networkTypesData.length === 0) return null;
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer
+            width="100%"
+            height={height}
+            key={`network-types-${networkTypesData.length}`}
+          >
             <PieChart>
               <Pie
                 data={networkTypesData}
@@ -538,7 +542,7 @@ export default function Analytics() {
                 animationDuration={300}
               >
                 {networkTypesData.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.color} />
+                  <Cell key={`cell-${idx}-${entry.name}`} fill={entry.color} />
                 ))}
               </Pie>
               <Tooltip
@@ -584,7 +588,7 @@ export default function Analytics() {
       case 'security':
         if (securityData.length === 0) return null;
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <ResponsiveContainer width="100%" height={height} key={`security-${securityData.length}`}>
             <PieChart>
               <Pie
                 data={securityData}
@@ -597,7 +601,7 @@ export default function Analytics() {
                 animationDuration={300}
               >
                 {securityData.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.color} />
+                  <Cell key={`sec-cell-${idx}-${entry.name}`} fill={entry.color} />
                 ))}
               </Pie>
               <Tooltip
