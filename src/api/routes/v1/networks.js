@@ -325,15 +325,15 @@ router.get('/networks', async (req, res, next) => {
     }
     if (distanceFromHomeKm !== null) {
       params.push(distanceFromHomeKm);
-      whereClauses.push(`distance_from_home_km <= $${params.length}::numeric`);
+      whereClauses.push(`ne.distance_from_home_km <= $${params.length}::numeric`);
     }
     if (distanceFromHomeMinKm !== null) {
       params.push(distanceFromHomeMinKm);
-      whereClauses.push(`distance_from_home_km >= $${params.length}::numeric`);
+      whereClauses.push(`ne.distance_from_home_km >= $${params.length}::numeric`);
     }
     if (distanceFromHomeMaxKm !== null) {
       params.push(distanceFromHomeMaxKm);
-      whereClauses.push(`distance_from_home_km <= $${params.length}::numeric`);
+      whereClauses.push(`ne.distance_from_home_km <= $${params.length}::numeric`);
     }
     if (minSignal !== null) {
       params.push(minSignal);
