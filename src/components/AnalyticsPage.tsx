@@ -181,6 +181,7 @@ export default function Analytics() {
   const [error, setError] = useState(null);
 
   useFilterURLSync();
+  const { setFilter, enableFilter } = useFilterStore();
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
   );
