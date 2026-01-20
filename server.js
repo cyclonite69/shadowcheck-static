@@ -172,6 +172,7 @@ delete process.env.PGUSER;
     const backupRoutes = require('./src/api/routes/v1/backup');
     const exportRoutes = require('./src/api/routes/v1/export');
     const settingsRoutes = require('./src/api/routes/v1/settings');
+    const networkTagsRoutes = require('./src/api/routes/v1/network-tags');
 
     // ============================================================================
     // 5. APP INITIALIZATION
@@ -316,6 +317,7 @@ delete process.env.PGUSER;
     app.use('/api', backupRoutes);
     app.use('/api', exportRoutes);
     app.use('/api', settingsRoutes);
+    app.use('/api/network-tags', networkTagsRoutes);
 
     // Geocoding endpoint
     app.post('/api/geocode', async (req, res) => {
@@ -739,6 +741,7 @@ delete process.env.PGUSER;
       process.exit(0);
     });
   } catch (err) {
+    console.error(err); // PRINT STACK TRACE
     const logger = require('./src/logging/logger');
     logger.error(`Fatal error starting server: ${err.message}`, { error: err });
     process.exit(1);
