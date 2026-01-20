@@ -26,7 +26,10 @@ router.get('/networks', async (req, res, next) => {
   try {
     const limitRaw = req.query.limit;
     const offsetRaw = req.query.offset;
-    const threatRaw = req.query.threat;
+    const threatLevelRaw = req.query.threat_level;
+    const threatCategoriesRaw = req.query.threat_categories;
+    const threatScoreMinRaw = req.query.threat_score_min;
+    const threatScoreMaxRaw = req.query.threat_score_max;
     const lastSeenRaw = req.query.last_seen;
     const distanceRaw = req.query.distance_from_home_km;
     const distanceMinRaw = req.query.distance_from_home_km_min;
@@ -82,14 +85,49 @@ router.get('/networks', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid offset parameter. Must be >= 0.' });
     }
 
-    let threat = null;
-    if (threatRaw !== undefined) {
-      if (threatRaw === 'true') {
-        threat = true;
-      } else if (threatRaw === 'false') {
-        threat = false;
+    let threatLevel = null;
+    let threatCategories = null;
+    let threatScoreMin = null;
+    let threatScoreMax = null;
+
+    if (threatLevelRaw !== undefined) {
+      const validLevels = ['NONE', 'LOW', 'MED', 'HIGH'];
+      if (validLevels.includes(threatLevelRaw.toUpperCase())) {
+        threatLevel = threatLevelRaw.toUpperCase();
       } else {
-        return res.status(400).json({ error: 'Invalid threat parameter. Must be true or false.' });
+        return res.status(400).json({ error: 'Invalid threat_level parameter. Must be NONE, LOW, MED, or HIGH.' });
+      }
+    }
+
+    if (threatCategoriesRaw !== undefined) {
+      try {
+        const categories = Array.isArray(threatCategoriesRaw) ? threatCategoriesRaw : JSON.parse(threatCategoriesRaw);
+        if (Array.isArray(categories) && categories.length > 0) {
+          // Map frontend threat categories to database values
+          const threatLevelMap = {
+            'critical': 'HIGH',
+            'high': 'HIGH',
+            'medium': 'MED',
+            'low': 'LOW',
+          };
+          threatCategories = categories.map(cat => threatLevelMap[cat]).filter(Boolean);
+        }
+      } catch (_e) {
+        return res.status(400).json({ error: 'Invalid threat_categories parameter. Must be JSON array.' });
+      }
+    }
+
+    if (threatScoreMinRaw !== undefined) {
+      threatScoreMin = parseFloat(threatScoreMinRaw);
+      if (isNaN(threatScoreMin) || threatScoreMin < 0 || threatScoreMin > 100) {
+        return res.status(400).json({ error: 'Invalid threat_score_min parameter. Must be 0-100.' });
+      }
+    }
+
+    if (threatScoreMaxRaw !== undefined) {
+      threatScoreMax = parseFloat(threatScoreMaxRaw);
+      if (isNaN(threatScoreMax) || threatScoreMax < 0 || threatScoreMax > 100) {
+        return res.status(400).json({ error: 'Invalid threat_score_max parameter. Must be 0-100.' });
       }
     }
 
@@ -255,9 +293,9 @@ router.get('/networks', async (req, res, next) => {
     `;
 
     const sortColumnMap = {
-      last_seen: 'ne.last_observed_at',
-      last_observed_at: 'ne.last_observed_at',
-      first_observed_at: 'ne.first_observed_at',
+      last_seen: 'ne.last_seen',
+      last_observed_at: 'ne.last_seen',
+      first_observed_at: 'ne.first_seen',
       observed_at: 'ne.observed_at',
       ssid: 'lower(ne.ssid)',
       bssid: 'ne.bssid',
@@ -265,29 +303,28 @@ router.get('/networks', async (req, res, next) => {
       security: 'ne.security',
       signal: 'ne.signal',
       frequency: 'ne.frequency',
-      channel: 'ne.channel',
-      obs_count: 'ne.obs_count',
-      observations: 'ne.obs_count',
+      obs_count: 'ne.observations',
+      observations: 'ne.observations',
       distance_from_home_km: 'ne.distance_from_home_km',
       accuracy_meters: 'ne.accuracy_meters',
-      avg_signal: 'ne.avg_signal',
-      min_signal: 'ne.min_signal',
-      max_signal: 'ne.max_signal',
+      avg_signal: 'ne.signal',
+      min_signal: 'ne.signal',
+      max_signal: 'ne.signal',
       unique_days: 'ne.unique_days',
       unique_locations: 'ne.unique_locations',
       threat: 'ne.threat',
       lat: 'ne.lat',
       lon: 'ne.lon',
-      manufacturer: 'COALESCE(mv.manufacturer, ne.manufacturer)',
-      manufacturer_address: 'COALESCE(mv.manufacturer_address, ne.manufacturer_address)',
+      manufacturer: 'ne.manufacturer',
+      manufacturer_address: 'ne.manufacturer',
       capabilities: 'ne.capabilities',
-      min_altitude_m: 'mv.min_altitude_m',
-      max_altitude_m: 'mv.max_altitude_m',
-      altitude_span_m: 'mv.altitude_span_m',
-      max_distance_meters: 'mv.max_distance_meters',
-      last_altitude_m: 'mv.last_altitude_m',
-      is_sentinel: 'mv.is_sentinel',
-      timespan_days: 'EXTRACT(EPOCH FROM (ne.last_observed_at - ne.first_observed_at)) / 86400.0',
+      min_altitude_m: 'ne.min_altitude_m',
+      max_altitude_m: 'ne.max_altitude_m',
+      altitude_span_m: 'ne.altitude_span_m',
+      max_distance_meters: 'ne.max_distance_meters',
+      last_altitude_m: 'ne.last_altitude_m',
+      is_sentinel: 'ne.is_sentinel',
+      timespan_days: 'EXTRACT(EPOCH FROM (ne.last_seen - ne.first_seen)) / 86400.0',
     };
 
     const parseSortJson = (value) => {
@@ -339,9 +376,9 @@ router.get('/networks', async (req, res, next) => {
       const orderColumns = Array.isArray(parsedOrderJson)
         ? parsedOrderJson.map((v) => String(v).trim().toUpperCase())
         : String(orderRaw)
-            .split(',')
-            .map((value) => value.trim().toUpperCase())
-            .filter(Boolean);
+          .split(',')
+          .map((value) => value.trim().toUpperCase())
+          .filter(Boolean);
 
       const normalizedOrders =
         orderColumns.length === 1 ? sortColumns.map(() => orderColumns[0]) : orderColumns;
@@ -366,7 +403,7 @@ router.get('/networks', async (req, res, next) => {
     const indexedSorts = new Set([
       'bssid',
       'last_seen',
-      'last_observed_at',
+      'last_seen',
       'first_observed_at',
       'observed_at',
       'ssid',
@@ -388,13 +425,35 @@ router.get('/networks', async (req, res, next) => {
     const params = [];
     const whereClauses = [];
 
-    if (threat !== null) {
-      params.push(threat);
-      whereClauses.push(`threat = $${params.length}`);
+    // Filter out networks with no observations when sorting by distance-related columns
+    const distanceColumns = ['max_distance_meters', 'distance_from_home_km'];
+    const sortingByDistance = sortEntries.some(entry => distanceColumns.includes(entry.column));
+    if (sortingByDistance) {
+      whereClauses.push('ne.observations > 0');
+    }
+
+    if (threatLevel !== null) {
+      params.push(threatLevel);
+      whereClauses.push(`ne.threat->>'level' = $${params.length}`);
+    }
+
+    if (threatCategories !== null && threatCategories.length > 0) {
+      params.push(threatCategories);
+      whereClauses.push(`ne.threat->>'level' = ANY($${params.length})`);
+    }
+
+    if (threatScoreMin !== null) {
+      params.push(threatScoreMin);
+      whereClauses.push(`(threat->>'score')::numeric >= $${params.length}`);
+    }
+
+    if (threatScoreMax !== null) {
+      params.push(threatScoreMax);
+      whereClauses.push(`(threat->>'score')::numeric <= $${params.length}`);
     }
     if (lastSeen !== null) {
       params.push(lastSeen);
-      whereClauses.push(`last_observed_at >= $${params.length}::timestamptz`);
+      whereClauses.push(`last_seen >= $${params.length}::timestamptz`);
     }
     if (distanceFromHomeKm !== null) {
       params.push(distanceFromHomeKm);
@@ -418,7 +477,7 @@ router.get('/networks', async (req, res, next) => {
     }
     if (minObsCount !== null) {
       params.push(minObsCount);
-      whereClauses.push(`obs_count >= $${params.length}`);
+      whereClauses.push(`ne.observations >= $${params.length}`);
     }
     if (maxObsCount !== null) {
       params.push(maxObsCount);
@@ -500,29 +559,28 @@ router.get('/networks', async (req, res, next) => {
         ne.accuracy_meters,
         ne.signal,
         ne.frequency,
-        ne.channel,
+        NULL as channel,
         ne.capabilities,
         ne.security,
-        ne.obs_count,
-        ne.first_observed_at,
-        ne.last_observed_at,
+        ne.observations as obs_count,
+        ne.first_seen as first_observed_at,
+        ne.last_seen as last_observed_at,
         ne.unique_days,
         ne.unique_locations,
-        ne.avg_signal,
-        ne.min_signal,
-        ne.max_signal,
+        ne.signal as avg_signal,
+        ne.signal as min_signal,
+        ne.signal as max_signal,
         ne.threat,
         ne.distance_from_home_km,
-        COALESCE(mv.manufacturer, ne.manufacturer) AS manufacturer,
-        COALESCE(mv.manufacturer_address, ne.manufacturer_address) AS manufacturer_address,
-        mv.min_altitude_m,
-        mv.max_altitude_m,
-        mv.altitude_span_m,
-        mv.max_distance_meters,
-        mv.last_altitude_m,
-        mv.is_sentinel
-      FROM public.api_network_explorer_full_mv_v2 ne
-      LEFT JOIN public.api_network_explorer_mv mv ON mv.bssid = ne.bssid
+        ne.manufacturer AS manufacturer,
+        ne.manufacturer AS manufacturer_address,
+        ne.min_altitude_m,
+        ne.max_altitude_m,
+        ne.altitude_span_m,
+        ne.max_distance_meters,
+        ne.last_altitude_m,
+        ne.is_sentinel
+      FROM public.api_network_explorer_mv ne
       ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
       ORDER BY ${orderByClause}
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -557,7 +615,7 @@ router.get('/networks', async (req, res, next) => {
         threat,
         distance_from_home_km,
         manufacturer,
-        manufacturer_address,
+        manufacturer AS manufacturer_address,
         min_altitude_m,
         max_altitude_m,
         altitude_span_m,
@@ -656,7 +714,7 @@ router.get('/networks', async (req, res, next) => {
       const { rows } = await client.query(sql, params);
       const countSql = `
         SELECT COUNT(*)::bigint AS total
-        FROM public.api_network_explorer_full_mv_v2 ne
+        FROM public.api_network_explorer_mv ne
         ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
       `;
       const countResult = await client.query(countSql, params.slice(0, params.length - 2));
