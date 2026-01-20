@@ -30,32 +30,32 @@ router.get('/threats/quick', async (req, res) => {
           o.bssid,
           COUNT(DISTINCT o.id) as obs_count,
           COUNT(DISTINCT DATE(o.observed_at)) as unique_days,
-          COUNT(DISTINCT ST_SnapToGrid(o.location::geometry, 0.001)) as unique_locations,
-          MAX(o.signal_dbm) as max_signal,
+          COUNT(DISTINCT ST_SnapToGrid(o.geom, 0.001)) as unique_locations,
+          MAX(o.level) as max_signal,
           MIN(o.observed_at) as first_seen,
           MAX(o.observed_at) as last_seen,
           ST_Distance(
-            ST_MakePoint(MIN(o.longitude), MIN(o.latitude))::geography,
-            ST_MakePoint(MAX(o.longitude), MAX(o.latitude))::geography
+            ST_MakePoint(MIN(o.lon), MIN(o.lat))::geography,
+            ST_MakePoint(MAX(o.lon), MAX(o.lat))::geography
           ) / 1000.0 as distance_range_km
-        FROM app.observations o
+        FROM public.observations o
         WHERE o.observed_at >= to_timestamp($1 / 1000.0)
         GROUP BY o.bssid
         HAVING COUNT(DISTINCT o.id) >= $4
           AND COUNT(DISTINCT DATE(o.observed_at)) >= $5
-          AND COUNT(DISTINCT ST_SnapToGrid(o.location::geometry, 0.001)) >= $6
+          AND COUNT(DISTINCT ST_SnapToGrid(o.geom, 0.001)) >= $6
           AND ST_Distance(
-            ST_MakePoint(MIN(o.longitude), MIN(o.latitude))::geography,
-            ST_MakePoint(MAX(o.longitude), MAX(o.latitude))::geography
+            ST_MakePoint(MIN(o.lon), MIN(o.lat))::geography,
+            ST_MakePoint(MAX(o.lon), MAX(o.lat))::geography
           ) / 1000.0 >= $7
       )
       SELECT 
         np.bssid,
         n.ssid,
         n.type as radio_type,
-        n.channel,
+        n.frequency as channel,
         n.bestlevel as signal_dbm,
-        n.encryption,
+        n.capabilities as encryption,
         n.bestlat as latitude,
         n.bestlon as longitude,
         np.obs_count as observations,
@@ -73,15 +73,13 @@ router.get('/threats/quick', async (req, res) => {
         ) as threat_score,
         COUNT(*) OVER() as total_count
       FROM network_patterns np
-      LEFT JOIN app.networks n ON n.bssid = np.bssid
-      LEFT JOIN app.network_tags nt ON nt.bssid = np.bssid
+      LEFT JOIN public.networks n ON n.bssid = np.bssid
       WHERE (
         CASE WHEN np.unique_days >= 7 THEN 30 WHEN np.unique_days >= 3 THEN 20 ELSE 10 END +
         CASE WHEN np.distance_range_km > 1.0 THEN 40 WHEN np.distance_range_km > 0.5 THEN 25 ELSE 0 END +
         CASE WHEN np.obs_count >= 50 THEN 20 WHEN np.obs_count >= 20 THEN 10 ELSE 5 END +
         CASE WHEN np.unique_locations >= 10 THEN 15 WHEN np.unique_locations >= 5 THEN 10 ELSE 0 END
       ) >= $8
-      AND nt.bssid IS NULL
       AND (n.type NOT IN ('L', 'N', 'G') OR np.distance_range_km > 50)
       ORDER BY threat_score DESC
       LIMIT $2 OFFSET $3

@@ -26,6 +26,23 @@ type ThreatEvidence = {
   threshold: number | string | null;
 };
 
+type NetworkTag = {
+  bssid: string;
+  is_ignored: boolean;
+  ignore_reason: string | null;
+  threat_tag: 'THREAT' | 'SUSPECT' | 'FALSE_POSITIVE' | 'INVESTIGATE' | null;
+  notes: string | null;
+  exists: boolean;
+};
+
+type ContextMenuState = {
+  visible: boolean;
+  x: number;
+  y: number;
+  network: NetworkRow | null;
+  tag: NetworkTag | null;
+};
+
 type NetworkRow = {
   bssid: string;
   ssid: string;
@@ -448,6 +465,18 @@ export default function GeospatialExplorer() {
     center: [number, number];
     radius: number;
   }>({ center: DEFAULT_CENTER, radius: DEFAULT_HOME_RADIUS });
+
+  // Context menu state for network tagging
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    network: null,
+    tag: null,
+  });
+  const [tagLoading, setTagLoading] = useState(false);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
   }, []);
@@ -1283,6 +1312,13 @@ export default function GeospatialExplorer() {
         if (enabled.observationCountMax && filters.observationCountMax !== undefined) {
           params.set('max_obs_count', String(filters.observationCountMax));
         }
+        if (
+          enabled.threatCategories &&
+          Array.isArray(filters.threatCategories) &&
+          filters.threatCategories.length > 0
+        ) {
+          params.set('threat_categories', JSON.stringify(filters.threatCategories));
+        }
         const toFiniteNumber = (value: unknown) => {
           const parsed = typeof value === 'number' ? value : Number(value);
           return Number.isFinite(parsed) ? parsed : null;
@@ -1766,6 +1802,107 @@ export default function GeospatialExplorer() {
     setSelectedNetworks(new Set([bssid]));
   };
 
+  // Context menu handlers for network tagging
+  const openContextMenu = async (e: React.MouseEvent, network: NetworkRow) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Fetch current tag state for this network
+    try {
+      const response = await fetch(`/api/network-tags/${encodeURIComponent(network.bssid)}`);
+      const tag = await response.json();
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        network,
+        tag,
+      });
+    } catch (err) {
+      logError('Failed to fetch network tag', err);
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        network,
+        tag: { bssid: network.bssid, is_ignored: false, ignore_reason: null, threat_tag: null, notes: null, exists: false },
+      });
+    }
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+  };
+
+  const handleTagAction = async (action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear', notes?: string) => {
+    if (!contextMenu.network) return;
+    setTagLoading(true);
+    try {
+      const bssid = encodeURIComponent(contextMenu.network.bssid);
+      let response;
+
+      switch (action) {
+        case 'ignore':
+          response = await fetch(`/api/network-tags/${bssid}/ignore`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ignore_reason: 'known_friend' }),
+          });
+          break;
+        case 'threat':
+          response = await fetch(`/api/network-tags/${bssid}/threat`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ threat_tag: 'THREAT', threat_confidence: 1.0 }),
+          });
+          break;
+        case 'suspect':
+          response = await fetch(`/api/network-tags/${bssid}/threat`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ threat_tag: 'SUSPECT', threat_confidence: 0.7 }),
+          });
+          break;
+        case 'false_positive':
+          response = await fetch(`/api/network-tags/${bssid}/threat`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ threat_tag: 'FALSE_POSITIVE', threat_confidence: 1.0 }),
+          });
+          break;
+        case 'investigate':
+          response = await fetch(`/api/network-tags/${bssid}/investigate`, { method: 'PATCH' });
+          break;
+        case 'clear':
+          response = await fetch(`/api/network-tags/${bssid}`, { method: 'DELETE' });
+          break;
+      }
+
+      if (response?.ok) {
+        const result = await response.json();
+        setContextMenu((prev) => ({ ...prev, tag: result.tag || { ...prev.tag, exists: false } }));
+      }
+    } catch (err) {
+      logError('Failed to update network tag', err);
+    } finally {
+      setTagLoading(false);
+      closeContextMenu();
+    }
+  };
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        closeContextMenu();
+      }
+    };
+    if (contextMenu.visible) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [contextMenu.visible]);
+
   const toggleSelectAll = () => {
     if (selectedNetworks.size === filteredNetworks.length) {
       // All selected, deselect all
@@ -1797,7 +1934,7 @@ export default function GeospatialExplorer() {
     const features = activeObservationSets.flatMap((set) =>
       set.observations.map((obs, index) => {
         const network = networkLookup.get(obs.bssid);
-        const threatLevel = network?.threat?.level || (network?.threat ? 'HIGH' : 'LOW');
+        const threatLevel = network?.threat?.level ?? 'NONE';
         const lat = obs.lat;
         const lon = obs.lon;
         const coordKey = `${lat.toFixed(6)}:${lon.toFixed(6)}`;
@@ -2092,6 +2229,86 @@ export default function GeospatialExplorer() {
         'observation-lines' // Insert before observation-lines layer
       );
 
+      // Re-add home location sources and layers
+      mapRef.current.addSource('home-location-point', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: homeLocation.center,
+              },
+              properties: {
+                title: 'Home',
+              },
+            },
+          ],
+        },
+      });
+
+      mapRef.current.addSource('home-location-circle', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [createCirclePolygon(homeLocation.center, homeLocation.radius)],
+        },
+      });
+
+      // Home circle fill
+      mapRef.current.addLayer({
+        id: 'home-circle-fill',
+        type: 'fill',
+        source: 'home-location-circle',
+        paint: {
+          'fill-color': '#10b981',
+          'fill-opacity': 0.15,
+        },
+      });
+
+      // Home circle outline
+      mapRef.current.addLayer({
+        id: 'home-circle-outline',
+        type: 'line',
+        source: 'home-location-circle',
+        paint: {
+          'line-color': '#10b981',
+          'line-width': 2,
+          'line-opacity': 0.8,
+        },
+      });
+
+      // Home marker dot
+      mapRef.current.addLayer({
+        id: 'home-dot',
+        type: 'circle',
+        source: 'home-location-point',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#10b981',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+
+      // Home marker label
+      mapRef.current.addLayer({
+        id: 'home-marker',
+        type: 'symbol',
+        source: 'home-location-point',
+        layout: {
+          'text-field': 'H',
+          'text-size': 14,
+          'text-anchor': 'center',
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        },
+        paint: {
+          'text-color': '#ffffff',
+        },
+      });
+
       // Restore layers if they were enabled
       if (show3DBuildings) {
         add3DBuildings();
@@ -2105,7 +2322,7 @@ export default function GeospatialExplorer() {
         const features = activeObservationSets.flatMap((set) =>
           set.observations.map((obs, index) => {
             const network = networkLookup.get(obs.bssid);
-            const threatLevel = network?.threat?.level || (network?.threat ? 'HIGH' : 'LOW');
+            const threatLevel = network?.threat?.level ?? 'NONE';
 
             return {
               type: 'Feature',
@@ -2918,6 +3135,7 @@ export default function GeospatialExplorer() {
                           cursor: 'pointer',
                         }}
                         onClick={() => selectNetworkExclusive(net.bssid)}
+                        onContextMenu={(e) => openContextMenu(e, net)}
                         onMouseEnter={(e) =>
                           (e.currentTarget.style.background = selectedNetworks.has(net.bssid)
                             ? 'rgba(59, 130, 246, 0.15)'
@@ -3218,6 +3436,197 @@ export default function GeospatialExplorer() {
           </div>
         </div>
       </div>
+
+      {/* Network Tagging Context Menu */}
+      {contextMenu.visible && contextMenu.network && (
+        <div
+          ref={contextMenuRef}
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            zIndex: 10000,
+            background: '#1e293b',
+            border: '1px solid #475569',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+            minWidth: '200px',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header */}
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid #475569', background: '#334155' }}>
+            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '2px' }}>
+              {contextMenu.network.ssid || '<Hidden>'}
+            </div>
+            <div style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace' }}>
+              {contextMenu.network.bssid}
+            </div>
+          </div>
+
+          {/* Current Status */}
+          {contextMenu.tag?.exists && (
+            <div style={{ padding: '6px 12px', borderBottom: '1px solid #475569', background: '#334155', fontSize: '10px' }}>
+              {contextMenu.tag.is_ignored && (
+                <span style={{ color: '#94a3b8', marginRight: '8px' }}>✓ Ignored</span>
+              )}
+              {contextMenu.tag.threat_tag && (
+                <span style={{
+                  color: contextMenu.tag.threat_tag === 'THREAT' ? '#ef4444' :
+                         contextMenu.tag.threat_tag === 'SUSPECT' ? '#f59e0b' :
+                         contextMenu.tag.threat_tag === 'FALSE_POSITIVE' ? '#22c55e' :
+                         contextMenu.tag.threat_tag === 'INVESTIGATE' ? '#3b82f6' : '#94a3b8'
+                }}>
+                  {contextMenu.tag.threat_tag}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Menu Items */}
+          <div style={{ padding: '4px 0' }}>
+            {/* Ignore/Unignore Toggle */}
+            <button
+              onClick={() => handleTagAction('ignore')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background: 'transparent',
+                border: 'none',
+                color: '#e2e8f0',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              {contextMenu.tag?.is_ignored ? '👁️ Unignore (Show)' : '👁️‍🗨️ Ignore (Known/Friendly)'}
+            </button>
+
+            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+
+            {/* Threat Classification */}
+            <button
+              onClick={() => handleTagAction('threat')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background: contextMenu.tag?.threat_tag === 'THREAT' ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+                border: 'none',
+                color: '#ef4444',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = contextMenu.tag?.threat_tag === 'THREAT' ? 'rgba(239, 68, 68, 0.2)' : 'transparent')}
+            >
+              ⚠️ Mark as Threat
+            </button>
+
+            <button
+              onClick={() => handleTagAction('suspect')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background: contextMenu.tag?.threat_tag === 'SUSPECT' ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                border: 'none',
+                color: '#f59e0b',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245, 158, 11, 0.3)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = contextMenu.tag?.threat_tag === 'SUSPECT' ? 'rgba(245, 158, 11, 0.2)' : 'transparent')}
+            >
+              🔶 Mark as Suspect
+            </button>
+
+            <button
+              onClick={() => handleTagAction('false_positive')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background: contextMenu.tag?.threat_tag === 'FALSE_POSITIVE' ? 'rgba(34, 197, 94, 0.2)' : 'transparent',
+                border: 'none',
+                color: '#22c55e',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(34, 197, 94, 0.3)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = contextMenu.tag?.threat_tag === 'FALSE_POSITIVE' ? 'rgba(34, 197, 94, 0.2)' : 'transparent')}
+            >
+              ✓ Mark as False Positive
+            </button>
+
+            <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+
+            {/* WiGLE Investigation */}
+            <button
+              onClick={() => handleTagAction('investigate')}
+              disabled={tagLoading}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                background: contextMenu.tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                border: 'none',
+                color: '#3b82f6',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = contextMenu.tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : 'transparent')}
+            >
+              🔍 Investigate (WiGLE Lookup)
+            </button>
+
+            {/* Clear Tags */}
+            {contextMenu.tag?.exists && (
+              <>
+                <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
+                <button
+                  onClick={() => handleTagAction('clear')}
+                  disabled={tagLoading}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#94a3b8',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  🗑️ Clear All Tags
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Loading Indicator */}
+          {tagLoading && (
+            <div style={{ padding: '8px 12px', textAlign: 'center', color: '#94a3b8', fontSize: '11px' }}>
+              Saving...
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

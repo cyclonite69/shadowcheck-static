@@ -675,7 +675,7 @@ class UniversalFilterQueryBuilder {
           ne.first_seen,
           ne.last_seen,
           ne.manufacturer,
-          ne.manufacturer_address,
+          ne.manufacturer AS manufacturer_address,
           ne.min_altitude_m,
           ne.max_altitude_m,
           ne.altitude_span_m,
@@ -888,8 +888,18 @@ class UniversalFilterQueryBuilder {
         Array.isArray(f.threatCategories) &&
         f.threatCategories.length > 0
       ) {
-        where.push(`LOWER(ne.threat->>'level') = ANY(${this.addParam(f.threatCategories)})`);
-        this.addApplied('threat', 'threatCategories', f.threatCategories);
+        // Map frontend threat categories to database values
+        const threatLevelMap = {
+          'critical': 'HIGH',
+          'high': 'HIGH',
+          'medium': 'MED',
+          'low': 'LOW',
+        };
+        const dbThreatLevels = f.threatCategories.map(cat => threatLevelMap[cat]).filter(Boolean);
+        if (dbThreatLevels.length > 0) {
+          where.push(`ne.threat->>'level' = ANY(${this.addParam(dbThreatLevels)})`);
+          this.addApplied('threat', 'threatCategories', f.threatCategories);
+        }
       }
 
       const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
@@ -942,7 +952,7 @@ class UniversalFilterQueryBuilder {
           ne.first_seen,
           ne.last_seen,
           ne.manufacturer,
-          ne.manufacturer_address,
+          ne.manufacturer AS manufacturer_address,
           ne.min_altitude_m,
           ne.max_altitude_m,
           ne.altitude_span_m,
@@ -1075,7 +1085,7 @@ class UniversalFilterQueryBuilder {
         ne.first_seen,
         ne.last_seen,
         ne.manufacturer,
-        ne.manufacturer_address,
+        ne.manufacturer AS manufacturer_address,
         ne.min_altitude_m,
         ne.max_altitude_m,
         ne.altitude_span_m,
@@ -1557,8 +1567,12 @@ class UniversalFilterQueryBuilder {
         )
         SELECT
           d.date,
+          AVG(COALESCE((ne.threat->>'score')::numeric, 0) * 100) AS avg_score,
+          COUNT(CASE WHEN (ne.threat->>'score')::numeric * 100 >= 80 THEN 1 END) AS critical_count,
+          COUNT(CASE WHEN (ne.threat->>'score')::numeric * 100 BETWEEN 70 AND 79.9 THEN 1 END) AS high_count,
           COUNT(*) AS network_count
         FROM daily_networks d
+        LEFT JOIN public.api_network_explorer ne ON ne.bssid = d.bssid
         GROUP BY d.date
         ORDER BY d.date
       `),
