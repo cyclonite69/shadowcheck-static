@@ -1115,39 +1115,57 @@ export default function GeospatialExplorer() {
               channel: props.channel,
             });
 
-            // Smart positioning to keep popup in viewport
-            const mapContainer = map.getContainer();
-            const mapRect = mapContainer.getBoundingClientRect();
-            const point = map.project(e.lngLat);
-            
-            // Estimate popup dimensions (compact version)
+            // Smart positioning using viewport bounds (similar to context menu logic)
             const popupWidth = 380;
             const popupHeight = 400;
+            const padding = 10;
             
-            // Calculate if popup would go off screen
-            const wouldOverflowRight = point.x + popupWidth > mapRect.width;
-            const wouldOverflowBottom = point.y + popupHeight > mapRect.height;
+            // Get viewport dimensions
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
             
-            // Determine anchor and offset
+            // Get click position in screen coordinates
+            const mapContainer = map.getContainer();
+            const mapRect = mapContainer.getBoundingClientRect();
+            const screenX = mapRect.left + map.project(e.lngLat).x;
+            const screenY = mapRect.top + map.project(e.lngLat).y;
+            
+            // Calculate optimal position
             let anchor = 'bottom';
-            let offset = [0, -15];
+            let offsetX = 0;
+            let offsetY = -15;
             
-            if (wouldOverflowBottom && wouldOverflowRight) {
-              anchor = 'top-right';
-              offset = [15, 15];
-            } else if (wouldOverflowBottom) {
+            // Vertical positioning
+            if (screenY + popupHeight + padding > viewportHeight) {
+              // Flip to top if would overflow bottom
               anchor = 'top';
-              offset = [0, 15];
-            } else if (wouldOverflowRight) {
-              anchor = 'bottom-right';
-              offset = [15, -15];
+              offsetY = 15;
+            }
+            
+            // Horizontal positioning
+            if (screenX + popupWidth + padding > viewportWidth) {
+              // Flip to left side if would overflow right
+              if (anchor === 'top') {
+                anchor = 'top-right';
+              } else {
+                anchor = 'bottom-right';
+              }
+              offsetX = 15;
+            }
+            
+            // Ensure doesn't go off left edge
+            if (screenX - popupWidth < padding && offsetX > 0) {
+              offsetX = -15; // Reset to left side
+              anchor = anchor.includes('top') ? 'top-left' : 'bottom-left';
             }
 
             new mapboxgl.Popup({ 
-              offset: offset, 
+              offset: [offsetX, offsetY], 
               className: 'sc-popup',
               anchor: anchor,
-              maxWidth: '380px'
+              maxWidth: '380px',
+              closeOnClick: true,
+              closeButton: true
             })
               .setLngLat(e.lngLat)
               .setHTML(popupHTML)
