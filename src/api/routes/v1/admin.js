@@ -1540,11 +1540,11 @@ router.get('/admin/oui/randomization/suspects', async (req, res) => {
 router.post('/admin/oui/analyze', async (req, res) => {
   try {
     const OUIGroupingService = require('../../../services/ouiGroupingService');
-    
+
     logger.info('[Admin] Starting OUI analysis...');
     await OUIGroupingService.generateOUIGroups();
     await OUIGroupingService.detectMACRandomization();
-    
+
     res.json({
       ok: true,
       message: 'OUI analysis completed successfully',

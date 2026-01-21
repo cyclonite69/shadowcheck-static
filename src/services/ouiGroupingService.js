@@ -57,15 +57,22 @@ class OUIGroupingService {
 
       // Calculate collective threat and insert
       for (const [oui, group] of Object.entries(ouiGroups)) {
-        if (group.bssids.length < 2) continue; // Skip single BSSIDs
+        if (group.bssids.length < 2) {
+          continue;
+        } // Skip single BSSIDs
 
         // Collective threat = max of all BSSIDs
         const collectiveThreat = Math.max(...group.threatScores);
         let threatLevel = 'NONE';
-        if (collectiveThreat >= 80) threatLevel = 'CRITICAL';
-        else if (collectiveThreat >= 60) threatLevel = 'HIGH';
-        else if (collectiveThreat >= 40) threatLevel = 'MED';
-        else if (collectiveThreat >= 20) threatLevel = 'LOW';
+        if (collectiveThreat >= 80) {
+          threatLevel = 'CRITICAL';
+        } else if (collectiveThreat >= 60) {
+          threatLevel = 'HIGH';
+        } else if (collectiveThreat >= 40) {
+          threatLevel = 'MED';
+        } else if (collectiveThreat >= 20) {
+          threatLevel = 'LOW';
+        }
 
         // Insert group
         await query(`
@@ -129,10 +136,12 @@ class OUIGroupingService {
         const macs = row.mac_sequence || [];
         const macCount = row.mac_count || 0;
 
-        if (macCount < 3) continue;
+        if (macCount < 3) {
+          continue;
+        }
 
         // Simple heuristics for MAC randomization detection
-        const timeDelta = row.last_seen && row.first_seen 
+        const timeDelta = row.last_seen && row.first_seen
           ? (new Date(row.last_seen) - new Date(row.first_seen)) / (1000 * 60 * 60) // hours
           : 0;
 
