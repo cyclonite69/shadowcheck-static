@@ -572,19 +572,112 @@ const WigleTestPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col relative">
-      {/* Filter Panel */}
-      {showFilters && (
+      {/* Left Stack Panels */}
+      {(showControls || showFilters) && (
         <div
-          className="fixed top-20 right-4 max-w-md space-y-2"
-          style={{
-            maxHeight: 'calc(100vh - 100px)',
-            overflowY: 'auto',
-            zIndex: 100000,
-            pointerEvents: 'auto',
-          }}
+          className="fixed top-20 left-4 z-[100000] pointer-events-auto flex flex-col gap-2"
+          style={{ maxHeight: 'calc(100vh - 100px)', maxWidth: '320px' }}
         >
-          <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
-          <FilterPanel density="compact" />
+          {showControls && (
+            <div
+              className="rounded-xl p-5 space-y-3 text-sm w-full"
+              style={{
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+                pointerEvents: 'auto',
+              }}
+            >
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="w-full rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+                style={{
+                  background: showFilters
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                    : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                }}
+              >
+                {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
+              </button>
+
+              <div>
+                <label htmlFor="wigle-map-style" className="block text-xs text-slate-400 mb-1">
+                  Map Style
+                </label>
+                <select
+                  id="wigle-map-style"
+                  value={mapStyle}
+                  onChange={(e) => setMapStyle(e.target.value)}
+                  className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-slate-100"
+                >
+                  {mapStyles.map((style) => (
+                    <option key={style.value} value={style.value}>
+                      {style.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShow3dBuildings(!show3dBuildings)}
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                    show3dBuildings
+                      ? 'bg-cyan-500 text-slate-900 shadow-lg'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {show3dBuildings ? '✓ ' : ''}3D Buildings
+                </button>
+                <button
+                  onClick={() => setShowTerrain(!showTerrain)}
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                    showTerrain
+                      ? 'bg-cyan-500 text-slate-900 shadow-lg'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {showTerrain ? '✓ ' : ''}Terrain
+                </button>
+              </div>
+
+              <button
+                onClick={fetchPoints}
+                className="w-full rounded-lg px-4 py-2 text-sm font-semibold shadow-lg transition-all hover:shadow-xl"
+                style={{
+                  background: loading
+                    ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+                    : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : '📍 Load Points'}
+              </button>
+
+              <div className="pt-2 border-t border-slate-700 text-xs text-slate-400">
+                <div>Loaded: {rows.length.toLocaleString()}</div>
+                {total != null && <div>Total: {total.toLocaleString()}</div>}
+              </div>
+            </div>
+          )}
+
+          {showFilters && (
+            <div
+              className="rounded-xl p-4 space-y-2 w-full overflow-auto"
+              style={{
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+                pointerEvents: 'auto',
+                maxHeight: 'calc(100vh - 220px)',
+              }}
+            >
+              <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
+              <FilterPanel density="compact" />
+            </div>
+          )}
         </div>
       )}
 
@@ -601,89 +694,6 @@ const WigleTestPage: React.FC = () => {
         SC
       </button>
 
-      {/* Control Panel */}
-      {showControls && (
-        <div
-          className="fixed top-20 left-4 rounded-xl p-4 space-y-3 text-sm"
-          style={{
-            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-            zIndex: 100000,
-            pointerEvents: 'auto',
-            maxWidth: '280px',
-          }}
-        >
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="w-full rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-            style={{
-              background: showFilters
-                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-            }}
-          >
-            {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
-          </button>
-
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Map Style</label>
-            <select
-              value={mapStyle}
-              onChange={(e) => setMapStyle(e.target.value)}
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-slate-100"
-            >
-              {mapStyles.map((style) => (
-                <option key={style.value} value={style.value}>
-                  {style.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShow3dBuildings(!show3dBuildings)}
-              className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                show3dBuildings
-                  ? 'bg-cyan-500 text-slate-900 shadow-lg'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              {show3dBuildings ? '✓ ' : ''}3D Buildings
-            </button>
-            <button
-              onClick={() => setShowTerrain(!showTerrain)}
-              className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                showTerrain
-                  ? 'bg-cyan-500 text-slate-900 shadow-lg'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              {showTerrain ? '✓ ' : ''}Terrain
-            </button>
-          </div>
-
-          <button
-            onClick={fetchPoints}
-            className="w-full rounded-lg px-4 py-2 text-sm font-semibold shadow-lg transition-all hover:shadow-xl"
-            style={{
-              background: loading
-                ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
-                : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-            }}
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : '📍 Load Points'}
-          </button>
-
-          <div className="pt-2 border-t border-slate-700 text-xs text-slate-400">
-            <div>Loaded: {rows.length.toLocaleString()}</div>
-            {total != null && <div>Total: {total.toLocaleString()}</div>}
-          </div>
-        </div>
-      )}
       <div
         className="flex-1"
         style={{

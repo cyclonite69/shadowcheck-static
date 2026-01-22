@@ -529,8 +529,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
           >
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-slate-400">Temporal Scope</label>
+                <label htmlFor="temporal-scope-select" className="text-xs text-slate-400">
+                  Temporal Scope
+                </label>
                 <select
+                  id="temporal-scope-select"
                   value={filters.temporalScope || TemporalScope.OBSERVATION_TIME}
                   onChange={(e) => setFilter('temporalScope', e.target.value as TemporalScope)}
                   className={`${controlClass} mt-1`}
@@ -542,8 +545,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
               </div>
 
               <div>
-                <label className="text-xs text-slate-400">Mode</label>
+                <label htmlFor="timeframe-mode-select" className="text-xs text-slate-400">
+                  Mode
+                </label>
                 <select
+                  id="timeframe-mode-select"
                   value={filters.timeframe?.type || 'relative'}
                   onChange={(e) =>
                     setFilter('timeframe', {
@@ -560,8 +566,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
 
               {filters.timeframe?.type !== 'absolute' ? (
                 <div>
-                  <label className="text-xs text-slate-400">Relative Window</label>
+                  <label htmlFor="relative-window-select" className="text-xs text-slate-400">
+                    Relative Window
+                  </label>
                   <select
+                    id="relative-window-select"
                     value={filters.timeframe?.relativeWindow || '30d'}
                     onChange={(e) =>
                       setFilter('timeframe', {
@@ -581,8 +590,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
               ) : (
                 <div className="grid grid-cols-1 gap-2">
                   <div>
-                    <label className="text-xs text-slate-400">Start (ISO)</label>
+                    <label htmlFor="timeframe-start-input" className="text-xs text-slate-400">
+                      Start (ISO)
+                    </label>
                     <input
+                      id="timeframe-start-input"
                       type="datetime-local"
                       value={filters.timeframe?.startTimestamp || ''}
                       onChange={(e) =>
@@ -596,8 +608,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400">End (ISO)</label>
+                    <label htmlFor="timeframe-end-input" className="text-xs text-slate-400">
+                      End (ISO)
+                    </label>
                     <input
+                      id="timeframe-end-input"
                       type="datetime-local"
                       value={filters.timeframe?.endTimestamp || ''}
                       onChange={(e) =>
@@ -791,6 +806,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
             compact={isCompact}
           >
             <select
+              aria-label="Quality filter options"
               value={filters.qualityFilter || 'none'}
               onChange={(e) => setFilter('qualityFilter', e.target.value)}
               className={controlClass}

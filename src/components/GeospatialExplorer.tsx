@@ -674,13 +674,6 @@ export default function GeospatialExplorer() {
     null
   );
 
-  useEffect(() => {
-    console.log('timeFreqModal state changed:', timeFreqModal);
-    if (timeFreqModal) {
-      console.log('Should render modal for BSSID:', timeFreqModal.bssid);
-    }
-  }, [timeFreqModal]);
-
   const loadMore = useCallback(() => {
     setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
   }, []);
@@ -3281,6 +3274,7 @@ export default function GeospatialExplorer() {
                 <select
                   value={locationMode}
                   onChange={(e) => setLocationMode(e.target.value)}
+                  aria-label="Network location mode"
                   style={{
                     padding: '4px 6px',
                     fontSize: '11px',
@@ -4045,7 +4039,11 @@ export default function GeospatialExplorer() {
             <div style={{ height: '1px', background: '#475569', margin: '4px 0' }} />
             <button
               onClick={() => {
-                setTimeFreqModal(contextMenu.network);
+                const n = contextMenu.network;
+                const payload = n
+                  ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') }
+                  : null;
+                setTimeFreqModal(payload);
                 closeContextMenu();
               }}
               style={{
@@ -4169,10 +4167,14 @@ export default function GeospatialExplorer() {
 
             {/* Note Type Selector */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
+              <label
+                htmlFor="note-type-select"
+                style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}
+              >
                 Note Type
               </label>
               <select
+                id="note-type-select"
                 value={noteType}
                 onChange={(e) => setNoteType(e.target.value)}
                 style={{
@@ -4218,11 +4220,15 @@ export default function GeospatialExplorer() {
 
             {/* Media Attachments */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
+              <label
+                htmlFor="note-attachments"
+                style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}
+              >
                 📎 Attach Media (Optional)
               </label>
               <input
                 ref={fileInputRef}
+                id="note-attachments"
                 type="file"
                 multiple
                 accept="image/*,video/*,.pdf"

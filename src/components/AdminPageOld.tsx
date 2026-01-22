@@ -820,7 +820,10 @@ const AdminPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">
+                    <label
+                      className="block text-sm font-semibold text-slate-300 uppercase tracking-wide"
+                      htmlFor="detection-radius"
+                    >
                       Detection Radius
                     </label>
                     <div className="bg-slate-800/80 rounded-xl p-4 border-2 border-slate-600">
@@ -831,6 +834,7 @@ const AdminPage: React.FC = () => {
                         </span>
                       </div>
                       <input
+                        id="detection-radius"
                         type="range"
                         min="50"
                         max="1000"
@@ -1009,10 +1013,14 @@ const AdminPage: React.FC = () => {
                 <p className="text-slate-400 text-base mb-6">Import WiGLE SQLite database files</p>
                 <div className="space-y-4 flex-1">
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wide">
+                    <label
+                      className="block text-sm font-semibold text-slate-300 uppercase tracking-wide"
+                      htmlFor="sqlite-import-file"
+                    >
                       Select Database File
                     </label>
                     <input
+                      id="sqlite-import-file"
                       type="file"
                       accept=".sqlite,.db,.sqlite3"
                       onChange={handleFileImport}

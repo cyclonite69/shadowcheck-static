@@ -61,6 +61,7 @@ export default function NetworksExplorer({
                 const [field, dir] = e.target.value.split(':');
                 onSortChange?.(field as any, dir as any);
               }}
+              aria-label="Sort networks"
               className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-blue-500"
             >
               <option value="observed_at:desc">Sort: Newest</option>
