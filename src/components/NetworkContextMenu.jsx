@@ -193,8 +193,14 @@ export default function NetworkContextMenu({ networks = [] }) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">Note Type</label>
+                <label
+                  className="block text-sm font-semibold mb-2"
+                  htmlFor="context-note-type-select"
+                >
+                  Note Type
+                </label>
                 <select
+                  id="context-note-type-select"
                   value={noteType}
                   onChange={e => setNoteType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -217,9 +223,12 @@ export default function NetworkContextMenu({ networks = [] }) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">Media Attachments</label>
+                <label className="block text-sm font-semibold mb-2" htmlFor="context-media-attachments">
+                  Media Attachments
+                </label>
                 <input
                   ref={fileInputRef}
+                  id="context-media-attachments"
                   type="file"
                   multiple
                   accept="image/*,video/*,.pdf"
