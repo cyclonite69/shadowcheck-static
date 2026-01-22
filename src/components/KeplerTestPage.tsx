@@ -416,6 +416,9 @@ const KeplerTestPage: React.FC = () => {
 
       logDebug(`[Kepler] Data received, features: ${geojson.features?.length || 0}`);
 
+      if (!tokenData?.token) {
+        throw new Error('Mapbox token missing. Set it in Admin.');
+      }
       if (geojson.error) throw new Error(`API Error: ${geojson.error}`);
       if (!geojson.features || !Array.isArray(geojson.features))
         throw new Error(`Invalid data format`);
@@ -474,7 +477,11 @@ const KeplerTestPage: React.FC = () => {
           loadScript('https://cdn.jsdelivr.net/npm/deck.gl@8.9.0/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'),
         ]);
-        initDeck(tokenData.token, processedData);
+        try {
+          initDeck(tokenData.token, processedData);
+        } catch (initError) {
+          throw new Error('Kepler failed to initialize. Check console.');
+        }
       }
 
       // Set network data - useEffect will handle visualization update
@@ -551,8 +558,239 @@ const KeplerTestPage: React.FC = () => {
   const filteredCount = networkData.filter((d) => d.signal >= signalThreshold).length;
 
   return (
-    <>
-      <div className="min-h-screen text-white relative bg-black">
+    <div className="h-screen w-full bg-black text-white flex min-h-0">
+      {/* Left Panel */}
+      <aside className="w-[320px] shrink-0 p-5 flex flex-col gap-3 min-h-0">
+        <div
+          className="text-white rounded-xl space-y-3.5 text-sm"
+          style={{
+            backgroundColor: 'rgba(17, 24, 39, 0.92)',
+            border: '1px solid rgba(59, 130, 246, 0.25)',
+            backdropFilter: 'blur(16px)',
+            boxShadow:
+              '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)',
+            padding: '20px',
+          }}
+        >
+          <div
+            style={{
+              borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
+              paddingBottom: '14px',
+              marginBottom: '6px',
+            }}
+          >
+            <h3
+              className="text-xl font-bold"
+              style={{
+                background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              🛡️ ShadowCheck
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">Network Visualization</p>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              aria-label={showFilters ? 'Hide filters' : 'Show filters'}
+              className="mt-3 w-full px-3 py-2 text-sm font-semibold text-white rounded-lg border shadow-lg transition-all hover:shadow-xl"
+              style={{
+                background: showFilters
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                borderColor: showFilters ? '#dc2626' : '#2563eb',
+              }}
+            >
+              {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
+            </button>
+          </div>
+
+          <div>
+            <label className="block mb-1 text-xs text-slate-300">Dataset:</label>
+            <label className="sr-only" htmlFor="dataset-select">
+              Dataset
+            </label>
+            <select
+              id="dataset-select"
+              value={datasetType}
+              onChange={(e) => setDatasetType(e.target.value as 'observations' | 'networks')}
+              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+            >
+              <option value="observations">
+                Observations ({actualCounts ? actualCounts.observations.toLocaleString() : '416K'}{' '}
+                raw)
+              </option>
+              <option value="networks">
+                Networks ({actualCounts ? actualCounts.networks.toLocaleString() : '117K'}{' '}
+                trilaterated)
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block mb-1 text-xs text-slate-300">3D View - Pitch: {pitch}°</label>
+            <label className="sr-only" htmlFor="pitch-slider">
+              3D view pitch
+            </label>
+            <input
+              id="pitch-slider"
+              type="range"
+              min="0"
+              max="60"
+              value={pitch}
+              onChange={(e) => setPitch(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 text-xs text-slate-300">3D Height: {height3d}</label>
+            <label className="sr-only" htmlFor="height-3d-slider">
+              3D height
+            </label>
+            <input
+              id="height-3d-slider"
+              type="range"
+              min="1"
+              max="50"
+              value={height3d}
+              onChange={(e) => setHeight3d(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 text-xs text-slate-300">Visualization Type:</label>
+            <label className="sr-only" htmlFor="render-mode-select">
+              Render mode
+            </label>
+            <select
+              id="render-mode-select"
+              value={layerType}
+              onChange={(e) => setLayerType(e.target.value as LayerType)}
+              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+            >
+              <option value="scatterplot">Points</option>
+              <option value="heatmap">Heatmap</option>
+              <option value="hexagon">Hexagon Clusters</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block mb-1 text-xs text-slate-300">Point Size: {pointSize}</label>
+            <label className="sr-only" htmlFor="point-size-slider">
+              Point size
+            </label>
+            <input
+              id="point-size-slider"
+              type="range"
+              min="0.1"
+              max="10"
+              step="0.1"
+              value={pointSize}
+              onChange={(e) => setPointSize(parseFloat(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1 text-xs text-slate-300">Drawing Mode:</label>
+            <label className="sr-only" htmlFor="selection-mode-select">
+              Selection tool
+            </label>
+            <select
+              id="selection-mode-select"
+              value={drawMode}
+              onChange={(e) => setDrawMode(e.target.value as DrawMode)}
+              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+            >
+              <option value="none">None</option>
+              <option value="rectangle">Rectangle Select</option>
+              <option value="polygon">Polygon Select</option>
+              <option value="circle">Circle Select</option>
+            </select>
+          </div>
+
+          <button
+            onClick={clearSelection}
+            className="w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
+          >
+            Clear Selection
+          </button>
+
+          <div>
+            <label className="block mb-1 text-xs text-slate-300">
+              Signal Threshold: {signalThreshold} dBm
+            </label>
+            <label className="sr-only" htmlFor="signal-threshold-slider">
+              Signal threshold (dBm)
+            </label>
+            <input
+              id="signal-threshold-slider"
+              type="range"
+              min="-100"
+              max="-30"
+              value={signalThreshold}
+              onChange={(e) => setSignalThreshold(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          <div
+            className="text-xs pt-3 mt-2"
+            style={{
+              borderTop: '1px solid rgba(59, 130, 246, 0.2)',
+              background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent)',
+              padding: '12px',
+              margin: '0 -20px -20px -20px',
+              borderRadius: '0 0 12px 12px',
+            }}
+          >
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">DB Total:</span>
+                <span className="text-blue-400 font-semibold">
+                  {actualCounts ? actualCounts.observations.toLocaleString() : 'Loading...'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Rendered:</span>
+                <span className="text-blue-400 font-semibold">
+                  {filteredCount.toLocaleString()} / {networkData.length.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Selected:</span>
+                <span className="text-emerald-400 font-semibold">{selectedPoints.length}</span>
+              </div>
+              <div className="text-slate-500 text-[10px] mt-2 pt-2 border-t border-slate-700/50">
+                ⚡ WebGL • 📍 Interactive • 🔥 GPU Accelerated
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {showFilters && (
+          <div
+            className="rounded-xl p-4 space-y-2 overflow-auto"
+            style={{
+              backgroundColor: 'rgba(17, 24, 39, 0.92)',
+              border: '1px solid rgba(59, 130, 246, 0.25)',
+              backdropFilter: 'blur(16px)',
+              boxShadow:
+                '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
+              maxHeight: 'calc(100vh - 180px)',
+            }}
+          >
+            <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
+            <FilterPanel density="compact" />
+          </div>
+        )}
+      </aside>
+
+      {/* Map Area */}
+      <section className="flex-1 min-h-0 h-full relative">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 z-50">
             <div className="px-4 py-3 bg-slate-800 rounded-lg border border-slate-700">
@@ -567,240 +805,9 @@ const KeplerTestPage: React.FC = () => {
           </div>
         )}
 
-        <div ref={mapRef} className="w-full h-screen" />
-      </div>
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <div
-          className="fixed top-20 right-4 max-w-md space-y-2"
-          style={{
-            maxHeight: 'calc(100vh - 100px)',
-            overflowY: 'auto',
-            zIndex: 100000,
-            pointerEvents: 'auto',
-          }}
-        >
-          <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
-          <FilterPanel density="compact" />
-        </div>
-      )}
-
-      {/* Controls Panel */}
-      <div
-        className="text-white rounded-xl max-w-sm space-y-3.5 text-sm"
-        style={{
-          backgroundColor: 'rgba(17, 24, 39, 0.92)',
-          border: '1px solid rgba(59, 130, 246, 0.25)',
-          backdropFilter: 'blur(16px)',
-          boxShadow:
-            '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)',
-          zIndex: 100000,
-          position: 'fixed',
-          top: '20px',
-          left: '20px',
-          padding: '20px',
-          pointerEvents: 'auto',
-        }}
-      >
-        <div
-          style={{
-            borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
-            paddingBottom: '14px',
-            marginBottom: '6px',
-          }}
-        >
-          <h3
-            className="text-xl font-bold"
-            style={{
-              background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            🛡️ ShadowCheck
-          </h3>
-          <p className="text-xs text-slate-400 mt-1">Network Visualization</p>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="mt-3 w-full px-3 py-2 text-sm font-semibold text-white rounded-lg border shadow-lg transition-all hover:shadow-xl"
-            style={{
-              background: showFilters
-                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              borderColor: showFilters ? '#dc2626' : '#2563eb',
-            }}
-          >
-            {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
-          </button>
-        </div>
-
-        <div>
-          <label className="block mb-1 text-xs text-slate-300">Dataset:</label>
-          <label className="sr-only" htmlFor="dataset-select">
-            Dataset
-          </label>
-          <select
-            id="dataset-select"
-            value={datasetType}
-            onChange={(e) => setDatasetType(e.target.value as 'observations' | 'networks')}
-            className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
-          >
-            <option value="observations">
-              Observations ({actualCounts ? actualCounts.observations.toLocaleString() : '416K'}{' '}
-              raw)
-            </option>
-            <option value="networks">
-              Networks ({actualCounts ? actualCounts.networks.toLocaleString() : '117K'}{' '}
-              trilaterated)
-            </option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-1 text-xs text-slate-300">3D View - Pitch: {pitch}°</label>
-          <label className="sr-only" htmlFor="pitch-slider">
-            3D view pitch
-          </label>
-          <input
-            id="pitch-slider"
-            type="range"
-            min="0"
-            max="60"
-            value={pitch}
-            onChange={(e) => setPitch(parseInt(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1 text-xs text-slate-300">3D Height: {height3d}</label>
-          <label className="sr-only" htmlFor="height-3d-slider">
-            3D height
-          </label>
-          <input
-            id="height-3d-slider"
-            type="range"
-            min="1"
-            max="50"
-            value={height3d}
-            onChange={(e) => setHeight3d(parseInt(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1 text-xs text-slate-300">Visualization Type:</label>
-          <label className="sr-only" htmlFor="render-mode-select">
-            Render mode
-          </label>
-          <select
-            id="render-mode-select"
-            value={layerType}
-            onChange={(e) => setLayerType(e.target.value as LayerType)}
-            className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
-          >
-            <option value="scatterplot">Points</option>
-            <option value="heatmap">Heatmap</option>
-            <option value="hexagon">Hexagon Clusters</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-1 text-xs text-slate-300">Point Size: {pointSize}</label>
-          <label className="sr-only" htmlFor="point-size-slider">
-            Point size
-          </label>
-          <input
-            id="point-size-slider"
-            type="range"
-            min="0.1"
-            max="10"
-            step="0.1"
-            value={pointSize}
-            onChange={(e) => setPointSize(parseFloat(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1 text-xs text-slate-300">Drawing Mode:</label>
-          <label className="sr-only" htmlFor="selection-mode-select">
-            Selection tool
-          </label>
-          <select
-            id="selection-mode-select"
-            value={drawMode}
-            onChange={(e) => setDrawMode(e.target.value as DrawMode)}
-            className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
-          >
-            <option value="none">None</option>
-            <option value="rectangle">Rectangle Select</option>
-            <option value="polygon">Polygon Select</option>
-            <option value="circle">Circle Select</option>
-          </select>
-        </div>
-
-        <button
-          onClick={clearSelection}
-          className="w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
-        >
-          Clear Selection
-        </button>
-
-        <div>
-          <label className="block mb-1 text-xs text-slate-300">
-            Signal Threshold: {signalThreshold} dBm
-          </label>
-          <label className="sr-only" htmlFor="signal-threshold-slider">
-            Signal threshold (dBm)
-          </label>
-          <input
-            id="signal-threshold-slider"
-            type="range"
-            min="-100"
-            max="-30"
-            value={signalThreshold}
-            onChange={(e) => setSignalThreshold(parseInt(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        <div
-          className="text-xs pt-3 mt-2"
-          style={{
-            borderTop: '1px solid rgba(59, 130, 246, 0.2)',
-            background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent)',
-            padding: '12px',
-            margin: '0 -20px -20px -20px',
-            borderRadius: '0 0 12px 12px',
-          }}
-        >
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">DB Total:</span>
-              <span className="text-blue-400 font-semibold">
-                {actualCounts ? actualCounts.observations.toLocaleString() : 'Loading...'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Rendered:</span>
-              <span className="text-blue-400 font-semibold">
-                {filteredCount.toLocaleString()} / {networkData.length.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Selected:</span>
-              <span className="text-emerald-400 font-semibold">{selectedPoints.length}</span>
-            </div>
-            <div className="text-slate-500 text-[10px] mt-2 pt-2 border-t border-slate-700/50">
-              ⚡ WebGL • 📍 Interactive • 🔥 GPU Accelerated
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
+        <div ref={mapRef} className="h-full w-full relative" />
+      </section>
+    </div>
   );
 };
 
