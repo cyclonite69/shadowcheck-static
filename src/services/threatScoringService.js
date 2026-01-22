@@ -21,8 +21,6 @@ class ThreatScoringService {
     }
 
     this.isRunning = true;
-    const startTime = Date.now();
-
     try {
       logger.info('Starting incremental threat score computation', { batchSize, maxAgeHours });
 

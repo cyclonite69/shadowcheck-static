@@ -86,7 +86,7 @@ const SECURITY_EXPR = (alias = 'o') => `
   END
 `;
 
-const AUTH_EXPR = (alias = 'o') => `
+const _AUTH_EXPR = (alias = 'o') => `
   CASE
     WHEN UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT|ENT)' THEN 'Enterprise'
     WHEN UPPER(${alias}.radio_capabilities) ~ '(SAE)' THEN 'SAE'

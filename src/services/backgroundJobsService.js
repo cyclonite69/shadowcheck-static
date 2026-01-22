@@ -8,7 +8,6 @@ const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
 class BackgroundJobsService {
-  static jobs = {};
 
   /**
    * Initialize background jobs
@@ -87,7 +86,7 @@ class BackgroundJobsService {
         tagMap.set(tag.bssid, {
           tag: tag.threat_tag,
           confidence: tag.threat_confidence || 1.0,
-          notes: tag.notes
+          notes: tag.notes,
         });
       }
 
@@ -104,7 +103,7 @@ class BackgroundJobsService {
           // Step 4: Apply feedback adjustment based on manual tags
           let finalScore = baseMlScore;
           let feedbackApplied = false;
-          
+
           const tag = tagMap.get(net.bssid);
           if (tag) {
             feedbackApplied = true;
@@ -126,10 +125,15 @@ class BackgroundJobsService {
 
           // Step 5: Calculate final threat level from adjusted score
           let threatLevel = 'NONE';
-          if (finalScore >= 80) threatLevel = 'CRITICAL';
-          else if (finalScore >= 60) threatLevel = 'HIGH';
-          else if (finalScore >= 40) threatLevel = 'MED';
-          else if (finalScore >= 20) threatLevel = 'LOW';
+          if (finalScore >= 80) {
+            threatLevel = 'CRITICAL';
+          } else if (finalScore >= 60) {
+            threatLevel = 'HIGH';
+          } else if (finalScore >= 40) {
+            threatLevel = 'MED';
+          } else if (finalScore >= 20) {
+            threatLevel = 'LOW';
+          }
 
           // Step 6: Store both ML and final scores with feedback metadata
           scores.push({
@@ -142,7 +146,7 @@ class BackgroundJobsService {
             final_threat_level: threatLevel,
             model_version: '2.0.0',
             feedback_applied: feedbackApplied,
-            manual_tag: tag ? tag.tag : null
+            manual_tag: tag ? tag.tag : null,
           });
         } catch (netError) {
           logger.debug(`[ML Scoring Job] Error scoring ${net.bssid}: ${netError.message}`);
@@ -167,7 +171,7 @@ class BackgroundJobsService {
         `, [
           score.bssid, score.ml_threat_score, score.ml_threat_probability,
           score.ml_primary_class, score.rule_based_score, score.final_threat_score,
-          score.final_threat_level, score.model_version
+          score.final_threat_level, score.model_version,
         ]);
         inserted++;
       }
@@ -192,7 +196,7 @@ class BackgroundJobsService {
    */
   static async scoreNow() {
     logger.info('[Background Jobs] Manual trigger: ML scoring');
-    return await this.runMLScoring();
+    return this.runMLScoring();
   }
 
   /**
@@ -200,11 +204,15 @@ class BackgroundJobsService {
    */
   static shutdown() {
     logger.info('[Background Jobs] Shutting down...');
-    Object.values(this.jobs).forEach(job => {
-      if (job) job.cancel();
+    Object.values(this.jobs).forEach((job) => {
+      if (job) {
+        job.cancel();
+      }
     });
     logger.info('[Background Jobs] All jobs cancelled');
   }
 }
+
+BackgroundJobsService.jobs = {};
 
 module.exports = BackgroundJobsService;
