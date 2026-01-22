@@ -117,7 +117,7 @@ router.get('/networks', async (req, res, next) => {
           };
           threatCategories = categories.map((cat) => threatLevelMap[cat]).filter(Boolean);
         }
-      } catch (_e) {
+      } catch {
         return res
           .status(400)
           .json({ error: 'Invalid threat_categories parameter. Must be JSON array.' });

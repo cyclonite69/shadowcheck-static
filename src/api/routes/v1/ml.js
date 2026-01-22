@@ -262,10 +262,15 @@ router.post('/ml/score-all', async (req, res, next) => {
 
         // Determine threat level with very aggressive thresholds for over-sensitive model
         let threatLevel = 'NONE';
-        if (threatScore >= 99) {threatLevel = 'CRITICAL';} // Only near-perfect scores
-        else if (threatScore >= 95) {threatLevel = 'HIGH';} // Very high confidence
-        else if (threatScore >= 85) {threatLevel = 'MED';} // High confidence
-        else if (threatScore >= 70) {threatLevel = 'LOW';} // Moderate confidence
+        if (threatScore >= 99) {
+          threatLevel = 'CRITICAL';
+        } else if (threatScore >= 95) {
+          threatLevel = 'HIGH';
+        } else if (threatScore >= 85) {
+          threatLevel = 'MED';
+        } else if (threatScore >= 70) {
+          threatLevel = 'LOW';
+        }
 
         scores.push({
           bssid: net.bssid,

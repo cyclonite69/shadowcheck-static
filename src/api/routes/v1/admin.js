@@ -694,7 +694,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
       [bssid]
     );
 
-    let action, newTags;
+    let action, _newTags;
 
     if (existingResult.rows.length === 0) {
       // Network doesn't exist, create with tag
@@ -703,7 +703,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
         VALUES ($1, $2::jsonb, $3, 'admin')
       `, [bssid, JSON.stringify([tag]), notes]);
       action = 'added';
-      newTags = [tag];
+      _newTags = [tag];
     } else {
       // Network exists, toggle the tag
       const currentTags = existingResult.rows[0].tags || [];
@@ -718,7 +718,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
           WHERE bssid = $1
         `, [bssid, tag]);
         action = 'removed';
-        newTags = currentTags.filter(t => t !== tag);
+        _newTags = currentTags.filter(t => t !== tag);
       } else {
         // Add tag
         await query(`
@@ -729,7 +729,7 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
           WHERE bssid = $1
         `, [bssid, tag, notes]);
         action = 'added';
-        newTags = [...currentTags, tag];
+        _newTags = [...currentTags, tag];
       }
     }
 
