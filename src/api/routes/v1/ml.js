@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const logger = require('../../../logging/logger');
+const mlTrainingLock = require('../../../services/mlTrainingLock');
 const {
   validateBSSID,
   validateEnum,
@@ -59,7 +60,15 @@ router.get('/ml/status', async (req, res, next) => {
 // ============================================
 // POST /api/ml/train - Train the model
 // ============================================
+/**
+ * POST /api/ml/train - Train the ML model
+ * Prevents concurrent training runs via in-memory lock.
+ * @param {import('express').Request} req - Express request
+ * @param {import('express').Response} res - Express response
+ * @param {import('express').NextFunction} next - Express next
+ */
 router.post('/ml/train', async (req, res, next) => {
+  let lockAcquired = false;
   try {
     if (!mlModel) {
       return res.status(503).json({
@@ -67,6 +76,16 @@ router.post('/ml/train', async (req, res, next) => {
         error: 'ML model module not available. Check server logs for details.',
       });
     }
+
+    if (!mlTrainingLock.acquire()) {
+      const status = mlTrainingLock.status();
+      return res.status(409).json({
+        ok: false,
+        error: 'ML training is already in progress',
+        lockedAt: status.lockedAt,
+      });
+    }
+    lockAcquired = true;
 
     const { rows } = await query(`
       SELECT
@@ -116,6 +135,10 @@ router.post('/ml/train', async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  } finally {
+    if (lockAcquired) {
+      mlTrainingLock.release();
+    }
   }
 });
 
