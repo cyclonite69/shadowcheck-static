@@ -203,12 +203,32 @@ function paginationMiddleware(maxLimit = 5000) {
  */
 function bssidParamMiddleware(req, res, next) {
   const { bssid } = req.params;
-  const validation = schemas.validateBSSID(bssid);
+  const validation = schemas.validateNetworkIdentifier(bssid);
 
   if (!validation.valid) {
     return res.status(400).json({
       ok: false,
       error: 'Invalid BSSID parameter',
+      details: validation.error,
+    });
+  }
+
+  req.params.bssid = validation.cleaned;
+  next();
+}
+
+/**
+ * MAC address validation middleware
+ * Validates and sanitizes MAC address from path parameter
+ */
+function macParamMiddleware(req, res, next) {
+  const { bssid } = req.params;
+  const validation = schemas.validateMACAddress(bssid);
+
+  if (!validation.valid) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Invalid MAC address parameter',
       details: validation.error,
     });
   }
@@ -355,6 +375,7 @@ module.exports = {
   validateParams,
   paginationMiddleware,
   bssidParamMiddleware,
+  macParamMiddleware,
   coordinatesMiddleware,
   sortMiddleware,
   optional,
