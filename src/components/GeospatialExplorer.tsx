@@ -14,6 +14,7 @@ import { MapViewport } from './geospatial/MapViewport';
 import { NetworkTagMenu } from './geospatial/NetworkTagMenu';
 import { MapStatusBar } from './geospatial/MapStatusBar';
 import { NetworkNoteModal } from './geospatial/NetworkNoteModal';
+import { ColumnSelector } from './geospatial/ColumnSelector';
 
 // Types
 import type {
@@ -2068,61 +2069,14 @@ export default function GeospatialExplorer() {
                 >
                   {filtersOpen ? 'Hide Filters' : 'Show Filters'}
                 </button>
-                <div className="relative" ref={columnDropdownRef}>
-                  <button
-                    onClick={() => setShowColumnSelector((v) => !v)}
-                    style={{
-                      padding: '6px',
-                      background: 'transparent',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      color: '#cbd5e1',
-                    }}
-                  >
-                    ⚙️
-                  </button>
-                  {showColumnSelector && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        right: 0,
-                        marginTop: '4px',
-                        background: 'rgba(30, 41, 59, 0.95)',
-                        border: '1px solid rgba(71, 85, 105, 0.5)',
-                        borderRadius: '6px',
-                        zIndex: 50,
-                        minWidth: '200px',
-                        maxHeight: '400px',
-                        overflowY: 'auto',
-                        backdropFilter: 'blur(8px)',
-                      }}
-                    >
-                      {Object.entries(NETWORK_COLUMNS).map(([col, column]) => (
-                        <label
-                          key={col}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '8px 12px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            color: '#e2e8f0',
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={visibleColumns.includes(col as keyof NetworkRow | 'select')}
-                            onChange={() => toggleColumn(col as keyof NetworkRow | 'select')}
-                            style={{ marginRight: '8px' }}
-                          />
-                          {column.label}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <ColumnSelector
+                  visible={showColumnSelector}
+                  anchorRef={columnDropdownRef}
+                  visibleColumns={visibleColumns}
+                  columns={NETWORK_COLUMNS}
+                  onToggle={() => setShowColumnSelector((v) => !v)}
+                  onToggleColumn={toggleColumn}
+                />
               </div>
             </div>
 
