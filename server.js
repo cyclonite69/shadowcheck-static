@@ -234,13 +234,8 @@ delete process.env.PGUSER;
     // 10. SPA FALLBACK (React Router support)
     // ============================================================================
     // Serve index.html for all non-API routes (must be after API routes)
-    app.get('*', (req, res) => {
-      // Don't handle API routes or demo routes
-      if (req.path.startsWith('/api') || req.path.startsWith('/demo')) {
-        return res.status(404).json({ error: 'Not found' });
-      }
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    });
+    const { createSpaFallback } = require('./src/middleware/spaFallback');
+    app.get('*', createSpaFallback(path.join(__dirname, 'dist')));
 
     // ============================================================================
     // 11. ERROR HANDLING
