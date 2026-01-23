@@ -30,28 +30,7 @@
     // ============================================================================
     // 4. ROUTE MODULES
     // ============================================================================
-    const {
-      healthRoutes,
-      networksRoutes,
-      explorerRoutes,
-      threatsRoutes,
-      wigleRoutes,
-      adminRoutes,
-      mlRoutes,
-      geospatialRoutes,
-      analyticsRoutes,
-      networksV2Routes,
-      filteredRoutes,
-      dashboardRoutes,
-      locationMarkersRoutes,
-      homeLocationRoutes,
-      keplerRoutes,
-      backupRoutes,
-      exportRoutes,
-      settingsRoutes,
-      networkTagsRoutes,
-      miscRoutes,
-    } = loadRouteModules();
+    const routes = loadRouteModules();
 
     // ============================================================================
     // 5. APP INITIALIZATION
@@ -71,7 +50,7 @@
     // ============================================================================
     // 8. DEMO ROUTES (before static files)
     // ============================================================================
-    mountDemoRoutes(app, miscRoutes);
+    mountDemoRoutes(app, routes.miscRoutes);
 
     // ============================================================================
     // 9. STATIC FILES
@@ -83,27 +62,7 @@
     // 10. ROUTE MOUNTING
     // ============================================================================
     initializeRoutes(app, {
-      routes: {
-        healthRoutes,
-        geospatialRoutes,
-        networksRoutes,
-        threatsRoutes,
-        wigleRoutes,
-        adminRoutes,
-        explorerRoutes,
-        mlRoutes,
-        analyticsRoutes,
-        dashboardRoutes,
-        networksV2Routes,
-        filteredRoutes,
-        locationMarkersRoutes,
-        homeLocationRoutes,
-        keplerRoutes,
-        backupRoutes,
-        exportRoutes,
-        settingsRoutes,
-        networkTagsRoutes,
-      },
+      routes,
       query,
       secretsManager,
       logger,
