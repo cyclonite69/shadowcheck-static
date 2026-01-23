@@ -54,6 +54,7 @@ delete process.env.PGUSER;
     const exportRoutes = require('./src/api/routes/v1/export');
     const settingsRoutes = require('./src/api/routes/v1/settings');
     const networkTagsRoutes = require('./src/api/routes/v1/network-tags');
+    const miscRoutes = require('./src/api/routes/v1/misc');
 
     // ============================================================================
     // 5. APP INITIALIZATION
@@ -154,10 +155,7 @@ delete process.env.PGUSER;
     // ============================================================================
     // 8. DEMO ROUTES (before static files)
     // ============================================================================
-    // Demo pages
-    app.get('/demo/oui-grouping', (req, res) => {
-      res.sendFile(path.join(__dirname, 'public', 'oui-grouping-demo.html'));
-    });
+    app.use('/', miscRoutes);
 
     // ============================================================================
     // 9. STATIC FILES
@@ -226,105 +224,11 @@ delete process.env.PGUSER;
     app.use('/api', settingsRoutes);
     app.use('/api/network-tags', networkTagsRoutes);
 
-    // Geocoding endpoint
-    app.post('/api/geocode', async (req, res) => {
-      try {
-        const { address } = req.body;
-        if (!address) {
-          return res.status(400).json({ error: 'Address is required' });
-        }
-
-        // Use Mapbox Geocoding API
-        const mapboxToken = await secretsManager.getSecret('MAPBOX_TOKEN');
-        if (!mapboxToken) {
-          return res.status(500).json({ error: 'Mapbox token not configured' });
-        }
-
-        const encodedAddress = encodeURIComponent(address);
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${mapboxToken}&limit=1`;
-
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (data.features && data.features.length > 0) {
-          const feature = data.features[0];
-          const [lng, lat] = feature.center;
-
-          res.json({
-            lat: lat,
-            lng: lng,
-            formatted_address: feature.place_name,
-            confidence: feature.relevance,
-          });
-        } else {
-          res.status(404).json({ error: 'Address not found' });
-        }
-      } catch (error) {
-        logger.error(`Geocoding error: ${error.message}`, { error });
-        res.status(500).json({ error: 'Geocoding failed' });
-      }
-    });
-
     logger.info('All routes mounted successfully');
 
     // Initialize background jobs
     const BackgroundJobsService = require('./src/services/backgroundJobsService');
     await BackgroundJobsService.initialize();
-
-    // Home location endpoints (add before catch-all route)
-    app.get('/api/home-location', async (req, res) => {
-      try {
-        const result = await query(`
-          SELECT latitude, longitude, radius, created_at
-          FROM app.location_markers
-          WHERE marker_type = 'home'
-          ORDER BY created_at DESC
-          LIMIT 1
-        `);
-
-        if (result.rows.length === 0) {
-          return res.json({
-            latitude: 43.02345147,
-            longitude: -83.69682688,
-            radius: 100,
-          });
-        }
-
-        res.json(result.rows[0]);
-      } catch (err) {
-        res.status(500).json({ error: err.message });
-      }
-    });
-
-    app.post('/api/admin/home-location', async (req, res) => {
-      try {
-        const { latitude, longitude, radius = 100 } = req.body;
-
-        if (!latitude || !longitude) {
-          return res.status(400).json({ error: 'Latitude and longitude are required' });
-        }
-
-        await query("DELETE FROM app.location_markers WHERE marker_type = 'home'");
-
-        await query(
-          `
-          INSERT INTO app.location_markers (marker_type, latitude, longitude, radius, location, created_at)
-          VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($3, $2), 4326), NOW())
-        `,
-          ['home', latitude, longitude, radius]
-        );
-
-        res.json({
-          ok: true,
-          message: 'Home location saved successfully',
-          latitude,
-          longitude,
-          radius,
-        });
-      } catch (err) {
-        res.status(500).json({ error: err.message });
-      }
-    });
 
     // ============================================================================
     // 10. SPA FALLBACK (React Router support)
@@ -340,59 +244,6 @@ delete process.env.PGUSER;
 
     // ============================================================================
     // 11. ERROR HANDLING
-    // ============================================================================
-    // 11. IMPORT ENDPOINTS
-    // ============================================================================
-    const { importWigleDirectory } = require('./src/services/wigleImportService');
-
-    app.post('/api/import/wigle', async (req, res) => {
-      try {
-        const importDir = path.join(__dirname, 'imports', 'wigle');
-        const result = await importWigleDirectory(importDir);
-        res.json({ success: true, ...result });
-      } catch (error) {
-        logger.error(`WiGLE import error: ${error.message}`, { error });
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-
-    // Data quality endpoint
-    app.get('/api/data-quality', async (req, res) => {
-      try {
-        const filter = req.query.filter || 'none'; // none, temporal, extreme, duplicate, all
-        const { DATA_QUALITY_FILTERS } = require('./src/services/dataQualityFilters');
-
-        let whereClause = '';
-        if (filter === 'temporal') {
-          whereClause = DATA_QUALITY_FILTERS.temporal_clusters;
-        } else if (filter === 'extreme') {
-          whereClause = DATA_QUALITY_FILTERS.extreme_signals;
-        } else if (filter === 'duplicate') {
-          whereClause = DATA_QUALITY_FILTERS.duplicate_coords;
-        } else if (filter === 'all') {
-          whereClause = DATA_QUALITY_FILTERS.all();
-        }
-
-        const query = `
-          SELECT COUNT(*) as total_observations,
-                 COUNT(DISTINCT bssid) as unique_networks,
-                 MIN(time) as earliest_time,
-                 MAX(time) as latest_time
-          FROM observations 
-          WHERE 1=1 ${whereClause}
-        `;
-
-        const result = await pool.query(query);
-        res.json({
-          filter_applied: filter,
-          ...result.rows[0],
-        });
-      } catch (error) {
-        logger.error(`Data quality error: ${error.message}`, { error });
-        res.status(500).json({ success: false, error: error.message });
-      }
-    });
-
     // ============================================================================
     app.use(notFoundHandler);
     app.use(createErrorHandler(logger));
