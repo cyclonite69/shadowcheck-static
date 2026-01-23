@@ -11,6 +11,7 @@ const fs = require('fs').promises;
 const { spawn } = require('child_process');
 const { query, CONFIG } = require('../../../config/database');
 const logger = require('../../../logging/logger');
+const { validateBSSID, validateTimestampMs } = require('../../../validation/schemas');
 
 // Configure multer for SQLite file uploads
 const upload = multer({
@@ -169,12 +170,18 @@ router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
     const { bssid } = req.params;
     const { time } = req.query;
 
-    if (!bssid || typeof bssid !== 'string' || bssid.trim() === '') {
-      return res.status(400).json({ error: 'Valid BSSID or tower identifier is required' });
+    const bssidValidation = validateBSSID(bssid);
+    if (!bssidValidation.valid) {
+      return res.status(400).json({ error: bssidValidation.error });
     }
 
-    if (!time) {
+    if (time === undefined || time === null || time === '') {
       return res.status(400).json({ error: 'time parameter required (milliseconds)' });
+    }
+
+    const timeValidation = validateTimestampMs(time);
+    if (!timeValidation.valid) {
+      return res.status(400).json({ error: timeValidation.error });
     }
 
     const { rows } = await query(
@@ -201,7 +208,7 @@ router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
         AND l.accuracy = t.accuracy
       GROUP BY t.lat, t.lon, t.accuracy, t.time
     `,
-      [bssid, time]
+      [bssidValidation.cleaned, timeValidation.value]
     );
 
     res.json({
@@ -371,7 +378,7 @@ router.post('/admin/add-note', async (req, res) => {
   try {
     const { bssid, content } = req.body;
     const result = await query(
-      'SELECT app.network_add_note($1, $2, \'general\', \'user\') as note_id',
+      "SELECT app.network_add_note($1, $2, 'general', 'user') as note_id",
       [bssid, content]
     );
     res.json({ ok: true, note_id: result.rows[0].note_id });
@@ -517,7 +524,7 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
         observation_count: network.observation_count || 0,
         max_signal: network.max_signal || -100,
         unique_locations: network.unique_locations || 0,
-        seen_both_locations: (network.seen_at_home && network.seen_away_from_home) ? 1 : 0,
+        seen_both_locations: network.seen_at_home && network.seen_away_from_home ? 1 : 0,
       };
 
       // Compute logistic regression prediction
@@ -533,7 +540,15 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
 
       // Determine threat level
       let threatLevel = 'NONE';
-      if (threatScore >= 70) {threatLevel = 'CRITICAL';} else if (threatScore >= 50) {threatLevel = 'HIGH';} else if (threatScore >= 30) {threatLevel = 'MED';} else if (threatScore >= 10) {threatLevel = 'LOW';}
+      if (threatScore >= 70) {
+        threatLevel = 'CRITICAL';
+      } else if (threatScore >= 50) {
+        threatLevel = 'HIGH';
+      } else if (threatScore >= 30) {
+        threatLevel = 'MED';
+      } else if (threatScore >= 10) {
+        threatLevel = 'LOW';
+      }
 
       scores.push({
         bssid: network.bssid,
@@ -550,7 +565,8 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
     // Insert scores into database
     if (scores.length > 0) {
       for (const s of scores) {
-        await query(`
+        await query(
+          `
           INSERT INTO app.network_threat_scores 
             (bssid, ml_threat_score, ml_threat_probability, ml_primary_class, 
              rule_based_score, final_threat_score, final_threat_level, model_version)
@@ -565,8 +581,18 @@ router.post('/admin/ml-score-all', async (req, res, next) => {
             model_version = EXCLUDED.model_version,
             scored_at = NOW(),
             updated_at = NOW()
-        `, [s.bssid, s.ml_threat_score, s.ml_threat_probability, s.ml_primary_class,
-          s.rule_based_score, s.final_threat_score, s.final_threat_level, s.model_version]);
+        `,
+          [
+            s.bssid,
+            s.ml_threat_score,
+            s.ml_threat_probability,
+            s.ml_primary_class,
+            s.rule_based_score,
+            s.final_threat_score,
+            s.final_threat_level,
+            s.model_version,
+          ]
+        );
       }
     }
 
@@ -597,7 +623,8 @@ router.get('/admin/ml-scores', async (req, res, next) => {
       params.push(level);
     }
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
              rule_based_score, final_threat_score, final_threat_level,
              model_version, scored_at
@@ -605,7 +632,9 @@ router.get('/admin/ml-scores', async (req, res, next) => {
       ${whereClause}
       ORDER BY final_threat_score DESC
       LIMIT $1
-    `, params);
+    `,
+      params
+    );
 
     res.json({
       ok: true,
@@ -653,7 +682,9 @@ router.get('/admin/ml-jobs-status', async (req, res, next) => {
       const nextHour = Math.ceil(hour / 4) * 4;
       const next = new Date(now);
       next.setHours(nextHour, 0, 0, 0);
-      if (next <= now) {next.setHours(nextHour + 4);}
+      if (next <= now) {
+        next.setHours(nextHour + 4);
+      }
       return next.toISOString();
     };
 
@@ -689,19 +720,21 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
     }
 
     // Check if network exists and has the tag
-    const existingResult = await query(
-      'SELECT tags FROM app.network_tags WHERE bssid = $1',
-      [bssid]
-    );
+    const existingResult = await query('SELECT tags FROM app.network_tags WHERE bssid = $1', [
+      bssid,
+    ]);
 
     let action, _newTags;
 
     if (existingResult.rows.length === 0) {
       // Network doesn't exist, create with tag
-      await query(`
+      await query(
+        `
         INSERT INTO app.network_tags (bssid, tags, notes, created_by)
         VALUES ($1, $2::jsonb, $3, 'admin')
-      `, [bssid, JSON.stringify([tag]), notes]);
+      `,
+        [bssid, JSON.stringify([tag]), notes]
+      );
       action = 'added';
       _newTags = [tag];
     } else {
@@ -711,33 +744,38 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
 
       if (hasTag) {
         // Remove tag
-        await query(`
+        await query(
+          `
           UPDATE app.network_tags 
           SET tags = app.network_remove_tag(tags, $2),
               updated_at = NOW()
           WHERE bssid = $1
-        `, [bssid, tag]);
+        `,
+          [bssid, tag]
+        );
         action = 'removed';
-        _newTags = currentTags.filter(t => t !== tag);
+        _newTags = currentTags.filter((t) => t !== tag);
       } else {
         // Add tag
-        await query(`
+        await query(
+          `
           UPDATE app.network_tags 
           SET tags = app.network_add_tag(tags, $2),
               notes = COALESCE($3, notes),
               updated_at = NOW()
           WHERE bssid = $1
-        `, [bssid, tag, notes]);
+        `,
+          [bssid, tag, notes]
+        );
         action = 'added';
         _newTags = [...currentTags, tag];
       }
     }
 
     // Get updated network info
-    const result = await query(
-      'SELECT bssid, tags, notes FROM app.network_tags WHERE bssid = $1',
-      [bssid]
-    );
+    const result = await query('SELECT bssid, tags, notes FROM app.network_tags WHERE bssid = $1', [
+      bssid,
+    ]);
 
     res.json({
       ok: true,
@@ -763,18 +801,20 @@ router.delete('/admin/network-tags/remove', async (req, res, next) => {
     }
 
     // Remove tag
-    await query(`
+    await query(
+      `
       UPDATE app.network_tags 
       SET tags = app.network_remove_tag(tags, $2),
           updated_at = NOW()
       WHERE bssid = $1
-    `, [bssid, tag]);
+    `,
+      [bssid, tag]
+    );
 
     // Get updated tags
-    const result = await query(
-      'SELECT bssid, tags, notes FROM app.network_tags WHERE bssid = $1',
-      [bssid]
-    );
+    const result = await query('SELECT bssid, tags, notes FROM app.network_tags WHERE bssid = $1', [
+      bssid,
+    ]);
 
     res.json({
       ok: true,
@@ -792,7 +832,8 @@ router.get('/admin/network-tags/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT 
         bssid,
         tags,
@@ -806,7 +847,9 @@ router.get('/admin/network-tags/:bssid', async (req, res, next) => {
         updated_at
       FROM app.network_tags_expanded 
       WHERE bssid = $1
-    `, [bssid]);
+    `,
+      [bssid]
+    );
 
     if (!result.rows.length) {
       return res.status(404).json({
@@ -834,10 +877,11 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
       });
     }
 
-    const tagArray = tags.split(',').map(t => t.trim());
+    const tagArray = tags.split(',').map((t) => t.trim());
 
     // Find networks that have ALL specified tags
-    const result = await query(`
+    const result = await query(
+      `
       SELECT 
         bssid,
         tags,
@@ -852,7 +896,9 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
       WHERE tags ?& $1
       ORDER BY updated_at DESC
       LIMIT $2
-    `, [tagArray, parseInt(limit)]);
+    `,
+      [tagArray, parseInt(limit)]
+    );
 
     res.json({
       ok: true,
@@ -884,10 +930,11 @@ router.post('/admin/network-notations/add', async (req, res, next) => {
     }
 
     // Add notation
-    const result = await query(
-      'SELECT app.network_add_notation($1, $2, $3) as notation',
-      [bssid, text, type]
-    );
+    const result = await query('SELECT app.network_add_notation($1, $2, $3) as notation', [
+      bssid,
+      text,
+      type,
+    ]);
 
     res.json({
       ok: true,
@@ -905,10 +952,9 @@ router.get('/admin/network-notations/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(
-      'SELECT detailed_notes FROM app.network_tags WHERE bssid = $1',
-      [bssid]
-    );
+    const result = await query('SELECT detailed_notes FROM app.network_tags WHERE bssid = $1', [
+      bssid,
+    ]);
 
     const notations = result.rows.length > 0 ? result.rows[0].detailed_notes || [] : [];
 
@@ -945,12 +991,15 @@ router.post('/admin/network-media/upload', async (req, res, next) => {
     const fileSize = mediaBuffer.length;
 
     // Insert media
-    const result = await query(`
+    const result = await query(
+      `
       INSERT INTO app.network_media 
         (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin')
       RETURNING id, filename, file_size, created_at
-    `, [bssid, media_type, filename, fileSize, mime_type, mediaBuffer, description]);
+    `,
+      [bssid, media_type, filename, fileSize, mime_type, mediaBuffer, description]
+    );
 
     res.json({
       ok: true,
@@ -968,13 +1017,16 @@ router.get('/admin/network-media/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT id, media_type, filename, original_filename, file_size, 
              mime_type, description, uploaded_by, created_at
       FROM app.network_media 
       WHERE bssid = $1
       ORDER BY created_at DESC
-    `, [bssid]);
+    `,
+      [bssid]
+    );
 
     res.json({
       ok: true,
@@ -1021,13 +1073,16 @@ router.get('/admin/network-summary/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT bssid, tags, tag_array, is_threat, is_investigate, is_false_positive, is_suspect,
              notes, detailed_notes, notation_count, image_count, video_count, total_media_count,
              created_at, updated_at
       FROM app.network_tags_full 
       WHERE bssid = $1
-    `, [bssid]);
+    `,
+      [bssid]
+    );
 
     if (!result.rows.length) {
       return res.status(404).json({
@@ -1059,10 +1114,12 @@ router.post('/admin/network-notes/add', async (req, res) => {
       });
     }
 
-    const result = await query(
-      'SELECT app.network_add_note($1, $2, $3, $4) as note_id',
-      [bssid, content, note_type, user_id]
-    );
+    const result = await query('SELECT app.network_add_note($1, $2, $3, $4) as note_id', [
+      bssid,
+      content,
+      note_type,
+      user_id,
+    ]);
 
     res.json({
       ok: true,
@@ -1088,12 +1145,15 @@ router.get('/admin/network-notes/:bssid', async (req, res) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT id, content, note_type, user_id, created_at, updated_at
       FROM app.network_notes
       WHERE bssid = $1
       ORDER BY created_at DESC
-    `, [bssid]);
+    `,
+      [bssid]
+    );
 
     res.json({
       ok: true,
@@ -1120,10 +1180,12 @@ router.post('/admin/network-notes/add', async (req, res) => {
     if (!bssid || !content) {
       return res.status(400).json({ ok: false, error: 'BSSID and content required' });
     }
-    const result = await query(
-      'SELECT app.network_add_note($1, $2, $3, $4) as note_id',
-      [bssid, content, note_type, user_id]
-    );
+    const result = await query('SELECT app.network_add_note($1, $2, $3, $4) as note_id', [
+      bssid,
+      content,
+      note_type,
+      user_id,
+    ]);
     res.json({ ok: true, bssid, note_id: result.rows[0].note_id, message: 'Note added' });
   } catch (error) {
     logger.error('Add note failed:', error);
@@ -1137,12 +1199,15 @@ router.post('/admin/network-notes/add', async (req, res) => {
 router.get('/admin/network-notes/:bssid', async (req, res) => {
   try {
     const { bssid } = req.params;
-    const result = await query(`
+    const result = await query(
+      `
       SELECT id, content, note_type, user_id, created_at, updated_at
       FROM app.network_notes
       WHERE bssid = $1
       ORDER BY created_at DESC
-    `, [bssid]);
+    `,
+      [bssid]
+    );
     res.json({ ok: true, bssid, notes: result.rows, count: result.rows.length });
   } catch (error) {
     logger.error('Get notes failed:', error);
@@ -1156,10 +1221,9 @@ router.get('/admin/network-notes/:bssid', async (req, res) => {
 router.delete('/admin/network-notes/:noteId', async (req, res) => {
   try {
     const { noteId } = req.params;
-    const result = await query(
-      'DELETE FROM app.network_notes WHERE id = $1 RETURNING bssid',
-      [noteId]
-    );
+    const result = await query('DELETE FROM app.network_notes WHERE id = $1 RETURNING bssid', [
+      noteId,
+    ]);
     if (result.rows.length === 0) {
       return res.status(404).json({ ok: false, error: 'Note not found' });
     }
@@ -1180,17 +1244,21 @@ router.post('/admin/network-notes/:noteId/media', mediaUpload.single('file'), as
     if (!req.file) {
       return res.status(400).json({ ok: false, error: 'No file provided' });
     }
-    const result = await query(`
+    const result = await query(
+      `
       INSERT INTO app.note_media (note_id, bssid, file_path, file_name, file_size, media_type)
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, file_path
-    `, [
-      noteId, bssid,
-      `/api/media/${req.file.filename}`,
-      req.file.originalname,
-      req.file.size,
-      req.file.mimetype,
-    ]);
+    `,
+      [
+        noteId,
+        bssid,
+        `/api/media/${req.file.filename}`,
+        req.file.originalname,
+        req.file.size,
+        req.file.mimetype,
+      ]
+    );
     res.json({
       ok: true,
       note_id: noteId,
@@ -1468,15 +1536,22 @@ router.get('/admin/oui/:oui/details', async (req, res) => {
   try {
     const { oui } = req.params;
 
-    const group = await query(`
+    const group = await query(
+      `
       SELECT * FROM app.oui_device_groups WHERE oui = $1
-    `, [oui]);
+    `,
+      [oui]
+    );
 
-    const randomization = await query(`
+    const randomization = await query(
+      `
       SELECT * FROM app.mac_randomization_suspects WHERE oui = $1
-    `, [oui]);
+    `,
+      [oui]
+    );
 
-    const networks = await query(`
+    const networks = await query(
+      `
       SELECT 
         ap.bssid,
         nts.final_threat_score,
@@ -1489,7 +1564,9 @@ router.get('/admin/oui/:oui/details', async (req, res) => {
       WHERE SUBSTRING(ap.bssid, 1, 8) = $1
       GROUP BY ap.bssid, nts.final_threat_score, nts.final_threat_level, ap.ssid
       ORDER BY nts.final_threat_score DESC
-    `, [oui]);
+    `,
+      [oui]
+    );
 
     res.json({
       ok: true,
