@@ -280,6 +280,34 @@ function validateEnum(value, allowed, fieldName = 'Field') {
 }
 
 /**
+ * Validates a timestamp in milliseconds.
+ * @param {any} value - Timestamp value (ms since epoch)
+ * @param {object} options - Validation options
+ * @param {number} options.min - Minimum allowed timestamp (ms)
+ * @param {number} options.max - Maximum allowed timestamp (ms)
+ * @returns {object} { valid: boolean, error?: string, value?: number }
+ */
+function validateTimestampMs(
+  value,
+  { min = 946684800000, max = Date.now() + 365 * 24 * 60 * 60 * 1000 } = {}
+) {
+  const parsed = parseInt(value, 10);
+
+  if (Number.isNaN(parsed)) {
+    return { valid: false, error: 'timestamp must be a number (ms since epoch)' };
+  }
+
+  if (parsed < min || parsed > max) {
+    return {
+      valid: false,
+      error: `timestamp must be between ${min} and ${max}`,
+    };
+  }
+
+  return { valid: true, value: parsed };
+}
+
+/**
  * Validates integer within an inclusive range
  * @param {any} value - Value to validate
  * @param {number} min - Minimum allowed value
@@ -334,12 +362,15 @@ function validateBSSIDList(value, maxItems = 1000) {
     return { valid: false, error: 'BSSID list must be provided' };
   }
 
-  const items = Array.isArray(value)
-    ? value
-    : String(value)
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
+  let items = [];
+  if (Array.isArray(value)) {
+    items = value;
+  } else {
+    items = String(value)
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
 
   if (items.length === 0) {
     return { valid: false, error: 'BSSID list cannot be empty' };
@@ -434,6 +465,7 @@ module.exports = {
   validateSeverity,
   validateBoolean,
   validateEnum,
+  validateTimestampMs,
   validateIntegerRange,
   validateNumberRange,
   validateBSSIDList,
