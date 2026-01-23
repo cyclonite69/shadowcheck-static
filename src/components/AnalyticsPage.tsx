@@ -196,7 +196,7 @@ export default function Analytics() {
   );
   useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
 
-  // API Data State
+  // API Data State - Initialize with empty arrays to prevent undefined issues
   const [networkTypesData, setNetworkTypesData] = useState([]);
   const [signalStrengthData, setSignalStrengthData] = useState([]);
   const [securityData, setSecurityData] = useState([]);
@@ -284,15 +284,28 @@ export default function Analytics() {
   const hasTimeframeSelectionRef = useRef(false);
 
   useEffect(() => {
+    if (DEBUG_ANALYTICS) {
+      console.info('[analytics] timeFrame useEffect:', {
+        timeFrame,
+        hasTimeframeSelectionRef: hasTimeframeSelectionRef.current,
+        currentFilterState: debouncedFilterState,
+      });
+    }
     localStorage.setItem('analytics_timeframe', timeFrame);
     // setFilter auto-enables the filter, so we need to explicitly disable on first render
     setFilter('timeframe', { type: 'relative', relativeWindow: timeFrame });
     if (!hasTimeframeSelectionRef.current) {
       hasTimeframeSelectionRef.current = true;
       // Disable timeframe filter on initial load to show all data
+      if (DEBUG_ANALYTICS) {
+        console.info('[analytics] First render - disabling timeframe filter for all-time view');
+      }
       enableFilter('timeframe', false);
       enableFilter('temporalScope', false);
       return;
+    }
+    if (DEBUG_ANALYTICS) {
+      console.info('[analytics] Subsequent render - enabling timeframe filter');
     }
     enableFilter('timeframe', true);
     enableFilter('temporalScope', true);
@@ -303,6 +316,14 @@ export default function Analytics() {
     const controller = new AbortController();
     const isAllTime = !debouncedFilterState?.enabled?.timeframe;
     const fetchAnalytics = async () => {
+      if (DEBUG_ANALYTICS) {
+        console.info('[analytics] fetchAnalytics start:', {
+          isAllTime,
+          debouncedFilterState,
+          timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
+          filters: debouncedFilterState?.filters,
+        });
+      }
       setLoading(true);
       setError(null);
       // Don't clear data immediately - keep showing previous data while loading
@@ -356,14 +377,31 @@ export default function Analytics() {
         const data = payload.data || {};
 
         if (data.networkTypes) {
-          const processedData = data.networkTypes.map((item) => ({
-            name: item.network_type,
-            value: Number(item.count),
-            color: NETWORK_TYPE_COLORS[item.network_type] || '#64748b',
-          }));
+          const processedData = data.networkTypes
+            .map((item) => ({
+              name: item.network_type,
+              value: Number(item.count),
+              color: NETWORK_TYPE_COLORS[item.network_type] || '#64748b',
+            }))
+            .filter((item) => !isNaN(item.value) && item.value > 0); // Filter out invalid values
+          if (DEBUG_ANALYTICS) {
+            console.info('[analytics] networkTypes processed:', {
+              timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
+              timeframe: debouncedFilterState?.filters?.timeframe,
+              rawData: data.networkTypes,
+              processedData,
+              validValues: processedData.filter((item) => !isNaN(item.value) && item.value > 0),
+            });
+          }
           setNetworkTypesData(processedData);
         } else {
-          console.warn('No networkTypes data received');
+          if (DEBUG_ANALYTICS) {
+            console.warn('[analytics] No networkTypes data received', {
+              timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
+              dataKeys: Object.keys(data),
+            });
+          }
+          setNetworkTypesData([]); // Ensure empty array instead of undefined
         }
 
         if (data.signalStrength) {
@@ -376,13 +414,31 @@ export default function Analytics() {
         }
 
         if (data.security) {
-          setSecurityData(
-            data.security.map((item) => ({
+          const processedData = data.security
+            .map((item) => ({
               name: item.security_type,
               value: Number(item.count),
               color: SECURITY_TYPE_COLORS[item.security_type] || '#64748b',
             }))
-          );
+            .filter((item) => !isNaN(item.value) && item.value > 0); // Filter out invalid values
+          if (DEBUG_ANALYTICS) {
+            console.info('[analytics] security processed:', {
+              timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
+              timeframe: debouncedFilterState?.filters?.timeframe,
+              rawData: data.security,
+              processedData,
+              validValues: processedData.filter((item) => !isNaN(item.value) && item.value > 0),
+            });
+          }
+          setSecurityData(processedData);
+        } else {
+          if (DEBUG_ANALYTICS) {
+            console.warn('[analytics] No security data received', {
+              timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
+              dataKeys: Object.keys(data),
+            });
+          }
+          setSecurityData([]); // Ensure empty array instead of undefined
         }
 
         if (data.threatDistribution) {
@@ -572,50 +628,79 @@ export default function Analytics() {
 
     switch (card.type) {
       case 'network-types':
-        if (!networkTypesData || networkTypesData.length === 0) {
+        if (DEBUG_ANALYTICS) {
+          console.info('[analytics] rendering network-types pie:', {
+            timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
+            dataLength: networkTypesData?.length,
+            data: networkTypesData,
+            containerHeight: height,
+            dataIsArray: Array.isArray(networkTypesData),
+            hasValidData:
+              networkTypesData &&
+              networkTypesData.length > 0 &&
+              networkTypesData.some((item) => item.value > 0),
+          });
+        }
+        if (
+          !networkTypesData ||
+          !Array.isArray(networkTypesData) ||
+          networkTypesData.length === 0
+        ) {
           if (DEBUG_ANALYTICS) {
-            console.info('Network types data empty or null:', networkTypesData);
+            console.info('Network types data empty, null, or not array:', networkTypesData);
+          }
+          return renderEmptyState();
+        }
+        // Filter out any items with invalid values
+        const validNetworkData = networkTypesData.filter(
+          (item) => item && typeof item.value === 'number' && !isNaN(item.value) && item.value > 0
+        );
+        if (validNetworkData.length === 0) {
+          if (DEBUG_ANALYTICS) {
+            console.info('No valid network types data after filtering:', networkTypesData);
           }
           return renderEmptyState();
         }
         return (
-          <ResponsiveContainer
-            width="100%"
-            height="100%"
-            key={`network-types-${networkTypesData.length}`}
-          >
-            <PieChart>
-              <Pie
-                data={networkTypesData}
-                cx="50%"
-                cy="50%"
-                innerRadius="50%"
-                outerRadius="70%"
-                paddingAngle={2}
-                dataKey="value"
-                animationDuration={300}
-              >
-                {networkTypesData.map((entry, idx) => (
-                  <Cell key={`cell-${idx}-${entry.name}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }}
-                formatter={(value, name, props) => {
-                  const total = networkTypesData.reduce((sum, item) => sum + item.value, 0);
-                  const percent = ((value / total) * 100).toFixed(1);
-                  return [`${value.toLocaleString()} (${percent}%)`, name];
-                }}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: '10px' }}
-                iconType="circle"
-                formatter={(value) => (
-                  <span style={{ color: '#cbd5e1', fontSize: '11px' }}>{value}</span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <div style={{ height: height, width: '100%' }}>
+            <ResponsiveContainer
+              width="100%"
+              height={height}
+              key={`network-types-${validNetworkData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
+            >
+              <PieChart>
+                <Pie
+                  data={validNetworkData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="50%"
+                  outerRadius="70%"
+                  paddingAngle={2}
+                  dataKey="value"
+                  animationDuration={300}
+                >
+                  {validNetworkData.map((entry, idx) => (
+                    <Cell key={`cell-${idx}-${entry.name}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }}
+                  formatter={(value, name, props) => {
+                    const total = validNetworkData.reduce((sum, item) => sum + item.value, 0);
+                    const percent = ((value / total) * 100).toFixed(1);
+                    return [`${value.toLocaleString()} (${percent}%)`, name];
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '10px' }}
+                  iconType="circle"
+                  formatter={(value) => (
+                    <span style={{ color: '#cbd5e1', fontSize: '11px' }}>{value}</span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         );
       case 'signal':
         if (signalStrengthData.length === 0) return renderEmptyState();
@@ -640,41 +725,75 @@ export default function Analytics() {
           </ResponsiveContainer>
         );
       case 'security':
-        if (securityData.length === 0) return renderEmptyState();
+        if (DEBUG_ANALYTICS) {
+          console.info('[analytics] rendering security pie:', {
+            timeframeEnabled: debouncedFilterState?.enabled?.timeframe,
+            dataLength: securityData?.length,
+            data: securityData,
+            containerHeight: height,
+            dataIsArray: Array.isArray(securityData),
+            hasValidData:
+              securityData &&
+              securityData.length > 0 &&
+              securityData.some((item) => item.value > 0),
+          });
+        }
+        if (!securityData || !Array.isArray(securityData) || securityData.length === 0) {
+          if (DEBUG_ANALYTICS) {
+            console.info('Security data empty, null, or not array:', securityData);
+          }
+          return renderEmptyState();
+        }
+        // Filter out any items with invalid values
+        const validSecurityData = securityData.filter(
+          (item) => item && typeof item.value === 'number' && !isNaN(item.value) && item.value > 0
+        );
+        if (validSecurityData.length === 0) {
+          if (DEBUG_ANALYTICS) {
+            console.info('No valid security data after filtering:', securityData);
+          }
+          return renderEmptyState();
+        }
         return (
-          <ResponsiveContainer width="100%" height="100%" key={`security-${securityData.length}`}>
-            <PieChart>
-              <Pie
-                data={securityData}
-                cx="50%"
-                cy="50%"
-                innerRadius="50%"
-                outerRadius="70%"
-                paddingAngle={2}
-                dataKey="value"
-                animationDuration={300}
-              >
-                {securityData.map((entry, idx) => (
-                  <Cell key={`sec-cell-${idx}-${entry.name}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }}
-                formatter={(value, name, props) => {
-                  const total = securityData.reduce((sum, item) => sum + item.value, 0);
-                  const percent = ((value / total) * 100).toFixed(1);
-                  return [`${value.toLocaleString()} (${percent}%)`, name];
-                }}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: '10px' }}
-                iconType="circle"
-                formatter={(value) => (
-                  <span style={{ color: '#cbd5e1', fontSize: '11px' }}>{value}</span>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <div style={{ height: height, width: '100%' }}>
+            <ResponsiveContainer
+              width="100%"
+              height={height}
+              key={`security-${validSecurityData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
+            >
+              <PieChart>
+                <Pie
+                  data={validSecurityData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="50%"
+                  outerRadius="70%"
+                  paddingAngle={2}
+                  dataKey="value"
+                  animationDuration={300}
+                >
+                  {validSecurityData.map((entry, idx) => (
+                    <Cell key={`sec-cell-${idx}-${entry.name}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }}
+                  formatter={(value, name, props) => {
+                    const total = validSecurityData.reduce((sum, item) => sum + item.value, 0);
+                    const percent = ((value / total) * 100).toFixed(1);
+                    return [`${value.toLocaleString()} (${percent}%)`, name];
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '10px' }}
+                  iconType="circle"
+                  formatter={(value) => (
+                    <span style={{ color: '#cbd5e1', fontSize: '11px' }}>{value}</span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         );
       case 'temporal': {
         if (temporalData.length === 0) return renderEmptyState();
