@@ -30,6 +30,7 @@ clearPostgresEnv();
     const { createErrorHandler, notFoundHandler } = require('./src/errors/errorHandler');
     const { mountDemoRoutes, mountApiRoutes } = require('./src/utils/routeMounts');
     const { getServerConfig } = require('./src/utils/serverConfig');
+    const { startServer } = require('./src/utils/serverStartup');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -154,10 +155,11 @@ clearPostgresEnv();
     // ============================================================================
     // 12. SERVER STARTUP
     // ============================================================================
-    app.listen(port, host, () => {
-      logger.info(`Server listening on port ${port}`);
-      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`HTTPS redirect: ${forceHttps ? 'enabled' : 'disabled'}`);
+    startServer(app, {
+      port,
+      host,
+      forceHttps,
+      logger,
     });
 
     // Graceful shutdown
