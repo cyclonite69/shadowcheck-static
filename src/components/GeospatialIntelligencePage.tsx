@@ -3,6 +3,7 @@ import { logError } from '../logging/clientLogger';
 import NetworksExplorer from './NetworksExplorer';
 import ThreatsExplorer from './ThreatsExplorer';
 import { FilterPanel } from './FilterPanel';
+import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
@@ -89,6 +90,7 @@ export default function GeospatialIntelligencePage() {
   const [networksError, setNetworksError] = useState('');
   const [error, setError] = useState('');
   const [selectedBssid, setSelectedBssid] = useState<string | null>(null);
+  const [timeFreqModal, setTimeFreqModal] = useState<{ bssid: string; ssid: string } | null>(null);
   const [sortField, setSortField] = useState<'observed_at' | 'signal' | 'observations'>(
     'observed_at'
   );
@@ -191,6 +193,10 @@ export default function GeospatialIntelligencePage() {
     if (!selected?.device_id) return null;
     return routes.find((r) => r.device_id === selected.device_id) || null;
   }, [networks, routes, selectedBssid]);
+  const selectedNetwork = useMemo(
+    () => networks.find((n) => n.bssid === selectedBssid) || null,
+    [networks, selectedBssid]
+  );
   const threatish = useMemo(() => networks.filter((n) => (n.signal ?? -999) > -60), [networks]);
 
   return (
@@ -217,6 +223,25 @@ export default function GeospatialIntelligencePage() {
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <div className="xl:col-span-2">
+              <div className="flex items-center justify-end gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedNetwork) return;
+                    setTimeFreqModal({
+                      bssid: selectedNetwork.bssid,
+                      ssid: String(selectedNetwork.ssid || ''),
+                    });
+                  }}
+                  disabled={!selectedNetwork}
+                  className="inline-flex items-center gap-2 rounded-md border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 shadow-sm transition hover:bg-slate-700/80 disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Open time-frequency modal"
+                  title={selectedNetwork ? 'Open time-frequency grid' : 'Select a network first'}
+                >
+                  <span aria-hidden="true">📡</span>
+                  Time-Freq
+                </button>
+              </div>
               <NetworksExplorer
                 networks={networks}
                 loading={networksLoading}
@@ -344,6 +369,14 @@ export default function GeospatialIntelligencePage() {
           </div>
         </div>
       </div>
+
+      {timeFreqModal && (
+        <NetworkTimeFrequencyModal
+          bssid={timeFreqModal.bssid}
+          ssid={timeFreqModal.ssid}
+          onClose={() => setTimeFreqModal(null)}
+        />
+      )}
     </div>
   );
 }
