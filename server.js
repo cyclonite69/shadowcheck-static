@@ -29,6 +29,7 @@ clearPostgresEnv();
     const { startServer } = require('./src/utils/serverStartup');
     const { initializeMiddleware } = require('./src/utils/middlewareInit');
     const { initializeDatabaseConnection } = require('./src/utils/databaseSetup');
+    const { mountStaticAssets, registerSpaFallback } = require('./src/utils/staticSetup');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -80,8 +81,8 @@ clearPostgresEnv();
     // ============================================================================
     // 9. STATIC FILES
     // ============================================================================
-    const { mountStaticAssets } = require('./src/middleware/staticAssets');
-    mountStaticAssets(app, path.join(__dirname, 'dist'));
+    const distPath = path.join(__dirname, 'dist');
+    mountStaticAssets(app, distPath);
 
     // ============================================================================
     // 10. ROUTE MOUNTING
@@ -127,8 +128,7 @@ clearPostgresEnv();
     // 10. SPA FALLBACK (React Router support)
     // ============================================================================
     // Serve index.html for all non-API routes (must be after API routes)
-    const { createSpaFallback } = require('./src/middleware/spaFallback');
-    app.get('*', createSpaFallback(path.join(__dirname, 'dist')));
+    registerSpaFallback(app, distPath);
 
     // ============================================================================
     // 11. ERROR HANDLING

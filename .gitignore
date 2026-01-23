@@ -148,6 +148,8 @@ junit.xml
 # Test files in root (should be in tests/)
 /test-*.js
 /test_*.sh
+/debug_pie_chart.js
+/test_pie_charts.sh
 
 # ============================================================================
 # Temporary & Generated Files
