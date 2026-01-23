@@ -154,18 +154,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
   const controlSize = isCompact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm';
   const controlClass = `${controlBase} ${controlSize}`;
 
+  const panelWidthClass = isCompact ? 'w-full sm:w-72' : 'w-full sm:w-80';
+
   return (
     <div
-      className={`filter-panel w-80 bg-slate-900 border-r border-slate-700 flex flex-col h-full flex-shrink-0 ${
+      className={`filter-panel ${panelWidthClass} bg-slate-950/90 border-r border-slate-600/60 text-slate-200 flex flex-col h-full flex-shrink-0 ${
         isCompact ? 'filter-panel--compact' : ''
       }`}
-      style={{
-        width: isCompact ? 280 : 320,
-        minWidth: isCompact ? 280 : 320,
-        background: 'rgba(15, 23, 42, 0.92)',
-        borderRight: '1px solid rgba(71, 85, 105, 0.6)',
-        color: '#e2e8f0',
-      }}
     >
       {/* Header */}
       <div
