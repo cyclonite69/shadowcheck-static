@@ -15,10 +15,8 @@ clearPostgresEnv();
     // ============================================================================
     // 2. SECRETS MANAGEMENT
     // ============================================================================
-    const { validateSecrets } = require('./src/utils/validateSecrets');
-    const secretsManager = require('./src/services/secretsManager');
-
-    await validateSecrets();
+    const { initializeCredentials } = require('./src/utils/credentialsInit');
+    const secretsManager = await initializeCredentials();
 
     // ============================================================================
     // 3. UTILITIES & ERROR HANDLING
