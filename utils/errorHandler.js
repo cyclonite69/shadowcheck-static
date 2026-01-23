@@ -1,4 +1,10 @@
-// centralized error handler
+/**
+ * Centralized Express error handler.
+ * @param {Error} err - Error thrown by route or middleware
+ * @param {import('express').Request} req - Express request
+ * @param {import('express').Response} res - Express response
+ * @param {import('express').NextFunction} next - Express next
+ */
 const errorHandler = (err, req, res, next) => {
   const requestId = req.requestId || 'unknown';
 
