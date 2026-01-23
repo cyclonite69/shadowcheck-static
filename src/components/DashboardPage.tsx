@@ -436,50 +436,31 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="relative w-full h-screen overflow-hidden flex"
-      style={{
-        background:
-          'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
-      }}
+      className="relative flex h-screen w-full overflow-hidden bg-dashboard"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
       {/* Filter Panel */}
       {showFilters && (
-        <div
-          className="fixed top-20 right-4 max-w-md space-y-2"
-          style={{
-            maxHeight: 'calc(100vh - 100px)',
-            overflowY: 'auto',
-            zIndex: 100000,
-            pointerEvents: 'auto',
-          }}
-        >
+        <div className="fixed top-20 right-4 max-h-[calc(100vh-100px)] max-w-md space-y-2 overflow-y-auto z-modal pointer-events-auto">
           <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
           <FilterPanel density="compact" />
         </div>
       )}
 
       {/* Filter Icon Button - Only visible on hover in upper left */}
-      <div
-        className="fixed top-0 left-0 w-16 h-16 group"
-        style={{
-          zIndex: 100000,
-          pointerEvents: 'auto',
-        }}
-      >
+      <div className="fixed top-0 left-0 w-16 h-16 group z-modal pointer-events-auto">
         <button
           type="button"
           aria-label={showFilters ? 'Hide filters' : 'Show filters'}
           title={showFilters ? 'Hide filters' : 'Show filters'}
           onClick={() => setShowFilters(!showFilters)}
-          className="absolute top-4 left-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
-          style={{
-            background: showFilters
-              ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-              : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-          }}
+          className={`absolute top-4 left-4 flex h-12 w-12 items-center justify-center rounded-lg shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110 ${
+            showFilters
+              ? 'bg-gradient-to-br from-red-500 to-red-600'
+              : 'bg-gradient-to-br from-blue-500 to-blue-600'
+          }`}
         >
           <svg
             viewBox="0 0 24 24"
@@ -496,35 +477,34 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh', paddingTop: 0 }}>
+      <div className="relative flex-1 overflow-y-auto h-screen pt-0">
         {/* Cards */}
-        <div style={{ minHeight: '2400px', position: 'relative', paddingTop: 0 }}>
+        <div className="relative min-h-[2400px] pt-0">
           {cards.map((card) => {
             const Icon = card.icon;
             const width = `${card.w}%`;
             const left = `${card.x}%`;
+            const isActive = dragging === card.id || resizing === card.id;
 
             return (
               <div
                 key={card.id}
                 style={{
-                  position: 'absolute',
                   left: left,
                   top: `${card.y}px`,
                   width: width,
                   height: `${card.h}px`,
-                  transition:
-                    dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
-                  cursor: dragging === card.id ? 'grabbing' : 'grab',
-                  userSelect: dragging || resizing ? 'none' : 'auto',
+                  ...(isActive ? { transition: 'none' } : {}),
                 }}
                 onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-                className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
+                className={`absolute overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow duration-200 group backdrop-blur-sm outline outline-1 outline-slate-900/60 ${
+                  isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
+                }`}
               >
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+                <div className="flex items-center justify-between p-4 bg-slate-900/90 border-b border-slate-800/80">
                   <div className="flex items-center gap-2">
                     <Icon size={18} className="text-blue-400" />
                     <h3 className="text-sm font-semibold text-white">{card.title}</h3>
@@ -539,7 +519,7 @@ export default function DashboardPage() {
                 <div
                   className={`p-2 overflow-hidden flex flex-col items-center justify-center text-center ${
                     card.type === 'analytics-link'
-                      ? 'cursor-pointer hover:bg-[#132744]/50 transition-colors'
+                      ? 'cursor-pointer hover:bg-slate-900/50 transition-colors'
                       : ''
                   }`}
                   style={{ height: `${card.h - 40}px` }}
@@ -557,11 +537,8 @@ export default function DashboardPage() {
                   {/* Primary Metric - Unique Networks */}
                   <div className="mb-1">
                     <p
-                      className="font-extrabold drop-shadow-2xl tracking-tight leading-none"
-                      style={{
-                        fontSize: '32px',
-                        color: card.color,
-                      }}
+                      className="text-[32px] font-extrabold drop-shadow-2xl tracking-tight leading-none"
+                      style={{ color: card.color }}
                     >
                       {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
                     </p>
@@ -601,12 +578,7 @@ export default function DashboardPage() {
                     e.preventDefault();
                     handleMouseDown(e, card.id, 'resize');
                   }}
-                  className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.35) 50%)',
-                    borderRadius: '0 0 10px 0',
-                  }}
+                  className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20 rounded-br-[10px] bg-[linear-gradient(135deg,transparent_50%,rgba(255,255,255,0.35)_50%)]"
                 />
               </div>
             );
