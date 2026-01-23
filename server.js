@@ -73,12 +73,8 @@ delete process.env.PGUSER;
 
     // HTTPS redirect (if enabled)
     if (FORCE_HTTPS) {
-      app.use((req, res, next) => {
-        if (req.headers['x-forwarded-proto'] !== 'https' && req.hostname !== 'localhost') {
-          return res.redirect(301, `https://${req.hostname}${req.url}`);
-        }
-        next();
-      });
+      const { createHttpsRedirect } = require('./src/middleware/httpsRedirect');
+      app.use(createHttpsRedirect());
     }
 
     app.use(createSecurityHeaders(FORCE_HTTPS));
