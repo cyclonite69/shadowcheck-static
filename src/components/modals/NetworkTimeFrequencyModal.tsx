@@ -15,7 +15,7 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
   const [hoveredCell, setHoveredCell] = useState<{
     ch: number;
     time: number;
-    data: { type: string; color: string; power: number; signal: number; freq: number } | null;
+    data: { type: string; power: number; signal: number; freq: number } | null;
   } | null>(null);
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
 
@@ -74,7 +74,6 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
 
       grid[chIdx][timeIdx] = {
         type: deviceType.includes('WiFi') ? 'WIFI' : 'BLE',
-        color: deviceType.includes('WiFi') ? '#3b82f6' : '#10b981',
         power: Math.max(0.3, Math.min(1, signalStrength)),
         signal: -30 - Math.random() * 70,
         freq: deviceType === 'WiFi-5GHz' ? 5000 + Math.random() * 1000 : 2400 + Math.random() * 100,
@@ -197,6 +196,11 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
                   {grid.map((row, chIdx) =>
                     row.map((cell, timeIdx) => {
                       const isHovered = hoveredCell?.ch === chIdx && hoveredCell?.time === timeIdx;
+                      const cellFillClass = cell
+                        ? cell.type === 'WIFI'
+                          ? 'fill-blue-500'
+                          : 'fill-emerald-500'
+                        : 'fill-slate-800';
                       return (
                         <g key={`${chIdx}-${timeIdx}`}>
                           <rect
@@ -204,15 +208,12 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
                             y={chIdx * cellSize}
                             width={cellSize}
                             height={cellSize}
-                            fill={cell ? cell.color : '#1e293b'}
-                            stroke="#0f172a"
-                            strokeWidth="0.5"
+                            className={`${cellFillClass} stroke-slate-950 stroke-[0.5] cursor-pointer transition-opacity`}
                             opacity={cell ? cell.power : 0.3}
                             onMouseEnter={() =>
                               setHoveredCell({ ch: chIdx, time: timeIdx, data: cell })
                             }
                             onMouseLeave={() => setHoveredCell(null)}
-                            className="cursor-pointer"
                           />
                           {isHovered && (
                             <rect
@@ -221,8 +222,7 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
                               width={cellSize}
                               height={cellSize}
                               fill="none"
-                              stroke="#ffffff"
-                              strokeWidth="2"
+                              className="stroke-white stroke-[2]"
                             />
                           )}
                         </g>
@@ -258,8 +258,8 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
                   <span className="text-slate-400">Type:</span> {hoveredCell.data.type}
                 </div>
                 <div>
-                  <span className="text-slate-400">Signal:</span> {hoveredCell.data.signal.toFixed(1)}{' '}
-                  dBm
+                  <span className="text-slate-400">Signal:</span>{' '}
+                  {hoveredCell.data.signal.toFixed(1)} dBm
                 </div>
                 <div>
                   <span className="text-slate-400">Frequency:</span>{' '}

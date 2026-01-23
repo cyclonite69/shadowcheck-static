@@ -495,6 +495,13 @@ class UniversalFilterQueryBuilder {
     }
 
     if (e.timeframe && f.timeframe) {
+      const normalizeTimestamp = (value) => {
+        if (!value || value === 'null' || value === 'undefined') {
+          return null;
+        }
+        const parsed = Date.parse(value);
+        return Number.isNaN(parsed) ? null : value;
+      };
       const scope = f.temporalScope || 'observation_time';
       if (scope === 'network_lifetime') {
         this.obsJoins.add('JOIN public.access_points ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
@@ -505,20 +512,22 @@ class UniversalFilterQueryBuilder {
         );
       }
       if (f.timeframe.type === 'absolute') {
-        if (f.timeframe.startTimestamp) {
-          const target = scope === 'network_lifetime' ? 'ap.first_seen' : 'o.time';
-          where.push(`${target} >= ${this.addParam(f.timeframe.startTimestamp)}`);
-        }
-        if (f.timeframe.endTimestamp) {
-          const target = scope === 'network_lifetime' ? 'ap.last_seen' : 'o.time';
-          where.push(`${target} <= ${this.addParam(f.timeframe.endTimestamp)}`);
-        }
+        const startTarget = scope === 'network_lifetime' ? 'ap.first_seen' : 'o.time';
+        const endTarget = scope === 'network_lifetime' ? 'ap.last_seen' : 'o.time';
+        const startValue = normalizeTimestamp(f.timeframe.startTimestamp);
+        const endValue = normalizeTimestamp(f.timeframe.endTimestamp);
+        const startParam = this.addParam(startValue);
+        const endParam = this.addParam(endValue);
+
+        where.push(`(${startParam}::timestamptz IS NULL OR ${startTarget} >= ${startParam})`);
+        where.push(`(${endParam}::timestamptz IS NULL OR ${endTarget} <= ${endParam})`);
       } else {
         const window = RELATIVE_WINDOWS[f.timeframe.relativeWindow || '30d'];
-        if (window) {
-          const target = scope === 'network_lifetime' ? 'ap.last_seen' : 'o.time';
-          where.push(`${target} >= NOW() - ${this.addParam(window)}::interval`);
-        }
+        const target = scope === 'network_lifetime' ? 'ap.last_seen' : 'o.time';
+        const windowParam = this.addParam(window || null);
+        where.push(
+          `(${windowParam}::interval IS NULL OR ${target} >= NOW() - ${windowParam}::interval)`
+        );
       }
       this.addApplied('temporal', 'timeframe', f.timeframe);
       this.addApplied('temporal', 'temporalScope', f.temporalScope || 'observation_time');
