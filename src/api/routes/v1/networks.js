@@ -14,6 +14,8 @@ const {
   validateConfidence,
   validateEnum,
   validateIntegerRange,
+  validateMACAddress,
+  validateNetworkIdentifier,
   validateNumberRange,
   validateString,
 } = require('../../../validation/schemas');
@@ -446,6 +448,16 @@ router.get('/networks', async (req, res, next) => {
       }
     }
 
+    const wifiTypes = new Set(['W', 'B', 'E']);
+    const cellularTypes = new Set(['G', 'C', 'D', 'L', 'N', 'F']);
+    const isWifiOnly =
+      Array.isArray(radioTypes) &&
+      radioTypes.length > 0 &&
+      radioTypes.every((type) => wifiTypes.has(type));
+    const hasCellular =
+      Array.isArray(radioTypes) && radioTypes.some((type) => cellularTypes.has(type));
+    const requireMacForBssid = isWifiOnly && !hasCellular;
+
     let encryptionTypes = null;
     if (encryptionTypesRaw !== undefined) {
       const values = parseCommaList(encryptionTypesRaw, 50);
@@ -691,11 +703,17 @@ router.get('/networks', async (req, res, next) => {
       whereClauses.push(`lower(ne.ssid) LIKE $${params.length} ESCAPE '\\'`);
     }
     if (bssidRaw !== undefined && String(bssidRaw).trim() !== '') {
-      const validation = validateString(String(bssidRaw), 1, 64, 'bssid');
+      const validator = requireMacForBssid ? validateMACAddress : validateNetworkIdentifier;
+      const validation = validator(String(bssidRaw));
       if (!validation.valid) {
-        return res.status(400).json({ error: 'Invalid bssid parameter.' });
+        return res.status(400).json({
+          error: requireMacForBssid
+            ? 'Invalid bssid parameter. Expected MAC address.'
+            : 'Invalid bssid parameter.',
+        });
       }
-      const raw = String(bssidRaw).trim().toUpperCase();
+
+      const raw = validation.cleaned;
       const cleaned = raw.replace(/[^0-9A-F]/g, '');
       if (raw.length === 17 && raw.includes(':')) {
         params.push(raw);
@@ -1226,7 +1244,7 @@ router.delete('/tag-network/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const bssidValidation = validateBSSID(bssid);
+    const bssidValidation = validateMACAddress(bssid);
     if (!bssidValidation.valid) {
       return res.status(400).json({ error: bssidValidation.error });
     }
