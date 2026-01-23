@@ -10,6 +10,7 @@ import { logError, logDebug } from '../logging/clientLogger';
 import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { MapToolbar } from './geospatial/MapToolbar';
+import { MapViewport } from './geospatial/MapViewport';
 
 // Types
 import type {
@@ -1913,45 +1914,13 @@ export default function GeospatialExplorer() {
               />
             </div>
 
-            <div className="relative" style={{ height: 'calc(100% - 49px)' }}>
-              {!mapReady && !mapError && (
-                <div
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ color: '#cbd5e1', background: 'rgba(30, 41, 59, 0.8)' }}
-                >
-                  Loading map...
-                </div>
-              )}
-              {mapError && (
-                <div
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ color: '#f87171', background: 'rgba(30, 41, 59, 0.8)' }}
-                >
-                  {mapError}
-                </div>
-              )}
-
-              {/* Embedded Google Street View */}
-              {embeddedView === 'street-view' && mapRef.current && (
-                <iframe
-                  src={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mapRef.current.getCenter().lat},${mapRef.current.getCenter().lng}`}
-                  className="w-full h-full"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              )}
-
-              <div
-                ref={mapContainerRef}
-                className="w-full h-full"
-                style={{
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  display: embeddedView ? 'none' : 'block',
-                }}
-              />
-            </div>
+            <MapViewport
+              mapReady={mapReady}
+              mapError={mapError}
+              embeddedView={embeddedView}
+              mapRef={mapRef}
+              mapContainerRef={mapContainerRef}
+            />
           </div>
 
           {/* Resize Handle */}
