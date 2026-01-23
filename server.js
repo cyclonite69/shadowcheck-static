@@ -13,9 +13,8 @@ delete process.env.PGUSER;
     const logger = require('./src/logging/logger');
     const express = require('express');
     const path = require('path');
-    const cors = require('cors');
-    const compression = require('compression');
-    const rateLimit = require('express-rate-limit');
+    const { createSecurityHeaders } = require('./src/middleware/securityHeaders');
+    const { mountCommonMiddleware } = require('./src/middleware/commonMiddleware');
 
     logger.info('Starting server...');
 
@@ -82,63 +81,14 @@ delete process.env.PGUSER;
       });
     }
 
-    // Security headers
-    app.use((req, res, next) => {
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('X-Frame-Options', 'DENY');
-      res.setHeader('X-XSS-Protection', '1; mode=block');
-      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-      if (FORCE_HTTPS) {
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-      }
-      res.setHeader(
-        'Content-Security-Policy',
-        "default-src 'self'; " +
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://api.mapbox.com; " +
-          "worker-src 'self' blob:; " +
-          "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://api.mapbox.com; " +
-          "font-src 'self' https://fonts.gstatic.com; " +
-          "img-src 'self' data: https:; " +
-          "connect-src 'self' https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://d1a3f4spazzrp4.cloudfront.net;"
-      );
-      next();
-    });
-
-    // Compression
-    app.use(compression());
+    app.use(createSecurityHeaders(FORCE_HTTPS));
 
     // CORS
     const allowedOrigins = process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
       : ['http://localhost:3001', 'http://127.0.0.1:3001'];
 
-    app.use(
-      cors({
-        origin: function (origin, callback) {
-          if (!origin) {
-            return callback(null, true);
-          }
-          if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
-            callback(null, true);
-          } else {
-            callback(new Error('Not allowed by CORS'));
-          }
-        },
-        credentials: true,
-      })
-    );
-
-    // Rate limiting
-    const apiLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 1000,
-      message: 'Too many requests from this IP, please try again after 15 minutes',
-    });
-    app.use('/api/', apiLimiter);
-
-    // Body parsing
-    app.use(express.json({ limit: '10mb' }));
-    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    mountCommonMiddleware(app, { allowedOrigins });
 
     // ============================================================================
     // 7. DATABASE SETUP
