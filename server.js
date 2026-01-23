@@ -91,12 +91,8 @@ delete process.env.PGUSER;
     // ============================================================================
     const { pool, query, testConnection } = require('./src/config/database');
 
-    pool.on('connect', (client) => {
-      logger.debug(`Pool connected: ${client.host}:${client.port}`);
-    });
-
-    // Fail fast if the database is unreachable or misconfigured
-    await testConnection();
+    const { initializeDatabase } = require('./src/utils/databaseInit');
+    await initializeDatabase({ pool, testConnection, logger });
 
     // ============================================================================
     // 8. DEMO ROUTES (before static files)
