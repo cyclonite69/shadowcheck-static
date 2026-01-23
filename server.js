@@ -24,12 +24,13 @@ clearPostgresEnv();
     // 3. UTILITIES & ERROR HANDLING
     // ============================================================================
     const { createErrorHandler, notFoundHandler } = require('./src/errors/errorHandler');
-    const { mountDemoRoutes, mountApiRoutes } = require('./src/utils/routeMounts');
+    const { mountDemoRoutes } = require('./src/utils/routeMounts');
     const { getServerConfig } = require('./src/utils/serverConfig');
     const { startServer } = require('./src/utils/serverStartup');
     const { initializeMiddleware } = require('./src/utils/middlewareInit');
     const { initializeDatabaseConnection } = require('./src/utils/databaseSetup');
     const { mountStaticAssets, registerSpaFallback } = require('./src/utils/staticSetup');
+    const { initializeRoutes } = require('./src/utils/routesInit');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -87,38 +88,32 @@ clearPostgresEnv();
     // ============================================================================
     // 10. ROUTE MOUNTING
     // ============================================================================
-
-    // Make secretsManager available to routes
-    app.locals.secretsManager = secretsManager;
-
-    // Initialize dashboard routes with dependencies
-    const { initializeDashboardRoutes } = require('./src/utils/dashboardInit');
-    initializeDashboardRoutes(dashboardRoutes);
-
-    mountApiRoutes(app, {
-      healthRoutes,
-      geospatialRoutes,
-      networksRoutes,
-      threatsRoutes,
-      wigleRoutes,
-      adminRoutes,
-      explorerRoutes,
-      mlRoutes,
-      analyticsRoutes,
-      dashboardRoutes,
-      networksV2Routes,
-      filteredRoutes,
-      locationMarkersRoutes,
-      homeLocationRoutes,
-      keplerRoutes,
-      backupRoutes,
-      exportRoutes,
-      settingsRoutes,
-      networkTagsRoutes,
+    initializeRoutes(app, {
+      routes: {
+        healthRoutes,
+        geospatialRoutes,
+        networksRoutes,
+        threatsRoutes,
+        wigleRoutes,
+        adminRoutes,
+        explorerRoutes,
+        mlRoutes,
+        analyticsRoutes,
+        dashboardRoutes,
+        networksV2Routes,
+        filteredRoutes,
+        locationMarkersRoutes,
+        homeLocationRoutes,
+        keplerRoutes,
+        backupRoutes,
+        exportRoutes,
+        settingsRoutes,
+        networkTagsRoutes,
+      },
       query,
+      secretsManager,
+      logger,
     });
-
-    logger.info('All routes mounted successfully');
 
     // Initialize background jobs
     const { initializeBackgroundJobs } = require('./src/utils/backgroundJobsInit');
