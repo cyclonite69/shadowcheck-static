@@ -2,9 +2,32 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const secretsManager = require('../../../services/secretsManager');
+const { validateString } = require('../../../validation/schemas');
 
+/**
+ * Normalizes API key input from headers or query params.
+ * @param {any} value - Raw API key value
+ * @returns {string|null} Normalized API key or null
+ */
+function normalizeApiKey(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const validation = validateString(String(value), 1, 256, 'api_key');
+  if (!validation.valid) {
+    return null;
+  }
+  return String(value).trim();
+}
+
+/**
+ * Requires API key authentication for backup routes.
+ * @param {object} req - Express request
+ * @param {object} res - Express response
+ * @param {function} next - Express next handler
+ */
 const requireAuth = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  const apiKey = normalizeApiKey(req.headers['x-api-key'] || req.query.api_key);
   const validKey = secretsManager.get('api_key');
   if (!validKey || !apiKey || apiKey !== validKey) {
     return res.status(401).json({ error: 'Unauthorized' });

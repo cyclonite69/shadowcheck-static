@@ -2,10 +2,65 @@ const express = require('express');
 const router = express.Router();
 const keyringService = require('../../../services/keyringService');
 const secretsManager = require('../../../services/secretsManager');
+const { validateString } = require('../../../validation/schemas');
 
 // Middleware to require authentication (reuse from server.js)
+/**
+ * Normalizes API key input from headers or query params.
+ * @param {any} value - Raw API key value
+ * @returns {string|null} Normalized API key or null
+ */
+function normalizeApiKey(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const validation = validateString(String(value), 1, 256, 'api_key');
+  if (!validation.valid) {
+    return null;
+  }
+  return String(value).trim();
+}
+
+/**
+ * Validates a mapbox token string.
+ * @param {any} value - Raw token input
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateMapboxToken(value) {
+  const validation = validateString(String(value || ''), 1, 256, 'token');
+  if (!validation.valid) {
+    return validation;
+  }
+
+  const token = String(value).trim();
+  if (!token.startsWith('pk.') && !token.startsWith('sk.')) {
+    return { valid: false, error: 'token must start with pk. or sk.' };
+  }
+
+  return { valid: true, value: token };
+}
+
+/**
+ * Validates a label string for stored tokens.
+ * @param {any} value - Raw label input
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateLabel(value) {
+  const validation = validateString(String(value || ''), 1, 64, 'label');
+  if (!validation.valid) {
+    return validation;
+  }
+  return { valid: true, value: String(value).trim() };
+}
+
+/**
+ * Requires API key authentication for settings routes.
+ * @param {object} req - Express request
+ * @param {object} res - Express response
+ * @param {function} next - Express next handler
+ */
 const requireAuth = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  const apiKey = normalizeApiKey(req.headers['x-api-key'] || req.query.api_key);
   const validKey = secretsManager.get('api_key');
 
   // If no API key is configured, allow access (development mode)
@@ -44,11 +99,17 @@ router.post('/settings/wigle', requireAuth, async (req, res) => {
   try {
     const { apiName, apiToken } = req.body;
 
-    if (!apiName || !apiToken) {
-      return res.status(400).json({ error: 'apiName and apiToken required' });
+    const apiNameValidation = validateString(String(apiName || ''), 1, 128, 'apiName');
+    if (!apiNameValidation.valid) {
+      return res.status(400).json({ error: apiNameValidation.error });
     }
 
-    await keyringService.setWigleCredentials(apiName, apiToken);
+    const apiTokenValidation = validateString(String(apiToken || ''), 1, 256, 'apiToken');
+    if (!apiTokenValidation.valid) {
+      return res.status(400).json({ error: apiTokenValidation.error });
+    }
+
+    await keyringService.setWigleCredentials(String(apiName).trim(), String(apiToken).trim());
 
     // Test credentials
     const testResult = await keyringService.testWigleCredentials();
@@ -97,13 +158,19 @@ router.post('/settings/mapbox', requireAuth, async (req, res) => {
   try {
     const { token, label = 'default' } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ error: 'token required' });
+    const tokenValidation = validateMapboxToken(token);
+    if (!tokenValidation.valid) {
+      return res.status(400).json({ error: tokenValidation.error });
     }
 
-    await keyringService.setMapboxToken(token, label);
+    const labelValidation = validateLabel(label);
+    if (!labelValidation.valid) {
+      return res.status(400).json({ error: labelValidation.error });
+    }
 
-    res.json({ success: true, label });
+    await keyringService.setMapboxToken(tokenValidation.value, labelValidation.value);
+
+    res.json({ success: true, label: labelValidation.value });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -113,10 +180,11 @@ router.post('/settings/mapbox', requireAuth, async (req, res) => {
 router.post('/settings/mapbox/primary', requireAuth, async (req, res) => {
   try {
     const { label } = req.body;
-    if (!label) {
-      return res.status(400).json({ error: 'label required' });
+    const labelValidation = validateLabel(label);
+    if (!labelValidation.valid) {
+      return res.status(400).json({ error: labelValidation.error });
     }
-    await keyringService.setPrimaryMapboxToken(label);
+    await keyringService.setPrimaryMapboxToken(labelValidation.value);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -126,7 +194,11 @@ router.post('/settings/mapbox/primary', requireAuth, async (req, res) => {
 // Delete Mapbox token
 router.delete('/settings/mapbox/:label', requireAuth, async (req, res) => {
   try {
-    await keyringService.deleteMapboxToken(req.params.label);
+    const labelValidation = validateLabel(req.params.label);
+    if (!labelValidation.valid) {
+      return res.status(400).json({ error: labelValidation.error });
+    }
+    await keyringService.deleteMapboxToken(labelValidation.value);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

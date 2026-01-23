@@ -4,6 +4,62 @@ const secretsManager = require('../../../services/secretsManager');
 const fetch = require('node-fetch');
 const { URL } = require('url');
 const logger = require('../../../logging/logger');
+const { validateQuery, optional } = require('../../../validation/middleware');
+const { validateString } = require('../../../validation/schemas');
+
+/**
+ * Validates and normalizes a Mapbox style identifier.
+ * @param {any} value - Raw style value
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateMapboxStyle(value) {
+  if (value === undefined || value === null || value === '') {
+    return { valid: false, error: 'style must be a non-empty string' };
+  }
+
+  const raw = String(value).trim();
+  if (!raw) {
+    return { valid: false, error: 'style must be a non-empty string' };
+  }
+
+  const normalized = raw.startsWith('mapbox://styles/') ? raw.replace('mapbox://styles/', '') : raw;
+
+  if (!/^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(normalized)) {
+    return { valid: false, error: 'style must be in owner/style format' };
+  }
+
+  return { valid: true, value: normalized };
+}
+
+/**
+ * Validates Mapbox proxy URL input.
+ * @param {any} value - Raw URL input
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateMapboxProxyUrl(value) {
+  const stringCheck = validateString(String(value || ''), 1, 2048, 'url');
+  if (!stringCheck.valid) {
+    return stringCheck;
+  }
+
+  return { valid: true, value: String(value).trim() };
+}
+
+/**
+ * Validates geospatial query parameters.
+ * @type {function}
+ */
+const validateMapboxStyleQuery = validateQuery({
+  style: optional(validateMapboxStyle),
+});
+
+/**
+ * Validates Mapbox proxy query parameters.
+ * @type {function}
+ */
+const validateMapboxProxyQuery = validateQuery({
+  url: validateMapboxProxyUrl,
+});
 
 // GET /api/mapbox-token - Get Mapbox API token
 router.get('/api/mapbox-token', (req, res) => {
@@ -28,7 +84,7 @@ router.get('/api/mapbox-token', (req, res) => {
 });
 
 // GET /api/mapbox-style - Proxy Mapbox style JSON to validate token/connectivity
-router.get('/api/mapbox-style', async (req, res) => {
+router.get('/api/mapbox-style', validateMapboxStyleQuery, async (req, res) => {
   try {
     const tokenRaw = secretsManager.get('mapbox_token');
     const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
@@ -38,11 +94,7 @@ router.get('/api/mapbox-style', async (req, res) => {
         .json({ error: 'Mapbox token not configured', message: 'MAPBOX_TOKEN is missing' });
     }
 
-    const styleIdRaw = req.query.style || 'mapbox/dark-v11';
-    // Accept full mapbox://styles/... or bare namespace; normalize to owner/style
-    const styleId = String(styleIdRaw).startsWith('mapbox://styles/')
-      ? String(styleIdRaw).replace('mapbox://styles/', '')
-      : String(styleIdRaw);
+    const styleId = req.validated?.style || 'mapbox/dark-v11';
     const url = `https://api.mapbox.com/styles/v1/${styleId}?access_token=${token}`;
 
     const resp = await fetch(url);
@@ -67,9 +119,9 @@ router.get('/api/mapbox-style', async (req, res) => {
 });
 
 // GET /api/mapbox-proxy?url=ENCODED - Proxy Mapbox requests to avoid client egress issues
-router.get('/api/mapbox-proxy', async (req, res) => {
+router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req, res) => {
   try {
-    const rawUrl = req.query.url;
+    const rawUrl = req.validated?.url;
     if (!rawUrl) {
       return res.status(400).json({ error: 'url query param is required' });
     }
