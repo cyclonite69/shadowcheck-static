@@ -31,6 +31,7 @@ clearPostgresEnv();
     const { initializeDatabaseConnection } = require('./src/utils/databaseSetup');
     const { mountStaticAssets, registerSpaFallback } = require('./src/utils/staticSetup');
     const { initializeRoutes } = require('./src/utils/routesInit');
+    const { initializeLifecycle } = require('./src/utils/serverLifecycle');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -115,9 +116,8 @@ clearPostgresEnv();
       logger,
     });
 
-    // Initialize background jobs
-    const { initializeBackgroundJobs } = require('./src/utils/backgroundJobsInit');
-    await initializeBackgroundJobs();
+    // Initialize background jobs and shutdown handlers
+    await initializeLifecycle({ logger, pool });
 
     // ============================================================================
     // 10. SPA FALLBACK (React Router support)
@@ -140,10 +140,6 @@ clearPostgresEnv();
       forceHttps,
       logger,
     });
-
-    // Graceful shutdown
-    const { registerShutdownHandlers } = require('./src/utils/shutdownHandlers');
-    registerShutdownHandlers({ logger, pool });
   } catch (err) {
     console.error(err); // PRINT STACK TRACE
     const logger = require('./src/logging/logger');
