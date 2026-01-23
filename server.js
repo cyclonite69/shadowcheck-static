@@ -150,7 +150,7 @@ delete process.env.PGUSER;
     // ============================================================================
     // 3. UTILITIES & ERROR HANDLING
     // ============================================================================
-    const errorHandler = require('./utils/errorHandler');
+    const { createErrorHandler, notFoundHandler } = require('./src/errors/errorHandler');
 
     // ============================================================================
     // 4. ROUTE MODULES
@@ -746,7 +746,8 @@ delete process.env.PGUSER;
     });
 
     // ============================================================================
-    app.use(errorHandler);
+    app.use(notFoundHandler);
+    app.use(createErrorHandler(logger));
 
     // ============================================================================
     // 12. SERVER STARTUP
