@@ -82,3 +82,13 @@ Security updates are prioritized and released as soon as possible. Users are enc
 ## Contact
 
 For security-related questions or concerns, please create an issue with the "SECURITY" label.
+
+# Known Security Issues
+
+## sqlite3 tar Dependency Vulnerability (Accepted Risk)
+
+- **Status**: Accepted
+- **Severity**: High (but build-time only)
+- **Rationale**: Vulnerability exists in node-gyp build dependency chain. Does not affect runtime security. Attack surface limited to npm install phase with malicious packages.
+- **Mitigation**: Package.json is version controlled; all dependencies are from trusted sources.
+- **Future**: Consider migration to better-sqlite3 for cleaner dependency tree.
