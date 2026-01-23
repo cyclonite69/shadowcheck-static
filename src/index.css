@@ -25,6 +25,9 @@
   --amber-400: #fbbf24;
   --blue-500-rgb: 59, 130, 246;
   --emerald-400-rgb: 52, 211, 153;
+  --dashboard-grad-1: #0a1525;
+  --dashboard-grad-2: #0d1c31;
+  --dashboard-grad-3: #0a1424;
 }
 
 /* Base layer customizations */
@@ -44,6 +47,19 @@
       radial-gradient(circle at 20% 20%, rgba(var(--emerald-400-rgb), 0.06), transparent 25%),
       radial-gradient(circle at 80% 0%, rgba(var(--blue-500-rgb), 0.06), transparent 20%),
       linear-gradient(135deg, var(--slate-950) 0%, var(--slate-900) 40%, var(--slate-950) 100%);
+  }
+
+  /* Dashboard background gradient */
+  .bg-dashboard {
+    background:
+      radial-gradient(circle at 20% 20%, rgba(var(--emerald-400-rgb), 0.06), transparent 25%),
+      radial-gradient(circle at 80% 0%, rgba(var(--blue-500-rgb), 0.06), transparent 20%),
+      linear-gradient(
+        135deg,
+        var(--dashboard-grad-1) 0%,
+        var(--dashboard-grad-2) 40%,
+        var(--dashboard-grad-3) 100%
+      );
   }
 
   /* Reusable text gradients */
