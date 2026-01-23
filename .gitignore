@@ -213,3 +213,5 @@ docker-compose.override.yml
 /analyze-*.sql
 /database-analysis.*
 /DATABASE_ANALYSIS_*.md
+secrets/*.txt
+data/logs/*.log
