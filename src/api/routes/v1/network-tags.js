@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const logger = require('../../../logging/logger');
-const { validateQuery, optional } = require('../../../validation/middleware');
+const { bssidParamMiddleware, validateQuery, optional } = require('../../../validation/middleware');
 const {
   validateBoolean,
   validateIntegerRange,
@@ -26,6 +26,9 @@ const validateNetworkTagsQuery = validateQuery({
   limit: optional((value) => validateIntegerRange(value, 1, 5000, 'limit')),
   offset: optional((value) => validateIntegerRange(value, 0, 10000000, 'offset')),
 });
+
+// Validate BSSID path parameters for tag routes
+router.use('/:bssid', bssidParamMiddleware);
 
 // Valid threat tag values
 const VALID_THREAT_TAGS = ['THREAT', 'SUSPECT', 'FALSE_POSITIVE', 'INVESTIGATE'];
