@@ -10,6 +10,21 @@
   color-scheme: dark;
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, monospace;
+  /* Tailwind-aligned palette tokens for custom gradients/text */
+  --slate-950: #0f172a;
+  --slate-900: #0f172a;
+  --slate-800: #1e293b;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --emerald-400: #34d399;
+  --emerald-500: #10b981;
+  --red-500: #ef4444;
+  --amber-400: #fbbf24;
+  --blue-500-rgb: 59, 130, 246;
+  --emerald-400-rgb: 52, 211, 153;
 }
 
 /* Base layer customizations */
@@ -23,60 +38,42 @@
 
 /* Component layer - custom components that don't conflict with Tailwind */
 @layer components {
-  .cyber-text {
-    font-family: var(--font-mono);
-    letter-spacing: 0.05em;
-    text-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+  /* ML training page background gradient */
+  .bg-ml-training {
+    background:
+      radial-gradient(circle at 20% 20%, rgba(var(--emerald-400-rgb), 0.06), transparent 25%),
+      radial-gradient(circle at 80% 0%, rgba(var(--blue-500-rgb), 0.06), transparent 20%),
+      linear-gradient(135deg, var(--slate-950) 0%, var(--slate-900) 40%, var(--slate-950) 100%);
   }
 
-  .premium-card {
-    position: relative;
-    background-color: rgba(51, 65, 85, 0.85);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 1.5rem;
-    transition: all 0.3s ease-out;
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.15),
-      0 1px 0 rgba(255, 255, 255, 0.1) inset,
-      0 2px 6px rgba(0, 0, 0, 0.1);
+  /* Reusable text gradients */
+  .text-gradient-slate {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      to right,
+      var(--slate-800),
+      var(--slate-500),
+      var(--slate-600),
+      var(--slate-800)
+    );
+    -webkit-text-fill-color: transparent;
   }
 
-  .premium-card:hover {
-    transform: translateY(-0.5rem) scale(1.05);
-    box-shadow:
-      0 20px 60px rgba(0, 0, 0, 0.15),
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 8px 16px rgba(0, 0, 0, 0.1);
+  .text-gradient-blue {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--blue-400) 0%, var(--blue-500) 100%);
+    -webkit-text-fill-color: transparent;
   }
 
-  .premium-card.selected {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
-    border: 2px solid #f59e0b;
-    box-shadow:
-      0 0 40px rgba(245, 158, 11, 0.3),
-      0 20px 60px rgba(0, 0, 0, 0.15),
-      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  .text-glow-strong {
+    text-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6);
+    filter:
+      drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9))
+      drop-shadow(0 0 30px rgba(100, 116, 139, 0.3));
   }
 
-  .icon-container {
-    position: relative;
-    width: 4rem;
-    height: 4rem;
-    border-radius: 1rem;
-    background-color: rgba(30, 41, 59, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    box-shadow:
-      0 4px 12px rgba(0, 0, 0, 0.15),
-      0 1px 0 rgba(255, 255, 255, 0.08) inset,
-      0 2px 4px rgba(0, 0, 0, 0.08);
-  }
-
-  .premium-card:hover .icon-container {
-    transform: scale(1.1) rotate(6deg);
+  .text-glow-soft {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
   }
 
   /* Admin-specific components */
@@ -113,8 +110,6 @@
 
   /* Filter panel compact mode */
   .filter-panel--compact {
-    width: 18rem;
-    min-width: 18rem;
   }
 
   .filter-panel--compact .filter-panel__header {
