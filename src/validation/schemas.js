@@ -5,35 +5,62 @@
  */
 
 /**
- * Validates BSSID (MAC address or tower identifier)
- * @param {string} bssid - The BSSID to validate
+ * Validates a strict MAC address (AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF).
+ * @param {string} bssid - The MAC address to validate
  * @returns {object} { valid: boolean, error?: string, cleaned?: string }
  */
-function validateBSSID(bssid) {
+function validateMACAddress(bssid) {
   if (!bssid || typeof bssid !== 'string') {
     return { valid: false, error: 'BSSID must be a non-empty string' };
   }
 
   const cleaned = bssid.trim().toUpperCase();
 
+  if (!/^([0-9A-F]{2}[:-]){5}[0-9A-F]{2}$/.test(cleaned)) {
+    return { valid: false, error: 'BSSID must be a valid MAC address (AA:BB:CC:DD:EE:FF)' };
+  }
+
+  return { valid: true, cleaned: cleaned.replace(/-/g, ':') };
+}
+
+/**
+ * Validates a network identifier (MAC address or cellular/tower identifier).
+ * @param {string} value - The identifier to validate
+ * @returns {object} { valid: boolean, error?: string, cleaned?: string }
+ */
+function validateNetworkIdentifier(value) {
+  if (!value || typeof value !== 'string') {
+    return { valid: false, error: 'BSSID must be a non-empty string' };
+  }
+
+  const cleaned = value.trim().toUpperCase();
+
   if (cleaned.length > 64) {
     return { valid: false, error: 'BSSID exceeds maximum length (64 chars)' };
   }
 
-  // Valid MAC address format: AA:BB:CC:DD:EE:FF
-  if (/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/.test(cleaned)) {
-    return { valid: true, cleaned };
+  const macValidation = validateMACAddress(cleaned);
+  if (macValidation.valid) {
+    return macValidation;
   }
 
-  // Valid alphanumeric tower ID (up to 32 chars)
-  if (/^[A-Z0-9_-]{1,32}$/.test(cleaned)) {
+  if (/^[A-Z0-9:_-]+$/.test(cleaned)) {
     return { valid: true, cleaned };
   }
 
   return {
     valid: false,
-    error: 'BSSID must be MAC address (AA:BB:CC:DD:EE:FF) or alphanumeric identifier',
+    error: 'BSSID must be a MAC address or alphanumeric identifier',
   };
+}
+
+/**
+ * Validates BSSID (MAC address or tower identifier).
+ * @param {string} bssid - The BSSID to validate
+ * @returns {object} { valid: boolean, error?: string, cleaned?: string }
+ */
+function validateBSSID(bssid) {
+  return validateNetworkIdentifier(bssid);
 }
 
 /**
@@ -382,7 +409,7 @@ function validateBSSIDList(value, maxItems = 1000) {
 
   const cleaned = [];
   for (const item of items) {
-    const validation = validateBSSID(item);
+    const validation = validateNetworkIdentifier(item);
     if (!validation.valid) {
       return { valid: false, error: `Invalid BSSID: ${item}. ${validation.error}` };
     }
@@ -453,6 +480,8 @@ function combineValidations(...results) {
 
 module.exports = {
   validateBSSID,
+  validateMACAddress,
+  validateNetworkIdentifier,
   validatePagination,
   validateCoordinates,
   validateTagType,

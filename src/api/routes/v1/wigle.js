@@ -8,7 +8,7 @@ const router = express.Router();
 const { query } = require('../../../config/database');
 const secretsManager = require('../../../services/secretsManager');
 const logger = require('../../../logging/logger');
-const { bssidParamMiddleware, validateQuery, optional } = require('../../../validation/middleware');
+const { macParamMiddleware, validateQuery, optional } = require('../../../validation/middleware');
 const { validateIntegerRange, validateString } = require('../../../validation/schemas');
 
 /**
@@ -53,7 +53,7 @@ const validateWigleNetworksQuery = validateQuery({
 });
 
 // GET /api/wigle/live/:bssid - Query live WiGLE API for network
-router.get('/wigle/live/:bssid', bssidParamMiddleware, async (req, res, next) => {
+router.get('/wigle/live/:bssid', macParamMiddleware, async (req, res, next) => {
   try {
     const { bssid } = req.params;
     const wigleApiName = secretsManager.get('wigle_api_name');
@@ -104,7 +104,7 @@ router.get('/wigle/live/:bssid', bssidParamMiddleware, async (req, res, next) =>
 });
 
 // GET /api/wigle/network/:bssid - Get WiGLE data for a specific network (local DB)
-router.get('/wigle/network/:bssid', bssidParamMiddleware, async (req, res, next) => {
+router.get('/wigle/network/:bssid', macParamMiddleware, async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
