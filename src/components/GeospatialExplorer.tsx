@@ -4,414 +4,86 @@ import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
+import { useNetworkData } from '../hooks/useNetworkData';
+import { useObservations } from '../hooks/useObservations';
 import { logError, logDebug } from '../logging/clientLogger';
 import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 
-type ThreatInfo = {
-  score: number;
-  level: 'NONE' | 'LOW' | 'MED' | 'HIGH';
-  summary: string;
-  flags?: string[];
-  signals?: Array<{
-    code: string;
-    weight: number;
-    evidence: any;
-  }>;
-};
+// Types
+import type {
+  ThreatInfo,
+  ThreatEvidence,
+  NetworkTag,
+  NetworkRow,
+  Observation,
+  ContextMenuState,
+  SortState,
+} from '../types/network';
 
-type ThreatEvidence = {
-  rule: string;
-  observedValue: number | string | null;
-  threshold: number | string | null;
-};
+// Constants
+import {
+  NETWORK_COLUMNS,
+  API_SORT_MAP,
+  NETWORK_PAGE_LIMIT,
+  DEFAULT_CENTER,
+  DEFAULT_ZOOM,
+  DEFAULT_HOME_RADIUS,
+  NETWORK_COLORS,
+  MAP_STYLES,
+} from '../constants/network';
 
-type NetworkTag = {
-  bssid: string;
-  is_ignored: boolean;
-  ignore_reason: string | null;
-  threat_tag: 'THREAT' | 'SUSPECT' | 'FALSE_POSITIVE' | 'INVESTIGATE' | null;
-  notes: string | null;
-  exists: boolean;
-};
+// Utils
+import {
+  createCirclePolygon,
+  calculateSignalRange,
+  macColor,
+  createGoogleStyle,
+} from '../utils/mapHelpers';
 
-type ContextMenuState = {
-  visible: boolean;
-  x: number;
-  y: number;
-  network: NetworkRow | null;
-  tag: NetworkTag | null;
-};
-
-type NetworkRow = {
-  bssid: string;
-  ssid: string;
-  type: 'W' | 'E' | 'B' | 'G' | 'C' | 'D' | 'L' | 'N' | 'F' | '?' | null;
-  signal: number | null;
-  security: string | null;
-  frequency: number | null;
-  channel?: number | null;
-  observations: number;
-  latitude: number | null;
-  longitude: number | null;
-  rawLatitude?: number | null;
-  rawLongitude?: number | null;
-  distanceFromHome?: number | null;
-  accuracy?: number | null;
-  firstSeen?: string | null; // Add first seen
-  lastSeen: string | null;
-  timespanDays?: number | null; // Add timespan calculation
-  threat?: ThreatInfo | null;
-  threat_score?: number | null; // Separate threat score field (0-100)
-  threat_level?: string | null; // Separate threat level field
-  threatReasons?: string[];
-  threatEvidence?: ThreatEvidence[];
-  stationaryConfidence?: number | null;
-  // Enrichment fields (networks-v2 API)
-  manufacturer?: string | null;
-  min_altitude_m?: number | null;
-  max_altitude_m?: number | null;
-  altitude_span_m?: number | null;
-  max_distance_meters?: number | null;
-  last_altitude_m?: number | null;
-  is_sentinel?: boolean | null;
-};
-
-type Observation = {
-  id: string | number;
-  bssid: string;
-  lat: number;
-  lon: number;
-  signal?: number | null;
-  time?: string;
-  frequency?: number | null;
-  altitude?: number | null;
-  acc?: number | null;
-  distance_from_home_km?: number | null;
-};
-
-const NETWORK_COLUMNS: Record<
-  keyof NetworkRow | 'select',
-  { label: string; width: number; sortable: boolean; default: boolean }
-> = {
-  select: { label: '✓', width: 40, sortable: false, default: true },
-  type: { label: 'Type', width: 60, sortable: true, default: true },
-  ssid: { label: 'SSID', width: 150, sortable: true, default: true },
-  bssid: { label: 'BSSID', width: 140, sortable: true, default: true },
-  threat: { label: 'Threat', width: 75, sortable: true, default: true },
-  threat_score: { label: 'Threat Score', width: 100, sortable: true, default: false },
-  signal: { label: 'Signal (dBm)', width: 100, sortable: true, default: true },
-  security: { label: 'Security', width: 80, sortable: true, default: true },
-  frequency: { label: 'Frequency', width: 90, sortable: true, default: false },
-  channel: { label: 'Channel', width: 70, sortable: true, default: false },
-  observations: { label: 'Observations', width: 100, sortable: true, default: true },
-  latitude: { label: 'Latitude', width: 100, sortable: true, default: false },
-  longitude: { label: 'Longitude', width: 100, sortable: true, default: false },
-  rawLatitude: { label: 'Raw Lat', width: 100, sortable: false, default: false },
-  rawLongitude: { label: 'Raw Lon', width: 100, sortable: false, default: false },
-  distanceFromHome: { label: 'Distance (km)', width: 100, sortable: true, default: true },
-  accuracy: { label: 'Accuracy (m)', width: 90, sortable: true, default: false },
-  stationaryConfidence: { label: 'Stationary Conf.', width: 110, sortable: true, default: false },
-  firstSeen: { label: 'First Seen', width: 160, sortable: true, default: false },
-  lastSeen: { label: 'Last Seen', width: 160, sortable: true, default: true },
-  timespanDays: { label: 'Timespan (days)', width: 120, sortable: true, default: false },
-  // Enrichment columns (networks-v2 API) - hidden by default
-  manufacturer: { label: 'Manufacturer', width: 150, sortable: true, default: false },
-  min_altitude_m: { label: 'Min Alt (m)', width: 90, sortable: true, default: false },
-  max_altitude_m: { label: 'Max Alt (m)', width: 90, sortable: true, default: false },
-  altitude_span_m: { label: 'Alt Span (m)', width: 100, sortable: true, default: false },
-  max_distance_meters: { label: 'Max Dist (m)', width: 110, sortable: true, default: false },
-  last_altitude_m: { label: 'Last Alt (m)', width: 90, sortable: true, default: false },
-  is_sentinel: { label: 'Sentinel', width: 80, sortable: true, default: false },
-};
-
-const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
-  lastSeen: 'last_seen',
-  firstSeen: 'first_observed_at',
-  observed_at: 'observed_at',
-  observations: 'obs_count',
-  signal: 'signal',
-  threat: 'threat_score', // Sort threat column by score for better ordering
-  threat_score: 'threat_score',
-  distanceFromHome: 'distance_from_home_km',
-  ssid: 'ssid',
-  bssid: 'bssid',
-  frequency: 'frequency',
-  accuracy: 'accuracy_meters',
-  type: 'type',
-  security: 'security',
-  channel: 'channel',
-  latitude: 'lat',
-  longitude: 'lon',
-  manufacturer: 'manufacturer',
-  min_altitude_m: 'min_altitude_m',
-  max_altitude_m: 'max_altitude_m',
-  altitude_span_m: 'altitude_span_m',
-  max_distance_meters: 'max_distance_meters',
-  last_altitude_m: 'last_altitude_m',
-  is_sentinel: 'is_sentinel',
-  timespanDays: 'timespan_days',
-};
-
-const NETWORK_PAGE_LIMIT = 500;
-
-const TypeBadge = ({ type }: { type: NetworkRow['type'] }) => {
-  // WiGLE Network Type Classifications
-  const types: Record<string, { label: string; color: string }> = {
-    W: { label: 'WiFi', color: '#3b82f6' },
-    E: { label: 'BLE', color: '#8b5cf6' },
-    B: { label: 'BT', color: '#06b6d4' },
-    G: { label: 'GSM', color: '#f59e0b' },
-    C: { label: 'CDMA', color: '#f97316' },
-    D: { label: '3G', color: '#84cc16' },
-    L: { label: 'LTE', color: '#10b981' },
-    N: { label: '5G', color: '#ec4899' },
-    F: { label: 'NFC', color: '#6366f1' },
-    '?': { label: 'Unknown', color: '#6b7280' },
-  };
-  const config = types[type || '?'] || types['?'];
-  return (
-    <span
-      className="px-2 py-1 rounded text-xs font-semibold"
-      style={{
-        backgroundColor: config.color + '20',
-        color: config.color,
-        border: `1px solid ${config.color}40`,
-      }}
-    >
-      {config.label}
-    </span>
-  );
-};
-
-const ThreatBadge = ({
-  threat,
-  reasons,
-  evidence,
-}: {
-  threat?: ThreatInfo | null;
-  reasons?: string[];
-  evidence?: ThreatEvidence[];
-}) => {
-  if (!threat || threat.level === 'NONE') return null;
-
-  const config = {
-    CRITICAL: { label: 'CRITICAL', color: '#dc2626', bg: '#dc262620' },
-    HIGH: { label: 'HIGH', color: '#ef4444', bg: '#ef444420' },
-    MED: { label: 'MED', color: '#f97316', bg: '#f9731620' },
-    LOW: { label: 'LOW', color: '#eab308', bg: '#eab30820' },
-    NONE: { label: '', color: '#6b7280', bg: '#6b728020' },
-  };
-
-  const levelConfig = config[threat.level];
-  const reasonsList = (reasons || []).join(', ') || 'None';
-  const evidenceLines =
-    evidence && evidence.length > 0
-      ? evidence
-          .map(
-            (e) =>
-              `${e.rule}: observed=${e.observedValue ?? 'n/a'} threshold=${e.threshold ?? 'n/a'}`
-          )
-          .join('\n')
-      : 'No evidence';
-
-  return (
-    <span
-      className="px-2 py-1 rounded text-xs font-semibold"
-      style={{
-        backgroundColor: levelConfig.bg,
-        color: levelConfig.color,
-        border: `1px solid ${levelConfig.color}40`,
-        cursor: 'help',
-      }}
-      title={`${threat.summary}\nScore: ${(threat.score * 100).toFixed(0)}%\nReasons: ${reasonsList}\n${evidenceLines}`}
-    >
-      {levelConfig.label}
-    </span>
-  );
-};
-
-type SortState = { column: keyof NetworkRow; direction: 'asc' | 'desc' };
-
-// Default view - will be overridden by home location from API
-const DEFAULT_CENTER: [number, number] = [-83.69682688, 43.02345147];
-const DEFAULT_ZOOM = 12;
-const DEFAULT_HOME_RADIUS = 100; // meters
-
-// Helper to create a GeoJSON circle polygon from center and radius in meters
-const createCirclePolygon = (
-  center: [number, number],
-  radiusMeters: number,
-  steps = 64
-): GeoJSON.Feature<GeoJSON.Polygon> => {
-  const coords: [number, number][] = [];
-  const km = radiusMeters / 1000;
-  const distanceX = km / (111.32 * Math.cos((center[1] * Math.PI) / 180));
-  const distanceY = km / 110.574;
-
-  for (let i = 0; i < steps; i++) {
-    const theta = (i / steps) * (2 * Math.PI);
-    const x = center[0] + distanceX * Math.cos(theta);
-    const y = center[1] + distanceY * Math.sin(theta);
-    coords.push([x, y]);
-  }
-  coords.push(coords[0]); // Close the polygon
-
-  return {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'Polygon',
-      coordinates: [coords],
-    },
-  };
-};
-
-const NETWORK_COLORS = [
-  '#3b82f6', // blue
-  '#ef4444', // red
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#84cc16', // lime
-  '#6366f1', // indigo
-];
-
-// Signal range calculation (from ShadowCheckLite)
-const calculateSignalRange = (
-  signalDbm: number | null,
-  frequencyMhz?: number | null,
-  zoom: number = 10
-): number => {
-  if (!signalDbm || signalDbm === null) return 40;
-
-  let freq = frequencyMhz;
-  if (typeof freq === 'string') {
-    freq = parseFloat((freq as any).replace(' GHz', '')) * 1000;
-  }
-  if (!freq || freq <= 0) freq = 2437; // Default to channel 6 (2.4GHz)
-
-  // Signal strength to distance mapping (inverse relationship)
-  // Stronger signal = closer = smaller circle, weaker signal = farther = larger circle
-  let distanceM;
-  if (signalDbm >= -30) distanceM = 15;
-  else if (signalDbm >= -50) distanceM = 40;
-  else if (signalDbm >= -60) distanceM = 80;
-  else if (signalDbm >= -70) distanceM = 120;
-  else if (signalDbm >= -80) distanceM = 180;
-  else distanceM = 250;
-
-  // Frequency adjustment (5GHz has shorter range)
-  if (freq > 5000) distanceM *= 0.7;
-
-  // Zoom-based scaling - make circle larger at higher zoom levels
-  // At zoom 12, base scale is 1.0
-  // At zoom 15, scale is ~2.0
-  // At zoom 18, scale is ~4.0
-  const zoomScale = Math.pow(1.25, zoom - 12);
-  let radiusPixels = distanceM * Math.max(0.5, Math.min(zoomScale, 6));
-
-  // Clamp radius for display - ensure minimum visibility
-  return Math.max(20, Math.min(radiusPixels, 300));
-};
-
-// BSSID-based color generation (from ShadowCheckLite)
-const macColor = (mac: string): string => {
-  if (!mac || mac.length < 6) return '#999999';
-
-  const BASE_HUES = [0, 60, 120, 180, 240, 270, 300, 330];
-  const stringToHash = (str: string): number => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-      hash |= 0;
-    }
-    return Math.abs(hash);
-  };
-
-  const cleanedMac = mac.replace(/[^0-9A-F]/gi, '');
-  if (cleanedMac.length < 6) return '#999999';
-
-  const oui = cleanedMac.substring(0, 6); // Manufacturer part
-  const devicePart = cleanedMac.substring(6); // Device-specific part
-
-  const hue = BASE_HUES[stringToHash(oui) % BASE_HUES.length];
-  let saturation = 50 + (stringToHash(devicePart) % 41); // 50-90%
-  let lightness = 40 + (stringToHash(devicePart) % 31); // 40-70%
-
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-};
-
-const MAP_STYLES = [
-  {
-    value: 'mapbox://styles/mapbox/standard',
-    label: 'Standard (Day)',
-    config: { lightPreset: 'day' },
-  },
-  {
-    value: 'mapbox://styles/mapbox/standard-dawn',
-    label: 'Standard (Dawn)',
-    config: { lightPreset: 'dawn' },
-  },
-  {
-    value: 'mapbox://styles/mapbox/standard-dusk',
-    label: 'Standard (Dusk)',
-    config: { lightPreset: 'dusk' },
-  },
-  {
-    value: 'mapbox://styles/mapbox/standard-night',
-    label: 'Standard (Night)',
-    config: { lightPreset: 'night' },
-  },
-  { value: 'mapbox://styles/mapbox/streets-v12', label: 'Streets' },
-  { value: 'mapbox://styles/mapbox/outdoors-v12', label: 'Outdoors' },
-  { value: 'mapbox://styles/mapbox/light-v11', label: 'Light' },
-  { value: 'mapbox://styles/mapbox/dark-v11', label: 'Dark' },
-  { value: 'mapbox://styles/mapbox/satellite-v9', label: 'Satellite' },
-  { value: 'mapbox://styles/mapbox/satellite-streets-v12', label: 'Satellite Streets' },
-  { value: 'mapbox://styles/mapbox/navigation-day-v1', label: 'Navigation Day' },
-  { value: 'mapbox://styles/mapbox/navigation-night-v1', label: 'Navigation Night' },
-  // Google Maps styles
-  { value: 'google-roadmap', label: '🗺️ Google Roadmap', isGoogle: true },
-  { value: 'google-satellite', label: '🛰️ Google Satellite', isGoogle: true },
-  { value: 'google-hybrid', label: '🌐 Google Hybrid', isGoogle: true },
-  { value: 'google-terrain', label: '⛰️ Google Terrain', isGoogle: true },
-  // Google embedded views
-  { value: 'google-street-view', label: '🚶 Google Street View', isGoogle: true },
-  { value: 'google-earth', label: '🌍 Export to Google Earth', isGoogle: true },
-] as const;
-
-// Helper to create a Google Maps tile style for Mapbox GL
-const createGoogleStyle = (type: string) => ({
-  version: 8 as const,
-  sources: {
-    'google-tiles': {
-      type: 'raster' as const,
-      tiles: [`/api/google-maps-tile/${type}/{z}/{x}/{y}`],
-      tileSize: 256,
-      attribution: '© Google Maps',
-    },
-  },
-  layers: [
-    {
-      id: 'google-tiles-layer',
-      type: 'raster' as const,
-      source: 'google-tiles',
-      minzoom: 0,
-      maxzoom: 22,
-    },
-  ],
-});
+// Components
+import { TypeBadge, ThreatBadge } from './badges';
 
 export default function GeospatialExplorer() {
   // Set current page for filter scoping
   usePageFilters('geospatial');
   const DEBUG_TIMEGRID = false;
 
-  // All state declarations first
-  const [networks, setNetworks] = useState<NetworkRow[]>([]);
+  // Location mode and plan check state (needed by useNetworkData)
+  const [locationMode, setLocationMode] = useState('latest_observation');
+  const [planCheck, setPlanCheck] = useState(false);
+
+  // Network data hook - handles fetching, pagination, sorting
+  const {
+    networks,
+    loading: loadingNetworks,
+    isLoadingMore,
+    error,
+    setError,
+    networkTotal,
+    networkTruncated,
+    expensiveSort,
+    pagination,
+    sort,
+    setSort,
+    loadMore,
+    resetPagination,
+  } = useNetworkData({ locationMode, planCheck });
+
+  // Selection state for observations
+  const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
+  const [useObservationFilters, setUseObservationFilters] = useState(true);
+
+  // Observations hook - handles fetching observations for selected networks
+  const {
+    observationsByBssid,
+    loading: loadingObservations,
+    total: observationsTotal,
+    truncated: observationsTruncated,
+    renderBudgetExceeded,
+    renderBudget,
+  } = useObservations(selectedNetworks, { useFilters: useObservationFilters });
+
+  // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
   const [containerHeight, setContainerHeight] = useState<number>(800);
   const [mapStyle, setMapStyle] = useState<string>(() => {
@@ -445,21 +117,8 @@ export default function GeospatialExplorer() {
       (k) => NETWORK_COLUMNS[k as keyof typeof NETWORK_COLUMNS].default
     ) as (keyof NetworkRow | 'select')[];
   });
-  const [sort, setSort] = useState<SortState[]>([{ column: 'lastSeen', direction: 'desc' }]);
-  const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [useObservationFilters, setUseObservationFilters] = useState(true);
-  const [loadingNetworks, setLoadingNetworks] = useState(false);
-  const [loadingObservations, setLoadingObservations] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [observationsByBssid, setObservationsByBssid] = useState<Record<string, Observation[]>>({});
-  const [observationsTotal, setObservationsTotal] = useState<number | null>(null);
-  const [observationsTruncated, setObservationsTruncated] = useState(false);
-  const [renderBudgetExceeded, setRenderBudgetExceeded] = useState(false);
-  const [renderBudget, setRenderBudget] = useState<number | null>(null);
-  const [expensiveSort, setExpensiveSort] = useState(false);
-  const [networkTotal, setNetworkTotal] = useState<number | null>(null);
 
   /**
    * Enhanced tooltip with symmetrical layout, larger fonts, and additional threat info
@@ -643,10 +302,8 @@ export default function GeospatialExplorer() {
       </div>
     `;
   };
-  const [networkTruncated, setNetworkTruncated] = useState(false);
-  const [locationMode, setLocationMode] = useState('latest_observation');
-  const [pagination, setPagination] = useState({ offset: 0, hasMore: true });
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Map and location state
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [locationSearch, setLocationSearch] = useState('');
@@ -655,7 +312,6 @@ export default function GeospatialExplorer() {
   const [searchingLocation, setSearchingLocation] = useState(false);
   const [homeButtonActive, setHomeButtonActive] = useState(false);
   const [fitButtonActive, setFitButtonActive] = useState(false);
-  const [planCheck, setPlanCheck] = useState(false);
   const [homeLocation, setHomeLocation] = useState<{
     center: [number, number];
     radius: number;
@@ -691,13 +347,11 @@ export default function GeospatialExplorer() {
   // Time-frequency modal state
   const [timeFreqModal, setTimeFreqModal] = useState<{ bssid: string; ssid: string } | null>(null);
 
-  const loadMore = useCallback(() => {
-    setPagination((prev) => ({ ...prev, offset: prev.offset + NETWORK_PAGE_LIMIT }));
-  }, []);
-
   useFilterURLSync();
   const { getCurrentEnabled, setFilter } = useFilterStore();
   const enabled = getCurrentEnabled();
+
+  // Set up debounced filter state
   const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
     useFilterStore.getState().getAPIFilters()
   );
@@ -830,9 +484,8 @@ export default function GeospatialExplorer() {
 
   // Reset pagination when filters change
   useEffect(() => {
-    setPagination({ offset: 0, hasMore: true });
-    setNetworks([]);
-  }, [JSON.stringify(debouncedFilterState), JSON.stringify(sort), locationMode]);
+    resetPagination();
+  }, [JSON.stringify(debouncedFilterState), JSON.stringify(sort), locationMode, resetPagination]);
 
   // Update container height on window resize
   useEffect(() => {
@@ -1463,412 +1116,6 @@ export default function GeospatialExplorer() {
     };
   }, []);
 
-  const formatSecurity = (capabilities: string | null | undefined, fallback?: string | null) => {
-    const value = String(capabilities || '').toUpperCase();
-    if (!value || value === 'UNKNOWN') {
-      return fallback || 'Open';
-    }
-    const hasWpa3 = value.includes('WPA3');
-    const hasWpa2 = value.includes('WPA2');
-    const hasWpa = value.includes('WPA');
-    const hasWep = value.includes('WEP');
-    const hasPsk = value.includes('PSK');
-    const hasEap = value.includes('EAP');
-    const hasSae = value.includes('SAE');
-    const hasOwe = value.includes('OWE');
-
-    if (hasOwe) return 'OWE';
-    if (hasWpa3 && hasSae) return 'WPA3-SAE';
-    if (hasWpa3 && hasEap) return 'WPA3-EAP';
-    if (hasWpa3) return 'WPA3';
-    if (hasWpa2 && hasEap) return 'WPA2-EAP';
-    if (hasWpa2 && hasPsk) return 'WPA2-PSK';
-    if (hasWpa2) return 'WPA2';
-    if (hasWpa && hasEap) return 'WPA-EAP';
-    if (hasWpa && hasPsk) return 'WPA-PSK';
-    if (hasWpa) return 'WPA';
-    if (hasWep) return 'WEP';
-    return fallback || 'Open';
-  };
-
-  // Fetch networks
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchNetworks = async () => {
-      // Remove the loadingNetworks guard that was preventing initial fetch
-      setLoadingNetworks(true);
-      setError(null);
-      setExpensiveSort(false);
-      try {
-        const sortKeys = sort
-          .map((entry) => API_SORT_MAP[entry.column])
-          .filter((value): value is string => Boolean(value));
-        if (sortKeys.length !== sort.length) {
-          setError('One or more sort columns are not supported by the API.');
-          setLoadingNetworks(false);
-          return;
-        }
-
-        const params = new URLSearchParams({
-          limit: String(NETWORK_PAGE_LIMIT),
-          offset: String(pagination.offset),
-          sort: sortKeys.join(','),
-          order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
-        });
-        params.set('location_mode', locationMode);
-
-        if (planCheck) {
-          params.set('planCheck', '1');
-        }
-
-        const { filters, enabled } = debouncedFilterState;
-        if (enabled.ssid && filters.ssid) {
-          params.set('ssid', String(filters.ssid));
-        }
-        if (enabled.bssid && filters.bssid) {
-          params.set('bssid', String(filters.bssid));
-        }
-        if (
-          enabled.radioTypes &&
-          Array.isArray(filters.radioTypes) &&
-          filters.radioTypes.length > 0
-        ) {
-          params.set('radioTypes', filters.radioTypes.join(','));
-        }
-        if (
-          enabled.encryptionTypes &&
-          Array.isArray(filters.encryptionTypes) &&
-          filters.encryptionTypes.length > 0
-        ) {
-          params.set('encryptionTypes', filters.encryptionTypes.join(','));
-        }
-        if (enabled.rssiMin && filters.rssiMin !== undefined) {
-          params.set('min_signal', String(filters.rssiMin));
-        }
-        if (enabled.rssiMax && filters.rssiMax !== undefined) {
-          params.set('max_signal', String(filters.rssiMax));
-        }
-        if (enabled.observationCountMin && filters.observationCountMin !== undefined) {
-          params.set('min_obs_count', String(filters.observationCountMin));
-        }
-        if (enabled.observationCountMax && filters.observationCountMax !== undefined) {
-          params.set('max_obs_count', String(filters.observationCountMax));
-        }
-        if (
-          enabled.threatCategories &&
-          Array.isArray(filters.threatCategories) &&
-          filters.threatCategories.length > 0
-        ) {
-          params.set('threat_categories', JSON.stringify(filters.threatCategories));
-        }
-        const toFiniteNumber = (value: unknown) => {
-          const parsed = typeof value === 'number' ? value : Number(value);
-          return Number.isFinite(parsed) ? parsed : null;
-        };
-
-        const maxDistance = toFiniteNumber(filters.distanceFromHomeMax);
-        if (enabled.distanceFromHomeMax && maxDistance !== null) {
-          params.set('distance_from_home_km_max', String(maxDistance / 1000));
-        }
-        const minDistance = toFiniteNumber(filters.distanceFromHomeMin);
-        if (enabled.distanceFromHomeMin && minDistance !== null) {
-          params.set('distance_from_home_km_min', String(minDistance / 1000));
-        }
-
-        // Bounding box filter
-        if (enabled.boundingBox && filters.boundingBox) {
-          const { north, south, east, west } = filters.boundingBox;
-          const minLat = toFiniteNumber(south);
-          const maxLat = toFiniteNumber(north);
-          const minLng = toFiniteNumber(west);
-          const maxLng = toFiniteNumber(east);
-
-          if (
-            minLat !== null &&
-            maxLat !== null &&
-            minLng !== null &&
-            maxLng !== null &&
-            minLat >= -90 &&
-            maxLat <= 90 &&
-            minLat <= maxLat &&
-            minLng >= -180 &&
-            maxLng <= 180 &&
-            minLng <= maxLng
-          ) {
-            params.set('bbox_min_lat', String(minLat));
-            params.set('bbox_max_lat', String(maxLat));
-            params.set('bbox_min_lng', String(minLng));
-            params.set('bbox_max_lng', String(maxLng));
-          }
-        }
-
-        // Radius filter
-        if (enabled.radiusFilter && filters.radiusFilter) {
-          const { latitude, longitude, radiusMeters } = filters.radiusFilter;
-          const centerLat = toFiniteNumber(latitude);
-          const centerLng = toFiniteNumber(longitude);
-          const radius = toFiniteNumber(radiusMeters);
-
-          if (
-            centerLat !== null &&
-            centerLng !== null &&
-            radius !== null &&
-            centerLat >= -90 &&
-            centerLat <= 90 &&
-            centerLng >= -180 &&
-            centerLng <= 180 &&
-            radius > 0
-          ) {
-            params.set('radius_center_lat', String(centerLat));
-            params.set('radius_center_lng', String(centerLng));
-            params.set('radius_meters', String(radius));
-          }
-        }
-
-        const liveState = useFilterStore.getState().getAPIFilters();
-        const liveMaxDistance = toFiniteNumber(liveState.filters.distanceFromHomeMax);
-        if (liveState.enabled.distanceFromHomeMax && liveMaxDistance !== null) {
-          params.set('distance_from_home_km_max', String(liveMaxDistance / 1000));
-        }
-        const liveMinDistance = toFiniteNumber(liveState.filters.distanceFromHomeMin);
-        if (liveState.enabled.distanceFromHomeMin && liveMinDistance !== null) {
-          params.set('distance_from_home_km_min', String(liveMinDistance / 1000));
-        }
-        if (enabled.timeframe && filters.timeframe?.type === 'relative') {
-          const window = filters.timeframe.relativeWindow || '30d';
-          const unit = window.slice(-1);
-          const value = parseInt(window.slice(0, -1), 10);
-          if (!Number.isNaN(value)) {
-            const ms =
-              unit === 'h' ? value * 3600000 : unit === 'm' ? value * 60000 : value * 86400000;
-            const since = new Date(Date.now() - ms).toISOString();
-            params.set('last_seen', since);
-          }
-        }
-
-        const res = await fetch(`/api/networks?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        logDebug(`Networks response status: ${res.status}`);
-        if (!res.ok) throw new Error(`networks ${res.status}`);
-        const data = await res.json();
-        const rows = data.networks || [];
-        setExpensiveSort(Boolean(data.expensive_sort));
-        setNetworkTotal(typeof data.total === 'number' ? data.total : null);
-        setNetworkTruncated(Boolean(data.truncated));
-
-        const mapped: NetworkRow[] = rows.map((row: any, idx: number) => {
-          const securityValue = formatSecurity(row.capabilities, row.security);
-          const bssidValue = (row.bssid || `unknown-${idx}`).toString().toUpperCase();
-
-          // Calculate WiFi channel from frequency
-          const calculateChannel = (freq: number | null): number | null => {
-            if (!freq || typeof freq !== 'number') return null;
-
-            // 2.4GHz channels (1-14)
-            if (freq >= 2412 && freq <= 2484) {
-              if (freq === 2484) return 14; // Channel 14
-              return Math.floor((freq - 2412) / 5) + 1;
-            }
-
-            // 5GHz channels
-            if (freq >= 5000 && freq <= 5900) {
-              return Math.floor((freq - 5000) / 5);
-            }
-
-            // 6GHz channels
-            if (freq >= 5925 && freq <= 7125) {
-              return Math.floor((freq - 5925) / 5);
-            }
-
-            return null; // Non-WiFi frequencies don't have channels
-          };
-
-          // Fallback type inference if database returns null/unknown
-          const inferNetworkType = (
-            dbType: string | null,
-            frequency: number | null,
-            ssid: string | null,
-            capabilities: string | null
-          ): NetworkRow['type'] => {
-            // If database provided a valid type, use it
-            if (dbType && dbType !== '?' && dbType !== 'Unknown' && dbType !== null) {
-              return dbType as NetworkRow['type'];
-            }
-
-            const ssidUpper = String(ssid || '').toUpperCase();
-            const capUpper = String(capabilities || '').toUpperCase();
-
-            // Frequency-based inference (most reliable)
-            if (frequency) {
-              if (frequency >= 2412 && frequency <= 2484) return 'W'; // 2.4GHz WiFi
-              if (frequency >= 5000 && frequency <= 5900) return 'W'; // 5GHz WiFi
-              if (frequency >= 5925 && frequency <= 7125) return 'W'; // 6GHz WiFi
-            }
-
-            // Capability-based inference
-            if (
-              capUpper.includes('WPA') ||
-              capUpper.includes('WEP') ||
-              capUpper.includes('WPS') ||
-              capUpper.includes('RSN') ||
-              capUpper.includes('ESS') ||
-              capUpper.includes('CCMP') ||
-              capUpper.includes('TKIP')
-            ) {
-              return 'W';
-            }
-
-            // SSID-based inference
-            if (ssidUpper.includes('5G') || capUpper.includes('NR')) return 'N';
-            if (ssidUpper.includes('LTE') || ssidUpper.includes('4G')) return 'L';
-            if (ssidUpper.includes('BLUETOOTH') || capUpper.includes('BLUETOOTH')) {
-              if (capUpper.includes('LOW ENERGY') || capUpper.includes('BLE')) return 'E';
-              return 'B';
-            }
-
-            return '?';
-          };
-
-          const frequency = typeof row.frequency === 'number' ? row.frequency : null;
-          const networkType = inferNetworkType(row.type, frequency, row.ssid, row.capabilities);
-          const isWiFi = networkType === 'W';
-
-          // Calculate timespan in days
-          const calculateTimespan = (first: string | null, last: string | null): number | null => {
-            if (!first || !last) return null;
-            const firstDate = new Date(first);
-            const lastDate = new Date(last);
-            if (isNaN(firstDate.getTime()) || isNaN(lastDate.getTime())) return null;
-            const diffMs = lastDate.getTime() - firstDate.getTime();
-            return Math.round(diffMs / (1000 * 60 * 60 * 24)); // Convert to days
-          };
-
-          // Parse threat info - handles both old boolean format and new JSONB format
-          let threatInfo: ThreatInfo | null = null;
-          console.log('Raw threat data for', row.bssid, ':', row.threat);
-
-          if (row.threat === true) {
-            // Old format: boolean true means HIGH threat
-            threatInfo = {
-              score: 1,
-              level: 'HIGH',
-              summary: 'Signal above threat threshold',
-            };
-          } else if (row.threat && typeof row.threat === 'object') {
-            // New format: JSONB object with score, level, summary, etc.
-            const t = row.threat as { score?: number; level?: string; summary?: string };
-            console.log('Parsed threat object:', t);
-
-            // Use the actual API score, don't generate fake ones
-            const apiScore =
-              typeof t.score === 'string'
-                ? parseFloat(t.score)
-                : typeof t.score === 'number'
-                  ? t.score
-                  : 0;
-
-            threatInfo = {
-              score: apiScore / 100, // Normalize to 0-1 if it's 0-100 scale
-              level: (t.level || 'NONE') as 'CRITICAL' | 'HIGH' | 'MED' | 'LOW' | 'NONE',
-              summary: t.summary || `Threat level: ${t.level || 'NONE'}`,
-            };
-          } else {
-            // No threat data - assign default NONE
-            console.log('No threat data, assigning NONE for', row.bssid);
-            threatInfo = {
-              score: 0,
-              level: 'NONE',
-              summary: 'No threat analysis available',
-            };
-          }
-
-          const channelValue =
-            typeof row.channel === 'number'
-              ? row.channel
-              : isWiFi
-                ? calculateChannel(frequency)
-                : null;
-
-          return {
-            bssid: bssidValue,
-            ssid: row.ssid || '(hidden)',
-            type: networkType,
-            signal: typeof row.signal === 'number' ? row.signal : null,
-            security: securityValue,
-            frequency: frequency,
-            channel: channelValue, // Only show channels for WiFi
-            observations: parseInt(String(row.obs_count || 0), 10),
-            latitude: typeof row.lat === 'number' ? row.lat : null,
-            longitude: typeof row.lon === 'number' ? row.lon : null,
-            distanceFromHome:
-              typeof row.distance_from_home_km === 'number' ? row.distance_from_home_km : null,
-            accuracy: typeof row.accuracy_meters === 'number' ? row.accuracy_meters : null,
-            firstSeen: row.first_observed_at || null,
-            lastSeen: row.last_observed_at || row.observed_at || null,
-            timespanDays: calculateTimespan(row.first_observed_at, row.last_observed_at),
-            threat: threatInfo,
-            // Add separate threat_score and threat_level fields for the new columns
-            threat_score: threatInfo ? threatInfo.score * 100 : 0, // Default to 0 instead of null
-            threat_level: threatInfo ? threatInfo.level : 'NONE', // Default to NONE instead of null
-            threatReasons: [],
-            threatEvidence: [],
-            stationaryConfidence:
-              typeof row.stationary_confidence === 'number' ? row.stationary_confidence : null,
-            // Enrichment fields (networks-v2 API)
-            manufacturer: row.manufacturer || null,
-            min_altitude_m: typeof row.min_altitude_m === 'number' ? row.min_altitude_m : null,
-            max_altitude_m: typeof row.max_altitude_m === 'number' ? row.max_altitude_m : null,
-            altitude_span_m: typeof row.altitude_span_m === 'number' ? row.altitude_span_m : null,
-            max_distance_meters:
-              typeof row.max_distance_meters === 'number' ? row.max_distance_meters : null,
-            last_altitude_m: typeof row.last_altitude_m === 'number' ? row.last_altitude_m : null,
-            is_sentinel: typeof row.is_sentinel === 'boolean' ? row.is_sentinel : null,
-            rawLatitude:
-              typeof row.raw_lat === 'number'
-                ? row.raw_lat
-                : typeof row.lat === 'number'
-                  ? row.lat
-                  : null,
-            rawLongitude:
-              typeof row.raw_lon === 'number'
-                ? row.raw_lon
-                : typeof row.lon === 'number'
-                  ? row.lon
-                  : null,
-          };
-        });
-
-        // CRITICAL: Reset networks on page 1, append on subsequent pages
-        if (pagination.offset === 0) {
-          setNetworks(mapped);
-        } else {
-          setNetworks((prev) => [...prev, ...mapped]);
-        }
-
-        setPagination((prev) => ({
-          ...prev,
-          hasMore: mapped.length === NETWORK_PAGE_LIMIT,
-        }));
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          setError(err.message);
-        }
-      } finally {
-        setLoadingNetworks(false);
-      }
-    };
-
-    fetchNetworks();
-    return () => controller.abort();
-  }, [
-    pagination.offset,
-    JSON.stringify(debouncedFilterState),
-    JSON.stringify(sort),
-    planCheck,
-    locationMode,
-  ]);
-
   // Infinite scroll with scroll position preservation
   useEffect(() => {
     const container = tableContainerRef.current;
@@ -1881,9 +1128,7 @@ export default function GeospatialExplorer() {
       timeoutId = setTimeout(() => {
         const { scrollTop, scrollHeight, clientHeight } = container;
         if (scrollHeight - scrollTop <= clientHeight + 200) {
-          // Trigger earlier
-          const currentScrollTop = scrollTop; // Save scroll position
-          setIsLoadingMore(true);
+          const currentScrollTop = scrollTop;
           loadMore();
 
           // Restore scroll position after a brief delay
@@ -1893,7 +1138,7 @@ export default function GeospatialExplorer() {
             }
           }, 50);
         }
-      }, 100); // Reduced debounce time
+      }, 100);
     };
 
     container.addEventListener('scroll', handleScroll);
@@ -1901,128 +1146,7 @@ export default function GeospatialExplorer() {
       container.removeEventListener('scroll', handleScroll);
       clearTimeout(timeoutId);
     };
-  }, [pagination.hasMore, isLoadingMore]);
-
-  // Reset loading state after fetch
-  useEffect(() => {
-    if (!loadingNetworks && isLoadingMore) {
-      setIsLoadingMore(false);
-    }
-  }, [loadingNetworks, isLoadingMore]);
-
-  // Fetch observations for selected networks (filtered)
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchObservations = async () => {
-      if (!selectedNetworks.size) {
-        setObservationsByBssid({});
-        setObservationsTotal(null);
-        setObservationsTruncated(false);
-        setRenderBudgetExceeded(false);
-        setRenderBudget(null);
-        return;
-      }
-
-      setLoadingObservations(true);
-      setError(null);
-      try {
-        const selectedBssids = Array.from(selectedNetworks);
-        const limit = 20000;
-        let offset = 0;
-        let total: number | null = null;
-        let truncated = false;
-        let renderBudgetLimit: number | null = null;
-        let allRows: any[] = [];
-        const observationFilters = useObservationFilters
-          ? debouncedFilterState
-          : { filters: {}, enabled: {} };
-
-        while (true) {
-          const params = new URLSearchParams({
-            filters: JSON.stringify(observationFilters.filters),
-            enabled: JSON.stringify(observationFilters.enabled),
-            bssids: JSON.stringify(selectedBssids),
-            limit: String(limit),
-            offset: String(offset),
-          });
-          if (offset === 0) {
-            params.set('include_total', '1');
-          }
-
-          const res = await fetch(`/api/v2/networks/filtered/observations?${params.toString()}`, {
-            signal: controller.signal,
-          });
-          if (!res.ok) throw new Error(`observations ${res.status}`);
-          const data = await res.json();
-          const rows = data.data || [];
-          allRows = allRows.concat(rows);
-          if (offset === 0 && typeof data.total === 'number') {
-            total = data.total;
-          }
-          if (offset === 0 && typeof data.render_budget === 'number') {
-            renderBudgetLimit = data.render_budget;
-          }
-
-          if (!data.truncated || rows.length === 0) {
-            truncated = Boolean(data.truncated);
-            break;
-          }
-
-          offset += limit;
-          if (renderBudgetLimit !== null && allRows.length >= renderBudgetLimit) {
-            truncated = true;
-            break;
-          }
-          if (total !== null && allRows.length >= total) {
-            truncated = false;
-            break;
-          }
-          if (controller.signal.aborted) {
-            return;
-          }
-        }
-
-        const grouped = allRows.reduce((acc: Record<string, Observation[]>, row: any) => {
-          const bssid = String(row.bssid || '').toUpperCase();
-          const lat = typeof row.lat === 'number' ? row.lat : parseFloat(row.lat);
-          const lon = typeof row.lon === 'number' ? row.lon : parseFloat(row.lon);
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-            return acc;
-          }
-          if (!acc[bssid]) acc[bssid] = [];
-          acc[bssid].push({
-            id: row.obs_number || `${bssid}-${row.time}`,
-            bssid,
-            lat,
-            lon,
-            signal: typeof row.level === 'number' ? row.level : (row.level ?? null),
-            time: row.time,
-            frequency: typeof row.radio_frequency === 'number' ? row.radio_frequency : null,
-            acc: row.accuracy ?? null,
-            altitude: typeof row.altitude === 'number' ? row.altitude : null,
-          });
-          return acc;
-        }, {});
-
-        setObservationsByBssid(grouped);
-        setObservationsTotal(total);
-        setObservationsTruncated(truncated || (total !== null && allRows.length < total));
-        setRenderBudgetExceeded(Boolean(data.render_budget_exceeded));
-        setRenderBudget(typeof data.render_budget === 'number' ? data.render_budget : null);
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          setError(err.message);
-        }
-      } finally {
-        setLoadingObservations(false);
-      }
-    };
-
-    fetchObservations();
-    return () => {
-      controller.abort();
-    };
-  }, [selectedNetworks, JSON.stringify(debouncedFilterState), useObservationFilters]);
+  }, [pagination.hasMore, isLoadingMore, loadMore]);
 
   // Server-side sorting - no client-side sorting needed
   const filteredNetworks = useMemo(() => networks, [networks]);
