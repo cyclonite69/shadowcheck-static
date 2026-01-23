@@ -99,7 +99,7 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/80"
+      className="fixed inset-0 z-modal flex items-center justify-center p-4 bg-black/80"
       onClick={(e) => {
         // Close on backdrop click
         if (e.target === e.currentTarget) {

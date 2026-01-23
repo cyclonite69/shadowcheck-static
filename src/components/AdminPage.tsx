@@ -195,11 +195,11 @@ const AdminPage: React.FC = () => {
           {activeTab === 'config' && (
             <>
               {/* Mapbox Configuration */}
-              <div className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow backdrop-blur-sm outline outline-1 outline-[#13223a]/60">
+              <div className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow backdrop-blur-sm outline outline-1 outline-slate-900/60">
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
                 {/* Header */}
-                <div className="flex items-center space-x-3 p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
                   <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
                     <DatabaseIcon size={20} className="text-white" />
                   </div>
@@ -231,11 +231,11 @@ const AdminPage: React.FC = () => {
               </div>
 
               {/* Home Location */}
-              <div className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow backdrop-blur-sm outline outline-1 outline-[#13223a]/60">
+              <div className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow backdrop-blur-sm outline outline-1 outline-slate-900/60">
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
                 {/* Header */}
-                <div className="flex items-center space-x-3 p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
                   <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
                     <ShieldIcon size={20} className="text-white" />
                   </div>
@@ -283,11 +283,11 @@ const AdminPage: React.FC = () => {
           )}
 
           {activeTab === 'imports' && (
-            <div className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow backdrop-blur-sm outline outline-1 outline-[#13223a]/60">
+            <div className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow backdrop-blur-sm outline outline-1 outline-slate-900/60">
               <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
               {/* Header */}
-              <div className="flex items-center space-x-3 p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+              <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
                 <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
                   <UploadIcon size={20} className="text-white" />
                 </div>
@@ -324,11 +324,11 @@ const AdminPage: React.FC = () => {
           )}
 
           {activeTab === 'exports' && (
-            <div className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow backdrop-blur-sm outline outline-1 outline-[#13223a]/60">
+            <div className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow backdrop-blur-sm outline outline-1 outline-slate-900/60">
               <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
               {/* Header */}
-              <div className="flex items-center space-x-3 p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+              <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
                   <DownloadIcon size={20} className="text-white" />
                 </div>

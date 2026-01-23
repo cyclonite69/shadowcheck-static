@@ -581,46 +581,18 @@ const KeplerTestPage: React.FC = () => {
     <div className="h-screen w-full bg-black text-white flex min-h-0">
       {/* Left Panel */}
       <aside className="w-[320px] shrink-0 p-5 flex flex-col gap-3 min-h-0">
-        <div
-          className="text-white rounded-xl space-y-3.5 text-sm"
-          style={{
-            backgroundColor: 'rgba(17, 24, 39, 0.92)',
-            border: '1px solid rgba(59, 130, 246, 0.25)',
-            backdropFilter: 'blur(16px)',
-            boxShadow:
-              '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)',
-            padding: '20px',
-          }}
-        >
-          <div
-            style={{
-              borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
-              paddingBottom: '14px',
-              marginBottom: '6px',
-            }}
-          >
-            <h3
-              className="text-xl font-bold"
-              style={{
-                background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              🛡️ ShadowCheck
-            </h3>
+        <div className="text-white rounded-xl space-y-3.5 text-sm bg-slate-900/90 border border-blue-500/25 backdrop-blur-xl shadow-2xl p-5">
+          <div className="border-b border-blue-500/20 pb-3.5 mb-1.5">
+            <h3 className="text-xl font-bold text-gradient-blue">🛡️ ShadowCheck</h3>
             <p className="text-xs text-slate-400 mt-1">Network Visualization</p>
             <button
               onClick={() => setShowFilters(!showFilters)}
               aria-label={showFilters ? 'Hide filters' : 'Show filters'}
-              className="mt-3 w-full px-3 py-2 text-sm font-semibold text-white rounded-lg border shadow-lg transition-all hover:shadow-xl"
-              style={{
-                background: showFilters
-                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                borderColor: showFilters ? '#dc2626' : '#2563eb',
-              }}
+              className={`mt-3 w-full px-3 py-2 text-sm font-semibold text-white rounded-lg border shadow-lg transition-all hover:shadow-xl ${
+                showFilters
+                  ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-600'
+                  : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-600'
+              }`}
             >
               {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
             </button>
@@ -757,16 +729,7 @@ const KeplerTestPage: React.FC = () => {
             />
           </div>
 
-          <div
-            className="text-xs pt-3 mt-2"
-            style={{
-              borderTop: '1px solid rgba(59, 130, 246, 0.2)',
-              background: 'linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent)',
-              padding: '12px',
-              margin: '0 -20px -20px -20px',
-              borderRadius: '0 0 12px 12px',
-            }}
-          >
+          <div className="text-xs pt-3 mt-2 border-t border-blue-500/20 bg-gradient-to-b from-blue-500/5 to-transparent p-3 -mx-5 -mb-5 rounded-b-xl">
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">DB Total:</span>
@@ -792,16 +755,7 @@ const KeplerTestPage: React.FC = () => {
         </div>
 
         {showFilters && (
-          <div
-            className="rounded-xl p-4 space-y-2 overflow-auto"
-            style={{
-              backgroundColor: 'rgba(17, 24, 39, 0.92)',
-              border: '1px solid rgba(59, 130, 246, 0.25)',
-              backdropFilter: 'blur(16px)',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3)',
-              maxHeight: 'calc(100vh - 180px)',
-            }}
-          >
+          <div className="rounded-xl p-4 space-y-2 overflow-auto bg-slate-900/90 border border-blue-500/25 backdrop-blur-xl shadow-2xl max-h-[calc(100vh-180px)]">
             <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
             <FilterPanel density="compact" />
           </div>

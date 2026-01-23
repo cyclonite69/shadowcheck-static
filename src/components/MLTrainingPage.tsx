@@ -324,57 +324,22 @@ export default function MLTrainingPage() {
   };
 
   return (
-    <div
-      className="relative w-full h-screen overflow-hidden flex"
-      style={{
-        background:
-          'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
-      }}
-    >
-      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
+    <div className="relative w-full h-screen overflow-hidden flex bg-ml-training">
+      <div className="relative flex-1 overflow-y-auto h-screen">
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
           <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl text-center">
-            <h1
-              style={{
-                fontSize: '22px',
-                fontWeight: '900',
-                margin: 0,
-                letterSpacing: '-0.5px',
-                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.6)',
-                filter:
-                  'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
-              }}
-            >
+            <h1 className="m-0 text-[22px] font-black tracking-[-0.5px] text-gradient-slate text-glow-strong">
               Machine Learning Training
             </h1>
-            <p
-              style={{
-                fontSize: '12px',
-                fontWeight: '300',
-                margin: 0,
-                marginTop: '4px',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                background: 'linear-gradient(to right, #1e293b, #64748b, #475569, #1e293b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))',
-                opacity: 0.8,
-              }}
-            >
+            <p className="m-0 mt-1 text-[12px] font-light tracking-[1.5px] uppercase text-gradient-slate text-glow-soft opacity-80">
               Train AI models for automated threat detection
             </p>
           </div>
         </div>
 
         {/* Cards */}
-        <div style={{ minHeight: '1300px', position: 'relative' }}>
+        <div className="relative min-h-[1300px]">
           {cards.map((card) => {
             const Icon = card.icon;
             const width = `${card.w}%`;
@@ -390,12 +355,12 @@ export default function MLTrainingPage() {
                   width: width,
                   height: `${card.h}px`,
                 }}
-                className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
+                className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow group backdrop-blur-sm outline outline-1 outline-slate-900/60"
               >
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+                <div className="flex items-center justify-between p-4 bg-slate-900/90 border-b border-slate-800/80">
                   <div className="flex items-center gap-2">
                     <Icon size={18} className="text-blue-400" />
                     <h2 className="text-sm font-semibold text-white">{card.title}</h2>

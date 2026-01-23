@@ -582,7 +582,7 @@ const WigleTestPage: React.FC = () => {
       {/* Left Stack Panels */}
       {(showControls || showFilters) && (
         <div
-          className="fixed top-20 left-4 z-[100000] pointer-events-auto flex flex-col gap-2"
+          className="fixed top-20 left-4 z-modal pointer-events-auto flex flex-col gap-2"
           style={{ maxHeight: 'calc(100vh - 100px)', maxWidth: '320px' }}
         >
           {showControls && (
