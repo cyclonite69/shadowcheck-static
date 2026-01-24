@@ -162,6 +162,7 @@ export default function DashboardPage() {
       w: 50,
       h: 200,
       type: 'total-networks',
+      observations: 0,
     },
     {
       id: 2,
@@ -174,6 +175,7 @@ export default function DashboardPage() {
       w: 50,
       h: 200,
       type: 'wifi-count',
+      observations: 0,
     },
     {
       id: 3,
@@ -186,6 +188,7 @@ export default function DashboardPage() {
       w: 50,
       h: 200,
       type: 'radio-ble',
+      observations: 0,
     },
     {
       id: 4,
@@ -198,6 +201,7 @@ export default function DashboardPage() {
       w: 50,
       h: 200,
       type: 'radio-bt',
+      observations: 0,
     },
     {
       id: 5,
@@ -210,6 +214,7 @@ export default function DashboardPage() {
       w: 50,
       h: 200,
       type: 'radio-lte',
+      observations: 0,
     },
     {
       id: 6,
@@ -222,18 +227,20 @@ export default function DashboardPage() {
       w: 50,
       h: 200,
       type: 'radio-gsm',
+      observations: 0,
     },
     {
       id: 7,
       title: '5G NR Networks',
       value: 0,
       icon: Tower,
-      color: '#10b981',
+      color: '#14b8a6',
       x: 0,
       y: 710,
       w: 50,
       h: 200,
       type: 'radio-nr',
+      observations: 0,
     },
     {
       id: 8,
@@ -246,6 +253,7 @@ export default function DashboardPage() {
       w: 50,
       h: 200,
       type: 'analytics-link',
+      observations: 0,
     },
   ]);
 
@@ -436,41 +444,46 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="relative flex h-screen w-full overflow-hidden bg-dashboard"
+      className="relative w-full h-screen overflow-hidden flex bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
+      {/* Ambient gradient background elements */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl" />
+      </div>
+
       {/* Filter Panel */}
       {showFilters && (
-        <div className="fixed top-20 right-4 max-h-[calc(100vh-100px)] max-w-md space-y-2 overflow-y-auto z-modal pointer-events-auto">
+        <div className="fixed top-20 right-4 max-w-sm bg-slate-900/90 backdrop-blur-xl rounded-xl border border-slate-700/50 shadow-2xl p-5 space-y-4 overflow-y-auto z-50 max-h-[calc(100vh-100px)]">
           <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
           <FilterPanel density="compact" />
         </div>
       )}
 
-      {/* Filter Icon Button - Only visible on hover in upper left */}
-      <div className="fixed top-0 left-0 w-16 h-16 group z-modal pointer-events-auto">
+      {/* Filter Button */}
+      <div className="fixed top-0 left-0 w-20 h-20 group z-50 pointer-events-auto">
         <button
           type="button"
           aria-label={showFilters ? 'Hide filters' : 'Show filters'}
           title={showFilters ? 'Hide filters' : 'Show filters'}
           onClick={() => setShowFilters(!showFilters)}
-          className={`absolute top-4 left-4 flex h-12 w-12 items-center justify-center rounded-lg shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110 ${
+          className={`absolute top-4 left-4 p-3 rounded-lg shadow-xl transition-all duration-200 ${
             showFilters
-              ? 'bg-gradient-to-br from-red-500 to-red-600'
-              : 'bg-gradient-to-br from-blue-500 to-blue-600'
+              ? 'bg-gradient-to-br from-red-500 to-red-600 text-white scale-105'
+              : 'bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white opacity-60 group-hover:opacity-100 hover:scale-110'
           }`}
         >
           <svg
             viewBox="0 0 24 24"
-            width="24"
-            height="24"
+            width="20"
+            height="20"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            aria-hidden="true"
-            focusable="false"
           >
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
           </svg>
@@ -478,7 +491,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="relative flex-1 overflow-y-auto h-screen">
-        {/* Cards */}
         <div className="relative min-h-[2400px]">
           {cards.map((card) => {
             const Icon = card.icon;
@@ -490,110 +502,118 @@ export default function DashboardPage() {
               <div
                 key={card.id}
                 style={{
-                  left: left,
+                  left,
                   top: `${card.y}px`,
-                  width: width,
+                  width,
                   height: `${card.h}px`,
-                  ...(isActive ? { transition: 'none' } : {}),
+                  transition: isActive ? 'none' : 'box-shadow 0.2s ease',
                 }}
                 onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-                className={`absolute ${isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'}`}
+                className={`absolute p-3 ${isActive ? 'cursor-grabbing select-none z-30' : 'cursor-grab'}`}
               >
-                <div className="h-full w-full p-2">
-                  <div className="h-full w-full overflow-hidden rounded-xl border border-slate-700/20 bg-slate-900/35 shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/25 transition-all duration-200 group backdrop-blur-sm">
-                    <div className="absolute inset-0 pointer-events-none opacity-2 bg-gradient-to-br from-white/5 to-transparent" />
+                <div className="h-full w-full rounded-xl border border-slate-700/40 bg-slate-900/40 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all duration-300 group overflow-hidden flex flex-col hover:border-slate-600/50">
+                  {/* Card gradient overlay */}
+                  <div className="absolute inset-0 pointer-events-none opacity-30 bg-gradient-to-br from-white/5 via-transparent to-transparent rounded-xl" />
 
-                    {/* Header */}
-                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/20">
-                      <div className="flex items-center gap-2">
-                        <Icon size={16} className="text-slate-300/80" />
-                        <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
-                      </div>
-                      <GripHorizontal
-                        size={14}
-                        className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div
-                      className={`px-4 py-4 overflow-hidden flex flex-col ${
-                        card.type === 'analytics-link'
-                          ? 'cursor-pointer hover:bg-slate-800/20 hover:ring-1 hover:ring-slate-400/10 transition-all items-center justify-center'
-                          : 'justify-between'
-                      }`}
-                      style={{ height: `calc(100% - 52px)` }}
-                      onClick={() => {
-                        if (card.type === 'analytics-link') {
-                          window.location.href = '/analytics';
-                        }
-                      }}
-                    >
-                      {card.type === 'analytics-link' ? (
-                        /* Analytics Link - CTA */
-                        <div className="text-center space-y-3">
-                          <div className="text-5xl font-light text-slate-400">→</div>
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-slate-300">View Analytics</p>
-                            <p className="text-xs text-slate-500">Detailed charts & insights</p>
-                          </div>
-                        </div>
-                      ) : (
-                        /* KPI Tile - Improved composition */
-                        <>
-                          <div className="space-y-4">
-                            {/* Primary Metric */}
-                            <div className="space-y-2">
-                              <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">
-                                Unique Networks
-                              </p>
-                              <p
-                                className="text-4xl font-semibold tracking-tight leading-none tabular-nums"
-                                style={{ color: card.color }}
-                              >
-                                {typeof card.value === 'number'
-                                  ? card.value.toLocaleString()
-                                  : card.value}
-                              </p>
-                            </div>
-
-                            {/* Secondary Metric */}
-                            {card.observations !== undefined && (
-                              <div className="space-y-1">
-                                <p className="text-sm text-slate-300/90 tabular-nums font-medium">
-                                  {card.observations.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-slate-500">Total Observations</p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Status - Always at bottom */}
-                          <div className="pt-2 border-t border-slate-700/15">
-                            <p className="text-xs text-slate-500/80">
-                              {loading
-                                ? 'Loading...'
-                                : error
-                                  ? error
-                                  : filtersApplied > 0
-                                    ? `${filtersApplied} filter${filtersApplied > 1 ? 's' : ''} active`
-                                    : 'All networks'}
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Resize Handle */}
-                    <div
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleMouseDown(e, card.id, 'resize');
-                      }}
-                      className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-700/30 flex-shrink-0">
+                    <h3 className="text-sm font-semibold text-slate-200 truncate">{card.title}</h3>
+                    <GripHorizontal
+                      size={16}
+                      className="text-slate-500 opacity-0 group-hover:opacity-100 group-hover:text-slate-300 transition-all flex-shrink-0"
                     />
                   </div>
+
+                  {/* Content */}
+                  <div
+                    className={`flex-1 px-5 py-5 flex flex-col overflow-hidden ${
+                      card.type === 'analytics-link'
+                        ? 'cursor-pointer hover:bg-slate-800/20 transition-all items-center justify-center'
+                        : 'justify-between'
+                    }`}
+                    onClick={() => {
+                      if (card.type === 'analytics-link') {
+                        window.location.href = '/analytics';
+                      }
+                    }}
+                  >
+                    {card.type === 'analytics-link' ? (
+                      /* Analytics Link - CTA */
+                      <div className="text-center space-y-3">
+                        <div className="flex justify-center mb-2">
+                          <Icon
+                            size={36}
+                            className="drop-shadow-lg opacity-90"
+                            style={{ color: card.color }}
+                          />
+                        </div>
+                        <p className="text-sm font-semibold text-slate-200">View Analytics</p>
+                        <p className="text-xs text-slate-500">Detailed charts & insights</p>
+                      </div>
+                    ) : (
+                      /* KPI Tile */
+                      <>
+                        <div className="space-y-4">
+                          {/* Icon display */}
+                          <div className="flex justify-center mb-2">
+                            <Icon
+                              size={36}
+                              className="drop-shadow-lg opacity-90"
+                              style={{ color: card.color }}
+                            />
+                          </div>
+
+                          {/* Primary Metric */}
+                          <div className="space-y-1">
+                            <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold">
+                              Unique Networks
+                            </p>
+                            <p
+                              className="text-4xl font-extrabold tracking-tighter drop-shadow-lg"
+                              style={{ color: card.color }}
+                            >
+                              {typeof card.value === 'number'
+                                ? card.value.toLocaleString()
+                                : card.value}
+                            </p>
+                          </div>
+
+                          {/* Secondary Metric */}
+                          {card.observations !== undefined && (
+                            <div className="pt-2 border-t border-slate-700/30 space-y-1">
+                              <p className="text-sm font-bold text-slate-200 tabular-nums">
+                                {card.observations.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-slate-500">Total Observations</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Status Footer */}
+                        <div className="pt-3 border-t border-slate-700/30">
+                          <p className="text-xs text-slate-500 font-medium">
+                            {loading
+                              ? 'Loading...'
+                              : error
+                                ? error
+                                : filtersApplied > 0
+                                  ? `${filtersApplied} filter${filtersApplied !== 1 ? 's' : ''} active`
+                                  : 'All networks'}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Resize Handle */}
+                  <div
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleMouseDown(e, card.id, 'resize');
+                    }}
+                    className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20 bg-gradient-to-tl from-white/40 to-transparent hover:from-white/60 rounded-tl-lg"
+                  />
                 </div>
               </div>
             );
