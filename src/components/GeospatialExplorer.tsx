@@ -1696,6 +1696,10 @@ export default function GeospatialExplorer() {
     setShowTerrain,
   });
 
+  // Helper functions for internal use
+  const add3DBuildings = () => toggle3DBuildings(true);
+  const addTerrain = () => toggleTerrain(true);
+
   return (
     <GeospatialShell>
       <FiltersSidebar open={filtersOpen}>
