@@ -26,7 +26,7 @@ export const NetworkTableHeader = ({
         tableLayout: 'fixed',
         borderCollapse: 'separate',
         borderSpacing: 0,
-        fontSize: '12px',
+        fontSize: '11px',
       }}
     >
       <thead>
@@ -49,7 +49,7 @@ export const NetworkTableHeader = ({
                   width: column.width,
                   minWidth: column.width,
                   maxWidth: column.width,
-                  padding: '6px 8px',
+                  padding: '5px 8px',
                   background: sortState ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.98)',
                   backdropFilter: 'blur(8px)',
                   textAlign: 'left',
@@ -63,6 +63,7 @@ export const NetworkTableHeader = ({
                   cursor: isSortable ? 'pointer' : 'default',
                   userSelect: 'none',
                   position: 'relative',
+                  boxSizing: 'border-box',
                 }}
                 title={
                   isSortable
