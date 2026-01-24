@@ -10,25 +10,12 @@ export const FiltersSidebar = ({ open, children }: FiltersSidebarProps) => {
 
   return (
     <div
+      className="fixed top-14 left-3 w-72 max-h-[calc(100vh-80px)] z-40 overflow-y-auto rounded-xl border border-blue-500/20 bg-slate-900/95 backdrop-blur-xl shadow-2xl pointer-events-auto"
       style={{
-        position: 'absolute',
-        top: '16px',
-        left: '16px',
-        width: '320px',
-        maxHeight: 'calc(100vh - 100px)',
-        zIndex: 40,
-        overflowY: 'auto',
-        padding: '20px',
-        borderRadius: '12px',
-        border: '1px solid rgba(59, 130, 246, 0.25)',
-        background: 'rgba(15, 23, 42, 0.95)',
-        backdropFilter: 'blur(16px)',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        color: '#e2e8f0',
-        fontSize: '12px',
       }}
     >
-      {children}
+      <div className="p-3 space-y-2 text-xs">{children}</div>
     </div>
   );
 };
