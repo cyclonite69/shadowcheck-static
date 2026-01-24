@@ -324,7 +324,7 @@ export default function MLTrainingPage() {
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden flex bg-ml-training">
+    <div className="relative w-full h-screen overflow-hidden flex">
       <div className="relative flex-1 overflow-y-auto h-screen">
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 p-6 z-50 pointer-events-none">
@@ -355,7 +355,7 @@ export default function MLTrainingPage() {
                   width: width,
                   height: `${card.h}px`,
                 }}
-                className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow group backdrop-blur-sm outline outline-1 outline-slate-900/60"
+                className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-300 group hover:border-slate-600/60"
               >
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
