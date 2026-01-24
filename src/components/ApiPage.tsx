@@ -18,7 +18,7 @@ type ApiResult = {
   body: string;
 };
 
-const ApiTestPage: React.FC = () => {
+const ApiPage: React.FC = () => {
   const [endpoint, setEndpoint] = useState<string>('/api/health');
   const [method, setMethod] = useState<HttpMethod>('GET');
   const [body, setBody] = useState<string>('');
@@ -69,7 +69,7 @@ const ApiTestPage: React.FC = () => {
                 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 30px rgba(100, 116, 139, 0.3))',
             }}
           >
-            API Endpoint Tester
+            API Endpoint
           </h1>
           <p
             className="text-lg font-bold tracking-tight"
@@ -188,4 +188,4 @@ const ApiTestPage: React.FC = () => {
   );
 };
 
-export default ApiTestPage;
+export default ApiPage;

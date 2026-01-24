@@ -85,7 +85,7 @@ const dominantClusterColor = (bssids: string[]): string => {
   return `hsl(${bestHue}, ${avgS}%, ${avgL}%)`;
 };
 
-const WigleTestPage: React.FC = () => {
+const WiglePage: React.FC = () => {
   // Set current page for filter scoping
   usePageFilters('wigle');
 
@@ -698,4 +698,4 @@ const WigleTestPage: React.FC = () => {
   );
 };
 
-export default WigleTestPage;
+export default WiglePage;
