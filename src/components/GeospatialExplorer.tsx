@@ -32,6 +32,7 @@ import { useResetPaginationOnFilters } from './geospatial/useResetPaginationOnFi
 import { useDebouncedFilterState } from './geospatial/useDebouncedFilterState';
 import { useMapPreferences } from './geospatial/useMapPreferences';
 import { useObservationSummary } from './geospatial/useObservationSummary';
+import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -197,22 +198,6 @@ export default function GeospatialExplorer() {
 
   useHomeLocationLayer({ mapReady, mapRef, homeLocation });
 
-  // Apply persisted 3D buildings and terrain settings when map is ready
-  useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
-
-    // Apply 3D buildings if persisted as enabled
-    if (show3DBuildings) {
-      add3DBuildings();
-    }
-
-    // Apply terrain if persisted as enabled
-    if (showTerrain) {
-      addTerrain();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady]); // Only run when map becomes ready, not when settings change
-
   const { activeObservationSets, observationCount, networkLookup } = useObservationSummary({
     selectedNetworks,
     observationsByBssid,
@@ -271,6 +256,14 @@ export default function GeospatialExplorer() {
   // Helper functions for internal use
   const add3DBuildings = () => toggle3DBuildings(true);
   const addTerrain = () => toggleTerrain(true);
+
+  useApplyMapLayerDefaults({
+    mapReady,
+    show3DBuildings,
+    showTerrain,
+    add3DBuildings,
+    addTerrain,
+  });
 
   const { changeMapStyle } = useMapStyleControls({
     mapRef,
