@@ -122,57 +122,61 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         return renderEmptyState();
       }
       return (
-        <div style={{ height: height, width: '100%' }}>
-          <ResponsiveContainer
-            width="100%"
-            height={height}
-            key={`network-types-${validNetworkData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
-          >
-            <PieChart>
-              <Pie
-                data={validNetworkData}
-                cx="50%"
-                cy="50%"
-                innerRadius="50%"
-                outerRadius="70%"
-                paddingAngle={2}
-                dataKey="value"
-                animationDuration={300}
-              >
-                {validNetworkData.map((entry, idx) => (
-                  <Cell key={`cell-${idx}-${entry.name}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                {...TOOLTIP_CONFIG}
-                formatter={(value, name, props) => {
-                  const total = validNetworkData.reduce((sum, item) => sum + item.value, 0);
-                  return formatPieTooltip(value as number, name as string, total);
-                }}
-              />
-              <Legend {...LEGEND_CONFIG} />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="flex flex-col h-[240px] w-full">
+          <div className="h-[200px] w-full flex items-center justify-center">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              key={`network-types-${validNetworkData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
+            >
+              <PieChart>
+                <Pie
+                  data={validNetworkData}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius="40%"
+                  outerRadius="65%"
+                  paddingAngle={2}
+                  dataKey="value"
+                  animationDuration={300}
+                >
+                  {validNetworkData.map((entry, idx) => (
+                    <Cell key={`cell-${idx}-${entry.name}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  {...TOOLTIP_CONFIG}
+                  formatter={(value, name, props) => {
+                    const total = validNetworkData.reduce((sum, item) => sum + item.value, 0);
+                    return formatPieTooltip(value as number, name as string, total);
+                  }}
+                />
+                <Legend {...LEGEND_CONFIG} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       );
     case 'signal':
       if (!isValidChartData(data.signalStrength)) return renderEmptyState();
       return (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.signalStrength} margin={MARGINS.withBottomLabel}>
-            <CartesianGrid {...GRID_CONFIG} />
-            <XAxis
-              dataKey="range"
-              tick={AXIS_CONFIG.tick}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis tick={AXIS_CONFIG.tick} />
-            <Tooltip {...TOOLTIP_CONFIG} />
-            <Bar dataKey="count" fill={CHART_COLORS.signalStrength} {...BAR_CONFIG} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="h-[260px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data.signalStrength} margin={MARGINS.withBottomLabel}>
+              <CartesianGrid {...GRID_CONFIG} />
+              <XAxis
+                dataKey="range"
+                tick={AXIS_CONFIG.tick}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis tick={AXIS_CONFIG.tick} />
+              <Tooltip {...TOOLTIP_CONFIG} />
+              <Bar dataKey="count" fill={CHART_COLORS.signalStrength} {...BAR_CONFIG} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       );
     case 'security':
       if (DEBUG_ANALYTICS) {
@@ -205,195 +209,187 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         return renderEmptyState();
       }
       return (
-        <div style={{ height: height, width: '100%' }}>
-          <ResponsiveContainer
-            width="100%"
-            height={height}
-            key={`security-${validSecurityData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
-          >
-            <PieChart>
-              <Pie
-                data={validSecurityData}
-                cx="50%"
-                cy="50%"
-                innerRadius="50%"
-                outerRadius="70%"
-                paddingAngle={2}
-                dataKey="value"
-                animationDuration={300}
-              >
-                {validSecurityData.map((entry, idx) => (
-                  <Cell key={`sec-cell-${idx}-${entry.name}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                {...TOOLTIP_CONFIG}
-                formatter={(value, name, props) => {
-                  const total = validSecurityData.reduce((sum, item) => sum + item.value, 0);
-                  return formatPieTooltip(value as number, name as string, total);
-                }}
-              />
-              <Legend {...LEGEND_CONFIG} />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="flex flex-col h-[240px] w-full">
+          <div className="h-[200px] w-full flex items-center justify-center">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              key={`security-${validSecurityData.length}-${debouncedFilterState?.enabled?.timeframe ? 'filtered' : 'all'}`}
+            >
+              <PieChart>
+                <Pie
+                  data={validSecurityData}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius="40%"
+                  outerRadius="65%"
+                  paddingAngle={2}
+                  dataKey="value"
+                  animationDuration={300}
+                >
+                  {validSecurityData.map((entry, idx) => (
+                    <Cell key={`sec-cell-${idx}-${entry.name}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  {...TOOLTIP_CONFIG}
+                  formatter={(value, name, props) => {
+                    const total = validSecurityData.reduce((sum, item) => sum + item.value, 0);
+                    return formatPieTooltip(value as number, name as string, total);
+                  }}
+                />
+                <Legend {...LEGEND_CONFIG} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       );
     case 'temporal': {
       if (!isValidChartData(data.temporal)) return renderEmptyState();
       return (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.temporal} margin={MARGINS.default}>
-            <CartesianGrid {...GRID_CONFIG} />
-            <XAxis dataKey="hour" tick={AXIS_CONFIG.tick} />
-            <YAxis tick={AXIS_CONFIG.tick} />
-            <Tooltip {...TOOLTIP_CONFIG} />
-            <Bar dataKey="count" fill={CHART_COLORS.temporal} {...BAR_CONFIG} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="h-[260px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data.temporal} margin={MARGINS.default}>
+              <CartesianGrid {...GRID_CONFIG} />
+              <XAxis dataKey="hour" tick={AXIS_CONFIG.tick} />
+              <YAxis tick={AXIS_CONFIG.tick} />
+              <Tooltip {...TOOLTIP_CONFIG} />
+              <Bar dataKey="count" fill={CHART_COLORS.temporal} {...BAR_CONFIG} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       );
     }
     case 'radio-time': {
       if (!isValidChartData(data.radioTime)) return renderEmptyState();
       const interval = calculateAxisInterval(data.radioTime.length);
       return (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data.radioTime} margin={MARGINS.withBottomLabel}>
-            <CartesianGrid {...GRID_CONFIG} />
-            <XAxis dataKey="label" tick={AXIS_CONFIG.tick} interval={interval} />
-            <YAxis tick={AXIS_CONFIG.tick} />
-            <Tooltip {...TOOLTIP_CONFIG} />
-            <Legend {...LEGEND_CONFIG} />
-            <Line {...LINE_CONFIG} dataKey="WiFi" stroke={CHART_COLORS.radioTime.WiFi} />
-            <Line {...LINE_CONFIG} dataKey="BLE" stroke={CHART_COLORS.radioTime.BLE} />
-            <Line {...LINE_CONFIG} dataKey="BT" stroke={CHART_COLORS.radioTime.BT} />
-            <Line {...LINE_CONFIG} dataKey="LTE" stroke={CHART_COLORS.radioTime.LTE} />
-            <Line {...LINE_CONFIG} dataKey="GSM" stroke={CHART_COLORS.radioTime.GSM} />
-            <Line {...LINE_CONFIG} dataKey="NR" stroke={CHART_COLORS.radioTime.NR} />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="h-[260px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.radioTime} margin={MARGINS.withBottomLabel}>
+              <CartesianGrid {...GRID_CONFIG} />
+              <XAxis dataKey="label" tick={AXIS_CONFIG.tick} interval={interval} />
+              <YAxis tick={AXIS_CONFIG.tick} />
+              <Tooltip {...TOOLTIP_CONFIG} />
+              <Legend {...LEGEND_CONFIG} />
+              <Line {...LINE_CONFIG} dataKey="WiFi" stroke={CHART_COLORS.radioTime.WiFi} />
+              <Line {...LINE_CONFIG} dataKey="BLE" stroke={CHART_COLORS.radioTime.BLE} />
+              <Line {...LINE_CONFIG} dataKey="BT" stroke={CHART_COLORS.radioTime.BT} />
+              <Line {...LINE_CONFIG} dataKey="LTE" stroke={CHART_COLORS.radioTime.LTE} />
+              <Line {...LINE_CONFIG} dataKey="GSM" stroke={CHART_COLORS.radioTime.GSM} />
+              <Line {...LINE_CONFIG} dataKey="NR" stroke={CHART_COLORS.radioTime.NR} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       );
     }
     case 'threat-distribution':
       if (!isValidChartData(data.threatDistribution)) return renderEmptyState();
       return (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.threatDistribution} margin={MARGINS.withBottomLabel}>
-            <CartesianGrid {...GRID_CONFIG} />
-            <XAxis
-              dataKey="range"
-              tick={AXIS_CONFIG.tick}
-              label={{
-                value: 'Threat Score Range',
-                position: 'insideBottom',
-                offset: -10,
-                fill: '#94a3b8',
-                fontSize: 10,
-              }}
-            />
-            <YAxis tick={AXIS_CONFIG.tick} />
-            <Tooltip {...TOOLTIP_CONFIG} />
-            <Bar dataKey="count" fill={CHART_COLORS.threatDistribution} {...BAR_CONFIG} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="h-[260px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data.threatDistribution} margin={MARGINS.withBottomLabel}>
+              <CartesianGrid {...GRID_CONFIG} />
+              <XAxis
+                dataKey="range"
+                tick={AXIS_CONFIG.tick}
+                label={{
+                  value: 'Threat Score Range',
+                  position: 'insideBottom',
+                  offset: -10,
+                  fill: '#94a3b8',
+                  fontSize: 10,
+                }}
+              />
+              <YAxis tick={AXIS_CONFIG.tick} />
+              <Tooltip {...TOOLTIP_CONFIG} />
+              <Bar dataKey="count" fill={CHART_COLORS.threatDistribution} {...BAR_CONFIG} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       );
     case 'threat-trends': {
       if (!isValidChartData(data.threatTrends)) return renderEmptyState();
       const interval = calculateAxisInterval(data.threatTrends.length);
       return (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data.threatTrends} margin={MARGINS.withBottomLabel}>
-            <CartesianGrid {...GRID_CONFIG} />
-            <XAxis dataKey="label" tick={AXIS_CONFIG.tick} interval={interval} />
-            <YAxis
-              yAxisId="left"
-              tick={AXIS_CONFIG.tick}
-              label={{
-                value: 'Avg Threat Score',
-                angle: -90,
-                position: 'insideLeft',
-                fill: '#94a3b8',
-                fontSize: 10,
-              }}
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tick={AXIS_CONFIG.tick}
-              label={{
-                value: 'Threat Count',
-                angle: 90,
-                position: 'insideRight',
-                fill: '#94a3b8',
-                fontSize: 10,
-              }}
-            />
-            <Tooltip {...TOOLTIP_CONFIG} />
-            <Legend {...LEGEND_CONFIG} />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="avgScore"
-              stroke={CHART_COLORS.threatTrends.avgScore}
-              strokeWidth={3}
-              name="Avg Score"
-              dot={{ fill: CHART_COLORS.threatTrends.avgScore, r: 3 }}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="criticalCount"
-              stroke={CHART_COLORS.threatTrends.criticalCount}
-              strokeWidth={2}
-              name="Critical (80+)"
-              dot={{ fill: CHART_COLORS.threatTrends.criticalCount, r: 2 }}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="highCount"
-              stroke={CHART_COLORS.threatTrends.highCount}
-              strokeWidth={2}
-              name="High (70-79)"
-              dot={{ fill: CHART_COLORS.threatTrends.highCount, r: 2 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="h-[260px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.threatTrends} margin={MARGINS.withBottomLabel}>
+              <CartesianGrid {...GRID_CONFIG} />
+              <XAxis dataKey="label" tick={AXIS_CONFIG.tick} interval={interval} />
+              <YAxis
+                yAxisId="left"
+                tick={AXIS_CONFIG.tick}
+                label={{
+                  value: 'Avg Threat Score',
+                  angle: -90,
+                  position: 'insideLeft',
+                  fill: '#94a3b8',
+                  fontSize: 10,
+                }}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={AXIS_CONFIG.tick}
+                label={{
+                  value: 'Threat Count',
+                  angle: 90,
+                  position: 'insideRight',
+                  fill: '#94a3b8',
+                  fontSize: 10,
+                }}
+              />
+              <Tooltip {...TOOLTIP_CONFIG} />
+              <Legend {...LEGEND_CONFIG} />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="avgScore"
+                stroke={CHART_COLORS.threatTrends.avgScore}
+                strokeWidth={3}
+                name="Avg Score"
+                dot={{ fill: CHART_COLORS.threatTrends.avgScore, r: 3 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="criticalCount"
+                stroke={CHART_COLORS.threatTrends.criticalCount}
+                strokeWidth={2}
+                name="Critical (80+)"
+                dot={{ fill: CHART_COLORS.threatTrends.criticalCount, r: 2 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="highCount"
+                stroke={CHART_COLORS.threatTrends.highCount}
+                strokeWidth={2}
+                name="High (70-79)"
+                dot={{ fill: CHART_COLORS.threatTrends.highCount, r: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       );
     }
     case 'top-networks':
       if (!isValidChartData(data.topNetworks)) return renderEmptyState();
       return (
-        <div style={{ height: height, overflowY: 'auto', paddingRight: 8 }}>
+        <div className="h-[260px] overflow-y-auto pr-2 space-y-2">
           {data.topNetworks.map((network, idx) => (
             <div
               key={idx}
-              style={{
-                padding: '12px',
-                marginBottom: '8px',
-                background: 'rgba(30, 41, 59, 0.4)',
-                borderRadius: '6px',
-                borderLeft: '3px solid #3b82f6',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
+              className="p-3 bg-slate-800/40 rounded-md border-l-[3px] border-l-blue-500 flex justify-between items-center"
             >
               <div>
-                <div
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#cbd5e1',
-                    fontFamily: 'monospace',
-                  }}
-                >
+                <div className="text-xs font-semibold text-slate-300 font-mono">
                   {network.bssid}
                 </div>
-                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                  {network.ssid}
-                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{network.ssid}</div>
               </div>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#60a5fa' }}>
+              <div className="text-sm font-semibold text-blue-400">
                 {network.observations.toLocaleString()}
               </div>
             </div>
