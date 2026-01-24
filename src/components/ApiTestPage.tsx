@@ -53,7 +53,7 @@ const ApiTestPage: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 overflow-hidden">
+    <div className="relative w-full min-h-screen overflow-hidden">
       {/* Header */}
       <div className="absolute top-0 left-0 p-6 z-50 pointer-events-none">
         <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-6 border border-slate-800/60 shadow-2xl">
