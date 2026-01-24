@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { logError } from '../logging/clientLogger';
-import { FilterPanel } from './FilterPanel';
-import { ActiveFiltersSummary } from './ActiveFiltersSummary';
+import { FilterButton } from './FilterButton';
+import { FilterPanelWrapper } from './FilterPanelWrapper';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
@@ -463,39 +463,8 @@ export default function DashboardPage() {
         <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Filter Panel */}
-      {showFilters && (
-        <div className="fixed top-20 right-4 max-w-sm bg-slate-900/90 backdrop-blur-xl rounded-xl border border-slate-700/50 shadow-2xl p-5 space-y-4 overflow-y-auto z-50 max-h-[calc(100vh-100px)]">
-          <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
-          <FilterPanel density="compact" />
-        </div>
-      )}
-
-      {/* Filter Button */}
-      <div className="fixed top-0 left-0 w-20 h-20 group z-50 pointer-events-auto">
-        <button
-          type="button"
-          aria-label={showFilters ? 'Hide filters' : 'Show filters'}
-          title={showFilters ? 'Hide filters' : 'Show filters'}
-          onClick={() => setShowFilters(!showFilters)}
-          className={`absolute top-4 left-4 p-3 rounded-lg shadow-xl transition-all duration-200 ${
-            showFilters
-              ? 'bg-gradient-to-br from-red-500 to-red-600 text-white scale-105'
-              : 'bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white opacity-60 group-hover:opacity-100 hover:scale-110'
-          }`}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="20"
-            height="20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-          </svg>
-        </button>
-      </div>
+      <FilterButton isOpen={showFilters} onClick={() => setShowFilters(!showFilters)} />
+      <FilterPanelWrapper isOpen={showFilters} adaptedFilters={adaptedFilters} />
 
       <div className="relative flex-1 overflow-y-auto h-screen">
         <div className="relative min-h-[2400px]">
