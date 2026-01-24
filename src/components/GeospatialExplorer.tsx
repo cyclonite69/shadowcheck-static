@@ -19,6 +19,7 @@ import { NetworkTableHeader } from './geospatial/NetworkTableHeader';
 import { NetworkTableBody } from './geospatial/NetworkTableBody';
 import { NetworkExplorerCard } from './geospatial/NetworkExplorerCard';
 import { MapPanel } from './geospatial/MapPanel';
+import { FiltersSidebar } from './geospatial/FiltersSidebar';
 
 // Types
 import type {
@@ -1788,34 +1789,9 @@ export default function GeospatialExplorer() {
           'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
       }}
     >
-      {filtersOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '52px',
-            left: '12px',
-            bottom: '12px',
-            width: '320px',
-            zIndex: 55,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
-          <div
-            style={{
-              padding: '10px',
-              borderRadius: '10px',
-              border: '1px solid rgba(71, 85, 105, 0.4)',
-              background: 'rgba(15, 23, 42, 0.9)',
-              color: '#e2e8f0',
-              fontSize: '12px',
-            }}
-          >
-            <FilterPanel density="compact" />
-          </div>
-        </div>
-      )}
+      <FiltersSidebar open={filtersOpen}>
+        <FilterPanel density="compact" />
+      </FiltersSidebar>
       <div className="flex h-screen">
         <div
           className="flex flex-col gap-3 p-3 h-screen flex-1"
