@@ -317,7 +317,21 @@ const WiglePage: React.FC = () => {
 
         map.on('error', (event) => {
           if (!mounted) return;
-          setError(event?.error?.message || 'Mapbox error');
+          const errorMsg = event?.error?.message || '';
+
+          // Ignore layer/source not found errors - they're expected for some styles
+          if (
+            errorMsg.includes('source') ||
+            errorMsg.includes('layer') ||
+            errorMsg.includes('composite') ||
+            errorMsg.includes('building')
+          ) {
+            logDebug('[Wigle] Map style incompatibility (ignored):', errorMsg);
+            return;
+          }
+
+          // Only show actual errors to user
+          setError(errorMsg || 'Mapbox error');
         });
         map.on('moveend', updateClusterColors);
         map.on('zoomend', updateClusterColors);
@@ -485,51 +499,56 @@ const WiglePage: React.FC = () => {
     if (!map || !mapReady) return;
 
     const toggleBuildings = () => {
-      if (show3dBuildings) {
-        if (!map.getLayer('3d-buildings')) {
-          const layers = map.getStyle().layers;
-          const labelLayerId = layers?.find(
-            (layer) => layer.type === 'symbol' && layer.layout?.['text-field']
-          )?.id;
+      try {
+        if (show3dBuildings) {
+          if (!map.getLayer('3d-buildings')) {
+            const layers = map.getStyle().layers;
+            const labelLayerId = layers?.find(
+              (layer) => layer.type === 'symbol' && layer.layout?.['text-field']
+            )?.id;
 
-          map.addLayer(
-            {
-              id: '3d-buildings',
-              source: 'composite',
-              'source-layer': 'building',
-              filter: ['==', 'extrude', 'true'],
-              type: 'fill-extrusion',
-              minzoom: 15,
-              paint: {
-                'fill-extrusion-color': '#aaa',
-                'fill-extrusion-height': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  15,
-                  0,
-                  15.05,
-                  ['get', 'height'],
-                ],
-                'fill-extrusion-base': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  15,
-                  0,
-                  15.05,
-                  ['get', 'min_height'],
-                ],
-                'fill-extrusion-opacity': 0.6,
+            map.addLayer(
+              {
+                id: '3d-buildings',
+                source: 'composite',
+                'source-layer': 'building',
+                filter: ['==', 'extrude', 'true'],
+                type: 'fill-extrusion',
+                minzoom: 15,
+                paint: {
+                  'fill-extrusion-color': '#aaa',
+                  'fill-extrusion-height': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    15,
+                    0,
+                    15.05,
+                    ['get', 'height'],
+                  ],
+                  'fill-extrusion-base': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    15,
+                    0,
+                    15.05,
+                    ['get', 'min_height'],
+                  ],
+                  'fill-extrusion-opacity': 0.6,
+                },
               },
-            },
-            labelLayerId
-          );
+              labelLayerId
+            );
+          }
+        } else {
+          if (map.getLayer('3d-buildings')) {
+            map.removeLayer('3d-buildings');
+          }
         }
-      } else {
-        if (map.getLayer('3d-buildings')) {
-          map.removeLayer('3d-buildings');
-        }
+      } catch (err) {
+        // Silently fail - some map styles don't have building layer
+        logDebug('[Wigle] 3D buildings not available for this map style');
       }
     };
 
@@ -546,21 +565,26 @@ const WiglePage: React.FC = () => {
     if (!map || !mapReady) return;
 
     const toggleTerrain = () => {
-      if (showTerrain) {
-        if (!map.getSource('mapbox-dem')) {
-          map.addSource('mapbox-dem', {
-            type: 'raster-dem',
-            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-            tileSize: 512,
-            maxzoom: 14,
-          });
+      try {
+        if (showTerrain) {
+          if (!map.getSource('mapbox-dem')) {
+            map.addSource('mapbox-dem', {
+              type: 'raster-dem',
+              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+              tileSize: 512,
+              maxzoom: 14,
+            });
+          }
+          map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+        } else {
+          map.setTerrain(null);
+          if (map.getSource('mapbox-dem')) {
+            map.removeSource('mapbox-dem');
+          }
         }
-        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-      } else {
-        map.setTerrain(null);
-        if (map.getSource('mapbox-dem')) {
-          map.removeSource('mapbox-dem');
-        }
+      } catch (err) {
+        // Silently fail - terrain may not be available for all map styles
+        logDebug('[Wigle] Terrain not available for this map style');
       }
     };
 

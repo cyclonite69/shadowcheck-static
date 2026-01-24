@@ -40,7 +40,7 @@ export const WigleMap: React.FC<WigleMapProps> = ({
         </div>
       )}
       {error && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-900 text-red-100 px-4 py-2 rounded-lg border border-red-700 z-50">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/20 text-red-300 px-4 py-2 rounded-lg border border-red-500/30 z-50 text-sm backdrop-blur-sm">
           {error}
         </div>
       )}

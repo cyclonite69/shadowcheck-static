@@ -52,7 +52,7 @@ export const NetworkTableRow = ({
         if (col === 'select') {
           const ssidOrHidden = net.ssid || '(hidden)';
           return (
-            <td key={col} style={{ width: column.width, padding: '4px 6px' }}>
+            <td key={col} style={{ width: column.width, padding: '6px 10px' }}>
               <input
                 type="checkbox"
                 checked={isSelected}
@@ -94,11 +94,12 @@ export const NetworkTableRow = ({
               style={{
                 background: 'rgba(59, 130, 246, 0.2)',
                 color: '#93c5fd',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
                 fontWeight: '600',
                 border: '1px solid rgba(59, 130, 246, 0.3)',
+                display: 'inline-block',
               }}
             >
               {value as number}
@@ -112,11 +113,12 @@ export const NetworkTableRow = ({
               style={{
                 background: 'rgba(234, 179, 8, 0.2)',
                 color: '#facc15',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
                 fontWeight: '600',
                 border: '1px solid rgba(234, 179, 8, 0.3)',
+                display: 'inline-block',
               }}
             >
               YES
@@ -135,11 +137,12 @@ export const NetworkTableRow = ({
                         ? 'rgba(251, 191, 36, 0.2)'
                         : 'rgba(34, 197, 94, 0.2)',
                   color: days > 30 ? '#f87171' : days > 7 ? '#fbbf24' : '#4ade80',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: '10px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
                   fontWeight: '600',
                   border: `1px solid ${days > 30 ? 'rgba(239, 68, 68, 0.3)' : days > 7 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                  display: 'inline-block',
                 }}
               >
                 {days === 0 ? 'Same day' : `${days} days`}
@@ -169,11 +172,12 @@ export const NetworkTableRow = ({
                 style={{
                   background: 'rgba(16, 185, 129, 0.2)',
                   color: '#10b981',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: '10px',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
                   fontWeight: '600',
                   border: '1px solid rgba(16, 185, 129, 0.3)',
+                  display: 'inline-block',
                 }}
               >
                 {channelValue}
@@ -223,7 +227,7 @@ export const NetworkTableRow = ({
               width: column.width,
               minWidth: column.width,
               maxWidth: column.width,
-              padding: '4px 6px',
+              padding: '8px 10px',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',

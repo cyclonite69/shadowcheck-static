@@ -24,7 +24,7 @@ export const ThreatBadge = ({ threat, reasons, evidence }: ThreatBadgeProps) => 
 
   return (
     <span
-      className="px-2 py-1 rounded text-xs font-semibold"
+      className="px-2.5 py-1.5 rounded-md text-xs font-semibold inline-block"
       style={{
         backgroundColor: levelConfig.bg,
         color: levelConfig.color,
