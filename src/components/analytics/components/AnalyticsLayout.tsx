@@ -42,7 +42,7 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
 }) => {
   return (
     <div
-      className="relative w-full h-screen overflow-hidden flex bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_20%,rgba(52,211,153,0.04),transparent_25%)] before:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_80%_0%,rgba(59,130,246,0.04),transparent_20%)] after:pointer-events-none"
+      className="relative w-full h-screen overflow-hidden flex"
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}

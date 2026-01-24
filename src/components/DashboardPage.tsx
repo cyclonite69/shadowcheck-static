@@ -298,6 +298,13 @@ export default function DashboardPage() {
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
 
+        // Debug: Log API response to verify observations data
+        console.log('[Dashboard] API response:', {
+          networks: data.networks,
+          observations: data.observations,
+          hasObservations: !!data.observations,
+        });
+
         setCards((prev) =>
           prev.map((card) => {
             switch (card.type) {
@@ -444,7 +451,7 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="relative w-full h-screen overflow-hidden flex bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
+      className="relative w-full h-screen overflow-hidden flex"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
@@ -540,12 +547,14 @@ export default function DashboardPage() {
                     {card.type === 'analytics-link' ? (
                       /* Analytics Link - CTA */
                       <div className="text-center space-y-3">
-                        <div className="flex justify-center mb-2">
-                          <Icon
-                            size={36}
-                            className="drop-shadow-lg opacity-90"
-                            style={{ color: card.color }}
-                          />
+                        <div className="flex justify-center mb-4">
+                          <div className="bg-slate-800/40 rounded-xl p-4">
+                            <Icon
+                              size={48}
+                              className="drop-shadow-lg opacity-90"
+                              style={{ color: card.color }}
+                            />
+                          </div>
                         </div>
                         <p className="text-sm font-semibold text-slate-200">View Analytics</p>
                         <p className="text-xs text-slate-500">Detailed charts & insights</p>
@@ -555,12 +564,14 @@ export default function DashboardPage() {
                       <>
                         <div className="space-y-4">
                           {/* Icon display */}
-                          <div className="flex justify-center mb-2">
-                            <Icon
-                              size={36}
-                              className="drop-shadow-lg opacity-90"
-                              style={{ color: card.color }}
-                            />
+                          <div className="flex justify-center mb-4">
+                            <div className="bg-slate-800/40 rounded-xl p-4">
+                              <Icon
+                                size={48}
+                                className="drop-shadow-lg opacity-90"
+                                style={{ color: card.color }}
+                              />
+                            </div>
                           </div>
 
                           {/* Primary Metric */}

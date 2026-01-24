@@ -578,7 +578,7 @@ const WigleTestPage: React.FC = () => {
   // User must click "Load Points" button to fetch
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col relative">
+    <div className="min-h-screen w-full text-slate-100 flex flex-col relative">
       {/* Left Stack Panels */}
       {(showControls || showFilters) && (
         <div
