@@ -1,8 +1,10 @@
 import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type mapboxglType from 'mapbox-gl';
-import { FilterButton } from './FilterButton';
+import { HamburgerButton } from './HamburgerButton';
 import { FilterPanelWrapper } from './FilterPanelWrapper';
+import { FilterPanel } from './FilterPanel';
+import { ActiveFiltersSummary } from './ActiveFiltersSummary';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
@@ -106,6 +108,7 @@ const WiglePage: React.FC = () => {
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [tilesReady, setTilesReady] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
   const [show3dBuildings, setShow3dBuildings] = useState(false);
@@ -579,40 +582,36 @@ const WiglePage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full text-slate-100 flex flex-col relative">
-      {/* Controls Panel */}
-      {showControls && (
-        <div
-          className="fixed top-20 left-4 z-50 pointer-events-auto rounded-xl p-5 space-y-3 text-sm"
-          style={{
-            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-            pointerEvents: 'auto',
-            maxWidth: '320px',
-          }}
-        >
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="w-full rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-            style={{
-              background: showFilters
-                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-            }}
-          >
-            {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
-          </button>
+      <HamburgerButton isOpen={showMenu} onClick={() => setShowMenu(!showMenu)} />
 
+      {/* Controls Panel - Kepler style */}
+      {showMenu && (
+        <div className="fixed top-16 left-4 w-80 max-h-[calc(100vh-100px)] bg-slate-900/95 border border-blue-500/25 backdrop-blur-xl rounded-xl shadow-2xl p-5 space-y-3.5 text-sm overflow-y-auto z-40 pointer-events-auto">
+          <div className="border-b border-blue-500/20 pb-3.5 mb-1.5">
+            <h3 className="text-xl font-bold text-blue-400">🛡️ ShadowCheck</h3>
+            <p className="text-xs text-slate-400 mt-1">Network Mapping</p>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`mt-3 w-full px-3 py-2 text-sm font-semibold text-white rounded-lg border shadow-lg transition-all hover:shadow-xl ${
+                showFilters
+                  ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-600'
+                  : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-600'
+              }`}
+            >
+              {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
+            </button>
+          </div>
+
+          {/* Map Style */}
           <div>
-            <label htmlFor="wigle-map-style" className="block text-xs text-slate-400 mb-1">
+            <label htmlFor="wigle-map-style" className="block mb-1 text-xs text-slate-300">
               Map Style
             </label>
             <select
               id="wigle-map-style"
               value={mapStyle}
               onChange={(e) => setMapStyle(e.target.value)}
-              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-slate-100"
+              className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-xs"
             >
               {mapStyles.map((style) => (
                 <option key={style.value} value={style.value}>
@@ -622,6 +621,7 @@ const WiglePage: React.FC = () => {
             </select>
           </div>
 
+          {/* 3D & Terrain buttons */}
           <div className="flex gap-2">
             <button
               onClick={() => setShow3dBuildings(!show3dBuildings)}
@@ -645,6 +645,7 @@ const WiglePage: React.FC = () => {
             </button>
           </div>
 
+          {/* Load Points button */}
           <button
             onClick={fetchPoints}
             className="w-full rounded-lg px-4 py-2 text-sm font-semibold shadow-lg transition-all hover:shadow-xl"
@@ -658,15 +659,31 @@ const WiglePage: React.FC = () => {
             {loading ? 'Loading...' : '📍 Load Points'}
           </button>
 
-          <div className="pt-2 border-t border-slate-700 text-xs text-slate-400">
-            <div>Loaded: {rows.length.toLocaleString()}</div>
-            {total != null && <div>Total: {total.toLocaleString()}</div>}
+          {/* Stats footer */}
+          <div className="pt-3 mt-2 border-t border-blue-500/20 bg-gradient-to-b from-blue-500/5 to-transparent p-3 -mx-5 -mb-5 rounded-b-xl text-xs">
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Loaded:</span>
+                <span className="text-blue-400 font-semibold">{rows.length.toLocaleString()}</span>
+              </div>
+              {total != null && (
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Total:</span>
+                  <span className="text-blue-400 font-semibold">{total.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      <FilterButton isOpen={showControls} onClick={() => setShowControls(!showControls)} />
-      <FilterPanelWrapper isOpen={showFilters} adaptedFilters={adaptedFilters} />
+      {/* Filter Panel - appears to the right */}
+      {showFilters && showMenu && (
+        <div className="fixed top-16 left-[352px] w-80 max-h-[calc(100vh-100px)] bg-slate-900/95 border border-blue-500/25 backdrop-blur-xl rounded-xl shadow-2xl p-4 space-y-2 overflow-y-auto z-40 pointer-events-auto">
+          <ActiveFiltersSummary adaptedFilters={adaptedFilters} compact />
+          <FilterPanel density="compact" />
+        </div>
+      )}
 
       <div
         className="flex-1"

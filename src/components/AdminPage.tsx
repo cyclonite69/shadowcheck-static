@@ -149,9 +149,16 @@ const AdminPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Ambient gradient background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl" />
+      </div>
+
       {/* Header */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50 sticky top-0 z-40">
+      <div className="bg-slate-800/30 backdrop-blur-xl border-b border-slate-700/30 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center space-x-4">
             <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
@@ -283,7 +290,7 @@ const AdminPage: React.FC = () => {
           )}
 
           {activeTab === 'imports' && (
-            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all col-span-full">
               <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
               {/* Header */}
@@ -324,7 +331,7 @@ const AdminPage: React.FC = () => {
           )}
 
           {activeTab === 'exports' && (
-            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all col-span-full">
               <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
               {/* Header */}
@@ -355,6 +362,23 @@ const AdminPage: React.FC = () => {
                 >
                   Export GeoJSON
                 </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all col-span-full">
+              <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+              <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+                  <ShieldIcon size={20} className="text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-white">Security Settings</h2>
+              </div>
+
+              <div className="p-6">
+                <p className="text-slate-400">Security configuration options coming soon</p>
               </div>
             </div>
           )}
