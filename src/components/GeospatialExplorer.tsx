@@ -18,9 +18,7 @@ import { MapStatusBar } from './geospatial/MapStatusBar';
 import { NetworkNoteModal } from './geospatial/NetworkNoteModal';
 import { ResizeHandle } from './geospatial/ResizeHandle';
 import { NetworkTableHeader } from './geospatial/NetworkTableHeader';
-import { NetworkTableRow } from './geospatial/NetworkTableRow';
-import { NetworkTableFooter } from './geospatial/NetworkTableFooter';
-import { NetworkTableEmptyState } from './geospatial/NetworkTableEmptyState';
+import { NetworkTableBody } from './geospatial/NetworkTableBody';
 
 // Types
 import type {
@@ -1949,44 +1947,20 @@ export default function GeospatialExplorer() {
             />
 
             {/* Data Table - Only this scrolls */}
-            <div ref={tableContainerRef} className="flex-1 overflow-auto min-h-0">
-              <table
-                style={{
-                  width: '100%',
-                  tableLayout: 'fixed',
-                  borderCollapse: 'separate',
-                  borderSpacing: 0,
-                  fontSize: '11px',
-                }}
-              >
-                <tbody>
-                  <NetworkTableEmptyState
-                    loading={loadingNetworks}
-                    empty={!loadingNetworks && filteredNetworks.length === 0}
-                    error={error}
-                    colSpan={visibleColumns.length}
-                  />
-                  {!loadingNetworks &&
-                    filteredNetworks.map((net, idx) => (
-                      <NetworkTableRow
-                        key={`${net.bssid}-${idx}`}
-                        net={net}
-                        index={idx}
-                        visibleColumns={visibleColumns}
-                        isSelected={selectedNetworks.has(net.bssid)}
-                        onSelectExclusive={selectNetworkExclusive}
-                        onOpenContextMenu={openContextMenu}
-                        onToggleSelectNetwork={toggleSelectNetwork}
-                      />
-                    ))}
-                </tbody>
-              </table>
-              <NetworkTableFooter
-                isLoadingMore={isLoadingMore}
-                hasMore={pagination.hasMore}
-                onLoadMore={loadMore}
-              />
-            </div>
+            <NetworkTableBody
+              tableContainerRef={tableContainerRef}
+              visibleColumns={visibleColumns}
+              loadingNetworks={loadingNetworks}
+              filteredNetworks={filteredNetworks}
+              error={error}
+              selectedNetworks={selectedNetworks}
+              onSelectExclusive={selectNetworkExclusive}
+              onOpenContextMenu={openContextMenu}
+              onToggleSelectNetwork={toggleSelectNetwork}
+              isLoadingMore={isLoadingMore}
+              hasMore={pagination.hasMore}
+              onLoadMore={loadMore}
+            />
 
             <MapStatusBar
               visibleCount={filteredNetworks.length}
