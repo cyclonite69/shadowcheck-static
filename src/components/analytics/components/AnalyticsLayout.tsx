@@ -42,95 +42,75 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
 }) => {
   return (
     <div
-      className="relative w-full overflow-hidden flex"
-      style={{
-        height: '100vh',
-        background:
-          'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
-      }}
+      className="relative w-full h-screen overflow-hidden flex bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_20%,rgba(52,211,153,0.06),transparent_25%)] before:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_80%_0%,rgba(59,130,246,0.06),transparent_20%)] after:pointer-events-none"
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
     >
       {/* Filter Panel */}
       {showFilters && (
-        <div
-          className="fixed top-20 right-4 max-w-md space-y-2"
-          style={{
-            maxHeight: 'calc(100vh - 100px)',
-            overflowY: 'auto',
-            zIndex: 100000,
-            pointerEvents: 'auto',
-          }}
-        >
+        <div className="fixed top-20 right-4 max-w-md max-h-[calc(100vh-100px)] overflow-y-auto z-[100000] pointer-events-auto space-y-2">
           <FilterPanel density="compact" />
         </div>
       )}
 
       {/* Filter Icon Button - Only visible on hover in upper left */}
-      <div
-        className="fixed top-0 left-0 w-16 h-16 group"
-        style={{
-          zIndex: 100000,
-          pointerEvents: 'auto',
-        }}
-      >
+      <div className="fixed top-0 left-0 w-16 h-16 group z-[100000] pointer-events-auto">
         <button
           type="button"
           aria-label={showFilters ? 'Hide filters' : 'Show filters'}
           title={showFilters ? 'Hide filters' : 'Show filters'}
           onClick={() => setShowFilters(!showFilters)}
-          className="absolute top-4 left-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
-          style={{
-            background: showFilters
-              ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-              : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-          }}
+          className={`absolute top-4 left-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110 ${
+            showFilters
+              ? 'bg-gradient-to-br from-red-500 to-red-600'
+              : 'bg-gradient-to-br from-blue-500 to-blue-600'
+          }`}
         >
           <FilterIcon size={24} className="text-white" />
         </button>
       </div>
 
-      <div className="relative flex-1 overflow-y-auto" style={{ height: '100vh' }}>
+      <div className="relative flex-1 overflow-y-auto h-screen">
         {/* Cards */}
-        <div style={{ minHeight: '2700px', position: 'relative' }}>
+        <div className="relative min-h-[2700px]">
           {cards.map((card) => {
             const Icon = card.icon;
             const width = `${card.w}%`;
             const left = `${card.x}%`;
+            const isActive = dragging === card.id || resizing === card.id;
 
             return (
               <div
                 key={card.id}
                 style={{
-                  position: 'absolute',
                   left: left,
                   top: `${card.y}px`,
                   width: width,
                   height: `${card.h}px`,
-                  transition:
-                    dragging === card.id || resizing === card.id ? 'none' : 'box-shadow 0.2s',
-                  cursor: dragging === card.id ? 'grabbing' : 'grab',
-                  userSelect: dragging || resizing ? 'none' : 'auto',
+                  ...(isActive ? { transition: 'none' } : {}),
                 }}
                 onMouseDown={(e) => onMouseDown(e, card.id, 'move')}
-                className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.45)] transition-shadow group backdrop-blur-sm outline outline-1 outline-[#13223a]/60"
+                className={`absolute overflow-hidden rounded-xl border border-slate-700/40 bg-slate-900/50 shadow-sm shadow-black/20 hover:shadow-lg hover:shadow-black/30 transition-shadow duration-200 group backdrop-blur-sm ${
+                  isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
+                }`}
               >
-                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+                <div className="absolute inset-0 pointer-events-none opacity-5 bg-gradient-to-br from-white/10 to-transparent" />
+
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/40">
                   <div className="flex items-center gap-2">
-                    <Icon size={18} className="text-blue-400" />
-                    <h3 className="text-sm font-semibold text-white">{card.title}</h3>
+                    <Icon size={16} className="text-slate-300/80" />
+                    <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
                   </div>
                   <GripHorizontal
-                    size={16}
-                    className="text-white/50 group-hover:text-white transition-colors flex-shrink-0"
+                    size={14}
+                    className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
                   />
                 </div>
 
                 {/* Content */}
-                <div className="p-4 overflow-hidden" style={{ height: `${card.h - 50}px` }}>
+                <div className="px-3 py-2 overflow-hidden" style={{ height: `${card.h - 52}px` }}>
                   <AnalyticsCharts
                     card={card}
                     data={data}
@@ -148,12 +128,7 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({
                     e.preventDefault();
                     onMouseDown(e, card.id, 'resize');
                   }}
-                  className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.35) 50%)',
-                    borderRadius: '0 0 10px 0',
-                  }}
+                  className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
                 />
               </div>
             );

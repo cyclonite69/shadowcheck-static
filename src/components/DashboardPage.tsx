@@ -497,78 +497,88 @@ export default function DashboardPage() {
                   ...(isActive ? { transition: 'none' } : {}),
                 }}
                 onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-                className={`absolute overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow duration-200 group backdrop-blur-sm outline outline-1 outline-slate-900/60 ${
+                className={`absolute overflow-hidden rounded-xl border border-slate-700/40 bg-slate-900/50 shadow-sm shadow-black/20 hover:shadow-lg hover:shadow-black/30 transition-shadow duration-200 group backdrop-blur-sm ${
                   isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
                 }`}
               >
-                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+                <div className="absolute inset-0 pointer-events-none opacity-5 bg-gradient-to-br from-white/10 to-transparent" />
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 bg-slate-900/90 border-b border-slate-800/80">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/40">
                   <div className="flex items-center gap-2">
-                    <Icon size={18} className="text-blue-400" />
-                    <h3 className="text-sm font-semibold text-white">{card.title}</h3>
+                    <Icon size={16} className="text-slate-300/80" />
+                    <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
                   </div>
                   <GripHorizontal
-                    size={16}
-                    className="text-white/50 group-hover:text-white transition-colors flex-shrink-0"
+                    size={14}
+                    className="text-slate-500 group-hover:text-slate-300 transition-colors flex-shrink-0"
                   />
                 </div>
 
                 {/* Content */}
                 <div
-                  className={`p-2 overflow-hidden flex flex-col items-center justify-center text-center ${
+                  className={`px-4 py-4 overflow-hidden flex flex-col ${
                     card.type === 'analytics-link'
-                      ? 'cursor-pointer hover:bg-slate-900/50 transition-colors'
-                      : ''
+                      ? 'cursor-pointer hover:bg-slate-800/30 transition-colors items-center justify-center'
+                      : 'justify-between'
                   }`}
-                  style={{ height: `${card.h - 40}px` }}
+                  style={{ height: `${card.h - 52}px` }}
                   onClick={() => {
                     if (card.type === 'analytics-link') {
                       window.location.href = '/analytics';
                     }
                   }}
                 >
-                  {/* Icon */}
-                  <div className="mb-2">
-                    <Icon size={32} className="drop-shadow-lg" style={{ color: card.color }} />
-                  </div>
-
-                  {/* Primary Metric - Unique Networks */}
-                  <div className="mb-1">
-                    <p
-                      className="text-[32px] font-extrabold drop-shadow-2xl tracking-tight leading-none"
-                      style={{ color: card.color }}
-                    >
-                      {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
-                    </p>
-                    <p className="text-xs font-medium text-slate-300 mt-1">Unique Networks</p>
-                  </div>
-
-                  {/* Secondary Metric - Total Observations */}
-                  {card.observations !== undefined && (
-                    <div className="mt-3 pt-2 border-t border-slate-600/30">
-                      <p className="text-sm font-semibold text-slate-300">
-                        {card.observations.toLocaleString()}
+                  {card.type === 'analytics-link' ? (
+                    /* Analytics Link - Centered Layout */
+                    <div className="text-center space-y-2">
+                      <p className="text-5xl font-light" style={{ color: card.color }}>
+                        →
                       </p>
-                      <p className="text-xs text-slate-400">Total Observations</p>
+                      <p className="text-xs text-slate-400">View detailed analytics</p>
                     </div>
-                  )}
+                  ) : (
+                    /* KPI Tile - Consistent spacing */
+                    <>
+                      <div className="space-y-3">
+                        {/* Primary Metric */}
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide">
+                            Unique Networks
+                          </p>
+                          <p
+                            className="text-4xl font-semibold tracking-tight leading-none"
+                            style={{ color: card.color }}
+                          >
+                            {typeof card.value === 'number'
+                              ? card.value.toLocaleString()
+                              : card.value}
+                          </p>
+                        </div>
 
-                  {/* Subtitle */}
-                  <div>
-                    <p className="text-xs font-medium text-slate-400">
-                      {card.type === 'analytics-link'
-                        ? 'View detailed analytics'
-                        : loading
+                        {/* Secondary Metric */}
+                        {card.observations !== undefined && (
+                          <div className="space-y-0.5">
+                            <p className="text-sm text-slate-300/90 tabular-nums">
+                              {card.observations.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-slate-500">Total Observations</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status - Always at bottom */}
+                      <p className="text-[10px] text-slate-500/80">
+                        {loading
                           ? 'Loading...'
                           : error
                             ? error
                             : filtersApplied > 0
                               ? `Filtered (${filtersApplied} active)`
                               : 'All networks'}
-                    </p>
-                  </div>
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 {/* Resize Handle */}
@@ -578,7 +588,7 @@ export default function DashboardPage() {
                     e.preventDefault();
                     handleMouseDown(e, card.id, 'resize');
                   }}
-                  className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20 rounded-br-[10px] bg-[linear-gradient(135deg,transparent_50%,rgba(255,255,255,0.35)_50%)]"
+                  className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-0 group-hover:opacity-60 transition-opacity z-20 rounded-br-xl bg-gradient-to-tl from-slate-400/30 to-transparent"
                 />
               </div>
             );
