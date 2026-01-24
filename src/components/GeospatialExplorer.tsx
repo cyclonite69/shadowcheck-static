@@ -15,6 +15,9 @@ import { NetworkExplorerSection } from './geospatial/NetworkExplorerSection';
 import { useMapLayersToggle } from './geospatial/MapLayersToggle';
 import { GeospatialFiltersPanel } from './geospatial/GeospatialFiltersPanel';
 import { useLocationSearch } from './geospatial/useLocationSearch';
+import { useHomeLocation } from './geospatial/useHomeLocation';
+import { useMapDimensions } from './geospatial/useMapDimensions';
+import { useBoundingBoxFilter } from './geospatial/useBoundingBoxFilter';
 
 // Types
 import type {
@@ -200,27 +203,6 @@ export default function GeospatialExplorer() {
     localStorage.setItem('shadowcheck_visible_columns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
-  // Fetch home location from API
-  useEffect(() => {
-    const fetchHomeLocation = async () => {
-      try {
-        const response = await fetch('/api/home-location');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.latitude && data.longitude) {
-            setHomeLocation({
-              center: [data.longitude, data.latitude],
-              radius: data.radius || DEFAULT_HOME_RADIUS,
-            });
-          }
-        }
-      } catch (error) {
-        logError('Failed to fetch home location', error);
-      }
-    };
-    fetchHomeLocation();
-  }, []);
-
   // Location search moved into useLocationSearch hook
 
   // Reset pagination when filters change
@@ -228,40 +210,15 @@ export default function GeospatialExplorer() {
     resetPagination();
   }, [JSON.stringify(debouncedFilterState), JSON.stringify(sort), locationMode, resetPagination]);
 
-  // Update container height on window resize
-  useEffect(() => {
-    const updateHeight = () => {
-      const height = window.innerHeight - 150; // More conservative padding for browser chrome
-      setContainerHeight(height);
-      setMapHeight(Math.floor(height * 0.75)); // Map takes 75% of available height (more space)
-    };
+  useHomeLocation({ setHomeLocation, logError });
 
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-    return () => window.removeEventListener('resize', updateHeight);
-  }, []);
-
-  // Map-driven bounding box filter
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !enabled.boundingBox) return;
-
-    const map = mapRef.current;
-    const updateBounds = () => {
-      const bounds = map.getBounds();
-      setFilter('boundingBox', {
-        north: bounds.getNorth(),
-        south: bounds.getSouth(),
-        east: bounds.getEast(),
-        west: bounds.getWest(),
-      });
-    };
-
-    updateBounds();
-    map.on('moveend', updateBounds);
-    return () => {
-      map.off('moveend', updateBounds);
-    };
-  }, [mapReady, enabled.boundingBox, setFilter]);
+  useMapDimensions({ setContainerHeight, setMapHeight });
+  useBoundingBoxFilter({
+    mapReady,
+    mapRef,
+    enabled: enabled.boundingBox,
+    setFilter,
+  });
 
   // Update home location on map when it changes
   useEffect(() => {
