@@ -9,17 +9,13 @@ import { useObservations } from '../hooks/useObservations';
 import { logError, logDebug } from '../logging/clientLogger';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { MapToolbarActions } from './geospatial/MapToolbarActions';
-import { NetworkExplorerHeader } from './geospatial/NetworkExplorerHeader';
-import { MapStatusBar } from './geospatial/MapStatusBar';
 import { ResizeHandle } from './geospatial/ResizeHandle';
-import { NetworkTableHeader } from './geospatial/NetworkTableHeader';
-import { NetworkTableBody } from './geospatial/NetworkTableBody';
-import { NetworkExplorerCard } from './geospatial/NetworkExplorerCard';
 import { MapPanel } from './geospatial/MapPanel';
 import { FiltersSidebar } from './geospatial/FiltersSidebar';
 import { GeospatialContent } from './geospatial/GeospatialContent';
 import { GeospatialOverlays } from './geospatial/GeospatialOverlays';
 import { GeospatialShell } from './geospatial/GeospatialShell';
+import { NetworkExplorerSection } from './geospatial/NetworkExplorerSection';
 
 // Types
 import type {
@@ -1834,64 +1830,47 @@ export default function GeospatialExplorer() {
         {/* Resize Handle */}
         <ResizeHandle onMouseDown={handleMouseDown} />
 
-        {/* Networks Explorer Card */}
-        <NetworkExplorerCard>
-          <NetworkExplorerHeader
-            expensiveSort={expensiveSort}
-            planCheck={planCheck}
-            onPlanCheckChange={setPlanCheck}
-            locationMode={locationMode}
-            onLocationModeChange={setLocationMode}
-            filtersOpen={filtersOpen}
-            onToggleFilters={() => setFiltersOpen((open) => !open)}
-            showColumnSelector={showColumnSelector}
-            columnDropdownRef={columnDropdownRef}
-            visibleColumns={visibleColumns}
-            columns={NETWORK_COLUMNS}
-            onToggleColumnSelector={() => setShowColumnSelector((v) => !v)}
-            onToggleColumn={toggleColumn}
-          />
-
-          {/* Header Table - Never scrolls */}
-          <NetworkTableHeader
-            visibleColumns={visibleColumns}
-            sort={sort}
-            allSelected={allSelected}
-            someSelected={someSelected}
-            onToggleSelectAll={toggleSelectAll}
-            onColumnSort={handleColumnSort}
-          />
-
-          {/* Data Table - Only this scrolls */}
-          <NetworkTableBody
-            tableContainerRef={tableContainerRef}
-            visibleColumns={visibleColumns}
-            loadingNetworks={loadingNetworks}
-            filteredNetworks={filteredNetworks}
-            error={error}
-            selectedNetworks={selectedNetworks}
-            onSelectExclusive={selectNetworkExclusive}
-            onOpenContextMenu={openContextMenu}
-            onToggleSelectNetwork={toggleSelectNetwork}
-            isLoadingMore={isLoadingMore}
-            hasMore={pagination.hasMore}
-            onLoadMore={loadMore}
-          />
-
-          <MapStatusBar
-            visibleCount={filteredNetworks.length}
-            networkTruncated={networkTruncated}
-            networkTotal={networkTotal}
-            selectedCount={selectedNetworks.size}
-            observationCount={observationCount}
-            observationsTruncated={observationsTruncated}
-            observationsTotal={observationsTotal}
-            renderBudgetExceeded={renderBudgetExceeded}
-            renderBudget={renderBudget}
-            loadingNetworks={loadingNetworks}
-            loadingObservations={loadingObservations}
-          />
-        </NetworkExplorerCard>
+        <NetworkExplorerSection
+          expensiveSort={expensiveSort}
+          planCheck={planCheck}
+          onPlanCheckChange={setPlanCheck}
+          locationMode={locationMode}
+          onLocationModeChange={setLocationMode}
+          filtersOpen={filtersOpen}
+          onToggleFilters={() => setFiltersOpen((open) => !open)}
+          showColumnSelector={showColumnSelector}
+          columnDropdownRef={columnDropdownRef}
+          visibleColumns={visibleColumns}
+          columns={NETWORK_COLUMNS}
+          onToggleColumnSelector={() => setShowColumnSelector((v) => !v)}
+          onToggleColumn={toggleColumn}
+          sort={sort}
+          allSelected={allSelected}
+          someSelected={someSelected}
+          onToggleSelectAll={toggleSelectAll}
+          onColumnSort={handleColumnSort}
+          tableContainerRef={tableContainerRef}
+          loadingNetworks={loadingNetworks}
+          filteredNetworks={filteredNetworks}
+          error={error}
+          selectedNetworks={selectedNetworks}
+          onSelectExclusive={selectNetworkExclusive}
+          onOpenContextMenu={openContextMenu}
+          onToggleSelectNetwork={toggleSelectNetwork}
+          isLoadingMore={isLoadingMore}
+          hasMore={pagination.hasMore}
+          onLoadMore={loadMore}
+          visibleCount={filteredNetworks.length}
+          networkTruncated={networkTruncated}
+          networkTotal={networkTotal}
+          selectedCount={selectedNetworks.size}
+          observationCount={observationCount}
+          observationsTruncated={observationsTruncated}
+          observationsTotal={observationsTotal}
+          renderBudgetExceeded={renderBudgetExceeded}
+          renderBudget={renderBudget}
+          loadingObservations={loadingObservations}
+        />
       </GeospatialContent>
 
       <GeospatialOverlays
