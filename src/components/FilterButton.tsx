@@ -12,10 +12,10 @@ export const FilterButton: React.FC<FilterButtonProps> = ({ isOpen, onClick }) =
       aria-label={isOpen ? 'Hide filters' : 'Show filters'}
       title={isOpen ? 'Hide filters' : 'Show filters'}
       onClick={onClick}
-      className={`absolute top-4 left-4 p-3 rounded-lg shadow-xl transition-all duration-200 z-50 pointer-events-auto ${
+      className={`fixed top-4 left-4 p-3 rounded-lg shadow-xl transition-all duration-200 z-50 pointer-events-auto ${
         isOpen
           ? 'bg-gradient-to-br from-red-500 to-red-600 text-white scale-105'
-          : 'bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white opacity-60 hover:opacity-100 hover:scale-110'
+          : 'bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white opacity-100 hover:scale-110'
       }`}
     >
       <svg
