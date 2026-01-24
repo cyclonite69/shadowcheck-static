@@ -18,6 +18,15 @@ export default {
           ...colors.slate,
           950: '#0f172a',
         },
+        // Dashboard theme colors
+        'dashboard-dark': '#0a1525',
+        'dashboard-mid': '#0d1c31',
+        'dashboard-darker': '#0a1424',
+      },
+      backgroundImage: {
+        'dashboard-gradient': 'linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
+        'dashboard-gradient-subtle':
+          'radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%), radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%), linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%)',
       },
       zIndex: {
         dropdown: '100',

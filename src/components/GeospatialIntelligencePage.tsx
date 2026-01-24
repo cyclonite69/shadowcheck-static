@@ -200,7 +200,7 @@ export default function GeospatialIntelligencePage() {
   const threatish = useMemo(() => networks.filter((n) => (n.signal ?? -999) > -60), [networks]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-6 space-y-6">
+    <div className="min-h-screen text-white p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
           Geospatial Intelligence

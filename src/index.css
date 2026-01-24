@@ -3,6 +3,21 @@
 /* Tailwind CSS v4 import */
 @import "tailwindcss";
 
+/* Dashboard system-wide theme */
+html, body, #root {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.06), transparent 25%),
+    radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.06), transparent 20%),
+    linear-gradient(135deg, #0a1525 0%, #0d1c31 40%, #0a1424 100%);
+  min-height: 100vh;
+}
+
+/* Ensure full viewport coverage */
+body {
+  margin: 0;
+  padding: 0;
+}
+
 /* Custom CSS variables */
 :root {
   color-scheme: dark;
@@ -31,7 +46,6 @@
 /* Base layer customizations */
 @layer base {
   body {
-    background-color: #0f172a;
     color: #f8fafc;
     font-family: var(--font-sans);
   }
