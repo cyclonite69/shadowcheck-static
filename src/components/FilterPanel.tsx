@@ -150,7 +150,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
   const listLayoutClass = isCompact ? 'grid grid-cols-2 gap-2' : 'space-y-2';
   const listItemTextClass = isCompact ? 'text-[11px]' : 'text-xs';
   const controlBase =
-    'filter-panel__control w-full bg-slate-800 border border-slate-600 rounded text-slate-200';
+    'filter-panel__control w-full bg-slate-800 border border-slate-600 rounded text-slate-200 box-border';
   const controlSize = isCompact ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm';
   const controlClass = `${controlBase} ${controlSize}`;
 
@@ -158,7 +158,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
 
   return (
     <div
-      className={`filter-panel ${panelWidthClass} bg-slate-950/90 border-r border-slate-600/60 text-slate-200 flex flex-col h-full flex-shrink-0 ${
+      className={`filter-panel ${panelWidthClass} bg-slate-950/90 border-r border-slate-600/60 text-slate-200 flex flex-col h-full flex-shrink-0 overflow-x-hidden ${
         isCompact ? 'filter-panel--compact' : ''
       }`}
     >
@@ -882,7 +882,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                   })
                 }
                 placeholder="North"
-                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm box-border"
               />
               <input
                 type="number"
@@ -894,7 +894,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                   })
                 }
                 placeholder="South"
-                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm box-border"
               />
               <input
                 type="number"
@@ -906,7 +906,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                   })
                 }
                 placeholder="East"
-                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm box-border"
               />
               <input
                 type="number"
@@ -918,7 +918,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                   })
                 }
                 placeholder="West"
-                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm box-border"
               />
             </div>
             <p className="mt-1 text-xs text-slate-500">
@@ -943,7 +943,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                   })
                 }
                 placeholder="Latitude"
-                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm box-border"
               />
               <input
                 type="number"
@@ -955,7 +955,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                   })
                 }
                 placeholder="Longitude"
-                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm box-border"
               />
               <input
                 type="number"
@@ -967,7 +967,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
                   })
                 }
                 placeholder="Radius (m)"
-                className="filter-panel__control col-span-2 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm"
+                className="filter-panel__control col-span-2 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-slate-200 text-sm box-border"
               />
             </div>
           </FilterInput>
