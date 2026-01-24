@@ -34,6 +34,7 @@ import { useMapPreferences } from './geospatial/useMapPreferences';
 import { useObservationSummary } from './geospatial/useObservationSummary';
 import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults';
 import { useExplorerPanels } from './geospatial/useExplorerPanels';
+import { useTimeFrequencyModal } from './geospatial/useTimeFrequencyModal';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -151,8 +152,7 @@ export default function GeospatialExplorer() {
     removeAttachment,
   } = useNetworkNotes({ logError });
 
-  // Time-frequency modal state
-  const [timeFreqModal, setTimeFreqModal] = useState<{ bssid: string; ssid: string } | null>(null);
+  const { timeFreqModal, openTimeFrequency, closeTimeFrequency } = useTimeFrequencyModal();
 
   useFilterURLSync();
   const { getCurrentEnabled, setFilter } = useFilterStore();
@@ -381,7 +381,7 @@ export default function GeospatialExplorer() {
           onOpenTimeFrequency={() => {
             const n = contextMenu.network;
             const payload = n ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') } : null;
-            setTimeFreqModal(payload);
+            openTimeFrequency(payload);
             closeContextMenu();
           }}
           onOpenNote={() => {
@@ -413,7 +413,7 @@ export default function GeospatialExplorer() {
           }}
           onSaveNote={handleSaveNote}
           timeFreqModal={timeFreqModal}
-          onCloseTimeFrequency={() => setTimeFreqModal(null)}
+          onCloseTimeFrequency={closeTimeFrequency}
         />
       }
     />
