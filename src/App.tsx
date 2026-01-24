@@ -11,9 +11,9 @@ const GeospatialIntelligencePage = lazy(() => import('./components/GeospatialInt
 const AnalyticsPage = lazy(() => import('./components/AnalyticsPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const MLTrainingPage = lazy(() => import('./components/MLTrainingPage'));
-const WigleTestPage = lazy(() => import('./components/WigleTestPage'));
-const KeplerTestPage = lazy(() => import('./components/KeplerTestPage'));
-const ApiTestPage = lazy(() => import('./components/ApiTestPage'));
+const WiglePage = lazy(() => import('./components/WiglePage'));
+const KeplerPage = lazy(() => import('./components/KeplerPage'));
+const ApiPage = lazy(() => import('./components/ApiPage'));
 
 /**
  * Route loading fallback - minimal, no layout shift
@@ -58,10 +58,10 @@ function App() {
             <Route path="/geospatial-intel" element={<GeospatialIntelligencePage />} />
             <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/wigle-test" element={<WigleTestPage />} />
+            <Route path="/wigle-test" element={<WiglePage />} />
             <Route path="/ml-training" element={<MLTrainingPage />} />
-            <Route path="/kepler-test" element={<KeplerTestPage />} />
-            <Route path="/endpoint-test" element={<ApiTestPage />} />
+            <Route path="/kepler-test" element={<KeplerPage />} />
+            <Route path="/endpoint-test" element={<ApiPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </Suspense>

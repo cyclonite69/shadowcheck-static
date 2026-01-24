@@ -213,6 +213,11 @@ class NetworkRepository {
       let obsRow = {};
       try {
         console.log('Executing observations query with whereClause:', whereClause);
+        const obsWhereClause = whereClause
+          .replace(/type/g, 'radio_type')
+          .replace(/bestlevel/g, 'level')
+          .replace(/lasttime_ms/g, '(EXTRACT(EPOCH FROM time) * 1000)')
+          .replace(/capabilities/g, 'radio_capabilities');
         const obsResult = await query(
           `
           SELECT
@@ -224,11 +229,7 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE radio_type = 'N') as nr_observations,
             COUNT(*) FILTER (WHERE radio_type = 'G') as gsm_observations
           FROM public.observations
-          ${whereClause
-            .replace(/type/g, 'radio_type')
-            .replace(/bestlevel/g, 'level')
-            .replace(/lasttime_ms/g, '(EXTRACT(EPOCH FROM time) * 1000)')
-            .replace(/capabilities/g, 'radio_capabilities')}
+          ${obsWhereClause}
         `,
           params
         );
