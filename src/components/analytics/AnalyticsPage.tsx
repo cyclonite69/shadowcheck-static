@@ -5,6 +5,8 @@
 import React from 'react';
 import { usePageFilters } from '../../hooks/usePageFilters';
 import { useFilterURLSync } from '../../hooks/useFilteredData';
+import { useAdaptedFilters } from '../../hooks/useAdaptedFilters';
+import { getPageCapabilities } from '../../utils/filterCapabilities';
 import { useAnalyticsData } from './hooks/useAnalyticsData';
 import { useAnalyticsFilters } from './hooks/useAnalyticsFilters';
 import { useCardLayout } from './hooks/useCardLayout';
@@ -16,6 +18,10 @@ export default function Analytics() {
 
   // Sync filters with URL
   useFilterURLSync();
+
+  // Get adapted filters for FilterPanelWrapper
+  const capabilities = getPageCapabilities('analytics');
+  const adaptedFilters = useAdaptedFilters(capabilities);
 
   // Get filter state and controls
   const {
@@ -57,6 +63,7 @@ export default function Analytics() {
       dragging={dragging}
       resizing={resizing}
       debouncedFilterState={debouncedFilterState}
+      adaptedFilters={adaptedFilters}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
