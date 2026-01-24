@@ -8,7 +8,7 @@ import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
 import { logError, logDebug } from '../logging/clientLogger';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
-import { MapToolbar } from './geospatial/MapToolbar';
+import { MapToolbarActions } from './geospatial/MapToolbarActions';
 import { NetworkExplorerHeader } from './geospatial/NetworkExplorerHeader';
 import { MapStatusBar } from './geospatial/MapStatusBar';
 import { ResizeHandle } from './geospatial/ResizeHandle';
@@ -1792,7 +1792,7 @@ export default function GeospatialExplorer() {
           mapHeight={mapHeight}
           title="ShadowCheck Geospatial Intelligence"
           toolbar={
-            <MapToolbar
+            <MapToolbarActions
               searchContainerRef={locationSearchRef}
               locationSearch={locationSearch}
               onLocationSearchChange={setLocationSearch}
@@ -1814,43 +1814,14 @@ export default function GeospatialExplorer() {
               onToggleTerrain={() => toggleTerrain(!showTerrain)}
               fitButtonActive={fitButtonActive}
               canFit={selectedNetworks.size > 0}
-              onFit={() => {
-                const mapboxgl = mapboxRef.current;
-                if (!mapRef.current || !mapboxgl || activeObservationSets.length === 0) return;
-                setFitButtonActive(true);
-                const allCoords = activeObservationSets.flatMap((set) =>
-                  set.observations.map((obs) => [obs.lon, obs.lat] as [number, number])
-                );
-                if (allCoords.length === 0) return;
-                const bounds = allCoords.reduce(
-                  (bounds, coord) => bounds.extend(coord),
-                  new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
-                );
-                mapRef.current.fitBounds(bounds, { padding: 50 });
-                setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
-              }}
+              mapboxRef={mapboxRef}
+              mapRef={mapRef}
+              activeObservationSets={activeObservationSets}
+              setFitButtonActive={setFitButtonActive}
               homeButtonActive={homeButtonActive}
-              onHome={() => {
-                if (!mapRef.current) return;
-                setHomeButtonActive(true);
-                mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 }); // Higher zoom ~100-200m up
-                setTimeout(() => setHomeButtonActive(false), 2000); // Light up for 2 seconds
-              }}
-              onGps={() => {
-                if (!mapRef.current) return;
-                navigator.geolocation.getCurrentPosition(
-                  (position) => {
-                    mapRef.current?.flyTo({
-                      center: [position.coords.longitude, position.coords.latitude],
-                      zoom: 15,
-                    });
-                  },
-                  (error) => {
-                    logError('Geolocation error', error);
-                    alert('Unable to get your location. Please enable location services.');
-                  }
-                );
-              }}
+              setHomeButtonActive={setHomeButtonActive}
+              homeLocation={homeLocation}
+              logError={logError}
             />
           }
           mapReady={mapReady}
