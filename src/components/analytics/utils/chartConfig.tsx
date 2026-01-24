@@ -32,17 +32,17 @@ export const MARGINS = {
   compact: { top: 10, right: 20, left: 0, bottom: 10 },
 };
 
-// Legend configuration
+// Legend configuration (spacing handled via Tailwind containers, not wrapperStyle)
 export const LEGEND_CONFIG = {
-  wrapperStyle: { paddingTop: '10px' },
   iconType: 'circle' as const,
-  formatter: (value: string) => <span style={{ color: '#cbd5e1', fontSize: '11px' }}>{value}</span>,
+  iconSize: 8,
+  formatter: (value: string) => <span className="text-slate-300 text-xs ml-1">{value}</span>,
 };
 
 // Pie chart specific configurations
 export const PIE_CONFIG = {
-  innerRadius: '50%',
-  outerRadius: '70%',
+  innerRadius: '45%',
+  outerRadius: '65%',
   paddingAngle: 2,
   dataKey: 'value',
   animationDuration: 300,
