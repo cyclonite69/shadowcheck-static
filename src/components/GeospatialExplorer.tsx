@@ -25,6 +25,7 @@ import { useMapStyleControls } from './geospatial/useMapStyleControls';
 import { useNetworkContextMenu } from './geospatial/useNetworkContextMenu';
 import { useNetworkNotes } from './geospatial/useNetworkNotes';
 import { useMapResizeHandle } from './geospatial/useMapResizeHandle';
+import { useNetworkSelection } from './geospatial/useNetworkSelection';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -64,8 +65,17 @@ export default function GeospatialExplorer() {
     resetPagination,
   } = useNetworkData({ locationMode, planCheck });
 
-  // Selection state for observations
-  const [selectedNetworks, setSelectedNetworks] = useState<Set<string>>(new Set());
+  // Server-side sorting - no client-side sorting needed
+  const filteredNetworks = useMemo(() => networks, [networks]);
+
+  const {
+    selectedNetworks,
+    toggleSelectNetwork,
+    selectNetworkExclusive,
+    toggleSelectAll,
+    allSelected,
+    someSelected,
+  } = useNetworkSelection({ networks: filteredNetworks });
   const [useObservationFilters, setUseObservationFilters] = useState(true);
 
   // Observations hook - handles fetching observations for selected networks
@@ -270,9 +280,6 @@ export default function GeospatialExplorer() {
     onLoadMore: loadMore,
   });
 
-  // Server-side sorting - no client-side sorting needed
-  const filteredNetworks = useMemo(() => networks, [networks]);
-
   const handleColumnSort = (column: keyof NetworkRow, _shiftKey: boolean) => {
     const colConfig = NETWORK_COLUMNS[column as keyof typeof NETWORK_COLUMNS];
     if (!colConfig || !colConfig.sortable) return;
@@ -299,32 +306,6 @@ export default function GeospatialExplorer() {
       return [{ column, direction: existingIndex >= 0 ? nextDirection : 'asc' }];
     });
   };
-
-  const toggleSelectNetwork = (bssid: string) => {
-    setSelectedNetworks((prev) => {
-      const ns = new Set(prev);
-      ns.has(bssid) ? ns.delete(bssid) : ns.add(bssid);
-      return ns;
-    });
-  };
-
-  const selectNetworkExclusive = (bssid: string) => {
-    setSelectedNetworks(new Set([bssid]));
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedNetworks.size === filteredNetworks.length) {
-      // All selected, deselect all
-      setSelectedNetworks(new Set());
-    } else {
-      // Some or none selected, select all visible
-      setSelectedNetworks(new Set(filteredNetworks.map((n) => n.bssid)));
-    }
-  };
-
-  const allSelected =
-    filteredNetworks.length > 0 && selectedNetworks.size === filteredNetworks.length;
-  const someSelected = selectedNetworks.size > 0 && selectedNetworks.size < filteredNetworks.length;
 
   useObservationLayers({
     mapReady,
