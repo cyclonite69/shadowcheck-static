@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type mapboxglType from 'mapbox-gl';
-import { FilterPanel } from './FilterPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
@@ -14,6 +13,7 @@ import { GeospatialOverlays } from './geospatial/GeospatialOverlays';
 import { GeospatialLayout } from './geospatial/GeospatialLayout';
 import { NetworkExplorerSection } from './geospatial/NetworkExplorerSection';
 import { useMapLayersToggle } from './geospatial/MapLayersToggle';
+import { GeospatialFiltersPanel } from './geospatial/GeospatialFiltersPanel';
 
 // Types
 import type {
@@ -1701,7 +1701,7 @@ export default function GeospatialExplorer() {
   return (
     <GeospatialLayout
       filtersOpen={filtersOpen}
-      filterPanel={<FilterPanel density="compact" />}
+      filterPanel={<GeospatialFiltersPanel />}
       content={
         <>
           {/* Map Card */}
