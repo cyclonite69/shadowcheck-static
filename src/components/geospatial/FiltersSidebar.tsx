@@ -12,28 +12,23 @@ export const FiltersSidebar = ({ open, children }: FiltersSidebarProps) => {
     <div
       style={{
         position: 'absolute',
-        top: '52px',
-        left: '12px',
-        bottom: '12px',
+        top: '16px',
+        left: '16px',
         width: '320px',
-        zIndex: 55,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
+        maxHeight: 'calc(100vh - 100px)',
+        zIndex: 40,
+        overflowY: 'auto',
+        padding: '20px',
+        borderRadius: '12px',
+        border: '1px solid rgba(59, 130, 246, 0.25)',
+        background: 'rgba(15, 23, 42, 0.95)',
+        backdropFilter: 'blur(16px)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        color: '#e2e8f0',
+        fontSize: '12px',
       }}
     >
-      <div
-        style={{
-          padding: '10px',
-          borderRadius: '10px',
-          border: '1px solid rgba(71, 85, 105, 0.4)',
-          background: 'rgba(15, 23, 42, 0.9)',
-          color: '#e2e8f0',
-          fontSize: '12px',
-        }}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   );
 };
