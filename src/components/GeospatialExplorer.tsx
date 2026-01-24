@@ -23,6 +23,7 @@ import { useNetworkInfiniteScroll } from './geospatial/useNetworkInfiniteScroll'
 import { useGeospatialMap } from './geospatial/useGeospatialMap';
 import { useMapStyleControls } from './geospatial/useMapStyleControls';
 import { useNetworkContextMenu } from './geospatial/useNetworkContextMenu';
+import { useNetworkNotes } from './geospatial/useNetworkNotes';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -132,13 +133,22 @@ export default function GeospatialExplorer() {
     handleTagAction,
   } = useNetworkContextMenu({ logError });
 
-  // Note modal state
-  const [showNoteModal, setShowNoteModal] = useState(false);
-  const [selectedBssid, setSelectedBssid] = useState('');
-  const [noteContent, setNoteContent] = useState('');
-  const [noteType, setNoteType] = useState('general');
-  const [noteAttachments, setNoteAttachments] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    showNoteModal,
+    setShowNoteModal,
+    selectedBssid,
+    setSelectedBssid,
+    noteContent,
+    setNoteContent,
+    noteType,
+    setNoteType,
+    noteAttachments,
+    setNoteAttachments,
+    fileInputRef,
+    handleSaveNote,
+    handleAddAttachment,
+    removeAttachment,
+  } = useNetworkNotes({ logError });
 
   // Time-frequency modal state
   const [timeFreqModal, setTimeFreqModal] = useState<{ bssid: string; ssid: string } | null>(null);
@@ -332,71 +342,6 @@ export default function GeospatialExplorer() {
 
   const selectNetworkExclusive = (bssid: string) => {
     setSelectedNetworks(new Set([bssid]));
-  };
-
-  // Save note function
-  const handleSaveNote = async () => {
-    if (!noteContent.trim() || !selectedBssid) return;
-
-    try {
-      // Step 1: Create the note
-      const response = await fetch('/api/admin/network-notes/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bssid: selectedBssid,
-          content: noteContent,
-          note_type: noteType,
-          user_id: 'geospatial_user',
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to create note');
-
-      const data = await response.json();
-      const noteId = data.note_id;
-
-      // Step 2: Upload attachments if any
-      if (noteAttachments.length > 0) {
-        for (const file of noteAttachments) {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('bssid', selectedBssid);
-
-          const mediaResponse = await fetch(`/api/admin/network-notes/${noteId}/media`, {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!mediaResponse.ok) {
-            console.warn(`Failed to upload media: ${file.name}`);
-          }
-        }
-      }
-
-      // Success: Reset form
-      setShowNoteModal(false);
-      setNoteContent('');
-      setNoteType('general');
-      setSelectedBssid('');
-      setNoteAttachments([]);
-    } catch (err) {
-      logError('Failed to save note', err);
-    }
-  };
-
-  // Handle file selection for attachments
-  const handleAddAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setNoteAttachments((prev) => [...prev, ...files]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // Remove attachment from pending list
-  const removeAttachment = (index: number) => {
-    setNoteAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const toggleSelectAll = () => {
