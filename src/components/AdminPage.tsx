@@ -195,7 +195,7 @@ const AdminPage: React.FC = () => {
           {activeTab === 'config' && (
             <>
               {/* Mapbox Configuration */}
-              <div className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow backdrop-blur-sm outline outline-1 outline-slate-900/60">
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
                 {/* Header */}
@@ -231,7 +231,7 @@ const AdminPage: React.FC = () => {
               </div>
 
               {/* Home Location */}
-              <div className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow backdrop-blur-sm outline outline-1 outline-slate-900/60">
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
                 {/* Header */}
@@ -283,7 +283,7 @@ const AdminPage: React.FC = () => {
           )}
 
           {activeTab === 'imports' && (
-            <div className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow backdrop-blur-sm outline outline-1 outline-slate-900/60">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
               <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
               {/* Header */}
@@ -324,7 +324,7 @@ const AdminPage: React.FC = () => {
           )}
 
           {activeTab === 'exports' && (
-            <div className="relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/95 shadow-xl hover:shadow-2xl transition-shadow backdrop-blur-sm outline outline-1 outline-slate-900/60">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
               <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
               {/* Header */}

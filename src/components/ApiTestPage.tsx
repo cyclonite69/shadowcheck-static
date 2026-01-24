@@ -92,7 +92,7 @@ const ApiTestPage: React.FC = () => {
       {/* Content */}
       <div style={{ paddingTop: '200px' }} className="p-6 space-y-4">
         {/* Presets Card */}
-        <div className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
           <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
           <div className="flex items-center gap-2 p-4 bg-[#132744]/95 border-b border-[#1c3050]">
             <h3 className="text-sm font-semibold text-white">Presets</h3>
@@ -116,7 +116,7 @@ const ApiTestPage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Request Card */}
-          <div className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
             <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
             <div className="flex items-center gap-2 p-4 bg-[#132744]/95 border-b border-[#1c3050]">
               <h3 className="text-sm font-semibold text-white">Request</h3>
@@ -167,7 +167,7 @@ const ApiTestPage: React.FC = () => {
           </div>
 
           {/* Response Card */}
-          <div className="relative overflow-hidden rounded-xl border border-[#20324d] bg-[#0f1e34]/95 shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
             <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
             <div className="flex items-center justify-between p-4 bg-[#132744]/95 border-b border-[#1c3050]">
               <h3 className="text-sm font-semibold text-white">Response</h3>
