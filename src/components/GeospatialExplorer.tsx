@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type mapboxglType from 'mapbox-gl';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
@@ -24,6 +24,7 @@ import { useGeospatialMap } from './geospatial/useGeospatialMap';
 import { useMapStyleControls } from './geospatial/useMapStyleControls';
 import { useNetworkContextMenu } from './geospatial/useNetworkContextMenu';
 import { useNetworkNotes } from './geospatial/useNetworkNotes';
+import { useMapResizeHandle } from './geospatial/useMapResizeHandle';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -241,47 +242,14 @@ export default function GeospatialExplorer() {
     return map;
   }, [networks]);
 
-  // Handle resize drag
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      logDebug(`Resize handle clicked: ${e.clientY}`);
-      e.preventDefault();
-      e.stopPropagation();
-      setResizing(true);
-
-      const startY = e.clientY;
-      const startHeight = mapHeight;
-
-      const handleMouseMove = (e: MouseEvent) => {
-        e.preventDefault();
-        const deltaY = e.clientY - startY;
-        const newHeight = Math.max(150, Math.min(containerHeight - 150, startHeight + deltaY));
-        logDebug(`Resizing to: ${newHeight}`);
-        setMapHeight(newHeight);
-
-        // Force map resize if it exists
-        if (mapRef.current) {
-          setTimeout(() => mapRef.current?.resize(), 0);
-        }
-      };
-
-      const handleMouseUp = (e: MouseEvent) => {
-        logDebug('Resize ended');
-        e.preventDefault();
-        setResizing(false);
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-      };
-
-      document.body.style.cursor = 'row-resize';
-      document.body.style.userSelect = 'none';
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    },
-    [mapHeight, containerHeight]
-  );
+  const handleMouseDown = useMapResizeHandle({
+    mapHeight,
+    containerHeight,
+    mapRef,
+    setMapHeight,
+    setResizing,
+    logDebug,
+  });
 
   useGeospatialMap({
     mapStyle,
