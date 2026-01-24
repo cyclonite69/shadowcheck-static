@@ -477,9 +477,9 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <div className="relative flex-1 overflow-y-auto h-screen pt-0">
+      <div className="relative flex-1 overflow-y-auto h-screen p-4">
         {/* Cards */}
-        <div className="relative min-h-[2400px] pt-0">
+        <div className="relative min-h-[2400px] space-y-4">
           {cards.map((card) => {
             const Icon = card.icon;
             const width = `${card.w}%`;
@@ -497,14 +497,14 @@ export default function DashboardPage() {
                   ...(isActive ? { transition: 'none' } : {}),
                 }}
                 onMouseDown={(e) => handleMouseDown(e, card.id, 'move')}
-                className={`absolute overflow-hidden rounded-xl border border-slate-700/40 bg-slate-900/50 shadow-sm shadow-black/20 hover:shadow-lg hover:shadow-black/30 transition-shadow duration-200 group backdrop-blur-sm ${
+                className={`absolute overflow-hidden rounded-xl border border-slate-700/30 bg-slate-900/40 shadow-sm shadow-black/20 hover:shadow-md hover:shadow-black/25 transition-all duration-200 group backdrop-blur-sm ${
                   isActive ? 'cursor-grabbing select-none' : 'cursor-grab select-auto'
                 }`}
               >
-                <div className="absolute inset-0 pointer-events-none opacity-5 bg-gradient-to-br from-white/10 to-transparent" />
+                <div className="absolute inset-0 pointer-events-none opacity-3 bg-gradient-to-br from-white/8 to-transparent" />
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/40">
+                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-700/30">
                   <div className="flex items-center gap-2">
                     <Icon size={16} className="text-slate-300/80" />
                     <h3 className="text-sm font-semibold text-slate-200">{card.title}</h3>
@@ -519,7 +519,7 @@ export default function DashboardPage() {
                 <div
                   className={`px-4 py-4 overflow-hidden flex flex-col ${
                     card.type === 'analytics-link'
-                      ? 'cursor-pointer hover:bg-slate-800/30 transition-colors items-center justify-center'
+                      ? 'cursor-pointer hover:bg-slate-800/20 transition-colors items-center justify-center'
                       : 'justify-between'
                   }`}
                   style={{ height: `${card.h - 52}px` }}
@@ -531,19 +531,20 @@ export default function DashboardPage() {
                 >
                   {card.type === 'analytics-link' ? (
                     /* Analytics Link - Centered Layout */
-                    <div className="text-center space-y-2">
-                      <p className="text-5xl font-light" style={{ color: card.color }}>
-                        →
-                      </p>
-                      <p className="text-xs text-slate-400">View detailed analytics</p>
+                    <div className="text-center space-y-3">
+                      <div className="text-5xl font-light text-slate-400">→</div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-slate-300">View Analytics</p>
+                        <p className="text-xs text-slate-500">Detailed charts & insights</p>
+                      </div>
                     </div>
                   ) : (
-                    /* KPI Tile - Consistent spacing */
+                    /* KPI Tile - Improved hierarchy */
                     <>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {/* Primary Metric */}
-                        <div className="space-y-1">
-                          <p className="text-xs text-slate-400 uppercase tracking-wide">
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">
                             Unique Networks
                           </p>
                           <p
@@ -558,8 +559,8 @@ export default function DashboardPage() {
 
                         {/* Secondary Metric */}
                         {card.observations !== undefined && (
-                          <div className="space-y-0.5">
-                            <p className="text-sm text-slate-300/90 tabular-nums">
+                          <div className="space-y-1">
+                            <p className="text-sm text-slate-300/90 tabular-nums font-medium">
                               {card.observations.toLocaleString()}
                             </p>
                             <p className="text-xs text-slate-500">Total Observations</p>
@@ -568,15 +569,17 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Status - Always at bottom */}
-                      <p className="text-[10px] text-slate-500/80">
-                        {loading
-                          ? 'Loading...'
-                          : error
-                            ? error
-                            : filtersApplied > 0
-                              ? `Filtered (${filtersApplied} active)`
-                              : 'All networks'}
-                      </p>
+                      <div className="pt-2 border-t border-slate-700/20">
+                        <p className="text-xs text-slate-500/80">
+                          {loading
+                            ? 'Loading...'
+                            : error
+                              ? error
+                              : filtersApplied > 0
+                                ? `${filtersApplied} filter${filtersApplied > 1 ? 's' : ''} active`
+                                : 'All networks'}
+                        </p>
+                      </div>
                     </>
                   )}
                 </div>

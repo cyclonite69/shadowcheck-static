@@ -122,8 +122,8 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         return renderEmptyState();
       }
       return (
-        <div className="flex flex-col h-[240px] w-full">
-          <div className="h-[200px] w-full flex items-center justify-center">
+        <div className="h-[240px] w-full">
+          <div className="h-[180px] w-full flex items-center justify-center">
             <ResponsiveContainer
               width="100%"
               height="100%"
@@ -133,9 +133,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                 <Pie
                   data={validNetworkData}
                   cx="50%"
-                  cy="45%"
-                  innerRadius="40%"
-                  outerRadius="65%"
+                  cy="50%"
+                  innerRadius="45%"
+                  outerRadius="70%"
                   paddingAngle={2}
                   dataKey="value"
                   animationDuration={300}
@@ -151,9 +151,16 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                     return formatPieTooltip(value as number, name as string, total);
                   }}
                 />
-                <Legend {...LEGEND_CONFIG} />
               </PieChart>
             </ResponsiveContainer>
+          </div>
+          <div className="h-[60px] flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-2">
+            {validNetworkData.map((entry, idx) => (
+              <div key={`legend-${idx}`} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                <span className="text-xs text-slate-300">{entry.name}</span>
+              </div>
+            ))}
           </div>
         </div>
       );
@@ -209,8 +216,8 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
         return renderEmptyState();
       }
       return (
-        <div className="flex flex-col h-[240px] w-full">
-          <div className="h-[200px] w-full flex items-center justify-center">
+        <div className="h-[240px] w-full">
+          <div className="h-[180px] w-full flex items-center justify-center">
             <ResponsiveContainer
               width="100%"
               height="100%"
@@ -220,9 +227,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                 <Pie
                   data={validSecurityData}
                   cx="50%"
-                  cy="45%"
-                  innerRadius="40%"
-                  outerRadius="65%"
+                  cy="50%"
+                  innerRadius="45%"
+                  outerRadius="70%"
                   paddingAngle={2}
                   dataKey="value"
                   animationDuration={300}
@@ -238,9 +245,16 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                     return formatPieTooltip(value as number, name as string, total);
                   }}
                 />
-                <Legend {...LEGEND_CONFIG} />
               </PieChart>
             </ResponsiveContainer>
+          </div>
+          <div className="h-[60px] flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-2">
+            {validSecurityData.map((entry, idx) => (
+              <div key={`legend-${idx}`} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                <span className="text-xs text-slate-300">{entry.name}</span>
+              </div>
+            ))}
           </div>
         </div>
       );
@@ -377,19 +391,19 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
     case 'top-networks':
       if (!isValidChartData(data.topNetworks)) return renderEmptyState();
       return (
-        <div className="h-[260px] overflow-y-auto pr-2 space-y-2">
+        <div className="h-[260px] overflow-y-auto space-y-2">
           {data.topNetworks.map((network, idx) => (
             <div
               key={idx}
-              className="p-3 bg-slate-800/40 rounded-md border-l-[3px] border-l-blue-500 flex justify-between items-center"
+              className="p-3 bg-slate-800/30 rounded-lg border border-slate-700/20 flex justify-between items-center hover:bg-slate-800/40 transition-colors"
             >
-              <div>
-                <div className="text-xs font-semibold text-slate-300 font-mono">
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold text-slate-300 font-mono truncate">
                   {network.bssid}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">{network.ssid}</div>
+                <div className="text-xs text-slate-400 mt-0.5 truncate">{network.ssid}</div>
               </div>
-              <div className="text-sm font-semibold text-blue-400">
+              <div className="text-sm font-semibold text-blue-400 ml-3">
                 {network.observations.toLocaleString()}
               </div>
             </div>
