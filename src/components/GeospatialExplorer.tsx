@@ -7,13 +7,10 @@ import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
 import { logError, logDebug } from '../logging/clientLogger';
-import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { MapToolbar } from './geospatial/MapToolbar';
 import { NetworkExplorerHeader } from './geospatial/NetworkExplorerHeader';
-import { NetworkTagMenu } from './geospatial/NetworkTagMenu';
 import { MapStatusBar } from './geospatial/MapStatusBar';
-import { NetworkNoteModal } from './geospatial/NetworkNoteModal';
 import { ResizeHandle } from './geospatial/ResizeHandle';
 import { NetworkTableHeader } from './geospatial/NetworkTableHeader';
 import { NetworkTableBody } from './geospatial/NetworkTableBody';
@@ -21,6 +18,7 @@ import { NetworkExplorerCard } from './geospatial/NetworkExplorerCard';
 import { MapPanel } from './geospatial/MapPanel';
 import { FiltersSidebar } from './geospatial/FiltersSidebar';
 import { GeospatialContent } from './geospatial/GeospatialContent';
+import { GeospatialOverlays } from './geospatial/GeospatialOverlays';
 
 // Types
 import type {
@@ -1930,33 +1928,24 @@ export default function GeospatialExplorer() {
         </NetworkExplorerCard>
       </GeospatialContent>
 
-      {/* Network Tagging Context Menu */}
-      <NetworkTagMenu
-        visible={contextMenu.visible}
-        network={contextMenu.network}
-        tag={contextMenu.tag}
-        position={contextMenu.position}
-        x={contextMenu.x}
-        y={contextMenu.y}
+      <GeospatialOverlays
+        contextMenu={contextMenu}
         tagLoading={tagLoading}
         contextMenuRef={contextMenuRef}
         onTagAction={handleTagAction}
-        onTimeFrequency={() => {
+        onCloseContextMenu={closeContextMenu}
+        onOpenTimeFrequency={() => {
           const n = contextMenu.network;
           const payload = n ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') } : null;
           setTimeFreqModal(payload);
           closeContextMenu();
         }}
-        onAddNote={() => {
+        onOpenNote={() => {
           setShowNoteModal(true);
           setSelectedBssid(contextMenu.network?.bssid || '');
           closeContextMenu();
         }}
-      />
-
-      {/* Note Modal with Media Attachments */}
-      <NetworkNoteModal
-        open={showNoteModal}
+        showNoteModal={showNoteModal}
         selectedBssid={selectedBssid}
         noteType={noteType}
         noteContent={noteContent}
@@ -1966,29 +1955,22 @@ export default function GeospatialExplorer() {
         onNoteContentChange={setNoteContent}
         onAddAttachment={handleAddAttachment}
         onRemoveAttachment={removeAttachment}
-        onOverlayClose={() => setShowNoteModal(false)}
-        onCloseButton={() => {
+        onCloseNoteOverlay={() => setShowNoteModal(false)}
+        onCloseNote={() => {
           setShowNoteModal(false);
           setNoteContent('');
           setNoteAttachments([]);
         }}
-        onCancel={() => {
+        onCancelNote={() => {
           setShowNoteModal(false);
           setNoteContent('');
           setNoteType('general');
           setNoteAttachments([]);
         }}
-        onSave={handleSaveNote}
+        onSaveNote={handleSaveNote}
+        timeFreqModal={timeFreqModal}
+        onCloseTimeFrequency={() => setTimeFreqModal(null)}
       />
-
-      {/* Time-Frequency Modal */}
-      {timeFreqModal && (
-        <NetworkTimeFrequencyModal
-          bssid={timeFreqModal.bssid}
-          ssid={timeFreqModal.ssid}
-          onClose={() => setTimeFreqModal(null)}
-        />
-      )}
     </div>
   );
 }
