@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { logError } from '../logging/clientLogger';
 
-// SVG Icons (same as current)
+// SVG Icons
 const DatabaseIcon = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
@@ -79,12 +79,70 @@ const DownloadIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const ApiIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+    <polyline points="22 6 12 13 2 6" />
+  </svg>
+);
+
+const BrainIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M12 2a4 4 0 0 0-4 4v2a4 4 0 0 0 0 8v2a4 4 0 0 0 8 0v-2a4 4 0 0 0 0-8V6a4 4 0 0 0-4-4z" />
+    <path d="M12 2v20" />
+    <path d="M8 10h8" />
+    <path d="M8 14h8" />
+  </svg>
+);
+
 const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('config');
   const [isLoading, setIsLoading] = useState(false);
   const [mapboxToken, setMapboxToken] = useState('');
   const [homeLocation, setHomeLocation] = useState({ lat: '', lng: '' });
   const [importStatus, setImportStatus] = useState('');
+  const [mlStatus, setMlStatus] = useState<{
+    status: string;
+    algorithm: string;
+    features: number;
+  } | null>(null);
+  const [apiHealth, setApiHealth] = useState<{ status: string; version: string } | null>(null);
+
+  // Fetch ML status when ML tab is active
+  useEffect(() => {
+    if (activeTab === 'ml') {
+      fetch('/api/ml/status')
+        .then((res) => res.json())
+        .then((data) => setMlStatus(data))
+        .catch(() => setMlStatus({ status: 'Unknown', algorithm: 'N/A', features: 0 }));
+    }
+  }, [activeTab]);
+
+  // Fetch API health when API tab is active
+  useEffect(() => {
+    if (activeTab === 'api') {
+      fetch('/api/health')
+        .then((res) => res.json())
+        .then((data) => setApiHealth({ status: 'Online', version: data.version || '1.0.0' }))
+        .catch(() => setApiHealth({ status: 'Offline', version: 'N/A' }));
+    }
+  }, [activeTab]);
 
   const saveMapboxToken = async () => {
     try {
@@ -175,10 +233,11 @@ const AdminPage: React.FC = () => {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-8 bg-slate-800/30 p-1 rounded-xl border border-slate-700/50">
+        <div className="flex flex-wrap gap-1 mb-8 bg-slate-800/30 p-1 rounded-xl border border-slate-700/50">
           {[
             { id: 'config', label: 'Configuration', icon: SettingsIcon },
-            { id: 'security', label: 'Security', icon: ShieldIcon },
+            { id: 'api', label: 'API Testing', icon: ApiIcon },
+            { id: 'ml', label: 'ML Training', icon: BrainIcon },
             { id: 'imports', label: 'Data Import', icon: UploadIcon },
             { id: 'exports', label: 'Data Export', icon: DownloadIcon },
           ].map((tab) => (
@@ -201,11 +260,10 @@ const AdminPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {activeTab === 'config' && (
             <>
-              {/* Mapbox Configuration */}
+              {/* Mapbox Configuration - Left */}
               <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
-                {/* Header */}
                 <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
                   <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
                     <DatabaseIcon size={20} className="text-white" />
@@ -213,7 +271,6 @@ const AdminPage: React.FC = () => {
                   <h2 className="text-lg font-semibold text-white">Mapbox Configuration</h2>
                 </div>
 
-                {/* Content */}
                 <div className="p-6 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -237,11 +294,10 @@ const AdminPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Home Location */}
+              {/* Home Location - Right */}
               <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
                 <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
-                {/* Header */}
                 <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
                   <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
                     <ShieldIcon size={20} className="text-white" />
@@ -249,7 +305,6 @@ const AdminPage: React.FC = () => {
                   <h2 className="text-lg font-semibold text-white">Home Location</h2>
                 </div>
 
-                {/* Content */}
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -289,98 +344,254 @@ const AdminPage: React.FC = () => {
             </>
           )}
 
-          {activeTab === 'imports' && (
-            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all col-span-full">
-              <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+          {activeTab === 'api' && (
+            <>
+              {/* API Health - Left */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
-              {/* Header */}
-              <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
-                <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
-                  <UploadIcon size={20} className="text-white" />
-                </div>
-                <h2 className="text-lg font-semibold text-white">SQLite Import</h2>
-              </div>
-
-              {/* Content */}
-              <div className="p-6 space-y-4">
-                <p className="text-slate-400">Import networks from SQLite database files</p>
-                <label className="sr-only" htmlFor="sqlite-upload">
-                  Upload SQLite database
-                </label>
-                <input
-                  id="sqlite-upload"
-                  type="file"
-                  accept=".sqlite,.db,.sqlite3"
-                  onChange={handleFileImport}
-                  disabled={isLoading}
-                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700"
-                />
-                {importStatus && (
-                  <div
-                    className={`p-3 rounded-lg text-sm ${
-                      importStatus.includes('Imported')
-                        ? 'bg-green-900/50 text-green-300 border border-green-700'
-                        : 'bg-red-900/50 text-red-300 border border-red-700'
-                    }`}
-                  >
-                    {importStatus}
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                  <div className="p-2 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg">
+                    <DatabaseIcon size={20} className="text-white" />
                   </div>
-                )}
+                  <h2 className="text-lg font-semibold text-white">API Status</h2>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Status:</span>
+                      <span
+                        className={`text-sm font-semibold ${
+                          apiHealth?.status === 'Online' ? 'text-green-400' : 'text-red-400'
+                        }`}
+                      >
+                        {apiHealth?.status || 'Checking...'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Version:</span>
+                      <span className="text-sm font-semibold text-blue-400">
+                        {apiHealth?.version || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+
+              {/* API Testing - Right */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
+                    <ApiIcon size={20} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">API Testing</h2>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <button
+                    onClick={() => (window.location.href = '/api-test')}
+                    className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg font-semibold hover:from-cyan-500 hover:to-cyan-600 transition-all shadow-lg"
+                  >
+                    Test API Endpoints
+                  </button>
+                  <p className="text-sm text-slate-400">
+                    Quick endpoint testing and monitoring interface
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'ml' && (
+            <>
+              {/* ML Status - Left */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                  <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+                    <BrainIcon size={20} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">Model Status</h2>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Status:</span>
+                      <span
+                        className={`text-sm font-semibold ${
+                          mlStatus?.status === 'trained' ? 'text-green-400' : 'text-yellow-400'
+                        }`}
+                      >
+                        {mlStatus?.status || 'Checking...'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Algorithm:</span>
+                      <span className="text-sm font-semibold text-slate-400">
+                        {mlStatus?.algorithm || 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Features:</span>
+                      <span className="text-sm font-semibold text-slate-400">
+                        {mlStatus?.features ? `${mlStatus.features} behavioral` : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ML Training - Right */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                  <div className="p-2 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg">
+                    <BrainIcon size={20} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">Train Model</h2>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <button
+                    onClick={() => (window.location.href = '/ml-training')}
+                    className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg font-semibold hover:from-pink-500 hover:to-pink-600 transition-all shadow-lg"
+                  >
+                    Train ML Model
+                  </button>
+                  <p className="text-sm text-slate-400">
+                    Train threat detection model with tagged networks
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'imports' && (
+            <>
+              {/* SQLite Import - Left */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                  <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                    <UploadIcon size={20} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">SQLite Import</h2>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <p className="text-slate-400">Import networks from SQLite database files</p>
+                  <label className="sr-only" htmlFor="sqlite-upload">
+                    Upload SQLite database
+                  </label>
+                  <input
+                    id="sqlite-upload"
+                    type="file"
+                    accept=".sqlite,.db,.sqlite3"
+                    onChange={handleFileImport}
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-orange-600 file:text-white hover:file:bg-orange-700"
+                  />
+                  {importStatus && (
+                    <div
+                      className={`p-3 rounded-lg text-sm ${
+                        importStatus.includes('Imported')
+                          ? 'bg-green-900/50 text-green-300 border border-green-700'
+                          : 'bg-red-900/50 text-red-300 border border-red-700'
+                      }`}
+                    >
+                      {importStatus}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* CSV Import - Right */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
+                    <UploadIcon size={20} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">CSV Import</h2>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <p className="text-slate-400">Import networks from CSV files</p>
+                  <label className="sr-only" htmlFor="csv-upload">
+                    Upload CSV file
+                  </label>
+                  <input
+                    id="csv-upload"
+                    type="file"
+                    accept=".csv"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-green-600 file:text-white hover:file:bg-green-700"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           {activeTab === 'exports' && (
-            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all col-span-full">
-              <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+            <>
+              {/* Networks & Threats Export - Left */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
 
-              {/* Header */}
-              <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
-                  <DownloadIcon size={20} className="text-white" />
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
+                    <DownloadIcon size={20} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">Network Exports</h2>
                 </div>
-                <h2 className="text-lg font-semibold text-white">Data Export</h2>
-              </div>
 
-              {/* Content */}
-              <div className="p-6 space-y-3">
-                <button
-                  onClick={() => window.open('/api/export/networks/csv', '_blank')}
-                  className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all"
-                >
-                  Export Networks (CSV)
-                </button>
-                <button
-                  onClick={() => window.open('/api/export/threats/json', '_blank')}
-                  className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-700 hover:to-red-800 transition-all"
-                >
-                  Export Threats (JSON)
-                </button>
-                <button
-                  onClick={() => window.open('/api/export/observations/geojson', '_blank')}
-                  className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 transition-all"
-                >
-                  Export GeoJSON
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'security' && (
-            <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all col-span-full">
-              <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
-
-              <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
-                  <ShieldIcon size={20} className="text-white" />
+                <div className="p-6 space-y-3">
+                  <button
+                    onClick={() => window.open('/api/export/networks/csv', '_blank')}
+                    className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all"
+                  >
+                    Export Networks (CSV)
+                  </button>
+                  <button
+                    onClick={() => window.open('/api/export/threats/json', '_blank')}
+                    className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-500 hover:to-red-600 transition-all"
+                  >
+                    Export Threats (JSON)
+                  </button>
                 </div>
-                <h2 className="text-lg font-semibold text-white">Security Settings</h2>
               </div>
 
-              <div className="p-6">
-                <p className="text-slate-400">Security configuration options coming soon</p>
+              {/* Geospatial Export - Right */}
+              <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/20 to-slate-900/40 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all">
+                <div className="absolute inset-0 pointer-events-none opacity-10 bg-gradient-to-br from-white/8 via-white/5 to-transparent" />
+
+                <div className="flex items-center space-x-3 p-4 bg-slate-900/90 border-b border-slate-800/80">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
+                    <DownloadIcon size={20} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">Geospatial Export</h2>
+                </div>
+
+                <div className="p-6 space-y-3">
+                  <button
+                    onClick={() => window.open('/api/export/observations/geojson', '_blank')}
+                    className="w-full px-4 py-3 min-h-[44px] bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all"
+                  >
+                    Export GeoJSON
+                  </button>
+                  <p className="text-sm text-slate-400">
+                    Export observation data in GeoJSON format for use with GIS tools
+                  </p>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
