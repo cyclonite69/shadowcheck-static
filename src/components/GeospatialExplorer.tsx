@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type mapboxglType from 'mapbox-gl';
-import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
+import { useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
@@ -28,6 +28,8 @@ import { useMapResizeHandle } from './geospatial/useMapResizeHandle';
 import { useNetworkSelection } from './geospatial/useNetworkSelection';
 import { useColumnVisibility } from './geospatial/useColumnVisibility';
 import { useNetworkSort } from './geospatial/useNetworkSort';
+import { useResetPaginationOnFilters } from './geospatial/useResetPaginationOnFilters';
+import { useDebouncedFilterState } from './geospatial/useDebouncedFilterState';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -153,11 +155,7 @@ export default function GeospatialExplorer() {
   const { getCurrentEnabled, setFilter } = useFilterStore();
   const enabled = getCurrentEnabled();
 
-  // Set up debounced filter state
-  const [debouncedFilterState, setDebouncedFilterState] = useState(() =>
-    useFilterStore.getState().getAPIFilters()
-  );
-  useDebouncedFilters((payload) => setDebouncedFilterState(payload), 500);
+  const debouncedFilterState = useDebouncedFilterState();
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -179,10 +177,12 @@ export default function GeospatialExplorer() {
 
   // Location search moved into useLocationSearch hook
 
-  // Reset pagination when filters change
-  useEffect(() => {
-    resetPagination();
-  }, [JSON.stringify(debouncedFilterState), JSON.stringify(sort), locationMode, resetPagination]);
+  useResetPaginationOnFilters({
+    debouncedFilterState,
+    sort,
+    locationMode,
+    resetPagination,
+  });
 
   useHomeLocation({ setHomeLocation, logError });
 
