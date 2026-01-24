@@ -52,7 +52,16 @@ export const NetworkTableRow = ({
         if (col === 'select') {
           const ssidOrHidden = net.ssid || '(hidden)';
           return (
-            <td key={col} style={{ width: column.width, padding: '4px 8px' }}>
+            <td
+              key={col}
+              style={{
+                width: column.width,
+                minWidth: column.width,
+                maxWidth: column.width,
+                padding: '5px 8px',
+                boxSizing: 'border-box',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={isSelected}
@@ -234,7 +243,8 @@ export const NetworkTableRow = ({
               borderRight: '1px solid rgba(71, 85, 105, 0.1)',
               color: col === 'bssid' ? macColor(net.bssid) : '#f1f5f9',
               fontFamily: col === 'bssid' ? 'monospace' : 'inherit',
-              fontSize: '12px',
+              fontSize: '11px',
+              boxSizing: 'border-box',
             }}
           >
             {content}
