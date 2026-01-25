@@ -22,7 +22,7 @@ function pipeUpstreamBody(upstream, res) {
   }
 
   if (typeof upstream.body.pipe === 'function') {
-    pipeUpstreamBody(upstream, res);
+    upstream.body.pipe(res);
     return;
   }
 
