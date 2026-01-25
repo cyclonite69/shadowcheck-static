@@ -3,15 +3,16 @@
  * Validates that /api/explorer/networks-v2 is a strict superset of v1
  */
 
-const request = require('supertest');
-const express = require('express');
-const explorerRouter = require('../../server/src/api/routes/v1/explorer');
+const { describeIfIntegration } = require('../helpers/integrationEnv');
 
-// Create test app
-const app = express();
-app.use('/api/explorer', explorerRouter);
+describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
+  const request = require('supertest');
+  const express = require('express');
+  const explorerRouter = require('../../server/src/api/routes/v1/explorer');
 
-describe('Explorer V2 Endpoint Integration Tests', () => {
+  // Create test app
+  const app = express();
+  app.use('/api/explorer', explorerRouter);
   let v1Response;
   let v2Response;
 
