@@ -289,17 +289,19 @@ scripts/keyring/
 
 ```
 scripts/shell/
-├── audit-pages.sh                  # Page audit
-├── fix-headers.sh                  # Header fixes
 ├── run-migration.sh                # Migration execution
 └── start-server.sh                 # Server startup
 ```
 
-### Python Scripts (`scripts/python/`)
+### Legacy HTML Scripts (Archived)
 
 ```
-scripts/python/
-└── fix_headers.py                  # Header processing
+docs/archive/legacy-html/scripts/
+├── shell/
+│   ├── audit-pages.sh              # Page audit
+│   └── fix-headers.sh              # Header fixes
+└── python/
+    └── fix_headers.py              # Header processing
 ```
 
 ## Testing Structure (`tests/`)
