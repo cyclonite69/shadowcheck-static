@@ -3,6 +3,9 @@
  * Tests health check endpoint and request ID middleware working together
  */
 
+const { runIntegration } = require('../helpers/integrationEnv');
+const describeIfIntegration = runIntegration ? describe : describe.skip;
+
 const request = require('supertest');
 const express = require('express');
 
@@ -21,7 +24,11 @@ jest.mock('../../server/src/services/keyringService', () => ({
   getCredential: jest.fn(),
 }));
 
-describe('Observability Integration', () => {
+describeIfIntegration('Observability Integration', () => {
+  if (!runIntegration) {
+    test.skip('requires RUN_INTEGRATION_TESTS', () => {});
+    return;
+  }
   let app;
   let pool;
   let secretsManager;
