@@ -19,12 +19,12 @@ log_info() { echo -e "${BLUE}ℹ${NC} $1"; }
 log_error() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
 # Check we're in the right directory
-if [ ! -f "server.js" ]; then
-  log_error "server.js not found. Please run this from the ShadowCheckStatic root directory"
+if [ ! -f "server/server.js" ]; then
+  log_error "server/server.js not found. Please run this from the ShadowCheckStatic root directory"
 fi
 
 log_info "Creating dashboard service..."
-cat > src/services/dashboardService.js << 'EOF'
+cat > server/src/services/dashboardService.js << 'EOF'
 const { query } = require('../config/database');
 
 class DashboardService {
@@ -118,10 +118,10 @@ class DashboardService {
 
 module.exports = DashboardService;
 EOF
-log_success "Created src/services/dashboardService.js"
+log_success "Created server/src/services/dashboardService.js"
 
 log_info "Creating network repository..."
-cat > src/repositories/networkRepository.js << 'EOF'
+cat > server/src/repositories/networkRepository.js << 'EOF'
 const { query } = require('../config/database');
 
 class NetworkRepository {
@@ -276,10 +276,10 @@ class NetworkRepository {
 
 module.exports = NetworkRepository;
 EOF
-log_success "Created src/repositories/networkRepository.js"
+log_success "Created server/src/repositories/networkRepository.js"
 
 log_info "Creating dashboard routes..."
-cat > src/api/routes/v1/dashboard.js << 'EOF'
+cat > server/src/api/routes/v1/dashboard.js << 'EOF'
 const express = require('express');
 const router = express.Router();
 
@@ -375,17 +375,17 @@ module.exports = {
   initDashboardRoutes,
 };
 EOF
-log_success "Created src/api/routes/v1/dashboard.js"
+log_success "Created server/src/api/routes/v1/dashboard.js"
 
 log_info "Verifying files..."
-[ -f "src/services/dashboardService.js" ] && log_success "✓ dashboardService.js exists" || log_error "dashboardService.js not created"
-[ -f "src/repositories/networkRepository.js" ] && log_success "✓ networkRepository.js exists" || log_error "networkRepository.js not created"
-[ -f "src/api/routes/v1/dashboard.js" ] && log_success "✓ dashboard.js routes exist" || log_error "dashboard.js routes not created"
+[ -f "server/src/services/dashboardService.js" ] && log_success "✓ dashboardService.js exists" || log_error "dashboardService.js not created"
+[ -f "server/src/repositories/networkRepository.js" ] && log_success "✓ networkRepository.js exists" || log_error "networkRepository.js not created"
+[ -f "server/src/api/routes/v1/dashboard.js" ] && log_success "✓ dashboard.js routes exist" || log_error "dashboard.js routes not created"
 
 log_info "Checking line counts..."
-echo "  dashboardService.js: $(wc -l < src/services/dashboardService.js) lines"
-echo "  networkRepository.js: $(wc -l < src/repositories/networkRepository.js) lines"
-echo "  dashboard.js: $(wc -l < src/api/routes/v1/dashboard.js) lines"
+echo "  dashboardService.js: $(wc -l < server/src/services/dashboardService.js) lines"
+echo "  networkRepository.js: $(wc -l < server/src/repositories/networkRepository.js) lines"
+echo "  dashboard.js: $(wc -l < server/src/api/routes/v1/dashboard.js) lines"
 
 echo ""
 echo "=============================="
@@ -393,14 +393,14 @@ log_success "Dashboard setup complete!"
 echo "=============================="
 echo ""
 echo "Next steps:"
-echo "1. Update server.js route mounting section (around line 140-160)"
+echo "1. Update server/server.js route mounting section (around line 140-160)"
 echo "2. Replace the dashboardRoutes initialization with:"
 echo ""
-echo "    const NetworkRepository = require('./src/repositories/networkRepository');"
-echo "    const DashboardService = require('./src/services/dashboardService');"
+echo "    const NetworkRepository = require('./server/src/repositories/networkRepository');"
+echo "    const DashboardService = require('./server/src/services/dashboardService');"
 echo "    const networkRepository = new NetworkRepository();"
 echo "    const dashboardService = new DashboardService(networkRepository);"
-echo "    const dashboardRoutes = require('./src/api/routes/v1/dashboard');"
+echo "    const dashboardRoutes = require('./server/src/api/routes/v1/dashboard');"
 echo "    dashboardRoutes.initDashboardRoutes({ dashboardService });"
 echo ""
 echo "3. Then mount the router:"

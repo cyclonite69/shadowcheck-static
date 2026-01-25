@@ -6,7 +6,7 @@
 const {
   UniversalFilterQueryBuilder,
   validateFilterPayload,
-} = require('../../src/services/filterQueryBuilder');
+} = require('../../server/src/services/filterQueryBuilder');
 
 describe('Systematic Filter Testing', () => {
   // ============================================================================

@@ -16,9 +16,9 @@
 
 - Client code must not import from server/runtime files.
 - Server code must not import from client bundles.
-- Shared types/utilities live under `src/types`, `src/utils`, or `src/services` and should be import-safe.
+- Shared types/utilities should live in a clearly named shared folder if/when introduced.
 
 ## Files & Paths
 
-- React entry: `src/main.tsx`; app routing in `src/App.tsx`.
-- API routes live in `src/api/`; keep new routes there.
+- React entry: `client/src/main.tsx`; app routing in `client/src/App.tsx`.
+- API routes live in `server/src/api/`; keep new routes there.

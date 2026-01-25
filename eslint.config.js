@@ -16,7 +16,7 @@ const ignores = [
   '*.log',
   '*.tmp',
   '*.temp',
-  'public/assets/',
+  'client/public/assets/',
   'test-*.js',
 ];
 

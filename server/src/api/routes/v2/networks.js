@@ -27,7 +27,9 @@ router.get('/v2/networks', async (req, res, next) => {
     const where = [];
     if (search) {
       params.push(`%${search}%`, `%${search}%`);
-      where.push(`(obs_latest.ssid ILIKE $${params.length - 1} OR obs_latest.bssid ILIKE $${params.length})`);
+      where.push(
+        `(obs_latest.ssid ILIKE $${params.length - 1} OR obs_latest.bssid ILIKE $${params.length})`
+      );
     }
 
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';

@@ -30,7 +30,8 @@ class SimpleMLScoringService {
     try {
       const testBssid = 'AA:BB:CC:DD:EE:FF';
 
-      await query(`
+      await query(
+        `
         INSERT INTO app.network_threat_scores 
           (bssid, ml_threat_score, ml_threat_probability, ml_primary_class, 
            final_threat_score, final_threat_level, model_version)
@@ -38,7 +39,9 @@ class SimpleMLScoringService {
         ON CONFLICT (bssid) DO UPDATE SET
           ml_threat_score = EXCLUDED.ml_threat_score,
           updated_at = NOW()
-      `, [testBssid, 75.5, 0.755, 'THREAT', 75.5, 'HIGH', 'test-1.0']);
+      `,
+        [testBssid, 75.5, 0.755, 'THREAT', 75.5, 'HIGH', 'test-1.0']
+      );
 
       return {
         ok: true,
@@ -56,10 +59,9 @@ class SimpleMLScoringService {
    */
   static async getTestScore() {
     try {
-      const result = await query(
-        'SELECT * FROM app.network_threat_scores WHERE bssid = $1',
-        ['AA:BB:CC:DD:EE:FF']
-      );
+      const result = await query('SELECT * FROM app.network_threat_scores WHERE bssid = $1', [
+        'AA:BB:CC:DD:EE:FF',
+      ]);
 
       return {
         ok: true,

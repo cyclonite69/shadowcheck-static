@@ -1,7 +1,7 @@
 const {
   UniversalFilterQueryBuilder,
   validateFilterPayload,
-} = require('../../src/services/filterQueryBuilder');
+} = require('../../server/src/services/filterQueryBuilder');
 
 describe('UniversalFilterQueryBuilder', () => {
   test('rejects RSSI below noise floor', () => {

@@ -1,4 +1,4 @@
-# Modularization Plan (Lightweight, No Code Moves)
+# Modularization Plan (Lightweight, Minimal Moves)
 
 ## Goals
 
@@ -17,17 +17,11 @@
 - Use `npm run lint:boundaries` for the boundary check.
 - Prefer import aliases (e.g., `@client/*`, `@server/*`) to make boundaries obvious.
 
-## Phase 2: Minimal Folder Split (Optional)
+## Phase 2: Minimal Folder Split (Implemented)
 
-- Create `client/` and `server/` folders.
-- Move without changing runtime behavior:
-  - `client/`: `index.html`, `public/`, `src/`, `vite.config.js`, `postcss.config.js`, `tailwind.config.js`
-  - `server/`: `server.js`, `server/` (static server), `src/api/`, `src/services/`, `src/repositories/`, `src/middleware/`, `src/validation/`
-- Update scripts:
-  - `dev:frontend`: `vite --root client`
-  - `build`: `vite build --root client`
-  - `preview`: `vite preview --root client`
-  - `dev`: `nodemon server/server.js` (or `nodemon server.js` if you keep it at root)
+- `client/`: `index.html`, `public/`, `src/`, `vite.config.js`, `postcss.config.js`, `tailwind.config.js`
+- `server/`: `server.js`, `server/` (static server), `src/api/`, `src/services/`, `src/repositories/`, `src/middleware/`, `src/validation/`
+- Scripts now use `--root client` and `server/server.js`.
 
 ## Phase 3: Cleanup (Optional)
 
@@ -37,4 +31,4 @@
 ## Risks / Notes
 
 - Biggest risk is accidental import from server code into client.
-- Avoid moving runtime files unless you plan to update scripts in the same PR.
+- Keep client/server boundaries enforced with `npm run lint:boundaries`.
