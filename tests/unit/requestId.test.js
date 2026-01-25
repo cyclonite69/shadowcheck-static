@@ -1,4 +1,4 @@
-const requestIdMiddleware = require('../../src/middleware/requestId');
+const requestIdMiddleware = require('../../server/src/middleware/requestId');
 
 describe('Request ID Middleware', () => {
   let req, res, next;

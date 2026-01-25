@@ -42,7 +42,7 @@ HEADER_TEMPLATE = '''<!DOCTYPE html>
         <main class="app-main">'''
 
 for page_name, config in PAGES.items():
-    filepath = f'/home/cyclonite01/ShadowCheckStatic/public/{page_name}.html'
+    filepath = f'/home/cyclonite01/ShadowCheckStatic/client/public/{page_name}.html'
     
     # Read current file
     with open(filepath, 'r') as f:

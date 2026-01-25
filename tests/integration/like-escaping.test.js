@@ -7,7 +7,7 @@
  */
 
 // Mock database module BEFORE importing repositories
-jest.mock('../../src/config/database', () => ({
+jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
   pool: {
     query: jest.fn(),
@@ -22,9 +22,9 @@ jest.mock('../../src/config/database', () => ({
   },
 }));
 
-const { query } = require('../../src/config/database');
-const NetworkRepository = require('../../src/repositories/networkRepository');
-const { escapeLikePattern } = require('../../src/utils/escapeSQL');
+const { query } = require('../../server/src/config/database');
+const NetworkRepository = require('../../server/src/repositories/networkRepository');
+const { escapeLikePattern } = require('../../server/src/utils/escapeSQL');
 
 describe('LIKE Wildcard Escaping - Integration Tests', () => {
   beforeEach(() => {

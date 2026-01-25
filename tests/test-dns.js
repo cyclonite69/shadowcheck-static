@@ -1,6 +1,6 @@
 const dns = require('dns');
 const { Client } = require('pg');
-const secretsManager = require('../src/services/secretsManager');
+const secretsManager = require('../server/src/services/secretsManager');
 
 dns.setDefaultResultOrder('ipv4first');
 

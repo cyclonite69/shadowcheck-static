@@ -11,7 +11,7 @@
  */
 
 // Mock database module BEFORE importing repositories
-jest.mock('../../src/config/database', () => ({
+jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
   pool: {
     query: jest.fn(),
@@ -26,9 +26,9 @@ jest.mock('../../src/config/database', () => ({
   },
 }));
 
-const { query, CONFIG } = require('../../src/config/database');
-const BaseRepository = require('../../src/repositories/baseRepository');
-const NetworkRepository = require('../../src/repositories/networkRepository');
+const { query, CONFIG } = require('../../server/src/config/database');
+const BaseRepository = require('../../server/src/repositories/baseRepository');
+const NetworkRepository = require('../../server/src/repositories/networkRepository');
 
 describe('SQL Injection Prevention - Integration Tests', () => {
   beforeEach(() => {

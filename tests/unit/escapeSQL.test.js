@@ -3,7 +3,7 @@
  * Tests LIKE pattern escaping to prevent wildcard injection
  */
 
-const { escapeLikePattern } = require('../../src/utils/escapeSQL');
+const { escapeLikePattern } = require('../../server/src/utils/escapeSQL');
 
 describe('escapeLikePattern()', () => {
   describe('Normal input (no special characters)', () => {

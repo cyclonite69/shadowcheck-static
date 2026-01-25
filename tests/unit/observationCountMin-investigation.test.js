@@ -3,7 +3,7 @@
  * Testing why this filter was disabled
  */
 
-const { UniversalFilterQueryBuilder } = require('../../src/services/filterQueryBuilder');
+const { UniversalFilterQueryBuilder } = require('../../server/src/services/filterQueryBuilder');
 
 describe('observationCountMin - CRITICAL Investigation', () => {
   test('filter generates valid SQL', () => {
@@ -85,7 +85,7 @@ describe('observationCountMin - CRITICAL Investigation', () => {
   });
 
   test('disabled by default in store', () => {
-    const { DEFAULT_ENABLED } = require('../../src/services/filterQueryBuilder');
+    const { DEFAULT_ENABLED } = require('../../server/src/services/filterQueryBuilder');
     expect(DEFAULT_ENABLED.observationCountMin).toBe(false);
   });
 

@@ -7,17 +7,17 @@ const request = require('supertest');
 const express = require('express');
 
 // Mock dependencies
-jest.mock('../../src/config/database', () => ({
+jest.mock('../../server/src/config/database', () => ({
   pool: {
     query: jest.fn(),
   },
 }));
 
-jest.mock('../../src/services/secretsManager', () => ({
+jest.mock('../../server/src/services/secretsManager', () => ({
   has: jest.fn(),
 }));
 
-jest.mock('../../src/services/keyringService', () => ({
+jest.mock('../../server/src/services/keyringService', () => ({
   getCredential: jest.fn(),
 }));
 
@@ -30,9 +30,9 @@ describe('Observability Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    pool = require('../../src/config/database').pool;
-    secretsManager = require('../../src/services/secretsManager');
-    keyringService = require('../../src/services/keyringService');
+    pool = require('../../server/src/config/database').pool;
+    secretsManager = require('../../server/src/services/secretsManager');
+    keyringService = require('../../server/src/services/keyringService');
 
     // Setup mocks for healthy state
     pool.query.mockResolvedValue({ rows: [{ '?column?': 1 }] });
@@ -43,11 +43,11 @@ describe('Observability Integration', () => {
     app = express();
 
     // Request ID middleware (must be first)
-    const requestIdMiddleware = require('../../src/middleware/requestId');
+    const requestIdMiddleware = require('../../server/src/middleware/requestId');
     app.use(requestIdMiddleware);
 
     // Health check route
-    const healthRoutes = require('../../src/api/routes/v1/health');
+    const healthRoutes = require('../../server/src/api/routes/v1/health');
     app.use(healthRoutes);
 
     // Test route to verify request ID

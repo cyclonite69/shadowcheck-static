@@ -3,11 +3,11 @@
  */
 
 const request = require('supertest');
-const NetworkRepository = require('../../src/repositories/networkRepository');
-const DashboardService = require('../../src/services/dashboardService');
+const NetworkRepository = require('../../server/src/repositories/networkRepository');
+const DashboardService = require('../../server/src/services/dashboardService');
 
 // Mock secretsManager
-jest.mock('../../src/services/secretsManager', () => ({
+jest.mock('../../server/src/services/secretsManager', () => ({
   get: jest.fn((key) => {
     if (key === 'db_password') {
       return 'test_password';
@@ -24,7 +24,7 @@ jest.mock('../../src/services/secretsManager', () => ({
 }));
 
 // Mock the database config
-jest.mock('../../src/config/database', () => ({
+jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
   pool: {
     query: jest.fn(),
@@ -108,7 +108,7 @@ describe('Dashboard API', () => {
 
   describe('NetworkRepository', () => {
     it.skip('should execute dashboard metrics query (needs database)', async () => {
-      const { query } = require('../../src/config/database');
+      const { query } = require('../../server/src/config/database');
 
       // Mock query responses
       query
@@ -127,7 +127,7 @@ describe('Dashboard API', () => {
     });
 
     it.skip('should handle missing data with defaults (needs database)', async () => {
-      const { query } = require('../../src/config/database');
+      const { query } = require('../../server/src/config/database');
 
       // Mock empty responses
       query.mockResolvedValue({ rows: [] });
