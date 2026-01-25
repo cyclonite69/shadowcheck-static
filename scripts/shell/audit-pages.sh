@@ -4,7 +4,7 @@
 echo "=== ShadowCheck Page Layout Audit ==="
 echo ""
 
-for file in client/public/*.html; do
+for file in docs/archive/legacy-html/public/*.html; do
     [ -f "$file" ] || continue
     echo "📄 $file"
     
