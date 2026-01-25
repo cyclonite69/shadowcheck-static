@@ -22,6 +22,7 @@ if (runIntegration) {
 
 describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
   if (!runIntegration) {
+    test.skip('requires RUN_INTEGRATION_TESTS', () => {});
     return;
   }
 
