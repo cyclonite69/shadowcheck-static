@@ -96,6 +96,7 @@ function createTestApp(routes) {
 
 describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
   if (!runIntegration) {
+    test.skip('requires RUN_INTEGRATION_TESTS', () => {});
     return;
   }
   beforeEach(() => {
