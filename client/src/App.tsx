@@ -10,7 +10,6 @@ import DashboardPage from './components/DashboardPage';
 const GeospatialIntelligencePage = lazy(() => import('./components/GeospatialIntelligencePage'));
 const AnalyticsPage = lazy(() => import('./components/AnalyticsPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
-const MLTrainingPage = lazy(() => import('./components/MLTrainingPage'));
 const WiglePage = lazy(() => import('./components/WiglePage'));
 const KeplerPage = lazy(() => import('./components/KeplerPage'));
 const ApiPage = lazy(() => import('./components/ApiPage'));
@@ -59,7 +58,6 @@ function App() {
             <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/wigle-test" element={<WiglePage />} />
-            <Route path="/ml-training" element={<MLTrainingPage />} />
             <Route path="/kepler-test" element={<KeplerPage />} />
             <Route path="/endpoint-test" element={<ApiPage />} />
             <Route path="/admin" element={<AdminPage />} />
