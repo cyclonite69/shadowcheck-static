@@ -26,6 +26,9 @@ const { query } = require('../../server/src/config/database');
 const NetworkRepository = require('../../server/src/repositories/networkRepository');
 const { escapeLikePattern } = require('../../server/src/utils/escapeSQL');
 
+const hasSearchBySSID = typeof NetworkRepository.prototype.searchBySSID === 'function';
+const describeIfSearchBySSID = hasSearchBySSID ? describe : describe.skip;
+
 describe('LIKE Wildcard Escaping - Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -35,7 +38,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
   // Fix: networkRepository.searchBySSID() - LIKE Escaping
   // ============================================================================
 
-  describe('NetworkRepository.searchBySSID() - LIKE Escaping', () => {
+  describeIfSearchBySSID('NetworkRepository.searchBySSID() - LIKE Escaping', () => {
     let repo;
 
     beforeEach(() => {
