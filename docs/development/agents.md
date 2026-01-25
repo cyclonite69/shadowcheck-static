@@ -4,7 +4,7 @@
 
 - Monorepo with Express backend (`server/`) and React/Vite frontend (`client/`).
 - Backend: `server/src/api/routes/v1/` (Express routes), `server/src/services/` (business logic), `server/src/repositories/` (Postgres access), `server/src/middleware/`, `server/src/config/`.
-- Frontend: `client/src/components/`, `client/src/App.tsx`, `client/src/main.tsx`, styles in `client/src/index.css` and `client/src/unified.css`.
+- Frontend: `client/src/components/`, `client/src/App.tsx`, `client/src/main.tsx`, styles in `client/src/index.css` (legacy HTML assets live in `client/public/`).
 - Data and ops: SQL migrations in `sql/`, utility scripts in `scripts/`, docs in `docs/`, Jest tests in `tests/`, Docker entrypoints in `docker-compose*.yml` and `Dockerfile`.
 
 ## Build, Test, and Development Commands
