@@ -10,6 +10,9 @@
  * Database: Mocked to isolate validation logic
  */
 
+const { runIntegration } = require('../helpers/integrationEnv');
+const describeIfIntegration = runIntegration ? describe : describe.skip;
+
 // Mock database module BEFORE importing repositories
 jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
@@ -30,7 +33,11 @@ const { query, CONFIG } = require('../../server/src/config/database');
 const BaseRepository = require('../../server/src/repositories/baseRepository');
 const NetworkRepository = require('../../server/src/repositories/networkRepository');
 
-describe('SQL Injection Prevention - Integration Tests', () => {
+describeIfIntegration('SQL Injection Prevention - Integration Tests', () => {
+  if (!runIntegration) {
+    test.skip('requires RUN_INTEGRATION_TESTS', () => {});
+    return;
+  }
   beforeEach(() => {
     jest.clearAllMocks();
   });
