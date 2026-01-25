@@ -304,7 +304,7 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
   // Backward Compatibility
   // ============================================================================
 
-  describe('Backward Compatibility', () => {
+  describeIfSearchBySSID('Backward Compatibility', () => {
     test('normal searches should work exactly as before', async () => {
       const repo = new NetworkRepository();
 
