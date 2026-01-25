@@ -66,33 +66,44 @@ describe('Dashboard API', () => {
       expect(metrics).toHaveProperty('enrichedCount', 45123);
     });
 
-    it('should get dashboard summary with enrichment rate', async () => {
+    it('should get network distribution from metrics', async () => {
       jest.spyOn(networkRepository, 'getDashboardMetrics').mockResolvedValue({
         totalNetworks: 1000,
-        threatsCount: 50,
-        surveillanceCount: 10,
-        enrichedCount: 250,
+        wifiCount: 600,
+        bleCount: 200,
+        bluetoothCount: 100,
+        lteCount: 100,
       });
 
-      const summary = await dashboardService.getSummary();
+      const distribution = await dashboardService.getNetworkDistribution();
 
-      expect(summary).toHaveProperty('summary');
-      expect(summary.summary.hasThreats).toBe(true);
-      expect(summary.summary.enrichmentRate).toBe(25); // 250/1000 * 100
+      expect(distribution).toEqual({
+        wifi: 600,
+        ble: 200,
+        bluetooth: 100,
+        lte: 100,
+        total: 1000,
+      });
     });
 
-    it('should handle zero networks gracefully', async () => {
+    it('should handle zero distribution values', async () => {
       jest.spyOn(networkRepository, 'getDashboardMetrics').mockResolvedValue({
         totalNetworks: 0,
-        threatsCount: 0,
-        surveillanceCount: 0,
-        enrichedCount: 0,
+        wifiCount: 0,
+        bleCount: 0,
+        bluetoothCount: 0,
+        lteCount: 0,
       });
 
-      const summary = await dashboardService.getSummary();
+      const distribution = await dashboardService.getNetworkDistribution();
 
-      expect(summary.summary.enrichmentRate).toBe(0);
-      expect(summary.summary.hasThreats).toBe(false);
+      expect(distribution).toEqual({
+        wifi: 0,
+        ble: 0,
+        bluetooth: 0,
+        lte: 0,
+        total: 0,
+      });
     });
 
     it('should throw error on database failure', async () => {
@@ -100,9 +111,7 @@ describe('Dashboard API', () => {
         .spyOn(networkRepository, 'getDashboardMetrics')
         .mockRejectedValue(new Error('Database connection failed'));
 
-      await expect(dashboardService.getMetrics()).rejects.toThrow(
-        'Failed to fetch dashboard metrics'
-      );
+      await expect(dashboardService.getMetrics()).rejects.toThrow('Database connection failed');
     });
   });
 
