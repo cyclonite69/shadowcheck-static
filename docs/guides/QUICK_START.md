@@ -121,13 +121,14 @@
 - This is a known issue on 4 pages (networks, geospatial, surveillance, analytics)
 - Will be fixed in next update
 
-## Files Modified
+## Legacy HTML Assets (Archived)
 
-✅ `/assets/styles/unified.css` - Grid header, scrollable pages, card styles
-✅ `/assets/js/unified-components.js` - Snap-to-grid, resize, move
-✅ `/assets/js/unified-card-library.js` - Reusable card components
-✅ `/assets/js/unified-header.js` - Standardized header
-✅ All HTML pages - Include unified scripts
+These files refer to the legacy static HTML tooling and are not part of the current React app:
+
+- `/assets/styles/unified.css` - Grid header, scrollable pages, card styles
+- `/assets/js/unified-components.js` - Snap-to-grid, resize, move
+- `/assets/js/unified-card-library.js` - Reusable card components
+- `/assets/js/unified-header.js` - Standardized header
 
 ## Next Steps
 
