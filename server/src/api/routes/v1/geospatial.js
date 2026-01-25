@@ -1,12 +1,33 @@
 const express = require('express');
 const router = express.Router();
 const secretsManager = require('../../../services/secretsManager');
-const fetch = require('node-fetch');
+const { Readable } = require('stream');
 const { URL } = require('url');
 const logger = require('../../../logging/logger');
 const { withRetry } = require('../../../services/externalServiceHandler');
 const { validateQuery, optional } = require('../../../validation/middleware');
 const { validateString } = require('../../../validation/schemas');
+
+const fetch = (...args) => {
+  if (typeof global.fetch !== 'function') {
+    throw new Error('Fetch API is not available. Requires Node 20+ runtime.');
+  }
+  return global.fetch(...args);
+};
+
+function pipeUpstreamBody(upstream, res) {
+  if (!upstream.body) {
+    res.end();
+    return;
+  }
+
+  if (typeof upstream.body.pipe === 'function') {
+    pipeUpstreamBody(upstream, res);
+    return;
+  }
+
+  Readable.fromWeb(upstream.body).pipe(res);
+}
 
 /**
  * Validates and normalizes a Mapbox style identifier.
