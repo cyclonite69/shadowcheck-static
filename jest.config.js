@@ -8,8 +8,8 @@ module.exports = {
   // Coverage configuration
   collectCoverage: false, // Enable with --coverage flag
   collectCoverageFrom: [
-    'src/**/*.js',
-    'server.js',
+    'server/src/**/*.js',
+    'server/server.js',
     'scripts/**/*.js',
     '!**/node_modules/**',
     '!**/tests/**',

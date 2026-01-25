@@ -2,17 +2,17 @@ const request = require('supertest');
 const express = require('express');
 
 // Mock dependencies
-jest.mock('../../src/config/database', () => ({
+jest.mock('../../server/src/config/database', () => ({
   pool: {
     query: jest.fn(),
   },
 }));
 
-jest.mock('../../src/services/secretsManager', () => ({
+jest.mock('../../server/src/services/secretsManager', () => ({
   has: jest.fn(),
 }));
 
-jest.mock('../../src/services/keyringService', () => ({
+jest.mock('../../server/src/services/keyringService', () => ({
   getCredential: jest.fn(),
 }));
 
@@ -27,10 +27,10 @@ describe('Health Check Endpoint', () => {
     jest.resetModules();
     jest.clearAllMocks();
 
-    pool = require('../../src/config/database').pool;
-    secretsManager = require('../../src/services/secretsManager');
-    keyringService = require('../../src/services/keyringService');
-    healthRoutes = require('../../src/api/routes/v1/health');
+    pool = require('../../server/src/config/database').pool;
+    secretsManager = require('../../server/src/services/secretsManager');
+    keyringService = require('../../server/src/services/keyringService');
+    healthRoutes = require('../../server/src/api/routes/v1/health');
 
     app = express();
     app.use(healthRoutes);

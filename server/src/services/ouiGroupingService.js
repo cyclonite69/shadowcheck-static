@@ -75,7 +75,8 @@ class OUIGroupingService {
         }
 
         // Insert group
-        await query(`
+        await query(
+          `
           INSERT INTO app.oui_device_groups
             (oui, device_count, collective_threat_score, threat_level, primary_bssid, secondary_bssids)
           VALUES ($1, $2, $3, $4, $5, $6)
@@ -86,16 +87,20 @@ class OUIGroupingService {
             primary_bssid = $5,
             secondary_bssids = $6,
             last_updated = NOW()
-        `, [
-          oui,
-          group.bssids.length,
-          collectiveThreat,
-          threatLevel,
-          group.bssids[0], // Primary (highest threat)
-          group.bssids.slice(1), // Secondary
-        ]);
+        `,
+          [
+            oui,
+            group.bssids.length,
+            collectiveThreat,
+            threatLevel,
+            group.bssids[0], // Primary (highest threat)
+            group.bssids.slice(1), // Secondary
+          ]
+        );
 
-        logger.info(`[OUI Grouping] ${oui}: ${group.bssids.length} BSSIDs, threat=${collectiveThreat.toFixed(2)}`);
+        logger.info(
+          `[OUI Grouping] ${oui}: ${group.bssids.length} BSSIDs, threat=${collectiveThreat.toFixed(2)}`
+        );
       }
 
       logger.info(`[OUI Grouping] Completed: ${Object.keys(ouiGroups).length} groups`);
@@ -141,9 +146,10 @@ class OUIGroupingService {
         }
 
         // Simple heuristics for MAC randomization detection
-        const timeDelta = row.last_seen && row.first_seen
-          ? (new Date(row.last_seen) - new Date(row.first_seen)) / (1000 * 60 * 60) // hours
-          : 0;
+        const timeDelta =
+          row.last_seen && row.first_seen
+            ? (new Date(row.last_seen) - new Date(row.first_seen)) / (1000 * 60 * 60) // hours
+            : 0;
 
         // Estimate movement based on time span and MAC count
         const avgSpeed = timeDelta > 0 ? (macCount * 2) / timeDelta : 0; // rough estimate
@@ -155,7 +161,8 @@ class OUIGroupingService {
 
         // Only flag if confidence is reasonable
         if (confidenceScore >= 0.5) {
-          await query(`
+          await query(
+            `
             INSERT INTO app.mac_randomization_suspects
               (oui, mac_sequence, avg_distance_km, movement_speed_kmh, confidence_score, status)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -165,16 +172,20 @@ class OUIGroupingService {
               movement_speed_kmh = $4,
               confidence_score = $5,
               status = $6
-          `, [
-            row.oui,
-            macs,
-            (macCount * 0.5).toFixed(2), // rough distance estimate
-            avgSpeed.toFixed(2),
-            confidenceScore.toFixed(2),
-            confidenceScore >= 0.7 ? 'confirmed' : 'suspected',
-          ]);
+          `,
+            [
+              row.oui,
+              macs,
+              (macCount * 0.5).toFixed(2), // rough distance estimate
+              avgSpeed.toFixed(2),
+              confidenceScore.toFixed(2),
+              confidenceScore >= 0.7 ? 'confirmed' : 'suspected',
+            ]
+          );
 
-          logger.info(`[MAC Randomization] ${row.oui}: ${macCount} MACs, confidence=${confidenceScore.toFixed(2)}, speed=${avgSpeed.toFixed(1)}km/h`);
+          logger.info(
+            `[MAC Randomization] ${row.oui}: ${macCount} MACs, confidence=${confidenceScore.toFixed(2)}, speed=${avgSpeed.toFixed(1)}km/h`
+          );
         }
       }
 

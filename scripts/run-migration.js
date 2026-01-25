@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-const secretsManager = require('../src/services/secretsManager');
+const secretsManager = require('../server/src/services/secretsManager');
 
 const migrationFile = process.argv[2];
 

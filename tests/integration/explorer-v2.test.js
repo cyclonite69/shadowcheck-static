@@ -5,7 +5,7 @@
 
 const request = require('supertest');
 const express = require('express');
-const explorerRouter = require('../../src/api/routes/v1/explorer');
+const explorerRouter = require('../../server/src/api/routes/v1/explorer');
 
 // Create test app
 const app = express();

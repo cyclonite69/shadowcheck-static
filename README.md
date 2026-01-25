@@ -13,8 +13,8 @@
 
 ## Current Development Direction
 
-- **React/Vite frontend** with TypeScript support is fully integrated (`src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/api-test`)
-- **Hybrid backend architecture** with legacy routes in `server.js` and modern modular services in `src/api/`, `src/services/`, and `src/repositories/`
+- **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/api-test`)
+- **Hybrid backend architecture** with legacy routes in `server/server.js` and modern modular services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
 - **Universal filter system** with 20+ filter types supporting complex queries across all pages
 - **DevContainer support** for consistent development environments with VS Code integration
 - **Static server** with security headers for production deployment and Lighthouse audits
@@ -123,7 +123,7 @@ Server runs on `http://localhost:3001`
 - `GET /api/analytics/*` - Analytics data
 - `GET /api/networks/observations/:bssid` - Network observations
 
-See `server.js` for full endpoint documentation.
+See `server/server.js` for full endpoint documentation.
 
 ## Machine Learning
 
@@ -198,14 +198,14 @@ Tests Logistic Regression, Random Forest, and Gradient Boosting with hyperparame
 
 ```
 shadowcheck-static/
-├── src/
+├── client/
 │   ├── api/               # 🔧 Backend API routes
 │   ├── services/          # 🔧 Backend business logic
 │   ├── repositories/      # 🔧 Backend data access
 │   ├── components/        # ⚛️ Frontend React components
 │   ├── App.tsx            # ⚛️ Frontend React app
 │   └── main.tsx           # ⚛️ Frontend entry point
-├── server.js              # 🔧 Backend Express server
+├── server/                # 🔧 Backend Express server
 ├── index.html             # ⚛️ Frontend HTML template
 ├── vite.config.js         # ⚛️ Frontend build config
 ├── scripts/               # Utility scripts

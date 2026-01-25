@@ -35,10 +35,10 @@ const mockSecretsManager = {
   has: jest.fn((key) => key === 'mapbox_token'),
 };
 
-jest.mock('../../src/services/secretsManager', () => mockSecretsManager);
+jest.mock('../../server/src/services/secretsManager', () => mockSecretsManager);
 
 // Mock database BEFORE importing routes
-jest.mock('../../src/config/database', () => ({
+jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
   pool: {
     query: jest.fn(),
@@ -55,15 +55,15 @@ jest.mock('../../src/config/database', () => ({
 
 const express = require('express');
 const request = require('supertest');
-const { query, CONFIG } = require('../../src/config/database');
+const { query, CONFIG } = require('../../server/src/config/database');
 
 // Import route modules
-const networksRoutes = require('../../src/api/routes/v1/networks');
-const threatsRoutes = require('../../src/api/routes/v1/threats');
-const wigleRoutes = require('../../src/api/routes/v1/wigle');
-const adminRoutes = require('../../src/api/routes/v1/admin');
-const mlRoutes = require('../../src/api/routes/v1/ml');
-const geospatialRoutes = require('../../src/api/routes/v1/geospatial');
+const networksRoutes = require('../../server/src/api/routes/v1/networks');
+const threatsRoutes = require('../../server/src/api/routes/v1/threats');
+const wigleRoutes = require('../../server/src/api/routes/v1/wigle');
+const adminRoutes = require('../../server/src/api/routes/v1/admin');
+const mlRoutes = require('../../server/src/api/routes/v1/ml');
+const geospatialRoutes = require('../../server/src/api/routes/v1/geospatial');
 
 // Create test app for each route module
 function createTestApp(routes) {

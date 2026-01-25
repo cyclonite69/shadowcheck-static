@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-const secretsManager = require('../src/services/secretsManager');
+const secretsManager = require('../server/src/services/secretsManager');
 require('dotenv').config();
 
 async function updateHome() {

@@ -13,7 +13,7 @@ Sitemap: ${process.env.SITE_URL || 'https://yoursite.com'}/sitemap.xml`
   : `User-agent: *
 Disallow: /`;
 
-const outputPath = path.join(__dirname, '../public/robots.txt');
+const outputPath = path.join(__dirname, '../client/public/robots.txt');
 fs.writeFileSync(outputPath, robotsTxt);
 
 console.log(

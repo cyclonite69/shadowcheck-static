@@ -3,31 +3,22 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
 const clientPaths = [
-  'src/components',
-  'src/hooks',
-  'src/stores',
-  'src/utils',
-  'src/App.tsx',
-  'src/main.tsx',
+  'client/src/components',
+  'client/src/hooks',
+  'client/src/stores',
+  'client/src/utils',
+  'client/src/App.tsx',
+  'client/src/main.tsx',
 ];
 
-const excludeFiles = new Set([
-  'src/utils/backgroundJobsInit.js',
-  'src/utils/credentialsInit.js',
-  'src/utils/dashboardInit.js',
-  'src/utils/middlewareInit.js',
-  'src/utils/serverDependencies.js',
-  'src/utils/shutdownHandlers.js',
-  'src/utils/staticSetup.js',
-  'src/utils/validateSecrets.js',
-]);
+const excludeFiles = new Set();
 
 const restrictedRoots = [
-  path.join(repoRoot, 'src', 'api'),
-  path.join(repoRoot, 'src', 'services'),
-  path.join(repoRoot, 'src', 'repositories'),
-  path.join(repoRoot, 'src', 'middleware'),
-  path.join(repoRoot, 'src', 'validation'),
+  path.join(repoRoot, 'server', 'src', 'api'),
+  path.join(repoRoot, 'server', 'src', 'services'),
+  path.join(repoRoot, 'server', 'src', 'repositories'),
+  path.join(repoRoot, 'server', 'src', 'middleware'),
+  path.join(repoRoot, 'server', 'src', 'validation'),
 ];
 
 const importRegex = /(?:import\s+[^'"]*\s+from\s+|require\()\s*['"]([^'"]+)['"]\s*\)?/g;

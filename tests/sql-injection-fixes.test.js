@@ -3,8 +3,8 @@
  * Validates that ORDER BY and config value vulnerabilities are fixed
  */
 
-const BaseRepository = require('../src/repositories/baseRepository');
-const NetworkRepository = require('../src/repositories/networkRepository');
+const BaseRepository = require('../server/src/repositories/baseRepository');
+const NetworkRepository = require('../server/src/repositories/networkRepository');
 
 describe('SQL Injection Prevention', () => {
   describe('BaseRepository.findMany() - ORDER BY Validation', () => {

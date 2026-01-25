@@ -1,15 +1,19 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Enable production sourcemaps via: VITE_SOURCEMAP=true npm run build
 const enableProdSourcemap = process.env.VITE_SOURCEMAP === 'true';
 
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  root: '.',
-  publicDir: 'public',
+  root: rootDir,
+  publicDir: path.join(rootDir, 'public'),
   build: {
-    outDir: 'dist',
+    outDir: path.join(rootDir, '..', 'dist'),
     emptyOutDir: true,
     // Source maps: enabled in dev, disabled in prod (unless VITE_SOURCEMAP=true)
     sourcemap: mode === 'development' ? true : enableProdSourcemap,

@@ -6,7 +6,7 @@
 
 require('dotenv').config();
 const { Pool } = require('pg');
-const secretsManager = require('../src/services/secretsManager');
+const secretsManager = require('../server/src/services/secretsManager');
 
 const lat = parseFloat(process.argv[2]);
 const lng = parseFloat(process.argv[3]);

@@ -86,5 +86,9 @@
       }
     }
   ],
-  "ignorePatterns": ["src/**/*.tsx", "src/**/*.ts", "src/**/*.jsx"]
+  "ignorePatterns": [
+    "client/src/**/*.tsx",
+    "client/src/**/*.ts",
+    "client/src/**/*.jsx"
+  ]
 }

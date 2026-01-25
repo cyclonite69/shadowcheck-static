@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { Pool } = require('pg');
-const secretsManager = require('../src/services/secretsManager');
+const secretsManager = require('../server/src/services/secretsManager');
 
 (async () => {
   try {
