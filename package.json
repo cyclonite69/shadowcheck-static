@@ -18,7 +18,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:integration": "jest --testPathPattern=integration",
+    "test:integration": "RUN_INTEGRATION_TESTS=true npm test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:boundaries": "node scripts/check-client-imports.js",
