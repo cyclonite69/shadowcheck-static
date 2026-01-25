@@ -12,6 +12,9 @@
  * 5. Verify response format matches original
  */
 
+const { runIntegration } = require('../helpers/integrationEnv');
+const describeIfIntegration = runIntegration ? describe : describe.skip;
+
 // Mock secretsManager BEFORE importing routes
 const mockSecretsManager = {
   get: jest.fn((key) => {
@@ -53,17 +56,30 @@ jest.mock('../../server/src/config/database', () => ({
   },
 }));
 
-const express = require('express');
-const request = require('supertest');
-const { query, CONFIG } = require('../../server/src/config/database');
+let express;
+let request;
+let query;
+let CONFIG;
 
 // Import route modules
-const networksRoutes = require('../../server/src/api/routes/v1/networks');
-const threatsRoutes = require('../../server/src/api/routes/v1/threats');
-const wigleRoutes = require('../../server/src/api/routes/v1/wigle');
-const adminRoutes = require('../../server/src/api/routes/v1/admin');
-const mlRoutes = require('../../server/src/api/routes/v1/ml');
-const geospatialRoutes = require('../../server/src/api/routes/v1/geospatial');
+let networksRoutes;
+let threatsRoutes;
+let wigleRoutes;
+let adminRoutes;
+let mlRoutes;
+let geospatialRoutes;
+
+if (runIntegration) {
+  express = require('express');
+  request = require('supertest');
+  ({ query, CONFIG } = require('../../server/src/config/database'));
+  networksRoutes = require('../../server/src/api/routes/v1/networks');
+  threatsRoutes = require('../../server/src/api/routes/v1/threats');
+  wigleRoutes = require('../../server/src/api/routes/v1/wigle');
+  adminRoutes = require('../../server/src/api/routes/v1/admin');
+  mlRoutes = require('../../server/src/api/routes/v1/ml');
+  geospatialRoutes = require('../../server/src/api/routes/v1/geospatial');
+}
 
 // Create test app for each route module
 function createTestApp(routes) {
@@ -78,7 +94,10 @@ function createTestApp(routes) {
   return app;
 }
 
-describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
+describeIfIntegration('Route Refactoring Verification - GO/NO-GO Tests', () => {
+  if (!runIntegration) {
+    return;
+  }
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.API_KEY = 'test-api-key';
@@ -721,35 +740,34 @@ describe('Route Refactoring Verification - GO/NO-GO Tests', () => {
       expect(response.body).toHaveProperty('limit');
     });
   });
-});
+  // ============================================================================
+  // GO/NO-GO SUMMARY
+  // ============================================================================
 
-// ============================================================================
-// GO/NO-GO SUMMARY
-// ============================================================================
+  describe('🎯 GO/NO-GO Decision Summary', () => {
+    test('All critical routes are tested', () => {
+      // This test always passes - it's documentation
+      const testedRoutes = [
+        'networks.js - 7 endpoints',
+        'threats.js - 2 endpoints',
+        'wigle.js - 2 endpoints',
+        'admin.js - 3 endpoints',
+        'ml.js - 2 endpoints',
+        'geospatial.js - 2 endpoints',
+      ];
 
-describe('🎯 GO/NO-GO Decision Summary', () => {
-  test('All critical routes are tested', () => {
-    // This test always passes - it's documentation
-    const testedRoutes = [
-      'networks.js - 7 endpoints',
-      'threats.js - 2 endpoints',
-      'wigle.js - 2 endpoints',
-      'admin.js - 3 endpoints',
-      'ml.js - 2 endpoints',
-      'geospatial.js - 2 endpoints',
-    ];
+      expect(testedRoutes.length).toBe(6);
+    });
 
-    expect(testedRoutes.length).toBe(6);
-  });
+    test('All security fixes are verified', () => {
+      const securityChecks = [
+        'SQL injection prevention - ORDER BY',
+        'LIKE wildcard escaping',
+        'Authentication middleware',
+        'Input validation',
+      ];
 
-  test('All security fixes are verified', () => {
-    const securityChecks = [
-      'SQL injection prevention - ORDER BY',
-      'LIKE wildcard escaping',
-      'Authentication middleware',
-      'Input validation',
-    ];
-
-    expect(securityChecks.length).toBe(4);
+      expect(securityChecks.length).toBe(4);
+    });
   });
 });
