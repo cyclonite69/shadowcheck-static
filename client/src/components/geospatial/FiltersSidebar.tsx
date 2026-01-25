@@ -10,8 +10,9 @@ export const FiltersSidebar = ({ open, children }: FiltersSidebarProps) => {
 
   return (
     <div
-      className="fixed top-14 left-3 w-72 max-h-[calc(100vh-80px)] z-40 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-600/60 bg-slate-900/95 backdrop-blur-xl shadow-2xl pointer-events-auto"
+      className="fixed top-14 left-3 w-72 max-h-[calc(100vh-80px)] z-40 overflow-y-auto overflow-x-hidden rounded-xl bg-slate-900/95 backdrop-blur-xl shadow-2xl pointer-events-auto"
       style={{
+        border: '1px solid #475569',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
       }}
     >
