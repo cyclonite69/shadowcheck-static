@@ -20,15 +20,19 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
       {/* Filter Panel */}
       {showFilters && (
         <div
-          className="fixed top-20 right-4 max-w-md space-y-2"
+          className="fixed top-20 right-4 max-w-md"
           style={{
             maxHeight: 'calc(100vh - 100px)',
-            overflowY: 'auto',
             zIndex: 100000,
             pointerEvents: 'auto',
           }}
         >
-          <FilterPanel density="compact" />
+          <div
+            className="space-y-2 overflow-y-auto overflow-x-hidden"
+            style={{ maxHeight: 'calc(100vh - 100px)' }}
+          >
+            <FilterPanel density="compact" />
+          </div>
         </div>
       )}
 

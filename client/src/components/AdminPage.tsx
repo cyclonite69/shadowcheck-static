@@ -152,6 +152,19 @@ const API_PRESETS: { label: string; path: string; method: HttpMethod }[] = [
   { label: 'Kepler', path: '/api/kepler/data?limit=50', method: 'GET' },
 ];
 
+const formatBytes = (bytes: number) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes;
+  let index = 0;
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024;
+    index += 1;
+  }
+  const decimals = value >= 10 || index === 0 ? 0 : 1;
+  return `${value.toFixed(decimals)} ${units[index]}`;
+};
+
 // Card Component
 const Card = ({
   icon: Icon,
@@ -198,6 +211,16 @@ const AdminPage: React.FC = () => {
   const [apiResult, setApiResult] = useState<any>(null);
   const [apiError, setApiError] = useState('');
   const [apiHealth, setApiHealth] = useState<{ status: string; version: string } | null>(null);
+
+  // Backup state
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupResult, setBackupResult] = useState<{
+    backupDir: string;
+    fileName: string;
+    filePath: string;
+    bytes: number;
+  } | null>(null);
+  const [backupError, setBackupError] = useState('');
 
   // Load ML status when ML tab is active
   useEffect(() => {
@@ -329,11 +352,35 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const runBackup = async () => {
+    setBackupError('');
+    setBackupResult(null);
+    setBackupLoading(true);
+    try {
+      const res = await fetch('/api/admin/backup', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      setBackupResult({
+        backupDir: data.backupDir,
+        fileName: data.fileName,
+        filePath: data.filePath,
+        bytes: data.bytes,
+      });
+    } catch (err: any) {
+      setBackupError(err?.message || 'Backup failed');
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
     { id: 'api', label: 'API Testing', icon: ApiIcon },
     { id: 'ml', label: 'ML Training', icon: BrainIcon },
     { id: 'imports', label: 'Data Import', icon: UploadIcon },
+    { id: 'backups', label: 'Backups', icon: DatabaseIcon },
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
   ];
 
@@ -691,18 +738,74 @@ const AdminPage: React.FC = () => {
           </div>
         )}
 
+        {activeTab === 'backups' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <Card
+              icon={DatabaseIcon}
+              title="Full Database Backup"
+              color="from-emerald-500 to-emerald-600"
+            >
+              <div className="space-y-4">
+                <p className="text-sm text-slate-400">
+                  Creates a full PostgreSQL backup (custom format) on the server.
+                </p>
+                <button
+                  onClick={runBackup}
+                  disabled={backupLoading}
+                  className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50"
+                >
+                  {backupLoading ? 'Running Backup...' : 'Run Full Backup'}
+                </button>
+                {backupError && (
+                  <div className="p-3 rounded-lg text-sm bg-red-900/50 text-red-300 border border-red-700">
+                    {backupError}
+                  </div>
+                )}
+                {backupResult && (
+                  <div className="p-3 rounded-lg text-sm bg-emerald-900/40 text-emerald-200 border border-emerald-700/60 space-y-1">
+                    <div>
+                      <span className="text-emerald-300">File:</span> {backupResult.fileName}
+                    </div>
+                    <div>
+                      <span className="text-emerald-300">Size:</span>{' '}
+                      {formatBytes(backupResult.bytes)}
+                    </div>
+                    <div>
+                      <span className="text-emerald-300">Path:</span> {backupResult.filePath}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card icon={ShieldIcon} title="Backup Notes" color="from-slate-500 to-slate-600">
+              <div className="space-y-3 text-sm text-slate-400">
+                <p>Backups are stored locally on the server and are not uploaded anywhere yet.</p>
+                <p>
+                  Configure the storage path with <span className="text-slate-200">BACKUP_DIR</span>{' '}
+                  in your environment.
+                </p>
+                <p>
+                  Retention is controlled by{' '}
+                  <span className="text-slate-200">BACKUP_RETENTION_DAYS</span> (default 14).
+                </p>
+              </div>
+            </Card>
+          </div>
+        )}
+
         {activeTab === 'exports' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <Card icon={DownloadIcon} title="Network Exports" color="from-blue-500 to-blue-600">
               <div className="space-y-3">
                 <button
-                  onClick={() => window.open('/api/export/csv', '_blank')}
+                  onClick={() => window.open('/api/csv', '_blank')}
                   className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all"
                 >
                   Export Networks (CSV)
                 </button>
                 <button
-                  onClick={() => window.open('/api/export/json', '_blank')}
+                  onClick={() => window.open('/api/json', '_blank')}
                   className="w-full px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-500 hover:to-red-600 transition-all"
                 >
                   Export Data (JSON)
@@ -713,7 +816,7 @@ const AdminPage: React.FC = () => {
             <Card icon={DownloadIcon} title="Geospatial Export" color="from-green-500 to-green-600">
               <div className="space-y-3">
                 <button
-                  onClick={() => window.open('/api/export/geojson', '_blank')}
+                  onClick={() => window.open('/api/geojson', '_blank')}
                   className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all"
                 >
                   Export GeoJSON

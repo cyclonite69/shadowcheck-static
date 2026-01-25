@@ -24,8 +24,8 @@ RUN npm prune --production
 ###########################################
 FROM node:20-alpine
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init for proper signal handling and pg_dump for backups
+RUN apk add --no-cache dumb-init postgresql-client
 
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \

@@ -17,6 +17,7 @@ const adminTagsRoutes = require('./admin/tags');
 const adminNotesRoutes = require('./admin/notes');
 const adminMediaRoutes = require('./admin/media');
 const adminOuiRoutes = require('./admin/oui');
+const adminBackupRoutes = require('./admin/backup');
 
 // Configure multer for SQLite file uploads
 const upload = multer({
@@ -40,6 +41,7 @@ router.use(adminTagsRoutes);
 router.use(adminNotesRoutes);
 router.use(adminMediaRoutes);
 router.use(adminOuiRoutes);
+router.use(adminBackupRoutes);
 
 // POST /api/admin/import-sqlite - Import SQLite database
 router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, next) => {
