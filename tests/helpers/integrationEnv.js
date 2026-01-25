@@ -1,5 +1,4 @@
-const runIntegration =
-  process.env.RUN_INTEGRATION_TESTS === 'true' || process.env.RUN_INTEGRATION_TESTS === '1';
+const runIntegration = process.env.RUN_INTEGRATION_TESTS === 'true';
 
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 const testIfIntegration = runIntegration ? test : test.skip;
