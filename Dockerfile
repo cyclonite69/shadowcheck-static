@@ -41,7 +41,6 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist/
 
 # Copy application code
 COPY --chown=nodejs:nodejs server ./server/
-COPY --chown=nodejs:nodejs utils ./utils/
 COPY --chown=nodejs:nodejs scripts ./scripts/
 COPY --chown=nodejs:nodejs sql ./sql/
 
