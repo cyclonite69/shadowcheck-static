@@ -1,3 +1,6 @@
+const { runIntegration } = require('../helpers/integrationEnv');
+const describeIfIntegration = runIntegration ? describe : describe.skip;
+
 const request = require('supertest');
 const express = require('express');
 
@@ -16,7 +19,11 @@ jest.mock('../../server/src/services/keyringService', () => ({
   getCredential: jest.fn(),
 }));
 
-describe('Health Check Endpoint', () => {
+describeIfIntegration('Health Check Endpoint', () => {
+  if (!runIntegration) {
+    test.skip('requires RUN_INTEGRATION_TESTS', () => {});
+    return;
+  }
   let app;
   let healthRoutes;
   let pool;
