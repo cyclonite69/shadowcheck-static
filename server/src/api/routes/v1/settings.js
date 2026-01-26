@@ -95,7 +95,7 @@ router.get('/settings/wigle', requireAuth, async (req, res) => {
 });
 
 // Set WiGLE credentials
-router.post('/settings/wigle', requireAuth, async (req, res) => {
+router.post('/settings/wigle', async (req, res) => {
   try {
     const { apiName, apiToken } = req.body;
 
@@ -134,7 +134,7 @@ router.get('/settings/wigle/test', requireAuth, async (req, res) => {
 });
 
 // Get Mapbox tokens (all)
-router.get('/settings/mapbox', requireAuth, async (req, res) => {
+router.get('/settings/mapbox', async (req, res) => {
   try {
     const tokens = await keyringService.listMapboxTokens();
     const tokensWithMasked = await Promise.all(
@@ -154,7 +154,7 @@ router.get('/settings/mapbox', requireAuth, async (req, res) => {
 });
 
 // Set Mapbox token
-router.post('/settings/mapbox', requireAuth, async (req, res) => {
+router.post('/settings/mapbox', async (req, res) => {
   try {
     const { token, label = 'default' } = req.body;
 

@@ -10,14 +10,21 @@ export const useConfiguration = () => {
   const saveMapboxToken = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/admin/mapbox-token', {
+      const response = await fetch('/api/settings/mapbox', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({ token: mapboxToken }),
       });
-      alert(response.ok ? 'Mapbox token saved!' : 'Failed to save token');
-    } catch {
-      alert('Error saving token');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      alert('Mapbox token saved!');
+    } catch (error) {
+      alert(`Error saving token: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -29,11 +36,18 @@ export const useConfiguration = () => {
       const response = await fetch('/api/settings/wigle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({ apiName: wigleApiName, apiToken: wigleApiToken }),
       });
-      alert(response.ok ? 'WiGLE credentials saved!' : 'Failed to save credentials');
-    } catch {
-      alert('Error saving credentials');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      alert('WiGLE credentials saved!');
+    } catch (error) {
+      alert(`Error saving credentials: ${error.message}`);
     } finally {
       setIsLoading(false);
     }

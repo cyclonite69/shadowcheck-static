@@ -30,13 +30,17 @@ export const useWigleSearch = () => {
     setSearchResults(null);
     setSearchLoading(true);
     try {
-      const res = await fetch('/api/wigle/search-api', {
+      const params = new URLSearchParams();
+      if (searchParams.ssid) params.append('ssid', searchParams.ssid);
+      if (searchParams.bssid) params.append('bssid', searchParams.bssid);
+      if (searchParams.latrange1) params.append('latrange1', searchParams.latrange1);
+      if (searchParams.latrange2) params.append('latrange2', searchParams.latrange2);
+      if (searchParams.longrange1) params.append('longrange1', searchParams.longrange1);
+      if (searchParams.longrange2) params.append('longrange2', searchParams.longrange2);
+      const res = await fetch(`/api/wigle/search-api?${params.toString()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...searchParams,
-          import: importResults,
-        }),
+        body: JSON.stringify({ import: importResults }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
