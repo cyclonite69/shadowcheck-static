@@ -285,4 +285,235 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
   }
 });
 
+/**
+ * POST /api/wigle/search-api - Search WiGLE API and optionally import results
+ * Query params: ssid, bssid, latrange1, latrange2, longrange1, longrange2, resultsPerPage
+ * Body: { import: boolean } - if true, imports results to wigle_v2_networks_search table
+ */
+router.post('/wigle/search-api', async (req, res, next) => {
+  try {
+    const wigleApiName = secretsManager.get('wigle_api_name');
+    const wigleApiToken = secretsManager.get('wigle_api_token');
+
+    if (!wigleApiName || !wigleApiToken) {
+      return res
+        .status(503)
+        .json({
+          ok: false,
+          error:
+            'WiGLE API credentials not configured. Set wigle_api_name and wigle_api_token secrets.',
+        });
+    }
+
+    const {
+      ssid,
+      bssid,
+      latrange1,
+      latrange2,
+      longrange1,
+      longrange2,
+      resultsPerPage = 100,
+      searchAfter,
+    } = req.query;
+
+    const shouldImport = req.body?.import === true;
+
+    // Build query params for WiGLE API
+    const params = new URLSearchParams();
+    if (ssid) {
+      params.append('ssidlike', ssid);
+    }
+    if (bssid) {
+      params.append('netid', bssid);
+    }
+    if (latrange1) {
+      params.append('latrange1', latrange1);
+    }
+    if (latrange2) {
+      params.append('latrange2', latrange2);
+    }
+    if (longrange1) {
+      params.append('longrange1', longrange1);
+    }
+    if (longrange2) {
+      params.append('longrange2', longrange2);
+    }
+    params.append('resultsPerPage', Math.min(parseInt(resultsPerPage) || 100, 1000).toString());
+    if (searchAfter) {
+      params.append('searchAfter', searchAfter);
+    }
+
+    if (!ssid && !bssid && !latrange1) {
+      return res
+        .status(400)
+        .json({
+          ok: false,
+          error: 'At least one search parameter required (ssid, bssid, or latrange)',
+        });
+    }
+
+    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+    const apiUrl = `https://api.wigle.net/api/v2/network/search?${params.toString()}`;
+
+    logger.info(`[WiGLE] Searching API: ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`);
+
+    const response = await withRetry(
+      () =>
+        fetch(apiUrl, {
+          headers: {
+            Authorization: `Basic ${encodedAuth}`,
+            Accept: 'application/json',
+          },
+        }),
+      { serviceName: 'WiGLE Search API', timeoutMs: 30000, maxRetries: 2 }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`[WiGLE] Search API error ${response.status}: ${errorText}`);
+      return res.status(response.status).json({
+        ok: false,
+        error: 'WiGLE API request failed',
+        status: response.status,
+        details: errorText,
+      });
+    }
+
+    const data = await response.json();
+    const results = data.results || [];
+    logger.info(
+      `[WiGLE] Search returned ${results.length} results (total: ${data.totalResults || 'unknown'})`
+    );
+
+    let importedCount = 0;
+    const importErrors = [];
+
+    if (shouldImport && results.length > 0) {
+      logger.info(`[WiGLE] Importing ${results.length} results to database...`);
+
+      for (const network of results) {
+        try {
+          await query(
+            `
+            INSERT INTO public.wigle_v2_networks_search (
+              bssid, ssid, trilat, trilong, location, firsttime, lasttime, lastupdt,
+              type, encryption, channel, frequency, qos, wep, bcninterval, freenet,
+              dhcp, paynet, transid, rcois, name, comment, userfound, source,
+              country, region, city, road, housenumber, postalcode
+            ) VALUES (
+              $1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $3), 4326),
+              $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+              $17, $18, $19, $20, $21, $22, $23, 'wigle_api_search',
+              $24, $25, $26, $27, $28, $29
+            )
+            ON CONFLICT (id) DO NOTHING
+          `,
+            [
+              network.netid || network.bssid,
+              network.ssid,
+              parseFloat(network.trilat) || 0,
+              parseFloat(network.trilong) || 0,
+              parseFloat(network.trilong) || 0,
+              network.firsttime,
+              network.lasttime,
+              network.lastupdt,
+              network.type || 'wifi',
+              network.encryption,
+              network.channel,
+              network.frequency,
+              network.qos || 0,
+              network.wep,
+              network.bcninterval,
+              network.freenet,
+              network.dhcp,
+              network.paynet,
+              network.transid,
+              network.rcois,
+              network.name,
+              network.comment,
+              network.userfound === true,
+              network.country,
+              network.region,
+              network.city,
+              network.road,
+              network.housenumber,
+              network.postalcode,
+            ]
+          );
+          importedCount++;
+        } catch (err) {
+          if (!err.message.includes('duplicate key')) {
+            importErrors.push({ bssid: network.netid, error: err.message });
+          }
+        }
+      }
+      logger.info(`[WiGLE] Imported ${importedCount} networks`);
+    }
+
+    res.json({
+      ok: true,
+      totalResults: data.totalResults || results.length,
+      resultCount: results.length,
+      searchAfter: data.searchAfter || null,
+      hasMore: data.searchAfter !== null,
+      results: results.map((n) => ({
+        bssid: n.netid,
+        ssid: n.ssid,
+        trilat: n.trilat,
+        trilong: n.trilong,
+        type: n.type,
+        encryption: n.encryption,
+        channel: n.channel,
+        firsttime: n.firsttime,
+        lasttime: n.lasttime,
+        country: n.country,
+        region: n.region,
+        city: n.city,
+      })),
+      imported: shouldImport ? { count: importedCount, errors: importErrors } : null,
+    });
+  } catch (err) {
+    logger.error(`[WiGLE] Search error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+/**
+ * GET /api/wigle/api-status - Check WiGLE API credentials and status
+ */
+router.get('/wigle/api-status', async (req, res) => {
+  const wigleApiName = secretsManager.get('wigle_api_name');
+  const wigleApiToken = secretsManager.get('wigle_api_token');
+
+  if (!wigleApiName || !wigleApiToken) {
+    return res.json({
+      ok: false,
+      configured: false,
+      error: 'WiGLE API credentials not set',
+    });
+  }
+
+  try {
+    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+    const response = await fetch('https://api.wigle.net/api/v2/profile/user', {
+      headers: { Authorization: `Basic ${encodedAuth}`, Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      return res.json({ ok: false, configured: true, error: `API returned ${response.status}` });
+    }
+
+    const data = await response.json();
+    res.json({
+      ok: true,
+      configured: true,
+      user: data.user || wigleApiName,
+      monthlyResultLimit: data.statistics?.monthlyResultLimit,
+      monthlyResultCount: data.statistics?.monthlyResultCount,
+    });
+  } catch (err) {
+    res.json({ ok: false, configured: true, error: err.message });
+  }
+});
+
 module.exports = router;
