@@ -29,6 +29,8 @@ services:
       - db_password
       - mapbox_token
       - api_key
+      - wigle_api_name
+      - wigle_api_token
     ports:
       - "${PORT:-3001}:3001"
     volumes:
@@ -77,6 +79,10 @@ secrets:
     file: ./secrets/mapbox_token.txt
   api_key:
     file: ./secrets/api_key.txt
+  wigle_api_name:
+    file: ./secrets/wigle_api_name.txt
+  wigle_api_token:
+    file: ./secrets/wigle_api_token.txt
 
 volumes:
   redis_data:
