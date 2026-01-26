@@ -100,32 +100,32 @@ class NetworkRepository {
 
   async getDashboardMetrics(filters = {}, enabled = {}) {
     try {
-      const obsConditions = [];
-      const obsCountConditions = [];
+      // Build WHERE clause from filters
+      // Available columns: bssid, ssid, type, frequency, capabilities, bestlevel, bestlat, bestlon, lastlat, lastlon, lasttime_ms
+      const conditions = [];
       const params = [];
       let paramIndex = 1;
 
-      const addParam = (value) => {
-        params.push(value);
-        const index = paramIndex;
-        paramIndex += 1;
-        return `$${index}`;
-      };
-
-      // Radio types filter (radio_type column: W, E, B, L, N, G)
+      // Radio types filter (type column: W, E, B, L, N, G)
       if (enabled.radioTypes && filters.radioTypes && filters.radioTypes.length > 0) {
-        obsConditions.push(`radio_type = ANY(${addParam(filters.radioTypes)})`);
+        conditions.push(`type = ANY($${paramIndex})`);
+        params.push(filters.radioTypes);
+        paramIndex++;
       }
 
-      // RSSI filters (level column)
+      // RSSI filters (bestlevel column)
       if (enabled.rssiMin && filters.rssiMin !== undefined) {
-        obsConditions.push(`level IS NOT NULL AND level >= ${addParam(filters.rssiMin)}`);
+        conditions.push(`bestlevel >= $${paramIndex}`);
+        params.push(filters.rssiMin);
+        paramIndex++;
       }
       if (enabled.rssiMax && filters.rssiMax !== undefined) {
-        obsConditions.push(`level IS NOT NULL AND level <= ${addParam(filters.rssiMax)}`);
+        conditions.push(`bestlevel <= $${paramIndex}`);
+        params.push(filters.rssiMax);
+        paramIndex++;
       }
 
-      // Timeframe filter (time column - milliseconds)
+      // Timeframe filter (lasttime_ms column - milliseconds)
       if (enabled.timeframe && filters.timeframe) {
         const now = Date.now();
         let startTime = null;
@@ -145,133 +145,66 @@ class NetworkRepository {
             };
             startTime = now - value * (msMultipliers[unit] || 86400000);
           }
-        } else if (filters.timeframe.type === 'absolute') {
-          const startValue = filters.timeframe.startTimestamp || filters.timeframe.startDate;
-          if (startValue) {
-            startTime = new Date(startValue).getTime();
-          }
+        } else if (filters.timeframe.type === 'absolute' && filters.timeframe.startDate) {
+          startTime = new Date(filters.timeframe.startDate).getTime();
         }
 
         if (startTime) {
-          obsConditions.push(`(EXTRACT(EPOCH FROM time) * 1000) >= ${addParam(startTime)}`);
+          conditions.push(`lasttime_ms >= $${paramIndex}`);
+          params.push(startTime);
+          paramIndex++;
         }
 
-        if (filters.timeframe.type === 'absolute') {
-          const endValue = filters.timeframe.endTimestamp || filters.timeframe.endDate;
-          if (endValue) {
-            const endTime = new Date(endValue).getTime();
-            obsConditions.push(`(EXTRACT(EPOCH FROM time) * 1000) <= ${addParam(endTime)}`);
-          }
+        if (filters.timeframe.type === 'absolute' && filters.timeframe.endDate) {
+          const endTime = new Date(filters.timeframe.endDate).getTime();
+          conditions.push(`lasttime_ms <= $${paramIndex}`);
+          params.push(endTime);
+          paramIndex++;
         }
       }
 
-      // Encryption filter (radio_capabilities column contains encryption info like [WPA2-PSK-CCMP])
+      // Encryption filter (capabilities column contains encryption info like [WPA2-PSK-CCMP])
       if (
         enabled.encryptionTypes &&
         filters.encryptionTypes &&
         filters.encryptionTypes.length > 0
       ) {
         const encPatterns = filters.encryptionTypes.map((enc) => `%${enc}%`);
-        const encConditions = encPatterns.map(
-          (_, i) => `radio_capabilities ILIKE $${paramIndex + i}`
-        );
-        obsConditions.push(`(${encConditions.join(' OR ')})`);
+        const encConditions = encPatterns.map((_, i) => `capabilities ILIKE $${paramIndex + i}`);
+        conditions.push(`(${encConditions.join(' OR ')})`);
         params.push(...encPatterns);
         paramIndex += encPatterns.length;
       }
 
       // SSID filter
       if (enabled.ssid && filters.ssid) {
-        obsConditions.push(`ssid ILIKE ${addParam(`%${filters.ssid}%`)}`);
+        conditions.push(`ssid ILIKE $${paramIndex}`);
+        params.push(`%${filters.ssid}%`);
+        paramIndex++;
       }
 
       // BSSID filter
       if (enabled.bssid && filters.bssid) {
-        obsConditions.push(`bssid ILIKE ${addParam(`%${filters.bssid.toUpperCase()}%`)}`);
+        conditions.push(`bssid ILIKE $${paramIndex}`);
+        params.push(`%${filters.bssid.toUpperCase()}%`);
+        paramIndex++;
       }
 
-      // Observation count filters (applied per BSSID)
-      if (enabled.observationCountMin && filters.observationCountMin !== undefined) {
-        obsCountConditions.push(`COUNT(*) >= ${addParam(filters.observationCountMin)}`);
-      }
-      if (enabled.observationCountMax && filters.observationCountMax !== undefined) {
-        obsCountConditions.push(`COUNT(*) <= ${addParam(filters.observationCountMax)}`);
-      }
-
-      // GPS accuracy filter
-      if (enabled.gpsAccuracyMax && filters.gpsAccuracyMax !== undefined) {
-        obsConditions.push(
-          `accuracy IS NOT NULL AND accuracy <= ${addParam(filters.gpsAccuracyMax)}`
-        );
-      }
-
-      // Exclude invalid coordinates
-      if (enabled.excludeInvalidCoords) {
-        obsConditions.push(
-          'lat IS NOT NULL',
-          'lon IS NOT NULL',
-          'lat BETWEEN -90 AND 90',
-          'lon BETWEEN -180 AND 180'
-        );
-      }
-
-      // Quality filters (temporal/extreme/duplicate/all)
-      if (enabled.qualityFilter && filters.qualityFilter && filters.qualityFilter !== 'none') {
-        const { DATA_QUALITY_FILTERS } = require('../services/dataQualityFilters');
-        let qualityWhere = '';
-        if (filters.qualityFilter === 'temporal') {
-          qualityWhere = DATA_QUALITY_FILTERS.temporal_clusters;
-        } else if (filters.qualityFilter === 'extreme') {
-          qualityWhere = DATA_QUALITY_FILTERS.extreme_signals;
-        } else if (filters.qualityFilter === 'duplicate') {
-          qualityWhere = DATA_QUALITY_FILTERS.duplicate_coords;
-        } else if (filters.qualityFilter === 'all') {
-          qualityWhere = DATA_QUALITY_FILTERS.all();
-        }
-
-        if (qualityWhere) {
-          const cleanFilter = qualityWhere
-            .replace(/^\s*AND\s+/, '')
-            .replace(/\bobservations\b/g, 'public.observations');
-          obsConditions.push(`(${cleanFilter})`);
-        }
-      }
-
-      const obsWhereClause = obsConditions.length > 0 ? `WHERE ${obsConditions.join(' AND ')}` : '';
-      const obsHavingClause =
-        obsCountConditions.length > 0 ? `HAVING ${obsCountConditions.join(' AND ')}` : '';
-
-      const metricsCte = `
-        WITH filtered_obs AS (
-          SELECT *
-          FROM public.observations
-          ${obsWhereClause}
-        ),
-        filtered_networks AS (
-          SELECT bssid, MAX(radio_type) AS radio_type
-          FROM filtered_obs
-          GROUP BY bssid
-          ${obsHavingClause}
-        )
-      `;
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
       const result = await query(
         `
-        ${metricsCte}
         SELECT
           COUNT(*) as total_networks,
-          COUNT(*) FILTER (WHERE radio_type = 'W') as wifi_count,
-          COUNT(*) FILTER (WHERE radio_type = 'E') as ble_count,
-          COUNT(*) FILTER (WHERE radio_type = 'B') as bluetooth_count,
-          COUNT(*) FILTER (WHERE radio_type = 'L') as lte_count,
-          COUNT(*) FILTER (WHERE radio_type = 'N') as nr_count,
-          COUNT(*) FILTER (WHERE radio_type = 'G') as gsm_count,
-          (
-            SELECT COUNT(DISTINCT CASE WHEN lat IS NOT NULL AND lon IS NOT NULL THEN bssid END)
-            FROM filtered_obs fo
-            JOIN filtered_networks fn ON fo.bssid = fn.bssid
-          ) as enriched_count
-        FROM filtered_networks
+          COUNT(*) FILTER (WHERE type = 'W') as wifi_count,
+          COUNT(*) FILTER (WHERE type = 'E') as ble_count,
+          COUNT(*) FILTER (WHERE type = 'B') as bluetooth_count,
+          COUNT(*) FILTER (WHERE type = 'L') as lte_count,
+          COUNT(*) FILTER (WHERE type = 'N') as nr_count,
+          COUNT(*) FILTER (WHERE type = 'G') as gsm_count,
+          COUNT(*) FILTER (WHERE bestlat != 0 AND bestlon != 0) as enriched_count
+        FROM public.networks
+        ${whereClause}
       `,
         params
       );
@@ -279,9 +212,14 @@ class NetworkRepository {
       // Get observation counts by radio type
       let obsRow = {};
       try {
+        console.log('Executing observations query with whereClause:', whereClause);
+        const obsWhereClause = whereClause
+          .replace(/type/g, 'radio_type')
+          .replace(/bestlevel/g, 'level')
+          .replace(/lasttime_ms/g, '(EXTRACT(EPOCH FROM time) * 1000)')
+          .replace(/capabilities/g, 'radio_capabilities');
         const obsResult = await query(
           `
-          ${metricsCte}
           SELECT
             COUNT(*) as total_observations,
             COUNT(*) FILTER (WHERE radio_type = 'W') as wifi_observations,
@@ -290,13 +228,15 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE radio_type = 'L') as lte_observations,
             COUNT(*) FILTER (WHERE radio_type = 'N') as nr_observations,
             COUNT(*) FILTER (WHERE radio_type = 'G') as gsm_observations
-          FROM filtered_obs fo
-          JOIN filtered_networks fn ON fo.bssid = fn.bssid
+          FROM public.observations
+          ${obsWhereClause}
         `,
           params
         );
         obsRow = obsResult.rows[0] || {};
+        console.log('Observations query result:', obsRow);
       } catch (obsError) {
+        console.error(`Error fetching observation metrics: ${obsError.message}`, obsError);
         logger.error(`Error fetching observation metrics: ${obsError.message}`, { obsError });
         obsRow = {};
       }
@@ -345,7 +285,7 @@ class NetworkRepository {
         threatsLow: parseInt(threatCounts.threats_low) || 0,
         activeSurveillance: parseInt(threatCounts.threats_high) || 0,
         enrichedCount: parseInt(row.enriched_count) || 0,
-        filtersApplied: obsConditions.length + obsCountConditions.length,
+        filtersApplied: conditions.length,
       };
     } catch (error) {
       logger.error(`Error fetching dashboard metrics: ${error.message}`, { error });
