@@ -14,7 +14,7 @@
 ## Current Development Direction
 
 - **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/api-test`)
-- **Hybrid backend architecture** with legacy routes in `server/server.js` and modern modular services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
+- **Modern modular backend architecture** with organized services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
 - **Universal filter system** with 20+ filter types supporting complex queries across all pages
 - **DevContainer support** for consistent development environments with VS Code integration
 - **Static server** with security headers for production deployment and Lighthouse audits
