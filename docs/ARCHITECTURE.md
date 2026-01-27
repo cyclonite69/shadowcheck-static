@@ -18,7 +18,7 @@ This document describes the high-level architecture of the ShadowCheck-Static pl
 
 ## Overview
 
-ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built on a hybrid architecture combining a React/Vite frontend with a Node.js/Express backend, using PostgreSQL + PostGIS for geospatial data processing.
+ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built on a modern modular architecture combining a React/Vite frontend with a Node.js/Express backend, using PostgreSQL + PostGIS for geospatial data processing.
 
 ### Core Components
 
@@ -42,8 +42,8 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 ┌───────────────────────────┴─────────────────────────────────┐
 │                 Express Server (Node.js)                     │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  API Layer (Hybrid Architecture)                     │   │
-│  │  • Legacy routes in server/server.js (v1 API)              │   │
+│  │  API Layer (Modern Modular Architecture)              │   │
+│  │  • All routes organized in server/src/api/ structure      │   │
 │  │  • Modern routes in server/src/api/ (v2 API)               │   │
 │  │  • /api/dashboard-metrics                            │   │
 │  │  • /api/threats/quick (paginated)                    │   │
