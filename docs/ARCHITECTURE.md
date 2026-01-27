@@ -94,7 +94,7 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 
 ## System Architecture
 
-### Current: Hybrid React + Express Architecture
+### Current: Modern Modular React + Express Architecture
 
 **Frontend Characteristics:**
 
@@ -107,7 +107,7 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 
 **Backend Characteristics:**
 
-- **Hybrid API structure**: Legacy routes in `server/server.js` + modern routes in `server/src/api/`
+- **Modern modular API structure**: All routes organized in `server/src/api/` with services and repositories
 - **Modular services** in `server/src/services/` for business logic
 - **Repository pattern** in `server/src/repositories/` for data access
 - **Universal filter system** with 20+ filter types
