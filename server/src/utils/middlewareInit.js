@@ -25,6 +25,10 @@ function initializeMiddleware(app, options) {
 
   const { mountCommonMiddleware } = require('../middleware/commonMiddleware');
   mountCommonMiddleware(app, { allowedOrigins });
+
+  // Cookie parser for session management
+  const cookieParser = require('cookie-parser');
+  app.use(cookieParser());
 }
 
 module.exports = {
