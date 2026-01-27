@@ -154,12 +154,23 @@ export const useFilterStore = create<HardenedFilterStore>()(
       toggleFilter: (key) => {
         const { currentPage, pageStates } = get();
         const pageState = getPageState(pageStates, currentPage);
+        const nextEnabled = !pageState.enabled[key];
+        let nextFilters = pageState.filters;
+
+        if (
+          key === 'gpsAccuracyMax' &&
+          nextEnabled &&
+          pageState.filters.gpsAccuracyMax === undefined
+        ) {
+          nextFilters = { ...pageState.filters, gpsAccuracyMax: 100 };
+        }
         set({
           pageStates: {
             ...pageStates,
             [currentPage]: {
               ...pageState,
-              enabled: { ...pageState.enabled, [key]: !pageState.enabled[key] },
+              filters: nextFilters,
+              enabled: { ...pageState.enabled, [key]: nextEnabled },
             },
           },
         });
