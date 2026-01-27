@@ -495,7 +495,7 @@ backups/                            # Database backups (gitignored)
 
 ### Entry Points
 
-- **`server/server.js`**: Main Express server with legacy API routes
+- **`server/server.js`**: Main Express server orchestration and initialization
 - **`client/src/main.tsx`**: React application entry point
 - **`index.html`**: HTML template for Vite
 

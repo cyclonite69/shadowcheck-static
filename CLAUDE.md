@@ -45,7 +45,7 @@ docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
 
 ```
 server/
-├── server.js              # Express entry point (legacy + modern routes)
+├── server.js              # Express entry point (orchestration)
 └── src/
     ├── api/routes/v1/     # HTTP endpoints
     ├── services/          # Business logic
