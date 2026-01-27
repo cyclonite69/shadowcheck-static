@@ -177,23 +177,9 @@ class NetworkRepository {
 
       const builder = new UniversalFilterQueryBuilder(filters, enabled);
       const { cte } = builder.buildFilteredObservationsCte();
-
-      const obsCountFilters = [];
-      if (enabled.observationCountMin && filters.observationCountMin !== undefined) {
-        obsCountFilters.push(
-          `r.observation_count >= ${builder.addParam(filters.observationCountMin)}`
-        );
-        builder.addApplied('quality', 'observationCountMin', filters.observationCountMin);
-      }
-      if (enabled.observationCountMax && filters.observationCountMax !== undefined) {
-        obsCountFilters.push(
-          `r.observation_count <= ${builder.addParam(filters.observationCountMax)}`
-        );
-        builder.addApplied('quality', 'observationCountMax', filters.observationCountMax);
-      }
-
-      const obsCountWhere =
-        obsCountFilters.length > 0 ? `WHERE ${obsCountFilters.join(' AND ')}` : '';
+      const networkWhere = builder.buildNetworkWhere();
+      const networkWhereClause =
+        networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
 
       const sql = `
         ${cte}
@@ -203,6 +189,38 @@ class NetworkRepository {
             COUNT(*) AS observation_count
           FROM filtered_obs
           GROUP BY bssid
+        ),
+        obs_centroids AS (
+          SELECT
+            bssid,
+            ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
+            MIN(time) AS first_time,
+            MAX(time) AS last_time,
+            COUNT(*) AS obs_count
+          FROM filtered_obs
+          WHERE geom IS NOT NULL
+          GROUP BY bssid
+        ),
+        obs_spatial AS (
+          SELECT
+            c.bssid,
+            CASE
+              WHEN c.obs_count < 2 THEN NULL
+              ELSE ROUND(
+                LEAST(1, GREATEST(0,
+                  (
+                    (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
+                    (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
+                    LEAST(c.obs_count / 50.0, 1) * 0.2
+                  )
+                ))::numeric,
+                3
+              )
+            END AS stationary_confidence
+          FROM filtered_obs o
+          JOIN obs_centroids c ON c.bssid = o.bssid
+          WHERE o.geom IS NOT NULL
+          GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
         ),
         obs_latest AS (
           SELECT DISTINCT ON (bssid)
@@ -226,10 +244,15 @@ class NetworkRepository {
             l.lon,
             l.radio_type,
             l.radio_frequency,
-            l.radio_capabilities
+            l.radio_capabilities,
+            r.observation_count,
+            s.stationary_confidence,
+            ne.threat
           FROM obs_latest l
           JOIN obs_rollup r ON r.bssid = l.bssid
-          ${obsCountWhere}
+          LEFT JOIN obs_spatial s ON s.bssid = l.bssid
+          LEFT JOIN public.api_network_explorer ne ON ne.bssid = l.bssid
+          ${networkWhereClause}
         ),
         network_counts AS (
           SELECT
@@ -253,6 +276,7 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('o')} = 'N') as nr_observations,
             COUNT(*) FILTER (WHERE ${OBS_TYPE_EXPR('o')} = 'G') as gsm_observations
           FROM filtered_obs o
+          JOIN network_set n ON n.bssid = o.bssid
         ),
         threat_counts AS (
           SELECT

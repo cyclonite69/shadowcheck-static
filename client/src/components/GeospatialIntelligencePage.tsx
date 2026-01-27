@@ -95,6 +95,10 @@ export default function GeospatialIntelligencePage() {
     'observed_at'
   );
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [explorerFilters, setExplorerFilters] = useState<{
+    filters: NetworkFilters;
+    enabled: Record<keyof NetworkFilters, boolean>;
+  } | null>(null);
   const { setLoading: setFilterLoading } = useFilterStore();
 
   useFilterURLSync();
@@ -139,15 +143,20 @@ export default function GeospatialIntelligencePage() {
     [setFilterLoading, sortField, sortDirection]
   );
 
-  useDebouncedFilters(loadNetworks, 500);
-
-  useEffect(() => {
-    const load = async () => {
+  const loadExplorerOverlays = useCallback(
+    async (payload: {
+      filters: NetworkFilters;
+      enabled: Record<keyof NetworkFilters, boolean>;
+    }) => {
       try {
         setError('');
-        const [netRes, heatRes, routeRes] = await Promise.all([
-          fetch('/api/explorer/heatmap'),
-          fetch('/api/explorer/routes'),
+        const params = new URLSearchParams({
+          filters: JSON.stringify(payload.filters),
+          enabled: JSON.stringify(payload.enabled),
+        });
+        const [heatRes, routeRes] = await Promise.all([
+          fetch(`/api/explorer/heatmap?${params.toString()}`),
+          fetch(`/api/explorer/routes?${params.toString()}`),
         ]);
         if (!heatRes.ok) {
           throw new Error(`heatmap ${heatRes.status}`);
@@ -163,9 +172,20 @@ export default function GeospatialIntelligencePage() {
         logError('Failed to load explorer data', err);
         setError('Failed to load explorer data');
       }
-    };
-    load();
-  }, []);
+    },
+    []
+  );
+
+  const handleFilters = useCallback(
+    (payload: { filters: NetworkFilters; enabled: Record<keyof NetworkFilters, boolean> }) => {
+      setExplorerFilters(payload);
+      loadNetworks(payload);
+      loadExplorerOverlays(payload);
+    },
+    [loadNetworks, loadExplorerOverlays]
+  );
+
+  useDebouncedFilters(handleFilters, 500);
 
   useEffect(() => {
     const fetchTimeline = async () => {
@@ -174,7 +194,15 @@ export default function GeospatialIntelligencePage() {
         return;
       }
       try {
-        const res = await fetch(`/api/explorer/timeline/${encodeURIComponent(selectedBssid)}`);
+        const payload = explorerFilters ||
+          useFilterStore.getState().getAPIFilters() || { filters: {}, enabled: {} };
+        const params = new URLSearchParams({
+          filters: JSON.stringify(payload.filters || {}),
+          enabled: JSON.stringify(payload.enabled || {}),
+        });
+        const res = await fetch(
+          `/api/explorer/timeline/${encodeURIComponent(selectedBssid)}?${params.toString()}`
+        );
         if (!res.ok) {
           throw new Error(`timeline ${res.status}`);
         }
@@ -186,7 +214,7 @@ export default function GeospatialIntelligencePage() {
       }
     };
     fetchTimeline();
-  }, [selectedBssid]);
+  }, [selectedBssid, explorerFilters]);
 
   const selectedRoute = useMemo(() => {
     const selected = networks.find((n) => n.bssid === selectedBssid);
@@ -271,7 +299,7 @@ export default function GeospatialIntelligencePage() {
                   <h2 className="text-lg font-semibold">Heatmap Tiles</h2>
                   <Pill label="0.01° grid" color="#fb923c" />
                 </div>
-                <p className="text-xs text-slate-500 mb-2">Legacy endpoint (not filter-aware).</p>
+                <p className="text-xs text-slate-500 mb-2">Filter-aware heat tiles.</p>
                 <div className="space-y-2 max-h-48 overflow-auto pr-1">
                   {heatmap.slice(0, 10).map((tile, idx) => (
                     <div
@@ -300,7 +328,7 @@ export default function GeospatialIntelligencePage() {
                   <h2 className="text-lg font-semibold">Device Routes</h2>
                   <Pill label="mv_device_routes" color="#a78bfa" />
                 </div>
-                <p className="text-xs text-slate-500 mb-2">Legacy endpoint (not filter-aware).</p>
+                <p className="text-xs text-slate-500 mb-2">Filter-aware routes.</p>
                 <div className="space-y-2">
                   {routes.map((route) => (
                     <div
@@ -336,7 +364,7 @@ export default function GeospatialIntelligencePage() {
                     color="#22d3ee"
                   />
                 </div>
-                <p className="text-xs text-slate-500 mb-2">Legacy endpoint (not filter-aware).</p>
+                <p className="text-xs text-slate-500 mb-2">Filter-aware timeline (hourly).</p>
                 <div className="space-y-2 max-h-48 overflow-auto pr-1">
                   {timeline.length > 0 ? (
                     timeline.slice(0, 24).map((t, idx) => (

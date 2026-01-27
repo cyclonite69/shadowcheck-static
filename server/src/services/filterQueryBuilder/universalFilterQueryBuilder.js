@@ -1246,6 +1246,7 @@ class UniversalFilterQueryBuilder {
 
   buildGeospatialQuery({ limit = 5000, offset = 0, selectedBssids = [] } = {}) {
     const { cte, params } = this.buildFilteredObservationsCte();
+    const networkWhere = this.buildNetworkWhere();
     const selectionWhere = [];
 
     if (Array.isArray(selectedBssids) && selectedBssids.length > 0) {
@@ -1253,10 +1254,57 @@ class UniversalFilterQueryBuilder {
       selectionWhere.push(`UPPER(o.bssid) = ANY(${this.addParam(normalized)})`);
     }
 
-    const whereClause = selectionWhere.length > 0 ? `AND ${selectionWhere.join(' AND ')}` : '';
+    const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
+    const selectionClause = selectionWhere.length > 0 ? `AND ${selectionWhere.join(' AND ')}` : '';
 
     const sql = `
       ${cte}
+      , obs_rollup AS (
+        SELECT
+          bssid,
+          COUNT(*) AS observation_count
+        FROM filtered_obs
+        GROUP BY bssid
+      ),
+      obs_centroids AS (
+        SELECT
+          bssid,
+          ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
+          MIN(time) AS first_time,
+          MAX(time) AS last_time,
+          COUNT(*) AS obs_count
+        FROM filtered_obs
+        WHERE geom IS NOT NULL
+        GROUP BY bssid
+      ),
+      obs_spatial AS (
+        SELECT
+          c.bssid,
+          CASE
+            WHEN c.obs_count < 2 THEN NULL
+            ELSE ROUND(
+              LEAST(1, GREATEST(0,
+                (
+                  (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
+                  (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
+                  LEAST(c.obs_count / 50.0, 1) * 0.2
+                )
+              ))::numeric,
+              3
+            )
+          END AS stationary_confidence
+        FROM filtered_obs o
+        JOIN obs_centroids c ON c.bssid = o.bssid
+        WHERE o.geom IS NOT NULL
+        GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
+      ),
+      filtered_networks AS (
+        SELECT r.bssid
+        FROM obs_rollup r
+        LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+        LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+        ${networkWhereClause}
+      )
       SELECT
         o.bssid,
         o.ssid,
@@ -1273,10 +1321,11 @@ class UniversalFilterQueryBuilder {
         ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
         ne.threat
       FROM filtered_obs o
+      JOIN filtered_networks fn ON fn.bssid = o.bssid
       LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
       WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
         OR o.geom IS NOT NULL)
-        ${whereClause}
+        ${selectionClause}
       ORDER BY o.time ASC
       LIMIT ${this.addParam(limit)}
       OFFSET ${this.addParam(offset)}
@@ -1293,6 +1342,7 @@ class UniversalFilterQueryBuilder {
 
   buildGeospatialCountQuery({ selectedBssids = [] } = {}) {
     const { cte, params } = this.buildFilteredObservationsCte();
+    const networkWhere = this.buildNetworkWhere();
     const selectionWhere = [];
 
     if (Array.isArray(selectedBssids) && selectedBssids.length > 0) {
@@ -1300,15 +1350,63 @@ class UniversalFilterQueryBuilder {
       selectionWhere.push(`UPPER(o.bssid) = ANY(${this.addParam(normalized)})`);
     }
 
-    const whereClause = selectionWhere.length > 0 ? `AND ${selectionWhere.join(' AND ')}` : '';
+    const networkWhereClause = networkWhere.length > 0 ? `WHERE ${networkWhere.join(' AND ')}` : '';
+    const selectionClause = selectionWhere.length > 0 ? `AND ${selectionWhere.join(' AND ')}` : '';
 
     const sql = `
       ${cte}
+      , obs_rollup AS (
+        SELECT
+          bssid,
+          COUNT(*) AS observation_count
+        FROM filtered_obs
+        GROUP BY bssid
+      ),
+      obs_centroids AS (
+        SELECT
+          bssid,
+          ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
+          MIN(time) AS first_time,
+          MAX(time) AS last_time,
+          COUNT(*) AS obs_count
+        FROM filtered_obs
+        WHERE geom IS NOT NULL
+        GROUP BY bssid
+      ),
+      obs_spatial AS (
+        SELECT
+          c.bssid,
+          CASE
+            WHEN c.obs_count < 2 THEN NULL
+            ELSE ROUND(
+              LEAST(1, GREATEST(0,
+                (
+                  (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
+                  (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
+                  LEAST(c.obs_count / 50.0, 1) * 0.2
+                )
+              ))::numeric,
+              3
+            )
+          END AS stationary_confidence
+        FROM filtered_obs o
+        JOIN obs_centroids c ON c.bssid = o.bssid
+        WHERE o.geom IS NOT NULL
+        GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
+      ),
+      filtered_networks AS (
+        SELECT r.bssid
+        FROM obs_rollup r
+        LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+        LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+        ${networkWhereClause}
+      )
       SELECT COUNT(*)::bigint AS total
       FROM filtered_obs o
+      JOIN filtered_networks fn ON fn.bssid = o.bssid
       WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
         OR o.geom IS NOT NULL)
-        ${whereClause}
+        ${selectionClause}
     `;
 
     return {

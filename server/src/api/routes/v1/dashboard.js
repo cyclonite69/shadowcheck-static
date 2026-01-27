@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../logging/logger');
+const { query } = require('../../../config/database');
 
 let dashboardService = null;
 
@@ -25,6 +26,34 @@ function parseJsonQuery(value, fieldName) {
     return { ok: false, error: `${fieldName} must be valid JSON` };
   }
 }
+
+const assertHomeExistsIfNeeded = async (enabled, res) => {
+  if (!enabled?.distanceFromHomeMin && !enabled?.distanceFromHomeMax) {
+    return true;
+  }
+  try {
+    const home = await query(
+      "SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
+    );
+    if (home.rowCount === 0) {
+      res.status(400).json({
+        ok: false,
+        error: 'Home location is required for distance filters.',
+      });
+      return false;
+    }
+    return true;
+  } catch (err) {
+    if (err && err.code === '42P01') {
+      res.status(400).json({
+        ok: false,
+        error: 'Home location markers table is missing (app.location_markers).',
+      });
+      return false;
+    }
+    throw err;
+  }
+};
 
 function initDashboardRoutes(options) {
   dashboardService = options.dashboardService;
@@ -53,6 +82,10 @@ const sendDashboardMetrics = async (req, res) => {
     // Debug logging
     console.log('[Dashboard] Received filters:', JSON.stringify(filters, null, 2));
     console.log('[Dashboard] Received enabled:', JSON.stringify(enabled, null, 2));
+
+    if (!(await assertHomeExistsIfNeeded(enabled, res))) {
+      return;
+    }
 
     const metrics = await dashboardService.getMetrics(filters, enabled);
     res.json({

@@ -1,7 +1,9 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navigation';
 import LazyMapComponent from './components/LazyMapComponent';
+import { AuthProvider, useAuth } from './hooks/useAuth';
+import { LoginForm } from './components/auth/LoginForm';
 
 // Eager load: lightweight pages that are commonly accessed first
 import DashboardPage from './components/DashboardPage';
@@ -33,14 +35,29 @@ function RouteLoadingFallback() {
   );
 }
 
-function App() {
+function AppContent() {
+  const { user, loading, login, isAuthenticated } = useAuth();
+  const [error, setError] = useState('');
+
+  if (loading) {
+    return <RouteLoadingFallback />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div>
+        {error && (
+          <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg z-50">
+            {error}
+          </div>
+        )}
+        <LoginForm onLogin={login} onError={setError} />
+      </div>
+    );
+  }
+
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-modal focus:bg-slate-900 focus:text-white focus:px-3 focus:py-2 focus:rounded"
@@ -64,7 +81,22 @@ function App() {
           </Routes>
         </Suspense>
       </main>
-    </Router>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 

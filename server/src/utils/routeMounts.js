@@ -57,6 +57,7 @@ function mountApiRoutes(app, deps) {
     exportRoutes,
     settingsRoutes,
     networkTagsRoutes,
+    authRoutes,
     query,
   } = deps;
 
@@ -67,6 +68,7 @@ function mountApiRoutes(app, deps) {
   app.use('/', geospatialRoutes);
 
   // API routes
+  app.use('/api', authRoutes);
   app.use('/api', networksRoutes);
   app.use('/api', threatsRoutes);
   app.use('/api', wigleRoutes);

@@ -62,6 +62,7 @@ function initializeRoutes(app, options) {
     exportRoutes: routes.exportRoutes,
     settingsRoutes: routes.settingsRoutes,
     networkTagsRoutes: routes.networkTagsRoutes,
+    authRoutes: routes.authRoutes,
     query,
   });
 

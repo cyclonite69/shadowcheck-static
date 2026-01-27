@@ -3,6 +3,49 @@ const router = express.Router();
 const { query } = require('../../../config/database');
 const logger = require('../../../logging/logger');
 const { validateBSSID, validateIntegerRange } = require('../../../validation/schemas');
+const {
+  UniversalFilterQueryBuilder,
+  validateFilterPayload,
+} = require('../../../services/filterQueryBuilder');
+
+const parseJsonParam = (value, fallback, name) => {
+  if (!value) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    throw new Error(`Invalid JSON for ${name}`);
+  }
+};
+
+const assertHomeExistsIfNeeded = async (enabled, res) => {
+  if (!enabled?.distanceFromHomeMin && !enabled?.distanceFromHomeMax) {
+    return true;
+  }
+  try {
+    const home = await query(
+      "SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
+    );
+    if (home.rowCount === 0) {
+      res.status(400).json({
+        ok: false,
+        error: 'Home location is required for distance filters.',
+      });
+      return false;
+    }
+    return true;
+  } catch (err) {
+    if (err && err.code === '42P01') {
+      res.status(400).json({
+        ok: false,
+        error: 'Home location markers table is missing (app.location_markers).',
+      });
+      return false;
+    }
+    throw err;
+  }
+};
 
 function inferSecurity(capabilities, encryption) {
   const cap = String(capabilities || encryption || '').toUpperCase();
@@ -661,15 +704,43 @@ router.get('/explorer/timeline/:bssid', async (req, res, next) => {
     if (!bssidValidation.valid) {
       return res.status(400).json({ error: bssidValidation.error });
     }
-    const bssid = bssidValidation.cleaned.toLowerCase();
+    let filters = {};
+    let enabled = {};
+    try {
+      filters = parseJsonParam(req.query.filters, {}, 'filters');
+      enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: err.message });
+    }
+
+    filters.bssid = bssidValidation.cleaned.toUpperCase();
+    enabled.bssid = true;
+
+    const { errors } = validateFilterPayload(filters, enabled);
+    if (errors.length > 0) {
+      return res.status(400).json({ ok: false, errors });
+    }
+
+    if (!(await assertHomeExistsIfNeeded(enabled, res))) {
+      return;
+    }
+
+    const builder = new UniversalFilterQueryBuilder(filters, enabled);
+    const { cte, params } = builder.buildFilteredObservationsCte();
     const data = await query(
       `
-        SELECT bucket, obs_count, avg_level, min_level, max_level
-        FROM mv_network_timeline
-        WHERE bssid = $1
+        ${cte}
+        SELECT
+          DATE_TRUNC('hour', time) AS bucket,
+          COUNT(*) AS obs_count,
+          AVG(level) AS avg_level,
+          MIN(level) AS min_level,
+          MAX(level) AS max_level
+        FROM filtered_obs
+        GROUP BY bucket
         ORDER BY bucket ASC
       `,
-      [bssid]
+      params
     );
     res.json(data.rows);
   } catch (err) {
@@ -678,10 +749,43 @@ router.get('/explorer/timeline/:bssid', async (req, res, next) => {
 });
 
 // GET /api/explorer/heatmap
-router.get('/explorer/heatmap', async (_req, res, next) => {
+router.get('/explorer/heatmap', async (req, res, next) => {
   try {
+    let filters = {};
+    let enabled = {};
+    try {
+      filters = parseJsonParam(req.query.filters, {}, 'filters');
+      enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: err.message });
+    }
+    const { errors } = validateFilterPayload(filters, enabled);
+    if (errors.length > 0) {
+      return res.status(400).json({ ok: false, errors });
+    }
+
+    if (!(await assertHomeExistsIfNeeded(enabled, res))) {
+      return;
+    }
+
+    const builder = new UniversalFilterQueryBuilder(filters, enabled);
+    const { cte, params } = builder.buildFilteredObservationsCte();
     const data = await query(
       `
+        ${cte}
+        , tiles AS (
+          SELECT
+            ST_SnapToGrid(geom::geometry, 0.01) AS tile_geom,
+            COUNT(*) AS obs_count,
+            AVG(level) AS avg_level,
+            MIN(level) AS min_level,
+            MAX(level) AS max_level,
+            MIN(time) AS first_seen,
+            MAX(time) AS last_seen
+          FROM filtered_obs
+          WHERE geom IS NOT NULL
+          GROUP BY tile_geom
+        )
         SELECT
           ST_AsGeoJSON(tile_geom)::json AS geometry,
           obs_count,
@@ -690,8 +794,11 @@ router.get('/explorer/heatmap', async (_req, res, next) => {
           max_level,
           first_seen,
           last_seen
-        FROM mv_heatmap_tiles
-      `
+        FROM tiles
+        ORDER BY obs_count DESC
+        LIMIT 5000
+      `,
+      params
     );
     res.json(data.rows);
   } catch (err) {
@@ -700,18 +807,60 @@ router.get('/explorer/heatmap', async (_req, res, next) => {
 });
 
 // GET /api/explorer/routes
-router.get('/explorer/routes', async (_req, res, next) => {
+router.get('/explorer/routes', async (req, res, next) => {
   try {
+    let filters = {};
+    let enabled = {};
+    try {
+      filters = parseJsonParam(req.query.filters, {}, 'filters');
+      enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: err.message });
+    }
+    const { errors } = validateFilterPayload(filters, enabled);
+    if (errors.length > 0) {
+      return res.status(400).json({ ok: false, errors });
+    }
+
+    if (!(await assertHomeExistsIfNeeded(enabled, res))) {
+      return;
+    }
+
+    const builder = new UniversalFilterQueryBuilder(filters, enabled);
+    const { cte, params } = builder.buildFilteredObservationsCte();
     const data = await query(
       `
+        ${cte}
+        , route_points AS (
+          SELECT
+            device_id,
+            time,
+            geom
+          FROM filtered_obs
+          WHERE device_id IS NOT NULL
+            AND geom IS NOT NULL
+        ),
+        routes AS (
+          SELECT
+            device_id,
+            COUNT(*) AS point_count,
+            MIN(time) AS start_at,
+            MAX(time) AS end_at,
+            ST_MakeLine(geom ORDER BY time) AS route_geom
+          FROM route_points
+          GROUP BY device_id
+        )
         SELECT
           device_id,
           point_count,
           start_at,
           end_at,
           ST_AsGeoJSON(route_geom)::json AS geometry
-        FROM mv_device_routes
-      `
+        FROM routes
+        ORDER BY point_count DESC
+        LIMIT 2000
+      `,
+      params
     );
     res.json(data.rows);
   } catch (err) {

@@ -144,38 +144,14 @@ export const PAGE_CAPABILITIES: Record<string, PageFilterCapabilities> = {
 
   // Dashboard - supports filters that work with public.networks table
   dashboard: {
-    supported: {
-      ssid: true,
-      bssid: true,
-      radioTypes: true,
-      rssiMin: true,
-      rssiMax: true,
-      timeframe: true,
-      encryptionTypes: true,
-      observationCountMin: true,
-      observationCountMax: true,
-      gpsAccuracyMax: true,
-      excludeInvalidCoords: true,
-      qualityFilter: true,
-    },
-    notes: 'Dashboard shows aggregated metrics with filter support',
+    supported: createFullCapabilities().supported,
+    notes: 'Dashboard metrics use universal filter semantics',
   },
 
   // Kepler test - visualization support
   kepler: {
-    supported: {
-      ssid: true,
-      bssid: true,
-      radioTypes: true,
-      rssiMin: true,
-      rssiMax: true,
-      timeframe: true,
-      encryptionTypes: true,
-      threatScoreMin: true,
-      threatScoreMax: true,
-      boundingBox: true,
-    },
-    notes: 'Kepler visualization with spatial filters',
+    supported: createFullCapabilities().supported,
+    notes: 'Kepler visualization with full universal filters',
   },
 
   // WiGLE test - basic support

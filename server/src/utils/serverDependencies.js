@@ -43,6 +43,7 @@ function loadRouteModules() {
     exportRoutes: require('../api/routes/v1/export'),
     settingsRoutes: require('../api/routes/v1/settings'),
     networkTagsRoutes: require('../api/routes/v1/network-tags'),
+    authRoutes: require('../api/routes/v1/auth'),
     miscRoutes: require('../api/routes/v1/misc'),
   };
 }
