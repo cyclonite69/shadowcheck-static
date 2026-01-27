@@ -775,6 +775,8 @@ router.get('/networks', async (req, res, next) => {
       const countSql = `
         SELECT COUNT(*)::bigint AS total
         FROM public.api_network_explorer_mv ne
+        LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
+        LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
         ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
       `;
       const countResult = await client.query(countSql, params.slice(0, params.length - 2));
