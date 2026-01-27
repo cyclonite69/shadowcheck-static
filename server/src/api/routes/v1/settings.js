@@ -54,6 +54,19 @@ function validateLabel(value) {
 }
 
 /**
+ * Validates a Google Maps API key string.
+ * @param {any} value - Raw key input
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateGoogleMapsKey(value) {
+  const validation = validateString(String(value || ''), 10, 256, 'google_maps_api_key');
+  if (!validation.valid) {
+    return validation;
+  }
+  return { valid: true, value: String(value).trim() };
+}
+
+/**
  * Requires API key authentication for settings routes.
  * @param {object} req - Express request
  * @param {object} res - Express response
@@ -185,6 +198,41 @@ router.post('/settings/mapbox/primary', requireAuth, async (req, res) => {
       return res.status(400).json({ error: labelValidation.error });
     }
     await keyringService.setPrimaryMapboxToken(labelValidation.value);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Google Maps API key (masked)
+router.get('/settings/google-maps', async (req, res) => {
+  try {
+    const apiKey =
+      (await keyringService.getCredential('google_maps_api_key')) ||
+      secretsManager.get('google_maps_api_key');
+    if (!apiKey) {
+      return res.json({ configured: false });
+    }
+    res.json({
+      configured: true,
+      apiKey: `${apiKey.substring(0, 6)}...${apiKey.slice(-4)}`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set Google Maps API key
+router.post('/settings/google-maps', async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    const keyValidation = validateGoogleMapsKey(apiKey);
+    if (!keyValidation.valid) {
+      return res.status(400).json({ error: keyValidation.error });
+    }
+
+    await keyringService.setCredential('google_maps_api_key', keyValidation.value);
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

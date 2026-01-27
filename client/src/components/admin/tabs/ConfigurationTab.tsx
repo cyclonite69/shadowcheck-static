@@ -37,6 +37,8 @@ export const ConfigurationTab: React.FC = () => {
     isLoading,
     mapboxToken,
     setMapboxToken,
+    googleMapsApiKey,
+    setGoogleMapsApiKey,
     homeLocation,
     setHomeLocation,
     wigleApiName,
@@ -44,6 +46,7 @@ export const ConfigurationTab: React.FC = () => {
     wigleApiToken,
     setWigleApiToken,
     saveMapboxToken,
+    saveGoogleMapsApiKey,
     saveHomeLocation,
     saveWigleCredentials,
   } = useConfiguration();
@@ -68,6 +71,34 @@ export const ConfigurationTab: React.FC = () => {
             className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-500 hover:to-blue-600 transition-all disabled:opacity-50"
           >
             {isLoading ? 'Saving...' : 'Save Token'}
+          </button>
+        </div>
+      </AdminCard>
+
+      <AdminCard
+        icon={DatabaseIcon}
+        title="Google Maps Configuration"
+        color="from-emerald-500 to-emerald-600"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Google Maps API Key
+            </label>
+            <input
+              type="text"
+              value={googleMapsApiKey}
+              onChange={(e) => setGoogleMapsApiKey(e.target.value)}
+              placeholder="AIzaSy..."
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+            />
+          </div>
+          <button
+            onClick={saveGoogleMapsApiKey}
+            disabled={isLoading}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50"
+          >
+            {isLoading ? 'Saving...' : 'Save API Key'}
           </button>
         </div>
       </AdminCard>

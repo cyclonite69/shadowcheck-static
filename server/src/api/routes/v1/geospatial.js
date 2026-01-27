@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const secretsManager = require('../../../services/secretsManager');
+const keyringService = require('../../../services/keyringService');
 const { Readable } = require('stream');
 const { URL } = require('url');
 const logger = require('../../../logging/logger');
@@ -208,9 +209,11 @@ router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req, res) => {
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get('/api/google-maps-token', (req, res) => {
+router.get('/api/google-maps-token', async (req, res) => {
   try {
-    const apiKey = secretsManager.get('google_maps_api_key');
+    const apiKey =
+      (await keyringService.getCredential('google_maps_api_key')) ||
+      secretsManager.get('google_maps_api_key');
     if (!apiKey) {
       return res.status(500).json({
         error: 'Google Maps API key not configured',
@@ -231,7 +234,9 @@ router.get('/api/google-maps-token', (req, res) => {
  */
 router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
   try {
-    const apiKey = secretsManager.get('google_maps_api_key');
+    const apiKey =
+      (await keyringService.getCredential('google_maps_api_key')) ||
+      secretsManager.get('google_maps_api_key');
     if (!apiKey) {
       return res.status(500).json({ error: 'Google Maps API key not configured' });
     }

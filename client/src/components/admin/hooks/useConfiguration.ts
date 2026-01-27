@@ -3,6 +3,7 @@ import { useState } from 'react';
 export const useConfiguration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [mapboxToken, setMapboxToken] = useState('');
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
   const [wigleApiName, setWigleApiName] = useState('');
   const [wigleApiToken, setWigleApiToken] = useState('');
   const [homeLocation, setHomeLocation] = useState({ lat: '', lng: '', radius: '1000' });
@@ -53,6 +54,29 @@ export const useConfiguration = () => {
     }
   };
 
+  const saveGoogleMapsApiKey = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/settings/google-maps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ apiKey: googleMapsApiKey }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      alert('Google Maps API key saved!');
+    } catch (error) {
+      alert(`Error saving API key: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const saveHomeLocation = async () => {
     try {
       setIsLoading(true);
@@ -77,6 +101,8 @@ export const useConfiguration = () => {
     isLoading,
     mapboxToken,
     setMapboxToken,
+    googleMapsApiKey,
+    setGoogleMapsApiKey,
     wigleApiName,
     setWigleApiName,
     wigleApiToken,
@@ -84,6 +110,7 @@ export const useConfiguration = () => {
     homeLocation,
     setHomeLocation,
     saveMapboxToken,
+    saveGoogleMapsApiKey,
     saveWigleCredentials,
     saveHomeLocation,
   };
