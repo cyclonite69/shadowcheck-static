@@ -110,13 +110,13 @@ router.get('/networks', async (req, res, next) => {
     if (threatLevelRaw !== undefined) {
       const validation = validateEnum(
         threatLevelRaw,
-        ['NONE', 'LOW', 'MED', 'HIGH'],
+        ['NONE', 'LOW', 'MED', 'HIGH', 'CRITICAL'],
         'threat_level'
       );
       if (!validation.valid) {
-        return res
-          .status(400)
-          .json({ error: 'Invalid threat_level parameter. Must be NONE, LOW, MED, or HIGH.' });
+        return res.status(400).json({
+          error: 'Invalid threat_level parameter. Must be NONE, LOW, MED, HIGH, or CRITICAL.',
+        });
       }
       threatLevel = validation.value;
     }
@@ -129,7 +129,7 @@ router.get('/networks', async (req, res, next) => {
         if (Array.isArray(categories) && categories.length > 0) {
           // Map frontend threat categories to database values
           const threatLevelMap = {
-            critical: 'HIGH',
+            critical: 'CRITICAL',
             high: 'HIGH',
             medium: 'MED',
             low: 'LOW',
@@ -433,6 +433,30 @@ router.get('/networks', async (req, res, next) => {
     const params = [];
     const whereClauses = [];
 
+    const threatScoreExpr = `COALESCE(
+      CASE 
+        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
+        WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
+        WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
+        ELSE (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
+      END,
+      0
+    )`;
+
+    const threatLevelExpr = `CASE
+      WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
+      WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
+      ELSE (
+        CASE
+          WHEN ${threatScoreExpr} >= 80 THEN 'CRITICAL'
+          WHEN ${threatScoreExpr} >= 60 THEN 'HIGH'
+          WHEN ${threatScoreExpr} >= 40 THEN 'MED'
+          WHEN ${threatScoreExpr} >= 20 THEN 'LOW'
+          ELSE 'NONE'
+        END
+      )
+    END`;
+
     // Filter out networks with no observations when sorting by distance-related columns
     const distanceColumns = ['max_distance_meters', 'distance_from_home_km'];
     const sortingByDistance = sortEntries.some((entry) => distanceColumns.includes(entry.column));
@@ -442,22 +466,22 @@ router.get('/networks', async (req, res, next) => {
 
     if (threatLevel !== null) {
       params.push(threatLevel);
-      whereClauses.push(`ne.threat->>'level' = $${params.length}`);
+      whereClauses.push(`${threatLevelExpr} = $${params.length}`);
     }
 
     if (threatCategories !== null && threatCategories.length > 0) {
       params.push(threatCategories);
-      whereClauses.push(`ne.threat->>'level' = ANY($${params.length})`);
+      whereClauses.push(`${threatLevelExpr} = ANY($${params.length})`);
     }
 
     if (threatScoreMin !== null) {
       params.push(threatScoreMin);
-      whereClauses.push(`(threat->>'score')::numeric >= $${params.length}`);
+      whereClauses.push(`${threatScoreExpr} >= $${params.length}`);
     }
 
     if (threatScoreMax !== null) {
       params.push(threatScoreMax);
-      whereClauses.push(`(threat->>'score')::numeric <= $${params.length}`);
+      whereClauses.push(`${threatScoreExpr} <= $${params.length}`);
     }
     if (lastSeen !== null) {
       params.push(lastSeen);
@@ -602,37 +626,8 @@ router.get('/networks', async (req, res, next) => {
         ne.signal as max_signal,
         -- Blend ML score (70%) with manual tag confidence (30%)
         JSONB_BUILD_OBJECT(
-          'score', COALESCE(
-            CASE 
-              WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
-              WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
-              WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-              ELSE (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-            END,
-            0
-          )::text,
-          'level', CASE
-            WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
-            WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
-            WHEN nt.threat_tag = 'THREAT' THEN (
-              CASE
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 80 THEN 'CRITICAL'
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 60 THEN 'HIGH'
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 40 THEN 'MED'
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 20 THEN 'LOW'
-                ELSE 'NONE'
-              END
-            )
-            ELSE (
-              CASE
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 80 THEN 'CRITICAL'
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 60 THEN 'HIGH'
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 40 THEN 'MED'
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 20 THEN 'LOW'
-                ELSE 'NONE'
-              END
-            )
-          END
+          'score', (${threatScoreExpr})::text,
+          'level', ${threatLevelExpr}
         ) AS threat,
         ne.distance_from_home_km,
         ne.manufacturer AS manufacturer,
