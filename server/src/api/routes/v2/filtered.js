@@ -362,6 +362,10 @@ router.get('/analytics', async (req, res, next) => {
       return res.status(400).json({ ok: false, errors });
     }
 
+    if (!(await assertHomeExistsIfNeeded(enabled, res))) {
+      return;
+    }
+
     const useLatestPerBssid = !enabled?.timeframe || !filters?.timeframe;
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const queries = builder.buildAnalyticsQueries({ useLatestPerBssid });

@@ -12,12 +12,16 @@ const { spawn } = require('child_process');
 const { query, CONFIG } = require('../../../config/database');
 const logger = require('../../../logging/logger');
 const { validateBSSID, validateTimestampMs } = require('../../../validation/schemas');
+const { requireAdmin } = require('../../../middleware/authMiddleware');
 const adminMlRoutes = require('./admin/ml');
 const adminTagsRoutes = require('./admin/tags');
 const adminNotesRoutes = require('./admin/notes');
 const adminMediaRoutes = require('./admin/media');
 const adminOuiRoutes = require('./admin/oui');
 const adminBackupRoutes = require('./admin/backup');
+
+// Protect all admin routes
+router.use(requireAdmin);
 
 // Configure multer for SQLite file uploads
 const upload = multer({
