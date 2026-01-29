@@ -34,6 +34,12 @@ interface MapToolbarActionsProps {
   setHomeButtonActive: (value: boolean) => void;
   homeLocation: { center: [number, number]; zoom?: number };
   logError: (message: string, error: unknown) => void;
+  // WiGLE observations
+  canWigle?: boolean;
+  wigleLoading?: boolean;
+  wigleActive?: boolean;
+  selectedCount?: number;
+  onWigle?: () => void;
 }
 
 export const MapToolbarActions = ({
@@ -62,6 +68,11 @@ export const MapToolbarActions = ({
   setHomeButtonActive,
   homeLocation,
   logError,
+  canWigle,
+  wigleLoading,
+  wigleActive,
+  selectedCount,
+  onWigle,
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
@@ -123,6 +134,11 @@ export const MapToolbarActions = ({
           }
         );
       }}
+      canWigle={canWigle}
+      wigleLoading={wigleLoading}
+      wigleActive={wigleActive}
+      selectedCount={selectedCount}
+      onWigle={onWigle}
     />
   );
 };
