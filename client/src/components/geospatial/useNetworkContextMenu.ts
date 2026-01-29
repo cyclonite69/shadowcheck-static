@@ -31,10 +31,12 @@ export type WigleObservation = {
   accuracy: number | null;
   source: 'matched' | 'wigle_unique';
   distance_from_our_center_m: number | null;
+  bssid?: string; // For batch mode - to color by network
 };
 
 type WigleObservationsState = {
   bssid: string | null;
+  bssids: string[]; // For batch mode
   observations: WigleObservation[];
   stats: {
     wigle_total: number;
@@ -42,6 +44,12 @@ type WigleObservationsState = {
     unique: number;
     our_observations: number;
     max_distance_from_our_sightings_m: number;
+  } | null;
+  batchStats: {
+    total_wigle: number;
+    total_matched: number;
+    total_unique: number;
+    network_count: number;
   } | null;
   loading: boolean;
   error: string | null;
@@ -74,8 +82,10 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
   // WiGLE observations layer state
   const [wigleObservations, setWigleObservations] = useState<WigleObservationsState>({
     bssid: null,
+    bssids: [],
     observations: [],
     stats: null,
+    batchStats: null,
     loading: false,
     error: null,
   });
@@ -311,14 +321,16 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     }
   };
 
-  // Load WiGLE observations for a network (to display on map)
+  // Load WiGLE observations for a single network (to display on map)
   const loadWigleObservations = async (network: NetworkRow) => {
     if (!network?.bssid) return;
 
     setWigleObservations({
       bssid: network.bssid,
+      bssids: [network.bssid],
       observations: [],
       stats: null,
+      batchStats: null,
       loading: true,
       error: null,
     });
@@ -332,8 +344,10 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
       if (response.ok && data.ok) {
         setWigleObservations({
           bssid: network.bssid,
+          bssids: [network.bssid],
           observations: data.observations || [],
           stats: data.stats || null,
+          batchStats: null,
           loading: false,
           error: null,
         });
@@ -354,11 +368,73 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     }
   };
 
+  // Load WiGLE observations for multiple networks (batch mode)
+  const loadBatchWigleObservations = async (bssids: string[]) => {
+    if (!bssids || bssids.length === 0) return;
+
+    setWigleObservations({
+      bssid: null,
+      bssids: bssids,
+      observations: [],
+      stats: null,
+      batchStats: null,
+      loading: true,
+      error: null,
+    });
+
+    try {
+      const response = await fetch('/api/networks/wigle-observations/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bssids }),
+      });
+      const data = await response.json();
+
+      if (response.ok && data.ok) {
+        // Flatten all observations from all networks, adding bssid to each
+        const allObservations: WigleObservation[] = [];
+        for (const network of data.networks || []) {
+          for (const obs of network.observations || []) {
+            allObservations.push({
+              ...obs,
+              bssid: network.bssid,
+            });
+          }
+        }
+
+        setWigleObservations({
+          bssid: null,
+          bssids: bssids,
+          observations: allObservations,
+          stats: null,
+          batchStats: data.stats || null,
+          loading: false,
+          error: null,
+        });
+      } else {
+        setWigleObservations((prev) => ({
+          ...prev,
+          loading: false,
+          error: data.error || 'Failed to load WiGLE observations',
+        }));
+      }
+    } catch (err) {
+      logError('Failed to load batch WiGLE observations', err);
+      setWigleObservations((prev) => ({
+        ...prev,
+        loading: false,
+        error: 'Network error loading WiGLE observations',
+      }));
+    }
+  };
+
   const clearWigleObservations = () => {
     setWigleObservations({
       bssid: null,
+      bssids: [],
       observations: [],
       stats: null,
+      batchStats: null,
       loading: false,
       error: null,
     });
@@ -378,6 +454,7 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     // WiGLE observations layer
     wigleObservations,
     loadWigleObservations,
+    loadBatchWigleObservations,
     clearWigleObservations,
   };
 };

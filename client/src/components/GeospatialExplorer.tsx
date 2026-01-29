@@ -140,6 +140,7 @@ export default function GeospatialExplorer() {
     handleWigleLookup,
     wigleObservations,
     loadWigleObservations,
+    loadBatchWigleObservations,
     clearWigleObservations,
   } = useNetworkContextMenu({ logError });
 
@@ -328,6 +329,17 @@ export default function GeospatialExplorer() {
                 setHomeButtonActive={setHomeButtonActive}
                 homeLocation={homeLocation}
                 logError={logError}
+                canWigle={selectedNetworks.size > 0}
+                wigleLoading={wigleObservations.loading}
+                wigleActive={wigleObservations.observations.length > 0}
+                selectedCount={selectedNetworks.size}
+                onWigle={() => {
+                  if (wigleObservations.observations.length > 0) {
+                    clearWigleObservations();
+                  } else {
+                    loadBatchWigleObservations(Array.from(selectedNetworks));
+                  }
+                }}
               />
             }
             mapReady={mapReady}
@@ -446,9 +458,11 @@ export default function GeospatialExplorer() {
           />
           <WigleObservationsPanel
             bssid={wigleObservations.bssid}
+            bssids={wigleObservations.bssids}
             loading={wigleObservations.loading}
             error={wigleObservations.error}
             stats={wigleObservations.stats}
+            batchStats={wigleObservations.batchStats}
             onClose={clearWigleObservations}
           />
         </>

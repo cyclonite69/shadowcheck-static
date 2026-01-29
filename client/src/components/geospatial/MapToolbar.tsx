@@ -28,6 +28,12 @@ interface MapToolbarProps {
   homeButtonActive: boolean;
   onHome: () => void;
   onGps: () => void;
+  // WiGLE observations
+  canWigle?: boolean;
+  wigleLoading?: boolean;
+  wigleActive?: boolean;
+  selectedCount?: number;
+  onWigle?: () => void;
 }
 
 export const MapToolbar = ({
@@ -53,6 +59,11 @@ export const MapToolbar = ({
   homeButtonActive,
   onHome,
   onGps,
+  canWigle,
+  wigleLoading,
+  wigleActive,
+  selectedCount,
+  onWigle,
 }: MapToolbarProps) => {
   return (
     <div
@@ -251,6 +262,33 @@ export const MapToolbar = ({
       >
         📍 GPS
       </button>
+      {onWigle && (
+        <button
+          onClick={onWigle}
+          disabled={!canWigle || wigleLoading}
+          style={{
+            padding: '6px 10px',
+            fontSize: '11px',
+            background: wigleActive
+              ? 'rgba(245, 158, 11, 0.9)'
+              : canWigle
+                ? 'rgba(245, 158, 11, 0.2)'
+                : 'rgba(30, 41, 59, 0.9)',
+            border: wigleActive
+              ? '1px solid #f59e0b'
+              : canWigle
+                ? '1px solid rgba(245, 158, 11, 0.5)'
+                : '1px solid rgba(148, 163, 184, 0.2)',
+            color: wigleActive ? '#ffffff' : canWigle ? '#f59e0b' : '#64748b',
+            borderRadius: '4px',
+            cursor: canWigle && !wigleLoading ? 'pointer' : 'not-allowed',
+            opacity: canWigle ? 1 : 0.5,
+            transition: 'all 0.2s',
+          }}
+        >
+          🌐 {wigleLoading ? 'Loading...' : `WiGLE${selectedCount ? ` (${selectedCount})` : ''}`}
+        </button>
+      )}
     </div>
   );
 };
