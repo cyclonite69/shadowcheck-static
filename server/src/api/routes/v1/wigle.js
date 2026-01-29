@@ -320,28 +320,50 @@ router.get('/wigle/networks-v3', validateWigleNetworksQuery, async (req, res, ne
 
     const limit = limitRaw ?? 20000;
     const offset = offsetRaw ?? 0;
-    const params = [limit, offset];
 
+    // Use a CTE to get all individual observations if they exist,
+    // otherwise fall back to the trilaterated point in the summary table.
     const sql = `
-      SELECT
-        netid as bssid,
-        ssid,
-        trilat,
-        trilon as trilong,
-        type,
-        encryption,
-        last_seen as lasttime
-      FROM public.wigle_v3_network_details
-      WHERE trilat IS NOT NULL AND trilon IS NOT NULL
-      ORDER BY last_seen DESC
+      WITH obs AS (
+        SELECT 
+          netid as bssid,
+          ssid,
+          latitude as trilat,
+          longitude as trilong,
+          'wifi' as type,
+          encryption,
+          observed_at as lasttime
+        FROM public.wigle_v3_observations
+      ),
+      summary AS (
+        SELECT
+          netid as bssid,
+          ssid,
+          trilat,
+          trilon as trilong,
+          type,
+          encryption,
+          last_seen as lasttime
+        FROM public.wigle_v3_network_details
+        WHERE NOT EXISTS (SELECT 1 FROM public.wigle_v3_observations WHERE netid = public.wigle_v3_network_details.netid)
+      )
+      SELECT * FROM obs
+      UNION ALL
+      SELECT * FROM summary
+      ORDER BY lasttime DESC
       LIMIT $1 OFFSET $2
     `;
 
-    const { rows } = await query(sql, params);
+    const { rows } = await query(sql, [limit, offset]);
 
     let total = null;
     if (includeTotalValidation.valid && includeTotalValidation.value) {
-      const countSql = 'SELECT COUNT(*)::bigint AS total FROM public.wigle_v3_network_details';
+      const countSql = `
+        SELECT (
+          (SELECT COUNT(*) FROM public.wigle_v3_observations) + 
+          (SELECT COUNT(*) FROM public.wigle_v3_network_details WHERE NOT EXISTS (SELECT 1 FROM public.wigle_v3_observations WHERE netid = public.wigle_v3_network_details.netid))
+        )::bigint AS total
+      `;
       const countResult = await query(countSql);
       total = parseInt(countResult.rows[0]?.total || 0, 10);
     }
@@ -568,6 +590,66 @@ router.post('/wigle/search-api', async (req, res, next) => {
 });
 
 /**
+ * Helper to import individual observations from WiGLE v3 detail data.
+ * @param {string} netid - Network ID
+ * @param {Array} locationClusters - Array of location clusters from WiGLE
+ */
+async function importWigleV3Observations(netid, locationClusters) {
+  if (!locationClusters || !Array.isArray(locationClusters)) {
+    return 0;
+  }
+
+  let totalImported = 0;
+  for (const cluster of locationClusters) {
+    if (!cluster.locations || !Array.isArray(cluster.locations)) {
+      continue;
+    }
+
+    for (const loc of cluster.locations) {
+      try {
+        await query(
+          `
+          INSERT INTO public.wigle_v3_observations (
+            netid, latitude, longitude, altitude, accuracy,
+            signal, observed_at, last_update, ssid,
+            frequency, channel, encryption, noise, snr, month,
+            location
+          ) VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7, $8, $9,
+            $10, $11, $12, $13, $14, $15,
+            ST_SetSRID(ST_MakePoint($3, $2), 4326)
+          )
+          ON CONFLICT DO NOTHING
+        `,
+          [
+            netid,
+            parseFloat(loc.latitude),
+            parseFloat(loc.longitude),
+            parseFloat(loc.alt) || null,
+            parseFloat(loc.accuracy) || null,
+            parseInt(loc.signal) || null,
+            loc.time,
+            loc.lastupdt,
+            loc.ssid,
+            parseInt(loc.frequency) || null,
+            parseInt(loc.channel) || null,
+            loc.encryptionValue,
+            parseInt(loc.noise) || null,
+            parseInt(loc.snr) || null,
+            loc.month,
+          ]
+        );
+        totalImported++;
+      } catch (err) {
+        logger.error(`[WiGLE] Failed to import observation for ${netid}: ${err.message}`);
+      }
+    }
+  }
+  return totalImported;
+}
+
+/**
  * POST /api/wigle/detail/:netid - Fetch WiGLE v3 detail and optionally import
  * Body: { import: boolean }
  */
@@ -614,6 +696,7 @@ router.post('/wigle/detail/:netid', async (req, res, next) => {
     }
 
     const data = await response.json();
+    let importedObservations = 0;
 
     if (shouldImport && data.networkId) {
       logger.info(`[WiGLE] Importing detail for ${netid} to database...`);
@@ -676,12 +759,17 @@ router.post('/wigle/detail/:netid', async (req, res, next) => {
           JSON.stringify(data.locationClusters),
         ]
       );
+
+      // Also import individual observations
+      importedObservations = await importWigleV3Observations(data.networkId, data.locationClusters);
+      logger.info(`[WiGLE] Imported ${importedObservations} observations for ${netid}`);
     }
 
     res.json({
       ok: true,
       data,
       imported: shouldImport,
+      importedObservations,
     });
   } catch (err) {
     logger.error(`[WiGLE] Detail error: ${err.message}`, { error: err });
@@ -775,13 +863,50 @@ router.post('/wigle/import/v3', async (req, res, next) => {
       ]
     );
 
+    // Also import individual observations
+    const importedObservations = await importWigleV3Observations(
+      data.networkId,
+      data.locationClusters
+    );
+    logger.info(`[WiGLE] Imported ${importedObservations} observations for ${data.networkId}`);
+
     res.json({
       ok: true,
-      message: `Successfully imported ${data.networkId}`,
       data,
+      importedObservations,
     });
   } catch (err) {
     logger.error(`[WiGLE] Import error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+/**
+ * GET /api/wigle/observations/:netid - Fetch stored individual observations
+ */
+router.get('/wigle/observations/:netid', async (req, res, next) => {
+  try {
+    const { netid } = req.params;
+
+    const { rows } = await query(
+      `
+      SELECT
+        id, netid, latitude, longitude, altitude, accuracy,
+        signal, observed_at, last_update, ssid,
+        frequency, channel, encryption, noise, snr, month
+      FROM public.wigle_v3_observations
+      WHERE netid = $1
+      ORDER BY observed_at DESC
+    `,
+      [netid]
+    );
+
+    res.json({
+      ok: true,
+      count: rows.length,
+      observations: rows,
+    });
+  } catch (err) {
     next(err);
   }
 });

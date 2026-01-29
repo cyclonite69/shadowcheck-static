@@ -37,7 +37,20 @@ export const useWigleDetail = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<WigleDetailData | null>(null);
+  const [observations, setObservations] = useState<any[]>([]);
   const [imported, setImported] = useState(false);
+
+  const fetchObservations = async (netid: string) => {
+    try {
+      const res = await fetch(`/api/wigle/observations/${encodeURIComponent(netid)}`);
+      const json = await res.json();
+      if (json.ok) {
+        setObservations(json.observations || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch observations:', err);
+    }
+  };
 
   const fetchDetail = async (netid: string, shouldImport: boolean) => {
     if (!netid) {
@@ -49,6 +62,7 @@ export const useWigleDetail = () => {
     setError(null);
     setImported(false);
     setData(null);
+    setObservations([]);
 
     try {
       const response = await fetch(`/api/wigle/detail/${encodeURIComponent(netid)}`, {
@@ -67,6 +81,11 @@ export const useWigleDetail = () => {
 
       setData(json.data);
       setImported(json.imported);
+
+      // If we imported or it already existed, try to fetch individual observations
+      if (json.imported || json.data) {
+        await fetchObservations(netid);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -78,7 +97,9 @@ export const useWigleDetail = () => {
     loading,
     error,
     data,
+    observations,
     imported,
     fetchDetail,
+    fetchObservations,
   };
 };

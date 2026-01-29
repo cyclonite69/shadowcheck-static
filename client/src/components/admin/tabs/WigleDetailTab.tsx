@@ -37,7 +37,7 @@ const DetailIcon = ({ size = 24, className = '' }) => (
 
 export const WigleDetailTab: React.FC = () => {
   const [netid, setNetid] = useState('');
-  const { loading, error, data, imported, fetchDetail } = useWigleDetail();
+  const { loading, error, data, observations, imported, fetchDetail } = useWigleDetail();
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
@@ -254,10 +254,70 @@ export const WigleDetailTab: React.FC = () => {
               </div>
             </div>
 
+            {/* Observations Table */}
+            {observations && observations.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase">
+                    Individual Observation Points ({observations.length})
+                  </h4>
+                  <div className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
+                    Deep Forensic Data
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/50 rounded border border-slate-700/50 overflow-hidden">
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="sticky top-0 bg-slate-800 text-slate-400 font-semibold border-b border-slate-700">
+                        <tr>
+                          <th className="px-3 py-2">Timestamp</th>
+                          <th className="px-3 py-2 text-right">Signal</th>
+                          <th className="px-3 py-2 text-right">Altitude</th>
+                          <th className="px-3 py-2">Lat/Lon</th>
+                          <th className="px-3 py-2">SSID</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {observations.map((obs) => (
+                          <tr key={obs.id} className="hover:bg-slate-800/30 text-slate-300">
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              {new Date(obs.observed_at).toLocaleString()}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <span
+                                className={`${
+                                  obs.signal > -70
+                                    ? 'text-green-400'
+                                    : obs.signal > -85
+                                      ? 'text-yellow-400'
+                                      : 'text-red-400'
+                                }`}
+                              >
+                                {obs.signal} dBm
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right text-slate-400 font-mono">
+                              {obs.altitude ? `${obs.altitude}m` : '-'}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-cyan-500/80">
+                              {obs.latitude.toFixed(5)}, {obs.longitude.toFixed(5)}
+                            </td>
+                            <td className="px-3 py-2 italic text-slate-400">{obs.ssid || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Import Status */}
             {imported && (
               <div className="bg-green-900/20 border border-green-800/50 p-3 rounded text-center text-sm text-green-400">
                 Successfully imported to database ✓
+                {observations.length > 0 && ` (${observations.length} observations)`}
               </div>
             )}
           </div>
