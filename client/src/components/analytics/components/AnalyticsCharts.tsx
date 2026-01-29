@@ -415,6 +415,55 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
           ))}
         </div>
       );
+    case 'severity-counts':
+      if (
+        !data.severityCounts ||
+        data.severityCounts.length === 0 ||
+        !data.severityCounts.some((i) => i.value > 0)
+      ) {
+        return renderEmptyState();
+      }
+      return (
+        <div className="flex h-[260px] w-full flex-col">
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data.severityCounts}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="45%"
+                  outerRadius="70%"
+                  paddingAngle={2}
+                  dataKey="value"
+                  animationDuration={300}
+                >
+                  {data.severityCounts.map((entry, idx) => (
+                    <Cell
+                      key={`cell-${idx}-${entry.name}`}
+                      fill={CHART_COLORS.severity[entry.severity] || '#94a3b8'}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  {...TOOLTIP_CONFIG}
+                  formatter={(value, name, props) => {
+                    const total = data.severityCounts.reduce((sum, item) => sum + item.value, 0);
+                    return formatPieTooltip(value as number, name as string, total);
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          {renderPieLegend(
+            data.severityCounts.map((item) => ({
+              name: item.name,
+              value: item.value,
+              color: CHART_COLORS.severity[item.severity] || '#94a3b8',
+            }))
+          )}
+        </div>
+      );
     default:
       return null;
   }

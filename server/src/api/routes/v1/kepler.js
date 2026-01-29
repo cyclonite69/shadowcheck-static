@@ -181,6 +181,8 @@ router.get('/kepler/data', async (req, res) => {
   try {
     const { limit: limitRaw } = req.query;
     const limit = limitRaw ? Math.min(parseInt(limitRaw, 10) || 5000, 50000) : 5000;
+    const offsetRaw = req.query.offset;
+    const offset = offsetRaw ? Math.max(parseInt(offsetRaw, 10) || 0, 0) : 0;
     let filters = {};
     let enabled = {};
     try {
@@ -199,7 +201,7 @@ router.get('/kepler/data', async (req, res) => {
     }
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
-    const { sql, params } = builder.buildNetworkListQuery({ limit });
+    const { sql, params } = builder.buildNetworkListQuery({ limit, offset });
     const result = await query(sql, params);
 
     const geojson = {
@@ -266,10 +268,13 @@ router.get('/kepler/observations', async (req, res) => {
     }
 
     const limitRaw = req.query.limit;
-    const limit = limitRaw ? Math.min(parseInt(limitRaw, 10) || 500000, 1000000) : 500000;
+    const limit = limitRaw ? parseInt(limitRaw, 10) : null;
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
     const { sql, params } = builder.buildGeospatialQuery({ limit });
+
+    // Increase timeout for large observation queries
+    await query("SET LOCAL statement_timeout = '30000ms'");
     const result = await query(sql, params);
 
     const geojson = {

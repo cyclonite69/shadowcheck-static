@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { WigleSearchTab } from './admin/tabs/WigleSearchTab';
+import { WigleDetailTab } from './admin/tabs/WigleDetailTab';
 import { MLTrainingTab } from './admin/tabs/MLTrainingTab';
 import { BackupsTab } from './admin/tabs/BackupsTab';
 import { ConfigurationTab } from './admin/tabs/ConfigurationTab';
@@ -115,22 +116,6 @@ const BrainIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const TargetIcon = ({ size = 24, className = '' }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <circle cx="12" cy="12" r="6" />
-    <circle cx="12" cy="12" r="2" />
-  </svg>
-);
-
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
@@ -146,7 +131,7 @@ const SearchIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const BarChartIcon = ({ size = 24, className = '' }) => (
+const DetailIcon = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
@@ -156,22 +141,23 @@ const BarChartIcon = ({ size = 24, className = '' }) => (
     stroke="currentColor"
     strokeWidth="2"
   >
-    <path d="M3 3v18h18" />
-    <path d="M18 17V9" />
-    <path d="M13 17V5" />
-    <path d="M8 17v-3" />
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
   </svg>
 );
 
 const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('config');
 
-  // Load API health when API tab is active
   const tabs = [
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
     { id: 'api', label: 'API Testing', icon: ApiIcon },
     { id: 'ml', label: 'ML Training', icon: BrainIcon },
     { id: 'wigle', label: 'WiGLE Search', icon: SearchIcon },
+    { id: 'wigle-detail', label: 'WiGLE Detail (v3)', icon: DetailIcon },
     { id: 'imports', label: 'Data Import', icon: UploadIcon },
     { id: 'backups', label: 'Backups', icon: DatabaseIcon },
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
@@ -187,26 +173,26 @@ const AdminPage: React.FC = () => {
       </div>
 
       {/* Centered Container */}
-      <div className="w-full max-w-5xl mx-auto px-6 py-8">
+      <div className="w-full max-w-6xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mb-4">
             <SettingsIcon size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>
-          <p className="text-slate-400">System configuration and data management</p>
+          <h1 className="text-4xl font-bold text-white mb-2">Admin Panel</h1>
+          <p className="text-slate-400 text-base">System configuration and data management</p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8 bg-slate-800/30 p-2 rounded-xl border border-slate-700/50 max-w-3xl mx-auto">
+        <div className="flex flex-wrap justify-center gap-2 mb-12 bg-slate-800/20 p-3 rounded-xl border border-slate-700/50 max-w-4xl mx-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
               }`}
             >
               <tab.icon size={16} />
@@ -216,13 +202,16 @@ const AdminPage: React.FC = () => {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'config' && <ConfigurationTab />}
-        {activeTab === 'api' && <ApiTestingTab />}
-        {activeTab === 'ml' && <MLTrainingTab />}
-        {activeTab === 'wigle' && <WigleSearchTab />}
-        {activeTab === 'imports' && <DataImportTab />}
-        {activeTab === 'backups' && <BackupsTab />}
-        {activeTab === 'exports' && <DataExportTab />}
+        <div className="pb-8">
+          {activeTab === 'config' && <ConfigurationTab />}
+          {activeTab === 'api' && <ApiTestingTab />}
+          {activeTab === 'ml' && <MLTrainingTab />}
+          {activeTab === 'wigle' && <WigleSearchTab />}
+          {activeTab === 'wigle-detail' && <WigleDetailTab />}
+          {activeTab === 'imports' && <DataImportTab />}
+          {activeTab === 'backups' && <BackupsTab />}
+          {activeTab === 'exports' && <DataExportTab />}
+        </div>
       </div>
     </div>
   );

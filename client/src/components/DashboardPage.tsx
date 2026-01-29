@@ -255,6 +255,58 @@ export default function DashboardPage() {
       type: 'analytics-link',
       observations: 0,
     },
+    {
+      id: 9,
+      title: 'Critical Threats',
+      value: 0,
+      icon: AlertTriangle,
+      color: '#ef4444', // Red
+      x: 0,
+      y: 920,
+      w: 50,
+      h: 200,
+      type: 'threat-critical',
+      observations: 0,
+    },
+    {
+      id: 10,
+      title: 'High Threats',
+      value: 0,
+      icon: AlertTriangle,
+      color: '#f97316', // Orange
+      x: 50,
+      y: 920,
+      w: 50,
+      h: 200,
+      type: 'threat-high',
+      observations: 0,
+    },
+    {
+      id: 11,
+      title: 'Medium Threats',
+      value: 0,
+      icon: AlertTriangle,
+      color: '#eab308', // Yellow
+      x: 0,
+      y: 1130,
+      w: 50,
+      h: 200,
+      type: 'threat-medium',
+      observations: 0,
+    },
+    {
+      id: 12,
+      title: 'Low Threats',
+      value: 0,
+      icon: AlertTriangle,
+      color: '#22c55e', // Green
+      x: 50,
+      y: 1130,
+      w: 50,
+      h: 200,
+      type: 'threat-low',
+      observations: 0,
+    },
   ]);
 
   const [dragging, setDragging] = useState(null);
@@ -292,16 +344,27 @@ export default function DashboardPage() {
           filters: JSON.stringify(adaptedFilters.filtersForPage),
           enabled: JSON.stringify(adaptedFilters.enabledForPage),
         });
-        const response = await fetch(`/api/dashboard-metrics?${params}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error('Failed to fetch');
-        const data = await response.json();
+
+        // Parallel fetch for dashboard metrics and threat severity counts
+        const [dashboardRes, threatsRes] = await Promise.all([
+          fetch(`/api/dashboard-metrics?${params}`, { signal: controller.signal }),
+          fetch('/api/v2/threats/severity-counts', { signal: controller.signal }),
+        ]);
+
+        if (!dashboardRes.ok) throw new Error('Failed to fetch dashboard metrics');
+
+        const data = await dashboardRes.json();
+        let threatCounts = { counts: { critical: 0, high: 0, medium: 0, low: 0 } };
+
+        if (threatsRes.ok) {
+          threatCounts = await threatsRes.json();
+        }
 
         // Debug: Log API response to verify observations data
         console.log('[Dashboard] API response:', {
           networks: data.networks,
           observations: data.observations,
+          threatCounts,
           hasObservations: !!data.observations,
         });
 
@@ -349,6 +412,26 @@ export default function DashboardPage() {
                   ...card,
                   value: data.networks?.nr || 0,
                   observations: data.observations?.nr || 0,
+                };
+              case 'threat-critical':
+                return {
+                  ...card,
+                  value: threatCounts.counts?.critical || 0,
+                };
+              case 'threat-high':
+                return {
+                  ...card,
+                  value: threatCounts.counts?.high || 0,
+                };
+              case 'threat-medium':
+                return {
+                  ...card,
+                  value: threatCounts.counts?.medium || 0,
+                };
+              case 'threat-low':
+                return {
+                  ...card,
+                  value: threatCounts.counts?.low || 0,
                 };
               default:
                 return card;
