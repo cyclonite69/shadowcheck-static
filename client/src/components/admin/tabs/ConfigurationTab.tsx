@@ -183,15 +183,15 @@ export const ConfigurationTab: React.FC = () => {
             </label>
             <input
               type="range"
-              min="100"
+              min="10"
               max="5000"
-              step="100"
+              step="10"
               value={homeLocation.radius}
               onChange={(e) => setHomeLocation({ ...homeLocation, radius: e.target.value })}
               className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-slate-400 mt-2">
-              <span>100m</span>
+              <span>10m</span>
               <span>5km</span>
             </div>
           </div>

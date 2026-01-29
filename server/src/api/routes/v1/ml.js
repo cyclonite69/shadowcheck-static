@@ -166,18 +166,15 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
       const ruleScore = parseFloat(ruleResult.score || 0);
 
       // --- HYBRID GATED FORMULA ---
-      // Baseline is the rule-based score. ML can pull it UP, but only if evidence is strong.
+      // Baseline is the rule-based score.
+      // NEW LOGIC: High-confidence ML (threatScore > 90) can override rule silence
       const obsCount = parseInt(net.observation_count || 0);
       const uniqueDays = parseInt(net.unique_days || 0);
       const uniqueLocs = parseInt(net.unique_locations || 0);
 
       // Evidence weight (0.0 to 1.0)
-      // Requires at least 3 observations AND 2 unique days to have ANY ML influence
       let evidenceWeight = 0;
       if (obsCount >= 3 && uniqueDays >= 2) {
-        // Logarithmic scale for observations (max influence at ~30)
-        // Linear scale for days (max influence at 7 days)
-        // Linear scale for locations (max influence at 5 locations)
         evidenceWeight = Math.min(
           1.0,
           Math.log1p(obsCount) / Math.log1p(30),
@@ -186,8 +183,11 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
         );
       }
 
+      // If ML is absolutely certain (>90), we trust it more even with slightly lower evidence
+      const mlConfidenceWeight = threatScore > 90 ? Math.max(evidenceWeight, 0.7) : evidenceWeight;
+
       // ML only boosts. It doesn't penalize a rule-based high threat.
-      const mlBoost = evidenceWeight * Math.max(0, threatScore - ruleScore);
+      const mlBoost = mlConfidenceWeight * Math.max(0, threatScore - ruleScore);
       const hybridScore = ruleScore + mlBoost;
 
       // finalScore is the hybrid result if overwriteFinal is true, otherwise it's ruleScore (legacy behavior)
@@ -203,6 +203,7 @@ const scoreAllNetworks = async ({ limit, overwriteFinal }) => {
           rule_score: parseFloat(ruleScore.toFixed(2)),
           ml_score: parseFloat(threatScore.toFixed(2)),
           evidence_weight: parseFloat(evidenceWeight.toFixed(3)),
+          ml_confidence_weight: parseFloat(mlConfidenceWeight.toFixed(3)),
           ml_boost: parseFloat(mlBoost.toFixed(2)),
           features: rawFeatures,
         },
