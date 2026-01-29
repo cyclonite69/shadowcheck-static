@@ -34,8 +34,8 @@ client/src/components/
 ├── MLTrainingPage.tsx              # Machine learning model management
 ├── AdminPage.tsx                   # System administration interface
 ├── ApiTestPage.tsx                 # API endpoint testing interface
-├── WigleTestPage.tsx               # WiGLE API integration testing
-├── KeplerTestPage.tsx              # Kepler.gl visualization testing
+├── WiglePage.tsx               # WiGLE API integration
+├── KeplerPage.tsx              # Kepler.gl visualization
 ├── FilterPanel.tsx                 # Universal filter interface
 ├── ActiveFiltersSummary.tsx        # Active filters display
 ├── Navigation.tsx                  # Main navigation component

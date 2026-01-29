@@ -309,7 +309,7 @@ const { filtersForPage, enabledForPage } = adaptedFilters;
 1. Go to Dashboard
 2. Open filters, set: Radio Types = WiFi, Timeframe = 7d, Threat Score Min = 50
 3. Apply → Dashboard shows filtered data
-4. Navigate to WiGLE test page
+4. Navigate to WiGLE page
 5. See: "✓ 2 active ⚠ 1 ignored" (Threat Score not supported)
 6. Load data → WiFi and 7d filters apply, threat score ignored
 7. Copy URL, open in new tab → same filters active

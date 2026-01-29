@@ -107,7 +107,7 @@ Get all observations for a network.
 
 Search by SSID.
 
-### POST /api/tag-network 🔒
+### POST /api/network-tags/:bssid 🔒
 
 Tag a network (requires API key).
 
@@ -115,21 +115,20 @@ Tag a network (requires API key).
 
 ```json
 {
-  "bssid": "AA:BB:CC:DD:EE:FF",
-  "tag_type": "LEGIT",
-  "confidence": 95,
+  "threat_tag": "LEGIT",
+  "threat_confidence": 0.95,
   "notes": "Home router"
 }
 ```
 
 **Tag Types:**
 
-- `LEGIT`: Safe (threat: 0.0)
-- `FALSE_POSITIVE`: Incorrectly flagged (0.05)
-- `INVESTIGATE`: Needs review (0.7)
-- `THREAT`: Confirmed threat (1.0)
+- `LEGIT`: Safe
+- `FALSE_POSITIVE`: Incorrectly flagged
+- `INVESTIGATE`: Needs review
+- `THREAT`: Confirmed threat
 
-### DELETE /api/tag-network/:bssid 🔒
+### DELETE /api/network-tags/:bssid 🔒
 
 Remove tag.
 

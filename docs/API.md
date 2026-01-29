@@ -431,10 +431,11 @@ Content-Type: application/json
 ```json
 {
   "ok": true,
-  "data": {
-    "message": "Network tagged successfully",
+  "tag": {
     "bssid": "AA:BB:CC:DD:EE:FF",
-    "tag_type": "LEGIT"
+    "threat_tag": "THREAT",
+    "threat_confidence": 0.95,
+    "notes": "Home router confirmed"
   }
 }
 ```
@@ -794,13 +795,12 @@ curl "http://localhost:3001/api/threats/quick?page=1&limit=10&minSeverity=70"
 curl http://localhost:3001/api/networks/observations/AA:BB:CC:DD:EE:FF
 
 # 4. Tag as threat
-curl -X POST http://localhost:3001/api/tag-network \
+curl -X POST http://localhost:3001/api/network-tags/AA:BB:CC:DD:EE:FF \
   -H "Content-Type: application/json" \
   -H "x-api-key: your-key" \
   -d '{
-    "bssid": "AA:BB:CC:DD:EE:FF",
-    "tag_type": "THREAT",
-    "confidence": 90,
+    "threat_tag": "THREAT",
+    "threat_confidence": 0.9,
     "notes": "Confirmed tracking device"
   }'
 

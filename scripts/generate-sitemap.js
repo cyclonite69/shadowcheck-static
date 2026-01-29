@@ -9,9 +9,9 @@ const pages = [
   { url: '/geospatial-intel', priority: '0.8', changefreq: 'weekly' },
   { url: '/geospatial-explorer', priority: '0.8', changefreq: 'weekly' },
   { url: '/analytics', priority: '0.8', changefreq: 'weekly' },
-  { url: '/wigle-test', priority: '0.6', changefreq: 'monthly' },
+  { url: '/wigle', priority: '0.6', changefreq: 'monthly' },
   { url: '/ml-training', priority: '0.6', changefreq: 'monthly' },
-  { url: '/kepler-test', priority: '0.6', changefreq: 'monthly' },
+  { url: '/kepler', priority: '0.6', changefreq: 'monthly' },
   { url: '/endpoint-test', priority: '0.4', changefreq: 'monthly' },
   { url: '/admin', priority: '0.5', changefreq: 'monthly' },
 ];

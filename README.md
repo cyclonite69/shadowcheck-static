@@ -13,7 +13,7 @@
 
 ## Current Development Direction
 
-- **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/api-test`)
+- **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/endpoint-test`)
 - **Modern modular backend architecture** with organized services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
 - **Universal filter system** with 20+ filter types supporting complex queries across all pages
 - **DevContainer support** for consistent development environments with VS Code integration
@@ -120,15 +120,20 @@ Server runs on `http://localhost:3001`
 - API Test (React): `/endpoint-test`
 - ML Training (React): `/ml-training`
 - Admin: `/admin`
-- WiGLE Test (React): `/wigle-test`
-- Kepler Test (React): `/kepler-test`
+- WiGLE (React): `/wigle`
+- Kepler (React): `/kepler`
 
 ## API Endpoints
 
-- `GET /api/networks` - All networks
-- `GET /api/threats/quick` - Quick threat detection
-- `GET /api/analytics/*` - Analytics data
-- `GET /api/networks/observations/:bssid` - Network observations
+- `GET /api/networks` - Paginated network list with filtering
+- `GET /api/networks/observations/:bssid` - Get all observation records for a network
+- `GET /api/threats/quick` - High-performance threat detection overview
+- `GET /api/threats/detect` - Detailed movement-based threat analysis
+- `GET /api/analytics/*` - Statistical data distribution endpoints
+- `POST /api/network-tags/:bssid` - Manually classify a network (admin)
+- `GET /api/network-tags/:bssid` - Get tags for a specific network
+- `GET /api/mapbox-token` - Retrieve Mapbox API token
+- `GET /api/wigle/api-status` - Check WiGLE API connectivity
 
 See `server/server.js` for full endpoint documentation.
 
