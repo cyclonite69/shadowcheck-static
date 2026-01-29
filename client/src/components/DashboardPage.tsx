@@ -24,7 +24,7 @@ const AlertTriangle = ({ size = 24, className = '', style = {} }) => (
   </svg>
 );
 
-const Wifi = ({ size = 24, className = '' }) => (
+const Wifi = ({ size = 24, className = '', style = {} }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
@@ -39,7 +39,7 @@ const Wifi = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const Network = ({ size = 24, className = '' }) => (
+const Network = ({ size = 24, className = '', style = {} }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
@@ -57,7 +57,7 @@ const Network = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const Bluetooth = ({ size = 24, className = '' }) => (
+const Bluetooth = ({ size = 24, className = '', style = {} }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
@@ -72,7 +72,7 @@ const Bluetooth = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const Radio = ({ size = 24, className = '' }) => (
+const Radio = ({ size = 24, className = '', style = {} }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
@@ -88,7 +88,7 @@ const Radio = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const BarChart3 = ({ size = 24, className = '' }) => (
+const BarChart3 = ({ size = 24, className = '', style = {} }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
@@ -106,7 +106,7 @@ const BarChart3 = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const Smartphone = ({ size = 24, className = '' }) => (
+const Smartphone = ({ size = 24, className = '', style = {} }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
@@ -122,7 +122,7 @@ const Smartphone = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-const Tower = ({ size = 24, className = '' }) => (
+const Tower = ({ size = 24, className = '', style = {} }) => (
   <svg
     viewBox="0 0 24 24"
     width={size}
