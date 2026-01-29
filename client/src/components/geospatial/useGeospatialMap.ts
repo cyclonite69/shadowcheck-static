@@ -192,6 +192,7 @@ export const useGeospatialMap = ({
               signal: props.signal,
               security: props.security,
               frequency: props.frequency,
+              channel: props.channel,
               lat: latitude,
               lon: feature.geometry.coordinates[0],
               altitude: props.altitude,
@@ -201,6 +202,7 @@ export const useGeospatialMap = ({
               distance_from_home_km: props.distance_from_home_km,
               max_distance_km: props.max_distance_km,
               distance_from_last_point_m: props.distance_from_last_point_m,
+              time_since_prior: props.time_since_prior,
               time: props.time,
               first_seen: props.first_seen,
               last_seen: props.last_seen,
@@ -209,55 +211,56 @@ export const useGeospatialMap = ({
               unique_days: props.unique_days,
             });
 
-            // Smart positioning using viewport bounds (similar to context menu logic)
-            const popupWidth = 380;
-            const popupHeight = 400;
-            const padding = 10;
+            // Smart positioning - keep popup within map bounds
+            const popupWidth = 340;
+            const popupHeight = 480;
+            const padding = 20;
 
-            // Get viewport dimensions
-            const viewportHeight = window.innerHeight;
-            const viewportWidth = window.innerWidth;
-
-            // Get click position in screen coordinates
+            // Get map container dimensions
             const mapContainer = map.getContainer();
             const mapRect = mapContainer.getBoundingClientRect();
-            const screenX = mapRect.left + map.project(e.lngLat).x;
-            const screenY = mapRect.top + map.project(e.lngLat).y;
+            const mapWidth = mapRect.width;
+            const mapHeight = mapRect.height;
 
-            // Calculate optimal position
-            let anchor = 'bottom';
+            // Get click position relative to map container
+            const point = map.project(e.lngLat);
+            const clickX = point.x;
+            const clickY = point.y;
+
+            // Determine best anchor based on click position within the map
+            // Use center-relative positioning for better centering
+            const halfWidth = popupWidth / 2;
+            const spaceAbove = clickY;
+            const spaceBelow = mapHeight - clickY;
+            const spaceLeft = clickX;
+            const spaceRight = mapWidth - clickX;
+
+            let anchor: string = 'bottom';
             let offsetX = 0;
             let offsetY = -15;
 
-            // Vertical positioning
-            if (screenY + popupHeight + padding > viewportHeight) {
-              // Flip to top if would overflow bottom
+            // Vertical: prefer showing below point, flip if not enough space
+            if (spaceBelow < popupHeight + padding && spaceAbove > spaceBelow) {
               anchor = 'top';
               offsetY = 15;
             }
 
-            // Horizontal positioning
-            if (screenX + popupWidth + padding > viewportWidth) {
-              // Flip to left side if would overflow right
-              if (anchor === 'top') {
-                anchor = 'top-right';
-              } else {
-                anchor = 'bottom-right';
-              }
-              offsetX = 15;
-            }
-
-            // Ensure doesn't go off left edge
-            if (screenX - popupWidth < padding && offsetX > 0) {
-              offsetX = -15; // Reset to left side
-              anchor = anchor.includes('top') ? 'top-left' : 'bottom-left';
+            // Horizontal: try to center, but shift if near edges
+            if (spaceRight < halfWidth + padding) {
+              // Near right edge - anchor to right
+              anchor = anchor === 'top' ? 'top-right' : 'bottom-right';
+              offsetX = -10;
+            } else if (spaceLeft < halfWidth + padding) {
+              // Near left edge - anchor to left
+              anchor = anchor === 'top' ? 'top-left' : 'bottom-left';
+              offsetX = 10;
             }
 
             new mapboxgl.Popup({
               offset: [offsetX, offsetY],
               className: 'sc-popup',
-              anchor: anchor,
-              maxWidth: '380px',
+              anchor: anchor as any,
+              maxWidth: '340px',
               closeOnClick: true,
               closeButton: true,
             })
