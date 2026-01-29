@@ -25,6 +25,7 @@ services:
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
     secrets:
       - db_password
+      - db_admin_password
       - mapbox_token
       - api_key
       - google_maps_api_key
@@ -75,6 +76,8 @@ services:
 secrets:
   db_password:
     file: ./secrets/db_password.txt
+  db_admin_password:
+    file: ./secrets/db_admin_password.txt
   mapbox_token:
     file: ./secrets/mapbox_token.txt
   api_key:
