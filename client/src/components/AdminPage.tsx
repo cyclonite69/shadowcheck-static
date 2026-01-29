@@ -164,14 +164,7 @@ const AdminPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Ambient gradient background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen w-full bg-transparent">
       {/* Centered Container */}
       <div className="w-full max-w-6xl mx-auto px-6 py-12">
         {/* Header */}

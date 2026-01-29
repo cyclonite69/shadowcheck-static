@@ -607,6 +607,12 @@ async function importWigleV3Observations(netid, locationClusters) {
 
     for (const loc of cluster.locations) {
       try {
+        // Use location SSID if valid, otherwise fall back to cluster SSID
+        const ssidToUse =
+          loc.ssid && loc.ssid !== '?' && loc.ssid !== ''
+            ? loc.ssid
+            : cluster.clusterSsid || loc.ssid;
+
         await query(
           `
           INSERT INTO public.wigle_v3_observations (
@@ -631,7 +637,7 @@ async function importWigleV3Observations(netid, locationClusters) {
             parseInt(loc.signal) || null,
             loc.time,
             loc.lastupdt,
-            loc.ssid,
+            ssidToUse,
             parseInt(loc.frequency) || null,
             parseInt(loc.channel) || null,
             loc.encryptionValue,
@@ -793,7 +799,7 @@ router.post('/wigle/import/v3', async (req, res, next) => {
 
     try {
       data = JSON.parse(jsonString);
-    } catch (e) {
+    } catch (_e) {
       return res.status(400).json({ ok: false, error: 'Invalid JSON file' });
     }
 
