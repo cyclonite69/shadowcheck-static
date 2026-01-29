@@ -3,6 +3,7 @@ import type { MutableRefObject } from 'react';
 import type mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
 import { macColor } from '../../utils/mapHelpers';
+import type { WigleObservation } from './useNetworkContextMenu';
 
 // Calculate WiFi channel from frequency in MHz
 const frequencyToChannel = (freqMhz: number | null | undefined): number | null => {
@@ -43,12 +44,28 @@ type ObservationSet = {
   observations: Observation[];
 };
 
+type WigleObservationsState = {
+  bssid: string | null;
+  observations: WigleObservation[];
+  stats: {
+    wigle_total: number;
+    matched: number;
+    unique: number;
+    our_observations: number;
+    max_distance_from_our_sightings_m: number;
+  } | null;
+  loading: boolean;
+  error: string | null;
+};
+
 type ObservationLayerProps = {
   mapReady: boolean;
   mapRef: MutableRefObject<mapboxglType.Map | null>;
   mapboxRef: MutableRefObject<mapboxglType | null>;
   activeObservationSets: ObservationSet[];
   networkLookup: Map<string, NetworkRow>;
+  wigleObservations?: WigleObservationsState;
+  clearWigleObservations?: () => void;
 };
 
 export const useObservationLayers = ({
@@ -57,6 +74,8 @@ export const useObservationLayers = ({
   mapboxRef,
   activeObservationSets,
   networkLookup,
+  wigleObservations,
+  clearWigleObservations,
 }: ObservationLayerProps) => {
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -205,4 +224,189 @@ export const useObservationLayers = ({
       map.fitBounds(bounds, { padding: 50, duration: 1000 });
     }
   }, [activeObservationSets, mapReady, mapRef, mapboxRef, networkLookup]);
+
+  // WiGLE observations layer effect
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !wigleObservations) return;
+
+    const map = mapRef.current;
+    const mapboxgl = mapboxRef.current;
+    if (!mapboxgl) return;
+
+    // Add WiGLE observations source if it doesn't exist
+    if (!map.getSource('wigle-observations')) {
+      map.addSource('wigle-observations', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [],
+        },
+      });
+
+      // WiGLE unique observations - diamond markers (orange)
+      map.addLayer({
+        id: 'wigle-unique-points',
+        type: 'circle',
+        source: 'wigle-observations',
+        filter: ['==', ['get', 'source'], 'wigle_unique'],
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#f59e0b', // amber-500
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.9,
+        },
+      });
+
+      // WiGLE matched observations - smaller dots (green)
+      map.addLayer({
+        id: 'wigle-matched-points',
+        type: 'circle',
+        source: 'wigle-observations',
+        filter: ['==', ['get', 'source'], 'matched'],
+        paint: {
+          'circle-radius': 5,
+          'circle-color': '#22c55e', // green-500
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.7,
+        },
+      });
+
+      // Add click handler for WiGLE observations
+      map.on('click', 'wigle-unique-points', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        const feature = e.features[0];
+        const props = feature.properties;
+        if (!props) return;
+
+        const coords = feature.geometry.coordinates;
+        const time = props.time ? new Date(props.time).toLocaleString() : 'Unknown';
+        const distance = props.distance_from_our_center_m
+          ? `${(props.distance_from_our_center_m / 1000).toFixed(1)}km from your sightings`
+          : '';
+
+        const popup = new mapboxgl.Popup({ maxWidth: '300px' })
+          .setLngLat(coords)
+          .setHTML(
+            `
+            <div style="font-family: system-ui; font-size: 12px; color: #e2e8f0;">
+              <div style="font-weight: 600; color: #f59e0b; margin-bottom: 4px;">
+                🌐 WiGLE Crowdsourced Sighting
+              </div>
+              <div style="margin-bottom: 2px;">
+                <strong>SSID:</strong> ${props.ssid || '(hidden)'}
+              </div>
+              <div style="margin-bottom: 2px;">
+                <strong>Time:</strong> ${time}
+              </div>
+              <div style="margin-bottom: 2px;">
+                <strong>Signal:</strong> ${props.level} dBm
+              </div>
+              ${props.channel ? `<div style="margin-bottom: 2px;"><strong>Channel:</strong> ${props.channel}</div>` : ''}
+              ${distance ? `<div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #475569; color: #f59e0b; font-weight: 500;">${distance}</div>` : ''}
+              <div style="margin-top: 4px; font-size: 10px; color: #94a3b8;">
+                Not seen in your observations
+              </div>
+            </div>
+          `
+          )
+          .addTo(map);
+      });
+
+      map.on('click', 'wigle-matched-points', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        const feature = e.features[0];
+        const props = feature.properties;
+        if (!props) return;
+
+        const coords = feature.geometry.coordinates;
+        const time = props.time ? new Date(props.time).toLocaleString() : 'Unknown';
+
+        const popup = new mapboxgl.Popup({ maxWidth: '280px' })
+          .setLngLat(coords)
+          .setHTML(
+            `
+            <div style="font-family: system-ui; font-size: 12px; color: #e2e8f0;">
+              <div style="font-weight: 600; color: #22c55e; margin-bottom: 4px;">
+                ✓ WiGLE + Your Data Match
+              </div>
+              <div style="margin-bottom: 2px;">
+                <strong>SSID:</strong> ${props.ssid || '(hidden)'}
+              </div>
+              <div style="margin-bottom: 2px;">
+                <strong>Time:</strong> ${time}
+              </div>
+              <div style="margin-bottom: 2px;">
+                <strong>Signal:</strong> ${props.level} dBm
+              </div>
+              <div style="margin-top: 4px; font-size: 10px; color: #94a3b8;">
+                Matches one of your observations
+              </div>
+            </div>
+          `
+          )
+          .addTo(map);
+      });
+
+      // Hover cursor
+      map.on('mouseenter', 'wigle-unique-points', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', 'wigle-unique-points', () => {
+        map.getCanvas().style.cursor = '';
+      });
+      map.on('mouseenter', 'wigle-matched-points', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', 'wigle-matched-points', () => {
+        map.getCanvas().style.cursor = '';
+      });
+    }
+
+    // Update WiGLE observations data
+    const wigleSource = map.getSource('wigle-observations') as mapboxglType.GeoJSONSource;
+    if (wigleSource) {
+      if (wigleObservations.observations.length > 0) {
+        const features = wigleObservations.observations.map((obs, index) => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [obs.lon, obs.lat],
+          },
+          properties: {
+            ssid: obs.ssid,
+            level: obs.level,
+            time: obs.time,
+            channel: obs.channel,
+            frequency: obs.frequency,
+            source: obs.source,
+            distance_from_our_center_m: obs.distance_from_our_center_m,
+            number: index + 1,
+          },
+        }));
+
+        wigleSource.setData({
+          type: 'FeatureCollection',
+          features: features as any,
+        });
+
+        // Auto-zoom to fit all WiGLE observations
+        const coords = features.map((f) => f.geometry.coordinates as [number, number]);
+        if (coords.length > 0) {
+          const bounds = coords.reduce(
+            (bounds, coord) => bounds.extend(coord),
+            new mapboxgl.LngLatBounds(coords[0], coords[0])
+          );
+          map.fitBounds(bounds, { padding: 80, duration: 1000 });
+        }
+      } else {
+        // Clear WiGLE observations
+        wigleSource.setData({
+          type: 'FeatureCollection',
+          features: [],
+        });
+      }
+    }
+  }, [mapReady, mapRef, mapboxRef, wigleObservations]);
 };
