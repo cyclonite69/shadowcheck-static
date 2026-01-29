@@ -1287,7 +1287,7 @@ class UniversalFilterQueryBuilder {
   }
 
   buildGeospatialQuery({ limit = 5000, offset = 0, selectedBssids = [] } = {}) {
-    const { cte, params } = this.buildFilteredObservationsCte({ selectedBssids });
+    const { cte } = this.buildFilteredObservationsCte({ selectedBssids });
     const networkWhere = this.buildNetworkWhere();
 
     // Optimization: If no network-level filters are active, skip the expensive rollup/spatial CTEs

@@ -35,6 +35,7 @@ import { useObservationSummary } from './geospatial/useObservationSummary';
 import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults';
 import { useExplorerPanels } from './geospatial/useExplorerPanels';
 import { useTimeFrequencyModal } from './geospatial/useTimeFrequencyModal';
+import { WigleLookupDialog } from './geospatial/WigleLookupDialog';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -133,6 +134,9 @@ export default function GeospatialExplorer() {
     openContextMenu,
     closeContextMenu,
     handleTagAction,
+    wigleLookupDialog,
+    closeWigleLookupDialog,
+    handleWigleLookup,
   } = useNetworkContextMenu({ logError });
 
   const {
@@ -372,49 +376,61 @@ export default function GeospatialExplorer() {
         </>
       }
       overlays={
-        <GeospatialOverlays
-          contextMenu={contextMenu}
-          tagLoading={tagLoading}
-          contextMenuRef={contextMenuRef}
-          onTagAction={handleTagAction}
-          onCloseContextMenu={closeContextMenu}
-          onOpenTimeFrequency={() => {
-            const n = contextMenu.network;
-            const payload = n ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') } : null;
-            openTimeFrequency(payload);
-            closeContextMenu();
-          }}
-          onOpenNote={() => {
-            setShowNoteModal(true);
-            setSelectedBssid(contextMenu.network?.bssid || '');
-            closeContextMenu();
-          }}
-          showNoteModal={showNoteModal}
-          selectedBssid={selectedBssid}
-          noteType={noteType}
-          noteContent={noteContent}
-          noteAttachments={noteAttachments}
-          fileInputRef={fileInputRef}
-          onNoteTypeChange={setNoteType}
-          onNoteContentChange={setNoteContent}
-          onAddAttachment={handleAddAttachment}
-          onRemoveAttachment={removeAttachment}
-          onCloseNoteOverlay={() => setShowNoteModal(false)}
-          onCloseNote={() => {
-            setShowNoteModal(false);
-            setNoteContent('');
-            setNoteAttachments([]);
-          }}
-          onCancelNote={() => {
-            setShowNoteModal(false);
-            setNoteContent('');
-            setNoteType('general');
-            setNoteAttachments([]);
-          }}
-          onSaveNote={handleSaveNote}
-          timeFreqModal={timeFreqModal}
-          onCloseTimeFrequency={closeTimeFrequency}
-        />
+        <>
+          <GeospatialOverlays
+            contextMenu={contextMenu}
+            tagLoading={tagLoading}
+            contextMenuRef={contextMenuRef}
+            onTagAction={handleTagAction}
+            onCloseContextMenu={closeContextMenu}
+            onOpenTimeFrequency={() => {
+              const n = contextMenu.network;
+              const payload = n
+                ? { bssid: String(n.bssid || ''), ssid: String(n.ssid || '') }
+                : null;
+              openTimeFrequency(payload);
+              closeContextMenu();
+            }}
+            onOpenNote={() => {
+              setShowNoteModal(true);
+              setSelectedBssid(contextMenu.network?.bssid || '');
+              closeContextMenu();
+            }}
+            showNoteModal={showNoteModal}
+            selectedBssid={selectedBssid}
+            noteType={noteType}
+            noteContent={noteContent}
+            noteAttachments={noteAttachments}
+            fileInputRef={fileInputRef}
+            onNoteTypeChange={setNoteType}
+            onNoteContentChange={setNoteContent}
+            onAddAttachment={handleAddAttachment}
+            onRemoveAttachment={removeAttachment}
+            onCloseNoteOverlay={() => setShowNoteModal(false)}
+            onCloseNote={() => {
+              setShowNoteModal(false);
+              setNoteContent('');
+              setNoteAttachments([]);
+            }}
+            onCancelNote={() => {
+              setShowNoteModal(false);
+              setNoteContent('');
+              setNoteType('general');
+              setNoteAttachments([]);
+            }}
+            onSaveNote={handleSaveNote}
+            timeFreqModal={timeFreqModal}
+            onCloseTimeFrequency={closeTimeFrequency}
+          />
+          <WigleLookupDialog
+            visible={wigleLookupDialog.visible}
+            network={wigleLookupDialog.network}
+            loading={wigleLookupDialog.loading}
+            result={wigleLookupDialog.result}
+            onLookup={handleWigleLookup}
+            onClose={closeWigleLookupDialog}
+          />
+        </>
       }
     />
   );
