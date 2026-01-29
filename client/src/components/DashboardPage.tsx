@@ -416,22 +416,26 @@ export default function DashboardPage() {
               case 'threat-critical':
                 return {
                   ...card,
-                  value: threatCounts.counts?.critical || 0,
+                  value: threatCounts.counts?.critical?.unique_networks || 0,
+                  observations: threatCounts.counts?.critical?.total_observations || 0,
                 };
               case 'threat-high':
                 return {
                   ...card,
-                  value: threatCounts.counts?.high || 0,
+                  value: threatCounts.counts?.high?.unique_networks || 0,
+                  observations: threatCounts.counts?.high?.total_observations || 0,
                 };
               case 'threat-medium':
                 return {
                   ...card,
-                  value: threatCounts.counts?.medium || 0,
+                  value: threatCounts.counts?.medium?.unique_networks || 0,
+                  observations: threatCounts.counts?.medium?.total_observations || 0,
                 };
               case 'threat-low':
                 return {
                   ...card,
-                  value: threatCounts.counts?.low || 0,
+                  value: threatCounts.counts?.low?.unique_networks || 0,
+                  observations: threatCounts.counts?.low?.total_observations || 0,
                 };
               default:
                 return card;
