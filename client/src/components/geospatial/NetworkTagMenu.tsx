@@ -14,6 +14,8 @@ interface NetworkTagMenuProps {
   onTagAction: (action: string) => void;
   onTimeFrequency: () => void;
   onAddNote: () => void;
+  onMapWigleObservations?: () => void;
+  wigleObservationsLoading?: boolean;
 }
 
 export const NetworkTagMenu = ({
@@ -28,6 +30,8 @@ export const NetworkTagMenu = ({
   onTagAction,
   onTimeFrequency,
   onAddNote,
+  onMapWigleObservations,
+  wigleObservationsLoading,
 }: NetworkTagMenuProps) => {
   const { isAdmin } = useAuth();
   if (!visible || !network) return null;
@@ -273,6 +277,28 @@ export const NetworkTagMenu = ({
         >
           📡 Time-Frequency Grid
         </button>
+
+        {onMapWigleObservations && (
+          <button
+            onClick={onMapWigleObservations}
+            disabled={wigleObservationsLoading}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '8px 12px',
+              background: 'transparent',
+              border: 'none',
+              color: '#f59e0b',
+              textAlign: 'left',
+              cursor: wigleObservationsLoading ? 'wait' : 'pointer',
+              fontSize: '12px',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            🌐 {wigleObservationsLoading ? 'Loading WiGLE...' : 'Map WiGLE Sightings'}
+          </button>
+        )}
 
         {isAdmin && (
           <button

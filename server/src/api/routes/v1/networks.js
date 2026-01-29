@@ -1425,4 +1425,158 @@ router.post('/admin/home-location', async (req, res, next) => {
   }
 });
 
+/**
+ * GET /api/networks/:bssid/wigle-observations
+ * Returns WiGLE v3 crowdsourced observations for a network with deduplication.
+ * Observations are marked as 'matched' (exists in our data) or 'unique' (WiGLE-only).
+ */
+router.get('/networks/:bssid/wigle-observations', async (req, res, next) => {
+  try {
+    const { bssid } = req.params;
+    const bssidValidation = validateBSSID(bssid);
+    if (!bssidValidation.valid) {
+      return res.status(400).json({ error: bssidValidation.error });
+    }
+
+    const cleanBssid = bssidValidation.cleaned;
+
+    // Check if wigle_v3_observations table exists
+    const tableCheck = await query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'wigle_v3_observations'
+      ) as exists
+    `);
+
+    if (!tableCheck.rows[0]?.exists) {
+      return res.json({
+        ok: true,
+        bssid: cleanBssid,
+        observations: [],
+        stats: { total: 0, matched: 0, unique: 0 },
+        message: 'WiGLE v3 observations table not available',
+      });
+    }
+
+    // Get WiGLE observations with deduplication status
+    // Match criteria: within 5m AND same date (WiGLE normalizes times to 07:00 UTC)
+    // This ensures we only filter true duplicates, not different observations at same location
+    const result = await query(
+      `
+      WITH our_obs AS (
+        SELECT
+          bssid, lat, lon, time, level,
+          time::date as obs_date,
+          ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography as geog
+        FROM public.observations
+        WHERE UPPER(bssid) = $1
+          AND lat IS NOT NULL AND lon IS NOT NULL
+      ),
+      wigle_enriched AS (
+        SELECT
+          w.netid as bssid,
+          w.latitude as lat,
+          w.longitude as lon,
+          w.observed_at as time,
+          w.signal as level,
+          w.ssid,
+          w.frequency,
+          w.channel,
+          w.encryption,
+          w.altitude,
+          w.accuracy,
+          ST_SetSRID(ST_MakePoint(w.longitude, w.latitude), 4326)::geography as geog,
+          EXISTS (
+            SELECT 1 FROM our_obs o
+            WHERE ST_DWithin(
+              ST_SetSRID(ST_MakePoint(w.longitude, w.latitude), 4326)::geography,
+              o.geog,
+              5
+            )
+            AND w.observed_at::date = o.obs_date
+          ) as is_matched
+        FROM public.wigle_v3_observations w
+        WHERE UPPER(w.netid) = $1
+          AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
+      ),
+      our_bounds AS (
+        SELECT
+          MIN(lat) as min_lat, MAX(lat) as max_lat,
+          MIN(lon) as min_lon, MAX(lon) as max_lon
+        FROM our_obs
+      )
+      SELECT
+        we.bssid, we.lat, we.lon,
+        EXTRACT(EPOCH FROM we.time) * 1000 as time,
+        we.level, we.ssid, we.frequency, we.channel, we.encryption,
+        we.altitude, we.accuracy,
+        we.is_matched,
+        -- Calculate distance from our observation bounds
+        CASE
+          WHEN ob.min_lat IS NULL THEN NULL
+          ELSE ROUND(ST_Distance(
+            we.geog,
+            ST_SetSRID(ST_MakePoint(
+              (ob.min_lon + ob.max_lon) / 2,
+              (ob.min_lat + ob.max_lat) / 2
+            ), 4326)::geography
+          )::numeric, 2)
+        END as distance_from_our_center_m
+      FROM wigle_enriched we
+      CROSS JOIN our_bounds ob
+      ORDER BY we.time DESC
+    `,
+      [cleanBssid]
+    );
+
+    // Calculate stats
+    const total = result.rows.length;
+    const matched = result.rows.filter((r) => r.is_matched).length;
+    const unique = total - matched;
+
+    // Get our observation count for comparison
+    const ourCount = await query(
+      'SELECT COUNT(*) as count FROM public.observations WHERE UPPER(bssid) = $1',
+      [cleanBssid]
+    );
+
+    // Calculate max distance from our sightings
+    const maxDistance = result.rows.reduce((max, r) => {
+      if (r.distance_from_our_center_m && r.distance_from_our_center_m > max) {
+        return r.distance_from_our_center_m;
+      }
+      return max;
+    }, 0);
+
+    res.json({
+      ok: true,
+      bssid: cleanBssid,
+      observations: result.rows.map((r) => ({
+        lat: r.lat,
+        lon: r.lon,
+        time: r.time,
+        level: r.level,
+        ssid: r.ssid,
+        frequency: r.frequency,
+        channel: r.channel,
+        encryption: r.encryption,
+        altitude: r.altitude,
+        accuracy: r.accuracy,
+        source: r.is_matched ? 'matched' : 'wigle_unique',
+        distance_from_our_center_m: r.distance_from_our_center_m,
+      })),
+      stats: {
+        wigle_total: total,
+        matched: matched,
+        unique: unique,
+        our_observations: parseInt(ourCount.rows[0]?.count || 0, 10),
+        max_distance_from_our_sightings_m: maxDistance,
+      },
+    });
+  } catch (err) {
+    logger.error('Error fetching WiGLE observations', { error: err.message });
+    next(err);
+  }
+});
+
 module.exports = router;

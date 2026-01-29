@@ -19,6 +19,8 @@ interface GeospatialOverlaysProps {
   onCloseContextMenu: () => void;
   onOpenTimeFrequency: () => void;
   onOpenNote: () => void;
+  onMapWigleObservations?: () => void;
+  wigleObservationsLoading?: boolean;
   showNoteModal: boolean;
   selectedBssid: string;
   noteType: string;
@@ -45,6 +47,8 @@ export const GeospatialOverlays = ({
   onCloseContextMenu,
   onOpenTimeFrequency,
   onOpenNote,
+  onMapWigleObservations,
+  wigleObservationsLoading,
   showNoteModal,
   selectedBssid,
   noteType,
@@ -76,6 +80,8 @@ export const GeospatialOverlays = ({
         onTagAction={onTagAction}
         onTimeFrequency={onOpenTimeFrequency}
         onAddNote={onOpenNote}
+        onMapWigleObservations={onMapWigleObservations}
+        wigleObservationsLoading={wigleObservationsLoading}
       />
 
       <NetworkNoteModal

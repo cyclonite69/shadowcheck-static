@@ -36,6 +36,7 @@ import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults'
 import { useExplorerPanels } from './geospatial/useExplorerPanels';
 import { useTimeFrequencyModal } from './geospatial/useTimeFrequencyModal';
 import { WigleLookupDialog } from './geospatial/WigleLookupDialog';
+import { WigleObservationsPanel } from './geospatial/WigleObservationsPanel';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -137,6 +138,9 @@ export default function GeospatialExplorer() {
     wigleLookupDialog,
     closeWigleLookupDialog,
     handleWigleLookup,
+    wigleObservations,
+    loadWigleObservations,
+    clearWigleObservations,
   } = useNetworkContextMenu({ logError });
 
   const {
@@ -250,6 +254,8 @@ export default function GeospatialExplorer() {
     mapboxRef,
     activeObservationSets,
     networkLookup,
+    wigleObservations,
+    clearWigleObservations,
   });
 
   const { toggle3DBuildings, toggleTerrain } = useMapLayersToggle({
@@ -396,6 +402,14 @@ export default function GeospatialExplorer() {
               setSelectedBssid(contextMenu.network?.bssid || '');
               closeContextMenu();
             }}
+            onMapWigleObservations={() => {
+              const n = contextMenu.network;
+              if (n) {
+                loadWigleObservations(n);
+              }
+              closeContextMenu();
+            }}
+            wigleObservationsLoading={wigleObservations.loading}
             showNoteModal={showNoteModal}
             selectedBssid={selectedBssid}
             noteType={noteType}
@@ -429,6 +443,13 @@ export default function GeospatialExplorer() {
             result={wigleLookupDialog.result}
             onLookup={handleWigleLookup}
             onClose={closeWigleLookupDialog}
+          />
+          <WigleObservationsPanel
+            bssid={wigleObservations.bssid}
+            loading={wigleObservations.loading}
+            error={wigleObservations.error}
+            stats={wigleObservations.stats}
+            onClose={clearWigleObservations}
           />
         </>
       }

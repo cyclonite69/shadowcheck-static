@@ -18,6 +18,35 @@ type WigleLookupDialogState = {
   result: { success: boolean; message: string; observationsImported?: number } | null;
 };
 
+export type WigleObservation = {
+  lat: number;
+  lon: number;
+  time: number;
+  level: number;
+  ssid: string | null;
+  frequency: number | null;
+  channel: number | null;
+  encryption: string | null;
+  altitude: number | null;
+  accuracy: number | null;
+  source: 'matched' | 'wigle_unique';
+  distance_from_our_center_m: number | null;
+};
+
+type WigleObservationsState = {
+  bssid: string | null;
+  observations: WigleObservation[];
+  stats: {
+    wigle_total: number;
+    matched: number;
+    unique: number;
+    our_observations: number;
+    max_distance_from_our_sightings_m: number;
+  } | null;
+  loading: boolean;
+  error: string | null;
+};
+
 type NetworkContextMenuProps = {
   logError: (message: string, error?: unknown) => void;
 };
@@ -40,6 +69,15 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     network: null,
     loading: false,
     result: null,
+  });
+
+  // WiGLE observations layer state
+  const [wigleObservations, setWigleObservations] = useState<WigleObservationsState>({
+    bssid: null,
+    observations: [],
+    stats: null,
+    loading: false,
+    error: null,
   });
 
   const openContextMenu = async (e: ReactMouseEvent, network: NetworkRow) => {
@@ -273,6 +311,59 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     }
   };
 
+  // Load WiGLE observations for a network (to display on map)
+  const loadWigleObservations = async (network: NetworkRow) => {
+    if (!network?.bssid) return;
+
+    setWigleObservations({
+      bssid: network.bssid,
+      observations: [],
+      stats: null,
+      loading: true,
+      error: null,
+    });
+
+    try {
+      const response = await fetch(
+        `/api/networks/${encodeURIComponent(network.bssid)}/wigle-observations`
+      );
+      const data = await response.json();
+
+      if (response.ok && data.ok) {
+        setWigleObservations({
+          bssid: network.bssid,
+          observations: data.observations || [],
+          stats: data.stats || null,
+          loading: false,
+          error: null,
+        });
+      } else {
+        setWigleObservations((prev) => ({
+          ...prev,
+          loading: false,
+          error: data.error || 'Failed to load WiGLE observations',
+        }));
+      }
+    } catch (err) {
+      logError('Failed to load WiGLE observations', err);
+      setWigleObservations((prev) => ({
+        ...prev,
+        loading: false,
+        error: 'Network error loading WiGLE observations',
+      }));
+    }
+  };
+
+  const clearWigleObservations = () => {
+    setWigleObservations({
+      bssid: null,
+      observations: [],
+      stats: null,
+      loading: false,
+      error: null,
+    });
+  };
+
   return {
     contextMenu,
     tagLoading,
@@ -284,5 +375,9 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     wigleLookupDialog,
     closeWigleLookupDialog,
     handleWigleLookup,
+    // WiGLE observations layer
+    wigleObservations,
+    loadWigleObservations,
+    clearWigleObservations,
   };
 };
