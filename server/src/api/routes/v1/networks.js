@@ -1579,4 +1579,177 @@ router.get('/networks/:bssid/wigle-observations', async (req, res, next) => {
   }
 });
 
+/**
+ * POST /api/networks/wigle-observations/batch
+ * Returns WiGLE v3 crowdsourced observations for multiple networks.
+ * Body: { bssids: string[] }
+ */
+router.post('/networks/wigle-observations/batch', async (req, res, next) => {
+  try {
+    const { bssids } = req.body;
+
+    if (!Array.isArray(bssids) || bssids.length === 0) {
+      return res.status(400).json({ error: 'bssids array is required' });
+    }
+
+    if (bssids.length > 50) {
+      return res.status(400).json({ error: 'Maximum 50 networks per request' });
+    }
+
+    // Validate and clean BSSIDs
+    const cleanBssids = [];
+    for (const bssid of bssids) {
+      const validation = validateBSSID(bssid);
+      if (validation.valid) {
+        cleanBssids.push(validation.cleaned);
+      }
+    }
+
+    if (cleanBssids.length === 0) {
+      return res.status(400).json({ error: 'No valid BSSIDs provided' });
+    }
+
+    // Check if wigle_v3_observations table exists
+    const tableCheck = await query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'wigle_v3_observations'
+      ) as exists
+    `);
+
+    if (!tableCheck.rows[0]?.exists) {
+      return res.json({
+        ok: true,
+        networks: [],
+        stats: { total_wigle: 0, total_matched: 0, total_unique: 0 },
+        message: 'WiGLE v3 observations table not available',
+      });
+    }
+
+    // Query for all networks at once
+    const result = await query(
+      `
+      WITH our_obs AS (
+        SELECT
+          bssid, lat, lon, time, level,
+          time::date as obs_date,
+          ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography as geog
+        FROM public.observations
+        WHERE UPPER(bssid) = ANY($1)
+          AND lat IS NOT NULL AND lon IS NOT NULL
+      ),
+      wigle_enriched AS (
+        SELECT
+          w.netid as bssid,
+          w.latitude as lat,
+          w.longitude as lon,
+          w.observed_at as time,
+          w.signal as level,
+          w.ssid,
+          w.frequency,
+          w.channel,
+          w.encryption,
+          w.altitude,
+          w.accuracy,
+          ST_SetSRID(ST_MakePoint(w.longitude, w.latitude), 4326)::geography as geog,
+          EXISTS (
+            SELECT 1 FROM our_obs o
+            WHERE UPPER(o.bssid) = UPPER(w.netid)
+            AND ST_DWithin(
+              ST_SetSRID(ST_MakePoint(w.longitude, w.latitude), 4326)::geography,
+              o.geog,
+              5
+            )
+            AND w.observed_at::date = o.obs_date
+          ) as is_matched
+        FROM public.wigle_v3_observations w
+        WHERE UPPER(w.netid) = ANY($1)
+          AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
+      ),
+      our_centers AS (
+        SELECT
+          UPPER(bssid) as bssid,
+          AVG(lat) as center_lat,
+          AVG(lon) as center_lon
+        FROM our_obs
+        GROUP BY UPPER(bssid)
+      )
+      SELECT
+        we.bssid, we.lat, we.lon,
+        EXTRACT(EPOCH FROM we.time) * 1000 as time,
+        we.level, we.ssid, we.frequency, we.channel, we.encryption,
+        we.altitude, we.accuracy,
+        we.is_matched,
+        CASE
+          WHEN oc.center_lat IS NULL THEN NULL
+          ELSE ROUND(ST_Distance(
+            we.geog,
+            ST_SetSRID(ST_MakePoint(oc.center_lon, oc.center_lat), 4326)::geography
+          )::numeric, 2)
+        END as distance_from_our_center_m
+      FROM wigle_enriched we
+      LEFT JOIN our_centers oc ON UPPER(we.bssid) = oc.bssid
+      ORDER BY we.bssid, we.time DESC
+    `,
+      [cleanBssids]
+    );
+
+    // Group by network and calculate stats
+    const networkMap = new Map();
+    let totalMatched = 0;
+    let totalUnique = 0;
+
+    for (const row of result.rows) {
+      const bssid = row.bssid.toUpperCase();
+      if (!networkMap.has(bssid)) {
+        networkMap.set(bssid, {
+          bssid,
+          observations: [],
+          stats: { wigle_total: 0, matched: 0, unique: 0, max_distance_m: 0 },
+        });
+      }
+      const network = networkMap.get(bssid);
+      network.observations.push({
+        lat: row.lat,
+        lon: row.lon,
+        time: row.time,
+        level: row.level,
+        ssid: row.ssid,
+        frequency: row.frequency,
+        channel: row.channel,
+        encryption: row.encryption,
+        altitude: row.altitude,
+        accuracy: row.accuracy,
+        source: row.is_matched ? 'matched' : 'wigle_unique',
+        distance_from_our_center_m: row.distance_from_our_center_m,
+      });
+      network.stats.wigle_total++;
+      if (row.is_matched) {
+        network.stats.matched++;
+        totalMatched++;
+      } else {
+        network.stats.unique++;
+        totalUnique++;
+      }
+      if (row.distance_from_our_center_m > network.stats.max_distance_m) {
+        network.stats.max_distance_m = row.distance_from_our_center_m;
+      }
+    }
+
+    res.json({
+      ok: true,
+      networks: Array.from(networkMap.values()),
+      stats: {
+        total_wigle: result.rows.length,
+        total_matched: totalMatched,
+        total_unique: totalUnique,
+        network_count: networkMap.size,
+      },
+    });
+  } catch (err) {
+    logger.error('Error fetching batch WiGLE observations', { error: err.message });
+    next(err);
+  }
+});
+
 module.exports = router;
