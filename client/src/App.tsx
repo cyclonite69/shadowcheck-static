@@ -74,8 +74,8 @@ function AppContent() {
             <Route path="/geospatial-intel" element={<GeospatialIntelligencePage />} />
             <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/wigle-test" element={<WiglePage />} />
-            <Route path="/kepler-test" element={<KeplerPage />} />
+            <Route path="/wigle" element={<WiglePage />} />
+            <Route path="/kepler" element={<KeplerPage />} />
             <Route path="/endpoint-test" element={<ApiPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>

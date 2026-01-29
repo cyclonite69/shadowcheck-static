@@ -86,8 +86,8 @@ Complete feature list for the SIGINT Forensics Platform.
 - **API Test** (`/endpoint-test`) - Development API testing interface
 - **ML Training** (`/ml-training`) - Machine learning model management
 - **Admin** (`/admin`) - System administration and configuration
-- **WiGLE Test** (`/wigle-test`) - WiGLE API integration testing
-- **Kepler Test** (`/kepler-test`) - Kepler.gl visualization testing
+- **WiGLE** (`/wigle`) - WiGLE API integration
+- **Kepler** (`/kepler`) - Kepler.gl visualization
 
 ### State Management
 
