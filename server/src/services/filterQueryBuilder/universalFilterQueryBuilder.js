@@ -11,6 +11,8 @@ const {
   SECURITY_EXPR,
   WIFI_CHANNEL_EXPR,
   NETWORK_CHANNEL_EXPR,
+  THREAT_SCORE_EXPR,
+  THREAT_LEVEL_EXPR,
 } = require('./sqlExpressions');
 const { isOui, coerceOui } = require('./normalizers');
 const { validateFilterPayload } = require('./validators');
@@ -980,7 +982,9 @@ class UniversalFilterQueryBuilder {
         NULL::text AS network_id
       FROM obs_rollup r
       JOIN obs_latest l ON l.bssid = r.bssid
-      JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(l.bssid)
+        LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
+        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${whereClause}
       ORDER BY ${orderBy}
@@ -1122,22 +1126,35 @@ class UniversalFilterQueryBuilder {
         where.push(`ne.distance_from_home_km <= ${this.addParam(f.distanceFromHomeMax)}`);
       }
       if (e.threatScoreMin && f.threatScoreMin !== undefined) {
-        where.push(`(ne.threat->>'score')::numeric >= ${this.addParam(f.threatScoreMin)}`);
+        where.push(`(${THREAT_SCORE_EXPR('nts', 'nt')} >= ${this.addParam(f.threatScoreMin)})`);
       }
       if (e.threatScoreMax && f.threatScoreMax !== undefined) {
-        where.push(`(ne.threat->>'score')::numeric <= ${this.addParam(f.threatScoreMax)}`);
+        where.push(`(${THREAT_SCORE_EXPR('nts', 'nt')} <= ${this.addParam(f.threatScoreMax)})`);
       }
       if (
         e.threatCategories &&
         Array.isArray(f.threatCategories) &&
         f.threatCategories.length > 0
       ) {
-        where.push(`LOWER(ne.threat->>'level') = ANY(${this.addParam(f.threatCategories)})`);
+        // Map frontend lowercase categories to database uppercase values
+        const threatLevelMap = {
+          critical: 'CRITICAL',
+          high: 'HIGH',
+          medium: 'MED',
+          low: 'LOW',
+        };
+        const dbThreatLevels = f.threatCategories
+          .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
+          .filter(Boolean);
+        where.push(`${THREAT_LEVEL_EXPR('nts', 'nt')} = ANY(${this.addParam(dbThreatLevels)})`);
       }
 
       const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
       return {
-        sql: `SELECT COUNT(*) AS total FROM public.api_network_explorer ne ${whereClause}`,
+        sql: `SELECT COUNT(*) AS total FROM public.api_network_explorer ne
+              LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
+              LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid
+              ${whereClause}`,
         params: [...this.params],
       };
     }
@@ -1203,15 +1220,31 @@ class UniversalFilterQueryBuilder {
     const networkWhere = [];
 
     if (e.threatScoreMin && f.threatScoreMin !== undefined) {
-      networkWhere.push(`(ne.threat->>'score')::numeric >= ${this.addParam(f.threatScoreMin)}`);
+      networkWhere.push(
+        `(${THREAT_SCORE_EXPR('nts', 'nt')} >= ${this.addParam(f.threatScoreMin)})`
+      );
       this.addApplied('threat', 'threatScoreMin', f.threatScoreMin);
     }
     if (e.threatScoreMax && f.threatScoreMax !== undefined) {
-      networkWhere.push(`(ne.threat->>'score')::numeric <= ${this.addParam(f.threatScoreMax)}`);
+      networkWhere.push(
+        `(${THREAT_SCORE_EXPR('nts', 'nt')} <= ${this.addParam(f.threatScoreMax)})`
+      );
       this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
     }
     if (e.threatCategories && Array.isArray(f.threatCategories) && f.threatCategories.length > 0) {
-      networkWhere.push(`LOWER(ne.threat->>'level') = ANY(${this.addParam(f.threatCategories)})`);
+      // Map frontend lowercase categories to database uppercase values
+      const threatLevelMap = {
+        critical: 'CRITICAL',
+        high: 'HIGH',
+        medium: 'MED',
+        low: 'LOW',
+      };
+      const dbThreatLevels = f.threatCategories
+        .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
+        .filter(Boolean);
+      networkWhere.push(
+        `${THREAT_LEVEL_EXPR('nts', 'nt')} = ANY(${this.addParam(dbThreatLevels)})`
+      );
       this.addApplied('threat', 'threatCategories', f.threatCategories);
     }
     if (e.observationCountMin && f.observationCountMin !== undefined) {
@@ -1287,7 +1320,8 @@ class UniversalFilterQueryBuilder {
       `;
 
       // Ensure parameters are correctly ordered for the LIMIT/OFFSET which are added at the end
-      const finalParams = [...params, ...(limit !== null ? [limit] : []), offset];
+      // Ensure parameters are correctly ordered for the LIMIT/OFFSET which are added at the end
+      const finalParams = [...this.params];
 
       return {
         sql,
@@ -1345,7 +1379,9 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
       )
       SELECT
@@ -1373,7 +1409,8 @@ class UniversalFilterQueryBuilder {
       OFFSET ${this.addParam(offset)}
     `;
 
-    const finalParams = [...params, ...(limit !== null ? [limit] : []), offset];
+    // Ensure parameters are correctly ordered for the LIMIT/OFFSET which are added at the end
+    const finalParams = [...this.params];
 
     return {
       sql,
@@ -1434,7 +1471,9 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
       )
       SELECT COUNT(*)::bigint AS total
@@ -1499,7 +1538,9 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN public.api_network_explorer ne ON ne.bssid = r.bssid
+        LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
       ),
       filtered_obs_scope AS (

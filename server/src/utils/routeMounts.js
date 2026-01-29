@@ -73,7 +73,6 @@ function mountApiRoutes(app, deps) {
   app.use('/api', networksRoutes);
   app.use('/api', threatsRoutes);
   app.use('/api', wigleRoutes);
-  app.use('/api', adminRoutes);
   app.use('/api', explorerRoutes);
   app.use('/api', mlRoutes);
   app.use('/api/analytics', analyticsRoutes);
@@ -88,6 +87,9 @@ function mountApiRoutes(app, deps) {
   app.use('/api', exportRoutes);
   app.use('/api', settingsRoutes);
   app.use('/api/network-tags', networkTagsRoutes);
+
+  // Admin routes (must be last or handled carefully due to catch-all middleware)
+  app.use('/api', adminRoutes);
 }
 
 module.exports = {

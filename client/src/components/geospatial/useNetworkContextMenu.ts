@@ -11,6 +11,13 @@ type ContextMenuState = {
   position: 'below' | 'above';
 };
 
+type WigleLookupDialogState = {
+  visible: boolean;
+  network: NetworkRow | null;
+  loading: boolean;
+  result: { success: boolean; message: string; observationsImported?: number } | null;
+};
+
 type NetworkContextMenuProps = {
   logError: (message: string, error?: unknown) => void;
 };
@@ -26,6 +33,14 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
   });
   const [tagLoading, setTagLoading] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  // WiGLE lookup dialog state
+  const [wigleLookupDialog, setWigleLookupDialog] = useState<WigleLookupDialogState>({
+    visible: false,
+    network: null,
+    loading: false,
+    result: null,
+  });
 
   const openContextMenu = async (e: ReactMouseEvent, network: NetworkRow) => {
     e.preventDefault();
@@ -143,8 +158,16 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
           });
           break;
         case 'investigate':
-          response = await fetch(`/api/network-tags/${bssid}/investigate`, { method: 'PATCH' });
-          break;
+          // Show WiGLE lookup dialog instead of immediately tagging
+          setWigleLookupDialog({
+            visible: true,
+            network: contextMenu.network,
+            loading: false,
+            result: null,
+          });
+          setTagLoading(false);
+          closeContextMenu();
+          return; // Exit early - dialog will handle the rest
         case 'clear':
           response = await fetch(`/api/network-tags/${bssid}`, { method: 'DELETE' });
           break;
@@ -175,6 +198,76 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     }
   }, [contextMenu.visible]);
 
+  // WiGLE lookup dialog handlers
+  const closeWigleLookupDialog = () => {
+    setWigleLookupDialog((prev) => ({ ...prev, visible: false, result: null }));
+  };
+
+  const handleWigleLookup = async (withLookup: boolean) => {
+    if (!wigleLookupDialog.network) return;
+
+    const bssid = wigleLookupDialog.network.bssid;
+    setWigleLookupDialog((prev) => ({ ...prev, loading: true }));
+
+    try {
+      // Always tag as INVESTIGATE first
+      await fetch(`/api/network-tags/${encodeURIComponent(bssid)}/investigate`, {
+        method: 'PATCH',
+      });
+
+      if (withLookup) {
+        // Call WiGLE v3 detail endpoint with import flag
+        const response = await fetch(`/api/wigle/detail/${encodeURIComponent(bssid)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ import: true }),
+        });
+        const result = await response.json();
+
+        if (response.ok && result.ok) {
+          const obsCount = result.importedObservations || result.data?.observations?.length || 0;
+          setWigleLookupDialog((prev) => ({
+            ...prev,
+            loading: false,
+            result: {
+              success: true,
+              message:
+                obsCount > 0
+                  ? `Imported ${obsCount} observations from WiGLE`
+                  : 'Network found but no new observations to import',
+              observationsImported: obsCount,
+            },
+          }));
+        } else {
+          setWigleLookupDialog((prev) => ({
+            ...prev,
+            loading: false,
+            result: {
+              success: false,
+              message:
+                result.error || 'WiGLE lookup failed - network may not exist in WiGLE database',
+            },
+          }));
+        }
+      } else {
+        // Just tagged, close dialog
+        setWigleLookupDialog((prev) => ({
+          ...prev,
+          loading: false,
+          result: { success: true, message: 'Tagged as INVESTIGATE' },
+        }));
+        setTimeout(closeWigleLookupDialog, 1500);
+      }
+    } catch (err) {
+      logError('WiGLE lookup failed', err);
+      setWigleLookupDialog((prev) => ({
+        ...prev,
+        loading: false,
+        result: { success: false, message: 'Network error during lookup' },
+      }));
+    }
+  };
+
   return {
     contextMenu,
     tagLoading,
@@ -182,5 +275,9 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
     openContextMenu,
     closeContextMenu,
     handleTagAction,
+    // WiGLE lookup dialog
+    wigleLookupDialog,
+    closeWigleLookupDialog,
+    handleWigleLookup,
   };
 };
