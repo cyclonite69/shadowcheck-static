@@ -59,7 +59,28 @@ DECLARE
     v_confidence NUMERIC := 0;
     v_flags TEXT[] := ARRAY[]::TEXT[];
     v_summary TEXT := '';
+    
+    -- Home Location variables
+    v_home_lat NUMERIC;
+    v_home_lon NUMERIC;
+    v_home_radius_m NUMERIC;
+    v_min_dist_to_home_m NUMERIC := Infinity;
+    v_seen_at_home BOOLEAN := FALSE;
+    v_home_proximity_score NUMERIC := 0;
 BEGIN
+    -- Get Home Location
+    SELECT latitude, longitude, radius INTO v_home_lat, v_home_lon, v_home_radius_m
+    FROM app.location_markers 
+    WHERE marker_type = 'home' 
+    ORDER BY created_at DESC LIMIT 1;
+    
+    -- Fallback if no home set
+    IF v_home_lat IS NULL THEN
+        v_home_lat := 43.02345147;
+        v_home_lon := -83.69682688;
+        v_home_radius_m := 100;
+    END IF;
+
     -- Get ALL metrics in a single query for performance
     WITH obs_stats AS (
         SELECT
@@ -80,7 +101,8 @@ BEGIN
             MIN(o.lat) AS min_lat,
             MAX(o.lat) AS max_lat,
             MIN(o.lon) AS min_lon,
-            MAX(o.lon) AS max_lon
+            MAX(o.lon) AS max_lon,
+            MIN(ST_Distance(o.geom::geography, ST_SetSRID(ST_MakePoint(v_home_lon, v_home_lat), 4326)::geography)) as min_home_dist
         FROM public.observations o
         LEFT JOIN public.networks n ON UPPER(n.bssid) = UPPER(o.bssid)
         WHERE UPPER(o.bssid) = UPPER(p_bssid)
@@ -111,7 +133,8 @@ BEGIN
             ST_SetSRID(ST_MakePoint(s.max_lon, s.max_lat), 4326)::geography
         ), 0),
         l.unique_locs,
-        l.max_cluster
+        l.max_cluster,
+        s.min_home_dist
     INTO
         v_network_type,
         v_observation_count,
@@ -120,9 +143,15 @@ BEGIN
         v_signal_mean,
         v_max_distance_m,
         v_unique_locations,
-        v_max_obs_single_location
+        v_max_obs_single_location,
+        v_min_dist_to_home_m
     FROM obs_stats s
     CROSS JOIN location_clusters l;
+
+    -- Calculate Home Proximity Status
+    IF v_min_dist_to_home_m <= v_home_radius_m THEN
+        v_seen_at_home := TRUE;
+    END IF;
 
     -- Skip cellular networks entirely (L=LTE, G=GSM, N=5G NR)
     IF v_network_type IN ('L', 'G', 'N') THEN
@@ -374,26 +403,46 @@ BEGIN
     END IF;
 
     ---------------------------------------------------------------------------
+    -- FACTOR 7: Home Proximity (New Primary Signal)
+    -- Seen within home radius AND has significant range violation
+    ---------------------------------------------------------------------------
+    IF v_seen_at_home THEN
+        v_flags := array_append(v_flags, 'SEEN_AT_HOME');
+        
+        -- If seen at home AND traveled > 500m, this is a major indicator
+        IF v_max_distance_m > 500 THEN
+            v_home_proximity_score := 100;
+            v_flags := array_append(v_flags, 'MOBILE_HOME_THREAT');
+        ELSIF v_max_distance_m > v_expected_range_m THEN
+            v_home_proximity_score := 70;
+        ELSE
+            -- Static device at home
+            v_home_proximity_score := 0;
+        END IF;
+    END IF;
+
+    ---------------------------------------------------------------------------
     -- Confidence (0.0 - 1.0)
     -- Higher when multiple independent signals and sufficient data exist
     ---------------------------------------------------------------------------
     v_confidence := LEAST(1,
-        (CASE WHEN v_observation_count >= 20 THEN 0.25 ELSE 0 END) +
-        (CASE WHEN v_unique_days >= 7 THEN 0.25 ELSE 0 END) +
-        (CASE WHEN v_unique_locations >= 5 THEN 0.25 ELSE 0 END) +
-        (CASE WHEN v_jump_count >= 3 THEN 0.25 ELSE 0 END)
+        (CASE WHEN v_observation_count >= 20 THEN 0.2 ELSE 0 END) +
+        (CASE WHEN v_unique_days >= 7 THEN 0.2 ELSE 0 END) +
+        (CASE WHEN v_unique_locations >= 5 THEN 0.2 ELSE 0 END) +
+        (CASE WHEN v_jump_count >= 3 THEN 0.2 ELSE 0 END) +
+        (CASE WHEN v_seen_at_home THEN 0.2 ELSE 0 END)
     );
 
     ---------------------------------------------------------------------------
     -- Calculate Composite Score
     ---------------------------------------------------------------------------
     v_composite_score := ROUND(
-        (v_range_violation_score * 0.30) +
-        (v_jump_frequency_score * 0.25) +
-        (v_cluster_switch_score * 0.15) +
-        (v_multi_location_score * 0.15) +
-        (v_signal_pattern_score * 0.10) +
-        (v_temporal_score * 0.05)
+        (v_home_proximity_score * 0.35) + -- Major weight: Home context
+        (v_range_violation_score * 0.20) + 
+        (v_jump_frequency_score * 0.20) +
+        (v_cluster_switch_score * 0.10) +
+        (v_multi_location_score * 0.10) +
+        (v_signal_pattern_score * 0.05)
     , 1);
 
     -- Determine threat level
@@ -431,6 +480,7 @@ BEGIN
         'confidence', ROUND(v_confidence, 2),
         'flags', v_flags,
         'factors', jsonb_build_object(
+            'home_proximity', ROUND(v_home_proximity_score, 1),
             'range_violation', ROUND(v_range_violation_score, 1),
             'co_occurrence', ROUND(v_co_occurrence_score, 1),
             'jump_frequency', ROUND(v_jump_frequency_score, 1),
@@ -441,6 +491,8 @@ BEGIN
         ),
         'metrics', jsonb_build_object(
             'network_type', v_network_type,
+            'seen_at_home', v_seen_at_home,
+            'dist_to_home_m', ROUND(COALESCE(v_min_dist_to_home_m, 0), 1),
             'expected_range_m', v_expected_range_m,
             'max_distance_m', ROUND(COALESCE(v_max_distance_m, 0), 1),
             'jump_threshold_m', v_jump_threshold_m,
@@ -465,10 +517,11 @@ END;
 $$;
 
 COMMENT ON FUNCTION calculate_threat_score_v3(TEXT) IS
-'Threat Scoring v3.0 - Forensically sound methodology (OPTIMIZED) that:
-1. Uses radio range-based distance analysis (not home-dependent)
-2. Adds jump-frequency and cluster-switching signals for repeated long-distance movement
-3. Excludes cellular networks (range too large)
-4. Analyzes signal strength variability
-5. Only flags high observation counts if spread across multiple locations
-6. Weights: range_violation(30%), jump_frequency(25%), cluster_switching(15%), multi_location(15%), signal_pattern(10%), temporal(5%)';
+'Threat Scoring v3.1 - Forensically sound methodology (HOME AWARE) that:
+1. Prioritizes proximity to the designated Home Location (Factor 7)
+2. Uses radio range-based distance analysis
+3. Adds jump-frequency and cluster-switching signals for repeated long-distance movement
+4. Excludes cellular networks (range too large)
+5. Analyzes signal strength variability
+6. Only flags high observation counts if spread across multiple locations
+7. Weights: home_proximity(35%), range_violation(20%), jump_frequency(20%), cluster_switching(10%), multi_location(10%), signal_pattern(5%)';
