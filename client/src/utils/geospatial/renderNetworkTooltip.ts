@@ -146,7 +146,7 @@ export const renderNetworkTooltip = (props: any): string => {
       <!-- BSSID -->
       <div style="background: rgba(15, 23, 42, 0.4); padding: 6px 10px; border-radius: 4px; margin-bottom: 10px; border: 1px solid rgba(59, 130, 246, 0.1); display: flex; justify-content: space-between; align-items: center;">
         <span style="color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: 600;">BSSID</span>
-        <span style="font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: ${threatColor}; letter-spacing: 0.5px;">${props.bssid || 'UNKNOWN'}</span>
+        <span style="font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: ${bssidColor}; letter-spacing: 0.5px;">${props.bssid || 'UNKNOWN'}</span>
       </div>
 
       <!-- SCORE & LOCATION -->
