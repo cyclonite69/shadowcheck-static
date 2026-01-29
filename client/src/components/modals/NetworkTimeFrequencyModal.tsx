@@ -97,9 +97,24 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
     let maxTime = -Infinity;
 
     observations.forEach((obs) => {
+      // Skip observations with invalid timestamps
+      if (!obs.time || typeof obs.time !== 'number' || !Number.isFinite(obs.time)) {
+        return;
+      }
+
       const date = new Date(obs.time);
+      // Validate the date is valid
+      if (isNaN(date.getTime())) {
+        return;
+      }
+
       const day = date.getDay(); // 0-6 (Sun-Sat)
       const hour = date.getHours(); // 0-23
+
+      // Extra safety check for valid indices
+      if (day < 0 || day > 6 || hour < 0 || hour > 23) {
+        return;
+      }
 
       g[day][hour].count++;
       g[day][hour].totalSignal += obs.signal || -80;
