@@ -1,7 +1,11 @@
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 const { UniversalFilterQueryBuilder } = require('../services/filterQueryBuilder');
-const { OBS_TYPE_EXPR } = require('../services/filterQueryBuilder/sqlExpressions');
+const {
+  OBS_TYPE_EXPR,
+  THREAT_LEVEL_EXPR,
+  THREAT_SCORE_EXPR,
+} = require('../services/filterQueryBuilder/sqlExpressions');
 
 class NetworkRepository {
   async getAllNetworks() {
@@ -135,15 +139,17 @@ class NetworkRepository {
           FROM public.observations
         `);
 
+        // Use dynamic THREAT_LEVEL_EXPR for consistent threat counts (same logic as filtered queries)
+        const dynamicThreatLevel = THREAT_LEVEL_EXPR('nts', 'nt');
         const threatResult = await query(`
           SELECT
-            COUNT(*) FILTER (WHERE final_threat_level = 'CRITICAL') as threats_critical,
-            COUNT(*) FILTER (WHERE final_threat_level = 'HIGH') as threats_high,
-            COUNT(*) FILTER (WHERE final_threat_level = 'MED') as threats_medium,
-            COUNT(*) FILTER (WHERE final_threat_level = 'LOW') as threats_low
-          FROM app.network_threat_scores
-          WHERE COALESCE(final_threat_score, 0) >= 20
-            AND COALESCE(final_threat_level, 'NONE') != 'NONE'
+            COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'CRITICAL') as threats_critical,
+            COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'HIGH') as threats_high,
+            COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'MED') as threats_medium,
+            COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'LOW') as threats_low
+          FROM app.network_threat_scores nts
+          LEFT JOIN app.network_tags nt ON nt.bssid = nts.bssid
+          WHERE (${dynamicThreatLevel}) != 'NONE'
         `);
 
         const netRow = networkResult.rows[0] || {};
@@ -172,6 +178,132 @@ class NetworkRepository {
           activeSurveillance: parseInt(threatCounts.threats_high) || 0,
           enrichedCount: parseInt(netRow.enriched_count) || 0,
           filtersApplied: 0,
+        };
+      }
+
+      // Check if only threat-level filters are enabled (network-only filters)
+      // These can be handled with a fast direct query instead of heavy CTEs
+      const threatOnlyFilters = ['threatCategories', 'threatScoreMin', 'threatScoreMax'];
+      const enabledKeys = Object.entries(enabled)
+        .filter(([, value]) => value)
+        .map(([key]) => key);
+      const isThreatOnlyFilter =
+        enabledKeys.length > 0 && enabledKeys.every((key) => threatOnlyFilters.includes(key));
+
+      if (isThreatOnlyFilter) {
+        // Map frontend lowercase categories to database uppercase values
+        const threatLevelMap = {
+          critical: 'CRITICAL',
+          high: 'HIGH',
+          medium: 'MED',
+          low: 'LOW',
+        };
+
+        const params = [];
+        const whereClauses = [];
+
+        // Use THREAT_LEVEL_EXPR for dynamic threat level calculation (same as geospatial query)
+        // This blends network_threat_scores with network_tags for accurate filtering
+        const dynamicThreatLevel = THREAT_LEVEL_EXPR('nts', 'nt');
+        const dynamicThreatScore = THREAT_SCORE_EXPR('nts', 'nt');
+
+        if (
+          enabled.threatCategories &&
+          Array.isArray(filters.threatCategories) &&
+          filters.threatCategories.length > 0
+        ) {
+          const dbThreatLevels = filters.threatCategories
+            .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
+            .filter(Boolean);
+          params.push(dbThreatLevels);
+          whereClauses.push(`(${dynamicThreatLevel}) = ANY($${params.length})`);
+        }
+        if (enabled.threatScoreMin && filters.threatScoreMin !== undefined) {
+          params.push(filters.threatScoreMin);
+          whereClauses.push(`(${dynamicThreatScore}) >= $${params.length}`);
+        }
+        if (enabled.threatScoreMax && filters.threatScoreMax !== undefined) {
+          params.push(filters.threatScoreMax);
+          whereClauses.push(`(${dynamicThreatScore}) <= $${params.length}`);
+        }
+
+        const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        // Fast query: Get BSSIDs matching threat filter using dynamic calculation, then count their stats
+        const sql = `
+          WITH filtered_bssids AS (
+            SELECT nts.bssid
+            FROM app.network_threat_scores nts
+            LEFT JOIN app.network_tags nt ON nt.bssid = nts.bssid
+            ${whereClause}
+          ),
+          network_counts AS (
+            SELECT
+              COUNT(*) AS total_networks,
+              COUNT(*) FILTER (WHERE n.type = 'W') AS wifi_count,
+              COUNT(*) FILTER (WHERE n.type = 'E') AS ble_count,
+              COUNT(*) FILTER (WHERE n.type = 'B') AS bluetooth_count,
+              COUNT(*) FILTER (WHERE n.type = 'L') AS lte_count,
+              COUNT(*) FILTER (WHERE n.type = 'N') AS nr_count,
+              COUNT(*) FILTER (WHERE n.type = 'G') AS gsm_count,
+              COUNT(*) FILTER (WHERE n.bestlat != 0 AND n.bestlon != 0) AS enriched_count
+            FROM public.networks n
+            JOIN filtered_bssids fb ON fb.bssid = n.bssid
+          ),
+          obs_counts AS (
+            SELECT
+              COUNT(*) AS total_observations,
+              COUNT(*) FILTER (WHERE o.radio_type = 'W') AS wifi_observations,
+              COUNT(*) FILTER (WHERE o.radio_type = 'E') AS ble_observations,
+              COUNT(*) FILTER (WHERE o.radio_type = 'B') AS bluetooth_observations,
+              COUNT(*) FILTER (WHERE o.radio_type = 'L') AS lte_observations,
+              COUNT(*) FILTER (WHERE o.radio_type = 'N') AS nr_observations,
+              COUNT(*) FILTER (WHERE o.radio_type = 'G') AS gsm_observations
+            FROM public.observations o
+            JOIN filtered_bssids fb ON fb.bssid = o.bssid
+          ),
+          threat_counts AS (
+            SELECT
+              COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'CRITICAL') AS threats_critical,
+              COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'HIGH') AS threats_high,
+              COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'MED') AS threats_medium,
+              COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'LOW') AS threats_low
+            FROM app.network_threat_scores nts
+            LEFT JOIN app.network_tags nt ON nt.bssid = nts.bssid
+            JOIN filtered_bssids fb ON fb.bssid = nts.bssid
+          )
+          SELECT
+            network_counts.*,
+            obs_counts.*,
+            threat_counts.*
+          FROM network_counts, obs_counts, threat_counts
+        `;
+
+        const result = await query(sql, params);
+        const row = result.rows[0] || {};
+
+        return {
+          totalNetworks: parseInt(row.total_networks) || 0,
+          wifiCount: parseInt(row.wifi_count) || 0,
+          bleCount: parseInt(row.ble_count) || 0,
+          bluetoothCount: parseInt(row.bluetooth_count) || 0,
+          lteCount: parseInt(row.lte_count) || 0,
+          nrCount: parseInt(row.nr_count) || 0,
+          gsmCount: parseInt(row.gsm_count) || 0,
+          totalObservations: parseInt(row.total_observations) || 0,
+          wifiObservations: parseInt(row.wifi_observations) || 0,
+          bleObservations: parseInt(row.ble_observations) || 0,
+          bluetoothObservations: parseInt(row.bluetooth_observations) || 0,
+          lteObservations: parseInt(row.lte_observations) || 0,
+          nrObservations: parseInt(row.nr_observations) || 0,
+          gsmObservations: parseInt(row.gsm_observations) || 0,
+          threatsCritical: parseInt(row.threats_critical) || 0,
+          threatsHigh: parseInt(row.threats_high) || 0,
+          threatsMedium: parseInt(row.threats_medium) || 0,
+          threatsLow: parseInt(row.threats_low) || 0,
+          activeSurveillance: parseInt(row.threats_high) || 0,
+          enrichedCount: parseInt(row.enriched_count) || 0,
+          filtersApplied: enabledKeys.length,
         };
       }
 
@@ -251,7 +383,9 @@ class NetworkRepository {
           FROM obs_latest l
           JOIN obs_rollup r ON r.bssid = l.bssid
           LEFT JOIN obs_spatial s ON s.bssid = l.bssid
-          LEFT JOIN public.api_network_explorer ne ON ne.bssid = l.bssid
+          LEFT JOIN public.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(l.bssid)
+          LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
+          LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
           ${networkWhereClause}
         ),
         network_counts AS (
@@ -280,14 +414,15 @@ class NetworkRepository {
         ),
         threat_counts AS (
           SELECT
-            COUNT(*) FILTER (WHERE nts.final_threat_level = 'CRITICAL') as threats_critical,
-            COUNT(*) FILTER (WHERE nts.final_threat_level = 'HIGH') as threats_high,
-            COUNT(*) FILTER (WHERE nts.final_threat_level = 'MED') as threats_medium,
-            COUNT(*) FILTER (WHERE nts.final_threat_level = 'LOW') as threats_low
+            COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'CRITICAL') as threats_critical,
+            COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'HIGH') as threats_high,
+            COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'MED') as threats_medium,
+            COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'LOW') as threats_low
           FROM network_set n
           LEFT JOIN app.network_threat_scores nts ON nts.bssid = n.bssid
-          WHERE COALESCE(nts.final_threat_score, 0) >= 20
-            AND COALESCE(nts.final_threat_level, 'NONE') != 'NONE'
+          LEFT JOIN app.network_tags nt ON nt.bssid = n.bssid
+          WHERE (${THREAT_SCORE_EXPR('nts', 'nt')}) >= 20
+            AND (${THREAT_LEVEL_EXPR('nts', 'nt')}) != 'NONE'
         )
         SELECT
           network_counts.*,

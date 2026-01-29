@@ -110,7 +110,7 @@ export const transformSeverityCounts = (counts: any) => {
   const severities = ['critical', 'high', 'medium', 'low'];
   return severities.map((sev) => ({
     name: sev.charAt(0).toUpperCase() + sev.slice(1),
-    value: counts[sev] || 0,
+    value: counts[sev]?.unique_networks || 0,
     severity: sev, // for color mapping
   }));
 };

@@ -73,10 +73,40 @@ const NETWORK_CHANNEL_EXPR = (alias = 'ne') => `
   END
 `;
 
+// Uses app.get_threat_score() function which reads ml_blending_enabled setting
+// When ML blending disabled: uses rule_based_score only
+// When ML blending enabled: blends rule_based * (1-weight) + ml * weight
+const THREAT_SCORE_EXPR = (ntsAlias = 'nts', ntAlias = 'nt') => `
+  app.get_threat_score(
+    ${ntsAlias}.rule_based_score,
+    ${ntsAlias}.ml_threat_score,
+    ${ntAlias}.threat_tag,
+    ${ntAlias}.threat_confidence
+  )
+`;
+
+const THREAT_LEVEL_EXPR = (ntsAlias = 'nts', ntAlias = 'nt') => `
+  CASE
+    WHEN ${ntAlias}.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
+    WHEN ${ntAlias}.threat_tag = 'INVESTIGATE' THEN COALESCE(${ntsAlias}.final_threat_level, 'NONE')
+    ELSE (
+      CASE
+        WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 80 THEN 'CRITICAL'
+        WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 60 THEN 'HIGH'
+        WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 40 THEN 'MED'
+        WHEN (${THREAT_SCORE_EXPR(ntsAlias, ntAlias)}) >= 20 THEN 'LOW'
+        ELSE 'NONE'
+      END
+    )
+  END
+`;
+
 module.exports = {
   OBS_TYPE_EXPR,
   SECURITY_EXPR,
   AUTH_EXPR,
   WIFI_CHANNEL_EXPR,
   NETWORK_CHANNEL_EXPR,
+  THREAT_SCORE_EXPR,
+  THREAT_LEVEL_EXPR,
 };
