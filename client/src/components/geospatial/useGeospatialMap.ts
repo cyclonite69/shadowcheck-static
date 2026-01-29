@@ -179,66 +179,34 @@ export const useGeospatialMap = ({
             if (!props) return;
 
             const currentZoom = map.getZoom();
-            const signalRadius = calculateSignalRange(props.signal, null, currentZoom);
+            const latitude = feature.geometry.coordinates[1];
+            const signalRadius = calculateSignalRange(props.signal, null, currentZoom, latitude);
             const bssidColor = macColor(props.bssid);
-
-            // Create signal strength class
-            let signalClass = 'signal-weak';
-            if (props.signal >= -50) signalClass = 'signal-strong';
-            else if (props.signal >= -70) signalClass = 'signal-medium';
-
-            const formatFrequency = (freq: number | null) => {
-              if (!freq) return 'N/A';
-              if (freq >= 1000) return `${(freq / 1000).toFixed(1)} GHz`;
-              return `${freq} MHz`;
-            };
-            const threatLevel = String(props.threatLevel || 'NONE').toUpperCase();
-            const threatColor =
-              threatLevel === 'HIGH'
-                ? '#ef4444'
-                : threatLevel === 'MED' || threatLevel === 'MEDIUM'
-                  ? '#f59e0b'
-                  : threatLevel === 'LOW'
-                    ? '#eab308'
-                    : '#10b981';
-            const timespanText =
-              typeof props.timespan_days === 'number'
-                ? `${props.timespan_days} days`
-                : props.first_seen && props.last_seen
-                  ? `${Math.max(
-                      1,
-                      Math.ceil(
-                        (new Date(props.last_seen).getTime() -
-                          new Date(props.first_seen).getTime()) /
-                          86400000
-                      )
-                    )} days`
-                  : 'N/A';
 
             const popupHTML = renderNetworkTooltip({
               ssid: props.ssid,
               bssid: props.bssid,
-              manufacturer: props.manufacturer,
-              frequency: props.frequency,
+              type: props.type,
+              threat_level: props.threat_level,
+              threat_score: props.threat_score,
               signal: props.signal,
               security: props.security,
-              type: props.type,
-              threat_level: threatLevel,
-              threat_score: props.threat_score,
-              lat: feature.geometry.coordinates[1],
+              frequency: props.frequency,
+              lat: latitude,
               lon: feature.geometry.coordinates[0],
               altitude: props.altitude,
-              distance_from_home_km: props.distance_from_home_km,
+              manufacturer: props.manufacturer,
               observation_count: props.observation_count,
-              unique_days: props.unique_days,
-              unique_locations: props.unique_locations,
+              timespan_days: props.timespan_days,
+              distance_from_home_km: props.distance_from_home_km,
               max_distance_km: props.max_distance_km,
+              distance_from_last_point_m: props.distance_from_last_point_m,
+              time: props.time,
               first_seen: props.first_seen,
               last_seen: props.last_seen,
-              time: props.time,
-              timespan_days: props.timespan_days,
+              number: props.number,
               accuracy: props.accuracy,
-              channel: props.channel,
+              unique_days: props.unique_days,
             });
 
             // Smart positioning using viewport bounds (similar to context menu logic)
@@ -336,7 +304,12 @@ export const useGeospatialMap = ({
             if (!props || !e.lngLat) return;
 
             const currentZoom = map.getZoom();
-            const signalRadius = calculateSignalRange(props.signal, props.frequency, currentZoom);
+            const signalRadius = calculateSignalRange(
+              props.signal,
+              props.frequency,
+              currentZoom,
+              e.lngLat.lat
+            );
             const bssidColor = macColor(props.bssid);
 
             // Add signal range circle to map
@@ -382,7 +355,12 @@ export const useGeospatialMap = ({
             if (!props) return;
 
             const currentZoom = map.getZoom();
-            const signalRadius = calculateSignalRange(props.signal, props.frequency, currentZoom);
+            const signalRadius = calculateSignalRange(
+              props.signal,
+              props.frequency,
+              currentZoom,
+              e.lngLat.lat
+            );
             const bssidColor = macColor(props.bssid);
 
             const hoverCircleSource = map.getSource('hover-circle') as mapboxglType.GeoJSONSource;

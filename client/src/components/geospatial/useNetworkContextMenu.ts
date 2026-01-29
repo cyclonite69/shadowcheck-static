@@ -239,13 +239,18 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
             },
           }));
         } else {
+          // Handle both simple {error: "string"} and structured {error: {message, code, statusCode}} formats
+          const errorMessage =
+            typeof result.error === 'string'
+              ? result.error
+              : result.error?.message ||
+                'WiGLE lookup failed - network may not exist in WiGLE database';
           setWigleLookupDialog((prev) => ({
             ...prev,
             loading: false,
             result: {
               success: false,
-              message:
-                result.error || 'WiGLE lookup failed - network may not exist in WiGLE database',
+              message: errorMessage,
             },
           }));
         }

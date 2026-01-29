@@ -30,12 +30,14 @@ export const createCirclePolygon = (
 };
 
 // Signal range calculation based on signal strength and frequency
+// Returns pixel radius that represents a fixed geographic distance
 export const calculateSignalRange = (
   signalDbm: number | null,
   frequencyMhz?: number | null,
-  zoom: number = 10
+  zoom: number = 10,
+  latitude: number = 40 // Default to mid-latitude for reasonable approximation
 ): number => {
-  if (!signalDbm || signalDbm === null) return 40;
+  if (!signalDbm || signalDbm === null) return 30;
 
   let freq = frequencyMhz;
   if (typeof freq === 'string') {
@@ -45,23 +47,25 @@ export const calculateSignalRange = (
 
   // Signal strength to distance mapping (inverse relationship)
   // Stronger signal = closer = smaller circle, weaker signal = farther = larger circle
-  let distanceM;
-  if (signalDbm >= -30) distanceM = 15;
-  else if (signalDbm >= -50) distanceM = 40;
-  else if (signalDbm >= -60) distanceM = 80;
-  else if (signalDbm >= -70) distanceM = 120;
-  else if (signalDbm >= -80) distanceM = 180;
-  else distanceM = 250;
+  let distanceMeters;
+  if (signalDbm >= -30) distanceMeters = 15;
+  else if (signalDbm >= -50) distanceMeters = 40;
+  else if (signalDbm >= -60) distanceMeters = 80;
+  else if (signalDbm >= -70) distanceMeters = 120;
+  else if (signalDbm >= -80) distanceMeters = 180;
+  else distanceMeters = 250;
 
   // Frequency adjustment (5GHz has shorter range)
-  if (freq > 5000) distanceM *= 0.7;
+  if (freq > 5000) distanceMeters *= 0.7;
 
-  // Zoom-based scaling - make circle larger at higher zoom levels
-  const zoomScale = Math.pow(1.25, zoom - 12);
-  let radiusPixels = distanceM * Math.max(0.5, Math.min(zoomScale, 6));
+  // Convert meters to pixels at current zoom level
+  // At zoom 0, the world is 256 pixels wide (40,075km at equator)
+  // metersPerPixel = 156543.03392 * cos(lat) / 2^zoom
+  const metersPerPixel = (156543.03392 * Math.cos((latitude * Math.PI) / 180)) / Math.pow(2, zoom);
+  const radiusPixels = distanceMeters / metersPerPixel;
 
-  // Clamp radius for display - ensure minimum visibility
-  return Math.max(20, Math.min(radiusPixels, 300));
+  // Clamp radius for display - ensure minimum visibility but cap maximum
+  return Math.max(8, Math.min(radiusPixels, 400));
 };
 
 // BSSID-based color generation for consistent network coloring
