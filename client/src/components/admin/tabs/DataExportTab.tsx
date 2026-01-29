@@ -20,34 +20,45 @@ const DownloadIcon = ({ size = 24, className = '' }) => (
 export const DataExportTab: React.FC = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      {/* Network Exports */}
       <AdminCard icon={DownloadIcon} title="Network Exports" color="from-blue-500 to-blue-600">
         <div className="space-y-3">
+          <p className="text-sm text-slate-400 mb-4">
+            Export scanned networks in multiple formats for analysis and integration.
+          </p>
           <button
             onClick={() => window.open('/api/csv', '_blank')}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all"
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all text-sm"
           >
-            Export Networks (CSV)
+            Export as CSV
           </button>
           <button
             onClick={() => window.open('/api/json', '_blank')}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-500 hover:to-red-600 transition-all"
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-lg font-medium hover:from-slate-500 hover:to-slate-600 transition-all text-sm"
           >
-            Export Data (JSON)
+            Export as JSON
           </button>
         </div>
       </AdminCard>
 
+      {/* Geospatial Export */}
       <AdminCard icon={DownloadIcon} title="Geospatial Export" color="from-green-500 to-green-600">
         <div className="space-y-3">
+          <p className="text-sm text-slate-400 mb-4">
+            Export observation data in GeoJSON format compatible with GIS tools and mapping
+            applications.
+          </p>
           <button
             onClick={() => window.open('/api/geojson', '_blank')}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all"
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all text-sm"
           >
-            Export GeoJSON
+            Export as GeoJSON
           </button>
-          <p className="text-sm text-slate-400">
-            Export observation data in GeoJSON format for GIS tools
-          </p>
+          <div className="text-xs text-slate-500 pt-2 border-t border-slate-700/50">
+            <p className="mt-2">Compatible with:</p>
+            <p>• QGIS, ArcGIS</p>
+            <p>• Leaflet, Mapbox</p>
+          </div>
         </div>
       </AdminCard>
     </div>

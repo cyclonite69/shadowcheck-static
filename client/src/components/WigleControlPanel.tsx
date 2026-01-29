@@ -15,6 +15,8 @@ interface WigleControlPanelProps {
   loading: boolean;
   rowsLoaded: number;
   totalRows: number | null;
+  dataSource: 'v2' | 'v3';
+  onDataSourceChange: (source: 'v2' | 'v3') => void;
 }
 
 export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
@@ -32,6 +34,8 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
   loading,
   rowsLoaded,
   totalRows,
+  dataSource,
+  onDataSourceChange,
 }) => {
   if (!isOpen) return null;
 
@@ -50,6 +54,33 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
         >
           {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
         </button>
+      </div>
+
+      {/* Data Source Toggle */}
+      <div>
+        <label className="block mb-1 text-xs text-slate-300">Data Source</label>
+        <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+          <button
+            onClick={() => onDataSourceChange('v2')}
+            className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
+              dataSource === 'v2'
+                ? 'bg-blue-600 text-white shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            v2 (Search)
+          </button>
+          <button
+            onClick={() => onDataSourceChange('v3')}
+            className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
+              dataSource === 'v3'
+                ? 'bg-violet-600 text-white shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            v3 (Detail)
+          </button>
+        </div>
       </div>
 
       {/* Map Style */}

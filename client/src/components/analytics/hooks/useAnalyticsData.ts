@@ -12,6 +12,7 @@ import {
   transformRadioTimeData,
   transformThreatTrendsData,
   transformTopNetworksData,
+  transformSeverityCounts,
   NetworkTypeData,
   SignalStrengthData,
   SecurityData,
@@ -20,6 +21,7 @@ import {
   RadioTimeData,
   ThreatTrendsData,
   TopNetworksData,
+  SeverityCountData,
 } from '../utils/dataTransformers';
 import { DEBUG_ANALYTICS } from '../utils/chartConstants';
 
@@ -32,6 +34,7 @@ export interface AnalyticsData {
   radioTime: RadioTimeData[];
   threatTrends: ThreatTrendsData[];
   topNetworks: TopNetworksData[];
+  severityCounts: SeverityCountData[];
 }
 
 export interface UseAnalyticsDataReturn {
@@ -51,6 +54,7 @@ export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataRet
     radioTime: [],
     threatTrends: [],
     topNetworks: [],
+    severityCounts: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,10 +80,19 @@ export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataRet
         filters: JSON.stringify(debouncedFilterState.filters),
         enabled: JSON.stringify(debouncedFilterState.enabled),
       });
-      const res = await fetch(`/api/v2/networks/filtered/analytics?${params.toString()}`);
+
+      // Parallel fetch for main analytics and severity counts
+      const [res, severityRes] = await Promise.all([
+        fetch(`/api/v2/networks/filtered/analytics?${params.toString()}`),
+        fetch('/api/v2/threats/severity-counts'),
+      ]);
+
       let payload = null;
+      let severityPayload = null;
+
       try {
         payload = await res.json();
+        if (severityRes.ok) severityPayload = await severityRes.json();
       } catch (parseError) {
         payload = null;
       }
@@ -100,6 +113,7 @@ export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataRet
             radioTime: [],
             threatTrends: [],
             topNetworks: [],
+            severityCounts: [],
           };
           setData(emptyData);
           return;
@@ -124,6 +138,9 @@ export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataRet
           : [],
         threatTrends: rawData.threatTrends ? transformThreatTrendsData(rawData.threatTrends) : [],
         topNetworks: rawData.topNetworks ? transformTopNetworksData(rawData.topNetworks) : [],
+        severityCounts: severityPayload?.counts
+          ? transformSeverityCounts(severityPayload.counts)
+          : [],
       };
 
       if (DEBUG_ANALYTICS) {

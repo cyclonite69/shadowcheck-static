@@ -311,6 +311,54 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
   }
 });
 
+// GET /api/wigle/networks-v3 - Fetch WiGLE v3 networks for map testing
+router.get('/wigle/networks-v3', validateWigleNetworksQuery, async (req, res, next) => {
+  try {
+    const limitRaw = req.validated?.limit;
+    const offsetRaw = req.validated?.offset;
+    const includeTotalValidation = parseIncludeTotalFlag(req.query.include_total);
+
+    const limit = limitRaw ?? 20000;
+    const offset = offsetRaw ?? 0;
+    const params = [limit, offset];
+
+    const sql = `
+      SELECT
+        netid as bssid,
+        ssid,
+        trilat,
+        trilon as trilong,
+        type,
+        encryption,
+        last_seen as lasttime
+      FROM public.wigle_v3_network_details
+      WHERE trilat IS NOT NULL AND trilon IS NOT NULL
+      ORDER BY last_seen DESC
+      LIMIT $1 OFFSET $2
+    `;
+
+    const { rows } = await query(sql, params);
+
+    let total = null;
+    if (includeTotalValidation.valid && includeTotalValidation.value) {
+      const countSql = 'SELECT COUNT(*)::bigint AS total FROM public.wigle_v3_network_details';
+      const countResult = await query(countSql);
+      total = parseInt(countResult.rows[0]?.total || 0, 10);
+    }
+
+    res.json({
+      ok: true,
+      data: rows,
+      limit,
+      offset,
+      total,
+      truncated: total !== null ? offset + rows.length < total : false,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /**
  * POST /api/wigle/search-api - Search WiGLE API and optionally import results
  * Query params: ssid, bssid, latrange1, latrange2, longrange1, longrange2, resultsPerPage
@@ -336,6 +384,9 @@ router.post('/wigle/search-api', async (req, res, next) => {
       latrange2,
       longrange1,
       longrange2,
+      country,
+      region,
+      city,
       resultsPerPage = 100,
       searchAfter,
     } = req.query;
@@ -362,15 +413,25 @@ router.post('/wigle/search-api', async (req, res, next) => {
     if (longrange2) {
       params.append('longrange2', longrange2);
     }
+    if (country) {
+      params.append('country', country);
+    }
+    if (region) {
+      params.append('region', region);
+    }
+    if (city) {
+      params.append('city', city);
+    }
     params.append('resultsPerPage', Math.min(parseInt(resultsPerPage) || 100, 1000).toString());
     if (searchAfter) {
       params.append('searchAfter', searchAfter);
     }
 
-    if (!ssid && !bssid && !latrange1) {
+    if (!ssid && !bssid && !latrange1 && !country && !region && !city) {
       return res.status(400).json({
         ok: false,
-        error: 'At least one search parameter required (ssid, bssid, or latrange)',
+        error:
+          'At least one search parameter required (ssid, bssid, latrange, country, region, or city)',
       });
     }
 
@@ -491,11 +552,236 @@ router.post('/wigle/search-api', async (req, res, next) => {
         country: n.country,
         region: n.region,
         city: n.city,
+        road: n.road,
+        housenumber: n.housenumber,
+        postalcode: n.postalcode,
+        freenet: n.freenet,
+        paynet: n.paynet,
+        userfound: n.userfound,
       })),
       imported: shouldImport ? { count: importedCount, errors: importErrors } : null,
     });
   } catch (err) {
     logger.error(`[WiGLE] Search error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+/**
+ * POST /api/wigle/detail/:netid - Fetch WiGLE v3 detail and optionally import
+ * Body: { import: boolean }
+ */
+router.post('/wigle/detail/:netid', async (req, res, next) => {
+  try {
+    const { netid } = req.params;
+    const shouldImport = req.body?.import === true;
+
+    const wigleApiName = secretsManager.get('wigle_api_name');
+    const wigleApiToken = secretsManager.get('wigle_api_token');
+
+    if (!wigleApiName || !wigleApiToken) {
+      return res.status(503).json({
+        ok: false,
+        error: 'WiGLE API credentials not configured',
+      });
+    }
+
+    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+    const apiUrl = `https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(netid)}`;
+
+    logger.info(`[WiGLE] Fetching detail for: ${netid}`);
+
+    const response = await withRetry(
+      () =>
+        fetch(apiUrl, {
+          headers: {
+            Authorization: `Basic ${encodedAuth}`,
+            Accept: 'application/json',
+          },
+        }),
+      { serviceName: 'WiGLE Detail API', timeoutMs: 15000, maxRetries: 2 }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`[WiGLE] Detail API error ${response.status}: ${errorText}`);
+      return res.status(response.status).json({
+        ok: false,
+        error: 'WiGLE Detail API request failed',
+        status: response.status,
+        details: errorText,
+      });
+    }
+
+    const data = await response.json();
+
+    if (shouldImport && data.networkId) {
+      logger.info(`[WiGLE] Importing detail for ${netid} to database...`);
+
+      await query(
+        `
+        INSERT INTO public.wigle_v3_network_details (
+          netid, name, type, comment, ssid,
+          trilat, trilon, encryption, channel, 
+          bcninterval, freenet, dhcp, paynet,
+          qos, first_seen, last_seen, last_update,
+          street_address, location_clusters
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9,
+          $10, $11, $12, $13,
+          $14, $15, $16, $17,
+          $18, $19
+        )
+        ON CONFLICT (netid) DO UPDATE SET
+          name = EXCLUDED.name,
+          type = EXCLUDED.type,
+          comment = EXCLUDED.comment,
+          ssid = EXCLUDED.ssid,
+          trilat = EXCLUDED.trilat,
+          trilon = EXCLUDED.trilon,
+          encryption = EXCLUDED.encryption,
+          channel = EXCLUDED.channel,
+          bcninterval = EXCLUDED.bcninterval,
+          freenet = EXCLUDED.freenet,
+          dhcp = EXCLUDED.dhcp,
+          paynet = EXCLUDED.paynet,
+          qos = EXCLUDED.qos,
+          first_seen = EXCLUDED.first_seen,
+          last_seen = EXCLUDED.last_seen,
+          last_update = EXCLUDED.last_update,
+          street_address = EXCLUDED.street_address,
+          location_clusters = EXCLUDED.location_clusters,
+          imported_at = NOW()
+      `,
+        [
+          data.networkId,
+          data.name,
+          data.type,
+          data.comment,
+          data.locationClusters?.[0]?.clusterSsid || data.name, // Use cluster SSID as primary SSID if available
+          data.trilateratedLatitude,
+          data.trilateratedLongitude,
+          data.encryption,
+          data.channel,
+          data.bcninterval,
+          data.freenet,
+          data.dhcp,
+          data.paynet,
+          data.bestClusterWiGLEQoS,
+          data.firstSeen,
+          data.lastSeen,
+          data.lastUpdate,
+          JSON.stringify(data.streetAddress),
+          JSON.stringify(data.locationClusters),
+        ]
+      );
+    }
+
+    res.json({
+      ok: true,
+      data,
+      imported: shouldImport,
+    });
+  } catch (err) {
+    logger.error(`[WiGLE] Detail error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+/**
+ * POST /api/wigle/import/v3 - Import WiGLE v3 detail JSON file
+ * Upload: 'file' (JSON)
+ */
+router.post('/wigle/import/v3', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({ ok: false, error: 'No file uploaded' });
+    }
+
+    const file = req.files.file;
+    const jsonString = file.data.toString('utf8');
+    let data;
+
+    try {
+      data = JSON.parse(jsonString);
+    } catch (e) {
+      return res.status(400).json({ ok: false, error: 'Invalid JSON file' });
+    }
+
+    // Validate required fields (at least networkId)
+    if (!data.networkId) {
+      return res.status(400).json({ ok: false, error: 'JSON missing networkId field' });
+    }
+
+    logger.info(`[WiGLE] Importing v3 detail for ${data.networkId} from file...`);
+
+    await query(
+      `
+      INSERT INTO public.wigle_v3_network_details (
+        netid, name, type, comment, ssid,
+        trilat, trilon, encryption, channel, 
+        bcninterval, freenet, dhcp, paynet,
+        qos, first_seen, last_seen, last_update,
+        street_address, location_clusters
+      ) VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9,
+        $10, $11, $12, $13,
+        $14, $15, $16, $17,
+        $18, $19
+      )
+      ON CONFLICT (netid) DO UPDATE SET
+        name = EXCLUDED.name,
+        type = EXCLUDED.type,
+        comment = EXCLUDED.comment,
+        ssid = EXCLUDED.ssid,
+        trilat = EXCLUDED.trilat,
+        trilon = EXCLUDED.trilon,
+        encryption = EXCLUDED.encryption,
+        channel = EXCLUDED.channel,
+        bcninterval = EXCLUDED.bcninterval,
+        freenet = EXCLUDED.freenet,
+        dhcp = EXCLUDED.dhcp,
+        paynet = EXCLUDED.paynet,
+        qos = EXCLUDED.qos,
+        first_seen = EXCLUDED.first_seen,
+        last_seen = EXCLUDED.last_seen,
+        last_update = EXCLUDED.last_update,
+        street_address = EXCLUDED.street_address,
+        location_clusters = EXCLUDED.location_clusters,
+        imported_at = NOW()
+    `,
+      [
+        data.networkId,
+        data.name,
+        data.type,
+        data.comment,
+        data.locationClusters?.[0]?.clusterSsid || data.name,
+        data.trilateratedLatitude,
+        data.trilateratedLongitude,
+        data.encryption,
+        data.channel,
+        data.bcninterval,
+        data.freenet,
+        data.dhcp,
+        data.paynet,
+        data.bestClusterWiGLEQoS,
+        data.firstSeen,
+        data.lastSeen,
+        data.lastUpdate,
+        JSON.stringify(data.streetAddress),
+        JSON.stringify(data.locationClusters),
+      ]
+    );
+
+    res.json({
+      ok: true,
+      message: `Successfully imported ${data.networkId}`,
+      data,
+    });
+  } catch (err) {
+    logger.error(`[WiGLE] Import error: ${err.message}`, { error: err });
     next(err);
   }
 });

@@ -95,6 +95,16 @@ export const useCardLayout = (): UseCardLayoutReturn => {
       h: 320,
       type: 'top-networks',
     },
+    {
+      id: 9,
+      title: 'Threat Severity Counts',
+      icon: AlertTriangle,
+      x: 0,
+      y: 1380,
+      w: 50,
+      h: 320,
+      type: 'severity-counts',
+    },
   ]);
 
   const [dragging, setDragging] = useState<number | null>(null);

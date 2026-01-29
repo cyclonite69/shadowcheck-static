@@ -49,6 +49,7 @@ function mountApiRoutes(app, deps) {
     analyticsRoutes,
     dashboardRoutes,
     networksV2Routes,
+    threatsV2Routes,
     filteredRoutes,
     locationMarkersRoutes,
     homeLocationRoutes,
@@ -79,6 +80,7 @@ function mountApiRoutes(app, deps) {
   app.use('/api', dashboardRoutes.router);
   app.use('/api/v2/networks/filtered', filteredRoutes);
   app.use('/api', networksV2Routes);
+  app.use('/api/v2', threatsV2Routes);
   app.use('/api', locationMarkersRoutes(query));
   app.use('/api', homeLocationRoutes);
   app.use('/api', keplerRoutes);

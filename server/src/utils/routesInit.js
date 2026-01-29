@@ -54,6 +54,7 @@ function initializeRoutes(app, options) {
     analyticsRoutes: routes.analyticsRoutes,
     dashboardRoutes: routes.dashboardRoutes,
     networksV2Routes: routes.networksV2Routes,
+    threatsV2Routes: routes.threatsV2Routes,
     filteredRoutes: routes.filteredRoutes,
     locationMarkersRoutes: routes.locationMarkersRoutes,
     homeLocationRoutes: routes.homeLocationRoutes,
