@@ -83,7 +83,11 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
         const result = await response.json();
 
         if (!result.ok) {
-          throw new Error(result.error || 'API request failed');
+          const errorMsg =
+            typeof result.error === 'string'
+              ? result.error
+              : result.error?.message || 'API request failed';
+          throw new Error(errorMsg);
         }
 
         if (resetOffset) {

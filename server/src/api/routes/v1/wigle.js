@@ -6,8 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
+const { adminQuery } = require('../../../services/adminDbService');
 const secretsManager = require('../../../services/secretsManager');
 const logger = require('../../../logging/logger');
+const { requireAdmin } = require('../../../middleware/authMiddleware');
 const { withRetry } = require('../../../services/externalServiceHandler');
 const { macParamMiddleware, validateQuery, optional } = require('../../../validation/middleware');
 const { validateIntegerRange, validateString } = require('../../../validation/schemas');
@@ -386,7 +388,7 @@ router.get('/wigle/networks-v3', validateWigleNetworksQuery, async (req, res, ne
  * Query params: ssid, bssid, latrange1, latrange2, longrange1, longrange2, resultsPerPage
  * Body: { import: boolean } - if true, imports results to wigle_v2_networks_search table
  */
-router.post('/wigle/search-api', async (req, res, next) => {
+router.post('/wigle/search-api', requireAdmin, async (req, res, next) => {
   try {
     const wigleApiName = secretsManager.get('wigle_api_name');
     const wigleApiToken = secretsManager.get('wigle_api_token');
@@ -498,7 +500,7 @@ router.post('/wigle/search-api', async (req, res, next) => {
 
       for (const network of results) {
         try {
-          await query(
+          await adminQuery(
             `
             INSERT INTO public.wigle_v2_networks_search (
               bssid, ssid, trilat, trilong, location, firsttime, lasttime, lastupdt,
@@ -613,7 +615,7 @@ async function importWigleV3Observations(netid, locationClusters) {
             ? loc.ssid
             : cluster.clusterSsid || loc.ssid;
 
-        await query(
+        await adminQuery(
           `
           INSERT INTO public.wigle_v3_observations (
             netid, latitude, longitude, altitude, accuracy,
@@ -659,7 +661,7 @@ async function importWigleV3Observations(netid, locationClusters) {
  * POST /api/wigle/detail/:netid - Fetch WiGLE v3 detail and optionally import
  * Body: { import: boolean }
  */
-router.post('/wigle/detail/:netid', async (req, res, next) => {
+router.post('/wigle/detail/:netid', requireAdmin, async (req, res, next) => {
   try {
     const { netid } = req.params;
     const shouldImport = req.body?.import === true;
@@ -707,7 +709,7 @@ router.post('/wigle/detail/:netid', async (req, res, next) => {
     if (shouldImport && data.networkId) {
       logger.info(`[WiGLE] Importing detail for ${netid} to database...`);
 
-      await query(
+      await adminQuery(
         `
         INSERT INTO public.wigle_v3_network_details (
           netid, name, type, comment, ssid,
@@ -787,7 +789,7 @@ router.post('/wigle/detail/:netid', async (req, res, next) => {
  * POST /api/wigle/import/v3 - Import WiGLE v3 detail JSON file
  * Upload: 'file' (JSON)
  */
-router.post('/wigle/import/v3', async (req, res, next) => {
+router.post('/wigle/import/v3', requireAdmin, async (req, res, next) => {
   try {
     if (!req.files || !req.files.file) {
       return res.status(400).json({ ok: false, error: 'No file uploaded' });
@@ -810,7 +812,7 @@ router.post('/wigle/import/v3', async (req, res, next) => {
 
     logger.info(`[WiGLE] Importing v3 detail for ${data.networkId} from file...`);
 
-    await query(
+    await adminQuery(
       `
       INSERT INTO public.wigle_v3_network_details (
         netid, name, type, comment, ssid,

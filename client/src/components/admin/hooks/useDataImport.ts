@@ -14,10 +14,10 @@ export const useDataImport = () => {
       setImportStatus('Uploading...');
       const response = await fetch('/api/admin/import-sqlite', { method: 'POST', body: formData });
       const result = await response.json();
+      const errorMsg =
+        typeof result.error === 'string' ? result.error : result.error?.message || 'Unknown error';
       setImportStatus(
-        response.ok
-          ? `Imported ${result.imported || 0} networks`
-          : `Failed: ${result.error || 'Unknown error'}`
+        response.ok ? `Imported ${result.imported || 0} networks` : `Failed: ${errorMsg}`
       );
     } catch {
       setImportStatus('Import failed: Network error');
