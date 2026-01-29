@@ -801,7 +801,7 @@ router.post('/wigle/import/v3', requireAdmin, async (req, res, next) => {
 
     try {
       data = JSON.parse(jsonString);
-    } catch (_e) {
+    } catch {
       return res.status(400).json({ ok: false, error: 'Invalid JSON file' });
     }
 

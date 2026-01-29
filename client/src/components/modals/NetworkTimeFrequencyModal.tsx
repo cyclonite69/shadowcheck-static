@@ -70,7 +70,33 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
         if (data.error) {
           throw new Error(data.error);
         }
-        setObservations(data.observations || []);
+
+        // Normalize data: API returns strings for some fields, frontend expects numbers
+        const rawObs = data.observations || [];
+        const normalized: Observation[] = rawObs
+          .map((o: any) => {
+            let parsedTime = 0;
+            if (typeof o.time === 'string') {
+              parsedTime = parseInt(o.time, 10);
+            } else if (typeof o.time === 'number') {
+              parsedTime = o.time;
+            }
+
+            // Handle seconds vs milliseconds (API uses ms but extra safety)
+            if (parsedTime > 0 && parsedTime < 1e12) {
+              parsedTime *= 1000;
+            }
+
+            return {
+              time: parsedTime,
+              signal: typeof o.signal === 'string' ? parseInt(o.signal, 10) : (o.signal ?? -80),
+              lat: typeof o.lat === 'string' ? parseFloat(o.lat) : (o.lat ?? 0),
+              lon: typeof o.lon === 'string' ? parseFloat(o.lon) : (o.lon ?? 0),
+            };
+          })
+          .filter((o) => o.time > 0 && !isNaN(o.time));
+
+        setObservations(normalized);
       } catch (err: any) {
         setError(err.message || 'Failed to load observations');
       } finally {
@@ -82,7 +108,7 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
   }, [bssid]);
 
   // Build heatmap grid (day-of-week × hour-of-day)
-  const { grid, maxCount, totalObs, dateRange } = useMemo(() => {
+  const { grid, maxCount, totalObs, dateRange, confidence } = useMemo(() => {
     // Initialize grid: [day][hour] = { count, totalSignal }
     const g: { count: number; totalSignal: number }[][] = Array(7)
       .fill(null)
@@ -97,27 +123,17 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
     let maxTime = -Infinity;
 
     observations.forEach((obs) => {
-      // Skip observations with invalid timestamps
-      if (!obs.time || typeof obs.time !== 'number' || !Number.isFinite(obs.time)) {
-        return;
-      }
-
       const date = new Date(obs.time);
-      // Validate the date is valid
-      if (isNaN(date.getTime())) {
-        return;
-      }
-
       const day = date.getDay(); // 0-6 (Sun-Sat)
       const hour = date.getHours(); // 0-23
 
       // Extra safety check for valid indices
-      if (day < 0 || day > 6 || hour < 0 || hour > 23) {
+      if (isNaN(day) || isNaN(hour) || day < 0 || day > 6 || hour < 0 || hour > 23) {
         return;
       }
 
       g[day][hour].count++;
-      g[day][hour].totalSignal += obs.signal || -80;
+      g[day][hour].totalSignal += obs.signal;
 
       if (g[day][hour].count > maxC) {
         maxC = g[day][hour].count;
@@ -135,7 +151,23 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
           }
         : null;
 
-    return { grid: g, maxCount: maxC, totalObs: observations.length, dateRange: range };
+    // Confidence heuristic: Sparse data makes temporal patterns less reliable
+    const conf =
+      observations.length === 0
+        ? 'No data'
+        : observations.length < 20
+          ? 'Low (Sparse data)'
+          : observations.length < 100
+            ? 'Medium'
+            : 'High';
+
+    return {
+      grid: g,
+      maxCount: maxC,
+      totalObs: observations.length,
+      dateRange: range,
+      confidence: conf,
+    };
   }, [observations]);
 
   // Handle Escape key to close modal
@@ -249,9 +281,21 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
                       <span className="text-slate-400">High activity</span>
                     </div>
                   </div>
-                  <div className="text-slate-300">
-                    <span className="text-emerald-400 font-bold">{totalObs.toLocaleString()}</span>{' '}
-                    total observations
+                  <div className="text-slate-300 flex gap-4">
+                    <div>
+                      Pattern Confidence:{' '}
+                      <span
+                        className={`font-bold ${confidence.includes('Low') ? 'text-amber-400' : 'text-emerald-400'}`}
+                      >
+                        {confidence}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-emerald-400 font-bold">
+                        {totalObs.toLocaleString()}
+                      </span>{' '}
+                      total observations
+                    </div>
                   </div>
                 </div>
               </div>
