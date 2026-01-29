@@ -50,54 +50,70 @@ export const BackupsTab: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      {/* Backup Actions */}
       <AdminCard
         icon={DatabaseIcon}
-        title="Full Database Backup"
+        title="Database Backup"
         color="from-emerald-500 to-emerald-600"
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-400">
-            Creates a full PostgreSQL backup (custom format) on the server.
+            Creates a complete PostgreSQL backup in custom format, stored locally on the server.
           </p>
           <button
             onClick={runBackup}
             disabled={backupLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50"
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-sm"
           >
             {backupLoading ? 'Running Backup...' : 'Run Full Backup'}
           </button>
           {backupError && (
-            <div className="p-3 rounded-lg text-sm bg-red-900/50 text-red-300 border border-red-700">
+            <div className="p-3 rounded-lg text-sm bg-red-900/30 text-red-300 border border-red-700/50">
               {backupError}
-            </div>
-          )}
-          {backupResult && (
-            <div className="p-3 rounded-lg text-sm bg-emerald-900/40 text-emerald-200 border border-emerald-700/60 space-y-1">
-              <div>
-                <span className="text-emerald-300">File:</span> {backupResult.fileName}
-              </div>
-              <div>
-                <span className="text-emerald-300">Size:</span> {formatBytes(backupResult.bytes)}
-              </div>
-              <div>
-                <span className="text-emerald-300">Path:</span> {backupResult.filePath}
-              </div>
             </div>
           )}
         </div>
       </AdminCard>
 
-      <AdminCard icon={ShieldIcon} title="Backup Notes" color="from-slate-500 to-slate-600">
-        <div className="space-y-3 text-sm text-slate-400">
-          <p>Backups are stored locally on the server and are not uploaded anywhere yet.</p>
-          <p>
-            Configure the storage path with <span className="text-slate-200">BACKUP_DIR</span> in
-            your environment.
-          </p>
-          <p>
-            Retention is controlled by <span className="text-slate-200">BACKUP_RETENTION_DAYS</span>{' '}
-            (default 14).
-          </p>
+      {/* Backup Results */}
+      <AdminCard icon={ShieldIcon} title="Backup Details" color="from-slate-500 to-slate-600">
+        <div className="space-y-3">
+          {backupResult ? (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-emerald-900/30 border border-emerald-700/50">
+                <div className="text-sm space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-emerald-300">File:</span>
+                    <span className="text-slate-100 font-mono text-xs">
+                      {backupResult.fileName}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-emerald-300">Size:</span>
+                    <span className="text-slate-100 font-medium">
+                      {formatBytes(backupResult.bytes)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-emerald-300">Path:</span>
+                    <span className="text-slate-100 font-mono text-xs">
+                      {backupResult.filePath}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-slate-400">
+              <p className="text-sm">No backup yet</p>
+              <p className="text-xs mt-1">Run a backup to see details</p>
+            </div>
+          )}
+          <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-700/50">
+            <p>• Stored locally on server</p>
+            <p>• Configure with BACKUP_DIR</p>
+            <p>• Retention: 14 days (default)</p>
+          </div>
         </div>
       </AdminCard>
     </div>

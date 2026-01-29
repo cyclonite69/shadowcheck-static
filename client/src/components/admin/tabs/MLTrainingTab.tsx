@@ -60,48 +60,51 @@ export const MLTrainingTab: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      {/* Model Operations */}
       <AdminCard icon={BrainIcon} title="Model Operations" color="from-pink-500 to-pink-600">
         <div className="space-y-4">
           <p className="text-sm text-slate-400">
-            Manage machine learning model for threat detection
+            Manage machine learning model for threat detection.
           </p>
+
           <div className="space-y-2">
             <button
               onClick={trainModel}
               disabled={mlLoading}
-              className="w-full p-3 rounded-lg bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-500 hover:to-pink-600 disabled:opacity-50 text-white font-medium flex items-center justify-center gap-2"
+              className="w-full p-3 rounded-lg bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-500 hover:to-pink-600 disabled:opacity-50 text-white font-medium text-sm transition-all"
             >
-              <BrainIcon size={18} />
               {mlLoading ? 'Training...' : 'Train Model'}
             </button>
             <button
               onClick={() => recalculateScores(5000)}
               disabled={mlLoading || !mlStatus?.modelTrained}
-              className="w-full p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-medium border border-slate-700 flex items-center justify-center gap-2"
+              className="w-full p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 disabled:opacity-50 text-white font-medium text-sm border border-slate-700/60 transition-all"
             >
-              <BarChartIcon size={18} />
               {mlLoading ? 'Calculating...' : 'Recalculate Scores'}
             </button>
           </div>
+
           {mlResult && (
             <div
               className={`p-3 rounded-lg text-sm ${
                 mlResult.type === 'success'
-                  ? 'bg-green-900/50 text-green-300 border border-green-700'
-                  : 'bg-red-900/50 text-red-300 border border-red-700'
+                  ? 'bg-green-900/30 text-green-300 border border-green-700/50'
+                  : 'bg-red-900/30 text-red-300 border border-red-700/50'
               }`}
             >
               {mlResult.message}
             </div>
           )}
-          <div className="text-xs text-slate-500 space-y-1">
-            <p>• Requires 10+ tagged networks</p>
-            <p>• Uses logistic regression</p>
-            <p>• Training takes 5-30 seconds</p>
+
+          <div className="text-xs text-slate-500 space-y-1 pt-3 border-t border-slate-700/50">
+            <p>✓ Requires 10+ tagged networks</p>
+            <p>✓ Logistic regression algorithm</p>
+            <p>✓ Training: 5-30 seconds</p>
           </div>
         </div>
       </AdminCard>
 
+      {/* Training Data */}
       <AdminCard icon={BarChartIcon} title="Training Data" color="from-purple-500 to-purple-600">
         <div className="space-y-3">
           {mlStatus?.taggedNetworks?.length > 0 ? (
@@ -109,23 +112,26 @@ export const MLTrainingTab: React.FC = () => {
               {mlStatus.taggedNetworks.map((tag: any, idx: number) => (
                 <div
                   key={idx}
-                  className="flex justify-between items-center p-2 bg-slate-800/50 rounded-lg"
+                  className="flex justify-between items-center p-2.5 bg-slate-800/50 rounded-lg border border-slate-700/30"
                 >
-                  <span className="text-sm text-white capitalize">
+                  <span className="text-sm text-slate-300 capitalize">
                     {tag.tag_type.replace('_', ' ')}
                   </span>
-                  <span className="text-sm font-medium text-blue-400">{tag.count}</span>
+                  <span className="text-sm font-semibold text-blue-400">{tag.count}</span>
                 </div>
               ))}
-              <div className="p-2 bg-slate-700/50 rounded-lg">
+              <div className="mt-3 p-2.5 bg-slate-700/30 rounded-lg border border-slate-700/50">
                 <span className="text-xs text-slate-300">
-                  Total: {mlStatus.taggedNetworks.reduce((s: number, t: any) => s + t.count, 0)}{' '}
+                  Total:{' '}
+                  <strong>
+                    {mlStatus.taggedNetworks.reduce((s: number, t: any) => s + t.count, 0)}
+                  </strong>{' '}
                   tagged
                 </span>
               </div>
             </>
           ) : (
-            <div className="text-center text-slate-500 py-6">
+            <div className="text-center text-slate-500 py-8">
               <p className="text-sm">No tagged networks</p>
               <p className="text-xs mt-1">Tag networks to enable training</p>
             </div>
@@ -133,33 +139,41 @@ export const MLTrainingTab: React.FC = () => {
         </div>
       </AdminCard>
 
+      {/* Model Status */}
       <AdminCard icon={TargetIcon} title="Model Status" color="from-cyan-500 to-cyan-600">
         <div className="space-y-3">
-          <div className="flex justify-between">
-            <span className="text-sm text-slate-300">Status:</span>
+          <div className="flex justify-between items-center py-2">
+            <span className="text-sm text-slate-400">Status:</span>
             <span
-              className={`text-sm font-medium ${
+              className={`text-sm font-semibold ${
                 mlStatus?.modelTrained ? 'text-green-400' : 'text-yellow-400'
               }`}
             >
-              {mlStatus?.modelTrained ? 'Trained' : 'Not Trained'}
+              {mlStatus?.modelTrained ? 'Trained' : 'Untrained'}
             </span>
           </div>
+
           {mlStatus?.modelInfo?.updated_at && (
-            <div className="flex justify-between">
-              <span className="text-sm text-slate-300">Updated:</span>
-              <span className="text-sm text-slate-400">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-slate-400">Updated:</span>
+              <span className="text-sm text-slate-300">
                 {new Date(mlStatus.modelInfo.updated_at).toLocaleDateString()}
               </span>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-sm text-slate-300">Algorithm:</span>
-            <span className="text-sm text-slate-400">Logistic Regression</span>
+
+          <div className="flex justify-between items-center py-2">
+            <span className="text-sm text-slate-400">Algorithm:</span>
+            <span className="text-sm text-slate-300">Logistic Regression</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-slate-300">Features:</span>
-            <span className="text-sm text-slate-400">7 behavioral</span>
+
+          <div className="flex justify-between items-center py-2">
+            <span className="text-sm text-slate-400">Features:</span>
+            <span className="text-sm text-slate-300">7 behavioral</span>
+          </div>
+
+          <div className="pt-3 mt-3 border-t border-slate-700/50 text-xs text-slate-500">
+            Performance metrics and detailed info available in logs.
           </div>
         </div>
       </AdminCard>

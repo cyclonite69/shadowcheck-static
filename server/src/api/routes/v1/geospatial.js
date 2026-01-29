@@ -264,14 +264,22 @@ router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: 'Failed to fetch tile' });
+      const errorText = await response.text();
+      logger.error(`[Google Maps] Upstream error ${response.status}: ${errorText}`);
+      return res
+        .status(response.status)
+        .json({ error: 'Failed to fetch tile', details: errorText });
     }
 
     // Forward content type and cache headers
     res.setHeader('Content-Type', response.headers.get('content-type') || 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
 
-    response.body.pipe(res);
+    if (response.body && typeof response.body.pipe === 'function') {
+      response.body.pipe(res);
+    } else {
+      Readable.fromWeb(response.body).pipe(res);
+    }
   } catch (err) {
     logger.error(`Google Maps tile proxy error: ${err.message}`, { error: err });
     res.status(500).json({ error: err.message });

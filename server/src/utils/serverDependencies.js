@@ -34,6 +34,7 @@ function loadRouteModules() {
     geospatialRoutes: require('../api/routes/v1/geospatial'),
     analyticsRoutes: require('../api/routes/v1/analytics'),
     networksV2Routes: require('../api/routes/v2/networks'),
+    threatsV2Routes: require('../api/routes/v2/threats'),
     filteredRoutes: require('../api/routes/v2/filtered'),
     dashboardRoutes: require('../api/routes/v1/dashboard'),
     locationMarkersRoutes: require('../api/routes/v1/location-markers'),

@@ -67,167 +67,249 @@ export const WigleSearchTab: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* WiGLE API Status */}
+      {/* Status Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <AdminCard icon={SearchIcon} title="API Status" color="from-orange-500 to-orange-600">
+        <AdminCard
+          icon={SearchIcon}
+          title="API Status"
+          color="from-orange-500 to-orange-600"
+          compact
+        >
           <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-slate-300 text-sm">Status:</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-400">Status:</span>
               <span
-                className={`text-sm font-semibold ${apiStatus?.configured ? 'text-green-400' : 'text-red-400'}`}
+                className={`font-semibold ${apiStatus?.configured ? 'text-green-400' : 'text-red-400'}`}
               >
-                {apiStatus?.configured ? 'Configured' : 'Not Configured'}
+                {apiStatus?.configured ? 'Configured' : 'Unconfigured'}
               </span>
             </div>
             {apiStatus?.username && (
-              <div className="flex justify-between">
-                <span className="text-slate-300 text-sm">Username:</span>
-                <span className="text-sm font-semibold text-blue-400">{apiStatus.username}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">User:</span>
+                <span className="text-blue-400 font-semibold text-xs">{apiStatus.username}</span>
               </div>
             )}
-            {apiStatus?.error && <div className="text-xs text-red-400 mt-2">{apiStatus.error}</div>}
+            {apiStatus?.error && (
+              <div className="text-xs text-red-400 mt-2 p-2 bg-red-900/20 rounded">
+                {apiStatus.error}
+              </div>
+            )}
           </div>
         </AdminCard>
+
         <div className="md:col-span-2">
           <AdminCard
             icon={DatabaseIcon}
             title="Search Parameters"
             color="from-blue-500 to-blue-600"
+            compact
           >
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <label className="block text-slate-300 mb-1">SSID</label>
+                <label className="block text-xs text-slate-400 mb-1">SSID</label>
                 <input
                   type="text"
                   value={searchParams.ssid}
                   onChange={(e) => setSearchParams({ ...searchParams, ssid: e.target.value })}
                   placeholder="Network name"
-                  className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-xs"
+                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
               </div>
               <div>
-                <label className="block text-slate-300 mb-1">BSSID</label>
+                <label className="block text-xs text-slate-400 mb-1">BSSID</label>
                 <input
                   type="text"
                   value={searchParams.bssid}
                   onChange={(e) => setSearchParams({ ...searchParams, bssid: e.target.value })}
                   placeholder="AA:BB:CC:DD:EE:FF"
-                  className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-xs"
+                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
-              </div>
-              <div>
-                <label className="block text-slate-300 mb-1">Lat Range</label>
-                <div className="flex gap-1">
-                  <input
-                    type="number"
-                    value={searchParams.latrange1}
-                    onChange={(e) =>
-                      setSearchParams({ ...searchParams, latrange1: e.target.value })
-                    }
-                    placeholder="Min"
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-xs"
-                  />
-                  <input
-                    type="number"
-                    value={searchParams.latrange2}
-                    onChange={(e) =>
-                      setSearchParams({ ...searchParams, latrange2: e.target.value })
-                    }
-                    placeholder="Max"
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-xs"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-slate-300 mb-1">Long Range</label>
-                <div className="flex gap-1">
-                  <input
-                    type="number"
-                    value={searchParams.longrange1}
-                    onChange={(e) =>
-                      setSearchParams({ ...searchParams, longrange1: e.target.value })
-                    }
-                    placeholder="Min"
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-xs"
-                  />
-                  <input
-                    type="number"
-                    value={searchParams.longrange2}
-                    onChange={(e) =>
-                      setSearchParams({ ...searchParams, longrange2: e.target.value })
-                    }
-                    placeholder="Max"
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-xs"
-                  />
-                </div>
               </div>
             </div>
           </AdminCard>
         </div>
       </div>
 
+      {/* Coordinate Ranges */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Latitude Range */}
+        <AdminCard
+          icon={DatabaseIcon}
+          title="Latitude Range"
+          color="from-indigo-500 to-indigo-600"
+          compact
+        >
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Min</label>
+                <input
+                  type="number"
+                  value={searchParams.latrange1}
+                  onChange={(e) => setSearchParams({ ...searchParams, latrange1: e.target.value })}
+                  placeholder="Min latitude"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Max</label>
+                <input
+                  type="number"
+                  value={searchParams.latrange2}
+                  onChange={(e) => setSearchParams({ ...searchParams, latrange2: e.target.value })}
+                  placeholder="Max latitude"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+              </div>
+            </div>
+          </div>
+        </AdminCard>
+
+        {/* Longitude Range */}
+        <AdminCard
+          icon={DatabaseIcon}
+          title="Longitude Range"
+          color="from-teal-500 to-teal-600"
+          compact
+        >
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Min</label>
+                <input
+                  type="number"
+                  value={searchParams.longrange1}
+                  onChange={(e) => setSearchParams({ ...searchParams, longrange1: e.target.value })}
+                  placeholder="Min longitude"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Max</label>
+                <input
+                  type="number"
+                  value={searchParams.longrange2}
+                  onChange={(e) => setSearchParams({ ...searchParams, longrange2: e.target.value })}
+                  placeholder="Max longitude"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/60 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+                />
+              </div>
+            </div>
+          </div>
+        </AdminCard>
+      </div>
+
       {/* Search Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AdminCard icon={SearchIcon} title="Search WiGLE" color="from-purple-500 to-purple-600">
-          <div className="space-y-3">
+        {/* Search Card */}
+        <AdminCard icon={SearchIcon} title="Execute Search" color="from-purple-500 to-purple-600">
+          <div className="space-y-4">
             <p className="text-sm text-slate-400">
-              Search the WiGLE database for networks matching your criteria
+              Search the WiGLE database using your configured parameters.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => runSearch(false)}
                 disabled={searchLoading || !apiStatus?.configured}
-                className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-sm"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-sm transition-all"
               >
                 {searchLoading ? 'Searching...' : 'Search Only'}
               </button>
               <button
                 onClick={() => runSearch(true)}
                 disabled={searchLoading || !apiStatus?.configured}
-                className="flex-1 px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
               >
                 {searchLoading ? 'Searching...' : 'Search & Import'}
               </button>
             </div>
-            {searchError && <div className="text-red-400 text-sm">{searchError}</div>}
+            {searchError && (
+              <div className="text-red-400 text-sm p-2 bg-red-900/20 rounded border border-red-700/50">
+                {searchError}
+              </div>
+            )}
             {!apiStatus?.configured && (
-              <div className="text-yellow-400 text-xs">
-                Configure WiGLE API credentials in environment variables
+              <div className="text-yellow-400 text-xs p-2 bg-yellow-900/20 rounded border border-yellow-700/50">
+                Configure WiGLE API in environment variables
               </div>
             )}
           </div>
         </AdminCard>
 
-        <AdminCard
-          icon={DownloadIcon}
-          title="Search Results"
-          color="from-emerald-500 to-emerald-600"
-        >
-          <div className="space-y-3">
-            {searchResults ? (
-              <>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-300">Results:</span>
-                  <span className="text-emerald-400 font-semibold">
-                    {searchResults.resultCount || 0}
-                  </span>
-                </div>
-                {searchResults.imported && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-300">Imported:</span>
-                    <span className="text-green-400 font-semibold">{searchResults.imported}</span>
+        {/* Results Card - now full width if results exist */}
+        <div className={searchResults ? 'md:col-span-2' : ''}>
+          <AdminCard
+            icon={DownloadIcon}
+            title="Search Results"
+            color="from-emerald-500 to-emerald-600"
+          >
+            <div className="space-y-3">
+              {searchResults ? (
+                <>
+                  <div className="space-y-2 p-3 bg-emerald-900/20 rounded border border-emerald-700/50">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Found:</span>
+                      <span className="font-semibold text-emerald-400">
+                        {searchResults.resultCount || 0}
+                      </span>
+                    </div>
+                    {searchResults.imported && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Imported:</span>
+                        <span className="font-semibold text-green-400">
+                          {searchResults.imported}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="text-xs text-slate-400">Search completed successfully</div>
-              </>
-            ) : (
-              <div className="text-center text-slate-500 py-6">
-                <p className="text-sm">No search results yet</p>
-                <p className="text-xs mt-1">Run a search to see results</p>
-              </div>
-            )}
-          </div>
-        </AdminCard>
+
+                  {searchResults.results && searchResults.results.length > 0 && (
+                    <div className="overflow-x-auto mt-4 rounded-lg border border-slate-700">
+                      <table className="w-full text-xs text-left text-slate-300">
+                        <thead className="bg-slate-800 text-slate-400 uppercase">
+                          <tr>
+                            <th className="px-3 py-2">SSID</th>
+                            <th className="px-3 py-2">BSSID</th>
+                            <th className="px-3 py-2">Type</th>
+                            <th className="px-3 py-2">Encryption</th>
+                            <th className="px-3 py-2">Location</th>
+                            <th className="px-3 py-2">Last Seen</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700/50">
+                          {searchResults.results.map((net, idx) => (
+                            <tr key={idx} className="hover:bg-slate-700/30">
+                              <td className="px-3 py-2 font-medium text-white">
+                                {net.ssid || '<hidden>'}
+                              </td>
+                              <td className="px-3 py-2 font-mono text-slate-400">{net.bssid}</td>
+                              <td className="px-3 py-2">{net.type}</td>
+                              <td className="px-3 py-2">{net.encryption}</td>
+                              <td className="px-3 py-2">
+                                {[net.city, net.region, net.country].filter(Boolean).join(', ')}
+                              </td>
+                              <td className="px-3 py-2">
+                                {net.lasttime ? new Date(net.lasttime).toLocaleDateString() : 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-slate-400 mt-2">Search completed successfully</p>
+                </>
+              ) : (
+                <div className="text-center text-slate-500 py-6">
+                  <p className="text-sm">No results yet</p>
+                  <p className="text-xs mt-1">Run a search to see results</p>
+                </div>
+              )}
+            </div>
+          </AdminCard>
+        </div>
       </div>
     </div>
   );

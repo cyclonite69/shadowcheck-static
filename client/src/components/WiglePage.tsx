@@ -113,6 +113,7 @@ const WiglePage: React.FC = () => {
   const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
   const [show3dBuildings, setShow3dBuildings] = useState(false);
   const [showTerrain, setShowTerrain] = useState(false);
+  const [dataSource, setDataSource] = useState<'v2' | 'v3'>('v2');
   const wigleHandlersAttachedRef = useRef(false);
 
   const mapStyles = [
@@ -463,7 +464,9 @@ const WiglePage: React.FC = () => {
       params.set('filters', JSON.stringify(filtersForPage));
       params.set('enabled', JSON.stringify(enabledForPage));
 
-      const res = await fetch(`/api/wigle/networks-v2?${params.toString()}`);
+      // Choose endpoint based on data source
+      const endpoint = dataSource === 'v3' ? '/api/wigle/networks-v3' : '/api/wigle/networks-v2';
+      const res = await fetch(`${endpoint}?${params.toString()}`);
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
@@ -476,7 +479,7 @@ const WiglePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [limit, offset, typeFilter, adaptedFilters]);
+  }, [limit, offset, typeFilter, adaptedFilters, dataSource]);
 
   // Handle map style changes - use ref to get latest featureCollection without causing re-runs
   useEffect(() => {
@@ -628,6 +631,8 @@ const WiglePage: React.FC = () => {
         loading={loading}
         rowsLoaded={rows.length}
         totalRows={total}
+        dataSource={dataSource}
+        onDataSourceChange={setDataSource}
       />
 
       <WigleFilterPanel isOpen={showFilters && showMenu} adaptedFilters={adaptedFilters} />

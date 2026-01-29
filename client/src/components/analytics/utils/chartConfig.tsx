@@ -91,6 +91,13 @@ export const CHART_COLORS = {
     criticalCount: '#ef4444',
     highCount: '#f97316',
   },
+  severity: {
+    critical: '#ef4444',
+    high: '#f97316',
+    medium: '#eab308',
+    low: '#22c55e',
+    none: '#94a3b8',
+  },
 };
 
 // Responsive container keys for forcing re-renders

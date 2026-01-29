@@ -104,6 +104,17 @@ export const transformTopNetworksData = (rawData: any[]) => {
   }));
 };
 
+// Transform severity counts for bar/pie chart
+export const transformSeverityCounts = (counts: any) => {
+  if (!counts) return [];
+  const severities = ['critical', 'high', 'medium', 'low'];
+  return severities.map((sev) => ({
+    name: sev.charAt(0).toUpperCase() + sev.slice(1),
+    value: counts[sev] || 0,
+    severity: sev, // for color mapping
+  }));
+};
+
 // Type definitions for the transformed data
 export interface NetworkTypeData {
   name: string;
@@ -148,6 +159,12 @@ export interface TopNetworksData {
   bssid: string;
   ssid: string;
   observations: number;
+}
+
+export interface SeverityCountData {
+  name: string;
+  value: number;
+  severity: string;
 }
 
 // ===== END FILE =====
