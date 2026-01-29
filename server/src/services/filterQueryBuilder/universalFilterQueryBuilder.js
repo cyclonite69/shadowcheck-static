@@ -458,9 +458,7 @@ class UniversalFilterQueryBuilder {
     const homeJoin = this.requiresHome ? 'CROSS JOIN home' : '';
     const selectionClause =
       Array.isArray(selectedBssids) && selectedBssids.length > 0
-        ? `AND UPPER(o.bssid) = ANY(${this.addParam(
-            selectedBssids.map((value) => String(value).toUpperCase())
-          )})`
+        ? `AND UPPER(o.bssid) = ANY(${this.addParam(selectedBssids.map((v) => String(v).toUpperCase()))})`
         : '';
     const cte = `
     WITH ${homeCte ? `${homeCte},` : ''} filtered_obs AS (
