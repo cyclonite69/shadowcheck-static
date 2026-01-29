@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
 interface NetworkTimeFrequencyModalProps {
@@ -7,15 +7,29 @@ interface NetworkTimeFrequencyModalProps {
   onClose: () => void;
 }
 
+interface Observation {
+  time: number; // epoch ms
+  signal: number;
+  lat: number;
+  lon: number;
+}
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
 const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
   bssid,
   ssid,
   onClose,
 }) => {
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hoveredCell, setHoveredCell] = useState<{
-    ch: number;
-    time: number;
-    data: { type: string; power: number; signal: number; freq: number } | null;
+    day: number;
+    hour: number;
+    count: number;
+    avgSignal: number;
   } | null>(null);
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
 
@@ -42,49 +56,72 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
     };
   }, []);
 
-  const generateGrid = () => {
-    const timeSlots = 50;
-    let channels = 40; // Default BLE
+  // Fetch observations for the BSSID
+  useEffect(() => {
+    const fetchObservations = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`/api/networks/observations/${encodeURIComponent(bssid)}`);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch observations: ${res.statusText}`);
+        }
+        const data = await res.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        setObservations(data.observations || []);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load observations');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Simulate device type based on BSSID
-    const deviceType = bssid.includes('a')
-      ? 'WiFi-5GHz'
-      : bssid.includes('b')
-        ? 'WiFi-2.4GHz'
-        : 'BLE';
+    fetchObservations();
+  }, [bssid]);
 
-    if (deviceType === 'WiFi-5GHz') channels = 200;
-    else if (deviceType === 'WiFi-2.4GHz') channels = 14;
-
-    const grid: (null | {
-      type: string;
-      color: string;
-      power: number;
-      signal: number;
-      freq: number;
-    })[][] = Array(channels)
+  // Build heatmap grid (day-of-week × hour-of-day)
+  const { grid, maxCount, totalObs, dateRange } = useMemo(() => {
+    // Initialize grid: [day][hour] = { count, totalSignal }
+    const g: { count: number; totalSignal: number }[][] = Array(7)
       .fill(null)
-      .map(() => Array(timeSlots).fill(null));
+      .map(() =>
+        Array(24)
+          .fill(null)
+          .map(() => ({ count: 0, totalSignal: 0 }))
+      );
 
-    // Generate simulated data
-    for (let i = 0; i < 100; i++) {
-      const timeIdx = Math.floor(Math.random() * timeSlots);
-      const chIdx = Math.floor(Math.random() * channels);
-      const signalStrength = Math.random();
+    let maxC = 0;
+    let minTime = Infinity;
+    let maxTime = -Infinity;
 
-      grid[chIdx][timeIdx] = {
-        type: deviceType.includes('WiFi') ? 'WIFI' : 'BLE',
-        power: Math.max(0.3, Math.min(1, signalStrength)),
-        signal: -30 - Math.random() * 70,
-        freq: deviceType === 'WiFi-5GHz' ? 5000 + Math.random() * 1000 : 2400 + Math.random() * 100,
-      };
-    }
+    observations.forEach((obs) => {
+      const date = new Date(obs.time);
+      const day = date.getDay(); // 0-6 (Sun-Sat)
+      const hour = date.getHours(); // 0-23
 
-    return { grid, channels, timeSlots, deviceType };
-  };
+      g[day][hour].count++;
+      g[day][hour].totalSignal += obs.signal || -80;
 
-  const { grid, channels, timeSlots, deviceType } = generateGrid();
-  const cellSize = 12;
+      if (g[day][hour].count > maxC) {
+        maxC = g[day][hour].count;
+      }
+
+      if (obs.time < minTime) minTime = obs.time;
+      if (obs.time > maxTime) maxTime = obs.time;
+    });
+
+    const range =
+      minTime !== Infinity
+        ? {
+            start: new Date(minTime).toLocaleDateString(),
+            end: new Date(maxTime).toLocaleDateString(),
+          }
+        : null;
+
+    return { grid: g, maxCount: maxC, totalObs: observations.length, dateRange: range };
+  }, [observations]);
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -97,11 +134,21 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  const cellSize = 32;
+  const getIntensityColor = (count: number) => {
+    if (count === 0) return 'rgb(30, 41, 59)'; // slate-800
+    const intensity = Math.min(1, count / Math.max(maxCount, 1));
+    // Gradient from slate-700 (low) to emerald-500 (high)
+    if (intensity < 0.25) return `rgba(52, 211, 153, ${0.2 + intensity * 1.5})`;
+    if (intensity < 0.5) return `rgba(52, 211, 153, ${0.4 + intensity})`;
+    if (intensity < 0.75) return `rgba(16, 185, 129, ${0.6 + intensity * 0.4})`;
+    return `rgba(5, 150, 105, ${0.8 + intensity * 0.2})`;
+  };
+
   const modalContent = (
     <div
       className="fixed inset-0 z-modal flex items-center justify-center p-4 bg-black/80"
       onClick={(e) => {
-        // Close on backdrop click
         if (e.target === e.currentTarget) {
           onClose();
         }
@@ -110,20 +157,25 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
       aria-modal="true"
       aria-labelledby="time-freq-modal-title"
     >
-      <div className="bg-slate-900 rounded-lg max-w-7xl w-full max-h-[90vh] flex flex-col min-h-0 overflow-hidden text-white shadow-2xl border border-slate-700">
+      <div className="bg-slate-900 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col min-h-0 overflow-hidden text-white shadow-2xl border border-slate-700">
         {/* Header */}
         <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-start shrink-0">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className="text-blue-400 text-xl" aria-hidden="true">
-                📡
+                📅
               </span>
               <h2 id="time-freq-modal-title" className="text-xl font-bold">
-                Time-Frequency Grid
+                Temporal Activity Pattern
               </h2>
             </div>
             <p className="text-sm text-slate-400">
-              {ssid || '(Hidden SSID)'} • {bssid} • Type: {deviceType}
+              {ssid || '(Hidden SSID)'} • {bssid}
+              {dateRange && (
+                <span className="ml-2 text-slate-500">
+                  • {dateRange.start} → {dateRange.end}
+                </span>
+              )}
             </p>
           </div>
           <button
@@ -139,138 +191,222 @@ const NetworkTimeFrequencyModal: React.FC<NetworkTimeFrequencyModalProps> = ({
 
         {/* Content */}
         <div className="p-6 flex flex-col flex-1 min-h-0 gap-6">
-          {/* Legend */}
-          <div className="bg-slate-800 rounded-lg p-4 shrink-0">
-            <div className="flex gap-6 text-sm flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 rounded" aria-hidden="true"></div>
-                <span>WiFi</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500 rounded" aria-hidden="true"></div>
-                <span>BLE</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 bg-slate-700 border border-slate-600 rounded"
-                  aria-hidden="true"
-                ></div>
-                <span>Idle</span>
-              </div>
+          {loading && (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-slate-400">Loading observations...</div>
             </div>
-          </div>
+          )}
 
-          {/* Grid */}
-          <div className="bg-slate-800 rounded-lg p-6 flex-1 min-h-0 overflow-auto">
-            <div className="flex gap-4 items-start">
-              {/* Y-axis */}
-              <div
-                className="flex flex-col justify-between text-right shrink-0"
-                style={{ height: channels * cellSize }}
-                aria-hidden="true"
-              >
-                {[
-                  channels - 1,
-                  Math.floor((channels * 3) / 4),
-                  Math.floor(channels / 2),
-                  Math.floor(channels / 4),
-                  0,
-                ].map((ch) => (
-                  <div key={ch} className="text-xs text-slate-400">
-                    {deviceType === 'BLE' ? `Ch ${ch}` : `${2400 + ch * 5}MHz`}
+          {error && (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-red-400 bg-red-900/30 px-4 py-3 rounded-lg">{error}</div>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <>
+              {/* Legend & Stats */}
+              <div className="bg-slate-800 rounded-lg p-4 shrink-0">
+                <div className="flex gap-6 text-sm flex-wrap justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded"
+                        style={{ background: 'rgb(30, 41, 59)' }}
+                        aria-hidden="true"
+                      ></div>
+                      <span className="text-slate-400">No sightings</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded"
+                        style={{ background: 'rgba(52, 211, 153, 0.4)' }}
+                        aria-hidden="true"
+                      ></div>
+                      <span className="text-slate-400">Low activity</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded"
+                        style={{ background: 'rgba(5, 150, 105, 0.9)' }}
+                        aria-hidden="true"
+                      ></div>
+                      <span className="text-slate-400">High activity</span>
+                    </div>
                   </div>
-                ))}
+                  <div className="text-slate-300">
+                    <span className="text-emerald-400 font-bold">{totalObs.toLocaleString()}</span>{' '}
+                    total observations
+                  </div>
+                </div>
               </div>
 
-              {/* Grid SVG */}
-              <div className="shrink-0">
-                <div className="mb-2 text-xs text-slate-400 text-center" aria-hidden="true">
-                  Time →
-                </div>
-                <svg
-                  width={timeSlots * cellSize}
-                  height={channels * cellSize}
-                  role="img"
-                  aria-label={`Time-frequency grid showing ${channels} channels over ${timeSlots} time slots`}
-                >
-                  {grid.map((row, chIdx) =>
-                    row.map((cell, timeIdx) => {
-                      const isHovered = hoveredCell?.ch === chIdx && hoveredCell?.time === timeIdx;
-                      const cellFillClass = cell
-                        ? cell.type === 'WIFI'
-                          ? 'fill-blue-500'
-                          : 'fill-emerald-500'
-                        : 'fill-slate-800';
-                      return (
-                        <g key={`${chIdx}-${timeIdx}`}>
-                          <rect
-                            x={timeIdx * cellSize}
-                            y={chIdx * cellSize}
-                            width={cellSize}
-                            height={cellSize}
-                            className={`${cellFillClass} stroke-slate-950 stroke-[0.5] cursor-pointer transition-opacity`}
-                            opacity={cell ? cell.power : 0.3}
-                            onMouseEnter={() =>
-                              setHoveredCell({ ch: chIdx, time: timeIdx, data: cell })
-                            }
-                            onMouseLeave={() => setHoveredCell(null)}
-                          />
-                          {isHovered && (
-                            <rect
-                              x={timeIdx * cellSize}
-                              y={chIdx * cellSize}
-                              width={cellSize}
-                              height={cellSize}
-                              fill="none"
-                              className="stroke-white stroke-[2]"
-                            />
-                          )}
-                        </g>
-                      );
-                    })
-                  )}
-                </svg>
-                <div
-                  className="flex justify-between mt-2"
-                  style={{ width: timeSlots * cellSize }}
-                  aria-hidden="true"
-                >
-                  <span className="text-xs text-slate-400">0</span>
-                  <span className="text-xs text-slate-400">{Math.floor(timeSlots / 2)}</span>
-                  <span className="text-xs text-slate-400">{timeSlots}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+              {/* Grid */}
+              <div className="bg-slate-800 rounded-lg p-6 flex-1 min-h-0 overflow-auto">
+                {totalObs === 0 ? (
+                  <div className="flex items-center justify-center h-full text-slate-400">
+                    No observations found for this network
+                  </div>
+                ) : (
+                  <div className="flex gap-4 items-start">
+                    {/* Y-axis (Days) */}
+                    <div
+                      className="flex flex-col justify-around shrink-0 pt-8"
+                      style={{ height: 7 * cellSize }}
+                      aria-hidden="true"
+                    >
+                      {DAYS.map((day) => (
+                        <div key={day} className="text-xs text-slate-400 h-8 flex items-center">
+                          {day}
+                        </div>
+                      ))}
+                    </div>
 
-          {/* Hover info */}
-          {hoveredCell?.data && (
-            <div className="bg-slate-800 rounded-lg p-4 text-sm shrink-0" aria-live="polite">
-              <div className="font-semibold text-white mb-2">Cell Information:</div>
-              <div className="text-slate-300 grid grid-cols-3 gap-4">
-                <div>
-                  <span className="text-slate-400">Channel:</span> {hoveredCell.ch}
-                </div>
-                <div>
-                  <span className="text-slate-400">Time Slot:</span> {hoveredCell.time}
-                </div>
-                <div>
-                  <span className="text-slate-400">Type:</span> {hoveredCell.data.type}
-                </div>
-                <div>
-                  <span className="text-slate-400">Signal:</span>{' '}
-                  {hoveredCell.data.signal.toFixed(1)} dBm
-                </div>
-                <div>
-                  <span className="text-slate-400">Frequency:</span>{' '}
-                  {hoveredCell.data.freq.toFixed(1)} MHz
-                </div>
-                <div>
-                  <span className="text-slate-400">Power:</span>{' '}
-                  {(hoveredCell.data.power * 100).toFixed(0)}%
-                </div>
+                    {/* Grid SVG */}
+                    <div className="shrink-0">
+                      <div
+                        className="flex justify-between mb-2 text-xs text-slate-400 px-1"
+                        style={{ width: 24 * cellSize }}
+                        aria-hidden="true"
+                      >
+                        {HOURS.filter((h) => h % 3 === 0).map((h) => (
+                          <span key={h} style={{ width: cellSize * 3, textAlign: 'left' }}>
+                            {h.toString().padStart(2, '0')}:00
+                          </span>
+                        ))}
+                      </div>
+                      <svg
+                        width={24 * cellSize}
+                        height={7 * cellSize}
+                        role="img"
+                        aria-label="Heatmap showing observation frequency by day of week and hour of day"
+                      >
+                        {grid.map((dayData, dayIdx) =>
+                          dayData.map((cell, hourIdx) => {
+                            const isHovered =
+                              hoveredCell?.day === dayIdx && hoveredCell?.hour === hourIdx;
+                            return (
+                              <g key={`${dayIdx}-${hourIdx}`}>
+                                <rect
+                                  x={hourIdx * cellSize}
+                                  y={dayIdx * cellSize}
+                                  width={cellSize - 2}
+                                  height={cellSize - 2}
+                                  rx={4}
+                                  fill={getIntensityColor(cell.count)}
+                                  className="cursor-pointer transition-all"
+                                  stroke={isHovered ? '#fff' : 'transparent'}
+                                  strokeWidth={isHovered ? 2 : 0}
+                                  onMouseEnter={() =>
+                                    setHoveredCell({
+                                      day: dayIdx,
+                                      hour: hourIdx,
+                                      count: cell.count,
+                                      avgSignal: cell.count > 0 ? cell.totalSignal / cell.count : 0,
+                                    })
+                                  }
+                                  onMouseLeave={() => setHoveredCell(null)}
+                                />
+                                {cell.count > 0 && cellSize >= 24 && (
+                                  <text
+                                    x={hourIdx * cellSize + cellSize / 2 - 1}
+                                    y={dayIdx * cellSize + cellSize / 2 + 4}
+                                    textAnchor="middle"
+                                    className="text-[10px] fill-white font-medium pointer-events-none"
+                                    style={{ opacity: cell.count / maxCount > 0.3 ? 1 : 0.7 }}
+                                  >
+                                    {cell.count}
+                                  </text>
+                                )}
+                              </g>
+                            );
+                          })
+                        )}
+                      </svg>
+                      <div
+                        className="flex justify-center mt-3 text-xs text-slate-500"
+                        aria-hidden="true"
+                      >
+                        Hour of Day →
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+
+              {/* Hover info */}
+              {hoveredCell && hoveredCell.count > 0 && (
+                <div className="bg-slate-800 rounded-lg p-4 text-sm shrink-0" aria-live="polite">
+                  <div className="font-semibold text-white mb-2">Time Slot Details:</div>
+                  <div className="text-slate-300 grid grid-cols-4 gap-4">
+                    <div>
+                      <span className="text-slate-400">Day:</span>{' '}
+                      <span className="text-emerald-400 font-medium">{DAYS[hoveredCell.day]}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Hour:</span>{' '}
+                      <span className="text-emerald-400 font-medium">
+                        {hoveredCell.hour.toString().padStart(2, '0')}:00 -{' '}
+                        {((hoveredCell.hour + 1) % 24).toString().padStart(2, '0')}:00
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Sightings:</span>{' '}
+                      <span className="text-emerald-400 font-bold">{hoveredCell.count}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Avg Signal:</span>{' '}
+                      <span className="text-amber-400 font-medium">
+                        {hoveredCell.avgSignal.toFixed(0)} dBm
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Activity Summary */}
+              {totalObs > 0 && (
+                <div className="bg-slate-800/50 rounded-lg p-4 text-sm shrink-0 border border-slate-700/50">
+                  <div className="font-semibold text-white mb-3">Activity Summary</div>
+                  <div className="grid grid-cols-2 gap-4 text-slate-300">
+                    <div>
+                      <div className="text-slate-400 text-xs mb-1">Most Active Days</div>
+                      {(() => {
+                        const dayTotals = DAYS.map((day, i) => ({
+                          day,
+                          count: grid[i].reduce((sum, cell) => sum + cell.count, 0),
+                        })).sort((a, b) => b.count - a.count);
+                        return dayTotals
+                          .slice(0, 3)
+                          .filter((d) => d.count > 0)
+                          .map((d) => (
+                            <span key={d.day} className="mr-2 text-emerald-400">
+                              {d.day}: {d.count}
+                            </span>
+                          ));
+                      })()}
+                    </div>
+                    <div>
+                      <div className="text-slate-400 text-xs mb-1">Peak Hours</div>
+                      {(() => {
+                        const hourTotals = HOURS.map((h) => ({
+                          hour: h,
+                          count: grid.reduce((sum, dayRow) => sum + dayRow[h].count, 0),
+                        })).sort((a, b) => b.count - a.count);
+                        return hourTotals
+                          .slice(0, 3)
+                          .filter((h) => h.count > 0)
+                          .map((h) => (
+                            <span key={h.hour} className="mr-2 text-amber-400">
+                              {h.hour.toString().padStart(2, '0')}:00: {h.count}
+                            </span>
+                          ));
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
