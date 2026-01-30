@@ -8,7 +8,7 @@ interface NetworkTableHeaderProps {
   allSelected: boolean;
   someSelected: boolean;
   onToggleSelectAll: () => void;
-  onColumnSort: (column: keyof NetworkRow, multi: boolean) => void;
+  onColumnSort: (column: keyof NetworkRow, shiftKey: boolean) => void;
 }
 
 export const NetworkTableHeader = ({
