@@ -13,11 +13,35 @@ export interface WigleApiStatus {
   error?: string;
 }
 
+export interface WigleNetworkResult {
+  bssid: string;
+  ssid: string;
+  trilat: number;
+  trilong: number;
+  type: string;
+  encryption: string;
+  channel: number;
+  firsttime: string;
+  lasttime: string;
+  country: string;
+  region: string;
+  city: string;
+  road: string;
+  housenumber: string;
+  postalcode: string;
+  freenet: string;
+  paynet: string;
+  userfound: boolean;
+}
+
 export interface WigleSearchResults {
   ok: boolean;
+  totalResults: number;
   resultCount: number;
-  results?: any[];
-  imported?: number;
+  searchAfter: string | null;
+  hasMore: boolean;
+  results?: WigleNetworkResult[];
+  imported?: { count: number; errors: Array<{ bssid: string; error: string }> } | null;
   error?: string;
 }
 
