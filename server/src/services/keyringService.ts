@@ -1,19 +1,41 @@
-const crypto = require('crypto');
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
+import { randomBytes, scryptSync, createCipheriv, createDecipheriv } from 'crypto';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
+import { hostname, userInfo } from 'os';
 
 // Use XDG_DATA_HOME or fallback to ~/.local/share
 const DATA_DIR = process.env.XDG_DATA_HOME
-  ? path.join(process.env.XDG_DATA_HOME, 'shadowcheck')
-  : path.join(os.homedir(), '.local', 'share', 'shadowcheck');
+  ? join(process.env.XDG_DATA_HOME, 'shadowcheck')
+  : join(homedir(), '.local', 'share', 'shadowcheck');
 
-const KEYRING_FILE = path.join(DATA_DIR, 'keyring.enc');
+const KEYRING_FILE = join(DATA_DIR, 'keyring.enc');
+
+interface WigleCredentials {
+  apiName: string;
+  apiToken: string;
+  encoded: string;
+}
+
+interface WigleTestResult {
+  success: boolean;
+  error?: string;
+  user?: unknown;
+}
+
+interface MapboxTokenInfo {
+  label: string;
+  isPrimary: boolean;
+}
+
+interface KeyringData {
+  [key: string]: string;
+}
 
 // Derive encryption key from machine-specific data
-function getMachineKey() {
-  const machineId = os.hostname() + os.userInfo().username;
-  return crypto.scryptSync(machineId, 'shadowcheck-salt', 32);
+function getMachineKey(): Buffer {
+  const machineId = hostname() + userInfo().username;
+  return scryptSync(machineId, 'shadowcheck-salt', 32);
 }
 
 /**
@@ -21,21 +43,19 @@ function getMachineKey() {
  * Stores credentials in an encrypted file at ~/.local/share/shadowcheck/keyring.enc
  */
 class FileKeyringService {
-  constructor() {
-    this.cache = null;
-  }
+  private cache: KeyringData | null = null;
 
-  async ensureDataDir() {
+  async ensureDataDir(): Promise<void> {
     try {
       await fs.mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
-    } catch (err) {
+    } catch (err: any) {
       if (err.code !== 'EEXIST') {
         throw err;
       }
     }
   }
 
-  async loadKeyring() {
+  async loadKeyring(): Promise<KeyringData> {
     if (this.cache) {
       return this.cache;
     }
@@ -46,7 +66,7 @@ class FileKeyringService {
 
       const key = getMachineKey();
       const iv = Buffer.from(ivHex, 'hex');
-      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      const decipher = createDecipheriv('aes-256-gcm', key, iv);
 
       // Extract auth tag (last 16 bytes)
       const encBuffer = Buffer.from(encryptedData, 'hex');
@@ -60,7 +80,7 @@ class FileKeyringService {
 
       this.cache = JSON.parse(decrypted.toString('utf8'));
       return this.cache;
-    } catch (err) {
+    } catch (err: any) {
       if (err.code === 'ENOENT') {
         this.cache = {};
         return this.cache;
@@ -69,12 +89,12 @@ class FileKeyringService {
     }
   }
 
-  async saveKeyring(data) {
+  async saveKeyring(data: KeyringData): Promise<void> {
     await this.ensureDataDir();
 
     const key = getMachineKey();
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const iv = randomBytes(16);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
 
     let encrypted = cipher.update(JSON.stringify(data), 'utf8');
     encrypted = Buffer.concat([encrypted, cipher.final()]);
@@ -88,38 +108,38 @@ class FileKeyringService {
     this.cache = data;
   }
 
-  async setCredential(key, value) {
+  async setCredential(key: string, value: string): Promise<void> {
     const keyring = await this.loadKeyring();
     keyring[key] = value;
     await this.saveKeyring(keyring);
   }
 
-  async getCredential(key) {
+  async getCredential(key: string): Promise<string | null> {
     const keyring = await this.loadKeyring();
     return keyring[key] || null;
   }
 
-  async deleteCredential(key) {
+  async deleteCredential(key: string): Promise<boolean> {
     const keyring = await this.loadKeyring();
     delete keyring[key];
     await this.saveKeyring(keyring);
     return true;
   }
 
-  async listCredentials() {
+  async listCredentials(): Promise<string[]> {
     const keyring = await this.loadKeyring();
     return Object.keys(keyring);
   }
 
   // WiGLE API specific
-  async setWigleCredentials(apiName, apiToken) {
+  async setWigleCredentials(apiName: string, apiToken: string): Promise<void> {
     await this.setCredential('wigle_api_name', apiName);
     await this.setCredential('wigle_api_token', apiToken);
     const encoded = Buffer.from(`${apiName}:${apiToken}`).toString('base64');
     await this.setCredential('wigle_api_encoded', encoded);
   }
 
-  async getWigleCredentials() {
+  async getWigleCredentials(): Promise<WigleCredentials | null> {
     const apiName = await this.getCredential('wigle_api_name');
     const apiToken = await this.getCredential('wigle_api_token');
     const encoded = await this.getCredential('wigle_api_encoded');
@@ -128,10 +148,10 @@ class FileKeyringService {
       return null;
     }
 
-    return { apiName, apiToken, encoded };
+    return { apiName, apiToken, encoded: encoded || '' };
   }
 
-  async testWigleCredentials() {
+  async testWigleCredentials(): Promise<WigleTestResult> {
     const creds = await this.getWigleCredentials();
     if (!creds) {
       return { success: false, error: 'No credentials stored' };
@@ -146,18 +166,18 @@ class FileKeyringService {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as any; // API response shape is unknown
         return { success: true, user: data.user };
       } else {
         return { success: false, error: `HTTP ${response.status}` };
       }
-    } catch (error) {
+    } catch (error: any) {
       return { success: false, error: error.message };
     }
   }
 
   // Mapbox tokens (supports multiple with labels)
-  async setMapboxToken(token, label = 'default') {
+  async setMapboxToken(token: string, label: string = 'default'): Promise<void> {
     const key = `mapbox_token_${label}`;
     await this.setCredential(key, token);
     const primary = await this.getCredential('mapbox_primary');
@@ -166,7 +186,7 @@ class FileKeyringService {
     }
   }
 
-  async getMapboxToken(label = null) {
+  async getMapboxToken(label?: string): Promise<string | null> {
     if (!label) {
       label = (await this.getCredential('mapbox_primary')) || 'default';
     }
@@ -185,7 +205,7 @@ class FileKeyringService {
     return token;
   }
 
-  async listMapboxTokens() {
+  async listMapboxTokens(): Promise<MapboxTokenInfo[]> {
     const all = await this.listCredentials();
     const tokens = all.filter((k) => k.startsWith('mapbox_token_'));
     const primary = await this.getCredential('mapbox_primary');
@@ -195,13 +215,13 @@ class FileKeyringService {
     }));
   }
 
-  async setPrimaryMapboxToken(label) {
+  async setPrimaryMapboxToken(label: string): Promise<void> {
     await this.setCredential('mapbox_primary', label);
   }
 
-  async deleteMapboxToken(label) {
+  async deleteMapboxToken(label: string): Promise<void> {
     await this.deleteCredential(`mapbox_token_${label}`);
   }
 }
 
-module.exports = new FileKeyringService();
+export = new FileKeyringService();

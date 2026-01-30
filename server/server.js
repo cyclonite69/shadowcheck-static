@@ -1,3 +1,6 @@
+// Register TypeScript support
+require('ts-node/register');
+
 (async () => {
   try {
     // ============================================================================
