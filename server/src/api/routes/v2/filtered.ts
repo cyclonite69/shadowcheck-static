@@ -3,47 +3,133 @@
  * Single source of truth for list, map, analytics, and observation queries.
  */
 
+import type { Request, Response, NextFunction } from 'express';
+
 const express = require('express');
 const router = express.Router();
 const {
   UniversalFilterQueryBuilder,
   validateFilterPayload,
 } = require('../../../services/filterQueryBuilder');
-const { query, pool } = require('../../../config/database');
+const { query } = require('../../../config/database');
 const logger = require('../../../logging/logger');
 
-const DEBUG_ANALYTICS = false;
-const DEBUG_GEOSPATIAL = process.env.DEBUG_GEOSPATIAL === 'true';
-const ANALYTICS_TIMEOUT_MS = 45000; // Increased from 15s to 45s for large datasets
+// Type definitions
 
-const parseJsonParam = (value, fallback, name) => {
+interface Filters {
+  [key: string]: unknown;
+}
+
+interface EnabledFlags {
+  distanceFromHomeMin?: boolean;
+  distanceFromHomeMax?: boolean;
+  [key: string]: boolean | undefined;
+}
+
+interface ValidationResult {
+  errors: string[];
+}
+
+interface QueryResult<T = unknown> {
+  rows: T[];
+  rowCount: number | null;
+}
+
+interface FilterQueryResult {
+  sql: string;
+  params: unknown[];
+  appliedFilters: string[];
+  ignoredFilters: string[];
+  warnings: string[];
+}
+
+interface ThreatObject {
+  score?: number;
+  level?: string;
+  flags?: string[];
+  signals?: ThreatSignal[];
+}
+
+interface ThreatSignal {
+  code?: string;
+  rule?: string;
+  evidence?: Record<string, unknown> | unknown;
+}
+
+interface ThreatEvidence {
+  rule: string;
+  observedValue: unknown;
+  threshold: unknown;
+}
+
+interface ThreatTransparency {
+  threatReasons: string[];
+  threatEvidence: ThreatEvidence[];
+  transparencyError: boolean;
+}
+
+interface NetworkRow {
+  bssid: string;
+  ssid: string | null;
+  lat: number;
+  lon: number;
+  threat?: ThreatObject;
+  [key: string]: unknown;
+}
+
+interface GeospatialRow {
+  bssid: string;
+  ssid: string | null;
+  lat: number;
+  lon: number;
+  level: number | null;
+  accuracy: number | null;
+  altitude: number | null;
+  time: Date | null;
+  obs_number: number | null;
+  radio_frequency: number | null;
+  radio_capabilities: string | null;
+  radio_type: string | null;
+  threat?: ThreatObject;
+}
+
+interface HomeCheckRow {
+  exists: number;
+}
+
+const DEBUG_GEOSPATIAL = process.env.DEBUG_GEOSPATIAL === 'true';
+
+const parseJsonParam = <T>(value: string | undefined, fallback: T, name: string): T => {
   if (!value) {
     return fallback;
   }
   try {
-    return JSON.parse(value);
+    return JSON.parse(value) as T;
   } catch {
     throw new Error(`Invalid JSON for ${name}`);
   }
 };
 
-const normalizeThreatTransparency = (threat) => {
-  const threatObj = threat && typeof threat === 'object' ? threat : {};
+const normalizeThreatTransparency = (threat: unknown): ThreatTransparency => {
+  const threatObj = threat && typeof threat === 'object' ? (threat as ThreatObject) : {};
   const flags = Array.isArray(threatObj.flags) ? threatObj.flags : [];
   const signals = Array.isArray(threatObj.signals) ? threatObj.signals : [];
 
-  let reasons = flags.length > 0 ? flags : signals.map((s) => s.code).filter(Boolean);
+  let reasons = flags.length > 0 ? flags : (signals.map((s) => s.code).filter(Boolean) as string[]);
 
-  const evidence = signals.map((signal) => {
+  const evidence: ThreatEvidence[] = signals.map((signal) => {
     const rule = signal.code || signal.rule || 'UNKNOWN';
+    const signalEvidence = signal.evidence;
     const observedValue =
-      signal && signal.evidence && typeof signal.evidence === 'object'
-        ? Object.keys(signal.evidence).length === 1
-          ? signal.evidence[Object.keys(signal.evidence)[0]]
-          : JSON.stringify(signal.evidence)
-        : (signal.evidence ?? null);
+      signalEvidence && typeof signalEvidence === 'object'
+        ? Object.keys(signalEvidence as Record<string, unknown>).length === 1
+          ? (signalEvidence as Record<string, unknown>)[
+              Object.keys(signalEvidence as Record<string, unknown>)[0]
+            ]
+          : JSON.stringify(signalEvidence)
+        : (signalEvidence ?? null);
 
-    let threshold = null;
+    let threshold: unknown = null;
     if (rule === 'EXCESSIVE_MOVEMENT') {
       threshold = 0.2;
     }
@@ -78,7 +164,7 @@ const normalizeThreatTransparency = (threat) => {
   };
 };
 
-const buildOrderBy = (sort, order) => {
+const buildOrderBy = (sort: string | undefined, order: string | undefined): string => {
   const sortColumns = String(sort || 'last_seen')
     .split(',')
     .map((v) => v.trim().toLowerCase())
@@ -87,7 +173,7 @@ const buildOrderBy = (sort, order) => {
     .split(',')
     .map((v) => v.trim().toLowerCase());
 
-  const map = {
+  const map: Record<string, string> = {
     observed_at: 'l.observed_at',
     last_observed_at: 'r.last_observed_at',
     first_observed_at: 'r.first_observed_at',
@@ -118,12 +204,12 @@ const buildOrderBy = (sort, order) => {
   return clauses.length > 0 ? clauses.join(', ') : `${map.last_seen} DESC`;
 };
 
-const assertHomeExistsIfNeeded = async (enabled, res) => {
+const assertHomeExistsIfNeeded = async (enabled: EnabledFlags, res: Response): Promise<boolean> => {
   if (!enabled.distanceFromHomeMin && !enabled.distanceFromHomeMax) {
     return true;
   }
   try {
-    const home = await query(
+    const home: QueryResult<HomeCheckRow> = await query(
       "SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
     );
     if (home.rowCount === 0) {
@@ -135,7 +221,8 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
     }
     return true;
   } catch (err) {
-    if (err && err.code === '42P01') {
+    const error = err as { code?: string };
+    if (error && error.code === '42P01') {
       res.status(400).json({
         ok: false,
         error: 'Home location markers table is missing (app.location_markers).',
@@ -147,17 +234,18 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
 };
 
 // GET /api/v2/networks/filtered
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let filters;
-    let enabled;
+    let filters: Filters;
+    let enabled: EnabledFlags;
     try {
-      filters = parseJsonParam(req.query.filters, {}, 'filters');
-      enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
+      filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
+      enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
     } catch (err) {
-      return res.status(400).json({ ok: false, error: err.message });
+      const error = err as Error;
+      return res.status(400).json({ ok: false, error: error.message });
     }
-    const { errors } = validateFilterPayload(filters, enabled);
+    const { errors }: ValidationResult = validateFilterPayload(filters, enabled);
     if (errors.length > 0) {
       return res.status(400).json({ ok: false, errors });
     }
@@ -166,20 +254,19 @@ router.get('/', async (req, res, next) => {
       return;
     }
 
-    const limit = Math.min(parseInt(req.query.limit, 10) || 500, 5000);
-    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
-    const orderBy = buildOrderBy(req.query.sort, req.query.order);
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500, 5000);
+    const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
+    const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
-    const { sql, params, appliedFilters, ignoredFilters, warnings } = builder.buildNetworkListQuery(
-      {
+    const { sql, params, appliedFilters, ignoredFilters, warnings }: FilterQueryResult =
+      builder.buildNetworkListQuery({
         limit,
         offset,
         orderBy,
-      }
-    );
+      });
 
-    const result = await query(sql, params);
+    const result: QueryResult<NetworkRow> = await query(sql, params);
     const rows = result.rows || [];
 
     const enriched = rows.map((row) => {
@@ -193,9 +280,12 @@ router.get('/', async (req, res, next) => {
     });
 
     const countBuilder = new UniversalFilterQueryBuilder(filters, enabled);
-    const countQuery = countBuilder.buildNetworkCountQuery();
-    const countResult = await query(countQuery.sql, countQuery.params);
-    const total = parseInt(countResult.rows[0]?.total || 0, 10);
+    const countQuery: FilterQueryResult = countBuilder.buildNetworkCountQuery();
+    const countResult: QueryResult<{ total: string }> = await query(
+      countQuery.sql,
+      countQuery.params
+    );
+    const total = parseInt(countResult.rows[0]?.total || '0', 10);
 
     const enabledCount = Object.values(enabled).filter(Boolean).length;
     const threatIssues = enriched.filter((r) => r.threatTransparencyError).length;
@@ -235,17 +325,18 @@ router.get('/', async (req, res, next) => {
 });
 
 // GET /api/v2/networks/filtered/geospatial
-router.get('/geospatial', async (req, res, next) => {
+router.get('/geospatial', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let filters;
-    let enabled;
+    let filters: Filters;
+    let enabled: EnabledFlags;
     try {
-      filters = parseJsonParam(req.query.filters, {}, 'filters');
-      enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
+      filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
+      enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
     } catch (err) {
-      return res.status(400).json({ ok: false, error: err.message });
+      const error = err as Error;
+      return res.status(400).json({ ok: false, error: error.message });
     }
-    const { errors } = validateFilterPayload(filters, enabled);
+    const { errors }: ValidationResult = validateFilterPayload(filters, enabled);
     if (errors.length > 0) {
       return res.status(400).json({ ok: false, errors });
     }
@@ -254,17 +345,22 @@ router.get('/geospatial', async (req, res, next) => {
       return;
     }
 
-    const limit = Math.min(parseInt(req.query.limit, 10) || 5000, 500000);
-    const selectedBssids = parseJsonParam(req.query.bssids, [], 'bssids');
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 5000, 500000);
+    const selectedBssids = parseJsonParam<string[]>(
+      req.query.bssids as string | undefined,
+      [],
+      'bssids'
+    );
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
-    const { sql, params, appliedFilters, ignoredFilters, warnings } = builder.buildGeospatialQuery({
-      limit,
-      selectedBssids,
-    });
+    const { sql, params, appliedFilters, ignoredFilters, warnings }: FilterQueryResult =
+      builder.buildGeospatialQuery({
+        limit,
+        selectedBssids,
+      });
 
     const start = Date.now();
-    const result = await query(sql, params);
+    const result: QueryResult<GeospatialRow> = await query(sql, params);
     const durationMs = Date.now() - start;
 
     if (DEBUG_GEOSPATIAL || durationMs > 2000) {
@@ -325,17 +421,18 @@ router.get('/geospatial', async (req, res, next) => {
 });
 
 // GET /api/v2/networks/filtered/observations
-router.get('/observations', async (req, res, next) => {
+router.get('/observations', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let filters;
-    let enabled;
+    let filters: Filters;
+    let enabled: EnabledFlags;
     try {
-      filters = parseJsonParam(req.query.filters, {}, 'filters');
-      enabled = parseJsonParam(req.query.enabled, {}, 'enabled');
+      filters = parseJsonParam(req.query.filters as string | undefined, {}, 'filters');
+      enabled = parseJsonParam(req.query.enabled as string | undefined, {}, 'enabled');
     } catch (err) {
-      return res.status(400).json({ ok: false, error: err.message });
+      const error = err as Error;
+      return res.status(400).json({ ok: false, error: error.message });
     }
-    const { errors } = validateFilterPayload(filters, enabled);
+    const { errors }: ValidationResult = validateFilterPayload(filters, enabled);
     if (errors.length > 0) {
       return res.status(400).json({ ok: false, errors });
     }
@@ -344,13 +441,20 @@ router.get('/observations', async (req, res, next) => {
       return;
     }
 
-    const limit = Math.min(parseInt(req.query.limit, 10) || 500000, 1000000);
-    const selectedBssids = parseJsonParam(req.query.bssids, [], 'bssids');
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500000, 1000000);
+    const selectedBssids = parseJsonParam<string[]>(
+      req.query.bssids as string | undefined,
+      [],
+      'bssids'
+    );
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled);
-    const { sql, params, appliedFilters } = builder.buildGeospatialQuery({ limit, selectedBssids });
+    const { sql, params, appliedFilters }: FilterQueryResult = builder.buildGeospatialQuery({
+      limit,
+      selectedBssids,
+    });
     const start = Date.now();
-    const result = await query(sql, params);
+    const result: QueryResult = await query(sql, params);
     const durationMs = Date.now() - start;
 
     if (DEBUG_GEOSPATIAL || durationMs > 2000) {
@@ -379,7 +483,7 @@ router.get('/observations', async (req, res, next) => {
 });
 
 // GET /api/v2/networks/filtered/analytics
-router.get('/analytics', async (req, res, next) => {
+router.get('/analytics', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     // Simple working response with correct threat thresholds
     res.json({
@@ -433,7 +537,7 @@ router.get('/analytics', async (req, res, next) => {
 });
 
 // Debug route
-router.get('/debug', (req, res) => {
+router.get('/debug', (_req: Request, res: Response) => {
   res.json({ message: 'Debug route works', timestamp: new Date().toISOString() });
 });
 
