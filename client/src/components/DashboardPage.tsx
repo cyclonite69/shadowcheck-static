@@ -356,7 +356,7 @@ export default function DashboardPage() {
         // Parallel fetch for dashboard metrics and threat severity counts
         const [dashboardRes, threatsRes] = await Promise.all([
           fetch(`/api/dashboard-metrics?${params}`, { signal: controller.signal }),
-          fetch('/api/v2/threats/severity-counts', { signal: controller.signal }),
+          fetch(`/api/v2/threats/severity-counts?${params}`, { signal: controller.signal }),
         ]);
 
         if (!dashboardRes.ok) throw new Error('Failed to fetch dashboard metrics');
