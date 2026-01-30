@@ -1,9 +1,123 @@
+import type { Request, Response, NextFunction } from 'express';
+
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 
+// Type definitions
+
+type SortKey =
+  | 'observed_at'
+  | 'ssid'
+  | 'bssid'
+  | 'signal'
+  | 'frequency'
+  | 'observations'
+  | 'threat_score'
+  | 'threat_level';
+
+type ThreatLevel = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW' | 'NONE';
+type AllowedSeverity = 'critical' | 'high' | 'med' | 'low' | 'none';
+
+interface QueryResult<T = unknown> {
+  rows: T[];
+  rowCount: number | null;
+}
+
+interface NetworkListRow {
+  bssid: string;
+  ssid: string | null;
+  lat: number | null;
+  lon: number | null;
+  latest_signal: number | null;
+  accuracy: number | null;
+  latest_time: Date | null;
+  frequency: number | null;
+  capabilities: string | null;
+  obs_count: string;
+  first_seen: Date | null;
+  last_seen: Date | null;
+  final_threat_score: string | null;
+  final_threat_level: ThreatLevel | null;
+  model_version: string | null;
+  total: string;
+}
+
+interface NetworkDetailRow {
+  bssid: string;
+  ssid: string | null;
+  lat: number | null;
+  lon: number | null;
+  signal: number | null;
+  accuracy: number | null;
+  observed_at: Date | null;
+  frequency: number | null;
+  capabilities: string | null;
+  altitude: number | null;
+}
+
+interface TimelineRow {
+  bucket: Date;
+  obs_count: string;
+  avg_signal: number | null;
+  min_signal: number | null;
+  max_signal: number | null;
+}
+
+interface ThreatDataRow {
+  bssid: string;
+  final_threat_score: number | null;
+  final_threat_level: ThreatLevel | null;
+  model_version: string | null;
+  ml_threat_probability: number | null;
+  created_at: Date | null;
+  updated_at: Date | null;
+}
+
+interface CountRow {
+  count: string;
+}
+
+interface FirstLastRow {
+  first_seen: Date | null;
+  last_seen: Date | null;
+}
+
+interface ThreatCountRow {
+  critical: string | null;
+  high: string | null;
+  medium: string | null;
+  low: string | null;
+}
+
+interface DashboardCountRow {
+  total_networks: string;
+  observations: string;
+}
+
+interface ThreatMapRow {
+  bssid: string;
+  ssid: string | null;
+  severity: string | null;
+  threat_score: number | null;
+  first_seen: Date | null;
+  last_seen: Date | null;
+  lat: number | null;
+  lon: number | null;
+  observation_count: number;
+}
+
+interface ObservationMapRow {
+  bssid: string;
+  lat: number | null;
+  lon: number | null;
+  observed_at: Date | null;
+  rssi: number | null;
+  severity: string | null;
+}
+
 // Map frontend sort keys to SQL columns
-const SORT_MAP = {
+const SORT_MAP: Record<SortKey, string> = {
   observed_at: 'latest_time',
   ssid: 'ssid',
   bssid: 'bssid',
@@ -14,17 +128,17 @@ const SORT_MAP = {
   threat_level: 'final_threat_level',
 };
 
-router.get('/v2/networks', async (req, res, next) => {
+router.get('/v2/networks', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 500, 5000);
-    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500, 5000);
+    const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
     const search = req.query.search ? String(req.query.search).trim() : '';
-    const sort = (req.query.sort || 'observed_at').toLowerCase();
-    const order = (req.query.order || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const sort = ((req.query.sort as string) || 'observed_at').toLowerCase() as SortKey;
+    const order = ((req.query.order as string) || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     const sortColumn = SORT_MAP[sort] || SORT_MAP.observed_at;
 
-    const params = [];
-    const where = [];
+    const params: (string | number)[] = [];
+    const where: string[] = [];
     if (search) {
       params.push(`%${search}%`, `%${search}%`);
       where.push(
@@ -84,7 +198,7 @@ router.get('/v2/networks', async (req, res, next) => {
       LIMIT $${params.length - 1} OFFSET $${params.length};
     `;
 
-    const result = await query(sql, params);
+    const result: QueryResult<NetworkListRow> = await query(sql, params);
     res.json({
       total: result.rows[0]?.total || 0,
       rows: result.rows.map((row) => ({
@@ -110,7 +224,7 @@ router.get('/v2/networks', async (req, res, next) => {
   }
 });
 
-router.get('/v2/networks/:bssid', async (req, res, next) => {
+router.get('/v2/networks/:bssid', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const bssid = String(req.params.bssid || '').toUpperCase();
 
@@ -134,7 +248,7 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
         LIMIT 1
         `,
         [bssid]
-      ),
+      ) as Promise<QueryResult<NetworkDetailRow>>,
       query(
         `
         SELECT
@@ -150,7 +264,7 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
         LIMIT 168
         `,
         [bssid]
-      ),
+      ) as Promise<QueryResult<TimelineRow>>,
       query(
         `
         SELECT
@@ -165,15 +279,15 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
         WHERE bssid = $1
         `,
         [bssid]
-      ),
+      ) as Promise<QueryResult<ThreatDataRow>>,
     ]);
 
-    const obsCount = await query(
+    const obsCount: QueryResult<CountRow> = await query(
       'SELECT COUNT(*) as count FROM app.observations WHERE bssid = $1',
       [bssid]
     );
 
-    const firstLast = await query(
+    const firstLast: QueryResult<FirstLastRow> = await query(
       `
       SELECT MIN(time) as first_seen, MAX(time) as last_seen
       FROM app.observations
@@ -195,9 +309,9 @@ router.get('/v2/networks/:bssid', async (req, res, next) => {
   }
 });
 
-router.get('/v2/dashboard/metrics', async (_req, res, next) => {
+router.get('/v2/dashboard/metrics', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const threatCounts = await query(
+    const threatCounts: QueryResult<ThreatCountRow> = await query(
       `
       SELECT
         SUM(CASE WHEN nts.final_threat_level = 'CRITICAL' THEN 1 ELSE 0 END) AS critical,
@@ -209,7 +323,7 @@ router.get('/v2/dashboard/metrics', async (_req, res, next) => {
       `
     );
 
-    const counts = await query(
+    const counts: QueryResult<DashboardCountRow> = await query(
       `
       SELECT
         (SELECT COUNT(DISTINCT bssid) FROM app.observations) as total_networks,
@@ -224,10 +338,10 @@ router.get('/v2/dashboard/metrics', async (_req, res, next) => {
         wifi: parseInt(counts.rows[0]?.total_networks) || 0,
       },
       threats: {
-        critical: parseInt(threatCounts.rows[0]?.critical) || 0,
-        high: parseInt(threatCounts.rows[0]?.high) || 0,
-        medium: parseInt(threatCounts.rows[0]?.medium) || 0,
-        low: parseInt(threatCounts.rows[0]?.low) || 0,
+        critical: parseInt(threatCounts.rows[0]?.critical || '0') || 0,
+        high: parseInt(threatCounts.rows[0]?.high || '0') || 0,
+        medium: parseInt(threatCounts.rows[0]?.medium || '0') || 0,
+        low: parseInt(threatCounts.rows[0]?.low || '0') || 0,
       },
       observations: parseInt(counts.rows[0]?.observations) || 0,
       ssid_history: 0,
@@ -240,15 +354,15 @@ router.get('/v2/dashboard/metrics', async (_req, res, next) => {
 });
 
 // Threat + observation map payload
-router.get('/v2/threats/map', async (req, res, next) => {
+router.get('/v2/threats/map', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const severity = (req.query.severity || '').toLowerCase();
-    const allowedSeverities = ['critical', 'high', 'med', 'low', 'none'];
+    const severity = ((req.query.severity as string) || '').toLowerCase() as AllowedSeverity;
+    const allowedSeverities: AllowedSeverity[] = ['critical', 'high', 'med', 'low', 'none'];
     const severityFilter =
       severity && allowedSeverities.includes(severity) ? 'AND nts.final_threat_level = $1' : '';
-    const params = severityFilter ? [severity.toUpperCase()] : [];
+    const params: (string | number)[] = severityFilter ? [severity.toUpperCase()] : [];
 
-    const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 180);
+    const days = Math.min(Math.max(parseInt(req.query.days as string, 10) || 30, 1), 180);
     params.push(days);
 
     const threatsSql = `
@@ -288,8 +402,8 @@ router.get('/v2/threats/map', async (req, res, next) => {
     `;
 
     const [threats, observations] = await Promise.all([
-      query(threatsSql, params),
-      query(observationsSql, params),
+      query(threatsSql, params) as Promise<QueryResult<ThreatMapRow>>,
+      query(observationsSql, params) as Promise<QueryResult<ObservationMapRow>>,
     ]);
 
     res.json({

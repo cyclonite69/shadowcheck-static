@@ -3,28 +3,71 @@
  * Handles threat detection endpoints
  */
 
+import type { Request, Response } from 'express';
+
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const logger = require('../../../logging/logger');
+
+// Type definitions
+
+type ThreatLevel = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW' | 'NONE';
+type ThreatCategory = 'critical' | 'high' | 'medium' | 'low';
+
+interface Filters {
+  threatCategories?: ThreatCategory[];
+  [key: string]: unknown;
+}
+
+interface EnabledFlags {
+  threatCategories?: boolean;
+  [key: string]: boolean | undefined;
+}
+
+interface QueryResult<T = unknown> {
+  rows: T[];
+  rowCount: number | null;
+}
+
+interface SeverityCountRow {
+  severity: ThreatLevel | null;
+  unique_networks: string;
+  total_observations: string;
+}
+
+interface SeverityCounts {
+  critical: { unique_networks: number; total_observations: number };
+  high: { unique_networks: number; total_observations: number };
+  medium: { unique_networks: number; total_observations: number };
+  low: { unique_networks: number; total_observations: number };
+  none: { unique_networks: number; total_observations: number };
+}
+
+const ThreatLevelMap: Record<ThreatCategory, ThreatLevel> = {
+  critical: 'CRITICAL',
+  high: 'HIGH',
+  medium: 'MED',
+  low: 'LOW',
+};
 
 /**
  * GET /api/v2/threats/severity-counts
  * Returns the count of networks by threat severity.
  * Respects current filters including threat level filtering.
  */
-router.get('/threats/severity-counts', async (req, res) => {
+router.get('/threats/severity-counts', async (req: Request, res: Response) => {
   try {
     // Parse filters from query parameters
-    const filtersParam = req.query.filters;
-    const enabledParam = req.query.enabled;
+    const filtersParam = req.query.filters as string | undefined;
+    const enabledParam = req.query.enabled as string | undefined;
 
-    let filters = {};
-    let enabled = {};
+    let filters: Filters = {};
+    let enabled: EnabledFlags = {};
 
     if (filtersParam) {
       try {
-        filters = JSON.parse(filtersParam);
+        filters = JSON.parse(filtersParam) as Filters;
       } catch (_e) {
         logger.warn('Invalid filters parameter:', filtersParam);
       }
@@ -32,7 +75,7 @@ router.get('/threats/severity-counts', async (req, res) => {
 
     if (enabledParam) {
       try {
-        enabled = JSON.parse(enabledParam);
+        enabled = JSON.parse(enabledParam) as EnabledFlags;
       } catch (_e) {
         logger.warn('Invalid enabled parameter:', enabledParam);
       }
@@ -40,23 +83,15 @@ router.get('/threats/severity-counts', async (req, res) => {
 
     // Build WHERE clause for threat level filtering
     let whereClause = '';
-    const params = [];
+    const params: unknown[] = [];
 
     if (
       enabled.threatCategories &&
       Array.isArray(filters.threatCategories) &&
       filters.threatCategories.length > 0
     ) {
-      // Map frontend threat categories to database values
-      const threatLevelMap = {
-        critical: 'CRITICAL',
-        high: 'HIGH',
-        medium: 'MED',
-        low: 'LOW',
-      };
-
       const dbThreatLevels = filters.threatCategories
-        .map((cat) => threatLevelMap[cat])
+        .map((cat) => ThreatLevelMap[cat])
         .filter(Boolean);
 
       if (dbThreatLevels.length > 0) {
@@ -79,7 +114,7 @@ router.get('/threats/severity-counts', async (req, res) => {
       }
     }
 
-    const result = await query(
+    const result: QueryResult<SeverityCountRow> = await query(
       `
       SELECT
         CASE
@@ -107,7 +142,7 @@ router.get('/threats/severity-counts', async (req, res) => {
     );
 
     // Transform to standard format { critical: { unique_networks: N, total_observations: M }, ... }
-    const counts = {
+    const counts: SeverityCounts = {
       critical: { unique_networks: 0, total_observations: 0 },
       high: { unique_networks: 0, total_observations: 0 },
       medium: { unique_networks: 0, total_observations: 0 },
@@ -124,16 +159,18 @@ router.get('/threats/severity-counts', async (req, res) => {
       if (sev === 'med' || sev === 'medium') {
         counts.medium.unique_networks += unique;
         counts.medium.total_observations += total;
-      } else if (counts[sev]) {
-        counts[sev].unique_networks += unique;
-        counts[sev].total_observations += total;
+      } else if (sev in counts) {
+        const key = sev as keyof SeverityCounts;
+        counts[key].unique_networks += unique;
+        counts[key].total_observations += total;
       }
     });
 
     res.json({ counts });
   } catch (error) {
-    logger.error(`Threat severity counts error: ${error.message}`, { error });
-    res.status(500).json({ error: error.message });
+    const err = error as Error;
+    logger.error(`Threat severity counts error: ${err.message}`, { error });
+    res.status(500).json({ error: err.message });
   }
 });
 
