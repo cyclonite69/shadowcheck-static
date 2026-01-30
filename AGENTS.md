@@ -3,8 +3,9 @@
 ## Project Structure & Modules
 
 - `server/server.js` orchestrates Express initialization; `server/src/api/` holds all modular routes and DB access; keep shared logic in `server/src/services/` and `server/src/repositories/`.
+- **TypeScript Migration Complete**: Server utilities, middleware, ETL scripts, and build tools are now TypeScript with proper type safety.
 - Frontend lives in `client/` (React/Vite entry `client/src/main.tsx`, routing in `client/src/App.tsx`); legacy HTML has been archived under `docs/archive/legacy-html/public/`.
-- Data pipelines sit in `etl/` (modular load/transform/promote SQL) and `sql/migrations/` (canonical order documented in `sql/migrations/README.md`); keep staging tables UNLOGGED.
+- Data pipelines sit in `etl/` (modular load/transform/promote TypeScript) and `sql/migrations/` (canonical order documented in `sql/migrations/README.md`); keep staging tables UNLOGGED.
 - Docs live under `docs/`; prefer updating Markdown there instead of scattering new files in root.
 
 ## Build, Test, and Development Commands

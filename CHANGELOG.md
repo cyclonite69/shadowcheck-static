@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Complete TypeScript migration for 60+ files (server utilities, middleware, ETL scripts, build tools)
+- Production build pipeline with compiled TypeScript server for Docker deployment
+- Comprehensive type safety with interfaces for database operations, API responses, and service layers
+- TypeScript configuration files (tsconfig.json, tsconfig.server.json)
 - OpenAPI 3.0 specification for comprehensive API documentation
 - Husky pre-commit hooks with ESLint, Prettier, and secret detection
 - Node.js version management with `.nvmrc` file
@@ -17,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Build optimization: Frontend and server compile separately with proper path resolution
 - Improved development workflow with automated code quality checks
 - Networks API now uses latest observation data instead of aggregated materialized view
 - Max distance calculation uses real PostGIS ST_Distance instead of signal strength arithmetic
@@ -24,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Analytics card display: Removed incorrect "0 Total Observations" from navigation cards
+- Dashboard threat level filtering: Threat severity counts now properly respect active filter selections
+- Frontend dist path resolution for compiled server in Docker containers
 - GeoSpatial table page showing incorrect default values (signal: 0 dBm, channel: 0, frequency: 0 MHz)
 - Analytics widgets failures (Temporal Activity, Radio Types Over Time, Threat Score Trends)
 - Max distance calculation returning ~238m instead of real geographic distances
