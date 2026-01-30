@@ -64,7 +64,7 @@ require('ts-node').register({
     // ============================================================================
     // 9. STATIC FILES
     // ============================================================================
-    const distPath = path.join(__dirname, '..', 'dist');
+    const distPath = process.env.FRONTEND_DIST || path.resolve(process.cwd(), 'dist');
     mountStaticAssets(app, distPath);
 
     // ============================================================================
