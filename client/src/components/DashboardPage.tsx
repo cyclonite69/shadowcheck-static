@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { logError } from '../logging/clientLogger';
 import { FilterButton } from './FilterButton';
-import { FilterPanelWrapper } from './FilterPanelWrapper';
+import { FilterPanelContainer } from './FilterPanelContainer';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { usePageFilters } from '../hooks/usePageFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
@@ -559,7 +559,7 @@ export default function DashboardPage() {
       </div>
 
       <FilterButton isOpen={showFilters} onClick={() => setShowFilters(!showFilters)} />
-      <FilterPanelWrapper isOpen={showFilters} adaptedFilters={adaptedFilters} />
+      <FilterPanelContainer isOpen={showFilters} adaptedFilters={adaptedFilters} />
 
       <div className="relative flex-1 overflow-y-auto h-screen">
         <div className="relative min-h-[2400px]">

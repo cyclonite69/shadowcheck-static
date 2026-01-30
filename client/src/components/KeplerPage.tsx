@@ -9,7 +9,7 @@ import { getPageCapabilities } from '../utils/filterCapabilities';
 import { logDebug, logError, logWarn } from '../logging/clientLogger';
 import { HamburgerButton } from './HamburgerButton';
 import { ControlPanel } from './ControlPanel';
-import { KeplerFilterPanel } from './KeplerFilterPanel';
+import { FilterPanelContainer } from './FilterPanelContainer';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 
 declare global {
@@ -678,7 +678,11 @@ const KeplerPage: React.FC = () => {
         </div>
       </ControlPanel>
 
-      <KeplerFilterPanel isOpen={showFilters && showMenu} adaptedFilters={adaptedFilters} />
+      <FilterPanelContainer
+        isOpen={showFilters && showMenu}
+        adaptedFilters={adaptedFilters}
+        position="overlay"
+      />
 
       {/* Map Area */}
       <section className="flex-1 min-h-0 h-full relative">

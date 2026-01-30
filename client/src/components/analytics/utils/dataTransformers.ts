@@ -10,9 +10,9 @@ export const transformNetworkTypesData = (rawData: any[]) => {
 
   return rawData
     .map((item) => ({
-      name: item.network_type,
+      name: item.type || item.network_type,
       value: Number(item.count),
-      color: NETWORK_TYPE_COLORS[item.network_type] || '#64748b',
+      color: NETWORK_TYPE_COLORS[item.type || item.network_type] || '#64748b',
     }))
     .filter((item) => !isNaN(item.value) && item.value > 0);
 };
@@ -22,7 +22,7 @@ export const transformSignalStrengthData = (rawData: any[]) => {
   if (!rawData || !Array.isArray(rawData)) return [];
 
   return rawData.map((item) => ({
-    range: `${item.signal_range} dBm`,
+    range: `${item.range || item.signal_range} dBm`,
     count: Number(item.count),
   }));
 };
@@ -33,9 +33,9 @@ export const transformSecurityData = (rawData: any[]) => {
 
   return rawData
     .map((item) => ({
-      name: item.security_type,
+      name: item.type || item.security_type,
       value: Number(item.count),
-      color: SECURITY_TYPE_COLORS[item.security_type] || '#64748b',
+      color: SECURITY_TYPE_COLORS[item.type || item.security_type] || '#64748b',
     }))
     .filter((item) => !isNaN(item.value) && item.value > 0);
 };
@@ -44,9 +44,18 @@ export const transformSecurityData = (rawData: any[]) => {
 export const transformThreatDistributionData = (rawData: any[]) => {
   if (!rawData || !Array.isArray(rawData)) return [];
 
+  const severityColors: Record<string, string> = {
+    '80-100': '#ef4444', // Critical
+    '60-80': '#f97316', // High
+    '40-60': '#eab308', // Med
+    '20-40': '#22c55e', // Low
+    '0-20': '#94a3b8', // None
+  };
+
   return rawData.map((item) => ({
     range: item.range,
     count: Number(item.count),
+    color: severityColors[item.range] || '#ef4444',
   }));
 };
 
@@ -73,7 +82,7 @@ export const transformRadioTimeData = (rawData: any[]) => {
     if (!radioTimeMap.has(dateKey)) {
       radioTimeMap.set(dateKey, { label: dateKey });
     }
-    radioTimeMap.get(dateKey)[item.network_type] = Number(item.count);
+    radioTimeMap.get(dateKey)[item.type] = Number(item.count);
   });
   return Array.from(radioTimeMap.values());
 };
@@ -87,9 +96,11 @@ export const transformThreatTrendsData = (rawData: any[]) => {
       month: 'short',
       day: 'numeric',
     }),
-    avgScore: Number(item.avg_score),
-    criticalCount: Number(item.critical_count),
-    highCount: Number(item.high_count),
+    avgScore: Number.isFinite(Number(item.avgScore)) ? Number(item.avgScore) : 0,
+    criticalCount: Number(item.criticalCount) || 0,
+    highCount: Number(item.highCount) || 0,
+    mediumCount: Number(item.mediumCount) || 0,
+    lowCount: Number(item.lowCount) || 0,
   }));
 };
 
@@ -100,14 +111,14 @@ export const transformTopNetworksData = (rawData: any[]) => {
   return rawData.map((item) => ({
     bssid: item.bssid,
     ssid: item.ssid || '(hidden)',
-    observations: Number(item.observation_count),
+    observations: Number.isFinite(Number(item.observations)) ? Number(item.observations) : 0,
   }));
 };
 
 // Transform severity counts for bar/pie chart
 export const transformSeverityCounts = (counts: any) => {
   if (!counts) return [];
-  const severities = ['critical', 'high', 'medium', 'low'];
+  const severities = ['critical', 'high', 'medium', 'low', 'none'];
   return severities.map((sev) => ({
     name: sev.charAt(0).toUpperCase() + sev.slice(1),
     value: counts[sev]?.unique_networks || 0,
@@ -153,6 +164,8 @@ export interface ThreatTrendsData {
   avgScore: number;
   criticalCount: number;
   highCount: number;
+  mediumCount: number;
+  lowCount: number;
 }
 
 export interface TopNetworksData {

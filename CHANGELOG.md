@@ -12,10 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenAPI 3.0 specification for comprehensive API documentation
 - Husky pre-commit hooks with ESLint, Prettier, and secret detection
 - Node.js version management with `.nvmrc` file
+- Manufacturer field population via radio_manufacturers table JOIN
+- Comprehensive regression tests for networks API data integrity
 
 ### Changed
 
 - Improved development workflow with automated code quality checks
+- Networks API now uses latest observation data instead of aggregated materialized view
+- Max distance calculation uses real PostGIS ST_Distance instead of signal strength arithmetic
+- WiGLE observations table schema updated from 'public' to 'app' namespace
+
+### Fixed
+
+- GeoSpatial table page showing incorrect default values (signal: 0 dBm, channel: 0, frequency: 0 MHz)
+- Analytics widgets failures (Temporal Activity, Radio Types Over Time, Threat Score Trends)
+- Max distance calculation returning ~238m instead of real geographic distances
+- Threat score column sorting issues (rule_score, ml_score, ml_weight, ml_boost columns)
+- WiGLE observation points not rendering due to schema mismatch
+- Manufacturer field population with proper OUI prefix matching from BSSID MAC addresses
+- Frontend data transformer field name mismatches (network_type → type, avg_score → avgScore)
+- Missing API calls for temporal, radio-time, and threat-trends analytics endpoints
 
 ## [1.0.0] - 2025-12-10
 

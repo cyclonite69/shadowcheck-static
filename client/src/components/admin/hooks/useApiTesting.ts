@@ -21,11 +21,12 @@ export interface ApiPreset {
 }
 
 const API_PRESETS: ApiPreset[] = [
-  // --- Core & Dashboard ---
-  { label: 'Health', path: '/health', method: 'GET' },
-  { label: 'Dashboard Metrics (v2)', path: '/api/v2/dashboard/metrics', method: 'GET' },
+  // --- Geospatial ---
+  { label: 'Mapbox Token', path: '/api/mapbox-token', method: 'GET' },
+  { label: 'Google Maps Token', path: '/api/google-maps-token', method: 'GET' },
+  { label: 'Home Location', path: '/api/home-location', method: 'GET' },
 
-  // --- Networks V2 ---
+  // --- Networks & Filtered (v2) ---
   {
     label: 'Networks List (v2)',
     path: '/api/v2/networks',
@@ -33,13 +34,13 @@ const API_PRESETS: ApiPreset[] = [
     inputs: [
       { name: 'limit', label: 'Limit', defaultValue: '10', type: 'number' },
       { name: 'offset', label: 'Offset', defaultValue: '0', type: 'number' },
-      { name: 'search', label: 'Search', placeholder: 'SSID' },
+      { name: 'search', label: 'Search', placeholder: 'SSID/BSSID' },
       {
         name: 'sort',
         label: 'Sort',
         defaultValue: 'observed_at',
         type: 'select',
-        options: ['observed_at', 'signal', 'threat_score'],
+        options: ['observed_at', 'signal', 'threat_score', 'observations'],
       },
     ],
   },
@@ -49,6 +50,28 @@ const API_PRESETS: ApiPreset[] = [
     method: 'GET',
     inputs: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
   },
+  {
+    label: 'Universal Filter: List',
+    path: '/api/v2/networks/filtered',
+    method: 'GET',
+    inputs: [
+      { name: 'limit', label: 'Limit', defaultValue: '10', type: 'number' },
+      { name: 'filters', label: 'Filters (JSON)', defaultValue: '{"ssid":""}' },
+      { name: 'enabled', label: 'Enabled (JSON)', defaultValue: '{"ssid":false}' },
+    ],
+  },
+  {
+    label: 'Universal Filter: Geo',
+    path: '/api/v2/networks/filtered/geospatial',
+    method: 'GET',
+    inputs: [
+      { name: 'limit', label: 'Limit', defaultValue: '100', type: 'number' },
+      { name: 'filters', label: 'Filters (JSON)', defaultValue: '{}' },
+      { name: 'enabled', label: 'Enabled (JSON)', defaultValue: '{}' },
+    ],
+  },
+
+  // --- Threat Analysis ---
   {
     label: 'Threat Map (v2)',
     path: '/api/v2/threats/map',
@@ -64,11 +87,40 @@ const API_PRESETS: ApiPreset[] = [
       },
     ],
   },
+  { label: 'Threat Severity Counts', path: '/api/v2/threats/severity-counts', method: 'GET' },
+  {
+    label: 'Set Network Tag',
+    path: '/api/network-tags/:bssid/threat',
+    method: 'POST',
+    inputs: [
+      { name: 'bssid', label: 'BSSID', placeholder: '00:11:22...' },
+      {
+        name: 'threat_tag',
+        label: 'Tag',
+        defaultValue: 'SUSPECT',
+        type: 'select',
+        options: ['THREAT', 'SUSPECT', 'FALSE_POSITIVE', 'INVESTIGATE'],
+      },
+    ],
+    defaultBody: '{\n  "threat_tag": "SUSPECT",\n  "threat_confidence": 0.7\n}',
+  },
+
+  // --- Analytics (v2) ---
+  {
+    label: 'Analytics: Filtered',
+    path: '/api/v2/networks/filtered/analytics',
+    method: 'GET',
+    inputs: [
+      { name: 'filters', label: 'Filters (JSON)', defaultValue: '{}' },
+      { name: 'enabled', label: 'Enabled (JSON)', defaultValue: '{}' },
+    ],
+  },
+  { label: 'Analytics: Legacy Dashboard', path: '/api/analytics/dashboard', method: 'GET' },
 
   // --- WiGLE ---
   { label: 'WiGLE Status', path: '/api/wigle/api-status', method: 'GET' },
   {
-    label: 'WiGLE Search (v2)',
+    label: 'WiGLE Search',
     path: '/api/wigle/search',
     method: 'GET',
     inputs: [
@@ -77,11 +129,11 @@ const API_PRESETS: ApiPreset[] = [
     ],
   },
   {
-    label: 'WiGLE Detail (v3)',
+    label: 'WiGLE Detail & Import',
     path: '/api/wigle/detail/:netid',
     method: 'POST',
     inputs: [
-      { name: 'netid', label: 'Network ID (BSSID)', placeholder: '00:11:22:33:44:55' },
+      { name: 'netid', label: 'Network ID', placeholder: '00:11:22:33:44:55' },
       {
         name: 'import',
         label: 'Import?',
@@ -91,12 +143,6 @@ const API_PRESETS: ApiPreset[] = [
       },
     ],
     defaultBody: '{\n  "import": false\n}',
-  },
-  {
-    label: 'WiGLE Map Data (v3)',
-    path: '/api/wigle/networks-v3',
-    method: 'GET',
-    inputs: [{ name: 'limit', label: 'Limit', defaultValue: '1000', type: 'number' }],
   },
 
   // --- Machine Learning ---
@@ -117,45 +163,12 @@ const API_PRESETS: ApiPreset[] = [
     ],
     defaultBody: '{\n  "limit": 100,\n  "overwrite_final": true\n}',
   },
-  {
-    label: 'ML Score (Single)',
-    path: '/api/ml/scores/:bssid',
-    method: 'GET',
-    inputs: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22...' }],
-  },
 
-  // --- Analytics ---
-  { label: 'Analytics: Dashboard', path: '/api/analytics/dashboard', method: 'GET' },
-  { label: 'Analytics: Network Types', path: '/api/analytics/network-types', method: 'GET' },
-  { label: 'Analytics: Signal Dist', path: '/api/analytics/signal-strength', method: 'GET' },
-  {
-    label: 'Analytics: Top Networks',
-    path: '/api/analytics/top-networks',
-    method: 'GET',
-    inputs: [{ name: 'limit', label: 'Limit', defaultValue: '10' }],
-  },
-  {
-    label: 'Analytics: Threat Trends',
-    path: '/api/analytics/threat-trends',
-    method: 'GET',
-    inputs: [
-      {
-        name: 'range',
-        label: 'Range',
-        defaultValue: '30d',
-        type: 'select',
-        options: ['24h', '7d', '30d', '90d'],
-      },
-    ],
-  },
-
-  // --- Geospatial ---
-  { label: 'Mapbox Token', path: '/api/mapbox-token', method: 'GET' },
-
-  // --- Export ---
+  // --- System ---
+  { label: 'App Settings', path: '/api/settings', method: 'GET' },
   {
     label: 'Export CSV',
-    path: '/api/export/csv',
+    path: '/api/csv',
     method: 'GET',
     inputs: [{ name: 'limit', label: 'Limit', defaultValue: '100' }],
   },

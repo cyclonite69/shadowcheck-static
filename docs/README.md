@@ -144,6 +144,14 @@ docs/
 - Docker issues → [Deployment Guide](DEPLOYMENT.md)
 - Test failures → [Development Guide](DEVELOPMENT.md)
 
+**Recent Fixes:**
+
+- [Recent Fixes Quick Reference](RECENT_FIXES_QUICK_REF.md) - Quick verification commands and summary
+- [Recent Fixes Troubleshooting Guide](TROUBLESHOOTING_RECENT_FIXES.md) - Solutions for recently resolved issues
+- GeoSpatial data integrity issues → [Recent Fixes Guide](TROUBLESHOOTING_RECENT_FIXES.md#geospatial-table-issues)
+- Analytics widgets failures → [Recent Fixes Guide](TROUBLESHOOTING_RECENT_FIXES.md#analytics-widgets-failures)
+- Distance calculation problems → [Recent Fixes Guide](TROUBLESHOOTING_RECENT_FIXES.md#distance-calculation-issues)
+
 **Historical Issues:**
 
 - [Archived Troubleshooting](archive/TROUBLESHOOTING_2025-12-06.md)
@@ -186,6 +194,8 @@ Historical documentation and completed initiatives:
 | Configure secrets           | [Secrets Management](security/SECRETS_MANAGEMENT.md)            |
 | Understand threat detection | [Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)       |
 | Use the API                 | [API Reference](API_REFERENCE.md)                               |
+| Troubleshoot recent issues  | [Recent Fixes Quick Ref](RECENT_FIXES_QUICK_REF.md)             |
+| Verify recent fixes         | [Recent Fixes Troubleshooting](TROUBLESHOOTING_RECENT_FIXES.md) |
 
 ## 📚 Full Index
 

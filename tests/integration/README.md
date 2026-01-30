@@ -1,18 +1,59 @@
-# Integration Tests - SQL Injection Fixes
+# Integration Tests
 
 ## Overview
+
+Comprehensive integration tests covering critical security fixes and data integrity validations for ShadowCheck.
+
+## Test Suites
+
+### 1. SQL Injection Fixes (44 tests)
 
 Comprehensive integration tests for the 3 critical SQL injection vulnerabilities fixed in:
 
 - `src/repositories/baseRepository.js`
 - `src/repositories/networkRepository.js`
 
-## Test Results
+**Test Results:**
 
 ```
 Test Suites: 1 passed, 1 total
 Tests:       44 passed, 44 total
 Time:        ~0.77s
+```
+
+### 2. Networks API Data Integrity (New)
+
+Regression tests for recently fixed data integrity issues:
+
+- GeoSpatial table data accuracy
+- Analytics endpoints functionality
+- Distance calculation correctness
+- Manufacturer field population
+- WiGLE observations rendering
+
+**Test Coverage:**
+
+- ✅ Networks API returns valid data structure
+- ✅ Signal, frequency, channel values are realistic (not 0)
+- ✅ Distance calculations use PostGIS functions
+- ✅ Manufacturer fields populated via OUI matching
+- ✅ Analytics endpoints return proper data formats
+
+## Running Tests
+
+```bash
+# Run all integration tests
+npm run test:integration
+
+# Run specific test suites
+npm test -- tests/integration/sql-injection-fixes.test.js
+npm test -- tests/integration/networks-data-integrity.test.js
+
+# Run with coverage
+npm test -- tests/integration/ --coverage
+
+# Run in watch mode
+npm test -- tests/integration/ --watch
 ```
 
 ## Test Coverage

@@ -33,6 +33,7 @@ npx jest --testNamePattern="pattern" # Tests matching pattern
 # Linting (run before commits)
 npm run lint                        # Check issues
 npm run lint:fix                    # Auto-fix issues
+npm run lint:boundaries             # Check client/server import boundaries
 # Note: Avoid `npm run format` unless explicitly needed - it reformats unrelated files
 
 # Database access
@@ -71,6 +72,14 @@ client/
 
 - **Backend**: CommonJS, Dependency Injection (`server/src/config/container.js`), Repository pattern
 - **Frontend**: ES modules, TypeScript, Functional components, Zustand for state
+- **Universal Filter System**: `filterStore.ts` + `useAdaptedFilters` hook powers filtering across all pages (Dashboard, Geospatial, Kepler, WiGLE). Filters are URL-synced and page-scoped via `getPageCapabilities()`.
+
+**Map Pages Architecture**:
+
+- `GeospatialExplorer` - Mapbox GL JS with custom observation layers, network context menus
+- `KeplerPage` - deck.gl ScatterplotLayer/HeatmapLayer/HexagonLayer for large datasets
+- `WiglePage` - Mapbox GL JS with WiGLE API integration (v2 search, v3 detail)
+- All use `renderNetworkTooltip.ts` for consistent tooltip rendering
 
 ## Database Schema
 
@@ -81,11 +90,21 @@ PostgreSQL 18 with PostGIS. Network types: `W` (WiFi), `E` (BLE), `B` (Bluetooth
 - `public.networks` - Network metadata (bssid, ssid, type, frequency, bestlevel, bestlat/bestlon, lasttime_ms)
 - `public.observations` - Observation records with location data
 - `app.location_markers` - Home/work locations for threat analysis
+- `app.network_tags` - Manual network classifications (threat, false_positive, known_safe)
+
+**Database Users** (security separation):
+
+- `shadowcheck_user` - Read-only access for queries (used by default `query()`)
+- `shadowcheck_admin` - Write access for imports, tagging, backups (use `adminDbService`)
 
 ```javascript
-// Always use parameterized queries
+// Read operations (default)
 const { query } = require('../config/database');
 const result = await query('SELECT * FROM public.networks WHERE bssid = $1', [bssid.toUpperCase()]);
+
+// Write operations (admin only)
+const adminDb = require('../services/adminDbService');
+await adminDb.query('INSERT INTO app.network_tags ...', params);
 ```
 
 ## Code Patterns
@@ -131,8 +150,8 @@ Networks scored on: seen at home AND away (+40 pts), distance range >200m (+25 p
 
 ## Key Configuration
 
-**Required Secrets**: `db_password`, `mapbox_token`
-**Optional**: `wigle_api_key`, `locationiq_api_key`, `opencage_api_key`
+**Required Secrets**: `db_password`, `db_admin_password`, `mapbox_token`
+**Optional**: `wigle_api_key`, `wigle_api_name`, `wigle_api_token`, `locationiq_api_key`, `opencage_api_key`, `google_maps_api_key`
 
 **Constants**: `THREAT_THRESHOLD`: 40, `MAX_PAGE_SIZE`: 5000, `RATE_LIMIT`: 1000 req/15min
 
@@ -143,6 +162,26 @@ Networks scored on: seen at home AND away (+40 pts), distance range >200m (+25 p
 3. Add data access to repository in `server/src/repositories/`
 4. Register services in `server/src/config/container.js` (if needed)
 5. Import and mount route in `server/server.js`
+
+**Existing route modules**: `admin`, `analytics`, `auth`, `backup`, `dashboard`, `explorer`, `export`, `geospatial`, `health`, `kepler`, `location-markers`, `ml`, `networks`, `network-tags`, `settings`, `threats`, `wigle`
+
+## ETL Pipeline
+
+Data ingestion via `etl/` directory with modular stages:
+
+```bash
+node etl/run-pipeline.js              # Run full ETL pipeline
+
+# Individual stages
+node etl/load/json-import.js          # Import WiGLE JSON
+node etl/load/sqlite-import.js        # Import from Kismet SQLite
+node etl/transform/deduplicate.js     # Deduplicate observations
+node etl/transform/normalize-observations.js  # Normalize data
+node etl/promote/refresh-mviews.js    # Refresh materialized views
+node etl/promote/run-scoring.js       # Run threat scoring
+```
+
+Staging tables are UNLOGGED for ingestion speed.
 
 ## ML Model Training
 
@@ -176,3 +215,17 @@ python3 scripts/keyring/get-keyring-password.py key  # Get secret
 - Check data exists: `SELECT COUNT(*) FROM public.networks;`
 - Verify home location set in `app.location_markers`
 - Check if filters are active (displayed in UI)
+
+**Admin Operations Failing (500 errors on tags/imports)**:
+
+- Ensure `db_admin_password` secret is configured
+- Verify migration applied: `sql/migrations/20260129_implement_db_security.sql`
+- Check Docker secret file permissions: `chmod 644 secrets/db_admin_password.txt`
+
+## Key Frontend Utilities
+
+- `client/src/utils/geospatial/renderNetworkTooltip.ts` - Unified tooltip for all map pages
+- `client/src/utils/mapHelpers.ts` - Signal range calculations, coordinate formatting
+- `client/src/hooks/useNetworkData.ts` - Network list fetching with `formatSecurity()` helper
+- `client/src/stores/filterStore.ts` - Zustand store for universal filters
+- `client/src/constants/network.ts` - `MAP_STYLES`, `NETWORK_TYPE_CONFIG`, column definitions
