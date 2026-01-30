@@ -1,6 +1,0 @@
---2026-01-30 00:04:17--  https://vault.bitwarden.com/download/?app=desktop
-Resolving vault.bitwarden.com (vault.bitwarden.com)... 199.232.193.91, 199.232.197.91, 2a04:4e42:4c::347, ...
-Connecting to vault.bitwarden.com (vault.bitwarden.com)|199.232.193.91|:443... connected.
-HTTP request sent, awaiting response... 400 Bad Request
-2026-01-30 00:04:17 ERROR 400: Bad Request.
-
