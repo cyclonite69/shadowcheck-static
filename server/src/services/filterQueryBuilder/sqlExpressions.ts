@@ -3,7 +3,7 @@
  * Reusable SQL CASE expressions for radio type, security, and channel inference.
  */
 
-const OBS_TYPE_EXPR = (alias = 'o') => `
+const OBS_TYPE_EXPR = (alias = 'o'): string => `
   COALESCE(${alias}.radio_type, CASE
     WHEN ${alias}.radio_frequency BETWEEN 2412 AND 2484 THEN 'W'
     WHEN ${alias}.radio_frequency BETWEEN 5000 AND 5900 THEN 'W'
@@ -16,7 +16,7 @@ const OBS_TYPE_EXPR = (alias = 'o') => `
   END)
 `;
 
-const SECURITY_EXPR = (alias = 'o') => `
+const SECURITY_EXPR = (alias = 'o'): string => `
   CASE
     WHEN COALESCE(${alias}.radio_capabilities, '') = '' THEN 'OPEN'
     WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
@@ -36,7 +36,7 @@ const SECURITY_EXPR = (alias = 'o') => `
   END
 `;
 
-const AUTH_EXPR = (alias = 'o') => `
+const AUTH_EXPR = (alias = 'o'): string => `
   CASE
     WHEN UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT|ENT)' THEN 'Enterprise'
     WHEN UPPER(${alias}.radio_capabilities) ~ '(SAE)' THEN 'SAE'
@@ -47,7 +47,7 @@ const AUTH_EXPR = (alias = 'o') => `
   END
 `;
 
-const WIFI_CHANNEL_EXPR = (alias = 'o') => `
+const WIFI_CHANNEL_EXPR = (alias = 'o'): string => `
   CASE
     WHEN ${alias}.radio_frequency BETWEEN 2412 AND 2484 THEN
       CASE
@@ -60,7 +60,7 @@ const WIFI_CHANNEL_EXPR = (alias = 'o') => `
   END
 `;
 
-const NETWORK_CHANNEL_EXPR = (alias = 'ne') => `
+const NETWORK_CHANNEL_EXPR = (alias = 'ne'): string => `
   CASE
     WHEN ${alias}.frequency BETWEEN 2412 AND 2484 THEN
       CASE
@@ -76,7 +76,7 @@ const NETWORK_CHANNEL_EXPR = (alias = 'ne') => `
 // Uses app.get_threat_score() function which reads ml_blending_enabled setting
 // When ML blending disabled: uses rule_based_score only
 // When ML blending enabled: blends rule_based * (1-weight) + ml * weight
-const THREAT_SCORE_EXPR = (ntsAlias = 'nts', ntAlias = 'nt') => `
+const THREAT_SCORE_EXPR = (ntsAlias = 'nts', ntAlias = 'nt'): string => `
   app.get_threat_score(
     ${ntsAlias}.rule_based_score,
     ${ntsAlias}.ml_threat_score,
@@ -85,7 +85,7 @@ const THREAT_SCORE_EXPR = (ntsAlias = 'nts', ntAlias = 'nt') => `
   )
 `;
 
-const THREAT_LEVEL_EXPR = (ntsAlias = 'nts', ntAlias = 'nt') => `
+const THREAT_LEVEL_EXPR = (ntsAlias = 'nts', ntAlias = 'nt'): string => `
   CASE
     WHEN ${ntAlias}.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
     WHEN ${ntAlias}.threat_tag = 'INVESTIGATE' THEN COALESCE(${ntsAlias}.final_threat_level, 'NONE')
@@ -101,7 +101,7 @@ const THREAT_LEVEL_EXPR = (ntsAlias = 'nts', ntAlias = 'nt') => `
   END
 `;
 
-module.exports = {
+export {
   OBS_TYPE_EXPR,
   SECURITY_EXPR,
   AUTH_EXPR,
