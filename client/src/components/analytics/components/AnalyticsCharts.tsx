@@ -94,17 +94,22 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
     if (!items || items.length === 0) return null;
     const total = items.reduce((sum, item) => sum + item.value, 0);
     return (
-      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-300">
-        {items.map((item) => {
-          const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
-          return (
-            <div key={`legend-${item.name}`} className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-              <span className="truncate">{item.name}</span>
-              <span className="ml-auto text-slate-400">{pct}%</span>
-            </div>
-          );
-        })}
+      <div className="mt-3 px-2">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px] text-slate-300">
+          {items.map((item) => {
+            const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
+            return (
+              <div key={`legend-${item.name}`} className="flex items-center gap-2 min-w-0">
+                <span
+                  className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="truncate flex-1">{item.name}</span>
+                <span className="text-slate-400 font-medium flex-shrink-0">{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };

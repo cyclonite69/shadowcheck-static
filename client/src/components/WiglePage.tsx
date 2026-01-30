@@ -319,6 +319,8 @@ const WiglePage: React.FC = () => {
           lat: e.lngLat.lat,
           lon: e.lngLat.lng,
           accuracy: props.accuracy,
+          threat_level: 'NONE',
+          threat_score: 0,
         });
 
         new mapboxgl.Popup({ offset: 12, className: 'sc-popup', maxWidth: '340px' })
