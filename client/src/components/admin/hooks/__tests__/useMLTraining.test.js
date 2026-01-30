@@ -42,26 +42,24 @@ describe('useMLTraining Hook', () => {
       await result.current.loadMLStatus();
     });
 
-    // Should set default fallback state
+    // Should set default status on error
     expect(result.current.mlStatus).toEqual({ modelTrained: false, taggedNetworks: [] });
   });
 
   it('should handle trainModel success', async () => {
-    const mockTrainResponse = {
+    const mockTrainResult = {
       ok: true,
-      trainingSamples: 100,
-      threatCount: 50,
-      safeCount: 50,
+      model: { accuracy: 0.95 },
+      message: 'Training successful',
     };
-    const mockStatus = { modelTrained: true, taggedNetworks: [] };
 
-    // Mock train call
+    // Mock the training API call
     global.fetch.mockResolvedValueOnce({
-      json: async () => mockTrainResponse,
+      json: async () => mockTrainResult,
     });
-    // Mock subsequent status reload
+    // Mock the status reload call
     global.fetch.mockResolvedValueOnce({
-      json: async () => mockStatus,
+      json: async () => ({ modelTrained: true, taggedNetworks: [] }),
     });
 
     const { result } = renderHook(() => useMLTraining());
@@ -72,22 +70,20 @@ describe('useMLTraining Hook', () => {
 
     expect(global.fetch).toHaveBeenCalledWith('/api/ml/train', { method: 'POST' });
     expect(result.current.mlResult).toEqual({
-      type: 'success',
-      message: 'Model trained successfully! 100 samples (50 threats, 50 safe)',
+      success: true,
+      data: mockTrainResult,
     });
     expect(result.current.mlLoading).toBe(false);
   });
 
   it('should handle trainModel failure from API', async () => {
-    const mockErrorResponse = {
+    const mockErrorResult = {
       ok: false,
-      error: 'Training failed',
+      error: 'Insufficient training data',
     };
 
     global.fetch.mockResolvedValueOnce({
-      json: async () => mockErrorResponse,
-      status: 400,
-      statusText: 'Bad Request',
+      json: async () => mockErrorResult,
     });
 
     const { result } = renderHook(() => useMLTraining());
@@ -97,8 +93,8 @@ describe('useMLTraining Hook', () => {
     });
 
     expect(result.current.mlResult).toEqual({
-      type: 'error',
-      message: 'Training failed',
+      success: false,
+      error: 'Insufficient training data',
     });
     expect(result.current.mlLoading).toBe(false);
   });
@@ -113,8 +109,8 @@ describe('useMLTraining Hook', () => {
     });
 
     expect(result.current.mlResult).toEqual({
-      type: 'error',
-      message: 'Network error: Network Error',
+      success: false,
+      error: 'Network Error',
     });
     expect(result.current.mlLoading).toBe(false);
   });

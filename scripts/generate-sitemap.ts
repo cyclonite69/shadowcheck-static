@@ -1,8 +1,14 @@
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface SitemapPage {
+  url: string;
+  priority: string;
+  changefreq: string;
+}
 
 const baseUrl = process.env.SITE_URL || 'https://yoursite.com';
-const pages = [
+const pages: SitemapPage[] = [
   { url: '/', priority: '1.0', changefreq: 'daily' },
   { url: '/dashboard', priority: '0.9', changefreq: 'daily' },
   { url: '/geospatial', priority: '0.8', changefreq: 'weekly' },
@@ -31,5 +37,8 @@ const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 ${urlEntries}
 </urlset>`;
 
-fs.writeFileSync(path.join(__dirname, '../client/public/sitemap.xml'), sitemap);
-console.log('[generate-sitemap] Sitemap generated successfully');
+const outputPath = path.join(__dirname, '../client/public/sitemap.xml');
+fs.writeFileSync(outputPath, sitemap);
+
+console.log(`[generate-sitemap] Generated sitemap with ${pages.length} pages`);
+console.log(`[generate-sitemap] Output: ${outputPath}`);

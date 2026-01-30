@@ -9,6 +9,7 @@ const compat = new FlatCompat({
 
 const ignores = [
   'dist/',
+  'client/dist/',
   'build/',
   'node_modules/',
   'coverage/',

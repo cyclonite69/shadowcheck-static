@@ -3,7 +3,7 @@ module.exports = {
   testEnvironment: 'node',
 
   // Test match patterns
-  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.test.js', '**/*.spec.js'],
+  testMatch: ['**/tests/**/*.test.{js,ts}', '**/__tests__/**/*.test.{js,ts}', '**/*.spec.{js,ts}'],
 
   // Coverage configuration
   collectCoverage: false, // Enable with --coverage flag
