@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import type mapboxglType from 'mapbox-gl';
 import { HamburgerButton } from './HamburgerButton';
 import { WigleControlPanel } from './WigleControlPanel';
-import { WigleFilterPanel } from './WigleFilterPanel';
+import { FilterPanelContainer } from './FilterPanelContainer';
 import { WigleMap } from './WigleMap';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
@@ -749,7 +749,11 @@ const WiglePage: React.FC = () => {
         onDataSourceChange={setDataSource}
       />
 
-      <WigleFilterPanel isOpen={showFilters && showMenu} adaptedFilters={adaptedFilters} />
+      <FilterPanelContainer
+        isOpen={showFilters && showMenu}
+        adaptedFilters={adaptedFilters}
+        position="overlay"
+      />
 
       <WigleMap
         mapContainerRef={mapContainerRef}

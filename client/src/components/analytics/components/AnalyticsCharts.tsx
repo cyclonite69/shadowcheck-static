@@ -322,7 +322,11 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
               />
               <YAxis tick={AXIS_CONFIG.tick} />
               <Tooltip {...TOOLTIP_CONFIG} />
-              <Bar dataKey="count" fill={CHART_COLORS.threatDistribution} {...BAR_CONFIG} />
+              <Bar dataKey="count" {...BAR_CONFIG}>
+                {data.threatDistribution.map((entry: any, index: number) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -385,8 +389,26 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                 dataKey="highCount"
                 stroke={CHART_COLORS.threatTrends.highCount}
                 strokeWidth={2}
-                name="High (70-79)"
+                name="High (60-79)"
                 dot={{ fill: CHART_COLORS.threatTrends.highCount, r: 2 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="mediumCount"
+                stroke={CHART_COLORS.threatTrends.mediumCount}
+                strokeWidth={2}
+                name="Med (40-59)"
+                dot={{ fill: CHART_COLORS.threatTrends.mediumCount, r: 2 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="lowCount"
+                stroke={CHART_COLORS.threatTrends.lowCount}
+                strokeWidth={2}
+                name="Low (20-39)"
+                dot={{ fill: CHART_COLORS.threatTrends.lowCount, r: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -409,7 +431,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                 <div className="text-xs text-slate-400 mt-0.5 truncate">{network.ssid}</div>
               </div>
               <div className="text-sm font-semibold text-blue-400 ml-3">
-                {network.observations.toLocaleString()}
+                {Number.isFinite(network.observations)
+                  ? network.observations.toLocaleString()
+                  : 'N/A'}
               </div>
             </div>
           ))}

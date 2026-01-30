@@ -85,11 +85,11 @@ async function getTemporalActivity(minTimestamp) {
     const { rows } = await query(
       `
       SELECT
-        EXTRACT(HOUR FROM last_seen) as hour,
+        EXTRACT(HOUR FROM o.time) as hour,
         COUNT(*) as count
-      FROM app.networks
-      WHERE last_seen IS NOT NULL
-        AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $1
+      FROM app.observations o
+      WHERE o.time IS NOT NULL
+        AND EXTRACT(EPOCH FROM o.time) * 1000 >= $1
       GROUP BY hour
       ORDER BY hour
     `,
@@ -118,33 +118,31 @@ async function getRadioTypeOverTime(range, minTimestamp) {
       WITH time_counts AS (
         SELECT
           CASE $1
-            WHEN '24h' THEN DATE_TRUNC('hour', last_seen)
-            WHEN '7d' THEN DATE(last_seen)
-            WHEN '30d' THEN DATE(last_seen)
-            WHEN '90d' THEN DATE(last_seen)
-            WHEN 'all' THEN DATE_TRUNC('week', last_seen)
+            WHEN '24h' THEN DATE_TRUNC('hour', o.time)
+            WHEN '7d' THEN DATE(o.time)
+            WHEN '30d' THEN DATE(o.time)
+            WHEN '90d' THEN DATE(o.time)
+            WHEN 'all' THEN DATE_TRUNC('week', o.time)
           END as date,
           CASE
-            WHEN type = 'W' THEN 'WiFi'
-            WHEN type = 'E' THEN 'BLE'
-            WHEN type = 'B' AND (frequency < 5000 OR capabilities LIKE '%BLE%') THEN 'BLE'
-            WHEN type = 'B' THEN 'BT'
-            WHEN type = 'L' THEN 'LTE'
-            WHEN type = 'N' THEN 'NR'
-            WHEN type = 'G' AND capabilities LIKE '%LTE%' THEN 'LTE'
-            WHEN type = 'G' THEN 'GSM'
+            WHEN o.radio_type = 'W' THEN 'WiFi'
+            WHEN o.radio_type = 'E' THEN 'BLE'
+            WHEN o.radio_type = 'B' THEN 'BT'
+            WHEN o.radio_type = 'L' THEN 'LTE'
+            WHEN o.radio_type = 'N' THEN 'NR'
+            WHEN o.radio_type = 'G' THEN 'GSM'
             ELSE 'Other'
           END as network_type,
-          COUNT(*) as count
-        FROM app.networks
-        WHERE last_seen IS NOT NULL
-          AND EXTRACT(EPOCH FROM last_seen) * 1000 >= $2
+          COUNT(DISTINCT o.bssid) as count
+        FROM app.observations o
+        WHERE o.time IS NOT NULL
+          AND EXTRACT(EPOCH FROM o.time) * 1000 >= $2
           AND CASE $1
                 WHEN 'all' THEN TRUE
-                WHEN '24h' THEN last_seen >= NOW() - INTERVAL '24 hours'
-                WHEN '7d' THEN last_seen >= NOW() - INTERVAL '7 days'
-                WHEN '30d' THEN last_seen >= NOW() - INTERVAL '30 days'
-                WHEN '90d' THEN last_seen >= NOW() - INTERVAL '90 days'
+                WHEN '24h' THEN o.time >= NOW() - INTERVAL '24 hours'
+                WHEN '7d' THEN o.time >= NOW() - INTERVAL '7 days'
+                WHEN '30d' THEN o.time >= NOW() - INTERVAL '30 days'
+                WHEN '90d' THEN o.time >= NOW() - INTERVAL '90 days'
                 ELSE FALSE
               END
         GROUP BY date, network_type
@@ -224,13 +222,16 @@ async function getTopNetworks(limit = 100) {
     const { rows } = await query(
       `
       SELECT
-        bssid,
-        ssid,
-        type,
-        bestlevel as signal,
-        lasttime_ms as last_seen
-      FROM app.networks
-      ORDER BY lasttime_ms DESC
+        ne.bssid,
+        ne.ssid,
+        ne.type,
+        ne.signal,
+        ne.observations,
+        ne.first_seen,
+        ne.last_seen
+      FROM app.api_network_explorer_mv ne
+      WHERE ne.observations > 0
+      ORDER BY ne.observations DESC, ne.last_seen DESC
       LIMIT $1
     `,
       [limit]
@@ -240,10 +241,10 @@ async function getTopNetworks(limit = 100) {
       bssid: row.bssid,
       ssid: row.ssid || '<Hidden>',
       type: row.type,
-      signal: row.signal,
-      observations: 1, // Summary table has 1 row per network
-      firstSeen: null,
-      lastSeen: new Date(parseInt(row.last_seen)).toISOString(),
+      signal: row.signal, // Keep as null if null
+      observations: parseInt(row.observations) || 0,
+      firstSeen: row.first_seen,
+      lastSeen: row.last_seen,
     }));
   } catch (error) {
     throw new DatabaseError(error, 'Failed to retrieve top networks');
@@ -370,35 +371,38 @@ async function getThreatTrends(range, minTimestamp) {
       WITH daily_threats AS (
         SELECT
           CASE $1
-            WHEN '24h' THEN DATE_TRUNC('hour', o.observed_at)
-            WHEN '7d' THEN DATE(o.observed_at)
-            WHEN '30d' THEN DATE(o.observed_at)
-            WHEN '90d' THEN DATE(o.observed_at)
-            WHEN 'all' THEN DATE_TRUNC('week', o.observed_at)
+            WHEN '24h' THEN DATE_TRUNC('hour', ne.last_seen)
+            WHEN '7d' THEN DATE(ne.last_seen)
+            WHEN '30d' THEN DATE(ne.last_seen)
+            WHEN '90d' THEN DATE(ne.last_seen)
+            WHEN 'all' THEN DATE_TRUNC('week', ne.last_seen)
           END as time_period,
-          o.bssid,
-          COALESCE(nts.final_threat_score, 0) as threat_score
-        FROM app.observations o
-        LEFT JOIN app.network_threat_scores nts ON nts.bssid = o.bssid
-        WHERE o.observed_at IS NOT NULL
-          AND EXTRACT(EPOCH FROM o.observed_at) * 1000 >= $2
+          ne.bssid,
+          ne.threat_score
+        FROM app.api_network_explorer_mv ne
+        WHERE ne.last_seen IS NOT NULL
+          AND ne.threat_score IS NOT NULL
+          AND EXTRACT(EPOCH FROM ne.last_seen) * 1000 >= $2
           AND CASE $1
                 WHEN 'all' THEN TRUE
-                WHEN '24h' THEN o.observed_at >= NOW() - INTERVAL '24 hours'
-                WHEN '7d' THEN o.observed_at >= NOW() - INTERVAL '7 days'
-                WHEN '30d' THEN o.observed_at >= NOW() - INTERVAL '30 days'
-                WHEN '90d' THEN o.observed_at >= NOW() - INTERVAL '90 days'
+                WHEN '24h' THEN ne.last_seen >= NOW() - INTERVAL '24 hours'
+                WHEN '7d' THEN ne.last_seen >= NOW() - INTERVAL '7 days'
+                WHEN '30d' THEN ne.last_seen >= NOW() - INTERVAL '30 days'
+                WHEN '90d' THEN ne.last_seen >= NOW() - INTERVAL '90 days'
                 ELSE FALSE
               END
-        GROUP BY time_period, o.bssid, nts.final_threat_score
-        HAVING COUNT(DISTINCT o.id) >= 3
       )
       SELECT
         time_period as date,
-        ROUND(AVG(threat_score)::numeric, 1) as avg_score,
-        COUNT(*) FILTER (WHERE threat_score >= 80) as critical_count,
-        COUNT(*) FILTER (WHERE threat_score >= 60 AND threat_score < 80) as high_count,
-        COUNT(*) FILTER (WHERE threat_score >= 40 AND threat_score < 60) as medium_count
+        CASE 
+          WHEN COUNT(*) > 0 THEN ROUND(AVG(threat_score::numeric), 1)
+          ELSE NULL
+        END as avg_score,
+        COUNT(CASE WHEN threat_score::numeric >= 80 THEN 1 END) as critical_count,
+        COUNT(CASE WHEN threat_score::numeric >= 60 AND threat_score::numeric < 80 THEN 1 END) as high_count,
+        COUNT(CASE WHEN threat_score::numeric >= 40 AND threat_score::numeric < 60 THEN 1 END) as medium_count,
+        COUNT(CASE WHEN threat_score::numeric >= 20 AND threat_score::numeric < 40 THEN 1 END) as low_count,
+        COUNT(*) as network_count
       FROM daily_threats
       GROUP BY time_period
       ORDER BY time_period
@@ -408,10 +412,12 @@ async function getThreatTrends(range, minTimestamp) {
 
     return rows.map((row) => ({
       date: row.date,
-      avgScore: parseFloat(row.avg_score),
-      criticalCount: parseInt(row.critical_count),
-      highCount: parseInt(row.high_count),
-      mediumCount: parseInt(row.medium_count),
+      avgScore: row.avg_score, // Keep as null if null
+      criticalCount: parseInt(row.critical_count) || 0,
+      highCount: parseInt(row.high_count) || 0,
+      mediumCount: parseInt(row.medium_count) || 0,
+      lowCount: parseInt(row.low_count) || 0,
+      networkCount: parseInt(row.network_count) || 0,
     }));
   } catch (error) {
     throw new DatabaseError(error, 'Failed to retrieve threat trends');

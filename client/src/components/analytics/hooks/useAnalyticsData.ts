@@ -76,68 +76,75 @@ export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataRet
       if (DEBUG_ANALYTICS) {
         console.info('[analytics] fetch start', { isAllTime });
       }
-      const params = new URLSearchParams({
-        filters: JSON.stringify(debouncedFilterState.filters),
-        enabled: JSON.stringify(debouncedFilterState.enabled),
-      });
-
-      // Parallel fetch for main analytics and severity counts
-      const [res, severityRes] = await Promise.all([
-        fetch(`/api/v2/networks/filtered/analytics?${params.toString()}`),
+      // Use working analytics endpoints with real data
+      const [
+        networkTypes,
+        signalStrength,
+        security,
+        topNetworks,
+        threatDist,
+        severityCounts,
+        temporal,
+        radioTime,
+        threatTrends,
+      ] = await Promise.all([
+        fetch('/api/analytics/network-types'),
+        fetch('/api/analytics/signal-strength'),
+        fetch('/api/analytics/security'),
+        fetch('/api/analytics/top-networks?limit=10'),
+        fetch('/api/analytics/threat-distribution'),
         fetch('/api/v2/threats/severity-counts'),
+        fetch('/api/analytics/temporal-activity'),
+        fetch('/api/analytics/radio-type-over-time?range=all'),
+        fetch('/api/analytics/threat-trends?range=all'),
       ]);
 
-      let payload = null;
+      let networkPayload = null;
+      let signalPayload = null;
+      let securityPayload = null;
+      let topNetworksPayload = null;
+      let threatPayload = null;
       let severityPayload = null;
+      let temporalPayload = null;
+      let radioTimePayload = null;
+      let threatTrendsPayload = null;
 
       try {
-        payload = await res.json();
-        if (severityRes.ok) severityPayload = await severityRes.json();
+        networkPayload = await networkTypes.json();
+        signalPayload = await signalStrength.json();
+        securityPayload = await security.json();
+        topNetworksPayload = await topNetworks.json();
+        threatPayload = await threatDist.json();
+        severityPayload = await severityCounts.json();
+        temporalPayload = await temporal.json();
+        radioTimePayload = await radioTime.json();
+        threatTrendsPayload = await threatTrends.json();
       } catch (parseError) {
-        payload = null;
+        networkPayload = null;
       }
-      if (!res.ok || payload?.ok === false) {
-        const message = payload?.message || payload?.error || `HTTP ${res.status}`;
-        // Don't throw error for all-time queries that timeout - let them show empty state
-        if (isAllTime && (res.status === 504 || message.includes('timeout'))) {
-          if (DEBUG_ANALYTICS) {
-            console.warn('[analytics] All-time query timed out, showing empty state');
-          }
-          // Return empty data instead of throwing
-          const emptyData: AnalyticsData = {
-            networkTypes: [],
-            signalStrength: [],
-            security: [],
-            threatDistribution: [],
-            temporal: [],
-            radioTime: [],
-            threatTrends: [],
-            topNetworks: [],
-            severityCounts: [],
-          };
-          setData(emptyData);
-          return;
-        }
+
+      if (!networkTypes.ok || networkPayload?.ok === false) {
+        const message =
+          networkPayload?.message || networkPayload?.error || `HTTP ${networkTypes.status}`;
         throw new Error(message);
       }
-      const rawData = payload.data || {};
 
-      // Transform and set all data types
+      // Transform real analytics data - no sample data
       const transformedData: AnalyticsData = {
-        networkTypes: rawData.networkTypes ? transformNetworkTypesData(rawData.networkTypes) : [],
-        signalStrength: rawData.signalStrength
-          ? transformSignalStrengthData(rawData.signalStrength)
+        networkTypes: networkPayload?.data ? transformNetworkTypesData(networkPayload.data) : [],
+        signalStrength: signalPayload?.data ? transformSignalStrengthData(signalPayload.data) : [],
+        security: securityPayload?.data ? transformSecurityData(securityPayload.data) : [],
+        threatDistribution: threatPayload?.data
+          ? transformThreatDistributionData(threatPayload.data)
           : [],
-        security: rawData.security ? transformSecurityData(rawData.security) : [],
-        threatDistribution: rawData.threatDistribution
-          ? transformThreatDistributionData(rawData.threatDistribution)
+        temporal: temporalPayload?.data ? transformTemporalData(temporalPayload.data) : [],
+        radioTime: radioTimePayload?.data ? transformRadioTimeData(radioTimePayload.data) : [],
+        threatTrends: threatTrendsPayload?.data
+          ? transformThreatTrendsData(threatTrendsPayload.data)
           : [],
-        temporal: rawData.temporalActivity ? transformTemporalData(rawData.temporalActivity) : [],
-        radioTime: rawData.radioTypeOverTime
-          ? transformRadioTimeData(rawData.radioTypeOverTime)
+        topNetworks: topNetworksPayload?.data
+          ? transformTopNetworksData(topNetworksPayload.data)
           : [],
-        threatTrends: rawData.threatTrends ? transformThreatTrendsData(rawData.threatTrends) : [],
-        topNetworks: rawData.topNetworks ? transformTopNetworksData(rawData.topNetworks) : [],
         severityCounts: severityPayload?.counts
           ? transformSeverityCounts(severityPayload.counts)
           : [],

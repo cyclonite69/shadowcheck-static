@@ -93,11 +93,46 @@ Advanced threat detection with speed calculations.
 
 ### GET /api/networks
 
-List networks with pagination.
+List networks with pagination and filtering.
 
 **Parameters:**
 
-- `page`, `limit`, `sort`, `order`
+- `page` (int, default: 1) - Page number
+- `limit` (int, default: 100, max: 5000) - Results per page
+- `sort` (string) - Sort field (bssid, ssid, last_seen, threat_score, etc.)
+- `order` (string) - Sort order (ASC, DESC)
+- `location_mode` (string) - Data source mode:
+  - `latest_observation` - Uses latest observation data (recommended)
+  - `aggregated` - Uses materialized view aggregated data
+- `distance_from_home` (float) - Filter by distance from home location
+
+**Response:**
+
+```json
+{
+  "networks": [
+    {
+      "bssid": "AA:BB:CC:DD:EE:FF",
+      "ssid": "MyNetwork",
+      "type": "W",
+      "signal": -45,
+      "frequency": 2437,
+      "channel": 6,
+      "manufacturer": "Apple Inc.",
+      "max_distance_meters": 1250.5,
+      "threat_score": 25,
+      "last_seen": "2026-01-30T06:30:19.059Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "total": 173326,
+    "totalPages": 1734
+  }
+}
+```
+
+**Note:** The API now uses latest observation data by default for accurate real-time information. Manufacturer fields are populated via OUI prefix matching from BSSID MAC addresses.
 
 ### GET /api/networks/observations/:bssid
 
@@ -150,19 +185,93 @@ Signal strength histogram.
 
 ### GET /api/analytics/temporal-activity
 
-Hourly observation patterns.
-
-### GET /api/analytics/security
-
-WiFi security type distribution.
-
-### GET /api/analytics/radio-type-over-time
-
-Network types over time.
+Hourly observation patterns over time.
 
 **Parameters:**
 
-- `range`: `24h`, `7d`, `30d`, `90d`, `all`
+- `range`: `24h`, `7d`, `30d`, `90d`, `all` (default: `all`)
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "hour": 0,
+      "observations": 1250
+    }
+  ]
+}
+```
+
+### GET /api/analytics/radio-type-over-time
+
+Network types distribution over time periods.
+
+**Parameters:**
+
+- `range`: `24h`, `7d`, `30d`, `90d`, `all` (default: `all`)
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "period": "2026-01-29",
+      "wifi": 1500,
+      "bluetooth": 250,
+      "cellular": 100
+    }
+  ]
+}
+```
+
+### GET /api/analytics/threat-trends
+
+Threat score trends over time.
+
+**Parameters:**
+
+- `range`: `24h`, `7d`, `30d`, `90d`, `all` (default: `all`)
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "period": "2026-01-29",
+      "avg_threat_score": 35.2,
+      "threat_count": 45
+    }
+  ]
+}
+```
+
+### GET /api/analytics/top-networks
+
+Top networks by observation count.
+
+**Parameters:**
+
+- `limit` (int, default: 10, max: 100) - Number of results
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "bssid": "AA:BB:CC:DD:EE:FF",
+      "ssid": "Popular Network",
+      "observations": 2500
+    }
+  ]
+}
+```
+
+**Note:** All analytics endpoints now properly handle null values and use appropriate data sources (materialized views for aggregated data, observations table for temporal data).
 
 ---
 
@@ -196,13 +305,71 @@ Remove home marker.
 
 ## WiGLE Integration
 
-### GET /api/wigle/network/:bssid
+### GET /api/networks/:bssid/wigle-observations
 
-Query WiGLE for network details.
+Get WiGLE observation data for a specific network.
 
-### GET /api/wigle/search
+**Response:**
 
-Search WiGLE database.
+```json
+{
+  "bssid": "AA:BB:CC:DD:EE:FF",
+  "observations": [
+    {
+      "lat": 40.7128,
+      "lon": -74.006,
+      "accuracy": 10,
+      "timestamp": "2026-01-30T06:30:19.059Z"
+    }
+  ],
+  "stats": {
+    "total": 15,
+    "accuracy_avg": 12.5
+  }
+}
+```
+
+### POST /api/networks/wigle-observations/batch
+
+Batch fetch WiGLE observations for multiple networks.
+
+**Request:**
+
+```json
+{
+  "bssids": ["AA:BB:CC:DD:EE:FF", "11:22:33:44:55:66"]
+}
+```
+
+**Response:**
+
+```json
+{
+  "results": [
+    {
+      "bssid": "AA:BB:CC:DD:EE:FF",
+      "observations": [...],
+      "stats": {...}
+    }
+  ]
+}
+```
+
+### GET /api/wigle/api-status
+
+Check WiGLE API connectivity and status.
+
+**Response:**
+
+```json
+{
+  "status": "connected",
+  "api_key_valid": true,
+  "rate_limit_remaining": 95
+}
+```
+
+**Note:** WiGLE observations now use the correct 'app' schema namespace instead of 'public'.
 
 ---
 
