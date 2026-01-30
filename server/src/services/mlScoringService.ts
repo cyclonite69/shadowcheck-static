@@ -1,21 +1,96 @@
 const { query } = require('../config/database');
 
+// Type definitions for ML scoring
+
+type ThreatLevel = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW' | 'NONE';
+type ThreatClass = 'THREAT' | 'LEGITIMATE';
+
+interface MLModelConfig {
+  coefficients: number[];
+  intercept: number;
+  feature_names: string[];
+  version: string | null;
+}
+
+interface NetworkFeatures {
+  distance_range_km: number;
+  unique_days: number;
+  observation_count: number;
+  max_signal: number;
+  unique_locations: number;
+  seen_both_locations: number;
+  [key: string]: number; // Index signature for dynamic feature access
+}
+
+interface NetworkRow {
+  bssid: string;
+  ssid: string | null;
+  observation_count: number | null;
+  unique_days: number | null;
+  unique_locations: number | null;
+  max_signal: number | null;
+  max_distance_km: number | null;
+  distance_from_home_km: number | null;
+  seen_at_home: boolean;
+  seen_away_from_home: boolean;
+  rule_based_score: number;
+  rule_based_flags: Record<string, unknown>;
+}
+
+interface NetworkScore {
+  bssid: string;
+  ml_threat_score: number;
+  ml_threat_probability: number;
+  ml_primary_class: ThreatClass;
+  ml_feature_values: string;
+  rule_based_score: number;
+  rule_based_flags: Record<string, unknown>;
+  final_threat_score: number;
+  final_threat_level: ThreatLevel;
+  model_version: string;
+}
+
+interface ScoringResult {
+  scored: number;
+  message: string;
+  modelVersion?: string;
+}
+
+interface ThreatScoreRow {
+  bssid: string;
+  final_threat_score: number;
+  final_threat_level: ThreatLevel;
+  ml_threat_score: number | null;
+  ml_threat_probability: number | null;
+  ml_primary_class: ThreatClass | null;
+  ml_feature_values: string | null;
+  rule_based_score: number | null;
+  rule_based_flags: Record<string, unknown> | null;
+  model_version: string | null;
+  scored_at: Date;
+  updated_at: Date | null;
+}
+
+interface QueryResult<T = unknown> {
+  rows: T[];
+  rowCount: number | null;
+}
+
 /**
  * ML Scoring Service
  * Applies trained ML model to all networks and precomputes threat scores
  */
-
 class MLScoringService {
   /**
    * Score all networks using the trained ML model
    * Run as background job, not on request path
    */
-  static async scoreAllNetworks() {
+  static async scoreAllNetworks(): Promise<ScoringResult> {
     try {
       // 1. Get the trained model
-      const modelResult = await query(
-        `SELECT coefficients, intercept, feature_names, version 
-         FROM app.ml_model_config 
+      const modelResult: QueryResult<MLModelConfig> = await query(
+        `SELECT coefficients, intercept, feature_names, version
+         FROM app.ml_model_config
          WHERE model_type = 'logistic_regression'`
       );
 
@@ -30,8 +105,8 @@ class MLScoringService {
       const intercept = model.intercept || 0;
 
       // 2. Get all networks to score with their features
-      const networksResult = await query(`
-        SELECT 
+      const networksResult: QueryResult<NetworkRow> = await query(`
+        SELECT
           ap.bssid,
           COALESCE(obs.ssid, ap.latest_ssid, '(hidden)') AS ssid,
           mv.observations AS observation_count,
@@ -53,11 +128,11 @@ class MLScoringService {
       `);
 
       const networks = networksResult.rows;
-      const scores = [];
+      const scores: NetworkScore[] = [];
 
       // 3. Score each network
       for (const network of networks) {
-        const features = {
+        const features: NetworkFeatures = {
           distance_range_km: network.max_distance_km || 0,
           unique_days: network.unique_days || 0,
           observation_count: network.observation_count || 0,
@@ -80,7 +155,7 @@ class MLScoringService {
         const finalScore = Math.max(threatScore, network.rule_based_score);
 
         // Determine threat level from final score
-        let threatLevel = 'NONE';
+        let threatLevel: ThreatLevel = 'NONE';
         if (finalScore >= 80) {
           threatLevel = 'CRITICAL';
         } else if (finalScore >= 60) {
@@ -110,18 +185,18 @@ class MLScoringService {
         const valuesPlaceholder = scores
           .map((_, i) => {
             const offset = i * 11;
-            return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, 
-                   $${offset + 5}, $${offset + 6}, $${offset + 7}, 
+            return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4},
+                   $${offset + 5}, $${offset + 6}, $${offset + 7},
                    $${offset + 8}, $${offset + 9}, $${offset + 10}, NOW())`;
           })
           .join(',');
 
         const insertQuery = `
-          INSERT INTO app.network_threat_scores 
-            (bssid, ml_threat_score, ml_threat_probability, ml_primary_class, 
-             ml_feature_values, rule_based_score, rule_based_flags, 
+          INSERT INTO app.network_threat_scores
+            (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
+             ml_feature_values, rule_based_score, rule_based_flags,
              final_threat_score, final_threat_level, model_version, scored_at)
-          VALUES 
+          VALUES
             ${valuesPlaceholder}
           ON CONFLICT (bssid) DO UPDATE SET
             ml_threat_score = EXCLUDED.ml_threat_score,
@@ -167,17 +242,23 @@ class MLScoringService {
   /**
    * Get threat score for a single network
    */
-  static async getNetworkThreatScore(bssid) {
-    const result = await query('SELECT * FROM app.network_threat_scores WHERE bssid = $1', [bssid]);
+  static async getNetworkThreatScore(bssid: string): Promise<ThreatScoreRow | null> {
+    const result: QueryResult<ThreatScoreRow> = await query(
+      'SELECT * FROM app.network_threat_scores WHERE bssid = $1',
+      [bssid]
+    );
     return result.rows[0] || null;
   }
 
   /**
    * Get networks by threat level
    */
-  static async getNetworksByThreatLevel(level, limit = 100) {
-    const result = await query(
-      `SELECT bssid, final_threat_score, final_threat_level, ml_threat_score, 
+  static async getNetworksByThreatLevel(
+    level: ThreatLevel,
+    limit: number = 100
+  ): Promise<ThreatScoreRow[]> {
+    const result: QueryResult<ThreatScoreRow> = await query(
+      `SELECT bssid, final_threat_score, final_threat_level, ml_threat_score,
               ml_threat_probability, scored_at
        FROM app.network_threat_scores
        WHERE final_threat_level = $1
@@ -191,13 +272,24 @@ class MLScoringService {
   /**
    * Clear old scores (optional cleanup)
    */
-  static async clearScores(olderThanDays = 30) {
-    const result = await query(
-      `DELETE FROM app.network_threat_scores 
+  static async clearScores(olderThanDays: number = 30): Promise<number> {
+    const result: QueryResult = await query(
+      `DELETE FROM app.network_threat_scores
        WHERE scored_at < NOW() - INTERVAL '${olderThanDays} days'`
     );
-    return result.rowCount;
+    return result.rowCount || 0;
   }
 }
 
 module.exports = MLScoringService;
+
+// Export types for consumers
+export type {
+  ThreatLevel,
+  ThreatClass,
+  MLModelConfig,
+  NetworkFeatures,
+  NetworkScore,
+  ScoringResult,
+  ThreatScoreRow,
+};
