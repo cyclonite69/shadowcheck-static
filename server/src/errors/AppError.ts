@@ -4,12 +4,45 @@
  * and safe error messages that don't expose sensitive information
  */
 
+interface ErrorJSON {
+  ok: false;
+  error: {
+    message: string;
+    code: string;
+    statusCode: number;
+    stack?: string;
+    name?: string;
+    details?: unknown;
+    retryAfter?: number;
+    database?: {
+      query: string | null;
+      detail: string | null;
+      code: string;
+    };
+    originalError?: {
+      message: string;
+      code: string;
+    };
+  };
+}
+
+interface DatabaseErrorLike {
+  query?: string;
+  detail?: string;
+  code?: string;
+  message: string;
+}
+
 /**
  * Base Application Error
  * All custom errors should extend this class
  */
 class AppError extends Error {
-  constructor(message, statusCode = 500, code = 'INTERNAL_ERROR') {
+  public readonly statusCode: number;
+  public readonly code: string;
+  public readonly timestamp: string;
+
+  constructor(message: string, statusCode: number = 500, code: string = 'INTERNAL_ERROR') {
     super(message);
     this.name = this.constructor.name;
     this.statusCode = statusCode;
@@ -24,8 +57,8 @@ class AppError extends Error {
    * Convert error to safe JSON response
    * Never includes stack trace or sensitive information in production
    */
-  toJSON(includeStack = false) {
-    const json = {
+  toJSON(includeStack: boolean = false): ErrorJSON {
+    const json: ErrorJSON = {
       ok: false,
       error: {
         message: this.message,
@@ -47,7 +80,7 @@ class AppError extends Error {
    * Get safe user-facing message
    * Different from internal message to avoid exposing system details
    */
-  getUserMessage() {
+  getUserMessage(): string {
     return this.message;
   }
 }
@@ -57,12 +90,14 @@ class AppError extends Error {
  * Thrown when input validation fails
  */
 class ValidationError extends AppError {
-  constructor(message, details = null) {
+  public readonly details: unknown;
+
+  constructor(message: string, details: unknown = null) {
     super(message, 400, 'VALIDATION_ERROR');
     this.details = details;
   }
 
-  toJSON(includeStack = false) {
+  toJSON(includeStack: boolean = false): ErrorJSON {
     const json = super.toJSON(includeStack);
     if (this.details) {
       json.error.details = this.details;
@@ -70,7 +105,7 @@ class ValidationError extends AppError {
     return json;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'Request validation failed. Please check your input and try again.';
   }
 }
@@ -80,12 +115,14 @@ class ValidationError extends AppError {
  * Thrown when requested resource doesn't exist
  */
 class NotFoundError extends AppError {
-  constructor(resource) {
+  public readonly resource: string;
+
+  constructor(resource: string) {
     super(`${resource} not found`, 404, 'NOT_FOUND');
     this.resource = resource;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return `The requested ${this.resource.toLowerCase()} could not be found.`;
   }
 }
@@ -95,11 +132,11 @@ class NotFoundError extends AppError {
  * Thrown when authentication fails
  */
 class UnauthorizedError extends AppError {
-  constructor(message = 'Authentication required') {
+  constructor(message: string = 'Authentication required') {
     super(message, 401, 'UNAUTHORIZED');
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'You must be authenticated to access this resource.';
   }
 }
@@ -109,11 +146,11 @@ class UnauthorizedError extends AppError {
  * Thrown when user lacks permissions
  */
 class ForbiddenError extends AppError {
-  constructor(message = 'Access denied') {
+  constructor(message: string = 'Access denied') {
     super(message, 403, 'FORBIDDEN');
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'You do not have permission to access this resource.';
   }
 }
@@ -123,11 +160,11 @@ class ForbiddenError extends AppError {
  * Thrown when request conflicts with current state
  */
 class ConflictError extends AppError {
-  constructor(message) {
+  constructor(message: string) {
     super(message, 409, 'CONFLICT');
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'The requested action conflicts with current data. Please try again.';
   }
 }
@@ -137,18 +174,20 @@ class ConflictError extends AppError {
  * Thrown when rate limits are exceeded
  */
 class RateLimitError extends AppError {
-  constructor(retryAfter = 60) {
+  public readonly retryAfter: number;
+
+  constructor(retryAfter: number = 60) {
     super('Rate limit exceeded', 429, 'RATE_LIMIT_EXCEEDED');
     this.retryAfter = retryAfter;
   }
 
-  toJSON(includeStack = false) {
+  toJSON(includeStack: boolean = false): ErrorJSON {
     const json = super.toJSON(includeStack);
     json.error.retryAfter = this.retryAfter;
     return json;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return `Too many requests. Please try again after ${this.retryAfter} seconds.`;
   }
 }
@@ -159,27 +198,31 @@ class RateLimitError extends AppError {
  * Never exposes database details to users
  */
 class DatabaseError extends AppError {
-  constructor(originalError, userMessage = 'Database operation failed') {
+  public readonly originalError: DatabaseErrorLike;
+  public readonly query: string | null;
+  public readonly detail: string | null;
+
+  constructor(originalError: DatabaseErrorLike, userMessage: string = 'Database operation failed') {
     super(userMessage, 500, 'DATABASE_ERROR');
     this.originalError = originalError;
     this.query = originalError.query || null;
     this.detail = originalError.detail || null;
   }
 
-  toJSON(includeStack = false) {
+  toJSON(includeStack: boolean = false): ErrorJSON {
     const json = super.toJSON(includeStack);
     // Only include database details in development
     if (process.env.NODE_ENV === 'development') {
       json.error.database = {
         query: this.query,
         detail: this.detail,
-        code: this.originalError.code,
+        code: this.originalError.code || '',
       };
     }
     return json;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'A database error occurred. Please try again later.';
   }
 }
@@ -189,13 +232,16 @@ class DatabaseError extends AppError {
  * Thrown when external APIs or services fail
  */
 class ExternalServiceError extends AppError {
-  constructor(service, statusCode = 502, originalError = null) {
+  public readonly service: string;
+  public readonly originalError: Error | null;
+
+  constructor(service: string, statusCode: number = 502, originalError: Error | null = null) {
     super(`${service} service error`, statusCode, 'EXTERNAL_SERVICE_ERROR');
     this.service = service;
     this.originalError = originalError;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return `External service (${this.service}) is temporarily unavailable. Please try again later.`;
   }
 }
@@ -205,13 +251,16 @@ class ExternalServiceError extends AppError {
  * Thrown when operations take too long
  */
 class TimeoutError extends AppError {
-  constructor(operation, timeoutMs) {
+  public readonly operation: string;
+  public readonly timeoutMs: number;
+
+  constructor(operation: string, timeoutMs: number) {
     super(`${operation} timed out after ${timeoutMs}ms`, 504, 'TIMEOUT');
     this.operation = operation;
     this.timeoutMs = timeoutMs;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'The operation took too long to complete. Please try again.';
   }
 }
@@ -221,13 +270,16 @@ class TimeoutError extends AppError {
  * Thrown when attempting to create duplicate resource
  */
 class DuplicateError extends AppError {
-  constructor(resource, identifier) {
+  public readonly resource: string;
+  public readonly identifier: string;
+
+  constructor(resource: string, identifier: string) {
     super(`${resource} with identifier '${identifier}' already exists`, 409, 'DUPLICATE_ENTRY');
     this.resource = resource;
     this.identifier = identifier;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return `A ${this.resource.toLowerCase()} with this identifier already exists.`;
   }
 }
@@ -237,12 +289,14 @@ class DuplicateError extends AppError {
  * Thrown when operation cannot be performed in current state
  */
 class InvalidStateError extends AppError {
-  constructor(message, currentState = null) {
+  public readonly currentState: unknown;
+
+  constructor(message: string, currentState: unknown = null) {
     super(message, 409, 'INVALID_STATE');
     this.currentState = currentState;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'The requested operation cannot be performed in the current state.';
   }
 }
@@ -252,11 +306,11 @@ class InvalidStateError extends AppError {
  * Thrown when business logic constraints are violated
  */
 class BusinessLogicError extends AppError {
-  constructor(message) {
+  constructor(message: string) {
     super(message, 422, 'BUSINESS_LOGIC_ERROR');
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'The requested operation violates business rules.';
   }
 }
@@ -266,23 +320,25 @@ class BusinessLogicError extends AppError {
  * Thrown when SQL query construction or execution fails
  */
 class QueryError extends AppError {
-  constructor(message, originalError = null) {
+  public readonly originalError: Error | null;
+
+  constructor(message: string, originalError: Error | null = null) {
     super(message, 500, 'QUERY_ERROR');
     this.originalError = originalError;
   }
 
-  toJSON(includeStack = false) {
+  toJSON(includeStack: boolean = false): ErrorJSON {
     const json = super.toJSON(includeStack);
     if (process.env.NODE_ENV === 'development' && this.originalError) {
       json.error.originalError = {
         message: this.originalError.message,
-        code: this.originalError.code,
+        code: (this.originalError as any).code || '',
       };
     }
     return json;
   }
 
-  getUserMessage() {
+  getUserMessage(): string {
     return 'A query execution error occurred. Please try again later.';
   }
 }
@@ -290,40 +346,43 @@ class QueryError extends AppError {
 /**
  * Helper function to check if error is AppError
  */
-function isAppError(error) {
+function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
 
 /**
  * Helper function to convert unknown errors to AppError
  */
-function toAppError(error) {
+function toAppError(error: unknown): AppError {
   if (isAppError(error)) {
     return error;
   }
 
   // Handle specific error types
-  if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-    return new ExternalServiceError('Database', 503, error);
+  const err = error as any; // Escape hatch for unknown error shapes
+  if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+    return new ExternalServiceError('Database', 503, err);
   }
 
-  if (error.code && error.code.startsWith('POSTGRES')) {
-    return new DatabaseError(error);
+  if (err.code && err.code.startsWith('POSTGRES')) {
+    return new DatabaseError(err);
   }
 
-  if (error.message && error.message.includes('timeout')) {
+  if (err.message && err.message.includes('timeout')) {
     return new TimeoutError('Operation', 5000);
   }
 
   // Generic fallback
   return new AppError(
-    process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
+    process.env.NODE_ENV === 'development'
+      ? err.message || 'Unknown error'
+      : 'An unexpected error occurred',
     500,
     'INTERNAL_ERROR'
   );
 }
 
-module.exports = {
+export {
   AppError,
   ValidationError,
   NotFoundError,

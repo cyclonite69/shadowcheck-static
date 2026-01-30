@@ -8,7 +8,7 @@ module.exports = {
   // Coverage configuration
   collectCoverage: false, // Enable with --coverage flag
   collectCoverageFrom: [
-    'server/src/**/*.js',
+    'server/src/**/*.{js,ts}',
     'server/server.js',
     'scripts/**/*.js',
     '!**/node_modules/**',
@@ -53,8 +53,15 @@ module.exports = {
   // Ignore patterns
   testPathIgnorePatterns: ['/node_modules/', '/data/', '/docs/', '/scripts/manual/'],
 
-  // Transform
-  transform: {},
+  // Transform - Add TypeScript support
+  preset: 'ts-jest',
+  transform: {
+    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.js$': 'babel-jest',
+  },
+
+  // Module file extensions
+  moduleFileExtensions: ['js', 'ts', 'json'],
 
   // Global setup/teardown
   // globalSetup: '<rootDir>/tests/globalSetup.js',
