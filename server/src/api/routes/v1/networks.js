@@ -257,7 +257,8 @@ router.get('/networks', async (req, res, next) => {
     if (!minObsResult.ok) {
       return res.status(400).json({ error: 'Invalid min_obs_count parameter.' });
     }
-    const minObsCount = minObsResult.value;
+    // Default to min_obs_count=1 to exclude networks with no observations
+    const minObsCount = minObsResult.value !== null ? minObsResult.value : 1;
 
     const maxObsResult = parseOptionalInteger(maxObsRaw, 0, 100000000, 'max_obs_count');
     if (!maxObsResult.ok) {
@@ -328,9 +329,9 @@ router.get('/networks', async (req, res, next) => {
             ELSE UPPER(ne.type)
           END
         WHEN ne.frequency BETWEEN 2412 AND 7125 THEN 'W'
-        WHEN COALESCE(ne.capabilities, '') ~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)' THEN 'W'
-        WHEN COALESCE(ne.capabilities, '') ~* '(BLE|BTLE|BLUETOOTH.?LOW.?ENERGY)' THEN 'E'
-        WHEN COALESCE(ne.capabilities, '') ~* '(BLUETOOTH)' THEN 'B'
+        WHEN COALESCE(ne.security, '') ~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)' THEN 'W'
+        WHEN COALESCE(ne.security, '') ~* '(BLE|BTLE|BLUETOOTH.?LOW.?ENERGY)' THEN 'E'
+        WHEN COALESCE(ne.security, '') ~* '(BLUETOOTH)' THEN 'B'
         ELSE '?'
       END
     `;
@@ -391,12 +392,16 @@ router.get('/networks', async (req, res, next) => {
       unique_locations: 'ne.unique_locations',
       threat: threatOrderExpr,
       threat_score: `(${threatScoreExpr})::numeric`,
+      threat_rule_score: "COALESCE((nts.ml_feature_values->>'rule_score')::numeric, 0)",
+      threat_ml_score: "COALESCE((nts.ml_feature_values->>'ml_score')::numeric, 0)",
+      threat_ml_weight: "COALESCE((nts.ml_feature_values->>'evidence_weight')::numeric, 0)",
+      threat_ml_boost: "COALESCE((nts.ml_feature_values->>'ml_boost')::numeric, 0)",
       threat_level: threatOrderExpr,
       lat: 'ne.lat',
       lon: 'ne.lon',
       manufacturer: 'ne.manufacturer',
       manufacturer_address: 'ne.manufacturer',
-      capabilities: 'ne.capabilities',
+      capabilities: 'ne.security',
       min_altitude_m: 'ne.min_altitude_m',
       max_altitude_m: 'ne.max_altitude_m',
       altitude_span_m: 'ne.altitude_span_m',
@@ -747,12 +752,11 @@ router.get('/networks', async (req, res, next) => {
       const like = `%${search.replace(/[%_]/g, '\\$&')}%`;
       const normalizedBssid = search.replace(/[^0-9a-f]/g, '');
       const likeBssid = normalizedBssid ? `%${normalizedBssid}%` : like;
-      params.push(like, like, likeBssid, like);
+      params.push(like, like, likeBssid);
       whereClauses.push(
-        `(lower(ne.ssid) LIKE $${params.length - 3} ESCAPE '\\' OR ` +
-          `lower(ne.bssid) LIKE $${params.length - 2} ESCAPE '\\' OR ` +
-          `lower(replace(ne.bssid, ':', '')) LIKE $${params.length - 1} ESCAPE '\\' OR ` +
-          `lower(COALESCE(mv.manufacturer, ne.manufacturer)) LIKE $${params.length} ESCAPE '\\')`
+        `(lower(ne.ssid) LIKE $${params.length - 2} ESCAPE '\\' OR ` +
+          `lower(ne.bssid) LIKE $${params.length - 1} ESCAPE '\\' OR ` +
+          `lower(replace(ne.bssid, ':', '')) LIKE $${params.length} ESCAPE '\\')`
       );
     }
 
@@ -768,7 +772,7 @@ router.get('/networks', async (req, res, next) => {
         ne.signal,
         ne.frequency,
         ${channelExpr} AS channel,
-        ne.capabilities,
+        ne.security AS capabilities,
         ne.security,
         ne.observations as obs_count,
         ne.first_seen as first_observed_at,
@@ -785,25 +789,117 @@ router.get('/networks', async (req, res, next) => {
           'debug', nts.ml_feature_values
         ) AS threat,
         ne.distance_from_home_km,
-        ne.manufacturer AS manufacturer,
-        ne.manufacturer AS manufacturer_address,
-        ne.min_altitude_m,
-        ne.max_altitude_m,
-        ne.altitude_span_m,
+        rm.manufacturer AS manufacturer,
+        rm.address AS manufacturer_address,
+        NULL AS min_altitude_m,
+        NULL AS max_altitude_m,
+        NULL AS altitude_span_m,
         ne.max_distance_meters,
-        ne.last_altitude_m,
-        ne.is_sentinel
+        NULL AS last_altitude_m,
+        FALSE AS is_sentinel
       FROM app.api_network_explorer_mv ne
       LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
       LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
+      LEFT JOIN app.radio_manufacturers rm ON rm.prefix = SUBSTRING(UPPER(REPLACE(ne.bssid, ':', '')), 1, 6)
       ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
       ORDER BY ${orderByClause}
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
 
     const sql =
-      locationMode === 'latest_observation' || locationMode === 'triangulated'
+      locationMode === 'latest_observation'
         ? `
+      WITH latest_obs AS (
+        SELECT DISTINCT ON (o.bssid)
+          o.bssid,
+          o.ssid,
+          o.level AS signal,
+          o.radio_frequency AS frequency,
+          o.lat,
+          o.lon,
+          o.accuracy,
+          o.time AS observed_at,
+          o.radio_capabilities AS capabilities
+        FROM app.observations o
+        WHERE o.lat IS NOT NULL AND o.lon IS NOT NULL
+          ${lastSeen ? `AND o.time >= '${lastSeen}'` : ''}
+        ORDER BY o.bssid, o.time DESC
+      )
+      SELECT
+        ne.bssid,
+        COALESCE(lo.ssid, ne.ssid) AS ssid,
+        ${typeExpr} AS type,
+        COALESCE(lo.observed_at, ne.observed_at) AS observed_at,
+        COALESCE(lo.lat, ne.lat) AS lat,
+        COALESCE(lo.lon, ne.lon) AS lon,
+        COALESCE(lo.lat, ne.lat) AS raw_lat,
+        COALESCE(lo.lon, ne.lon) AS raw_lon,
+        COALESCE(lo.accuracy, ne.accuracy_meters) AS accuracy_meters,
+        lo.signal,
+        lo.frequency,
+        CASE 
+          WHEN lo.frequency IS NOT NULL THEN ${NETWORK_CHANNEL_EXPR('lo')}
+          ELSE NULL
+        END AS channel,
+        COALESCE(lo.capabilities, ne.security) AS capabilities,
+        ne.security,
+        ne.observations as obs_count,
+        ne.first_seen as first_observed_at,
+        ne.last_seen as last_observed_at,
+        ne.unique_days,
+        ne.unique_locations,
+        lo.signal as avg_signal,
+        lo.signal as min_signal,
+        lo.signal as max_signal,
+        JSONB_BUILD_OBJECT(
+          'score', (${threatScoreExpr})::text,
+          'level', ${threatLevelExpr},
+          'debug', nts.ml_feature_values
+        ) AS threat,
+        CASE 
+          WHEN lo.lat IS NOT NULL AND lo.lon IS NOT NULL THEN
+            COALESCE((
+              SELECT ST_Distance(
+                ST_SetSRID(ST_MakePoint(lo.lon, lo.lat), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(lm.longitude, lm.latitude), 4326)::geography
+              ) / 1000.0
+              FROM app.location_markers lm 
+              WHERE lm.marker_type = 'home' 
+              LIMIT 1
+            ), NULL)
+          ELSE NULL
+        END AS distance_from_home_km,
+        rm.manufacturer AS manufacturer,
+        rm.address AS manufacturer_address,
+        NULL AS min_altitude_m,
+        NULL AS max_altitude_m,
+        NULL AS altitude_span_m,
+        CASE 
+          WHEN lo.lat IS NOT NULL AND lo.lon IS NOT NULL THEN (
+            SELECT ST_Distance(
+              ST_MakePoint(MIN(o2.lon), MIN(o2.lat))::geography,
+              ST_MakePoint(MAX(o2.lon), MAX(o2.lat))::geography
+            )
+            FROM app.observations o2 
+            WHERE o2.bssid = ne.bssid 
+              AND o2.lat IS NOT NULL 
+              AND o2.lon IS NOT NULL
+          )
+          ELSE NULL
+        END AS max_distance_meters,
+        NULL AS last_altitude_m,
+        FALSE AS is_sentinel
+      FROM app.api_network_explorer_mv ne
+      LEFT JOIN latest_obs lo ON lo.bssid = ne.bssid
+      LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
+      LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid AND nt.threat_tag IS NOT NULL
+      LEFT JOIN app.radio_manufacturers rm ON rm.prefix = SUBSTRING(UPPER(REPLACE(ne.bssid, ':', '')), 1, 6)
+      ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
+      ORDER BY ${orderByClause}
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `
+        : locationMode === 'triangulated'
+          ? `
       SELECT
         bssid,
         ssid,
@@ -841,7 +937,7 @@ router.get('/networks', async (req, res, next) => {
         ${baseSql}
       ) base
     `
-        : `
+          : `
       WITH base AS (
         ${baseSql}
       ),
@@ -1444,7 +1540,7 @@ router.get('/networks/:bssid/wigle-observations', async (req, res, next) => {
     const tableCheck = await query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'wigle_v3_observations'
+        WHERE table_schema = 'app' AND table_name = 'wigle_v3_observations'
       ) as exists
     `);
 
@@ -1613,7 +1709,7 @@ router.post('/networks/wigle-observations/batch', async (req, res, next) => {
     const tableCheck = await query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables
-        WHERE table_schema = 'public' AND table_name = 'wigle_v3_observations'
+        WHERE table_schema = 'app' AND table_name = 'wigle_v3_observations'
       ) as exists
     `);
 

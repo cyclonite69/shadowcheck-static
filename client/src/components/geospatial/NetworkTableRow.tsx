@@ -86,14 +86,14 @@ export const NetworkTableRow = ({
         } else if (col === 'signal') {
           const signalValue = value as number | null;
           let color = '#6b7280';
-          if (signalValue != null) {
+          if (signalValue != null && signalValue !== 0) {
             if (signalValue >= -50) color = '#10b981';
             else if (signalValue >= -70) color = '#f59e0b';
             else color = '#ef4444';
           }
           content = (
             <span style={{ color, fontWeight: 600 }}>
-              {signalValue != null ? `${signalValue} dBm` : 'N/A'}
+              {signalValue != null && signalValue !== 0 ? `${signalValue} dBm` : 'N/A'}
             </span>
           );
         } else if (col === 'observations') {
@@ -174,7 +174,7 @@ export const NetworkTableRow = ({
           // Only show channel for WiFi networks
           const channelValue = value as number | null;
           const networkType = net.type;
-          if (networkType === 'W' && channelValue !== null) {
+          if (networkType === 'W' && channelValue !== null && channelValue !== 0) {
             content = (
               <span
                 style={{
@@ -197,7 +197,7 @@ export const NetworkTableRow = ({
         } else if (col === 'frequency') {
           // Show frequency for all network types, but format differently
           const freqValue = value as number | null;
-          if (freqValue !== null) {
+          if (freqValue !== null && freqValue !== 0) {
             const isWiFi = net.type === 'W';
             content = (
               <span
@@ -225,6 +225,15 @@ export const NetworkTableRow = ({
                 : `${distValue.toFixed(0)} m`;
           } else {
             content = 'N/A';
+          }
+        } else if (col === 'distanceFromHome') {
+          const distValue = value as number | null;
+          if (distValue !== null && distValue !== 9497.62809709848) {
+            // Remove hardcoded fallback
+            content =
+              distValue >= 1 ? `${distValue.toFixed(2)} km` : `${(distValue * 1000).toFixed(0)} m`;
+          } else {
+            content = 'Not computed';
           }
         } else if (
           ['threat_rule_score', 'threat_ml_score', 'threat_ml_boost', 'threat_score'].includes(

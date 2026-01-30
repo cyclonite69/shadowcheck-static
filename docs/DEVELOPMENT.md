@@ -457,15 +457,38 @@ FROM (/* threat detection query */);
 
 ## Testing
 
+### Test Suites
+
+ShadowCheck includes comprehensive testing for security and data integrity:
+
+#### Integration Tests
+
+- **SQL Injection Fixes** (44 tests) - Security vulnerability prevention
+- **Networks API Data Integrity** - Regression tests for recent fixes
+
+#### Unit Tests
+
+- Component testing with Jest and React Testing Library
+- API endpoint testing with Supertest
+- Database query validation
+
 ### Run All Tests
 
 ```bash
 npm test
 ```
 
-### Run Specific Test
+### Run Specific Test Suites
 
 ```bash
+# Run integration tests
+npm run test:integration
+
+# Run specific test files
+npm test -- tests/integration/sql-injection-fixes.test.js
+npm test -- tests/integration/networks-data-integrity.test.js
+
+# Run unit tests
 npm test -- tests/unit/your-test.test.js
 ```
 
@@ -476,6 +499,24 @@ npm run test:cov
 ```
 
 Coverage report will be generated in `coverage/` directory.
+
+### Recent Test Additions
+
+#### Data Integrity Tests
+
+Added regression tests for recently fixed issues:
+
+```bash
+# Test networks API data integrity
+npm test -- tests/integration/networks-data-integrity.test.js
+```
+
+These tests verify:
+
+- ✅ GeoSpatial data accuracy (no 0 values for signal/frequency/channel)
+- ✅ Analytics endpoints return valid data
+- ✅ Distance calculations use PostGIS functions
+- ✅ Manufacturer fields populated correctly
 
 ### Writing Tests
 
@@ -498,6 +539,10 @@ describe('GET /api/dashboard-metrics', () => {
   });
 });
 ```
+
+### Test Documentation
+
+See [Integration Tests README](../tests/integration/README.md) for detailed test coverage and security validation.
 
 ### Integration Tests
 

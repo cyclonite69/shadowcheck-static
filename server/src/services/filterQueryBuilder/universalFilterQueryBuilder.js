@@ -562,9 +562,9 @@ class UniversalFilterQueryBuilder {
           ne.lon,
           COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
           NULL::numeric AS stationary_confidence,
-          ne.threat,
+          JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
           NULL::text AS network_id
-        FROM app.api_network_explorer ne
+        FROM app.api_network_explorer_mv ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
@@ -745,11 +745,11 @@ class UniversalFilterQueryBuilder {
         this.addApplied('spatial', 'distanceFromHomeMax', f.distanceFromHomeMax);
       }
       if (e.threatScoreMin && f.threatScoreMin !== undefined) {
-        where.push(`(ne.threat->>'score')::numeric >= ${this.addParam(f.threatScoreMin)}`);
+        where.push(`ne.threat_score >= ${this.addParam(f.threatScoreMin)}`);
         this.addApplied('threat', 'threatScoreMin', f.threatScoreMin);
       }
       if (e.threatScoreMax && f.threatScoreMax !== undefined) {
-        where.push(`(ne.threat->>'score')::numeric <= ${this.addParam(f.threatScoreMax)}`);
+        where.push(`ne.threat_score <= ${this.addParam(f.threatScoreMax)}`);
         this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
       }
       if (
@@ -766,7 +766,7 @@ class UniversalFilterQueryBuilder {
         };
         const dbThreatLevels = f.threatCategories.map((cat) => threatLevelMap[cat]).filter(Boolean);
         if (dbThreatLevels.length > 0) {
-          where.push(`ne.threat->>'level' = ANY(${this.addParam(dbThreatLevels)})`);
+          where.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
           this.addApplied('threat', 'threatCategories', f.threatCategories);
         }
       }
@@ -843,9 +843,9 @@ class UniversalFilterQueryBuilder {
           ne.lon,
           COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
           NULL::numeric AS stationary_confidence,
-          ne.threat,
+          JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
           NULL::text AS network_id
-        FROM app.api_network_explorer ne
+        FROM app.api_network_explorer_mv ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         ${whereClause}
         ORDER BY ${safeOrderBy}
@@ -976,11 +976,11 @@ class UniversalFilterQueryBuilder {
         l.lon,
         l.accuracy AS accuracy_meters,
         s.stationary_confidence,
-        ne.threat,
+        JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM obs_rollup r
       JOIN obs_latest l ON l.bssid = r.bssid
-        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(l.bssid)
+        LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
@@ -1002,7 +1002,7 @@ class UniversalFilterQueryBuilder {
     const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
     if (noFiltersEnabled) {
       return {
-        sql: 'SELECT COUNT(*) AS total FROM app.api_network_explorer',
+        sql: 'SELECT COUNT(*) AS total FROM app.api_network_explorer_mv',
         params: [],
       };
     }
@@ -1149,7 +1149,7 @@ class UniversalFilterQueryBuilder {
 
       const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
       return {
-        sql: `SELECT COUNT(*) AS total FROM app.api_network_explorer ne
+        sql: `SELECT COUNT(*) AS total FROM app.api_network_explorer_mv ne
               LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
               LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid
               ${whereClause}`,
@@ -1204,7 +1204,7 @@ class UniversalFilterQueryBuilder {
       )
       SELECT COUNT(DISTINCT r.bssid) AS total
       FROM obs_rollup r
-      JOIN app.api_network_explorer ne ON ne.bssid = r.bssid
+      JOIN app.api_network_explorer_mv ne ON ne.bssid = r.bssid
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${whereClause}
     `;
@@ -1307,9 +1307,9 @@ class UniversalFilterQueryBuilder {
           o.altitude,
           ${SECURITY_EXPR('o')} AS security,
           ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
-          ne.threat
+          JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat
         FROM filtered_obs o
-        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+        LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(o.bssid)
         WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
           OR o.geom IS NOT NULL)
         ORDER BY o.time ASC
@@ -1377,7 +1377,7 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
@@ -1396,10 +1396,10 @@ class UniversalFilterQueryBuilder {
         o.altitude,
         ${SECURITY_EXPR('o')} AS security,
         ROW_NUMBER() OVER (PARTITION BY o.bssid ORDER BY o.time ASC) AS obs_number,
-        ne.threat
+        JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat
       FROM filtered_obs o
       JOIN filtered_networks fn ON fn.bssid = o.bssid
-      LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+      LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(o.bssid)
       WHERE ((o.lat IS NOT NULL AND o.lon IS NOT NULL)
         OR o.geom IS NOT NULL)
       ORDER BY o.time ASC
@@ -1469,7 +1469,7 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
@@ -1540,7 +1540,7 @@ class UniversalFilterQueryBuilder {
         SELECT r.bssid
         FROM obs_rollup r
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
-        LEFT JOIN app.api_network_explorer ne ON UPPER(ne.bssid) = UPPER(r.bssid)
+        LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
         ${networkWhereClause}
@@ -1626,10 +1626,10 @@ class UniversalFilterQueryBuilder {
       threatDistribution: base(`
         SELECT
           CASE
-            WHEN (ne.threat->>'score')::numeric >= 80 THEN '80-100'
-            WHEN (ne.threat->>'score')::numeric >= 60 THEN '60-80'
-            WHEN (ne.threat->>'score')::numeric >= 40 THEN '40-60'
-            WHEN (ne.threat->>'score')::numeric >= 20 THEN '20-40'
+            WHEN ne.threat_score >= 80 THEN '80-100'
+            WHEN ne.threat_score >= 60 THEN '60-80'
+            WHEN ne.threat_score >= 40 THEN '40-60'
+            WHEN ne.threat_score >= 20 THEN '20-40'
             ELSE '0-20'
           END AS range,
           COUNT(DISTINCT ne.bssid) AS count
@@ -1673,11 +1673,11 @@ class UniversalFilterQueryBuilder {
         )
         SELECT
           d.date,
-          AVG(COALESCE((ne.threat->>'score')::numeric, 0)) AS avg_score,
-          COUNT(CASE WHEN (ne.threat->>'score')::numeric >= 80 THEN 1 END) AS critical_count,
-          COUNT(CASE WHEN (ne.threat->>'score')::numeric BETWEEN 60 AND 79.9 THEN 1 END) AS high_count,
-          COUNT(CASE WHEN (ne.threat->>'score')::numeric BETWEEN 40 AND 59.9 THEN 1 END) AS medium_count,
-          COUNT(CASE WHEN (ne.threat->>'score')::numeric BETWEEN 20 AND 39.9 THEN 1 END) AS low_count,
+          AVG(COALESCE(ne.threat_score, 0)) AS avg_score,
+          COUNT(CASE WHEN ne.threat_score >= 80 THEN 1 END) AS critical_count,
+          COUNT(CASE WHEN ne.threat_score BETWEEN 60 AND 79.9 THEN 1 END) AS high_count,
+          COUNT(CASE WHEN ne.threat_score BETWEEN 40 AND 59.9 THEN 1 END) AS medium_count,
+          COUNT(CASE WHEN ne.threat_score BETWEEN 20 AND 39.9 THEN 1 END) AS low_count,
           COUNT(*) AS network_count
         FROM daily_networks d
         LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = d.bssid

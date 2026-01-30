@@ -90,6 +90,8 @@ export const CHART_COLORS = {
     avgScore: '#f59e0b',
     criticalCount: '#ef4444',
     highCount: '#f97316',
+    mediumCount: '#eab308',
+    lowCount: '#22c55e',
   },
   severity: {
     critical: '#ef4444',

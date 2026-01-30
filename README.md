@@ -39,6 +39,33 @@
 - **Admin Features:** System administration interface with configuration management, user settings, and role-based gating
 - **Admin Database Security**: Multi-user model with read-only `shadowcheck_user` and privileged `shadowcheck_admin`
 
+## Recent Improvements (January 2026)
+
+✅ **Data Integrity Fixes**
+
+- Fixed GeoSpatial table showing incorrect default values (signal: 0 dBm, channel: 0, frequency: 0 MHz)
+- Resolved analytics widgets failures (Temporal Activity, Radio Types Over Time, Threat Score Trends)
+- Fixed max distance calculation to use real PostGIS geographic distances instead of ~238m signal approximation
+- Resolved threat score column sorting issues (rule_score, ml_score, ml_weight, ml_boost now sortable)
+
+✅ **API & Backend Improvements**
+
+- Networks API now uses latest observation data for accurate real-time information
+- Added manufacturer field population via radio_manufacturers table with OUI prefix matching
+- Fixed WiGLE observation points rendering with correct schema namespace (app vs public)
+- Enhanced analytics endpoints with proper null value handling and appropriate data sources
+
+✅ **Frontend Enhancements**
+
+- Fixed data transformer field name mismatches (network_type → type, avg_score → avgScore)
+- Added missing API calls for temporal, radio-time, and threat-trends analytics
+- Improved geographic distance display and invalid value handling
+
+✅ **Testing & Quality**
+
+- Added comprehensive regression tests for networks API data integrity
+- Enhanced error handling and validation across all endpoints
+
 ## Architecture
 
 **Backend:** Node.js/Express REST API with PostgreSQL + PostGIS (Modular architecture with Repositories and Services)  
