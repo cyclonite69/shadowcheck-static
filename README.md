@@ -41,6 +41,19 @@
 
 ## Recent Improvements (January 2026)
 
+✅ **TypeScript Migration & Build Pipeline**
+
+- **Complete TypeScript migration**: Converted 60+ files including server utilities, middleware, ETL scripts, and build tools
+- **Production build pipeline**: Compiled TypeScript server for Docker deployment eliminates runtime ts-node overhead
+- **Type safety**: Added comprehensive interfaces and types for database operations, API responses, and service layers
+- **Build optimization**: Frontend and server compile separately with proper path resolution for containerized deployment
+
+✅ **Dashboard & UI Enhancements**
+
+- **Fixed analytics card display**: Removed incorrect "0 Total Observations" from navigation cards
+- **Threat level filtering**: Dashboard threat severity counts now properly respect active filter selections
+- **Interactive metrics**: Real-time dashboard cards with proper data binding and filter awareness
+
 ✅ **Data Integrity Fixes**
 
 - Fixed GeoSpatial table showing incorrect default values (signal: 0 dBm, channel: 0, frequency: 0 MHz)
@@ -78,6 +91,7 @@
 
 - Node.js 20+
 - PostgreSQL 18+ with PostGIS
+- TypeScript 5.0+ (included in devDependencies)
 
 ## Quick Start
 
@@ -238,25 +252,26 @@ Tests Logistic Regression, Random Forest, and Gradient Boosting with hyperparame
 ```
 shadowcheck-static/
 ├── client/
-│   ├── api/               # 🔧 Backend API routes
-│   ├── services/          # 🔧 Backend business logic
-│   ├── repositories/      # 🔧 Backend data access
-│   ├── components/        # ⚛️ Frontend React components
-│   ├── App.tsx            # ⚛️ Frontend React app
-│   └── main.tsx           # ⚛️ Frontend entry point
-├── server/                # 🔧 Backend Express server
-├── index.html             # ⚛️ Frontend HTML template
-├── vite.config.js         # ⚛️ Frontend build config
-├── scripts/               # Utility scripts
-│   ├── import/            # Data import utilities
-│   ├── enrichment/        # Address enrichment
-│   └── ml/                # ML utilities
-├── sql/                   # Database
-│   ├── migrations/        # Schema migrations
-│   └── functions/         # SQL functions
-├── tests/                 # Jest tests
-├── docs/                  # Documentation
-└── docker-compose.yml     # Docker configuration
+│   ├── src/
+│   │   ├── components/    # ⚛️ React components (TypeScript)
+│   │   ├── App.tsx        # ⚛️ Main React app
+│   │   └── main.tsx       # ⚛️ Frontend entry point
+│   └── vite.config.ts     # ⚛️ Frontend build config (TypeScript)
+├── server/
+│   ├── src/
+│   │   ├── api/           # 🔧 REST API routes (TypeScript)
+│   │   ├── services/      # 🔧 Business logic (TypeScript)
+│   │   ├── middleware/    # 🔧 Express middleware (TypeScript)
+│   │   └── utils/         # 🔧 Server utilities (TypeScript)
+│   └── server.js          # 🔧 Main server entry point
+├── etl/                   # 📊 ETL pipeline (TypeScript)
+├── scripts/               # 🛠️ Utility scripts (TypeScript)
+├── tests/                 # 🧪 Jest tests (TypeScript)
+├── sql/                   # 🗄️ Database migrations & functions
+├── docs/                  # 📚 Documentation
+├── tsconfig.json          # ⚙️ TypeScript config (client)
+├── tsconfig.server.json   # ⚙️ TypeScript config (server)
+└── docker-compose.yml     # 🐳 Docker configuration
 ```
 
 **📖 See [docs/architecture/PROJECT_STRUCTURE.md](docs/architecture/PROJECT_STRUCTURE.md) for detailed frontend/backend organization.**
