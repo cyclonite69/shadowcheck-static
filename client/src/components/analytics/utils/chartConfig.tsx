@@ -36,6 +36,7 @@ export const MARGINS = {
 export const LEGEND_CONFIG = {
   iconType: 'circle' as const,
   iconSize: 8,
+  wrapperStyle: { paddingTop: '12px' },
   formatter: (value: string) => <span className="text-slate-300 text-xs ml-1">{value}</span>,
 };
 

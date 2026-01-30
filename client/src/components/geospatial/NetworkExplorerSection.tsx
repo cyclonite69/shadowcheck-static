@@ -28,7 +28,7 @@ interface NetworkExplorerSectionProps {
   allSelected: boolean;
   someSelected: boolean;
   onToggleSelectAll: () => void;
-  onColumnSort: (column: keyof NetworkRow, multi: boolean) => void;
+  onColumnSort: (column: keyof NetworkRow, shiftKey: boolean) => void;
   tableContainerRef: React.RefObject<HTMLDivElement>;
   loadingNetworks: boolean;
   filteredNetworks: NetworkRow[];
