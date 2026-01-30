@@ -59,6 +59,12 @@ export const WigleSearchTab: React.FC = () => {
     setSearchParams,
     loadApiStatus,
     runSearch,
+    loadMoreResults,
+    hasMorePages,
+    currentPage,
+    totalPages,
+    totalResults,
+    loadedCount,
   } = useWigleSearch();
 
   useEffect(() => {
@@ -249,16 +255,28 @@ export const WigleSearchTab: React.FC = () => {
                 <>
                   <div className="space-y-2 p-3 bg-emerald-900/20 rounded border border-emerald-700/50">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Found:</span>
+                      <span className="text-slate-400">Total in WiGLE:</span>
                       <span className="font-semibold text-emerald-400">
-                        {searchResults.resultCount || 0}
+                        {totalResults.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Loaded:</span>
+                      <span className="font-semibold text-blue-400">
+                        {loadedCount.toLocaleString()} / {totalResults.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Page:</span>
+                      <span className="font-semibold text-slate-300">
+                        {currentPage} of {totalPages}
                       </span>
                     </div>
                     {searchResults.imported && (
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">Imported:</span>
                         <span className="font-semibold text-green-400">
-                          {searchResults.imported}
+                          {searchResults.imported.count}
                         </span>
                       </div>
                     )}
@@ -299,7 +317,31 @@ export const WigleSearchTab: React.FC = () => {
                     </div>
                   )}
 
-                  <p className="text-xs text-slate-400 mt-2">Search completed successfully</p>
+                  {/* Pagination controls */}
+                  {hasMorePages && (
+                    <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
+                      <button
+                        onClick={() => loadMoreResults(false)}
+                        disabled={searchLoading}
+                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 text-sm transition-all"
+                      >
+                        {searchLoading ? 'Loading...' : `Load Next 100 (Page ${currentPage + 1})`}
+                      </button>
+                      <button
+                        onClick={() => loadMoreResults(true)}
+                        disabled={searchLoading}
+                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
+                      >
+                        {searchLoading ? 'Loading...' : 'Load & Import Next 100'}
+                      </button>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-slate-400 mt-2">
+                    {hasMorePages
+                      ? `Showing ${loadedCount.toLocaleString()} of ${totalResults.toLocaleString()} results`
+                      : 'All results loaded'}
+                  </p>
                 </>
               ) : (
                 <div className="text-center text-slate-500 py-6">
