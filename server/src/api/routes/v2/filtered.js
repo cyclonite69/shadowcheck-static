@@ -105,6 +105,8 @@ const buildOrderBy = (sort, order) => {
     stationary_confidence: 's.stationary_confidence',
     frequency: 'ne.frequency',
     channel: 'ne.frequency',
+    manufacturer: 'rm.manufacturer',
+    max_distance_meters: 'ne.max_distance_meters',
   };
 
   const clauses = sortColumns.map((col, idx) => {
