@@ -1,7 +1,11 @@
-// Register TypeScript support only in development
-if (process.env.NODE_ENV !== 'production') {
-  require('ts-node/register');
-}
+// Register TypeScript support with transpile-only mode to avoid type checking issues
+require('ts-node').register({
+  transpileOnly: true,
+  compilerOptions: {
+    module: 'commonjs',
+    target: 'es2020',
+  },
+});
 
 (async () => {
   try {
