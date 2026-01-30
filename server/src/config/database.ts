@@ -3,8 +3,10 @@
  * Centralizes database connection management
  */
 
-const { Pool } = require('pg');
-require('dotenv').config();
+import { Pool, QueryResult } from 'pg';
+import 'dotenv/config';
+
+// Import with require for now to avoid circular dependency issues during migration
 const secretsManager = require('../services/secretsManager');
 const logger = require('../logging/logger');
 
@@ -12,15 +14,23 @@ const logger = require('../logging/logger');
 const DB_USER = process.env.DB_USER || 'shadowcheck_user';
 const DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
 const DB_HOST = process.env.DB_HOST || 'shadowcheck_postgres';
-const DB_PORT = parseInt(process.env.DB_PORT, 10) || 5432;
+const DB_PORT = parseInt(process.env.DB_PORT || '5432', 10);
 const DB_APP_NAME = process.env.DB_APP_NAME || 'shadowcheck-static';
 const DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
 
 // Configuration constants
-const CONFIG = {
+interface DatabaseConfig {
+  MIN_VALID_TIMESTAMP: number;
+  THREAT_THRESHOLD: number;
+  MIN_OBSERVATIONS: number;
+  MAX_PAGE_SIZE: number;
+  DEFAULT_PAGE_SIZE: number;
+}
+
+const CONFIG: DatabaseConfig = {
   MIN_VALID_TIMESTAMP: 946684800000, // Jan 1, 2000 in milliseconds
-  THREAT_THRESHOLD: parseInt(process.env.THREAT_THRESHOLD) || 40,
-  MIN_OBSERVATIONS: parseInt(process.env.MIN_OBSERVATIONS) || 2,
+  THREAT_THRESHOLD: parseInt(process.env.THREAT_THRESHOLD || '40'),
+  MIN_OBSERVATIONS: parseInt(process.env.MIN_OBSERVATIONS || '2'),
   MAX_PAGE_SIZE: 5000,
   DEFAULT_PAGE_SIZE: 100,
 };
@@ -41,26 +51,22 @@ const pool = new Pool({
 });
 
 // Pool error handler
-pool.on('error', (err) => {
+pool.on('error', (err: Error) => {
   logger.error(`Unexpected error on idle client: ${err.message}`, { error: err });
   process.exit(-1);
 });
 
 /**
  * Query wrapper without retries (fail fast for visibility)
- * @param {string} text - SQL query
- * @param {Array} params - Query parameters
- * @returns {Promise<Object>} Query result
  */
-async function query(text, params = []) {
+async function query(text: string, params: unknown[] = []): Promise<QueryResult> {
   return pool.query(text, params);
 }
 
 /**
  * Test database connection
- * @returns {Promise<boolean>}
  */
-async function testConnection() {
+async function testConnection(): Promise<boolean> {
   const result = await query('SELECT current_user, current_database()');
   const row = result.rows[0] || {};
   logger.info(
@@ -71,17 +77,10 @@ async function testConnection() {
 
 /**
  * Close database connection pool
- * @returns {Promise<void>}
  */
-async function closePool() {
+async function closePool(): Promise<void> {
   await pool.end();
   logger.info('Database pool closed');
 }
 
-module.exports = {
-  pool,
-  query,
-  testConnection,
-  closePool,
-  CONFIG,
-};
+export { pool, query, testConnection, closePool, CONFIG };
