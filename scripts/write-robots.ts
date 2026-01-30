@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const allowIndexing = process.env.ALLOW_INDEXING === 'true' || isProduction;
