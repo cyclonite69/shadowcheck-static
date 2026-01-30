@@ -1,7 +1,45 @@
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
+// Type definitions for threat scoring
+
+type ThreatLevel = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW' | 'NONE';
+
+interface ThreatScoringStats {
+  totalProcessed: number;
+  totalUpdated: number;
+  averageExecutionTime: number;
+  lastError: string | null;
+}
+
+interface ComputeThreatScoresResult {
+  success?: boolean;
+  skipped?: boolean;
+  processed?: number;
+  updated?: number;
+  executionTimeMs?: number;
+}
+
+interface MarkForRecomputeResult {
+  success: boolean;
+  rowsAffected: number;
+}
+
+interface FullStats extends ThreatScoringStats {
+  isRunning: boolean;
+  lastRun: Date | null;
+}
+
+interface QueryResult {
+  rowCount: number | null;
+  rows: unknown[];
+}
+
 class ThreatScoringService {
+  private isRunning: boolean;
+  private lastRun: Date | null;
+  private stats: ThreatScoringStats;
+
   constructor() {
     this.isRunning = false;
     this.lastRun = null;
@@ -13,7 +51,10 @@ class ThreatScoringService {
     };
   }
 
-  async computeThreatScores(batchSize = 1000, maxAgeHours = 24) {
+  async computeThreatScores(
+    batchSize: number = 1000,
+    maxAgeHours: number = 24
+  ): Promise<ComputeThreatScoresResult> {
     if (this.isRunning) {
       logger.warn('Threat scoring already running, skipping');
       return { skipped: true };
@@ -66,7 +107,7 @@ class ThreatScoringService {
           updated_at = NOW()
       `;
 
-      const result = await query(insertQuery, [batchSize]);
+      const result: QueryResult = await query(insertQuery, [batchSize]);
       const processed = result.rowCount || 0;
       const executionTimeMs = Date.now() - startTime;
 
@@ -93,25 +134,27 @@ class ThreatScoringService {
         executionTimeMs: executionTimeMs,
       };
     } catch (error) {
-      this.stats.lastError = error.message;
-      logger.error('Threat score computation failed', { error: error.message });
+      const err = error as Error;
+      this.stats.lastError = err.message;
+      logger.error('Threat score computation failed', { error: err.message });
       throw error;
     } finally {
       this.isRunning = false;
     }
   }
 
-  async markAllForRecompute() {
+  async markAllForRecompute(): Promise<MarkForRecomputeResult> {
     try {
       const result = await this.computeThreatScores(1000000, 0);
       return { success: true, rowsAffected: result.processed || 0 };
     } catch (error) {
-      logger.error('Failed to mark networks for recomputation', { error: error.message });
+      const err = error as Error;
+      logger.error('Failed to mark networks for recomputation', { error: err.message });
       throw error;
     }
   }
 
-  getStats() {
+  getStats(): FullStats {
     return {
       ...this.stats,
       isRunning: this.isRunning,
@@ -119,9 +162,18 @@ class ThreatScoringService {
     };
   }
 
-  startScheduledJobs() {
+  startScheduledJobs(): void {
     logger.info('Threat scoring scheduled jobs disabled (manual-only mode)');
   }
 }
 
 module.exports = new ThreatScoringService();
+
+// Export types for consumers
+export type {
+  ThreatLevel,
+  ThreatScoringStats,
+  ComputeThreatScoresResult,
+  MarkForRecomputeResult,
+  FullStats,
+};
