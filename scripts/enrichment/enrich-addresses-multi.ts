@@ -1,19 +1,68 @@
-const https = require('https');
-const { Pool } = require('pg');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import * as https from 'https';
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface NetworkRow {
+  bssid: string;
+  trilat_address: string;
+  trilat_lat: number;
+  trilat_lon: number;
+}
+
+interface PoiResult {
+  venue_name: string;
+  venue_category?: string;
+  venue_type?: string;
+  venue_brand?: string;
+  source: string;
+}
+
+interface NominatimResponse {
+  display_name?: string;
+  type?: string;
+  class?: string;
+}
+
+interface OverpassResponse {
+  elements?: Array<{
+    tags?: {
+      name?: string;
+      amenity?: string;
+      shop?: string;
+      building?: string;
+      brand?: string;
+      operator?: string;
+    };
+  }>;
+}
+
+interface PhotonResponse {
+  features?: Array<{
+    properties?: {
+      name?: string;
+      type?: string;
+      osm_value?: string;
+      street?: string;
+      city?: string;
+    };
+  }>;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
 // Free APIs for address enrichment
 const APIs = {
   // 1. Nominatim (OpenStreetMap) - Free, no key needed
-  nominatim: async (address) => {
+  nominatim: async (address: string): Promise<PoiResult | null> => {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&addressdetails=1&limit=1`;
     return new Promise((resolve, reject) => {
       https
@@ -22,14 +71,14 @@ const APIs = {
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             try {
-              const json = JSON.parse(data);
+              const json: NominatimResponse[] = JSON.parse(data);
               if (json.length > 0) {
                 const result = json[0];
                 resolve({
-                  name: result.display_name.split(',')[0],
-                  type: result.type,
-                  category: result.class,
-                  details: result.address,
+                  venue_name: result.display_name?.split(',')[0] || '',
+                  venue_type: result.type,
+                  venue_category: result.class,
+                  source: 'nominatim',
                 });
               } else {
                 resolve(null);
@@ -44,7 +93,7 @@ const APIs = {
   },
 
   // 2. Overpass API (OpenStreetMap POI) - Free
-  overpass: async (lat, lon) => {
+  overpass: async (lat: number, lon: number): Promise<PoiResult | null> => {
     const query = `[out:json];(node(around:50,${lat},${lon})[name];way(around:50,${lat},${lon})[name];);out body 1;`;
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
@@ -55,15 +104,15 @@ const APIs = {
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             try {
-              const json = JSON.parse(data);
+              const json: OverpassResponse = JSON.parse(data);
               if (json.elements && json.elements.length > 0) {
                 const poi = json.elements[0];
                 resolve({
-                  name: poi.tags?.name,
-                  type: poi.tags?.amenity || poi.tags?.shop || poi.tags?.building,
-                  category: poi.tags?.amenity || poi.tags?.shop || 'building',
-                  brand: poi.tags?.brand,
-                  operator: poi.tags?.operator,
+                  venue_name: poi.tags?.name || '',
+                  venue_type: poi.tags?.amenity || poi.tags?.shop || poi.tags?.building,
+                  venue_category: poi.tags?.amenity || poi.tags?.shop || 'building',
+                  venue_brand: poi.tags?.brand,
+                  source: 'overpass',
                 });
               } else {
                 resolve(null);
@@ -78,7 +127,7 @@ const APIs = {
   },
 
   // 3. Photon (Komoot) - Free geocoding
-  photon: async (address) => {
+  photon: async (address: string): Promise<PoiResult | null> => {
     const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(address)}&limit=1`;
     return new Promise((resolve, reject) => {
       https
@@ -87,15 +136,14 @@ const APIs = {
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             try {
-              const json = JSON.parse(data);
+              const json: PhotonResponse = JSON.parse(data);
               if (json.features && json.features.length > 0) {
                 const props = json.features[0].properties;
                 resolve({
-                  name: props.name,
-                  type: props.type,
-                  category: props.osm_value,
-                  street: props.street,
-                  city: props.city,
+                  venue_name: props?.name || '',
+                  venue_type: props?.type,
+                  venue_category: props?.osm_value,
+                  source: 'photon',
                 });
               } else {
                 resolve(null);
@@ -110,48 +158,39 @@ const APIs = {
   },
 };
 
-async function enrichAddress(address, lat, lon) {
+async function enrichAddress(address: string, lat: number, lon: number): Promise<PoiResult | null> {
   // Try Overpass first (best for POI)
   try {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Rate limit
     const overpass = await APIs.overpass(lat, lon);
-    if (overpass && overpass.name) {
-      return {
-        venue_name: overpass.name,
-        venue_category: overpass.category,
-        venue_type: overpass.type,
-        venue_brand: overpass.brand,
-        source: 'overpass',
-      };
+    if (overpass && overpass.venue_name) {
+      return overpass;
     }
   } catch (err) {
-    console.error('Overpass error:', err.message);
+    const error = err as Error;
+    console.error('Overpass error:', error.message);
   }
 
   // Fallback to Nominatim
   try {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Rate limit
     const nominatim = await APIs.nominatim(address);
-    if (nominatim && nominatim.name) {
-      return {
-        venue_name: nominatim.name,
-        venue_category: nominatim.category,
-        venue_type: nominatim.type,
-        source: 'nominatim',
-      };
+    if (nominatim && nominatim.venue_name) {
+      return nominatim;
     }
   } catch (err) {
-    console.error('Nominatim error:', err.message);
+    const error = err as Error;
+    console.error('Nominatim error:', error.message);
   }
 
   return null;
 }
 
-async function main() {
-  const limit = parseInt(process.argv[2]) || 100;
+async function main(): Promise<void> {
+  const limit = parseInt(process.argv[2] || '100', 10);
 
   // Get addresses without venue names
-  const result = await pool.query(
+  const result: QueryResult<NetworkRow> = await pool.query(
     `
     SELECT bssid, trilat_address, trilat_lat, trilat_lon
     FROM app.networks_legacy
@@ -178,7 +217,7 @@ async function main() {
       if (poi) {
         await pool.query(
           `
-          UPDATE app.networks_legacy 
+          UPDATE app.networks_legacy
           SET venue_name = $1, venue_category = $2, name = $3
           WHERE bssid = $4
         `,
@@ -187,7 +226,7 @@ async function main() {
 
         await pool.query(
           `
-          UPDATE app.ap_locations 
+          UPDATE app.ap_locations
           SET venue_name = $1, venue_category = $2
           WHERE bssid = $3
         `,
@@ -202,7 +241,8 @@ async function main() {
         console.log(`  ✗ ${i + 1}/${result.rows.length}: No POI found`);
       }
     } catch (err) {
-      console.error(`  ✗ ${i + 1}/${result.rows.length}: Error - ${err.message}`);
+      const error = err as Error;
+      console.error(`  ✗ ${i + 1}/${result.rows.length}: Error - ${error.message}`);
     }
   }
 

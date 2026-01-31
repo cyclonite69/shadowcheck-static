@@ -1,8 +1,45 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
+/**
+ * WiGLE V2 JSON Import Script
+ *
+ * Imports WiGLE API v2 JSON responses into PostgreSQL
+ */
 
-const fs = require('fs');
-const path = require('path');
-const { Pool } = require('pg');
+import * as fs from 'fs';
+import * as path from 'path';
+import { Pool, PoolClient } from 'pg';
+
+interface WigleNetwork {
+  netid: string;
+  ssid?: string;
+  qos?: number;
+  transid?: string;
+  firsttime?: string;
+  lasttime?: string;
+  lastupdt?: string;
+  housenumber?: string;
+  road?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  postalcode?: string;
+  trilat?: string | number;
+  trilong?: string | number;
+  dhcp?: string;
+  paynet?: boolean;
+  userfound?: boolean;
+  channel?: number;
+  encryption?: string;
+  freenet?: boolean;
+  comment?: string;
+  wep?: string;
+  bcninterval?: number;
+  type?: string;
+}
+
+interface WigleJsonData {
+  results?: WigleNetwork[];
+}
 
 // Database connection with limited pool size
 const pool = new Pool({
@@ -10,22 +47,22 @@ const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'shadowcheck_db',
   password: process.env.DB_PASSWORD || 'changeme',
-  port: process.env.DB_PORT || 5432,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
   max: 1, // Only 1 connection
 });
 
-async function importWigleV2Json(jsonFilePath) {
+async function importWigleV2Json(jsonFilePath: string): Promise<number> {
   console.log(`Processing: ${jsonFilePath}`);
 
   try {
-    const data = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
+    const data: WigleJsonData = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
 
     if (!data.results || !Array.isArray(data.results)) {
       console.log('No results array found in JSON');
       return 0;
     }
 
-    const client = await pool.connect();
+    const client: PoolClient = await pool.connect();
     let imported = 0;
 
     try {
@@ -56,8 +93,8 @@ async function importWigleV2Json(jsonFilePath) {
               network.region,
               network.country,
               network.postalcode,
-              parseFloat(network.trilat) || 0,
-              parseFloat(network.trilong) || 0,
+              parseFloat(String(network.trilat)) || 0,
+              parseFloat(String(network.trilong)) || 0,
               network.dhcp,
               network.paynet, // paynet
               network.userfound === true,
@@ -72,7 +109,8 @@ async function importWigleV2Json(jsonFilePath) {
           );
           imported++;
         } catch (err) {
-          console.error(`Error inserting network ${network.netid}:`, err.message);
+          const error = err as Error;
+          console.error(`Error inserting network ${network.netid}:`, error.message);
         }
       }
 
@@ -87,12 +125,13 @@ async function importWigleV2Json(jsonFilePath) {
     console.log(`Imported ${imported} networks from ${path.basename(jsonFilePath)}`);
     return imported;
   } catch (err) {
-    console.error(`Error processing ${jsonFilePath}:`, err.message);
+    const error = err as Error;
+    console.error(`Error processing ${jsonFilePath}:`, error.message);
     return 0;
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   const wigleDir = path.join(__dirname, '..', '..', 'wigle api v2 responses');
 
   if (!fs.existsSync(wigleDir)) {
@@ -128,3 +167,5 @@ async function main() {
 if (require.main === module) {
   main().catch(console.error);
 }
+
+export { importWigleV2Json };

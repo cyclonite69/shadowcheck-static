@@ -1,5 +1,59 @@
-require('dotenv').config();
-const { Pool } = require('pg');
+#!/usr/bin/env tsx
+import * as dotenv from 'dotenv';
+import { Pool, PoolClient } from 'pg';
+
+dotenv.config();
+
+interface ModelRow {
+  coefficients: number[] | string;
+  intercept: number | string;
+  feature_names: string[] | string;
+}
+
+interface NetworkRow {
+  bssid: string;
+  observation_count: string;
+  unique_days: string;
+  unique_locations: string;
+  max_signal: string;
+  max_distance_km: string;
+  distance_from_home_km: number;
+  seen_at_home: boolean;
+  seen_away_from_home: boolean;
+  rule_based_score: string;
+}
+
+interface FeatureStats {
+  min: number;
+  max: number;
+}
+
+interface RawFeatures {
+  distance_range_km: number;
+  unique_days: number;
+  observation_count: number;
+  max_signal: number;
+  unique_locations: number;
+  seen_both_locations: number;
+}
+
+interface ScoreRecord {
+  bssid: string;
+  ml_threat_score: number;
+  ml_threat_probability: number;
+  ml_primary_class: string;
+  ml_feature_values: {
+    rule_score: number;
+    ml_score: number;
+    evidence_weight: number;
+    ml_boost: number;
+    features: RawFeatures;
+  };
+  rule_based_score: number;
+  final_threat_score: number;
+  final_threat_level: string;
+  model_version: string;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER || 'shadowcheck_user',
@@ -12,7 +66,7 @@ const pool = new Pool({
 const BATCH_SIZE = 2000;
 
 // Helper to determine threat level
-const determineThreatLevel = (score) => {
+function determineThreatLevel(score: number): string {
   if (score >= 80) {
     return 'CRITICAL';
   }
@@ -26,15 +80,15 @@ const determineThreatLevel = (score) => {
     return 'LOW';
   }
   return 'NONE';
-};
+}
 
-async function scoreAll() {
-  const client = await pool.connect();
+async function scoreAll(): Promise<void> {
+  const client: PoolClient = await pool.connect();
   try {
     console.log('Starting full scoring run...');
 
     // 1. Load Model
-    const modelResult = await client.query(
+    const modelResult = await client.query<ModelRow>(
       `SELECT coefficients, intercept, feature_names
        FROM app.ml_model_config
        WHERE model_type = 'threat_logistic_regression'`
@@ -46,11 +100,13 @@ async function scoreAll() {
     }
 
     const model = modelResult.rows[0];
-    const coefficients = Array.isArray(model.coefficients)
-      ? model.coefficients.map((c) => parseFloat(c))
-      : JSON.parse(JSON.stringify(model.coefficients)).map((c) => parseFloat(c));
-    const intercept = parseFloat(model.intercept) || 0;
-    const featureNames = Array.isArray(model.feature_names)
+    const coefficients: number[] = Array.isArray(model.coefficients)
+      ? model.coefficients.map((c) => parseFloat(String(c)))
+      : JSON.parse(JSON.stringify(model.coefficients)).map((c: string | number) =>
+          parseFloat(String(c))
+        );
+    const intercept = parseFloat(String(model.intercept)) || 0;
+    const featureNames: string[] = Array.isArray(model.feature_names)
       ? model.feature_names
       : JSON.parse(JSON.stringify(model.feature_names));
 
@@ -61,9 +117,9 @@ async function scoreAll() {
     let totalProcessed = 0;
 
     while (true) {
-      const networkResult = await client.query(
+      const networkResult = await client.query<NetworkRow>(
         `
-        SELECT 
+        SELECT
           ap.bssid,
           mv.observations as observation_count,
           mv.unique_days,
@@ -91,13 +147,13 @@ async function scoreAll() {
         break;
       }
 
-      const scores = [];
+      const scores: ScoreRecord[] = [];
 
       for (const net of networkResult.rows) {
         lastBssid = net.bssid;
 
         // Feature Stats (Normalization)
-        const featureStats = {
+        const featureStats: Record<string, FeatureStats> = {
           distance_range_km: { min: 0, max: 9.29 },
           unique_days: { min: 1, max: 222 },
           observation_count: { min: 1, max: 2260 },
@@ -106,23 +162,23 @@ async function scoreAll() {
           seen_both_locations: { min: 0, max: 1 },
         };
 
-        const normalize = (value, min, max) => {
+        const normalize = (value: number, min: number, max: number): number => {
           if (max === min) {
             return 0;
           }
           return (value - min) / (max - min);
         };
 
-        const rawFeatures = {
-          distance_range_km: parseFloat(net.max_distance_km || 0),
-          unique_days: parseInt(net.unique_days || 0),
-          observation_count: parseInt(net.observation_count || 0),
-          max_signal: parseInt(net.max_signal || -100),
-          unique_locations: parseInt(net.unique_locations || 0),
+        const rawFeatures: RawFeatures = {
+          distance_range_km: parseFloat(net.max_distance_km || '0'),
+          unique_days: parseInt(net.unique_days || '0', 10),
+          observation_count: parseInt(net.observation_count || '0', 10),
+          max_signal: parseInt(net.max_signal || '-100', 10),
+          unique_locations: parseInt(net.unique_locations || '0', 10),
           seen_both_locations: net.seen_at_home && net.seen_away_from_home ? 1 : 0,
         };
 
-        const features = {};
+        const features: Record<string, number> = {};
         for (const [key, value] of Object.entries(rawFeatures)) {
           const stats = featureStats[key];
           features[key] = stats ? normalize(value, stats.min, stats.max) : value;
@@ -137,7 +193,7 @@ async function scoreAll() {
           }
         }
 
-        let probability;
+        let probability: number;
         if (z > 500) {
           probability = 1.0;
         } else if (z < -500) {
@@ -151,12 +207,12 @@ async function scoreAll() {
         }
 
         const threatScore = probability * 100;
-        const ruleScore = parseFloat(net.rule_based_score || 0);
+        const ruleScore = parseFloat(net.rule_based_score || '0');
 
         // --- HYBRID GATED FORMULA (MATCHING API) ---
-        const obsCount = parseInt(net.observation_count || 0);
-        const uniqueDays = parseInt(net.unique_days || 0);
-        const uniqueLocs = parseInt(net.unique_locations || 0);
+        const obsCount = parseInt(net.observation_count || '0', 10);
+        const uniqueDays = parseInt(net.unique_days || '0', 10);
+        const uniqueLocs = parseInt(net.unique_locations || '0', 10);
 
         let evidenceWeight = 0;
         if (obsCount >= 3 && uniqueDays >= 2) {
@@ -198,7 +254,7 @@ async function scoreAll() {
       for (const score of scores) {
         await client.query(
           `
-          INSERT INTO app.network_threat_scores 
+          INSERT INTO app.network_threat_scores
             (bssid, ml_threat_score, ml_threat_probability, ml_primary_class,
              ml_feature_values, rule_based_score, final_threat_score, final_threat_level, model_version)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)

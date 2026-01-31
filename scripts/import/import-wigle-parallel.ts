@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * Multi-threaded WiGLE Import - Full Precision, Full Database
  *
@@ -12,11 +12,48 @@
  * - Batch processing for performance
  */
 
-const sqlite3 = require('sqlite3').verbose();
-const { Pool } = require('pg');
-const path = require('path');
-const { execSync } = require('child_process');
-const os = require('os');
+import sqlite3 from 'sqlite3';
+import { Pool, PoolClient } from 'pg';
+import * as path from 'path';
+import { execSync } from 'child_process';
+import * as os from 'os';
+
+interface SqliteRow {
+  _id: number;
+  bssid: string;
+  lat: number;
+  lon: number;
+  altitude?: number;
+  accuracy?: number;
+  time: number;
+  level: number;
+  external?: boolean;
+  mfgrid?: string;
+}
+
+interface NetworkRow {
+  bssid: string;
+  ssid?: string;
+  frequency?: number;
+  capabilities?: string;
+}
+
+interface ImportStats {
+  observations: number;
+  networks: number;
+  skipped: number;
+  errors: Array<{
+    type: string;
+    error: string;
+    id?: number;
+    bssid?: string;
+  }>;
+}
+
+interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
 
 // Configuration
 const BATCH_SIZE = 500;
@@ -24,7 +61,7 @@ const THREAD_COUNT = os.cpus().length; // Use all CPU cores
 const PROGRESS_INTERVAL = 1000;
 
 // Get password from keyring
-function getKeyringPassword(service, username) {
+function getKeyringPassword(service: string, username: string): string {
   const script = `
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -60,7 +97,7 @@ const pgPool = new Pool({
 const sqliteFile = path.join(__dirname, '../../backup-1764309125210.sqlite');
 
 // Validation functions
-function validateCoordinates(lat, lon) {
+function validateCoordinates(lat: number | null, lon: number | null): ValidationResult {
   if (lat === null || lon === null || lat === undefined || lon === undefined) {
     return { valid: false, error: 'Missing coordinates' };
   }
@@ -76,7 +113,7 @@ function validateCoordinates(lat, lon) {
   return { valid: true };
 }
 
-function validateTimestamp(timestampMs) {
+function validateTimestamp(timestampMs: number | null): ValidationResult {
   const MIN_TIMESTAMP = 946684800000; // 2000-01-01
   const MAX_TIMESTAMP = Date.now() + 86400000; // Now + 1 day
 
@@ -86,7 +123,7 @@ function validateTimestamp(timestampMs) {
   return { valid: true };
 }
 
-async function fullImport() {
+async function fullImport(): Promise<void> {
   console.log('🚀 FULL DATABASE IMPORT - Multi-threaded');
   console.log(`📁 Source: ${sqliteFile}`);
   console.log(`🧵 Threads: ${THREAD_COUNT} cores`);
@@ -111,7 +148,7 @@ async function fullImport() {
     const importId = importResult.rows[0].id;
     console.log(`📝 Import ID: ${importId}\n`);
 
-    const stats = {
+    const stats: ImportStats = {
       observations: 0,
       networks: 0,
       skipped: 0,
@@ -125,7 +162,7 @@ async function fullImport() {
 
     // PHASE 2: Update networks with SSID info
     console.log('\n📡 Phase 2: Enriching NETWORKS with SSID data');
-    await enrichNetworks(importId, stats);
+    await enrichNetworks(stats);
 
     // Update import record
     const duration = Math.floor((Date.now() - startTime) / 1000);
@@ -166,79 +203,86 @@ async function fullImport() {
   }
 }
 
-async function importObservations(importId, stats) {
-  const sqliteDb = new sqlite3.Database(sqliteFile, sqlite3.OPEN_READONLY);
+async function importObservations(importId: number, stats: ImportStats): Promise<void> {
+  const sqliteDb = new (sqlite3.verbose().Database)(sqliteFile, sqlite3.OPEN_READONLY);
 
   return new Promise((resolve, reject) => {
     // First, count total
-    sqliteDb.get('SELECT COUNT(*) as count FROM location', async (err, countRow) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      const totalObservations = countRow.count;
-      console.log(`   Total observations in SQLite: ${totalObservations.toLocaleString()}\n`);
-
-      const observations = [];
-      let processed = 0;
-      let lastProgress = Date.now();
-
-      sqliteDb.each(
-        'SELECT * FROM location',
-        (err, row) => {
-          if (err) {
-            stats.errors.push({ type: 'sqlite_read', error: err.message });
-            return;
-          }
-          observations.push(row);
-
-          // Process in batches
-          if (observations.length >= BATCH_SIZE) {
-            const batch = [...observations];
-            observations.length = 0;
-
-            processObservationBatch(batch, importId, stats).then(() => {
-              processed += batch.length;
-
-              // Progress update
-              const now = Date.now();
-              if (now - lastProgress >= PROGRESS_INTERVAL) {
-                const pct = ((processed / totalObservations) * 100).toFixed(1);
-                const rate = Math.floor(processed / ((now - lastProgress) / 1000));
-                process.stdout.write(
-                  `\r   Progress: ${processed.toLocaleString()}/${totalObservations.toLocaleString()} (${pct}%) - ${rate}/sec   `
-                );
-                lastProgress = now;
-              }
-            });
-          }
-        },
-        async (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          // Process remaining batch
-          if (observations.length > 0) {
-            await processObservationBatch(observations, importId, stats);
-            processed += observations.length;
-          }
-
-          console.log(
-            `\r   ✓ Imported ${stats.observations.toLocaleString()} observations              `
-          );
-          sqliteDb.close();
-          resolve();
+    sqliteDb.get(
+      'SELECT COUNT(*) as count FROM location',
+      async (err: Error | null, countRow: { count: number }) => {
+        if (err) {
+          reject(err);
+          return;
         }
-      );
-    });
+
+        const totalObservations = countRow.count;
+        console.log(`   Total observations in SQLite: ${totalObservations.toLocaleString()}\n`);
+
+        const observations: SqliteRow[] = [];
+        let processed = 0;
+        let lastProgress = Date.now();
+
+        sqliteDb.each(
+          'SELECT * FROM location',
+          (err: Error | null, row: SqliteRow) => {
+            if (err) {
+              stats.errors.push({ type: 'sqlite_read', error: err.message });
+              return;
+            }
+            observations.push(row);
+
+            // Process in batches
+            if (observations.length >= BATCH_SIZE) {
+              const batch = [...observations];
+              observations.length = 0;
+
+              processObservationBatch(batch, importId, stats).then(() => {
+                processed += batch.length;
+
+                // Progress update
+                const now = Date.now();
+                if (now - lastProgress >= PROGRESS_INTERVAL) {
+                  const pct = ((processed / totalObservations) * 100).toFixed(1);
+                  const rate = Math.floor(processed / ((now - lastProgress) / 1000));
+                  process.stdout.write(
+                    `\r   Progress: ${processed.toLocaleString()}/${totalObservations.toLocaleString()} (${pct}%) - ${rate}/sec   `
+                  );
+                  lastProgress = now;
+                }
+              });
+            }
+          },
+          async (err: Error | null) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            // Process remaining batch
+            if (observations.length > 0) {
+              await processObservationBatch(observations, importId, stats);
+              processed += observations.length;
+            }
+
+            console.log(
+              `\r   ✓ Imported ${stats.observations.toLocaleString()} observations              `
+            );
+            sqliteDb.close();
+            resolve();
+          }
+        );
+      }
+    );
   });
 }
 
-async function processObservationBatch(rows, importId, stats) {
-  const client = await pgPool.connect();
+async function processObservationBatch(
+  rows: SqliteRow[],
+  importId: number,
+  stats: ImportStats
+): Promise<void> {
+  const client: PoolClient = await pgPool.connect();
 
   try {
     await client.query('BEGIN');
@@ -248,7 +292,7 @@ async function processObservationBatch(rows, importId, stats) {
       const coordCheck = validateCoordinates(row.lat, row.lon);
       if (!coordCheck.valid) {
         stats.skipped++;
-        stats.errors.push({ type: 'invalid_coords', error: coordCheck.error, id: row._id });
+        stats.errors.push({ type: 'invalid_coords', error: coordCheck.error!, id: row._id });
         continue;
       }
 
@@ -256,7 +300,7 @@ async function processObservationBatch(rows, importId, stats) {
       const tsCheck = validateTimestamp(row.time);
       if (!tsCheck.valid) {
         stats.skipped++;
-        stats.errors.push({ type: 'invalid_timestamp', error: tsCheck.error, id: row._id });
+        stats.errors.push({ type: 'invalid_timestamp', error: tsCheck.error!, id: row._id });
         continue;
       }
 
@@ -303,9 +347,10 @@ async function processObservationBatch(rows, importId, stats) {
 
         stats.observations++;
       } catch (error) {
+        const err = error as Error;
         stats.errors.push({
           type: 'observation_insert',
-          error: error.message,
+          error: err.message,
           id: row._id,
           bssid: row.bssid,
         });
@@ -321,15 +366,15 @@ async function processObservationBatch(rows, importId, stats) {
   }
 }
 
-async function enrichNetworks(importId, stats) {
-  const sqliteDb = new sqlite3.Database(sqliteFile, sqlite3.OPEN_READONLY);
+async function enrichNetworks(stats: ImportStats): Promise<void> {
+  const sqliteDb = new (sqlite3.verbose().Database)(sqliteFile, sqlite3.OPEN_READONLY);
 
   return new Promise((resolve, reject) => {
-    const updates = [];
+    const updates: NetworkRow[] = [];
 
     sqliteDb.each(
       'SELECT bssid, ssid, frequency, capabilities FROM network',
-      (err, row) => {
+      (err: Error | null, row: NetworkRow) => {
         if (err) {
           stats.errors.push({ type: 'network_read', error: err.message });
           return;
@@ -342,7 +387,7 @@ async function enrichNetworks(importId, stats) {
           processNetworkBatch(batch, stats);
         }
       },
-      async (err) => {
+      async (err: Error | null) => {
         if (err) {
           reject(err);
           return;
@@ -361,8 +406,8 @@ async function enrichNetworks(importId, stats) {
   });
 }
 
-async function processNetworkBatch(rows, stats) {
-  const client = await pgPool.connect();
+async function processNetworkBatch(rows: NetworkRow[], stats: ImportStats): Promise<void> {
+  const client: PoolClient = await pgPool.connect();
 
   try {
     await client.query('BEGIN');
@@ -388,9 +433,10 @@ async function processNetworkBatch(rows, stats) {
           process.stdout.write(`\r   Enriched ${stats.networks.toLocaleString()} networks...`);
         }
       } catch (error) {
+        const err = error as Error;
         stats.errors.push({
           type: 'network_update',
-          error: error.message,
+          error: err.message,
           bssid: row.bssid,
         });
       }
@@ -413,4 +459,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { fullImport };
+export { fullImport };

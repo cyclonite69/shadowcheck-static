@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * TURBO IMPORT V2 - Enhanced High-Performance WiGLE SQLite → PostgreSQL Importer
  *
@@ -12,19 +12,88 @@
  * - Comprehensive logging
  */
 
-const fs = require('fs');
-const { Worker } = require('worker_threads');
-const { Pool } = require('pg');
-const sqlite3 = require('sqlite3').verbose();
-require('dotenv').config();
+import * as fs from 'fs';
+import { Worker, workerData, parentPort, isMainThread } from 'worker_threads';
+import { Pool, QueryResult } from 'pg';
+import sqlite3 from 'sqlite3';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface Config {
+  WORKERS: number;
+  BATCH_SIZE: number;
+  MAX_RETRIES: number;
+  RETRY_DELAY_MS: number;
+  DEBUG: boolean;
+  DB_CONFIG: {
+    user: string;
+    password?: string;
+    host: string;
+    database: string;
+    port: number;
+    max: number;
+    idleTimeoutMillis: number;
+    connectionTimeoutMillis: number;
+  };
+}
+
+interface WorkerData {
+  sqliteFile: string;
+  offset: number;
+  limit: number;
+  workerId: number;
+  batchSize: number;
+  dbConfig: Config['DB_CONFIG'];
+  debug: boolean;
+}
+
+interface WorkerResult {
+  imported: number;
+  failed: number;
+  errors: string[];
+}
+
+interface SqliteRow {
+  bssid: string;
+  lat: number | string;
+  lon: number | string;
+  altitude?: number | string;
+  accuracy?: number | string;
+  time: number | string;
+  level: number | string;
+  mfgrid?: string;
+  type?: string;
+}
+
+interface ValidatedRecord {
+  bssid: string;
+  lat: number;
+  lon: number;
+  altitude: number;
+  accuracy: number;
+  time: Date;
+  level: number;
+  mfgrid: string | null;
+  radio_type: string;
+}
+
+interface RefreshRow {
+  view_name: string;
+  refresh_duration: { seconds?: number; milliseconds?: number } | string;
+}
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-const CONFIG = {
-  WORKERS: parseInt(process.env.IMPORT_WORKERS) || 4, // Reduced to avoid connection pool exhaustion
-  BATCH_SIZE: parseInt(process.env.IMPORT_BATCH_SIZE) || 1000,
+const CONFIG: Config = {
+  WORKERS: parseInt(process.env.IMPORT_WORKERS || '4', 10),
+  BATCH_SIZE: parseInt(process.env.IMPORT_BATCH_SIZE || '1000', 10),
   MAX_RETRIES: 3,
   RETRY_DELAY_MS: 1000,
   DEBUG: process.env.DEBUG === 'true',
@@ -33,7 +102,7 @@ const CONFIG = {
     password: process.env.DB_PASSWORD,
     host: process.env.DB_HOST || '127.0.0.1',
     database: process.env.DB_NAME || 'shadowcheck_db',
-    port: parseInt(process.env.DB_PORT) || 5432,
+    port: parseInt(process.env.DB_PORT || '5432', 10),
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
@@ -45,18 +114,22 @@ const CONFIG = {
 // ============================================================================
 
 class TurboImporter {
-  constructor(sqliteFile) {
+  private sqliteFile: string;
+  private pool: Pool;
+  private importId: number | null = null;
+  private totalRecords = 0;
+  private importedRecords = 0;
+  private failedRecords = 0;
+  private startTime: number;
+  private errors: string[] = [];
+
+  constructor(sqliteFile: string) {
     this.sqliteFile = sqliteFile;
     this.pool = new Pool(CONFIG.DB_CONFIG);
-    this.importId = null;
-    this.totalRecords = 0;
-    this.importedRecords = 0;
-    this.failedRecords = 0;
     this.startTime = Date.now();
-    this.errors = [];
   }
 
-  async start() {
+  async start(): Promise<void> {
     console.log('\n🚀 TURBO IMPORT V2 - Enhanced Parallel Loading');
     console.log('━'.repeat(60));
     console.log(`📁 Source: ${this.sqliteFile}`);
@@ -83,34 +156,32 @@ class TurboImporter {
         return;
       }
 
-      // 5. Clear existing observations (optional - ask user?)
-      // await this.clearExistingData();
-
-      // 6. Run parallel import
+      // 5. Run parallel import
       console.log('⚡ Starting parallel import...\n');
       await this.runParallelImport();
 
-      // 7. Refresh Materialized Views
+      // 6. Refresh Materialized Views
       await this.refreshMaterializedViews();
 
-      // 8. Mark import as complete
+      // 7. Mark import as complete
       await this.completeImport();
 
-      // 9. Print summary
+      // 8. Print summary
       this.printSummary();
     } catch (error) {
-      console.error('\n❌ IMPORT FAILED:', error.message);
+      const err = error as Error;
+      console.error('\n❌ IMPORT FAILED:', err.message);
       if (CONFIG.DEBUG) {
-        console.error('Stack trace:', error.stack);
+        console.error('Stack trace:', err.stack);
       }
-      await this.failImport(error);
+      await this.failImport(err);
       process.exit(1);
     } finally {
       await this.pool.end();
     }
   }
 
-  async testConnections() {
+  private async testConnections(): Promise<void> {
     console.log('🔍 Testing connections...');
 
     // Test SQLite
@@ -123,41 +194,45 @@ class TurboImporter {
       const result = await this.pool.query('SELECT NOW()');
       console.log(`✅ PostgreSQL connected: ${result.rows[0].now}`);
     } catch (error) {
-      throw new Error(`PostgreSQL connection failed: ${error.message}`);
+      const err = error as Error;
+      throw new Error(`PostgreSQL connection failed: ${err.message}`);
     }
   }
 
-  async analyzeSQLiteSchema() {
+  private async analyzeSQLiteSchema(): Promise<void> {
     console.log('🔍 Analyzing SQLite schema...');
 
     return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(this.sqliteFile, sqlite3.OPEN_READONLY);
+      const db = new (sqlite3.verbose().Database)(this.sqliteFile, sqlite3.OPEN_READONLY);
 
-      db.get('SELECT sql FROM sqlite_master WHERE type="table" AND name="location"', (err, row) => {
-        if (err) {
+      db.get(
+        'SELECT sql FROM sqlite_master WHERE type="table" AND name="location"',
+        (err: Error | null, row: { sql: string } | undefined) => {
+          if (err) {
+            db.close();
+            reject(err);
+            return;
+          }
+
+          if (!row) {
+            db.close();
+            reject(new Error('Table "location" not found in SQLite database'));
+            return;
+          }
+
+          console.log('✅ SQLite schema validated');
+          if (CONFIG.DEBUG) {
+            console.log('Schema:', row.sql);
+          }
+
           db.close();
-          reject(err);
-          return;
+          resolve();
         }
-
-        if (!row) {
-          db.close();
-          reject(new Error('Table "location" not found in SQLite database'));
-          return;
-        }
-
-        console.log('✅ SQLite schema validated');
-        if (CONFIG.DEBUG) {
-          console.log('Schema:', row.sql);
-        }
-
-        db.close();
-        resolve();
-      });
+      );
     });
   }
 
-  async createImportRecord() {
+  private async createImportRecord(): Promise<void> {
     const result = await this.pool.query(
       `
       INSERT INTO app.imports (source_file, source_type, status, started_at, errors)
@@ -180,29 +255,26 @@ class TurboImporter {
     console.log(`📋 Import ID: ${this.importId}`);
   }
 
-  async getTotalRecords() {
+  private async getTotalRecords(): Promise<number> {
     return new Promise((resolve, reject) => {
-      const db = new sqlite3.Database(this.sqliteFile, sqlite3.OPEN_READONLY);
-      db.get('SELECT COUNT(*) as count FROM location', (err, row) => {
-        db.close();
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row.count);
+      const db = new (sqlite3.verbose().Database)(this.sqliteFile, sqlite3.OPEN_READONLY);
+      db.get(
+        'SELECT COUNT(*) as count FROM location',
+        (err: Error | null, row: { count: number }) => {
+          db.close();
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row.count);
+          }
         }
-      });
+      );
     });
   }
 
-  async clearExistingData() {
-    console.log('🗑️  Clearing existing observations...');
-    await this.pool.query('TRUNCATE app.observations CASCADE');
-    console.log('✅ Observations cleared');
-  }
-
-  async runParallelImport() {
+  private async runParallelImport(): Promise<void> {
     const recordsPerWorker = Math.ceil(this.totalRecords / CONFIG.WORKERS);
-    const workers = [];
+    const workers: Promise<WorkerResult>[] = [];
 
     for (let i = 0; i < CONFIG.WORKERS; i++) {
       const offset = i * recordsPerWorker;
@@ -224,7 +296,7 @@ class TurboImporter {
     this.errors = results.flatMap((r) => r.errors || []);
   }
 
-  spawnWorker(offset, limit, workerId) {
+  private spawnWorker(offset: number, limit: number, workerId: number): Promise<WorkerResult> {
     return new Promise((resolve) => {
       const worker = new Worker(__filename, {
         workerData: {
@@ -235,39 +307,39 @@ class TurboImporter {
           batchSize: CONFIG.BATCH_SIZE,
           dbConfig: CONFIG.DB_CONFIG,
           debug: CONFIG.DEBUG,
-        },
+        } as WorkerData,
       });
 
       let lastUpdate = Date.now();
 
-      worker.on('message', (msg) => {
+      worker.on('message', (msg: { type: string; [key: string]: unknown }) => {
         if (msg.type === 'progress') {
           // Throttle progress updates to every 500ms
           if (Date.now() - lastUpdate > 500) {
             process.stdout.write(
-              `\r🔄 [W${workerId}] ${msg.imported.toLocaleString()}/${msg.total.toLocaleString()} ` +
-                `(${msg.percent}%) | Speed: ${msg.speed.toLocaleString()} rec/s`
+              `\r🔄 [W${workerId}] ${(msg.imported as number).toLocaleString()}/${(msg.total as number).toLocaleString()} ` +
+                `(${msg.percent}%) | Speed: ${(msg.speed as number).toLocaleString()} rec/s`
             );
             lastUpdate = Date.now();
           }
         } else if (msg.type === 'complete') {
           console.log(
             `\n✅ Worker ${workerId} done: ` +
-              `${msg.imported.toLocaleString()} imported, ` +
-              `${msg.failed.toLocaleString()} failed ` +
-              `(${msg.duration.toFixed(1)}s)`
+              `${(msg.imported as number).toLocaleString()} imported, ` +
+              `${(msg.failed as number).toLocaleString()} failed ` +
+              `(${(msg.duration as number).toFixed(1)}s)`
           );
           resolve({
-            imported: msg.imported,
-            failed: msg.failed,
-            errors: msg.errors,
+            imported: msg.imported as number,
+            failed: msg.failed as number,
+            errors: msg.errors as string[],
           });
         } else if (msg.type === 'error') {
           console.error(`\n❌ Worker ${workerId} error:`, msg.error);
         }
       });
 
-      worker.on('error', (error) => {
+      worker.on('error', (error: Error) => {
         console.error(`\n❌ Worker ${workerId} crashed:`, error.message);
         resolve({ imported: 0, failed: 0, errors: [error.message] });
       });
@@ -280,12 +352,14 @@ class TurboImporter {
     });
   }
 
-  async refreshMaterializedViews() {
+  private async refreshMaterializedViews(): Promise<void> {
     console.log('\n🔄 Refreshing Materialized Views...');
     const mvStart = Date.now();
 
     try {
-      const result = await this.pool.query('SELECT * FROM app.refresh_all_materialized_views()');
+      const result: QueryResult<RefreshRow> = await this.pool.query(
+        'SELECT * FROM app.refresh_all_materialized_views()'
+      );
 
       console.log('✅ Materialized Views refreshed:');
       result.rows.forEach((row) => {
@@ -305,12 +379,13 @@ class TurboImporter {
 
       console.log(`   Total MV refresh time: ${((Date.now() - mvStart) / 1000).toFixed(2)}s`);
     } catch (error) {
-      console.error('⚠️  MV refresh failed:', error.message);
+      const err = error as Error;
+      console.error('⚠️  MV refresh failed:', err.message);
       // Don't fail the import if MV refresh fails
     }
   }
 
-  async completeImport() {
+  private async completeImport(): Promise<void> {
     await this.pool.query(
       `
       UPDATE app.imports
@@ -337,7 +412,7 @@ class TurboImporter {
     );
   }
 
-  async failImport(error) {
+  private async failImport(error: Error): Promise<void> {
     if (this.importId) {
       await this.pool.query(
         `
@@ -361,7 +436,7 @@ class TurboImporter {
     }
   }
 
-  printSummary() {
+  private printSummary(): void {
     const duration = (Date.now() - this.startTime) / 1000;
     const recordsPerSecond = Math.round(this.importedRecords / duration);
     const successRate = ((this.importedRecords / this.totalRecords) * 100).toFixed(2);
@@ -385,193 +460,14 @@ class TurboImporter {
 }
 
 // ============================================================================
-// WORKER THREAD LOGIC
-// ============================================================================
-
-const { workerData, parentPort, isMainThread } = require('worker_threads');
-
-if (!isMainThread) {
-  (async () => {
-    const {
-      sqliteFile,
-      offset,
-      limit,
-      workerId: _workerId,
-      batchSize,
-      dbConfig,
-      debug,
-    } = workerData;
-
-    const pool = new Pool(dbConfig);
-    let imported = 0;
-    let failed = 0;
-    const errors = [];
-    const startTime = Date.now();
-    let lastProgressTime = Date.now();
-
-    try {
-      const db = new sqlite3.Database(sqliteFile, sqlite3.OPEN_READONLY);
-
-      // Query with CORRECT column names from WiGLE SQLite schema
-      // JOIN with network table to get type
-      const query = `
-        SELECT
-          l.bssid,
-          l.lat,
-          l.lon,
-          l.altitude,
-          l.accuracy,
-          l.time,
-          l.level,
-          l.mfgrid,
-          COALESCE(n.type, 'W') as type
-        FROM location l
-        LEFT JOIN network n ON l.bssid = n.bssid
-        WHERE l.bssid IS NOT NULL
-          AND l.lat IS NOT NULL
-          AND l.lon IS NOT NULL
-        ORDER BY l._id
-        LIMIT ${limit} OFFSET ${offset}
-      `;
-
-      await new Promise((resolve, reject) => {
-        let batch = [];
-        let processedCount = 0;
-
-        db.each(
-          query,
-          async (err, row) => {
-            if (err) {
-              errors.push(`SQLite read error: ${err.message}`);
-              failed++;
-              return;
-            }
-
-            // Debug: Log first few rows
-            if (debug && processedCount < 5) {
-              parentPort.postMessage({
-                type: 'error',
-                error: `DEBUG Row ${processedCount}: ${JSON.stringify(row)}`,
-              });
-            }
-
-            // Validate and clean data
-            const record = validateRecord(row);
-            if (!record) {
-              failed++;
-              const failReason = !row.bssid
-                ? 'no_bssid'
-                : isNaN(parseFloat(row.lat))
-                  ? 'bad_lat'
-                  : isNaN(parseFloat(row.lon))
-                    ? 'bad_lon'
-                    : isNaN(parseInt(row.time))
-                      ? 'bad_time'
-                      : isNaN(parseInt(row.level))
-                        ? 'bad_level'
-                        : 'unknown';
-              errors.push(
-                `Invalid record (${failReason}): ${JSON.stringify(row).substring(0, 150)}`
-              );
-              return;
-            }
-
-            batch.push(record);
-
-            if (batch.length >= batchSize) {
-              const currentBatch = [...batch];
-              batch = [];
-
-              try {
-                await insertBatch(pool, currentBatch);
-                imported += currentBatch.length;
-                processedCount += currentBatch.length;
-
-                // Send progress update
-                const now = Date.now();
-                if (now - lastProgressTime > 1000) {
-                  const elapsed = (now - startTime) / 1000;
-                  const speed = Math.round(processedCount / elapsed);
-                  const percent = Math.round((processedCount / limit) * 100);
-
-                  parentPort.postMessage({
-                    type: 'progress',
-                    imported: processedCount,
-                    total: limit,
-                    percent,
-                    speed,
-                  });
-                  lastProgressTime = now;
-                }
-              } catch (error) {
-                failed += currentBatch.length;
-                errors.push(`Batch insert error: ${error.message}`);
-
-                if (debug) {
-                  parentPort.postMessage({
-                    type: 'error',
-                    error: `Batch failed: ${error.message}`,
-                  });
-                }
-              }
-            }
-          },
-          async (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-
-            // Insert remaining records
-            if (batch.length > 0) {
-              try {
-                await insertBatch(pool, batch);
-                imported += batch.length;
-              } catch (error) {
-                failed += batch.length;
-                errors.push(`Final batch error: ${error.message}`);
-              }
-            }
-
-            db.close();
-            resolve();
-          }
-        );
-      });
-
-      const duration = (Date.now() - startTime) / 1000;
-      parentPort.postMessage({
-        type: 'complete',
-        imported,
-        failed,
-        duration,
-        errors: errors.slice(0, 100), // Limit errors sent back
-      });
-    } catch (error) {
-      parentPort.postMessage({
-        type: 'complete',
-        imported,
-        failed,
-        duration: (Date.now() - startTime) / 1000,
-        errors: [...errors, `Worker crash: ${error.message}`],
-      });
-    } finally {
-      await pool.end();
-    }
-  })();
-}
-
-// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
 /**
  * Map WiGLE radio type codes to database enum values
- * @param {string} wigleType - WiGLE type code (W, B, E, G, L, N, etc.)
- * @returns {string} Database radio_type enum value
  */
-function mapRadioType(wigleType) {
-  const typeMap = {
+function mapRadioType(wigleType: string): string {
+  const typeMap: Record<string, string> = {
     W: 'wifi', // WiFi
     B: 'bluetooth_classic', // Bluetooth Classic
     E: 'bluetooth_le', // Bluetooth Low Energy
@@ -585,15 +481,15 @@ function mapRadioType(wigleType) {
   return typeMap[wigleType] || 'wifi'; // Default to wifi
 }
 
-function validateRecord(row) {
+function validateRecord(row: SqliteRow): ValidatedRecord | null {
   // Validate BSSID
   if (!row.bssid || typeof row.bssid !== 'string') {
     return null;
   }
 
   // Validate coordinates
-  const lat = parseFloat(row.lat);
-  const lon = parseFloat(row.lon);
+  const lat = parseFloat(String(row.lat));
+  const lon = parseFloat(String(row.lon));
 
   if (isNaN(lat) || isNaN(lon)) {
     return null;
@@ -609,14 +505,14 @@ function validateRecord(row) {
   }
 
   // Validate time (must be after Jan 1, 2000 - 946684800000 ms)
-  const time = parseInt(row.time);
+  const time = parseInt(String(row.time), 10);
   const MIN_VALID_TIMESTAMP = 946684800000;
   if (isNaN(time) || time < MIN_VALID_TIMESTAMP) {
     return null;
   }
 
   // Validate signal level
-  const level = parseInt(row.level);
+  const level = parseInt(String(row.level), 10);
   if (isNaN(level)) {
     return null;
   }
@@ -625,8 +521,8 @@ function validateRecord(row) {
     bssid: row.bssid.toUpperCase(),
     lat: lat,
     lon: lon,
-    altitude: parseFloat(row.altitude) || 0,
-    accuracy: parseFloat(row.accuracy) || 0,
+    altitude: parseFloat(String(row.altitude)) || 0,
+    accuracy: parseFloat(String(row.accuracy)) || 0,
     time: new Date(time),
     level: level,
     mfgrid: row.mfgrid || null,
@@ -634,14 +530,14 @@ function validateRecord(row) {
   };
 }
 
-async function insertBatch(pool, records) {
+async function insertBatch(pool: Pool, records: ValidatedRecord[]): Promise<void> {
   if (records.length === 0) {
     return;
   }
 
   // Build multi-row INSERT for observations
-  const obsValues = [];
-  const obsParams = [];
+  const obsValues: string[] = [];
+  const obsParams: unknown[] = [];
   let paramIndex = 1;
 
   for (const record of records) {
@@ -674,15 +570,15 @@ async function insertBatch(pool, records) {
   await pool.query(obsSql, obsParams);
 
   // Upsert networks (deduplicated) - group by type to insert correct type per BSSID
-  const bssidTypeMap = new Map();
+  const bssidTypeMap = new Map<string, string>();
   for (const record of records) {
     if (!bssidTypeMap.has(record.bssid)) {
       bssidTypeMap.set(record.bssid, record.radio_type);
     }
   }
 
-  const networkValues = [];
-  const networkParams = [];
+  const networkValues: string[] = [];
+  const networkParams: unknown[] = [];
   paramIndex = 1;
 
   for (const [bssid, radioType] of bssidTypeMap.entries()) {
@@ -699,6 +595,184 @@ async function insertBatch(pool, records) {
     `;
     await pool.query(networkSql, networkParams);
   }
+}
+
+// ============================================================================
+// WORKER THREAD LOGIC
+// ============================================================================
+
+if (!isMainThread && workerData && parentPort) {
+  (async () => {
+    const {
+      sqliteFile,
+      offset,
+      limit,
+      workerId: _workerId,
+      batchSize,
+      dbConfig,
+      debug,
+    } = workerData as WorkerData;
+
+    const pool = new Pool(dbConfig);
+    let imported = 0;
+    let failed = 0;
+    const errors: string[] = [];
+    const startTime = Date.now();
+    let lastProgressTime = Date.now();
+
+    try {
+      const db = new (sqlite3.verbose().Database)(sqliteFile, sqlite3.OPEN_READONLY);
+
+      // Query with CORRECT column names from WiGLE SQLite schema
+      // JOIN with network table to get type
+      const query = `
+        SELECT
+          l.bssid,
+          l.lat,
+          l.lon,
+          l.altitude,
+          l.accuracy,
+          l.time,
+          l.level,
+          l.mfgrid,
+          COALESCE(n.type, 'W') as type
+        FROM location l
+        LEFT JOIN network n ON l.bssid = n.bssid
+        WHERE l.bssid IS NOT NULL
+          AND l.lat IS NOT NULL
+          AND l.lon IS NOT NULL
+        ORDER BY l._id
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+
+      await new Promise<void>((resolve, reject) => {
+        let batch: ValidatedRecord[] = [];
+        let processedCount = 0;
+
+        db.each(
+          query,
+          async (err: Error | null, row: SqliteRow) => {
+            if (err) {
+              errors.push(`SQLite read error: ${err.message}`);
+              failed++;
+              return;
+            }
+
+            // Debug: Log first few rows
+            if (debug && processedCount < 5) {
+              parentPort!.postMessage({
+                type: 'error',
+                error: `DEBUG Row ${processedCount}: ${JSON.stringify(row)}`,
+              });
+            }
+
+            // Validate and clean data
+            const record = validateRecord(row);
+            if (!record) {
+              failed++;
+              const failReason = !row.bssid
+                ? 'no_bssid'
+                : isNaN(parseFloat(String(row.lat)))
+                  ? 'bad_lat'
+                  : isNaN(parseFloat(String(row.lon)))
+                    ? 'bad_lon'
+                    : isNaN(parseInt(String(row.time), 10))
+                      ? 'bad_time'
+                      : isNaN(parseInt(String(row.level), 10))
+                        ? 'bad_level'
+                        : 'unknown';
+              errors.push(
+                `Invalid record (${failReason}): ${JSON.stringify(row).substring(0, 150)}`
+              );
+              return;
+            }
+
+            batch.push(record);
+
+            if (batch.length >= batchSize) {
+              const currentBatch = [...batch];
+              batch = [];
+
+              try {
+                await insertBatch(pool, currentBatch);
+                imported += currentBatch.length;
+                processedCount += currentBatch.length;
+
+                // Send progress update
+                const now = Date.now();
+                if (now - lastProgressTime > 1000) {
+                  const elapsed = (now - startTime) / 1000;
+                  const speed = Math.round(processedCount / elapsed);
+                  const percent = Math.round((processedCount / limit) * 100);
+
+                  parentPort!.postMessage({
+                    type: 'progress',
+                    imported: processedCount,
+                    total: limit,
+                    percent,
+                    speed,
+                  });
+                  lastProgressTime = now;
+                }
+              } catch (error) {
+                const err = error as Error;
+                failed += currentBatch.length;
+                errors.push(`Batch insert error: ${err.message}`);
+
+                if (debug) {
+                  parentPort!.postMessage({
+                    type: 'error',
+                    error: `Batch failed: ${err.message}`,
+                  });
+                }
+              }
+            }
+          },
+          async (err: Error | null) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            // Insert remaining records
+            if (batch.length > 0) {
+              try {
+                await insertBatch(pool, batch);
+                imported += batch.length;
+              } catch (error) {
+                const e = error as Error;
+                failed += batch.length;
+                errors.push(`Final batch error: ${e.message}`);
+              }
+            }
+
+            db.close();
+            resolve();
+          }
+        );
+      });
+
+      const duration = (Date.now() - startTime) / 1000;
+      parentPort!.postMessage({
+        type: 'complete',
+        imported,
+        failed,
+        duration,
+        errors: errors.slice(0, 100), // Limit errors sent back
+      });
+    } catch (error) {
+      const err = error as Error;
+      parentPort!.postMessage({
+        type: 'complete',
+        imported,
+        failed,
+        duration: (Date.now() - startTime) / 1000,
+        errors: [...errors, `Worker crash: ${err.message}`],
+      });
+    } finally {
+      await pool.end();
+    }
+  })();
 }
 
 // ============================================================================
@@ -720,3 +794,5 @@ if (isMainThread) {
     process.exit(1);
   });
 }
+
+export { TurboImporter, mapRadioType, validateRecord };
