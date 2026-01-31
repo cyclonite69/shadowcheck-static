@@ -25,19 +25,29 @@
 ## Features
 
 - **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards
-- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, and **Unified Network Tooltips**
+- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**
+- **Geospatial Explorer:** Map-based network exploration with overlays and timeline views
 - **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering
 - **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms
 - **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations
 - **Address Enrichment:** Multi-API venue and business identification (4 sources: OpenCage, LocationIQ, Abstract, Overpass)
 - **Device Classification:** Automatic identification of device types and behavioral profiling
+- **Network Tagging:** Manual classification and tag retrieval for networks
 - **Trilateration:** AP location calculation from multiple observations with accuracy estimation
 - **Machine Learning:** Multi-algorithm threat detection with hyperparameter optimization and model versioning
 - **Universal Filters:** 20+ filter types supporting complex temporal, spatial, and behavioral queries
+- **WiGLE Integration:** Local WiGLE database search with optional live API lookups
+- **Kepler Integration:** Kepler.gl-ready GeoJSON endpoints with filter support
+- **Home Location & Markers:** Saved locations and distance-from-home filters
+- **Data Export & Backup:** CSV/JSON/GeoJSON exports plus admin-protected backups
+- **Authentication & Roles:** Session-based login with admin-gated operations
+- **Admin Settings:** Keyring-backed Mapbox/WiGLE/Google Maps configuration
 - **DevContainer Support:** Consistent development environment with VS Code integration
 - **Security Headers:** Production-ready deployment with CSP, HTTPS enforcement, and Lighthouse optimization
 - **Admin Features:** System administration interface with configuration management, user settings, and role-based gating
 - **Admin Database Security**: Multi-user model with read-only `shadowcheck_user` and privileged `shadowcheck_admin`
+
+See `docs/FEATURES.md` for the full feature catalog.
 
 ## Recent Improvements (January 2026)
 
@@ -157,6 +167,7 @@ Server runs on `http://localhost:3001`
 
 - Dashboard (React): `/` and `/dashboard`
 - Geospatial Intelligence (React): `/geospatial` or `/geospatial-intel`
+- Geospatial Explorer (React): `/geospatial-explorer`
 - Analytics (React): `/analytics`
 - API Test (React): `/endpoint-test`
 - ML Training (React): `/ml-training`
