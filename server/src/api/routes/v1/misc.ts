@@ -44,8 +44,8 @@ router.post('/geocode', async (req, res) => {
     const response = await fetch(url);
     const data = await response.json();
 
-    if (data.features && data.features.length > 0) {
-      const feature = data.features[0];
+    if ((data as any).features && (data as any).features.length > 0) {
+      const feature = (data as any).features[0];
       const [lng, lat] = feature.center;
 
       res.json({

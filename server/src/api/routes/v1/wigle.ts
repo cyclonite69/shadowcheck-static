@@ -941,9 +941,9 @@ router.get('/wigle/api-status', async (req, res) => {
     res.json({
       ok: true,
       configured: true,
-      user: data.user || wigleApiName,
-      monthlyResultLimit: data.statistics?.monthlyResultLimit,
-      monthlyResultCount: data.statistics?.monthlyResultCount,
+      user: (data as any).user || wigleApiName,
+      monthlyResultLimit: (data as any).statistics?.monthlyResultLimit,
+      monthlyResultCount: (data as any).statistics?.monthlyResultCount,
     });
   } catch (err) {
     res.json({ ok: false, configured: true, error: err.message });
