@@ -74,6 +74,8 @@ docs/
 
 ## ⚡ Features
 
+**Start here:** [Feature Catalog](FEATURES.md) - Comprehensive list of shipped capabilities
+
 ### Core Features
 
 - **[Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)** - Surveillance device detection
@@ -130,6 +132,7 @@ docs/
 
 **Features**
 
+- [Feature Catalog](FEATURES.md)
 - [Threat Detection](features/SURVEILLANCE_DETECTION_V2.md)
 - [Network Enrichment](enrichment/PRODUCTION_ENRICHMENT.md)
 - [ML System](ML_ITERATION_GUIDE.md)
@@ -202,6 +205,7 @@ Historical documentation and completed initiatives:
 ### Root Documentation
 
 - [README.md](../README.md) - Project overview
+- [FEATURES.md](FEATURES.md) - Comprehensive feature catalog
 - [CHANGELOG.md](../CHANGELOG.md) - Version history
 - [CLAUDE.md](../CLAUDE.md) - AI assistant guidance
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
@@ -255,6 +259,6 @@ Historical documentation and completed initiatives:
 
 ---
 
-**Last Updated**: 2025-12-09
+**Last Updated**: 2026-01-31
 **Maintained By**: ShadowCheck Team
 **License**: MIT
