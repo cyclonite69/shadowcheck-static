@@ -6,6 +6,8 @@
 const logger = require('./logger');
 const { v4: uuidv4 } = require('uuid');
 
+export {};
+
 /**
  * Request ID middleware
  * Adds unique ID to each request for tracing across logs

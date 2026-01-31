@@ -7,6 +7,8 @@ const { Pool } = require('pg');
 const secretsManager = require('./secretsManager');
 const logger = require('../logging/logger');
 
+export {};
+
 // Admin connection settings
 const DB_ADMIN_USER = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
 const DB_NAME = process.env.DB_NAME || 'shadowcheck_db';

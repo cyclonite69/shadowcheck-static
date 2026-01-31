@@ -7,6 +7,9 @@ const NetworkRepository = require('../repositories/networkRepository');
 const DashboardService = require('../services/dashboardService');
 
 class Container {
+  services: Map<string, unknown>;
+  singletons: Map<string, unknown>;
+
   constructor() {
     this.services = new Map();
     this.singletons = new Map();
@@ -80,3 +83,4 @@ function initContainer() {
 }
 
 module.exports = { Container, initContainer };
+export {};

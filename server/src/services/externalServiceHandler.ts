@@ -3,6 +3,8 @@
  * Provides simple retry and timeout wrappers for outbound requests.
  */
 
+export {};
+
 /**
  * Waits for a given number of milliseconds.
  * @param {number} ms - Milliseconds to wait
@@ -23,13 +25,13 @@ function delay(ms) {
  * @returns {Promise<any>} Result of serviceFn
  * @throws {Error} When all retries fail
  */
-async function withRetry(serviceFn, options = {}) {
+async function withRetry(serviceFn: any, options: Record<string, unknown> = {}) {
   const {
     maxRetries = 2,
     retryDelayMs = 500,
     timeoutMs = 10000,
     serviceName = 'External service',
-  } = options;
+  } = options as any;
 
   let lastError;
 

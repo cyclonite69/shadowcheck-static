@@ -5,8 +5,12 @@
 
 const { query } = require('../config/database');
 
+export {};
+
 class BaseRepository {
-  constructor(tableName) {
+  tableName: string;
+
+  constructor(tableName: string) {
     this.tableName = tableName;
   }
 
@@ -40,8 +44,8 @@ class BaseRepository {
    * @returns {Promise<Array>} Array of rows
    * @throws {Error} If orderBy contains invalid column or direction
    */
-  async findMany(whereClause = '1=1', params = [], options = {}) {
-    const { limit = 100, offset = 0, orderBy = 'id DESC' } = options;
+  async findMany(whereClause = '1=1', params = [], options: Record<string, unknown> = {}) {
+    const { limit = 100, offset = 0, orderBy = 'id DESC' } = options as any;
 
     // Whitelist valid columns to prevent SQL injection via ORDER BY
     const validColumns = [

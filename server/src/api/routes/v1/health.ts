@@ -14,9 +14,9 @@ router.get('/health', async (req, res) => {
   const dbStart = Date.now();
   try {
     await pool.query('SELECT 1');
-    checks.database = { status: 'ok', latency_ms: Date.now() - dbStart };
+    (checks as any).database = { status: 'ok', latency_ms: Date.now() - dbStart };
   } catch (err) {
-    checks.database = { status: 'error', error: err.message };
+    (checks as any).database = { status: 'error', error: (err as any).message };
     overallStatus = 'unhealthy';
   }
 
@@ -25,13 +25,13 @@ router.get('/health', async (req, res) => {
   const loadedCount = requiredSecrets.filter((s) => secretsManager.has(s)).length;
 
   if (loadedCount === requiredSecrets.length) {
-    checks.secrets = {
+    (checks as any).secrets = {
       status: 'ok',
       required_count: requiredSecrets.length,
       loaded_count: loadedCount,
     };
   } else {
-    checks.secrets = {
+    (checks as any).secrets = {
       status: 'error',
       required_count: requiredSecrets.length,
       loaded_count: loadedCount,
@@ -42,9 +42,9 @@ router.get('/health', async (req, res) => {
   // 3. Keyring check (optional - degraded if fails)
   try {
     await keyringService.getCredential('test_health_check');
-    checks.keyring = { status: 'ok' };
+    (checks as any).keyring = { status: 'ok' };
   } catch {
-    checks.keyring = { status: 'degraded', error: 'Keyring not accessible' };
+    (checks as any).keyring = { status: 'degraded', error: 'Keyring not accessible' };
     if (overallStatus === 'healthy') {
       overallStatus = 'degraded';
     }
@@ -57,7 +57,7 @@ router.get('/health', async (req, res) => {
   const heapPercent = (mem.heapUsed / mem.heapTotal) * 100;
 
   if (heapPercent > 80) {
-    checks.memory = {
+    (checks as any).memory = {
       status: 'warning',
       heap_used_mb: heapUsedMB,
       heap_max_mb: heapMaxMB,
@@ -67,7 +67,7 @@ router.get('/health', async (req, res) => {
       overallStatus = 'degraded';
     }
   } else {
-    checks.memory = { status: 'ok', heap_used_mb: heapUsedMB, heap_max_mb: heapMaxMB };
+    (checks as any).memory = { status: 'ok', heap_used_mb: heapUsedMB, heap_max_mb: heapMaxMB };
   }
 
   const response = {

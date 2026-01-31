@@ -84,3 +84,4 @@ async function closePool(): Promise<void> {
 }
 
 export { pool, query, testConnection, closePool, CONFIG };
+export {};

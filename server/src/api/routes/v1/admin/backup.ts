@@ -3,6 +3,8 @@ const router = express.Router();
 const logger = require('../../../../logging/logger');
 const { runPostgresBackup } = require('../../../../services/backupService');
 
+export {};
+
 // POST /api/admin/backup - Run full database backup (no auth yet)
 router.post('/admin/backup', async (req, res) => {
   try {

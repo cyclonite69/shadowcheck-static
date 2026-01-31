@@ -1,6 +1,8 @@
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
+export {};
+
 class OUIGroupingService {
   /**
    * Group networks by OUI and calculate collective threat
@@ -57,12 +59,12 @@ class OUIGroupingService {
 
       // Calculate collective threat and insert
       for (const [oui, group] of Object.entries(ouiGroups)) {
-        if (group.bssids.length < 2) {
+        if ((group as any).bssids.length < 2) {
           continue;
         } // Skip single BSSIDs
 
         // Collective threat = max of all BSSIDs
-        const collectiveThreat = Math.max(...group.threatScores);
+        const collectiveThreat = Math.max(...(group as any).threatScores);
         let threatLevel = 'NONE';
         if (collectiveThreat >= 80) {
           threatLevel = 'CRITICAL';
@@ -90,16 +92,16 @@ class OUIGroupingService {
         `,
           [
             oui,
-            group.bssids.length,
+            (group as any).bssids.length,
             collectiveThreat,
             threatLevel,
-            group.bssids[0], // Primary (highest threat)
-            group.bssids.slice(1), // Secondary
+            (group as any).bssids[0], // Primary (highest threat)
+            (group as any).bssids.slice(1), // Secondary
           ]
         );
 
         logger.info(
-          `[OUI Grouping] ${oui}: ${group.bssids.length} BSSIDs, threat=${collectiveThreat.toFixed(2)}`
+          `[OUI Grouping] ${oui}: ${(group as any).bssids.length} BSSIDs, threat=${collectiveThreat.toFixed(2)}`
         );
       }
 
@@ -148,7 +150,8 @@ class OUIGroupingService {
         // Simple heuristics for MAC randomization detection
         const timeDelta =
           row.last_seen && row.first_seen
-            ? (new Date(row.last_seen) - new Date(row.first_seen)) / (1000 * 60 * 60) // hours
+            ? ((new Date(row.last_seen) as any) - (new Date(row.first_seen) as any)) /
+              (1000 * 60 * 60) // hours
             : 0;
 
         // Estimate movement based on time span and MAC count

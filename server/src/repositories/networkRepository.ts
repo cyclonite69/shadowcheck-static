@@ -7,6 +7,8 @@ const {
   THREAT_SCORE_EXPR,
 } = require('../services/filterQueryBuilder/sqlExpressions');
 
+export {};
+
 class NetworkRepository {
   async getAllNetworks() {
     try {
@@ -209,21 +211,21 @@ class NetworkRepository {
 
         if (
           enabled.threatCategories &&
-          Array.isArray(filters.threatCategories) &&
-          filters.threatCategories.length > 0
+          Array.isArray((filters as any).threatCategories) &&
+          (filters as any).threatCategories.length > 0
         ) {
-          const dbThreatLevels = filters.threatCategories
-            .map((cat) => threatLevelMap[cat] || cat.toUpperCase())
+          const dbThreatLevels = (filters as any).threatCategories
+            .map((cat: any) => (threatLevelMap as any)[cat] || cat.toUpperCase())
             .filter(Boolean);
           params.push(dbThreatLevels);
           whereClauses.push(`(${dynamicThreatLevel}) = ANY($${params.length})`);
         }
-        if (enabled.threatScoreMin && filters.threatScoreMin !== undefined) {
-          params.push(filters.threatScoreMin);
+        if (enabled.threatScoreMin && (filters as any).threatScoreMin !== undefined) {
+          params.push((filters as any).threatScoreMin);
           whereClauses.push(`(${dynamicThreatScore}) >= $${params.length}`);
         }
-        if (enabled.threatScoreMax && filters.threatScoreMax !== undefined) {
-          params.push(filters.threatScoreMax);
+        if (enabled.threatScoreMax && (filters as any).threatScoreMax !== undefined) {
+          params.push((filters as any).threatScoreMax);
           whereClauses.push(`(${dynamicThreatScore}) <= $${params.length}`);
         }
 

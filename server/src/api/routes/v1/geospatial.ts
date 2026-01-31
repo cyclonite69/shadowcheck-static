@@ -9,11 +9,11 @@ const { withRetry } = require('../../../services/externalServiceHandler');
 const { validateQuery, optional } = require('../../../validation/middleware');
 const { validateString } = require('../../../validation/schemas');
 
-const fetch = (...args) => {
-  if (typeof global.fetch !== 'function') {
+const fetch = (...args: any[]) => {
+  if (typeof (global as any).fetch !== 'function') {
     throw new Error('Fetch API is not available. Requires Node 20+ runtime.');
   }
-  return global.fetch(...args);
+  return (global as any).fetch(...args);
 };
 
 function pipeUpstreamBody(upstream, res) {

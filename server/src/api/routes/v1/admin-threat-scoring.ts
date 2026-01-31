@@ -3,6 +3,8 @@ const router = express.Router();
 const threatScoringService = require('../../services/threatScoringService');
 const logger = require('../../logging/logger');
 
+export {};
+
 // POST /api/admin/threat-scoring/compute - Manual threat score computation
 router.post('/threat-scoring/compute', async (req, res) => {
   try {

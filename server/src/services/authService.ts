@@ -3,7 +3,12 @@ const crypto = require('crypto');
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
+export {};
+
 class AuthService {
+  saltRounds: number;
+  sessionDuration: number;
+
   constructor() {
     this.saltRounds = 12;
     this.sessionDuration = 24 * 60 * 60 * 1000; // 24 hours

@@ -16,6 +16,8 @@ const http = require('http');
 const https = require('https');
 const path = require('path');
 
+export {};
+
 const PORT = process.env.STATIC_PORT || 4000;
 const API_TARGET = process.env.API_TARGET || 'http://localhost:3001';
 const DIST_DIR = path.join(__dirname, '..', 'dist');
