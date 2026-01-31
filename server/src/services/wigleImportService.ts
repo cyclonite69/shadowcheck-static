@@ -3,6 +3,8 @@ const path = require('path');
 const { Pool } = require('pg');
 const logger = require('../logging/logger');
 
+export {};
+
 const pool = new Pool({
   user: process.env.DB_USER || 'shadowcheck_user',
   host: process.env.DB_HOST || 'localhost',

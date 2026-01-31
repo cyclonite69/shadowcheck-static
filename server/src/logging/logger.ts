@@ -118,7 +118,7 @@ const logger = winston.createLogger({
 /**
  * Stream interface for Morgan HTTP logging
  */
-logger.stream = {
+(logger as any).stream = {
   write: (message: string) => {
     logger.http(message.trim());
   },

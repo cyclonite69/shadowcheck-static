@@ -3,6 +3,8 @@
  * Notes and notations management for networks
  */
 
+export {};
+
 const express = require('express');
 const router = express.Router();
 const path = require('path');

@@ -13,6 +13,8 @@ const { query, CONFIG } = require('../../../config/database');
 const logger = require('../../../logging/logger');
 const { validateBSSID, validateTimestampMs } = require('../../../validation/schemas');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
+
+export {};
 const adminMlRoutes = require('./admin/ml');
 const adminTagsRoutes = require('./admin/tags');
 const adminNotesRoutes = require('./admin/notes');

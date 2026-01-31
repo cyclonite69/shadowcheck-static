@@ -10,12 +10,12 @@ const schemas = require('./schemas');
  * @param {object} validators - Object mapping param names to validator functions
  * @returns {function} Express middleware
  */
-function validateQuery(validators) {
-  return (req, res, next) => {
-    const errors = [];
+function validateQuery(validators: Record<string, unknown>) {
+  return (req: any, res: any, next: any) => {
+    const errors: any[] = [];
 
     Object.entries(validators).forEach(([param, validator]) => {
-      const result = validator(req.query[param]);
+      const result = (validator as any)(req.query[param]);
       if (!result.valid) {
         errors.push({
           parameter: param,
@@ -33,12 +33,12 @@ function validateQuery(validators) {
     }
 
     // Attach validated values to request for use in route handler
-    req.validated = {};
+    (req as any).validated = {};
     Object.entries(validators).forEach(([param, validator]) => {
-      const result = validator(req.query[param]);
+      const result = (validator as any)(req.query[param]);
       if (result.valid) {
         // Use the most specific returned value
-        req.validated[param] =
+        (req as any).validated[param] =
           result.cleaned ??
           result.value ??
           result.normalized ??
@@ -57,8 +57,8 @@ function validateQuery(validators) {
  * @param {function} validator - Validator function
  * @returns {function} Wrapped validator that accepts undefined/null/empty string
  */
-function optional(validator) {
-  return (value) => {
+function optional(validator: any) {
+  return (value: any) => {
     if (value === undefined || value === null || value === '') {
       return { valid: true, value: undefined };
     }
@@ -71,8 +71,8 @@ function optional(validator) {
  * @param {object} validators - Object mapping param names to validator functions
  * @returns {function} Express middleware
  */
-function validateBody(validators) {
-  return (req, res, next) => {
+function validateBody(validators: any) {
+  return (req: any, res: any, next: any) => {
     const errors = [];
 
     Object.entries(validators).forEach(([param, validator]) => {
@@ -112,8 +112,8 @@ function validateBody(validators) {
  * @param {object} validators - Object mapping param names to validator functions
  * @returns {function} Express middleware
  */
-function validateParams(validators) {
-  return (req, res, next) => {
+function validateParams(validators: any) {
+  return (req: any, res: any, next: any) => {
     const errors = [];
 
     Object.entries(validators).forEach(([param, validator]) => {
@@ -153,7 +153,7 @@ function validateParams(validators) {
  * Validates and normalizes page/limit query parameters
  */
 function paginationMiddleware(maxLimit = 5000) {
-  return (req, res, next) => {
+  return (req: any, res: any, next: any) => {
     const pageRaw = req.query.page;
     const limitRaw = req.query.limit;
     const page = pageRaw === undefined ? 1 : parseInt(pageRaw, 10);
@@ -201,7 +201,7 @@ function paginationMiddleware(maxLimit = 5000) {
  * BSSID validation middleware
  * Validates and sanitizes BSSID from path parameter
  */
-function bssidParamMiddleware(req, res, next) {
+function bssidParamMiddleware(req, res, next: any) {
   const { bssid } = req.params;
   const validation = schemas.validateNetworkIdentifier(bssid);
 
@@ -221,7 +221,7 @@ function bssidParamMiddleware(req, res, next) {
  * MAC address validation middleware
  * Validates and sanitizes MAC address from path parameter
  */
-function macParamMiddleware(req, res, next) {
+function macParamMiddleware(req, res, next: any) {
   const { bssid } = req.params;
   const validation = schemas.validateMACAddress(bssid);
 
@@ -242,7 +242,7 @@ function macParamMiddleware(req, res, next) {
  * Validates latitude/longitude from body or query
  */
 function coordinatesMiddleware(source = 'body') {
-  return (req, res, next) => {
+  return (req: any, res: any, next: any) => {
     const source_obj = source === 'body' ? req.body : req.query;
     const validation = schemas.validateCoordinates(source_obj.latitude, source_obj.longitude);
 
@@ -266,8 +266,8 @@ function coordinatesMiddleware(source = 'body') {
  * Sort parameter validation middleware
  * Validates sort column and order
  */
-function sortMiddleware(allowedColumns) {
-  return (req, res, next) => {
+function sortMiddleware(allowedColumns: any) {
+  return (req: any, res: any, next: any) => {
     const sort = req.query.sort || 'lastSeen';
     const order = req.query.order || 'DESC';
 
@@ -302,10 +302,10 @@ function sortMiddleware(allowedColumns) {
  * Rate limiting per parameter (e.g., per BSSID)
  * Prevents abuse of specific resources
  */
-function createParameterRateLimit(paramName, maxRequests, windowMs) {
+function createParameterRateLimit(paramName, maxRequests, windowMs: any) {
   const limits = new Map();
 
-  return (req, res, next) => {
+  return (req: any, res: any, next: any) => {
     const param = req.params[paramName] || req.query[paramName];
 
     if (!param) {
@@ -346,7 +346,7 @@ function createParameterRateLimit(paramName, maxRequests, windowMs) {
  * Input sanitization middleware
  * Removes dangerous characters from common parameters
  */
-function sanitizeMiddleware(req, res, next) {
+function sanitizeMiddleware(req, res, next: any) {
   // Sanitize query parameters
   Object.keys(req.query).forEach((key) => {
     if (typeof req.query[key] === 'string') {
