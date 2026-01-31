@@ -7,6 +7,8 @@ const schedule = require('node-schedule');
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 
+export {};
+
 const ML_SCORING_CRON = '0 */4 * * *';
 const ML_SCORING_LIMIT = 10000;
 const MAX_BSSID_LENGTH = 17;
@@ -28,6 +30,8 @@ const FEEDBACK_MULTIPLIERS = {
 };
 
 class BackgroundJobsService {
+  static jobs: Record<string, unknown> = {};
+
   /**
    * Initialize background jobs
    */
@@ -246,7 +250,7 @@ class BackgroundJobsService {
    */
   static shutdown() {
     logger.info('[Background Jobs] Shutting down...');
-    Object.values(this.jobs).forEach((job) => {
+    Object.values(this.jobs).forEach((job: any) => {
       if (job) {
         job.cancel();
       }

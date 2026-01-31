@@ -5,6 +5,8 @@ const { spawn } = require('child_process');
 const logger = require('../logging/logger');
 const secretsManager = require('./secretsManager');
 
+export {};
+
 const repoRoot = path.resolve(__dirname, '../../..');
 
 const getBackupDir = () => {
@@ -119,7 +121,7 @@ const runPostgresBackup = async () => {
 
     child.on('close', (code) => {
       if (code === 0) {
-        resolve();
+        resolve(undefined);
       } else {
         reject(new Error(stderr || `pg_dump exited with code ${code}`));
       }

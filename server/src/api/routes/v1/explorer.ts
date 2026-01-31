@@ -339,7 +339,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
       qualityWhere = DATA_QUALITY_FILTERS.all();
     }
 
-    const params = [homeLon, homeLat];
+    const params = [+homeLon, +homeLat];
     const where = [];
     if (search) {
       params.push(`%${search}%`);
@@ -369,12 +369,12 @@ router.get('/explorer/networks', async (req, res, _next) => {
 
         // RSSI filters
         if (enabledObj.rssiMin && filterObj.rssiMin !== undefined) {
-          params.push(filterObj.rssiMin);
+          params.push(+filterObj.rssiMin);
           where.push(`obs.level >= $${params.length}`);
         }
 
         if (enabledObj.rssiMax && filterObj.rssiMax !== undefined) {
-          params.push(filterObj.rssiMax);
+          params.push(+filterObj.rssiMax);
           where.push(`obs.level <= $${params.length}`);
         }
 
@@ -713,8 +713,8 @@ router.get('/explorer/timeline/:bssid', async (req, res, next) => {
       return res.status(400).json({ ok: false, error: err.message });
     }
 
-    filters.bssid = bssidValidation.cleaned.toUpperCase();
-    enabled.bssid = true;
+    (filters as any).bssid = bssidValidation.cleaned.toUpperCase();
+    (enabled as any).bssid = true;
 
     const { errors } = validateFilterPayload(filters, enabled);
     if (errors.length > 0) {
