@@ -1,18 +1,28 @@
-const { Pool } = require('pg');
-const fs = require('fs');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import { Pool, QueryResult } from 'pg';
+import * as fs from 'fs';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface LocationRow {
+  bssid: string;
+  ssid: string | null;
+  lat: number;
+  lon: number;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-async function exportMissingGeocodes() {
+async function exportMissingGeocodes(): Promise<void> {
   const query = `
-    SELECT DISTINCT 
+    SELECT DISTINCT
       bssid,
       ssid,
       lat,
@@ -22,7 +32,7 @@ async function exportMissingGeocodes() {
     LIMIT 10000;
   `;
 
-  const result = await pool.query(query);
+  const result: QueryResult<LocationRow> = await pool.query(query);
 
   const csv = ['lat,lon,bssid,ssid'];
   result.rows.forEach((row) => {

@@ -1,10 +1,13 @@
-const fs = require('fs');
-const { Pool } = require('pg');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import * as fs from 'fs';
+import { Pool } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-async function main() {
+async function main(): Promise<void> {
   const data = fs.readFileSync('missing_geocodes_result.csv', 'utf8');
   const lines = data.trim().split('\n').slice(1);
 

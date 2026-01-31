@@ -1,6 +1,34 @@
-const fs = require('fs');
-const https = require('https');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import * as fs from 'fs';
+import * as https from 'https';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface GeocodeResult {
+  lat: number | null;
+  lon: number | null;
+}
+
+interface AddressRecord {
+  address: string;
+  mac?: string;
+  ssid?: string;
+  authmode?: string;
+  firstseen?: string;
+  channel?: string;
+  rssi?: string;
+  altitude?: string;
+  accuracy?: string;
+  type?: string;
+  [key: string]: string | undefined;
+}
+
+interface MapboxResponse {
+  features?: Array<{
+    center: [number, number];
+  }>;
+}
 
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
 const INPUT_FILE = process.argv[2] || 'addresses.csv';
@@ -12,7 +40,7 @@ if (!MAPBOX_TOKEN) {
   process.exit(1);
 }
 
-async function geocodeAddress(address) {
+async function geocodeAddress(address: string): Promise<GeocodeResult> {
   const encoded = encodeURIComponent(address);
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&permanent=true&limit=1`;
 
@@ -23,7 +51,7 @@ async function geocodeAddress(address) {
         res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {
           try {
-            const json = JSON.parse(data);
+            const json: MapboxResponse = JSON.parse(data);
             if (json.features && json.features.length > 0) {
               const [lon, lat] = json.features[0].center;
               resolve({ lat, lon });
@@ -39,7 +67,7 @@ async function geocodeAddress(address) {
   });
 }
 
-async function main() {
+async function main(): Promise<void> {
   if (!fs.existsSync(INPUT_FILE)) {
     console.error(`❌ Input file not found: ${INPUT_FILE}`);
     console.log('Create a CSV with: address column');
@@ -50,12 +78,12 @@ async function main() {
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
 
-  const addresses = lines
+  const addresses: AddressRecord[] = lines
     .slice(1)
     .filter((l) => l.trim())
     .map((line) => {
       const values = line.split(',');
-      const obj = {};
+      const obj: AddressRecord = { address: '' };
       headers.forEach((h, i) => (obj[h.trim()] = values[i]?.trim() || ''));
       return obj;
     });
@@ -96,7 +124,8 @@ async function main() {
       wigleLines.push(wigleLine);
       await new Promise((r) => setTimeout(r, DELAY_MS));
     } catch (err) {
-      console.error(`  ✗ Error: ${err.message}`);
+      const error = err as Error;
+      console.error(`  ✗ Error: ${error.message}`);
     }
   }
 

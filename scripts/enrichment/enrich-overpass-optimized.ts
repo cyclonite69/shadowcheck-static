@@ -1,19 +1,67 @@
-const https = require('https');
-const { Pool } = require('pg');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import * as https from 'https';
+import { IncomingMessage, ClientRequest } from 'http';
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface NetworkRow {
+  bssid: string;
+  trilat_address: string;
+  trilat_lat: number;
+  trilat_lon: number;
+}
+
+interface PoiResult {
+  name?: string;
+  category?: string;
+  brand?: string;
+  cuisine?: string;
+  operator?: string;
+  website?: string;
+  phone?: string;
+  opening_hours?: string;
+  type: string;
+  source: string;
+  confidence: number;
+}
+
+interface OverpassElement {
+  tags?: {
+    name?: string;
+    'addr:housename'?: string;
+    operator?: string;
+    amenity?: string;
+    shop?: string;
+    tourism?: string;
+    leisure?: string;
+    building?: string;
+    brand?: string;
+    'brand:wikidata'?: string;
+    cuisine?: string;
+    website?: string;
+    phone?: string;
+    opening_hours?: string;
+  };
+}
+
+interface OverpassResponse {
+  elements?: OverpassElement[];
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
 // Optimized Overpass queries for different POI types
-const overpassQueries = {
+const overpassQueries: Record<string, (lat: number, lon: number) => string> = {
   // Businesses and amenities
-  business: (lat, lon) => `
+  business: (lat: number, lon: number) => `
     [out:json][timeout:5];
     (
       node(around:30,${lat},${lon})[amenity];
@@ -29,7 +77,7 @@ const overpassQueries = {
   `,
 
   // Buildings with names
-  building: (lat, lon) => `
+  building: (lat: number, lon: number) => `
     [out:json][timeout:5];
     (
       node(around:30,${lat},${lon})[building][name];
@@ -39,7 +87,7 @@ const overpassQueries = {
   `,
 
   // Roads and addresses
-  address: (lat, lon) => `
+  address: (lat: number, lon: number) => `
     [out:json][timeout:5];
     (
       node(around:30,${lat},${lon})[addr:housenumber];
@@ -49,20 +97,20 @@ const overpassQueries = {
   `,
 };
 
-async function queryOverpass(lat, lon) {
+async function queryOverpass(lat: number, lon: number): Promise<PoiResult | null> {
   // Try business query first (most detailed)
   for (const [type, queryFn] of Object.entries(overpassQueries)) {
     const query = queryFn(lat, lon);
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
     try {
-      const result = await new Promise((resolve, reject) => {
-        const req = https.get(url, { timeout: 8000 }, (res) => {
+      const result = await new Promise<PoiResult | null>((resolve, reject) => {
+        const req: ClientRequest = https.get(url, { timeout: 8000 }, (res: IncomingMessage) => {
           let data = '';
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             try {
-              const json = JSON.parse(data);
+              const json: OverpassResponse = JSON.parse(data);
               if (json.elements?.[0]) {
                 const poi = json.elements[0];
                 const tags = poi.tags || {};
@@ -110,10 +158,10 @@ async function queryOverpass(lat, lon) {
   return null;
 }
 
-async function main() {
-  const limit = parseInt(process.argv[2]) || 100;
+async function main(): Promise<void> {
+  const limit = parseInt(process.argv[2] || '100', 10);
 
-  const result = await pool.query(
+  const result: QueryResult<NetworkRow> = await pool.query(
     `
     SELECT bssid, trilat_address, trilat_lat, trilat_lon
     FROM app.networks_legacy
@@ -131,7 +179,7 @@ async function main() {
   console.log(`🔍 Overpass Turbo optimized enrichment: ${result.rows.length} addresses\n`);
 
   let enriched = 0;
-  const categories = {};
+  const categories: Record<string, number> = {};
 
   for (let i = 0; i < result.rows.length; i++) {
     const row = result.rows[i];
@@ -142,7 +190,7 @@ async function main() {
       if (poi && poi.name) {
         await pool.query(
           `
-          UPDATE app.networks_legacy 
+          UPDATE app.networks_legacy
           SET venue_name = $1, venue_category = $2, name = $3
           WHERE bssid = $4
         `,
@@ -151,14 +199,16 @@ async function main() {
 
         await pool.query(
           `
-          UPDATE app.ap_locations 
+          UPDATE app.ap_locations
           SET venue_name = $1, venue_category = $2
           WHERE bssid = $3
         `,
           [poi.name, poi.category, row.bssid]
         );
 
-        categories[poi.category] = (categories[poi.category] || 0) + 1;
+        if (poi.category) {
+          categories[poi.category] = (categories[poi.category] || 0) + 1;
+        }
         enriched++;
 
         console.log(`  ✓ ${i + 1}/${result.rows.length}: ${poi.name} (${poi.category})`);
@@ -166,7 +216,8 @@ async function main() {
         console.log(`  ✗ ${i + 1}/${result.rows.length}: No POI found`);
       }
     } catch (err) {
-      console.log(`  ✗ ${i + 1}/${result.rows.length}: Error - ${err.message}`);
+      const error = err as Error;
+      console.log(`  ✗ ${i + 1}/${result.rows.length}: Error - ${error.message}`);
     }
 
     // Rate limit
@@ -178,7 +229,7 @@ async function main() {
   );
   console.log('\n📊 Categories found:');
   Object.entries(categories)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
     .forEach(([cat, count]) => {
       console.log(`  ${cat}: ${count}`);
     });

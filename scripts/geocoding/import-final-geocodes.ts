@@ -1,16 +1,19 @@
-const fs = require('fs');
-const { Pool } = require('pg');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import * as fs from 'fs';
+import { Pool } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-async function main() {
+async function main(): Promise<void> {
   const data = fs.readFileSync('missing_final_result.csv', 'utf8');
   const lines = data.trim().split('\n').slice(1);
 
