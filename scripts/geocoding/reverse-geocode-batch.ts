@@ -1,6 +1,25 @@
-const fs = require('fs');
-const https = require('https');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import * as fs from 'fs';
+import * as https from 'https';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface ReverseGeocodeResult {
+  address: string | null;
+}
+
+interface LocationRecord {
+  lat: string;
+  lon: string;
+  [key: string]: string;
+}
+
+interface MapboxResponse {
+  features?: Array<{
+    place_name: string;
+  }>;
+}
 
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
 const INPUT_FILE = process.argv[2] || 'locations_to_reverse_geocode.csv';
@@ -14,7 +33,7 @@ if (!MAPBOX_TOKEN) {
   process.exit(1);
 }
 
-async function reverseGeocode(lat, lon) {
+async function reverseGeocode(lat: string, lon: string): Promise<ReverseGeocodeResult> {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
 
   return new Promise((resolve, reject) => {
@@ -24,7 +43,7 @@ async function reverseGeocode(lat, lon) {
         res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {
           try {
-            const json = JSON.parse(data);
+            const json: MapboxResponse = JSON.parse(data);
             if (json.features && json.features.length > 0) {
               resolve({ address: json.features[0].place_name });
             } else {
@@ -39,7 +58,7 @@ async function reverseGeocode(lat, lon) {
   });
 }
 
-async function main() {
+async function main(): Promise<void> {
   if (!fs.existsSync(INPUT_FILE)) {
     console.error(`❌ Input file not found: ${INPUT_FILE}`);
     process.exit(1);
@@ -49,9 +68,9 @@ async function main() {
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
 
-  const locations = lines.slice(1).map((line) => {
+  const locations: LocationRecord[] = lines.slice(1).map((line) => {
     const values = line.split(',');
-    const obj = {};
+    const obj: LocationRecord = { lat: '', lon: '' };
     headers.forEach((h, i) => (obj[h.trim()] = values[i]?.trim() || ''));
     return obj;
   });
@@ -59,7 +78,7 @@ async function main() {
   const total = Math.min(locations.length, PER_MINUTE * MINUTES);
   console.log(`📍 Reverse geocoding ${total} locations (${PER_MINUTE}/min for ${MINUTES} min)...`);
 
-  const results = [];
+  const results: Array<LocationRecord & ReverseGeocodeResult> = [];
   const startTime = Date.now();
 
   for (let min = 0; min < MINUTES; min++) {

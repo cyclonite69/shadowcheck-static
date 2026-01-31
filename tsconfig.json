@@ -16,6 +16,6 @@
     "sourceMap": false,
     "noEmit": true
   },
-  "include": ["server/**/*", "scripts/**/*", "tests/**/*"],
+  "include": ["server/**/*", "scripts/**/*", "etl/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist", "client"]
 }

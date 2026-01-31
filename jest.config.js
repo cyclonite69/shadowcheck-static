@@ -1,3 +1,4 @@
+/** @type {import('jest').Config} */
 module.exports = {
   // Test environment
   testEnvironment: 'node',
@@ -10,7 +11,8 @@ module.exports = {
   collectCoverageFrom: [
     'server/src/**/*.{js,ts}',
     'server/server.js',
-    'scripts/**/*.js',
+    'scripts/**/*.{js,ts}',
+    'etl/**/*.ts',
     '!**/node_modules/**',
     '!**/tests/**',
     '!**/__tests__/**',

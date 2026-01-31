@@ -1,4 +1,6 @@
+/** @type {import('@eslint/eslintrc').FlatCompat} */
 const { FlatCompat } = require('@eslint/eslintrc');
+/** @type {import('@eslint/js')} */
 const eslintJs = require('@eslint/js');
 
 const compat = new FlatCompat({
@@ -7,6 +9,7 @@ const compat = new FlatCompat({
   allConfig: eslintJs.configs.all,
 });
 
+/** @type {string[]} */
 const ignores = [
   'dist/',
   'client/dist/',
@@ -21,4 +24,5 @@ const ignores = [
   'test-*.js',
 ];
 
+/** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [{ ignores }, ...compat.config(require('./.eslintrc.json'))];

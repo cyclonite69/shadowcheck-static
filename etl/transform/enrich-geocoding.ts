@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * Enrich Observations with Geocoding
  *
@@ -8,22 +8,38 @@
  * - Caches results
  */
 
-const { Pool } = require('pg');
-require('dotenv').config();
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface EnrichOptions {
+  limit?: number;
+  dryRun?: boolean;
+}
+
+interface CountRow {
+  count: string;
+}
+
+interface LocationRow {
+  latitude: number;
+  longitude: number;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER || 'shadowcheck_user',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'shadowcheck_db',
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 5432,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
 // Rate limiting
-const RATE_LIMIT_MS = 1000; // 1 request per second
-const BATCH_SIZE = 100;
+const _RATE_LIMIT_MS = 1000; // 1 request per second
+const _BATCH_SIZE = 100;
 
-async function enrichGeocoding(options = {}) {
+async function enrichGeocoding(options: EnrichOptions = {}): Promise<void> {
   const { limit = 1000, dryRun = false } = options;
 
   console.log('🌍 Enriching observations with geocoding...\n');
@@ -34,7 +50,7 @@ async function enrichGeocoding(options = {}) {
 
   try {
     // Find observations needing geocoding
-    const needsGeocoding = await pool.query(`
+    const needsGeocoding: QueryResult<CountRow> = await pool.query(`
       SELECT COUNT(*) as count
       FROM app.observations
       WHERE geocoded_at IS NULL
@@ -43,7 +59,7 @@ async function enrichGeocoding(options = {}) {
     `);
 
     console.log(
-      `\n  Observations needing geocoding: ${parseInt(needsGeocoding.rows[0].count).toLocaleString()}`
+      `\n  Observations needing geocoding: ${parseInt(needsGeocoding.rows[0].count, 10).toLocaleString()}`
     );
 
     if (dryRun) {
@@ -65,7 +81,7 @@ async function enrichGeocoding(options = {}) {
     }
 
     // Get sample of unique locations to geocode
-    const locations = await pool.query(
+    const locations: QueryResult<LocationRow> = await pool.query(
       `
       SELECT DISTINCT ON (ROUND(latitude::numeric, 4), ROUND(longitude::numeric, 4))
         latitude, longitude
@@ -86,7 +102,8 @@ async function enrichGeocoding(options = {}) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n✅ Geocoding enrichment complete in ${duration}s`);
   } catch (error) {
-    console.error('❌ Geocoding enrichment failed:', error.message);
+    const err = error as Error;
+    console.error('❌ Geocoding enrichment failed:', err.message);
     throw error;
   } finally {
     await pool.end();
@@ -97,7 +114,7 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const dryRun = !args.includes('--live');
   const limitArg = args.find((a) => a.startsWith('--limit='));
-  const limit = limitArg ? parseInt(limitArg.split('=')[1]) : 1000;
+  const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : 1000;
 
   enrichGeocoding({ limit, dryRun }).catch((error) => {
     console.error(error);
@@ -105,4 +122,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { enrichGeocoding };
+export { enrichGeocoding };

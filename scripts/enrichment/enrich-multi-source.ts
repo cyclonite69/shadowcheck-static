@@ -1,25 +1,59 @@
-const https = require('https');
-const { Pool } = require('pg');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import * as https from 'https';
+import { IncomingMessage, ClientRequest } from 'http';
+import { Pool, QueryResult } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+interface NetworkRow {
+  bssid: string;
+  trilat_address: string;
+  trilat_lat: number;
+  trilat_lon: number;
+}
+
+interface ApiResult {
+  name?: string;
+  category?: string;
+  brand?: string;
+  type?: string;
+  source: string;
+  confidence: number;
+}
+
+interface MergedResult {
+  name: string;
+  category?: string;
+  type?: string;
+  brand?: string;
+  sources: string;
+  confidence: number;
+}
+
+interface EnrichResult {
+  success: boolean;
+  poi?: MergedResult;
+}
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
 const CONCURRENT = 3;
 
 // Multi-source API strategy with gap filling
 const APIs = {
-  overpass: async (lat, lon) => {
+  overpass: async (lat: number, lon: number): Promise<ApiResult | null> => {
     const query = `[out:json];(node(around:50,${lat},${lon})[name];way(around:50,${lat},${lon})[name];);out body 1;`;
     const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
     return new Promise((resolve) => {
-      const req = https.get(url, { timeout: 5000 }, (res) => {
+      const req: ClientRequest = https.get(url, { timeout: 5000 }, (res: IncomingMessage) => {
         let data = '';
         res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {
@@ -51,16 +85,16 @@ const APIs = {
     });
   },
 
-  nominatim: async (lat, lon) => {
+  nominatim: async (lat: number, lon: number): Promise<ApiResult | null> => {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
     return new Promise((resolve) => {
-      const req = https.get(
+      const req: ClientRequest = https.get(
         url,
         {
           headers: { 'User-Agent': 'ShadowCheck/1.0' },
           timeout: 5000,
         },
-        (res) => {
+        (res: IncomingMessage) => {
           let data = '';
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
@@ -92,7 +126,7 @@ const APIs = {
     });
   },
 
-  locationiq: async (lat, lon) => {
+  locationiq: async (lat: number, lon: number): Promise<ApiResult | null> => {
     const key = process.env.LOCATIONIQ_API_KEY;
     if (!key) {
       return null;
@@ -100,7 +134,7 @@ const APIs = {
 
     const url = `https://us1.locationiq.com/v1/reverse.php?key=${key}&lat=${lat}&lon=${lon}&format=json`;
     return new Promise((resolve) => {
-      const req = https.get(url, { timeout: 5000 }, (res) => {
+      const req: ClientRequest = https.get(url, { timeout: 5000 }, (res: IncomingMessage) => {
         let data = '';
         res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {
@@ -126,7 +160,7 @@ const APIs = {
     });
   },
 
-  opencage: async (lat, lon) => {
+  opencage: async (lat: number, lon: number): Promise<ApiResult | null> => {
     const key = process.env.OPENCAGE_API_KEY;
     if (!key) {
       return null;
@@ -134,7 +168,7 @@ const APIs = {
 
     const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=${key}&limit=1`;
     return new Promise((resolve) => {
-      const req = https.get(url, { timeout: 5000 }, (res) => {
+      const req: ClientRequest = https.get(url, { timeout: 5000 }, (res: IncomingMessage) => {
         let data = '';
         res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {
@@ -171,7 +205,7 @@ const APIs = {
   },
 };
 
-async function enrichWithGapFilling(lat, lon) {
+async function enrichWithGapFilling(lat: number, lon: number): Promise<MergedResult | null> {
   // Try all APIs in parallel
   const results = await Promise.all([
     APIs.overpass(lat, lon),
@@ -181,15 +215,15 @@ async function enrichWithGapFilling(lat, lon) {
   ]);
 
   // Filter out nulls
-  const valid = results.filter((r) => r && r.name);
+  const valid = results.filter((r): r is ApiResult => r !== null && Boolean(r.name));
 
   if (valid.length === 0) {
     return null;
   }
 
   // Merge results - prefer highest confidence with most detail
-  const merged = {
-    name: valid.sort((a, b) => b.confidence - a.confidence)[0].name,
+  const merged: MergedResult = {
+    name: valid.sort((a, b) => b.confidence - a.confidence)[0].name!,
     category: valid.find((r) => r.category)?.category,
     type: valid.find((r) => r.type)?.type,
     brand: valid.find((r) => r.brand)?.brand,
@@ -200,10 +234,10 @@ async function enrichWithGapFilling(lat, lon) {
   return merged;
 }
 
-async function main() {
-  const limit = parseInt(process.argv[2]) || 1000;
+async function main(): Promise<void> {
+  const limit = parseInt(process.argv[2] || '1000', 10);
 
-  const result = await pool.query(
+  const result: QueryResult<NetworkRow> = await pool.query(
     `
     SELECT bssid, trilat_address, trilat_lat, trilat_lon
     FROM app.networks_legacy
@@ -230,19 +264,19 @@ async function main() {
   console.log(`⚡ Concurrent: ${CONCURRENT}\n`);
 
   let enriched = 0;
-  const sources = {};
+  const sources: Record<string, number> = {};
 
   for (let i = 0; i < result.rows.length; i += CONCURRENT) {
     const batch = result.rows.slice(i, Math.min(i + CONCURRENT, result.rows.length));
 
-    const promises = batch.map(async (row) => {
+    const promises = batch.map(async (row): Promise<EnrichResult> => {
       try {
         const poi = await enrichWithGapFilling(row.trilat_lat, row.trilat_lon);
 
         if (poi && poi.name) {
           await pool.query(
             `
-            UPDATE app.networks_legacy 
+            UPDATE app.networks_legacy
             SET venue_name = $1, venue_category = $2, name = $3
             WHERE bssid = $4
           `,
@@ -251,7 +285,7 @@ async function main() {
 
           await pool.query(
             `
-            UPDATE app.ap_locations 
+            UPDATE app.ap_locations
             SET venue_name = $1, venue_category = $2
             WHERE bssid = $3
           `,
@@ -267,8 +301,8 @@ async function main() {
       }
     });
 
-    const results = await Promise.all(promises);
-    enriched += results.filter((r) => r.success).length;
+    const batchResults = await Promise.all(promises);
+    enriched += batchResults.filter((r) => r.success).length;
 
     if ((i + CONCURRENT) % 50 === 0 || i + CONCURRENT >= result.rows.length) {
       console.log(
@@ -282,7 +316,7 @@ async function main() {
   console.log(`\n✓ Complete: ${enriched}/${result.rows.length} addresses enriched`);
   console.log('\n📊 Sources used:');
   Object.entries(sources)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
     .forEach(([src, count]) => {
       console.log(`  ${src}: ${count}`);
     });

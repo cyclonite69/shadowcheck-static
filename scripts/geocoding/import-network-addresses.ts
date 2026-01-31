@@ -1,17 +1,20 @@
-const fs = require('fs');
-const { Pool } = require('pg');
-require('dotenv').config();
+#!/usr/bin/env tsx
+import * as fs from 'fs';
+import { Pool } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
 });
 
-async function main() {
-  const filename = process.argv[2] || 'ap_centroids_geocoded.csv';
+async function main(): Promise<void> {
+  const filename = process.argv[2] || 'networks_batch_geocoded.csv';
   const data = fs.readFileSync(filename, 'utf8');
   const lines = data.trim().split('\n').slice(1);
 
@@ -25,17 +28,23 @@ async function main() {
       continue;
     }
 
+    await pool.query('UPDATE app.networks_legacy SET trilat_address = $1 WHERE bssid = $2', [
+      address,
+      bssid,
+    ]);
+
     await pool.query('UPDATE app.ap_locations SET trilat_address = $1 WHERE bssid = $2', [
       address,
       bssid,
     ]);
+
     updated++;
     if (updated % 1000 === 0) {
       console.log(`  ${updated}...`);
     }
   }
 
-  console.log(`✓ Updated ${updated} AP addresses`);
+  console.log(`✓ Updated ${updated} network addresses`);
   await pool.end();
 }
 
