@@ -46,7 +46,7 @@ class Container {
 
     // Check factories
     if (this.services.has(name)) {
-      const factory = this.services.get(name);
+      const factory = this.services.get(name) as any;
       return factory(this);
     }
 
