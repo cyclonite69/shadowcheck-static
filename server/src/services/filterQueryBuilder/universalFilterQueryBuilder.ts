@@ -528,6 +528,10 @@ class UniversalFilterQueryBuilder {
 
   buildNetworkListQuery(options: NetworkListOptions = {}): FilteredQueryResult {
     const { limit = 500, offset = 0, orderBy = 'last_observed_at DESC' } = options;
+
+    // Set requiresHome flag if we need to calculate distance from home in SELECT clause
+    this.requiresHome = true;
+
     const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
     if (noFiltersEnabled) {
       const safeOrderBy = orderBy
@@ -603,7 +607,14 @@ class UniversalFilterQueryBuilder {
           ne.max_distance_meters,
           NULL::numeric AS last_altitude_m,
           FALSE AS is_sentinel,
-          ne.distance_from_home_km,
+          CASE 
+            WHEN home.home_point IS NOT NULL AND ne.lat IS NOT NULL AND ne.lon IS NOT NULL 
+            THEN ST_Distance(
+              home.home_point,
+              ST_SetSRID(ST_MakePoint(ne.lon, ne.lat), 4326)::geometry::geography
+            ) / 1000.0
+            ELSE NULL 
+          END AS distance_from_home_km,
           ne.observations AS observations,
           ne.first_seen AS first_observed_at,
           ne.last_seen AS last_observed_at,
@@ -623,6 +634,7 @@ class UniversalFilterQueryBuilder {
         FROM app.api_network_explorer_mv ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', '')) = rm.prefix AND rm.bit_length = 24
+        ${this.requiresHome ? "CROSS JOIN (SELECT ST_SetSRID(location::geometry, 4326)::geography AS home_point FROM app.location_markers WHERE marker_type = 'home' LIMIT 1) home" : ''}
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
       `;
@@ -746,7 +758,14 @@ class UniversalFilterQueryBuilder {
         ne.max_distance_meters,
         NULL::numeric AS last_altitude_m,
         FALSE AS is_sentinel,
-        ne.distance_from_home_km,
+        CASE 
+          WHEN home.home_point IS NOT NULL AND l.lat IS NOT NULL AND l.lon IS NOT NULL 
+          THEN ST_Distance(
+            home.home_point,
+            COALESCE(l.geom, ST_SetSRID(ST_MakePoint(l.lon, l.lat), 4326)::geometry)::geography
+          ) / 1000.0
+          ELSE NULL 
+        END AS distance_from_home_km,
         r.observation_count AS observations,
         r.first_observed_at,
         r.last_observed_at,
@@ -770,6 +789,7 @@ class UniversalFilterQueryBuilder {
         LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
         LEFT JOIN app.radio_manufacturers rm ON UPPER(REPLACE(SUBSTRING(l.bssid, 1, 8), ':', '')) = rm.prefix AND rm.bit_length = 24
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
+      ${this.requiresHome ? 'CROSS JOIN home' : ''}
       ${whereClause}
       ORDER BY ${orderBy}
       LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
