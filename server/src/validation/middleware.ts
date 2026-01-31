@@ -77,7 +77,7 @@ function validateBody(validators: any) {
     const errors = [];
 
     Object.entries(validators).forEach(([param, validator]) => {
-      const result = validator(req.body[param]);
+      const result = (validator as any)(req.body[param]);
       if (!result.valid) {
         errors.push({
           parameter: param,
@@ -97,7 +97,7 @@ function validateBody(validators: any) {
     // Attach validated values to request for use in route handler
     req.validated = {};
     Object.entries(validators).forEach(([param, validator]) => {
-      const result = validator(req.body[param]);
+      const result = (validator as any)(req.body[param]);
       if (result.valid) {
         req.validated[param] =
           result.cleaned ?? result.value ?? result.normalized ?? req.body[param];
@@ -118,7 +118,7 @@ function validateParams(validators: any) {
     const errors = [];
 
     Object.entries(validators).forEach(([param, validator]) => {
-      const result = validator(req.params[param]);
+      const result = (validator as any)(req.params[param]);
       if (!result.valid) {
         errors.push({
           parameter: param,
@@ -138,7 +138,7 @@ function validateParams(validators: any) {
     // Attach validated values to request for use in route handler
     req.validated = {};
     Object.entries(validators).forEach(([param, validator]) => {
-      const result = validator(req.params[param]);
+      const result = (validator as any)(req.params[param]);
       if (result.valid) {
         req.validated[param] =
           result.cleaned ?? result.value ?? result.normalized ?? req.params[param];

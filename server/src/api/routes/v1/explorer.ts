@@ -340,7 +340,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
       qualityWhere = DATA_QUALITY_FILTERS.all();
     }
 
-    const params = [+homeLon, +homeLat];
+    const params: any[] = [+homeLon, +homeLat];
     const where = [];
     if (search) {
       params.push(`%${search}%`);
@@ -585,7 +585,7 @@ router.get('/explorer/networks-v2', async (req, res, next) => {
       })
       .join(', ');
 
-    const params = [];
+    const params: any[] = [];
     const where = [];
 
     if (search) {

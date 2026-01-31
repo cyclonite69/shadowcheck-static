@@ -210,7 +210,7 @@ class NetworkRepository {
         const dynamicThreatScore = THREAT_SCORE_EXPR('nts', 'nt');
 
         if (
-          enabled.threatCategories &&
+          (enabled as any).threatCategories &&
           Array.isArray((filters as any).threatCategories) &&
           (filters as any).threatCategories.length > 0
         ) {
@@ -220,11 +220,11 @@ class NetworkRepository {
           params.push(dbThreatLevels);
           whereClauses.push(`(${dynamicThreatLevel}) = ANY($${params.length})`);
         }
-        if (enabled.threatScoreMin && (filters as any).threatScoreMin !== undefined) {
+        if ((enabled as any).threatScoreMin && (filters as any).threatScoreMin !== undefined) {
           params.push((filters as any).threatScoreMin);
           whereClauses.push(`(${dynamicThreatScore}) >= $${params.length}`);
         }
-        if (enabled.threatScoreMax && (filters as any).threatScoreMax !== undefined) {
+        if ((enabled as any).threatScoreMax && (filters as any).threatScoreMax !== undefined) {
           params.push((filters as any).threatScoreMax);
           whereClauses.push(`(${dynamicThreatScore}) <= $${params.length}`);
         }
