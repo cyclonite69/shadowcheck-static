@@ -527,7 +527,8 @@ class UniversalFilterQueryBuilder {
   }
 
   buildNetworkListQuery(options: NetworkListOptions = {}): FilteredQueryResult {
-    const { limit = 500, offset = 0, orderBy = 'last_observed_at DESC' } = options;
+    // Default to no limit for visualization endpoints (Kepler, Geospatial)
+    const { limit = null, offset = 0, orderBy = 'last_observed_at DESC' } = options;
 
     // Set requiresHome flag if we need to calculate distance from home in SELECT clause
     this.requiresHome = true;
@@ -931,12 +932,35 @@ class UniversalFilterQueryBuilder {
       this.addApplied('radio', 'rssiMax', f.rssiMax);
     }
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
-      // Normalize filter values - map any value containing 'WEP' to 'WEP'
-      const normalizedTypes = f.encryptionTypes.map((type) => {
+      // Build security clauses that include variants (e.g., WPA2 includes WPA2-E)
+      const securityClauses: string[] = [];
+      f.encryptionTypes.forEach((type) => {
         const normalizedType = String(type).trim().toUpperCase();
-        return normalizedType.includes('WEP') ? 'WEP' : normalizedType;
+        const finalType = normalizedType.includes('WEP') ? 'WEP' : normalizedType;
+
+        switch (finalType) {
+          case 'OPEN':
+            securityClauses.push(`${networkSecurityExpr} = 'OPEN'`);
+            break;
+          case 'WEP':
+            securityClauses.push(`${networkSecurityExpr} = 'WEP'`);
+            break;
+          case 'WPA':
+            securityClauses.push(`${networkSecurityExpr} = 'WPA'`);
+            break;
+          case 'WPA2':
+            securityClauses.push(`${networkSecurityExpr} IN ('WPA2', 'WPA2-E')`);
+            break;
+          case 'WPA3':
+            securityClauses.push(
+              `${networkSecurityExpr} IN ('WPA3', 'WPA3-SAE', 'WPA3-OWE', 'WPA3-E')`
+            );
+            break;
+        }
       });
-      where.push(`${networkSecurityExpr} = ANY(${this.addParam(normalizedTypes)})`);
+      if (securityClauses.length > 0) {
+        where.push(`(${securityClauses.join(' OR ')})`);
+      }
       this.addApplied('security', 'encryptionTypes', f.encryptionTypes);
     }
     if (e.securityFlags && Array.isArray(f.securityFlags) && f.securityFlags.length > 0) {
@@ -1411,7 +1435,8 @@ class UniversalFilterQueryBuilder {
   }
 
   buildGeospatialQuery(options: GeospatialOptions = {}): FilteredQueryResult {
-    const { limit = 5000, offset = 0, selectedBssids = [] } = options;
+    // Default to no limit for full dataset visualization (Kepler can handle 500K+ points)
+    const { limit = null, offset = 0, selectedBssids = [] } = options;
     const { cte } = this.buildFilteredObservationsCte({ selectedBssids });
     const networkWhere = this.buildNetworkWhere();
 
