@@ -273,6 +273,9 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
         trilong,
         type,
         encryption,
+        channel,
+        frequency,
+        firsttime,
         lasttime
       FROM app.wigle_v2_networks_search
       ${whereSql}
