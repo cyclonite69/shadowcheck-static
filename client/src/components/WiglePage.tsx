@@ -19,6 +19,9 @@ type WigleRow = {
   trilong: number;
   type: string;
   encryption: string | null;
+  channel?: number | null;
+  frequency?: number | null;
+  firsttime?: string | null;
   lasttime: string;
   accuracy?: number | null;
 };
@@ -227,7 +230,11 @@ const WiglePage: React.FC = () => {
           ssid: row.ssid || '(hidden)',
           type: row.type,
           encryption: row.encryption || 'Unknown',
+          channel: row.channel,
+          frequency: row.frequency,
+          firsttime: row.firsttime,
           lasttime: row.lasttime,
+          accuracy: row.accuracy,
           color: macColor(row.bssid),
         },
       })),
@@ -313,9 +320,12 @@ const WiglePage: React.FC = () => {
           ssid: props.ssid,
           bssid: props.bssid,
           type: props.type,
-          encryption: props.encryption,
           security: formatSecurity(props.encryption),
+          frequency: props.frequency,
+          channel: props.channel,
           time: props.lasttime,
+          first_seen: props.firsttime,
+          last_seen: props.lasttime,
           lat: e.lngLat.lat,
           lon: e.lngLat.lng,
           accuracy: props.accuracy,
