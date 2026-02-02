@@ -121,7 +121,11 @@ export default function GeospatialIntelligencePage() {
           order: sortDirection,
         });
 
-        const res = await fetch(`/api/v2/networks/filtered?${params.toString()}`);
+        const url = `/api/v2/networks/filtered?${params.toString()}`;
+        console.log('🌐 API URL:', url);
+        console.log('📊 Filters payload:', payload);
+
+        const res = await fetch(url);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
@@ -179,6 +183,8 @@ export default function GeospatialIntelligencePage() {
   const handleFilters = useCallback(
     (payload: { filters: NetworkFilters; enabled: Record<keyof NetworkFilters, boolean> }) => {
       console.log('🔄 Geospatial filters updated:', payload);
+      console.log('🔍 Encryption filter enabled:', payload.enabled.encryptionTypes);
+      console.log('🔍 Encryption filter value:', payload.filters.encryptionTypes);
       setExplorerFilters(payload);
       loadNetworks(payload);
       loadExplorerOverlays(payload);
