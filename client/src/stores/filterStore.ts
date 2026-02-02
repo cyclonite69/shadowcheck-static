@@ -420,9 +420,9 @@ export const useDebouncedFilters = (
   }) => void,
   delay = 500
 ) => {
-  // Use getCurrentFilters/getCurrentEnabled to get stable references
-  const filters = useFilterStore((state) => state.getCurrentFilters());
-  const enabled = useFilterStore((state) => state.getCurrentEnabled());
+  // Subscribe to the entire filter state to get stable references
+  const currentPage = useFilterStore((state) => state.currentPage);
+  const pageStates = useFilterStore((state) => state.pageStates);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -431,7 +431,11 @@ export const useDebouncedFilters = (
     }
 
     timeoutRef.current = setTimeout(() => {
-      callback({ filters, enabled });
+      const pageState = pageStates[currentPage] || { filters: {}, enabled: {} };
+      callback({
+        filters: pageState.filters || {},
+        enabled: pageState.enabled || {},
+      });
     }, delay);
 
     return () => {
@@ -439,5 +443,5 @@ export const useDebouncedFilters = (
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [filters, enabled, callback, delay]);
+  }, [pageStates, currentPage, callback, delay]);
 };
