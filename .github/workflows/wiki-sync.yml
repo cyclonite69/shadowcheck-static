@@ -1,0 +1,123 @@
+name: Sync Wiki
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - ".github/wiki/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout Wiki
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: wiki
+          path: wiki-repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync Wiki Content
+        run: |
+          # Create wiki repo if it doesn't exist
+          if [ ! -d "wiki-repo" ]; then
+            mkdir -p wiki-repo
+            cd wiki-repo
+            git init
+            git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+            git checkout -b wiki || git checkout wiki
+            cd ..
+          fi
+
+          # Copy wiki content
+          cp -r .github/wiki/* wiki-repo/ 2>/dev/null || true
+
+          # Configure git
+          cd wiki-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes to sync"
+            exit 0
+          fi
+
+          # Commit and push changes
+          git add -A
+          git commit -m "Sync wiki from .github/wiki ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
+          git push origin wiki --force
+
+      - name: Sync to GitHub Wiki (gh cli)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Ensure gh CLI is authenticated
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+          # Sync each wiki file
+          for file in .github/wiki/*.md; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file" .md)
+              
+              # Handle Home.md specially (rename to index for wiki home)
+              if [ "$filename" = "Home" ]; then
+                gh api repos/${{ github.repository }}/wiki/pages \
+                  --method PUT \
+                  -f title="Home" \
+                  -f content="$(cat "$file")" 2>/dev/null || true
+              else
+                gh api repos/${{ github.repository }}/wiki/pages \
+                  --method PUT \
+                  -f title="$filename" \
+                  -f content="$(cat "$file")" 2>/dev/null || true
+              fi
+            fi
+          done
+
+      - name: Update Wiki Sidebar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create sidebar with all wiki pages
+          cat > /tmp/sidebar.md << 'SIDEBAR'
+          ## Wiki Navigation
+
+          ### Getting Started
+          - [[Home|Home]]
+          - [[Installation|Installation]]
+
+          ### Documentation
+          - [[Architecture|Architecture]]
+          - [[API Reference|API-Reference]]
+          - [[Database|Database]]
+          - [[Development|Development]]
+          - [[Features|Features]]
+
+          ### Advanced Topics
+          - [[Machine Learning|Machine-Learning]]
+          - [[Security|Security]]
+          - [[Troubleshooting|Troubleshooting]]
+          SIDEBAR
+
+          # Try to update sidebar
+          gh api repos/${{ github.repository }}/wiki/pages/_Sidebar \
+            --method PUT \
+            -f content="$(cat /tmp/sidebar.md)" 2>/dev/null || echo "Sidebar update skipped"
+
+      - name: Wiki Sync Summary
+        run: |
+          echo "✅ Wiki sync completed"
+          echo ""
+          echo "Synced files:"
+          ls -la .github/wiki/

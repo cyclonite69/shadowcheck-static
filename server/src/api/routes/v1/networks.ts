@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const { pool, query } = require('../../../config/database');
 const { escapeLikePattern } = require('../../../utils/escapeSQL');
+const { safeJsonParse } = require('../../../utils/safeJsonParse');
 const logger = require('../../../logging/logger');
 const {
   validateBSSID,
@@ -130,7 +131,7 @@ router.get('/networks', async (req, res, next) => {
       try {
         const categories = Array.isArray(threatCategoriesRaw)
           ? threatCategoriesRaw
-          : JSON.parse(threatCategoriesRaw);
+          : safeJsonParse(threatCategoriesRaw);
         if (Array.isArray(categories) && categories.length > 0) {
           // Map frontend threat categories to database values
           const threatLevelMap = {
@@ -413,18 +414,7 @@ router.get('/networks', async (req, res, next) => {
     };
 
     const parseSortJson = (value) => {
-      if (!value) {
-        return null;
-      }
-      const trimmed = String(value).trim();
-      if (!(trimmed.startsWith('[') || trimmed.startsWith('{'))) {
-        return null;
-      }
-      try {
-        return JSON.parse(trimmed);
-      } catch {
-        return null;
-      }
+      return safeJsonParse(value);
     };
     const parseOrderColumns = (value) =>
       String(value)
