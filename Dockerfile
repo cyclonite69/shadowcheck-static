@@ -7,11 +7,16 @@ WORKDIR /app
 # Prevent Husky from running during install in container builds
 ENV HUSKY=0
 
+# Ensure devDependencies are available for the build step
+ENV NODE_ENV=development \
+    NPM_CONFIG_PRODUCTION=false \
+    NPM_CONFIG_OMIT=
+
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci
+RUN npm ci --include=dev
 
 # Copy application files
 COPY . .
@@ -20,7 +25,7 @@ COPY . .
 RUN npm run build
 
 # Remove development dependencies
-RUN npm prune --production
+RUN npm prune --omit=dev
 
 ###########################################
 # Production image

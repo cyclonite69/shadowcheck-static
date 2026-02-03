@@ -98,7 +98,7 @@ const CONFIG: Config = {
   RETRY_DELAY_MS: 1000,
   DEBUG: process.env.DEBUG === 'true',
   DB_CONFIG: {
-    user: process.env.DB_USER || 'shadowcheck_user',
+    user: process.env.DB_ADMIN_USER || 'shadowcheck_admin',
     password: process.env.DB_PASSWORD,
     host: process.env.DB_HOST || '127.0.0.1',
     database: process.env.DB_NAME || 'shadowcheck_db',

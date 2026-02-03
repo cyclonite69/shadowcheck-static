@@ -6,6 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
     container_name: shadowcheck_static_api
     restart: unless-stopped
     environment:

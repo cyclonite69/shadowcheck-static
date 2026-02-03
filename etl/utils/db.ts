@@ -16,10 +16,10 @@ interface DatabaseConfig extends PoolConfig {
 }
 
 const defaultConfig: DatabaseConfig = {
-  user: process.env.DB_USER || 'shadowcheck_user',
+  user: process.env.DB_ADMIN_USER || 'shadowcheck_admin',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'shadowcheck_db',
-  password: process.env.DB_PASSWORD,
+  password: process.env.DB_ADMIN_PASSWORD || process.env.DB_PASSWORD,
   port: parseInt(process.env.DB_PORT || '5432', 10),
 };
 
