@@ -3,6 +3,18 @@ const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('../logging/logger');
 
+type RunCommandOptions = {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  allowFail?: boolean;
+};
+
+type RunCommandResult = {
+  code: number | null;
+  stdout: string;
+  stderr: string;
+};
+
 export {};
 
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -19,7 +31,11 @@ const url = process.env.PGADMIN_URL || `http://localhost:${port}`;
 const isDockerControlEnabled = () =>
   String(process.env.ADMIN_ALLOW_DOCKER || '').toLowerCase() === 'true';
 
-const runCommand = (command, args, options = {}) =>
+const runCommand = (
+  command: string,
+  args: string[],
+  options: RunCommandOptions = {}
+): Promise<RunCommandResult> =>
   new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
@@ -68,7 +84,7 @@ const composeFileExists = async () => {
   }
 };
 
-const runCompose = async (args, options = {}) => {
+const runCompose = async (args: string[], options: RunCommandOptions = {}) => {
   if (!(await composeFileExists())) {
     throw new Error(`Compose file not found at ${composeFile}`);
   }
@@ -79,7 +95,7 @@ const runCompose = async (args, options = {}) => {
       ...options,
     });
   } catch (err) {
-    if (err && err.code === 'ENOENT') {
+    if ((err as NodeJS.ErrnoException | null)?.code === 'ENOENT') {
       return await runCommand('docker', ['compose', '-f', composeFile, ...args], {
         cwd: composeDir,
         ...options,
@@ -89,7 +105,7 @@ const runCompose = async (args, options = {}) => {
   }
 };
 
-const parseDockerStatus = (stdout) => {
+const parseDockerStatus = (stdout: string) => {
   const lines = stdout
     .split('\n')
     .map((line) => line.trim())
@@ -159,7 +175,7 @@ const getPgAdminStatus = async () => {
   return status;
 };
 
-const startPgAdmin = async ({ reset } = {}) => {
+const startPgAdmin = async ({ reset }: { reset?: boolean } = {}) => {
   if (reset) {
     logger.warn('[PgAdmin] Reset requested. Removing container and volume.');
     await runCompose(['stop', serviceName], { allowFail: true });

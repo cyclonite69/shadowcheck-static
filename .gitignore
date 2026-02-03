@@ -111,6 +111,7 @@ credentials.json
 *.pfx
 *password*
 *secret*
+!server/src/services/secretsManager.ts
 .ssh/
 .gnupg/
 
