@@ -400,8 +400,8 @@ router.get('/networks', async (req, res, next) => {
       threat_level: threatOrderExpr,
       lat: 'ne.lat',
       lon: 'ne.lon',
-      manufacturer: 'ne.manufacturer',
-      manufacturer_address: 'ne.manufacturer',
+      manufacturer: 'lower(rm.manufacturer)',
+      manufacturer_address: 'lower(rm.address)',
       capabilities: 'ne.security',
       min_altitude_m: 'ne.min_altitude_m',
       max_altitude_m: 'ne.max_altitude_m',
@@ -497,6 +497,7 @@ router.get('/networks', async (req, res, next) => {
       'signal',
       'obs_count',
       'distance_from_home_km',
+      'max_distance_meters',
     ]);
     const expensiveSort = !(sortEntries.length === 1 && indexedSorts.has(sortEntries[0].column));
     if (expensiveSort && limit > 2000) {
@@ -875,19 +876,7 @@ router.get('/networks', async (req, res, next) => {
         NULL AS min_altitude_m,
         NULL AS max_altitude_m,
         NULL AS altitude_span_m,
-        CASE 
-          WHEN lo.lat IS NOT NULL AND lo.lon IS NOT NULL THEN (
-            SELECT ST_Distance(
-              ST_MakePoint(MIN(o2.lon), MIN(o2.lat))::geography,
-              ST_MakePoint(MAX(o2.lon), MAX(o2.lat))::geography
-            )
-            FROM app.observations o2 
-            WHERE o2.bssid = ne.bssid 
-              AND o2.lat IS NOT NULL 
-              AND o2.lon IS NOT NULL
-          )
-          ELSE NULL
-        END AS max_distance_meters,
+        ne.max_distance_meters AS max_distance_meters,
         NULL AS last_altitude_m,
         FALSE AS is_sentinel
       FROM app.api_network_explorer_mv ne
