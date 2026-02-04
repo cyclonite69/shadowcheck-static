@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 
-const keyringService = require('./keyringService');
+const keyringService = require('./keyringService').default;
 
 export {};
 

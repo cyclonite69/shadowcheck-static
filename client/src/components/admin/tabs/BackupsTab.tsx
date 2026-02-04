@@ -58,15 +58,26 @@ export const BackupsTab: React.FC = () => {
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-400">
-            Creates a complete PostgreSQL backup in custom format, stored locally on the server.
+            Creates a complete PostgreSQL backup in custom format. Choose local storage or upload to
+            S3.
           </p>
+
           <button
-            onClick={runBackup}
+            onClick={() => runBackup(false)}
             disabled={backupLoading}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-sm"
           >
-            {backupLoading ? 'Running Backup...' : 'Run Full Backup'}
+            {backupLoading ? 'Running Backup...' : 'Local Backup Only'}
           </button>
+
+          <button
+            onClick={() => runBackup(true)}
+            disabled={backupLoading}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all disabled:opacity-50 text-sm"
+          >
+            {backupLoading ? 'Running Backup...' : 'Backup + Upload to S3'}
+          </button>
+
           {backupError && (
             <div className="p-3 rounded-lg text-sm bg-red-900/30 text-red-300 border border-red-700/50">
               {backupError}
@@ -95,11 +106,26 @@ export const BackupsTab: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-emerald-300">Path:</span>
+                    <span className="text-emerald-300">Local Path:</span>
                     <span className="text-slate-100 font-mono text-xs">
                       {backupResult.filePath}
                     </span>
                   </div>
+                  {backupResult.s3 && (
+                    <div className="flex justify-between">
+                      <span className="text-blue-300">S3 Location:</span>
+                      <span className="text-slate-100 font-mono text-xs">
+                        {backupResult.s3.url}
+                      </span>
+                    </div>
+                  )}
+                  {backupResult.s3Error && (
+                    <div className="p-2 rounded bg-red-900/30 border border-red-700/50">
+                      <span className="text-red-300 text-xs">
+                        S3 Upload Failed: {backupResult.s3Error}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -110,8 +136,9 @@ export const BackupsTab: React.FC = () => {
             </div>
           )}
           <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-700/50">
-            <p>• Stored locally on server</p>
-            <p>• Configure with BACKUP_DIR</p>
+            <p>• Local backups stored on server</p>
+            <p>• S3 backups use STANDARD_IA storage class</p>
+            <p>• S3 bucket: dbcoopers-briefcase-161020170158</p>
             <p>• Retention: 14 days (default)</p>
           </div>
         </div>

@@ -332,13 +332,12 @@ router.get('/wigle/networks-v2', validateWigleNetworksQuery, async (req, res, ne
     const { rows } = await query(sql, params);
     let total = null;
     if (includeTotal) {
-      const countParams = typeRaw && String(typeRaw).trim() !== '' ? [String(typeRaw).trim()] : [];
       const countSql = `
         SELECT COUNT(*)::bigint AS total
         FROM app.wigle_v2_networks_search
         ${whereSql}
       `;
-      const countResult = await query(countSql, countParams);
+      const countResult = await query(countSql, params);
       total = parseInt(countResult.rows[0]?.total || 0, 10);
     }
 

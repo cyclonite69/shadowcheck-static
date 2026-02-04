@@ -36,6 +36,21 @@ node etl/load/json-import.js
 
 **Default directory:** `wigle api v2 responses/`
 
+### fbi-offices.ts
+
+Loads FBI field offices and resident agencies into `app.agency_offices` from public FBI pages.
+
+```bash
+# Load all offices (keeps existing non-FBI rows)
+tsx etl/load/fbi-offices.ts
+
+# Refresh FBI rows only
+tsx etl/load/fbi-offices.ts --refresh
+
+# Limit number of field offices (for testing)
+tsx etl/load/fbi-offices.ts --limit=5
+```
+
 ## Configuration
 
 | Variable            | Default          | Description                       |

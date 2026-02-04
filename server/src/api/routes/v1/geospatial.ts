@@ -2,7 +2,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const secretsManager = require('../../../services/secretsManager');
-const keyringService = require('../../../services/keyringService');
+const keyringService = require('../../../services/keyringService').default;
 const { Readable } = require('stream');
 const { URL } = require('url');
 const logger = require('../../../logging/logger');
@@ -90,15 +90,20 @@ const validateMapboxProxyQuery = validateQuery({
  * @param {import('express').Request} req - Express request
  * @param {import('express').Response} res - Express response
  */
-router.get('/api/mapbox-token', (req, res) => {
+router.get('/api/mapbox-token', async (req, res) => {
   try {
-    const tokenRaw = secretsManager.get('mapbox_token');
-    const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
+    // Try keyring first, then fallback to secrets manager
+    let token = await keyringService.getMapboxToken();
+
+    if (!token) {
+      const tokenRaw = secretsManager.get('mapbox_token');
+      token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
+    }
 
     if (!token) {
       return res.status(500).json({
         error: 'Mapbox token not configured',
-        message: 'MAPBOX_TOKEN is not available in secrets',
+        message: 'MAPBOX_TOKEN is not available in keyring or secrets',
       });
     }
 

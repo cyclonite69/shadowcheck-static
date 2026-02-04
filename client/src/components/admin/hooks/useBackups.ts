@@ -6,12 +6,16 @@ export const useBackups = () => {
   const [backupResult, setBackupResult] = useState<BackupResult | null>(null);
   const [backupError, setBackupError] = useState('');
 
-  const runBackup = async () => {
+  const runBackup = async (uploadToS3 = false) => {
     setBackupError('');
     setBackupResult(null);
     setBackupLoading(true);
     try {
-      const res = await fetch('/api/admin/backup', { method: 'POST' });
+      const res = await fetch('/api/admin/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploadToS3 }),
+      });
       const data = await res.json();
       if (!res.ok || !data.ok) {
         throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`);
@@ -21,6 +25,8 @@ export const useBackups = () => {
         fileName: data.fileName,
         filePath: data.filePath,
         bytes: data.bytes,
+        s3: data.s3,
+        s3Error: data.s3Error,
       });
     } catch (err: any) {
       setBackupError(err?.message || 'Backup failed');
