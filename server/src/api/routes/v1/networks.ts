@@ -625,7 +625,25 @@ router.get('/networks', async (req, res, next) => {
       params.push(radioTypes);
       whereClauses.push(`(${typeExpr}) = ANY($${params.length})`);
     }
-    const securityUpper = "UPPER(COALESCE(ne.security, ''))";
+    const computedSecurityExpr = `
+      CASE
+        WHEN COALESCE(ne.security, '') = '' THEN 'OPEN'
+        WHEN UPPER(ne.security) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
+        WHEN UPPER(ne.security) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
+        WHEN UPPER(ne.security) ~ 'RSN-OWE' THEN 'WPA3-OWE'
+        WHEN UPPER(ne.security) ~ 'RSN-SAE' THEN 'WPA3-SAE'
+        WHEN UPPER(ne.security) ~ '(WPA3|SAE)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA3-E'
+        WHEN UPPER(ne.security) ~ '(WPA3|SAE)' THEN 'WPA3'
+        WHEN UPPER(ne.security) ~ '(WPA2|RSN)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA2-E'
+        WHEN UPPER(ne.security) ~ '(WPA2|RSN)' THEN 'WPA2'
+        WHEN UPPER(ne.security) ~ 'WPA-' AND UPPER(ne.security) NOT LIKE '%WPA2%' THEN 'WPA'
+        WHEN UPPER(ne.security) LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%WPA2%' AND UPPER(ne.security) NOT LIKE '%WPA3%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPA'
+        WHEN UPPER(ne.security) LIKE '%WEP%' THEN 'WEP'
+        WHEN UPPER(ne.security) LIKE '%WPS%' AND UPPER(ne.security) NOT LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPS'
+        WHEN UPPER(ne.security) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
+        ELSE 'Unknown'
+      END
+    `;
 
     if (encryptionTypes && encryptionTypes.length > 0) {
       const normalized = encryptionTypes
@@ -633,24 +651,22 @@ router.get('/networks', async (req, res, next) => {
         .filter(Boolean);
       const clauses = [];
       if (normalized.includes('OPEN')) {
-        clauses.push(`${securityUpper} = 'OPEN'`);
+        clauses.push(`${computedSecurityExpr} = 'OPEN'`);
       }
       if (normalized.includes('WEP')) {
-        clauses.push(`${securityUpper} LIKE 'WEP%'`);
+        clauses.push(`${computedSecurityExpr} = 'WEP'`);
       }
       if (normalized.includes('WPA3')) {
-        clauses.push(`${securityUpper} LIKE 'WPA3%'`);
+        clauses.push(`${computedSecurityExpr} IN ('WPA3', 'WPA3-SAE', 'WPA3-OWE', 'WPA3-E')`);
       }
       if (normalized.includes('WPA2')) {
-        clauses.push(`${securityUpper} LIKE 'WPA2%'`);
+        clauses.push(`${computedSecurityExpr} IN ('WPA2', 'WPA2-E')`);
       }
       if (normalized.includes('WPA')) {
-        clauses.push(
-          `(${securityUpper} LIKE 'WPA%' AND ${securityUpper} NOT LIKE 'WPA2%' AND ${securityUpper} NOT LIKE 'WPA3%')`
-        );
+        clauses.push(`${computedSecurityExpr} = 'WPA'`);
       }
       if (normalized.includes('MIXED')) {
-        clauses.push(`${securityUpper} LIKE '%MIXED%'`);
+        clauses.push(`${computedSecurityExpr} IN ('WPA2', 'WPA2-E', 'WPA3', 'WPA3-E')`);
       }
       if (clauses.length > 0) {
         whereClauses.push(`(${clauses.join(' OR ')})`);
@@ -663,21 +679,19 @@ router.get('/networks', async (req, res, next) => {
         .filter(Boolean);
       const clauses = [];
       if (normalized.includes('PSK')) {
-        clauses.push(
-          `(${securityUpper} LIKE '%PSK%' OR ${securityUpper} IN ('WPA', 'WPA2', 'WPA3'))`
-        );
+        clauses.push(`${computedSecurityExpr} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-SAE')`);
       }
       if (normalized.includes('ENTERPRISE')) {
-        clauses.push(`(${securityUpper} LIKE '%-E%' OR ${securityUpper} LIKE '%ENTERPRISE%')`);
+        clauses.push(`${computedSecurityExpr} IN ('WPA2-E', 'WPA3-E')`);
       }
       if (normalized.includes('SAE')) {
-        clauses.push(`${securityUpper} LIKE '%SAE%'`);
+        clauses.push(`${computedSecurityExpr} IN ('WPA3', 'WPA3-SAE')`);
       }
       if (normalized.includes('OWE')) {
-        clauses.push(`${securityUpper} LIKE '%OWE%'`);
+        clauses.push(`${computedSecurityExpr} = 'WPA3-OWE'`);
       }
       if (normalized.includes('NONE')) {
-        clauses.push(`${securityUpper} = 'OPEN'`);
+        clauses.push(`${computedSecurityExpr} = 'OPEN'`);
       }
       if (clauses.length > 0) {
         whereClauses.push(`(${clauses.join(' OR ')})`);
@@ -690,16 +704,16 @@ router.get('/networks', async (req, res, next) => {
         .filter(Boolean);
       const clauses = [];
       if (normalized.includes('open')) {
-        clauses.push(`${securityUpper} = 'OPEN'`);
+        clauses.push(`${computedSecurityExpr} = 'OPEN'`);
       }
       if (normalized.includes('wep')) {
-        clauses.push(`${securityUpper} LIKE 'WEP%'`);
+        clauses.push(`${computedSecurityExpr} = 'WEP'`);
       }
       if (normalized.includes('wps')) {
-        clauses.push(`${securityUpper} LIKE 'WPS%'`);
+        clauses.push(`${computedSecurityExpr} = 'WPS'`);
       }
       if (normalized.includes('deprecated')) {
-        clauses.push(`(${securityUpper} LIKE 'WEP%' OR ${securityUpper} LIKE 'WPS%')`);
+        clauses.push(`${computedSecurityExpr} IN ('WEP', 'WPS')`);
       }
       if (clauses.length > 0) {
         whereClauses.push(`(${clauses.join(' OR ')})`);
@@ -712,23 +726,19 @@ router.get('/networks', async (req, res, next) => {
         .filter(Boolean);
       const clauses = [];
       if (normalized.includes('insecure')) {
-        clauses.push(
-          `(${securityUpper} = 'OPEN' OR ${securityUpper} LIKE 'WEP%' OR ${securityUpper} LIKE 'WPS%')`
-        );
+        clauses.push(`${computedSecurityExpr} IN ('OPEN', 'WEP', 'WPS')`);
       }
       if (normalized.includes('deprecated')) {
-        clauses.push(`${securityUpper} LIKE 'WEP%'`);
+        clauses.push(`${computedSecurityExpr} = 'WEP'`);
       }
       if (normalized.includes('enterprise')) {
-        clauses.push(`(${securityUpper} LIKE '%-E%' OR ${securityUpper} LIKE '%ENTERPRISE%')`);
+        clauses.push(`${computedSecurityExpr} IN ('WPA2-E', 'WPA3-E')`);
       }
       if (normalized.includes('personal')) {
-        clauses.push(
-          `(${securityUpper} LIKE 'WPA%' AND ${securityUpper} NOT LIKE '%-E%' AND ${securityUpper} NOT LIKE '%OWE%')`
-        );
+        clauses.push(`${computedSecurityExpr} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-SAE')`);
       }
       if (normalized.includes('unknown')) {
-        clauses.push(`${securityUpper} = 'UNKNOWN'`);
+        clauses.push(`${computedSecurityExpr} = 'Unknown'`);
       }
       if (clauses.length > 0) {
         whereClauses.push(`(${clauses.join(' OR ')})`);
