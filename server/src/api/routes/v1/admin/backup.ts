@@ -8,7 +8,8 @@ export {};
 // POST /api/admin/backup - Run full database backup (no auth yet)
 router.post('/admin/backup', async (req, res) => {
   try {
-    const result = await runPostgresBackup();
+    const { uploadToS3 = false } = req.body;
+    const result = await runPostgresBackup({ uploadToS3 });
     res.json({ ok: true, ...result });
   } catch (err) {
     logger.error(`[Backup] Failed to run pg_dump: ${err.message}`, { error: err });

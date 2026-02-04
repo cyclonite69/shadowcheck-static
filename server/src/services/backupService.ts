@@ -89,7 +89,54 @@ const resolvePgDumpPath = async () => {
   return 'pg_dump';
 };
 
-const runPostgresBackup = async () => {
+const uploadToS3 = async (filePath, fileName) => {
+  const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
+  const s3Key = `backups/${fileName}`;
+
+  logger.info(`[Backup] Uploading to S3: s3://${bucketName}/${s3Key}`);
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('aws', [
+      's3',
+      'cp',
+      filePath,
+      `s3://${bucketName}/${s3Key}`,
+      '--storage-class',
+      'STANDARD_IA',
+    ]);
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('error', (err) => {
+      reject(err);
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        logger.info(`[Backup] S3 upload completed: ${stdout.trim()}`);
+        resolve({
+          bucket: bucketName,
+          key: s3Key,
+          url: `s3://${bucketName}/${s3Key}`,
+        });
+      } else {
+        reject(new Error(stderr || `AWS S3 upload failed with code ${code}`));
+      }
+    });
+  });
+};
+
+const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
+  const { uploadToS3: shouldUploadToS3 = false } = options;
   const backupDir = getBackupDir();
   const database = process.env.PGDATABASE || process.env.DB_NAME || 'postgres';
   const fileName = `${database}_${stamp()}.dump`;
@@ -133,12 +180,25 @@ const runPostgresBackup = async () => {
   const stat = await fs.stat(filePath);
   logger.info(`[Backup] Completed pg_dump (${stat.size} bytes)`);
 
-  return {
+  const result: any = {
     backupDir,
     fileName,
     filePath,
     bytes: stat.size,
   };
+
+  // Upload to S3 if requested
+  if (shouldUploadToS3) {
+    try {
+      const s3Result = await uploadToS3(filePath, fileName);
+      result.s3 = s3Result;
+    } catch (error: any) {
+      logger.error(`[Backup] S3 upload failed: ${error.message}`);
+      result.s3Error = error.message;
+    }
+  }
+
+  return result;
 };
 
 module.exports = { runPostgresBackup };
