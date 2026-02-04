@@ -268,6 +268,27 @@ networks:
   - shadowcheck_net
 ```
 
+#### Docker DNS + network sanity checks (EHOSTUNREACH / restart loop)
+
+If the API container keeps restarting with `EHOSTUNREACH <ip>:5432`, verify the shared
+Postgres container is reachable **and** advertising the correct alias on the shared network:
+
+```bash
+# 1) Verify both containers are attached to the same network
+docker network inspect shadowcheck_net | jq '.[0].Containers'
+
+# 2) Confirm Postgres is listed as shadowcheck_postgres on that network
+# (The Name should be shadowcheck_postgres, and the container should be present in step 1.)
+
+# 3) If DNS/aliasing is broken, reattach with an explicit alias
+docker network disconnect shadowcheck_net shadowcheck_postgres
+docker network connect --alias shadowcheck_postgres shadowcheck_net shadowcheck_postgres
+
+# 4) Recreate the API container after network changes
+docker compose down
+docker compose up -d
+```
+
 ## Advanced Configuration
 
 ### Performance Tuning

@@ -22,6 +22,7 @@ This repo has accumulated overlapping SQL files. Use the order below to avoid sc
 
 - `add_trilat_to_networks.sql`
 - `add_trilateration_enrichment.sql`
+- `20260204_create_agency_offices.sql`
 - `populate_ap_locations.sql`
 - `classify_device_types.sql`, `classify_government_networks.sql`
 - `detect_colocation.sql`, `detect_suspicious_duplicates.sql`, `contextual_classification.sql`, `contextual_queries.sql`

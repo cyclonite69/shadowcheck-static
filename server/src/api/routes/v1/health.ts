@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../../../config/database');
 const secretsManager = require('../../../services/secretsManager');
-const keyringService = require('../../../services/keyringService');
+const keyringService = require('../../../services/keyringService').default;
 
 const startTime = Date.now();
 

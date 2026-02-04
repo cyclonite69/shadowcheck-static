@@ -66,6 +66,12 @@ export interface BackupResult {
   fileName: string;
   filePath: string;
   bytes: number;
+  s3?: {
+    bucket: string;
+    key: string;
+    url: string;
+  };
+  s3Error?: string;
 }
 
 export interface PgAdminStatus {
