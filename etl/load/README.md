@@ -63,6 +63,42 @@ tsx etl/load/fbi-resident-agencies-gov.ts
 tsx etl/load/fbi-resident-agencies-gov.ts --csv=/path/to/file.csv
 ```
 
+### fbi-resident-agencies-foia.ts
+
+Enriches FBI resident agencies with addresses from public FOIA documents hosted on non-.gov sites.
+
+```bash
+# Use default CSV at data/csv/fbi_resident_agencies_foia.csv
+tsx etl/load/fbi-resident-agencies-foia.ts
+
+# Provide a custom CSV
+tsx etl/load/fbi-resident-agencies-foia.ts --csv=/path/to/file.csv
+```
+
+### fbi-resident-agencies-public.ts
+
+Enriches FBI resident agencies with addresses from public listings (non-.gov).
+
+```bash
+# Use default CSV at data/csv/fbi_resident_agencies_public_listings.csv
+tsx etl/load/fbi-resident-agencies-public.ts
+
+# Provide a custom CSV
+tsx etl/load/fbi-resident-agencies-public.ts --csv=/path/to/file.csv
+```
+
+### fbi-field-offices-gov.ts
+
+Enriches FBI field offices with addresses from curated official .gov sources.
+
+```bash
+# Use default CSV at data/csv/fbi_field_offices_gov.csv
+tsx etl/load/fbi-field-offices-gov.ts
+
+# Provide a custom CSV
+tsx etl/load/fbi-field-offices-gov.ts --csv=/path/to/file.csv
+```
+
 ## Configuration
 
 | Variable            | Default          | Description                       |
