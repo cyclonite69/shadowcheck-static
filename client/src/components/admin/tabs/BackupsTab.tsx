@@ -121,7 +121,7 @@ export const BackupsTab: React.FC = () => {
                 <div className="text-sm space-y-2">
                   <div className="flex justify-between">
                     <span className="text-emerald-300">File:</span>
-                    <span className="text-slate-100 font-mono text-xs">
+                    <span className="text-slate-100 font-mono text-xs break-all max-w-[200px]">
                       {backupResult.fileName}
                     </span>
                   </div>
@@ -133,14 +133,14 @@ export const BackupsTab: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-emerald-300">Local Path:</span>
-                    <span className="text-slate-100 font-mono text-xs">
+                    <span className="text-slate-100 font-mono text-xs break-all max-w-[200px]">
                       {backupResult.filePath}
                     </span>
                   </div>
                   {backupResult.s3 && (
                     <div className="flex justify-between">
                       <span className="text-blue-300">S3 Location:</span>
-                      <span className="text-slate-100 font-mono text-xs">
+                      <span className="text-slate-100 font-mono text-xs break-all max-w-[200px]">
                         {backupResult.s3.url}
                       </span>
                     </div>
@@ -193,7 +193,7 @@ export const BackupsTab: React.FC = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-mono text-slate-200 truncate">
+                      <div className="text-xs font-mono text-slate-200 break-all">
                         {backup.fileName}
                       </div>
                       <div className="text-xs text-slate-400 mt-1">
