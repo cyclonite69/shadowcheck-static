@@ -156,23 +156,56 @@ Access the application:
 
 ## Production Deployment
 
-### Docker Compose
+### Local Development
 
 ```bash
-# Configure production environment
+# Configure environment
 cp .env.example .env
 nano .env
 
-# Build and start
-docker-compose build
+# Start infrastructure
 docker-compose up -d
-
-# Run migrations
-docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db < sql/migrations/00_init_schema.sql
-
-# Verify
-docker-compose exec api curl http://localhost:3001/api/dashboard-metrics
 ```
+
+### Home Lab Deployment
+
+```bash
+# Automated setup (detects RAM, configures PostgreSQL)
+./deploy/homelab/scripts/setup.sh
+
+# Manual setup
+docker-compose -f docker/infrastructure/docker-compose.postgres.yml up -d
+docker-compose up -d
+```
+
+See [deploy/homelab/README.md](../../deploy/homelab/README.md) for hardware requirements.
+
+### AWS Production
+
+```bash
+# Launch Spot instance with persistent storage
+./deploy/aws/scripts/launch-shadowcheck-spot.sh
+
+# Connect via SSM
+aws ssm start-session --target i-INSTANCE_ID --region us-east-1
+```
+
+See [deploy/aws/README.md](../../deploy/aws/README.md) for AWS infrastructure details.
+
+---
+
+## Security Setup
+
+### Password Rotation
+
+```bash
+# Rotate database password (auto-detects environment)
+./scripts/rotate-db-password.sh
+```
+
+Recommended schedule: Every 60-90 days
+
+See `deploy/aws/docs/PASSWORD_ROTATION.md` for detailed procedures.
 
 ---
 

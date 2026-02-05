@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Deployment Separation**: Organized AWS and home lab deployments into `deploy/` directory
+  - AWS production configs in `deploy/aws/` with launch scripts and documentation
+  - Home lab deployment guide in `deploy/homelab/` with automated setup script
+  - Clear separation between cloud, self-hosted, and local development environments
+- **Password Rotation System**: Automated database password rotation script
+  - Environment-aware (detects local vs AWS automatically)
+  - Generates cryptographically secure 32-character passwords
+  - Updates all storage locations (secrets, keyring, .env, PostgreSQL)
+  - Comprehensive documentation in `deploy/aws/docs/PASSWORD_ROTATION.md`
+- **PostgreSQL Security Hardening**:
+  - Logging configuration to prevent password exposure (`log_statement = 'none'`)
+  - Docker logging limits (10MB × 3 files per container)
+  - AWS launch template v4 with secure logging
+- **PostgreSQL Performance Optimization**:
+  - PostGIS-specific tuning (JIT compilation, increased work_mem to 16MB)
+  - Autovacuum optimization for frequent updates
+  - Query planner enhancements for partitioned tables
+  - I/O timing tracking for NVMe performance monitoring
+  - AWS launch template v5 with optimized configuration
+  - Home lab configs for 4GB and 8GB RAM systems
+- **Home Lab Deployment**:
+  - Automated setup script with RAM detection
+  - Hardware-specific PostgreSQL configs (Raspberry Pi, Intel NUC)
+  - Comprehensive deployment guide with cost comparison
+  - Support for x86_64 and ARM64 architectures
 - Complete TypeScript migration for 60+ files (server utilities, middleware, ETL scripts, build tools)
 - Production build pipeline with compiled TypeScript server for Docker deployment
 - Comprehensive type safety with interfaces for database operations, API responses, and service layers
@@ -21,6 +46,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Infrastructure Organization**: Moved AWS-specific files to `deploy/aws/`
+  - `scripts/launch-shadowcheck-spot.sh` → `deploy/aws/scripts/`
+  - `docs/AWS_INFRASTRUCTURE.md` → `deploy/aws/docs/`
+  - PostgreSQL configs organized by environment
+- **Documentation Structure**: Updated all references to new deployment paths
+  - Main README includes deployment options (local, home lab, AWS)
+  - Scripts README references new AWS paths
+  - Deploy directory with environment-specific guides
 - Build optimization: Frontend and server compile separately with proper path resolution
 - Improved development workflow with automated code quality checks
 - Networks API now uses latest observation data instead of aggregated materialized view
@@ -40,6 +73,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manufacturer field population with proper OUI prefix matching from BSSID MAC addresses
 - Frontend data transformer field name mismatches (network_type → type, avg_score → avgScore)
 - Missing API calls for temporal, radio-time, and threat-trends analytics endpoints
+
+### Security
+
+- PostgreSQL logging configured to prevent password exposure in logs
+- Docker container logs limited to prevent disk exhaustion and credential retention
+- Password rotation procedures documented with 60-90 day schedule
+- Launch template security updates applied to AWS infrastructure
 
 ## [1.0.0] - 2025-12-10
 

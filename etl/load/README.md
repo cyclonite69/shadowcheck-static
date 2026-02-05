@@ -87,6 +87,31 @@ tsx etl/load/fbi-resident-agencies-public.ts
 tsx etl/load/fbi-resident-agencies-public.ts --csv=/path/to/file.csv
 ```
 
+### fbi-resident-agencies-gov-legacy.ts
+
+Enriches FBI resident agencies with addresses from older official .gov sources
+and marks them as `legacy_needs_verification`.
+
+```bash
+# Use default CSV at data/csv/fbi_resident_agencies_gov_legacy.csv
+tsx etl/load/fbi-resident-agencies-gov-legacy.ts
+
+# Provide a custom CSV
+tsx etl/load/fbi-resident-agencies-gov-legacy.ts --csv=/path/to/file.csv
+```
+
+### fbi-training-facilities.ts
+
+Loads FBI training facilities into `app.agency_offices` as `office_type=training_facility`.
+
+```bash
+# Use default CSV at data/csv/fbi_training_facilities.csv
+tsx etl/load/fbi-training-facilities.ts
+
+# Provide a custom CSV
+tsx etl/load/fbi-training-facilities.ts --csv=/path/to/file.csv
+```
+
 ### fbi-field-offices-gov.ts
 
 Enriches FBI field offices with addresses from curated official .gov sources.

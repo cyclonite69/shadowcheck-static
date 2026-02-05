@@ -110,6 +110,37 @@ See `docs/FEATURES.md` for the full feature catalog.
 
 ## Quick Start
 
+### Local Development (Fastest)
+
+```bash
+git clone https://github.com/cyclonite69/shadowcheck-static.git
+cd shadowcheck-static
+npm install
+docker-compose up -d
+```
+
+### Home Lab Deployment
+
+```bash
+git clone https://github.com/cyclonite69/shadowcheck-static.git
+cd shadowcheck-static
+./deploy/homelab/scripts/setup.sh
+```
+
+See [deploy/homelab/README.md](deploy/homelab/README.md) for hardware requirements and detailed setup.
+
+### AWS Production
+
+```bash
+./deploy/aws/scripts/launch-shadowcheck-spot.sh
+```
+
+See [deploy/aws/README.md](deploy/aws/README.md) for AWS infrastructure details.
+
+---
+
+## Detailed Setup
+
 ### 1. Clone and Install
 
 ```bash
@@ -280,6 +311,8 @@ shadowcheck-static/
 │   │   ├── middleware/    # 🔧 Express middleware (TypeScript)
 │   │   └── utils/         # 🔧 Server utilities (TypeScript)
 │   └── server.js          # 🔧 Main server entry point
+├── deploy/                # 🚀 Deployment configs (AWS, etc.)
+│   └── aws/               # AWS-specific deployment
 ├── etl/                   # 📊 ETL pipeline (TypeScript)
 ├── scripts/               # 🛠️ Utility scripts (TypeScript)
 ├── tests/                 # 🧪 Jest tests (TypeScript)
@@ -319,6 +352,7 @@ Key environment variables (see `.env.example`):
 ## Security
 
 - Use strong database credentials in production
+- Rotate passwords every 60-90 days (see `deploy/aws/docs/PASSWORD_ROTATION.md`)
 - Enable HTTPS/TLS at reverse proxy layer
 - Restrict API access via rate limiting (already enabled)
 - See `SECURITY.md` for detailed security guidelines

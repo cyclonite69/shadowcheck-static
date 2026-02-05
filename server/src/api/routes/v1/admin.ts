@@ -23,6 +23,7 @@ const adminOuiRoutes = require('./admin/oui');
 const adminBackupRoutes = require('./admin/backup');
 const adminPgAdminRoutes = require('./admin/pgadmin');
 const adminSettingsRoutes = require('./admin/settings');
+const adminGeocodingRoutes = require('./admin/geocoding');
 
 // Protect all admin routes
 router.use(requireAdmin);
@@ -52,6 +53,7 @@ router.use(adminOuiRoutes);
 router.use(adminBackupRoutes);
 router.use(adminPgAdminRoutes);
 router.use('/admin/settings', adminSettingsRoutes);
+router.use(adminGeocodingRoutes);
 
 // POST /api/admin/import-sqlite - Import SQLite database
 router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, next) => {

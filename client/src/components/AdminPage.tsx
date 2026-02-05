@@ -9,6 +9,7 @@ import { ApiTestingTab } from './admin/tabs/ApiTestingTab';
 import { DataImportTab } from './admin/tabs/DataImportTab';
 import { DataExportTab } from './admin/tabs/DataExportTab';
 import { PgAdminTab } from './admin/tabs/PgAdminTab';
+import { GeocodingTab } from './admin/tabs/GeocodingTab';
 
 // SVG Icons
 const SettingsIcon = ({ size = 24, className = '' }) => (
@@ -85,6 +86,22 @@ const DownloadIcon = ({ size = 24, className = '' }) => (
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
     <polyline points="7 10 12 15 17 10" />
     <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
+const MapIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z" />
+    <path d="M9 4v14" />
+    <path d="M15 6v14" />
   </svg>
 );
 
@@ -181,6 +198,7 @@ const AdminPage: React.FC = () => {
     { id: 'imports', label: 'Data Import', icon: UploadIcon },
     { id: 'backups', label: 'Backups', icon: DatabaseIcon },
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
+    { id: 'geocoding', label: 'Geocoding', icon: MapIcon },
     { id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon },
   ];
 
@@ -225,6 +243,7 @@ const AdminPage: React.FC = () => {
           {activeTab === 'imports' && <DataImportTab />}
           {activeTab === 'backups' && <BackupsTab />}
           {activeTab === 'exports' && <DataExportTab />}
+          {activeTab === 'geocoding' && <GeocodingTab />}
           {activeTab === 'pgadmin' && <PgAdminTab />}
         </div>
       </div>

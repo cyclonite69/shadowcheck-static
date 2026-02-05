@@ -94,3 +94,26 @@ export interface PgAdminStatus {
   };
   error?: string;
 }
+
+export interface GeocodingStats {
+  precision: number;
+  observation_count: number;
+  unique_blocks: number;
+  cached_blocks: number;
+  cached_with_address: number;
+  cached_with_poi: number;
+  distinct_addresses: number;
+  missing_blocks: number;
+  providers: Record<string, number>;
+}
+
+export interface GeocodingRunResult {
+  precision: number;
+  mode: string;
+  provider: string;
+  processed: number;
+  successful: number;
+  poiHits: number;
+  rateLimited: number;
+  durationMs: number;
+}

@@ -1,0 +1,200 @@
+# Scripts Directory
+
+## Security & Maintenance
+
+### Password Rotation
+
+```bash
+./scripts/rotate-db-password.sh
+```
+
+Automated password rotation for PostgreSQL. Works in both local and AWS environments.
+
+- Generates secure 32-character password
+- Updates all storage locations (secrets, keyring, .env)
+- Updates PostgreSQL user password
+- Restarts affected services
+- See `docs/security/PASSWORD_ROTATION.md` for details
+
+### Database Backup
+
+```bash
+./scripts/backup-shadowcheck.sh
+```
+
+Creates timestamped PostgreSQL backup with optional S3 upload.
+
+### AWS Spot Instance
+
+```bash
+./deploy/aws/scripts/launch-shadowcheck-spot.sh
+```
+
+Launches ShadowCheck Spot instance with persistent data volume.
+
+- See `deploy/aws/README.md` for AWS deployment details
+
+## Data Import & ETL
+
+### WiGLE Import
+
+```bash
+# Parallel import (fastest)
+npx tsx scripts/import/import-wigle-parallel.ts <file.csv>
+
+# JSON import
+npx tsx scripts/import/import-wigle-v2-json.ts <file.json>
+
+# Turbo import (bulk)
+npx tsx scripts/import/turbo-import.ts <file.csv>
+```
+
+### Geocoding
+
+```bash
+# Batch geocoding
+npx tsx scripts/geocoding/geocode-batch.ts
+
+# Reverse geocoding
+npx tsx scripts/geocoding/reverse-geocode-smart.ts
+
+# Import geocoded data
+npx tsx scripts/geocoding/import-geocodes.ts
+```
+
+### Address Enrichment
+
+```bash
+# Multi-source enrichment
+npx tsx scripts/enrichment/enrich-multi-source.ts
+
+# Business names
+npx tsx scripts/enrichment/enrich-business-names.ts
+
+# Monitor progress
+npx tsx scripts/enrichment/monitor-enrichment.ts
+```
+
+## Machine Learning
+
+### Model Training
+
+```bash
+npx tsx scripts/ml/ml-trainer.ts
+```
+
+Trains threat detection model on tagged networks.
+
+## Database Operations
+
+### Connect to Database
+
+```bash
+./scripts/db-connect.sh
+```
+
+Opens psql connection to PostgreSQL.
+
+### Run Migration
+
+```bash
+./scripts/shell/run-migration.sh <migration.sql>
+```
+
+Applies SQL migration with error handling.
+
+### Refresh Materialized Views
+
+```bash
+./scripts/refresh_api_network.sh        # Full refresh
+./scripts/refresh_api_network_delta.sh  # Delta refresh
+```
+
+### Rebuild Network Precision
+
+```bash
+npx tsx scripts/rebuild-networks-precision.ts
+```
+
+Recalculates network location precision from observations.
+
+## Development
+
+### Start Server
+
+```bash
+./scripts/shell/start-server.sh
+```
+
+Starts development server with hot reload.
+
+### Docker Management
+
+```bash
+./scripts/docker-manage.sh [up|down|restart|logs]
+```
+
+Manages Docker Compose services.
+
+### Test Endpoints
+
+```bash
+./scripts/test-endpoints.sh
+```
+
+Validates API endpoint responses.
+
+## Utilities
+
+### Set Home Location
+
+```bash
+npx tsx scripts/set-home.ts <lat> <lon>
+```
+
+Sets home location for distance calculations.
+
+### Generate Sitemap
+
+```bash
+npx tsx scripts/generate-sitemap.ts
+```
+
+Generates sitemap.xml for SEO.
+
+### Write Robots.txt
+
+```bash
+npx tsx scripts/write-robots.ts
+```
+
+Generates robots.txt (respects ROBOTS_ALLOW_INDEXING env var).
+
+## Script Categories
+
+- **Security**: `rotate-db-password.sh`, `backup-shadowcheck.sh`
+- **AWS**: `launch-shadowcheck-spot.sh`
+- **Import**: `scripts/import/*.ts`
+- **Geocoding**: `scripts/geocoding/*.ts`
+- **Enrichment**: `scripts/enrichment/*.ts`
+- **ML**: `scripts/ml/*.ts`
+- **Database**: `db-*.sh`, `refresh-*.sh`, `rebuild-*.ts`
+- **Development**: `shell/*.sh`, `docker-manage.sh`
+- **Utilities**: `set-home.ts`, `generate-sitemap.ts`, `write-robots.ts`
+
+## TypeScript Scripts
+
+All `.ts` scripts should be run with `npx tsx`:
+
+```bash
+npx tsx scripts/path/to/script.ts [args]
+```
+
+## Shell Scripts
+
+All `.sh` scripts should be executable:
+
+```bash
+chmod +x scripts/script-name.sh
+./scripts/script-name.sh [args]
+```
