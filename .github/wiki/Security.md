@@ -49,10 +49,28 @@ Strict-Transport-Security: max-age=31536000
 # Keyring (development)
 node scripts/set-secret.js db_password "your-password"
 
-# Docker Secrets (production)
+# Docker secrets (production)
 echo "your-password" > secrets/db_password.txt
-chmod 600 secrets/*
+chmod 600 secrets/db_password.txt
 ```
+
+### Password Rotation
+
+Rotate database passwords every 60-90 days:
+
+```bash
+# Automated rotation (local or AWS)
+./scripts/rotate-db-password.sh
+```
+
+See `deploy/aws/docs/PASSWORD_ROTATION.md` for detailed procedures.
+
+# Docker Secrets (production)
+
+echo "your-password" > secrets/db_password.txt
+chmod 600 secrets/\*
+
+````
 
 ---
 
@@ -66,7 +84,7 @@ const result = await query('SELECT * FROM networks WHERE bssid = $1', [bssid]);
 
 // ❌ Unsafe - never do this
 const result = await query(`SELECT * FROM networks WHERE bssid = '${bssid}'`);
-```
+````
 
 ---
 
