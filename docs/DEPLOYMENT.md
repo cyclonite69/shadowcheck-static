@@ -45,28 +45,44 @@ Production deployment guide for ShadowCheck-Static.
 
 ## Deployment Options
 
-### 1. Docker Compose (Recommended)
+### 1. Home Lab (Self-Hosted)
 
 Best for:
 
-- Quick deployment
-- Easy scaling
-- Development/staging environments
+- Full control and privacy
+- Learning and experimentation
+- One-time hardware cost (~$200-500)
+- No monthly cloud bills
 
-### 2. Traditional (Systemd)
+See [deploy/homelab/README.md](../deploy/homelab/README.md) for setup guide.
+
+### 2. AWS Production
+
+Best for:
+
+- Scalable cloud infrastructure
+- Managed services
+- Cost-optimized Spot instances (~$27/month)
+
+See [deploy/aws/README.md](../deploy/aws/README.md) for AWS deployment.
+
+### 3. Local Development
+
+Best for:
+
+- Quick testing
+- Development workflow
+- Docker Compose on local machine
+
+See main [README.md](../README.md) for local setup.
+
+### 4. Traditional (Systemd)
 
 Best for:
 
 - Full control over services
 - Integration with existing infrastructure
 - Custom configurations
-
-### 3. Cloud Platforms
-
-- AWS (ECS, RDS, ElastiCache)
-- Google Cloud (Cloud Run, Cloud SQL)
-- Azure (Container Instances, PostgreSQL)
-- DigitalOcean (App Platform, Managed Database)
 
 ## Docker Deployment
 
