@@ -245,3 +245,56 @@ docker logs shadowcheck_frontend
 git checkout <previous-commit>
 ./deploy/aws/scripts/deploy-from-github.sh
 ```
+
+## Quick Iteration Workflow (Active Development)
+
+When you need to iterate quickly and test on the actual EC2 environment:
+
+### One-Time Setup
+
+Configure git on EC2 so you can commit from there:
+
+```bash
+# From your local machine
+./deploy/aws/scripts/setup-git-on-ec2.sh <your_github_username> <your_github_token>
+```
+
+Get a GitHub personal access token from: https://github.com/settings/tokens  
+Required scopes: `repo` (full control)
+
+### Iteration Cycle
+
+```bash
+# 1. Connect via SSM
+aws ssm start-session --target i-035565c52ac4fa6dd --region us-east-1
+
+# 2. Make changes
+cd /home/ssm-user/shadowcheck
+vim server/src/api/routes/v1/auth.ts
+
+# 3. Test immediately
+./deploy/aws/scripts/deploy-from-github.sh
+
+# 4. If it works, commit from EC2
+git add .
+git commit -m "Fix auth issue"
+git push
+
+# 5. Pull on local machine to stay in sync
+exit  # exit SSM session
+git pull
+```
+
+**Benefits:**
+
+- Fastest iteration (no local → GitHub → EC2 cycle)
+- Test on real environment immediately
+- See actual logs and behavior
+- Still tracked in git
+
+**When to use:**
+
+- Debugging production issues
+- Testing environment-specific behavior
+- Rapid prototyping
+- Working with AWS-specific features
