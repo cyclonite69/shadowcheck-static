@@ -1,0 +1,17 @@
+FROM postgres:16-alpine
+
+# Install PostGIS and dependencies
+RUN apk add --no-cache \
+    postgis \
+    postgis-dev \
+    && rm -rf /var/cache/apk/*
+
+# Create PostGIS extension on database initialization
+RUN mkdir -p /docker-entrypoint-initdb.d
+COPY init-postgis.sh /docker-entrypoint-initdb.d/
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Use official postgres entrypoint
+CMD ["postgres"]
