@@ -81,13 +81,14 @@ docker build -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:la
 # Run backend (host network for localhost DB access)
 docker run -d --name shadowcheck_backend \
   --network host \
-  -e NODE_ENV=production \
+  -e NODE_ENV=development \
   -e PORT=3001 \
   -e DB_HOST=127.0.0.1 \
   -e DB_USER=shadowcheck_user \
   -e DB_PASSWORD=$DB_PASSWORD \
   -e DB_NAME=shadowcheck_db \
   -e MAPBOX_TOKEN=$MAPBOX_TOKEN \
+  -e CORS_ORIGINS=http://13.216.239.240,http://localhost \
   --restart unless-stopped \
   shadowcheck/backend:latest
 
@@ -709,4 +710,84 @@ location /api/ {
 
 ```bash
 docker run -d --name shadowcheck_frontend --network host ...
+```
+
+### Issue 15: CORS blocking frontend requests
+
+**Problem:** Frontend on port 80 can't access backend API on port 3001  
+**Solution:** Set CORS_ORIGINS environment variable
+
+```bash
+docker run -d --name shadowcheck_backend \
+  -e CORS_ORIGINS=http://13.216.239.240,http://localhost \
+  ...
+```
+
+**Default origins:** `http://localhost:3001, http://127.0.0.1:3001`
+
+### Issue 16: Secure cookies don't work over HTTP
+
+**Problem:** Backend sets `secure: true` on cookies in production, requires HTTPS  
+**Solution:** Use NODE_ENV=development for HTTP testing, or set up HTTPS
+
+```bash
+# For HTTP testing
+docker run -d --name shadowcheck_backend \
+  -e NODE_ENV=development \
+  ...
+
+# For production with HTTPS
+docker run -d --name shadowcheck_backend \
+  -e NODE_ENV=production \
+  ...
+```
+
+**Note:** Secure cookies are required for production. Set up SSL/TLS with Let's Encrypt.
+
+### Issue 17: Invalid Mapbox token
+
+**Problem:** Mapbox API returns 401 - Invalid Token  
+**Solution:** Generate new token at https://account.mapbox.com/access-tokens/
+
+```bash
+# Update token
+docker stop shadowcheck_backend && docker rm shadowcheck_backend
+docker run -d --name shadowcheck_backend \
+  -e MAPBOX_TOKEN=pk.your_new_token_here \
+  ...
+```
+
+### Issue 18: Security group blocks all traffic by default
+
+**Problem:** No inbound rules on security group, can't access application  
+**Solution:** Add rules for your IP address
+
+```bash
+# Add your IP
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-076801a316243fa70 \
+  --ip-permissions \
+    IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges="[{CidrIp=68.41.168.87/32}]" \
+    IpProtocol=tcp,FromPort=3001,ToPort=3001,IpRanges="[{CidrIp=68.41.168.87/32}]" \
+  --region us-east-1
+```
+
+**Scripts created:**
+
+- `deploy/aws/scripts/add-ip-access.sh <ip>` - Add specific IP
+- `deploy/aws/scripts/list-authorized-ips.sh` - List authorized IPs
+- `deploy/aws/scripts/open-public-access.sh` - Open to everyone (use with caution)
+
+### Issue 19: Admin user password not set correctly
+
+**Problem:** Default admin/admin123 credentials don't work  
+**Solution:** Reset password with bcrypt hash
+
+```bash
+# Generate hash locally
+node -e "const bcrypt = require('bcrypt'); bcrypt.hash('admin123', 10, (err, hash) => console.log(hash));"
+
+# Update in database
+docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
+  -c "UPDATE app.users SET password_hash = '\$2b\$10\$...' WHERE username = 'admin';"
 ```

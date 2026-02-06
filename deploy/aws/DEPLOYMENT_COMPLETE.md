@@ -93,13 +93,21 @@ EC2 Instance (ARM64)
 
 ### Backend
 
-- `NODE_ENV=production`
+- `NODE_ENV=development` (for HTTP testing) or `production` (requires HTTPS)
 - `PORT=3001`
 - `DB_HOST=127.0.0.1`
 - `DB_USER=shadowcheck_user`
 - `DB_PASSWORD=<from_postgres_container>`
 - `DB_NAME=shadowcheck_db`
-- `MAPBOX_TOKEN=<your_token>`
+- `MAPBOX_TOKEN=<your_token>` (get from https://account.mapbox.com/access-tokens/)
+- `CORS_ORIGINS=http://<your_public_ip>,http://localhost`
+
+**Important Notes:**
+
+- Use `NODE_ENV=development` for HTTP access (secure cookies disabled)
+- Use `NODE_ENV=production` only with HTTPS (secure cookies required)
+- CORS_ORIGINS must include your public IP for frontend to access API
+- Mapbox token must be valid (test at https://api.mapbox.com)
 
 ### Frontend
 
