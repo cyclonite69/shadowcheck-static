@@ -2,6 +2,59 @@
 
 ## Session Summary: AWS PostgreSQL + PostGIS ARM64 Deployment
 
+### What We Actually Did (Step-by-Step)
+
+1. **Discovered ARM64 Image Issues**
+   - postgis/postgis:18-3.6 doesn't exist for ARM64
+   - Alpine-based images lack proper PostGIS ARM64 packages
+   - kartoza/postgis had permission issues with security restrictions
+
+2. **Built Custom ARM64 Image**
+   - Started with `postgres:18` (Debian/Ubuntu base)
+   - Installed PostGIS via apt: `postgresql-18-postgis-3`
+   - Created Dockerfile with init script
+   - Built directly on ARM64 instance (faster than cross-compile)
+
+3. **Configured Persistent Storage**
+   - Formatted 30GB EBS volume with XFS
+   - Optimized mount options for PostgreSQL
+   - Used `/var/lib/postgresql` mount (PostgreSQL 18+ best practice)
+   - Survived container restarts and instance stops
+
+4. **Set Up User Permissions**
+   - Added ssm-user to docker group: `usermod -aG docker ssm-user`
+   - Required SSM session reconnect to apply
+   - Created bash alias: `pgcli` for easy database access
+
+5. **Deployed and Verified**
+   - Container running: shadowcheck/postgis:18-3.6-arm64
+   - PostgreSQL 18.1 on aarch64
+   - PostGIS 3.6 with GEOS, PROJ, STATS
+   - Localhost-only binding (127.0.0.1:5432)
+
+### Commands That Worked
+
+```bash
+# Build custom image on ARM64 instance
+docker build -t shadowcheck/postgis:18-3.6-arm64 -f Dockerfile.postgis .
+
+# Deploy with correct volume mount
+docker run -d --name shadowcheck_postgres \
+  -e POSTGRES_USER=shadowcheck_user \
+  -e POSTGRES_PASSWORD=your_password \
+  -e POSTGRES_DB=shadowcheck_db \
+  -p 127.0.0.1:5432:5432 \
+  -v /var/lib/postgresql:/var/lib/postgresql \
+  --shm-size=512m \
+  shadowcheck/postgis:18-3.6-arm64
+
+# Add user to docker group
+usermod -aG docker ssm-user
+
+# Create psql alias
+echo 'alias pgcli="docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db"' >> ~/.bashrc
+```
+
 ### Key Discoveries
 
 1. **ARM64 Image Compatibility**
@@ -342,6 +395,38 @@ spec:
 - No spot pricing
 - Flat pricing model
 - Cheaper for small workloads
+
+## Troubleshooting We Encountered
+
+### Issue 1: "no matching manifest for linux/arm64"
+
+**Problem:** postgis/postgis:18-3.6 doesn't support ARM64  
+**Solution:** Build custom image from postgres:18 base with apt-installed PostGIS
+
+### Issue 2: "exec format error"
+
+**Problem:** Pulled x86_64 image on ARM64 instance  
+**Solution:** Verify image architecture before deploying
+
+### Issue 3: "Permission denied" on docker.sock
+
+**Problem:** ssm-user not in docker group  
+**Solution:** `usermod -aG docker ssm-user` and reconnect session
+
+### Issue 4: "PostgreSQL data in /var/lib/postgresql/data"
+
+**Problem:** Wrong mount point for PostgreSQL 18+  
+**Solution:** Mount `/var/lib/postgresql` instead of `/var/lib/postgresql/data`
+
+### Issue 5: PostGIS extension not available
+
+**Problem:** Alpine PostGIS packages for PostgreSQL 18, not 16  
+**Solution:** Use Debian-based postgres:18 image with matching PostGIS version
+
+### Issue 6: Container keeps restarting
+
+**Problem:** kartoza/postgis chmod errors with cap_drop security restrictions  
+**Solution:** Use simpler official postgres base without excessive hardening
 
 ## Security Checklist (Cloud-Agnostic)
 
