@@ -1,0 +1,268 @@
+#!/bin/bash
+# Deploy PostgreSQL with persistent XFS volume to AWS instance
+# Run this on the AWS instance via SSM
+
+set -e
+
+echo "🚀 ShadowCheck PostgreSQL Deployment"
+echo ""
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then 
+   echo "Please run with sudo"
+   exit 1
+fi
+
+# 1. Format and mount persistent volume
+echo "📦 Setting up persistent XFS volume..."
+if ! mountpoint -q /var/lib/postgresql; then
+  if lsblk /dev/nvme1n1 &>/dev/null; then
+    if ! blkid /dev/nvme1n1 | grep -q xfs; then
+      echo "Formatting /dev/nvme1n1 with XFS (PostgreSQL-optimized)..."
+      mkfs.xfs -f \
+        -d agcount=4,su=256k,sw=1 \
+        -i size=512 \
+        -n size=8192 \
+        -l size=128m,su=256k \
+        /dev/nvme1n1
+      echo "✅ XFS filesystem created"
+    fi
+    
+    mkdir -p /var/lib/postgresql
+    
+    echo "Mounting with PostgreSQL-optimized options..."
+    mount -o noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m \
+      /dev/nvme1n1 /var/lib/postgresql
+    
+    # Add to fstab for persistence
+    if ! grep -q "/dev/nvme1n1" /etc/fstab; then
+      echo '/dev/nvme1n1 /var/lib/postgresql xfs noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m,nofail 0 2' >> /etc/fstab
+    fi
+    
+    chmod 700 /var/lib/postgresql
+    echo "✅ Volume mounted at /var/lib/postgresql"
+  else
+    echo "❌ Data volume /dev/nvme1n1 not found"
+    exit 1
+  fi
+else
+  echo "✅ Volume already mounted"
+fi
+
+# 2. Create SSL certificates
+echo ""
+echo "🔐 Creating SSL certificates..."
+mkdir -p /var/lib/postgresql/certs
+cd /var/lib/postgresql/certs
+if [ ! -f server.crt ]; then
+  openssl req -new -x509 -days 3650 -nodes -text \
+    -out server.crt -keyout server.key \
+    -subj "/CN=shadowcheck-postgres"
+  chmod 600 server.key
+  chmod 644 server.crt
+  echo "✅ SSL certificates created"
+else
+  echo "✅ SSL certificates already exist"
+fi
+
+# 3. Create PostgreSQL config
+echo ""
+echo "⚙️  Creating PostgreSQL configuration..."
+cat > /var/lib/postgresql/postgresql.conf << 'PGCONF'
+# Memory (8GB RAM)
+shared_buffers = 2GB
+effective_cache_size = 6GB
+maintenance_work_mem = 512MB
+work_mem = 16MB
+temp_buffers = 16MB
+max_connections = 100
+
+# WAL & Checkpoints
+wal_buffers = 16MB
+min_wal_size = 1GB
+max_wal_size = 4GB
+checkpoint_completion_target = 0.9
+checkpoint_timeout = 15min
+
+# Parallel Processing
+max_worker_processes = 2
+max_parallel_workers = 2
+max_parallel_workers_per_gather = 1
+max_parallel_maintenance_workers = 1
+
+# Storage (NVMe SSD)
+random_page_cost = 1.1
+effective_io_concurrency = 200
+seq_page_cost = 1.0
+
+# Query Planner
+default_statistics_target = 100
+constraint_exclusion = partition
+enable_partitionwise_join = on
+enable_partitionwise_aggregate = on
+
+# PostGIS Optimization
+jit = on
+jit_above_cost = 100000
+jit_inline_above_cost = 500000
+jit_optimize_above_cost = 500000
+
+# Autovacuum
+autovacuum = on
+autovacuum_max_workers = 2
+autovacuum_naptime = 30s
+autovacuum_vacuum_scale_factor = 0.1
+autovacuum_analyze_scale_factor = 0.05
+
+# Monitoring
+track_activities = on
+track_counts = on
+track_io_timing = on
+track_functions = pl
+
+# Security
+password_encryption = scram-sha-256
+ssl = on
+ssl_cert_file = '/var/lib/postgresql/certs/server.crt'
+ssl_key_file = '/var/lib/postgresql/certs/server.key'
+
+# Logging (no passwords)
+log_statement = 'none'
+log_connections = off
+log_disconnections = off
+log_duration = off
+log_min_duration_statement = -1
+log_checkpoints = on
+log_autovacuum_min_duration = 0
+
+# PostGIS
+shared_preload_libraries = 'postgis-3'
+PGCONF
+
+chmod 600 /var/lib/postgresql/postgresql.conf
+echo "✅ PostgreSQL config created"
+
+# 4. Create pg_hba.conf
+echo ""
+echo "🔒 Creating pg_hba.conf (SSL required)..."
+cat > /var/lib/postgresql/pg_hba.conf << 'PGHBA'
+local   all  all                scram-sha-256
+hostssl all  all  0.0.0.0/0     scram-sha-256
+host    all  all  0.0.0.0/0     reject
+hostssl all  all  ::0/0         scram-sha-256
+host    all  all  ::0/0         reject
+PGHBA
+
+chmod 600 /var/lib/postgresql/pg_hba.conf
+echo "✅ pg_hba.conf created"
+
+# 5. Create secrets directory
+echo ""
+echo "🔑 Setting up secrets..."
+mkdir -p /home/ssm-user/secrets
+chmod 700 /home/ssm-user/secrets
+
+# Generate default password if not exists
+if [ ! -f /home/ssm-user/secrets/db_password.txt ]; then
+  openssl rand -base64 32 | tr -d "=+/" | cut -c1-32 > /home/ssm-user/secrets/db_password.txt
+  chmod 600 /home/ssm-user/secrets/db_password.txt
+  echo "✅ Generated database password"
+  echo "⚠️  Password saved to: /home/ssm-user/secrets/db_password.txt"
+else
+  echo "✅ Using existing password"
+fi
+
+chown -R ssm-user:ssm-user /home/ssm-user/secrets
+
+# 6. Create docker-compose.yml
+echo ""
+echo "🐳 Creating docker-compose.yml..."
+cat > /home/ssm-user/docker-compose.yml << 'COMPOSE'
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:18-3.6
+    container_name: shadowcheck_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shadowcheck_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: shadowcheck_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - /var/lib/postgresql:/var/lib/postgresql
+      - /var/lib/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - /var/lib/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+    shm_size: 512mb
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shadowcheck_user -d shadowcheck_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    secrets:
+      - db_password
+
+secrets:
+  db_password:
+    file: /home/ssm-user/secrets/db_password.txt
+COMPOSE
+
+chown ssm-user:ssm-user /home/ssm-user/docker-compose.yml
+echo "✅ docker-compose.yml created"
+
+# 7. Pull PostgreSQL image
+echo ""
+echo "📥 Pulling PostgreSQL image..."
+docker pull postgis/postgis:18-3.6
+echo "✅ Image pulled"
+
+# 8. Start PostgreSQL
+echo ""
+echo "🚀 Starting PostgreSQL..."
+cd /home/ssm-user
+sudo -u ssm-user docker-compose up -d
+
+echo ""
+echo "⏳ Waiting for PostgreSQL to be ready..."
+sleep 10
+
+# 9. Verify
+if docker exec shadowcheck_postgres pg_isready -U shadowcheck_user &>/dev/null; then
+  echo ""
+  echo "✅ PostgreSQL is running!"
+  echo ""
+  echo "📊 Status:"
+  docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+  echo ""
+  echo "💾 Data volume:"
+  df -h /var/lib/postgresql
+  echo ""
+  echo "🔑 Database password: /home/ssm-user/secrets/db_password.txt"
+  echo ""
+  echo "🔗 Connection string:"
+  echo "   postgresql://shadowcheck_user:PASSWORD@localhost:5432/shadowcheck_db?sslmode=require"
+else
+  echo ""
+  echo "❌ PostgreSQL failed to start"
+  echo "Check logs: docker logs shadowcheck_postgres"
+  exit 1
+fi
