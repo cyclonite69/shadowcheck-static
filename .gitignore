@@ -220,3 +220,8 @@ docker-compose.override.yml
 /DATABASE_ANALYSIS_*.md
 secrets/*.txt
 data/logs/*.log
+
+# AWS deployment configs
+deploy/aws/.env.aws
+.env.aws
+*.env.local
