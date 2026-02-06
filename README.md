@@ -132,10 +132,18 @@ See [deploy/homelab/README.md](deploy/homelab/README.md) for hardware requiremen
 ### AWS Production
 
 ```bash
-./deploy/aws/scripts/launch-shadowcheck-spot.sh
+# First time setup - see deploy/aws/WORKFLOW.md
+cd /home/ssm-user/shadowcheck
+cp deploy/aws/.env.example deploy/aws/.env.aws
+# Edit .env.aws with your values
+./deploy/aws/scripts/deploy-from-github.sh
+
+# Subsequent deployments
+git pull origin master
+./deploy/aws/scripts/deploy-from-github.sh
 ```
 
-See [deploy/aws/README.md](deploy/aws/README.md) for AWS infrastructure details.
+See [deploy/aws/README.md](deploy/aws/README.md) for AWS infrastructure details and [deploy/aws/WORKFLOW.md](deploy/aws/WORKFLOW.md) for the complete deployment workflow.
 
 ---
 
