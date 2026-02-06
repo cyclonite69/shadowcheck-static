@@ -7,6 +7,26 @@
 - Frontend: http://13.216.239.240
 - Backend API: http://13.216.239.240:3001
 
+**⚠️ Security:** Currently restricted to your IP (68.41.168.87) only.
+
+### Opening Access to More Users
+
+```bash
+# Add specific IP
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-076801a316243fa70 \
+  --ip-permissions \
+    IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges="[{CidrIp=<their_ip>/32}]" \
+    IpProtocol=tcp,FromPort=3001,ToPort=3001,IpRanges="[{CidrIp=<their_ip>/32}]" \
+  --region us-east-1
+
+# Or open to everyone (NOT RECOMMENDED without authentication)
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-076801a316243fa70 \
+  --protocol tcp --port 80 --cidr 0.0.0.0/0 \
+  --region us-east-1
+```
+
 ## Quick Deployment (One Command)
 
 From your local machine:
@@ -227,7 +247,7 @@ docker rm shadowcheck_backend shadowcheck_frontend
 ## Security Checklist
 
 - [x] PostgreSQL bound to localhost only
-- [x] Security groups restrict access
+- [x] Security groups restrict access to authorized IPs only
 - [x] SCRAM-SHA-256 authentication
 - [x] No passwords in logs
 - [x] Docker log rotation
@@ -235,6 +255,28 @@ docker rm shadowcheck_backend shadowcheck_frontend
 - [x] Security headers on frontend
 - [x] Secrets via environment variables
 - [x] Regular password rotation (60-90 days)
+
+### Managing Access
+
+**Add specific IP:**
+
+```bash
+./deploy/aws/scripts/add-ip-access.sh 192.168.1.100
+```
+
+**List authorized IPs:**
+
+```bash
+./deploy/aws/scripts/list-authorized-ips.sh
+```
+
+**Open to public (use with caution):**
+
+```bash
+./deploy/aws/scripts/open-public-access.sh
+```
+
+**Current access:** Your IP (68.41.168.87) only
 
 ## Next Steps
 
