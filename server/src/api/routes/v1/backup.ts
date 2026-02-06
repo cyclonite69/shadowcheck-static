@@ -3,43 +3,10 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
 const { adminQuery } = require('../../../services/adminDbService');
-const secretsManager = require('../../../services/secretsManager');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
-const { validateString } = require('../../../validation/schemas');
-
-/**
- * Normalizes API key input from headers or query params.
- * @param {any} value - Raw API key value
- * @returns {string|null} Normalized API key or null
- */
-function normalizeApiKey(value) {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  const validation = validateString(String(value), 1, 256, 'api_key');
-  if (!validation.valid) {
-    return null;
-  }
-  return String(value).trim();
-}
-
-/**
- * Requires API key authentication for backup routes.
- * @param {object} req - Express request
- * @param {object} res - Express response
- * @param {function} next - Express next handler
- */
-const requireAuth = (req, res, next) => {
-  const apiKey = normalizeApiKey(req.headers['x-api-key'] || req.query.api_key);
-  const validKey = secretsManager.get('api_key');
-  if (!validKey || !apiKey || apiKey !== validKey) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-};
 
 // Backup database as JSON (simpler than pg_dump version issues)
-router.get('/backup', requireAuth, requireAdmin, async (req, res) => {
+router.get('/backup', requireAdmin, async (req, res) => {
   try {
     const timestamp = Date.now();
     const filename = `shadowcheck_backup_${timestamp}.json`;
@@ -76,7 +43,7 @@ router.get('/backup', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // Restore database from JSON backup
-router.post('/restore', requireAuth, requireAdmin, async (req, res) => {
+router.post('/restore', requireAdmin, async (req, res) => {
   try {
     if (!req.files || !req.files.backup) {
       return res.status(400).json({ error: 'No backup file provided' });

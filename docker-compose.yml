@@ -28,20 +28,15 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-dbcoopers-briefcase-161020170158}
-    secrets:
-      - db_password
-      - db_admin_password
-      - mapbox_token
-      - api_key
-      - google_maps_api_key
-      - wigle_api_name
-      - wigle_api_token
+      # Machine ID for keyring decryption inside Docker (must match host)
+      KEYRING_MACHINE_ID: ${KEYRING_MACHINE_ID:-}
     ports:
       - "${PORT:-3001}:3001"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./backups:/app/backups
+      - ${XDG_DATA_HOME:-~/.local/share}/shadowcheck:/home/nodejs/.local/share/shadowcheck:ro
     networks:
       - shadowcheck_net
     healthcheck:
@@ -77,22 +72,6 @@ services:
     networks:
       - shadowcheck_net
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
-
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
-  db_admin_password:
-    file: ./secrets/db_admin_password.txt
-  mapbox_token:
-    file: ./secrets/mapbox_token.txt
-  api_key:
-    file: ./secrets/api_key.txt
-  google_maps_api_key:
-    file: ./secrets/google_maps_api_key.txt
-  wigle_api_name:
-    file: ./secrets/wigle_api_name.txt
-  wigle_api_token:
-    file: ./secrets/wigle_api_token.txt
 
 volumes:
   redis_data:

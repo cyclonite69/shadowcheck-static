@@ -33,8 +33,9 @@ interface KeyringData {
 }
 
 // Derive encryption key from machine-specific data
+// KEYRING_MACHINE_ID env var allows Docker containers to use the host's key
 function getMachineKey(): Buffer {
-  const machineId = hostname() + userInfo().username;
+  const machineId = process.env.KEYRING_MACHINE_ID || hostname() + userInfo().username;
   return scryptSync(machineId, 'shadowcheck-salt', 32);
 }
 

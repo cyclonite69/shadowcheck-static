@@ -1,10 +1,11 @@
 import { promises as fs } from 'fs';
+import path from 'path';
 
 const keyringService = require('./keyringService').default;
 
 export {};
 
-type SecretSource = 'docker' | 'keyring' | 'env';
+type SecretSource = 'keyring' | 'local' | 'env';
 
 type AccessLogEntry = {
   secret: string;
@@ -13,16 +14,16 @@ type AccessLogEntry = {
   timestamp: string;
 };
 
-const REQUIRED_SECRETS = ['db_password', 'mapbox_token'];
+const REQUIRED_SECRETS = ['db_password'];
 const OPTIONAL_SECRETS = [
-  'api_key',
+  'mapbox_token',
   'wigle_api_name',
   'wigle_api_token',
   'wigle_api_encoded',
   'google_maps_api_key',
+  'mapbox_unlimited_api_key',
   'aws_access_key_id',
   'aws_secret_access_key',
-  'aws_session_token',
   'aws_region',
   'opencage_api_key',
   'locationiq_api_key',
@@ -35,14 +36,13 @@ const ENV_KEY_ALIASES: Record<string, string[]> = {
   db_password: ['DB_PASSWORD'],
   db_admin_password: ['DB_ADMIN_PASSWORD'],
   mapbox_token: ['MAPBOX_TOKEN'],
-  api_key: ['API_KEY'],
   wigle_api_name: ['WIGLE_API_NAME', 'WIGLE_API_KEY'],
   wigle_api_token: ['WIGLE_API_TOKEN'],
   wigle_api_encoded: ['WIGLE_API_ENCODED'],
   google_maps_api_key: ['GOOGLE_MAPS_API_KEY'],
+  mapbox_unlimited_api_key: ['MAPBOX_UNLIMITED_API_KEY', 'MAPBOX_GEOCODING_KEY'],
   aws_access_key_id: ['AWS_ACCESS_KEY_ID'],
   aws_secret_access_key: ['AWS_SECRET_ACCESS_KEY'],
-  aws_session_token: ['AWS_SESSION_TOKEN'],
   aws_region: ['AWS_REGION', 'AWS_DEFAULT_REGION'],
   opencage_api_key: ['OPENCAGE_API_KEY'],
   locationiq_api_key: ['LOCATIONIQ_API_KEY'],
@@ -50,7 +50,7 @@ const ENV_KEY_ALIASES: Record<string, string[]> = {
   smarty_auth_token: ['SMARTY_AUTH_TOKEN'],
 };
 
-const DOCKER_SECRETS_DIR = '/run/secrets';
+const LOCAL_SECRETS_DIR = path.resolve(process.cwd(), 'secrets');
 
 class SecretsManager {
   secrets = new Map<string, string>();
@@ -66,8 +66,8 @@ class SecretsManager {
     });
   }
 
-  private async loadFromDocker(secret: string): Promise<string | null> {
-    const filePath = `${DOCKER_SECRETS_DIR}/${secret}`;
+  private async loadFromLocal(secret: string): Promise<string | null> {
+    const filePath = path.join(LOCAL_SECRETS_DIR, secret);
     try {
       const value = await fs.readFile(filePath, 'utf8');
       return value.trim();
@@ -78,10 +78,44 @@ class SecretsManager {
 
   private async loadFromKeyring(secret: string): Promise<string | null> {
     try {
+      if (secret === 'mapbox_token') {
+        const envBackup = process.env.MAPBOX_TOKEN;
+        if (envBackup !== undefined) {
+          delete process.env.MAPBOX_TOKEN;
+        }
+        try {
+          return await keyringService.getMapboxToken();
+        } finally {
+          if (envBackup !== undefined) {
+            process.env.MAPBOX_TOKEN = envBackup;
+          }
+        }
+      }
       return await keyringService.getCredential(secret);
     } catch {
       return null;
     }
+  }
+
+  private async resolveSecret(
+    secret: string
+  ): Promise<{ value: string | null; source?: SecretSource }> {
+    const keyringValue = await this.loadFromKeyring(secret);
+    if (keyringValue) {
+      return { value: keyringValue, source: 'keyring' };
+    }
+
+    const localValue = await this.loadFromLocal(secret);
+    if (localValue) {
+      return { value: localValue, source: 'local' };
+    }
+
+    const envValue = this.loadFromEnv(secret);
+    if (envValue) {
+      return { value: envValue, source: 'env' };
+    }
+
+    return { value: null };
   }
 
   private loadFromEnv(secret: string): string | null {
@@ -108,22 +142,10 @@ class SecretsManager {
     let usedEnvInProduction = false;
 
     for (const secret of allSecrets) {
-      const keyringValue = await this.loadFromKeyring(secret);
-      if (keyringValue) {
-        this.register(secret, keyringValue, 'keyring');
-        continue;
-      }
-
-      const dockerValue = await this.loadFromDocker(secret);
-      if (dockerValue) {
-        this.register(secret, dockerValue, 'docker');
-        continue;
-      }
-
-      const envValue = this.loadFromEnv(secret);
-      if (envValue) {
-        this.register(secret, envValue, 'env');
-        if (process.env.NODE_ENV === 'production') {
+      const resolved = await this.resolveSecret(secret);
+      if (resolved.value && resolved.source) {
+        this.register(secret, resolved.value, resolved.source);
+        if (resolved.source === 'env' && process.env.NODE_ENV === 'production') {
           usedEnvInProduction = true;
         }
         continue;
@@ -145,8 +167,8 @@ class SecretsManager {
       const missing = missingRequired[0];
       const message = [
         `Required secret '${missing}' not found`,
-        'Tried Docker secrets (/run/secrets), Keyring, Environment',
-        'Hint: use scripts/keyring-cli.js set <secret_name> to store secrets locally',
+        'Tried Keyring, local secrets (./secrets), Environment',
+        'Hint: use npx tsx scripts/set-secret.ts <secret_name> to store secrets in the keyring',
       ].join('. ');
       throw new Error(message);
     }
@@ -193,12 +215,10 @@ class SecretsManager {
       return this.get(normalized);
     }
 
-    const envAliases = ENV_KEY_ALIASES[normalized] || [name.toUpperCase()];
-    for (const alias of envAliases) {
-      const value = process.env[alias];
-      if (value) {
-        return value;
-      }
+    const resolved = await this.resolveSecret(normalized);
+    if (resolved.value && resolved.source) {
+      this.register(normalized, resolved.value, resolved.source);
+      return resolved.value;
     }
 
     return null;
