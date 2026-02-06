@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  # Backend API - uses host network to connect to postgres on localhost
+  backend:
+    image: shadowcheck/backend:latest
+    container_name: shadowcheck_backend
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: shadowcheck_user
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: shadowcheck_db
+    network_mode: host
+    restart: unless-stopped
+    profiles:
+      - backend
+
+  # Frontend - nginx serving React app
+  frontend:
+    image: shadowcheck/frontend:latest
+    container_name: shadowcheck_frontend
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    profiles:
+      - frontend
