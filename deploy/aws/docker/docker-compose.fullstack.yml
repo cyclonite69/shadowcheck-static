@@ -1,0 +1,71 @@
+version: "3.8"
+
+networks:
+  shadowcheck_net:
+    driver: bridge
+
+services:
+  # PostgreSQL (already running, just documenting)
+  postgres:
+    image: shadowcheck/postgis:18-3.6-arm64
+    container_name: shadowcheck_postgres
+    environment:
+      POSTGRES_USER: shadowcheck_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: shadowcheck_db
+    volumes:
+      - /var/lib/postgresql:/var/lib/postgresql
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - shadowcheck_net
+    shm_size: 512m
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    image: shadowcheck/backend:latest
+    container_name: shadowcheck_backend
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: shadowcheck_postgres
+      DB_PORT: 5432
+      DB_USER: shadowcheck_user
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: shadowcheck_db
+    ports:
+      - "3001:3001"
+    networks:
+      - shadowcheck_net
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles:
+      - backend
+
+  # Frontend
+  frontend:
+    image: shadowcheck/frontend:latest
+    container_name: shadowcheck_frontend
+    ports:
+      - "80:80"
+    networks:
+      - shadowcheck_net
+    depends_on:
+      - backend
+    restart: unless-stopped
+    profiles:
+      - frontend
+
+  # Redis (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: shadowcheck_redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - shadowcheck_net
+    restart: unless-stopped
+    profiles:
+      - cache
