@@ -32,6 +32,13 @@
    - PostGIS 3.6 with GEOS, PROJ, STATS
    - Localhost-only binding (127.0.0.1:5432)
 
+6. **Restored Production Database**
+   - Attached S3ReadOnlyAccess policy to EC2 instance role
+   - Downloaded 109MB backup from S3 (shadowcheck_db_20260205-232407.dump)
+   - Copied dump into container: `docker cp backup.dump container:/tmp/`
+   - Restored with pg_restore: `--verbose --no-owner --no-acl`
+   - Verified: 179,844 networks, 570,609 observations, 172,575 access points
+
 ### Commands That Worked
 
 ```bash
@@ -427,6 +434,59 @@ spec:
 
 **Problem:** kartoza/postgis chmod errors with cap_drop security restrictions  
 **Solution:** Use simpler official postgres base without excessive hardening
+
+### Issue 7: Database restore "relation does not exist"
+
+**Problem:** Restoring dump without schema created first  
+**Solution:** Use `pg_restore` instead of `psql` - it handles schema creation automatically
+
+**Commands that worked:**
+
+```bash
+# Copy dump into container
+docker cp backup.dump shadowcheck_postgres:/tmp/
+
+# Restore with pg_restore (handles schema + data)
+docker exec shadowcheck_postgres pg_restore \
+  -U shadowcheck_user \
+  -d shadowcheck_db \
+  --verbose \
+  --no-owner \
+  --no-acl \
+  /tmp/backup.dump
+```
+
+**Key learnings:**
+
+- `pg_restore` is for custom format dumps (`.dump` files)
+- `psql` is for plain SQL dumps (`.sql` files)
+- `--no-owner` prevents ownership conflicts
+- `--no-acl` skips privilege restoration
+- Duplicate constraint warnings are normal when restoring into existing schema
+- Verify with: `SELECT COUNT(*) FROM app.networks;`
+
+### Issue 8: S3 access from EC2 instance
+
+**Problem:** Instance couldn't download backup from S3  
+**Solution:** Attach IAM policy to instance role
+
+```bash
+# Attach S3 read policy to instance role
+aws iam attach-role-policy \
+  --role-name EC2-SSM-Role \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess \
+  --region us-east-1
+
+# Download backup
+aws s3 cp s3://bucket-name/backups/backup.dump . --region us-east-1
+```
+
+**Restored data:**
+
+- 179,844 networks
+- 570,609 observations
+- 172,575 access points
+- All materialized views and indexes
 
 ## Security Checklist (Cloud-Agnostic)
 
