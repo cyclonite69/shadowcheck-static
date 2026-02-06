@@ -11,6 +11,7 @@ fi
 
 MAPBOX_TOKEN=$1
 DB_PASSWORD=$(docker exec shadowcheck_postgres printenv POSTGRES_PASSWORD)
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
 echo "🚀 Deploying ShadowCheck..."
 
@@ -21,7 +22,7 @@ docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 # Start backend
 docker run -d --name shadowcheck_backend \
   --network host \
-  -e NODE_ENV=production \
+  -e NODE_ENV=development \
   -e PORT=3001 \
   -e DB_HOST=127.0.0.1 \
   -e DB_PORT=5432 \
@@ -29,6 +30,7 @@ docker run -d --name shadowcheck_backend \
   -e DB_PASSWORD=$DB_PASSWORD \
   -e DB_NAME=shadowcheck_db \
   -e MAPBOX_TOKEN=$MAPBOX_TOKEN \
+  -e CORS_ORIGINS=http://${PUBLIC_IP},http://localhost \
   --restart unless-stopped \
   shadowcheck/backend:latest
 
@@ -44,5 +46,8 @@ echo "✅ Deployment complete!"
 echo ""
 docker ps | grep shadowcheck
 echo ""
-echo "Backend: http://localhost:3001"
-echo "Frontend: http://localhost:80"
+echo "Backend: http://${PUBLIC_IP}:3001"
+echo "Frontend: http://${PUBLIC_IP}"
+echo ""
+echo "⚠️  Using NODE_ENV=development for HTTP. Set up HTTPS for production!"
+
