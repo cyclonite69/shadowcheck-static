@@ -3,7 +3,6 @@ FROM postgres:16-alpine
 # Install PostGIS and dependencies
 RUN apk add --no-cache \
     postgis \
-    postgis-dev \
     && rm -rf /var/cache/apk/*
 
 # Create PostGIS extension on database initialization
