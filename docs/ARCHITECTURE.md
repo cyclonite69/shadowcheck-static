@@ -11,6 +11,7 @@ This document describes the high-level architecture of the ShadowCheck-Static pl
 - [Backend Architecture](#backend-architecture)
 - [Data Flow](#data-flow)
 - [Database Schema](#database-schema)
+- [Agency Offices Data Model](#agency-offices-data-model)
 - [Threat Detection Algorithm](#threat-detection-algorithm)
 - [Security Architecture](#security-architecture)
 - [Development Architecture](#development-architecture)
@@ -99,6 +100,19 @@ The following rules are immutable constraints of the system architecture:
 9.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7. No other frameworks (Angular, Vue, Next.js) are supported.
 10. **Threat Scoring**: Threat scoring utilizes multi-factor analysis. The weights are immutable for each algorithm version to ensure consistency.
 
+## Agency Offices Constraints
+
+1.  **Field Offices**: 56 total primary offices. All must have ZIP+4, PostGIS coordinates, and FBI.gov websites. The count is immutable unless the FBI source is updated.
+2.  **Resident Agencies**: 334 total satellite offices. Every record must have a `parent_office`; if missing from source, it is inferred from the nearest field office via PostGIS distance.
+3.  **ZIP+4 Coverage**: Field offices maintain 100% ZIP+4 coverage. Resident agencies maintain 93.4% (312/334) coverage. The remaining 22 records are restricted to ZIP5 because Smarty was unable to locate a safe Plus4 candidate.
+4.  **Data Integrity**: Original source values are preserved in `address_line1/2` and `phone`. Normalized output is stored in `normalized_*` fields.
+5.  **Coordinates**: All 390 records have validated PostGIS POINT locations.
+6.  **Phone Format**: Every record has a `normalized_phone` field (10 digits, no leading +1).
+7.  **Websites**: 100% coverage. Resident agencies inherit the URL of their parent field office.
+8.  **Metadata**: All address corrections, website inheritance, and parent office inferences must be logged in the `metadata` JSONB field.
+9.  **Immutability**: Once a resident agency is assigned a `parent_office` (original or inferred), it is permanent until a source refresh. Smarty enrichment is one-way (ZIP5 → ZIP+4); downgrades are prohibited.
+10. **Enrichment Source**: Smarty is the sole ZIP+4 provider. Reverse geocoding (Mapbox/Nominatim) is used for validation only and is not stored permanently.
+
 ## System Architecture
 
 ### Current: Modern Modular React + Express Architecture
@@ -179,7 +193,7 @@ client/src/
 ### Backend Architecture
 
 ```
-server/server.js                 # Main Express server (legacy + new)
+server/server.ts                 # Main Express server (modular)
 server/src/
 ├── api/                  # Modern API routes (v2)
 │   └── routes/           # Route handlers
@@ -279,63 +293,45 @@ User Request
 
 ## Database Schema
 
-### Entity Relationship Diagram
+### Core Entities
 
+| Table                       | Primary Key | Description                                                |
+| :-------------------------- | :---------- | :--------------------------------------------------------- |
+| `app.networks`              | `bssid`     | Master registry of detected wireless networks.             |
+| `app.observations`          | `id`        | Individual sightings with signal strength and coordinates. |
+| `app.network_tags`          | `id`        | Manual classifications and forensic notes.                 |
+| `app.location_markers`      | `id`        | User-defined points of interest (Home, Work).              |
+| `app.agency_offices`        | `id`        | FBI Field Offices and Resident Agencies dataset.           |
+| `app.wigle_v3_observations` | `id`        | Crowdsourced enrichment data from WiGLE API.               |
+
+### Entity Relationships
+
+```mermaid
+erDiagram
+    networks ||--o{ observations : has
+    networks ||--o{ network_tags : has
+    agency_offices }o--|| agency_offices : "RA belongs to FO"
+    location_markers ||--o{ networks : "proximity source"
+    wigle_v3_observations }o--|| networks : enriches
 ```
 
-┌──────────────────────────┐ ┌───────────────────────────┐
-│ networks_legacy │ │ locations_legacy │
-├──────────────────────────┤ ├───────────────────────────┤
-│ bssid (PK) │────┐ │ id (PK) │
-│ ssid │ │ │ bssid (FK) │
-│ type (W/E/B/L/N/G) │ └───→│ lat │
-│ lon │
-│ encryption │ │ signal_strength │
-│ last_seen │ │ time │
-│ capabilities │ │ accuracy │
-└──────────────────────────┘ │ └───────────────────────────┘
-│
-│ 1:1
-↓
-┌──────────────────────────┐ ┌───────────────────────────┐
-│ network_tags │ │ location_markers │
-├──────────────────────────┤ ├───────────────────────────┤
-│ bssid (PK, FK) │ │ id (PK) │
-│ tag_type │ │ name ('home'/'work') │
-│ confidence │ │ lat │
-│ threat_score │ │ lon │
-│ notes │ └───────────────────────────┘
-│ created_at │
-│ ml_confidence │
-└──────────────────────────┘
+## Agency Offices Data Model
 
-┌──────────────────────────┐ ┌───────────────────────────┐
-│ wigle_networks_enriched │ │ radio_manufacturers │
-├──────────────────────────┤ ├───────────────────────────┤
-│ bssid (PK, FK) │ │ id (PK) │
-│ trilat_lat │ │ mac_prefix │
-│ trilat_lon │ │ manufacturer │
-│ qos │ │ category │
-│ first_seen │ └───────────────────────────┘
-└──────────────────────────┘
-
-```
-
-### Key Indexes
-
-```sql
--- Performance-critical indexes
-CREATE INDEX idx_locations_bssid ON app.locations_legacy(bssid);
-CREATE INDEX idx_locations_time ON app.locations_legacy(time) WHERE time >= 946684800000;
-CREATE INDEX idx_networks_type ON app.networks_legacy(type);
-CREATE INDEX idx_networks_last_seen ON app.networks_legacy(last_seen);
-CREATE INDEX idx_network_tags_bssid ON app.network_tags(bssid);
-
--- PostGIS spatial index
-CREATE INDEX idx_locations_geom ON app.locations_legacy USING GIST (
-  ST_SetSRID(ST_MakePoint(lon, lat), 4326)
-);
-```
+| Column                   | Type       | Description                          |
+| :----------------------- | :--------- | :----------------------------------- |
+| `id`                     | `integer`  | Primary identifier.                  |
+| `agency`                 | `text`     | Name of the agency (e.g., 'FBI').    |
+| `office_type`            | `text`     | 'field_office' or 'resident_agency'. |
+| `name`                   | `text`     | Name of the office/region.           |
+| `parent_office`          | `text`     | Parent Field Office name (for RAs).  |
+| `address_line1`          | `text`     | Original street address.             |
+| `postal_code`            | `text`     | ZIP+4 or ZIP5 code.                  |
+| `phone`                  | `text`     | Original phone number string.        |
+| `website`                | `text`     | Direct or inherited website URL.     |
+| `location`               | `geometry` | PostGIS POINT (4326).                |
+| `normalized_phone`       | `text`     | Cleaned 10-digit number.             |
+| `normalized_postal_code` | `text`     | ZIP+4 validated code.                |
+| `metadata`               | `jsonb`    | Enrichment logs and inference flags. |
 
 ## Threat Detection Algorithm
 
@@ -390,7 +386,7 @@ const threatScore = (network) => {
 
 **1. Quick Detection (Paginated)**
 
-- Location: `server/server.js:344-494`
+- Location: `server/server.ts`
 - Endpoint: `GET /api/threats/quick`
 - Features:
   - Fast aggregation queries
@@ -401,7 +397,7 @@ const threatScore = (network) => {
 
 **2. Advanced Detection (Full Analysis)**
 
-- Location: `server/server.js:496-679`
+- Location: `server/server.ts`
 - Endpoint: `GET /api/threats/detect`
 - Features:
   - Speed calculations between observations
@@ -476,7 +472,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 **Current:**
 
 - System keyring for credentials (db_password, wigle_api_token, etc.)
-- `secretsManager.js` handles loading from keyring, Docker secrets, or env vars.
+- `secretsManager.ts` handles loading from keyring, Docker secrets, or env vars.
 - No hardcoded tokens in frontend; served via protected backend endpoints.
 
 ## Scalability Considerations
@@ -547,26 +543,27 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 ### Phase 1: Modularization (Current Sprint)
 
-- [ ] Break `server/server.js` into modules
-- [ ] Implement repository pattern
-- [ ] Add service layer for business logic
+- [x] Break `server/server.js` into modules
+- [x] Implement repository pattern
+- [x] Add service layer for business logic
 - [ ] Create typed configuration management
 - [ ] Add comprehensive unit tests
 
 ### Phase 2: Data Layer Optimization
 
+- [x] Add Redis caching layer
 - [ ] Implement database read replicas
 - [ ] Add connection pool monitoring
-- [ ] Optimize slow queries with materialized views
+- [x] Optimize slow queries with materialized views
 - [ ] Implement background job queue (Bull)
 
 ### Phase 3: Security Hardening
 
-- [ ] Move to system keyring for secrets
+- [x] Move to system keyring for secrets
 - [ ] Implement OAuth2 authentication
 - [ ] Add audit logging for all mutations
 - [ ] Implement field-level encryption for PII
-- [ ] Add API versioning (v1, v2)
+- [x] Add API versioning (v1, v2)
 
 ### Phase 4: ML Enhancement
 
