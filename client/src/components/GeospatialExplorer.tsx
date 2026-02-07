@@ -31,6 +31,7 @@ import { useNetworkSort } from './geospatial/useNetworkSort';
 import { useResetPaginationOnFilters } from './geospatial/useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './geospatial/useDebouncedFilterState';
 import { useMapPreferences } from './geospatial/useMapPreferences';
+import { useWeatherFx } from '../weather/useWeatherFx';
 import { useObservationSummary } from './geospatial/useObservationSummary';
 import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults';
 import { useExplorerPanels } from './geospatial/useExplorerPanels';
@@ -235,6 +236,8 @@ export default function GeospatialExplorer() {
     logError,
   });
 
+  const { weatherFxMode, setWeatherFxMode } = useWeatherFx(mapRef, mapContainerRef, mapReady);
+
   useNetworkInfiniteScroll({
     containerRef: tableContainerRef,
     hasMore: pagination.hasMore,
@@ -329,6 +332,8 @@ export default function GeospatialExplorer() {
                 setHomeButtonActive={setHomeButtonActive}
                 homeLocation={homeLocation}
                 logError={logError}
+                weatherFxMode={weatherFxMode}
+                onWeatherFxModeChange={setWeatherFxMode}
                 canWigle={selectedNetworks.size > 0}
                 wigleLoading={wigleObservations.loading}
                 wigleActive={wigleObservations.observations.length > 0}
