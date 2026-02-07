@@ -370,6 +370,11 @@ flowchart TD
 erDiagram
     NETWORKS ||--o{ OBSERVATIONS : has
     NETWORKS ||--o{ NETWORK_TAGS : has
+    NETWORKS ||--o{ NETWORK_NOTES : has
+    NETWORKS ||--o{ NETWORK_MEDIA : has
+    NETWORKS ||--o{ SSID_HISTORY : has
+    NETWORKS ||--o{ NETWORK_THREAT_SCORES : has
+
     NETWORKS {
         string bssid PK
         string ssid
@@ -377,6 +382,8 @@ erDiagram
         string manufacturer
         timestamp first_seen
         timestamp last_seen
+        integer observation_count
+        float threat_score
     }
 
     OBSERVATIONS {
@@ -385,6 +392,7 @@ erDiagram
         geometry location
         integer signal
         integer channel
+        integer frequency
         timestamp observed_at
     }
 
@@ -393,7 +401,40 @@ erDiagram
         string bssid FK
         string tag
         boolean is_threat
+        float confidence
         timestamp tagged_at
+    }
+
+    NETWORK_NOTES {
+        bigint id PK
+        string bssid FK
+        text note
+        timestamp created_at
+    }
+
+    NETWORK_MEDIA {
+        bigint id PK
+        string bssid FK
+        string media_type
+        string file_path
+        timestamp captured_at
+    }
+
+    SSID_HISTORY {
+        bigint id PK
+        string bssid FK
+        string ssid
+        timestamp first_seen
+        timestamp last_seen
+    }
+
+    NETWORK_THREAT_SCORES {
+        bigint id PK
+        string bssid FK
+        float rule_score
+        float ml_score
+        float combined_score
+        timestamp calculated_at
     }
 
     LOCATION_MARKERS ||--o{ NETWORKS : "distance from"
@@ -402,14 +443,95 @@ erDiagram
         string name
         geometry location
         boolean is_home
+        float radius_km
     }
 
-    WIGLE_OBSERVATIONS ||--o{ NETWORKS : enriches
-    WIGLE_OBSERVATIONS {
+    WIGLE_V3_OBSERVATIONS ||--o{ NETWORKS : enriches
+    WIGLE_V3_OBSERVATIONS {
         bigint id PK
         string bssid FK
         geometry location
         string source
+        timestamp fetched_at
+    }
+
+    WIGLE_V3_NETWORK_DETAILS ||--o{ NETWORKS : enriches
+    WIGLE_V3_NETWORK_DETAILS {
+        bigint id PK
+        string bssid FK
+        string ssid
+        string encryption
+        timestamp last_update
+    }
+
+    AGENCY_OFFICES {
+        bigint id PK
+        string name
+        string office_type
+        geometry location
+        string address
+        string phone
+    }
+
+    USERS ||--o{ USER_SESSIONS : has
+    USERS ||--o{ NETWORK_TAGS : creates
+    USERS {
+        bigint id PK
+        string username
+        string password_hash
+        string role
+        timestamp created_at
+    }
+
+    USER_SESSIONS {
+        string session_id PK
+        bigint user_id FK
+        timestamp expires_at
+    }
+
+    ML_MODEL_METADATA ||--o{ ML_TRAINING_HISTORY : has
+    ML_MODEL_METADATA {
+        bigint id PK
+        string model_type
+        float accuracy
+        float precision
+        float recall
+        timestamp trained_at
+    }
+
+    ML_TRAINING_HISTORY {
+        bigint id PK
+        bigint model_id FK
+        integer training_samples
+        json hyperparameters
+        timestamp trained_at
+    }
+
+    RADIO_MANUFACTURERS {
+        bigint id PK
+        string oui_prefix
+        string manufacturer
+    }
+
+    GEOCODING_CACHE {
+        bigint id PK
+        geometry location
+        string address
+        string venue_name
+        timestamp cached_at
+    }
+
+    ROUTES {
+        bigint id PK
+        string name
+        geometry path
+        timestamp recorded_at
+    }
+
+    SETTINGS {
+        string key PK
+        string value
+        timestamp updated_at
     }
 ```
 
