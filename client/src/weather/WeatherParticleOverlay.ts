@@ -17,16 +17,26 @@ export class WeatherParticleOverlay {
   private animationId: number | null = null;
   private type: ParticleType | null = null;
   private intensity: number = 0;
+  private _resizeObserver: ResizeObserver | null = null;
 
   constructor(container: HTMLElement) {
     this.canvas = document.createElement('canvas');
     this.canvas.style.position = 'absolute';
-    this.canvas.style.inset = '0';
+    this.canvas.style.top = '0';
+    this.canvas.style.left = '0';
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
     this.canvas.style.pointerEvents = 'none';
     this.canvas.style.zIndex = '10';
     container.appendChild(this.canvas);
     this.ctx = this.canvas.getContext('2d');
     this.resize();
+
+    const resizeObserver = new ResizeObserver(() => {
+      this.resize();
+    });
+    resizeObserver.observe(container);
+    this._resizeObserver = resizeObserver;
   }
 
   start(type: ParticleType, intensity: number): void {
@@ -48,12 +58,22 @@ export class WeatherParticleOverlay {
   }
 
   resize(): void {
-    this.canvas.width = this.canvas.offsetWidth || window.innerWidth;
-    this.canvas.height = this.canvas.offsetHeight || window.innerHeight;
+    const rect = this.canvas.parentElement?.getBoundingClientRect();
+    if (rect && rect.width > 0 && rect.height > 0) {
+      this.canvas.width = Math.floor(rect.width);
+      this.canvas.height = Math.floor(rect.height);
+    } else {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    }
   }
 
   destroy(): void {
     this.stop();
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
     this.canvas.remove();
   }
 

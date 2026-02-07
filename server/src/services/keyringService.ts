@@ -105,7 +105,7 @@ class FileKeyringService {
 
     const output = `${iv.toString('hex')}:${combined.toString('hex')}`;
 
-    await fs.writeFile(KEYRING_FILE, output, { mode: 0o600 });
+    await fs.writeFile(KEYRING_FILE, output, { mode: 0o660 });
     this.cache = data;
   }
 
