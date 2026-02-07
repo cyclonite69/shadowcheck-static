@@ -10,6 +10,7 @@ Complete guide for setting up and developing ShadowCheck-Static with modern Reac
 - [Development Workflow](#development-workflow)
 - [Frontend Development](#frontend-development)
 - [Backend Development](#backend-development)
+- [Agency Offices Data Quality & Enrichment](#agency-offices-data-quality--enrichment)
 - [Database Management](#database-management)
 - [Testing](#testing)
 - [Code Quality](#code-quality)
@@ -56,6 +57,24 @@ The following rules are immutable constraints of the development environment:
 8.  **Database**: The system requires PostgreSQL 18+ with PostGIS.
 9.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7.
 10. **Threat Scoring**: Threat scoring utilizes multi-factor analysis with immutable weights per version.
+
+## Agency Offices Data Quality & Enrichment
+
+The agency offices dataset undergoes a multi-stage enrichment and normalization pipeline to ensure high spatial accuracy and data completeness.
+
+### Enrichment Pipeline
+
+1.  **Smarty ZIP+4 Integration**: All addresses are processed through the Smarty (formerly SmartyStreets) enhanced matching engine. This is the sole provider for ZIP+4 codes. 22 records remain ZIP5-only because Smarty could not identify a safe Plus4 candidate.
+2.  **Reverse Geocoding**: Mapbox and Nominatim (OpenStreetMap) are used to validate address components against provided coordinates. Address corrections derived from these sources are stored in metadata and do not overwrite original source values.
+3.  **Parent Office Inference**: For resident agencies missing a parent field office in the source data, the system automatically infers the nearest field office using PostGIS `ST_Distance` calculations.
+4.  **Website Inheritance**: Resident agencies inherit the FBI.gov subpage URL of their parent field office to ensure 100% website coverage.
+5.  **Phone Normalization**: All phone numbers are normalized to a 10-digit format (e.g., 5551234567). The original raw string is preserved in the primary `phone` field.
+
+### Data Preservation Rules
+
+- **Source Integrity**: Original values from the FBI source website are NEVER overwritten in the primary fields.
+- **Metadata Logging**: All corrections, inference flags, and enrichment source timestamps are logged in the `metadata` JSONB field.
+- **Mapbox Licensing**: Address strings retrieved from Mapbox geocoding are used for validation only and are not stored permanently in the database.
 
 ## Initial Setup
 
@@ -460,15 +479,15 @@ psql -U shadowcheck_user -d shadowcheck_db < backup.sql
 
 ```sql
 -- Count networks by type
-SELECT type, COUNT(*) FROM app.networks_legacy GROUP BY type;
+SELECT type, COUNT(*) FROM app.networks GROUP BY type;
 
 -- Recent observations
-SELECT * FROM app.locations_legacy
+SELECT * FROM app.observations
 WHERE time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '1 day') * 1000
 LIMIT 10;
 
 -- Tagged networks
-SELECT bssid, tag_type, confidence, notes
+SELECT bssid, threat_tag, threat_confidence, notes
 FROM app.network_tags
 ORDER BY created_at DESC;
 
