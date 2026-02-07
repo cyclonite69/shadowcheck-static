@@ -34,6 +34,7 @@ interface ApiRouteDependencies {
   settingsRoutes: Router;
   networkTagsRoutes: Router;
   authRoutes: Router;
+  weatherRoutes: Router;
   query: QueryFunction;
 }
 
@@ -71,6 +72,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     settingsRoutes,
     networkTagsRoutes,
     authRoutes,
+    weatherRoutes,
     query,
   } = deps;
 
@@ -85,6 +87,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
 
   // Public analytics routes (no auth required) - mount outside /api
   app.use('/analytics-public', analyticsPublicRoutes);
+
+  // Weather proxy (no auth required)
+  app.use('/', weatherRoutes);
 
   // API routes
   app.use('/api', authRoutes);

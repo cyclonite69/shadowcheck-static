@@ -177,11 +177,26 @@ function zip4FromCandidate(c: SmartyCandidate): string | null {
   return `${zip}-${plus4}`;
 }
 
+function pickBestCandidateForZip4(
+  currentZip5: string | null,
+  cands: SmartyCandidate[]
+): SmartyCandidate {
+  // Prefer a candidate that yields ZIP+4 and matches the existing ZIP5 (if present).
+  for (const c of cands) {
+    const z4 = zip4FromCandidate(c);
+    if (!z4) continue;
+    if (!currentZip5 || z4.slice(0, 5) == currentZip5) return c;
+  }
+  return cands[0];
+}
+
 function normalizeTextOrNull(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const v = value.trim();
   return v.length ? v : null;
 }
+
+// (Intentionally no ZIP5 auto-correction helpers here; keep ZIP changes conservative.)
 
 async function resolveDbHost(): Promise<string> {
   const configured = process.env.DB_HOST || 'localhost';
@@ -229,7 +244,8 @@ async function fetchSmartyCandidates(
       street: i.street,
       city: i.city,
       state: i.state,
-      candidates: 1,
+      candidates: 3,
+      match: 'enhanced',
     };
     if (i.secondary) payload.secondary = i.secondary;
     if (i.zipcode) payload.zipcode = i.zipcode;
@@ -346,6 +362,9 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
           -- ZIP+4 enrichment target
           (postal_code IS NULL OR BTRIM(postal_code) = '' OR postal_code ~ '^[0-9]{5}$')
           OR
+          -- Normalized ZIP+4 upgrade target (common when normalized_* was filled via basic_copy)
+          (normalized_postal_code IS NOT NULL AND BTRIM(normalized_postal_code) <> '' AND normalized_postal_code ~ '^[0-9]{5}$')
+          OR
           -- Coordinate enrichment target (only when requested)
           (
             $2::boolean = true
@@ -404,18 +423,23 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
       });
 
       const candidates = await fetchSmartyCandidates(authId, authToken, inputs);
-      const byId = new Map<string, SmartyCandidate>();
+      const byId = new Map<string, SmartyCandidate[]>();
       for (const c of candidates) {
-        if (c.input_id) byId.set(c.input_id, c);
+        if (!c.input_id) continue;
+        const arr = byId.get(c.input_id) || [];
+        arr.push(c);
+        byId.set(c.input_id, arr);
       }
 
       for (const o of batch) {
-        const cand = byId.get(String(o.id));
-        if (!cand) {
+        const cands = byId.get(String(o.id));
+        if (!cands || cands.length == 0) {
           noMatch += 1;
           continue;
         }
 
+        const currentZip5 = normalizeZip5(o.postal_code);
+        const cand = pickBestCandidateForZip4(currentZip5, cands);
         const zip4 = zip4FromCandidate(cand);
         const normLine1 = normalizeTextOrNull(cand.delivery_line_1);
         const normLine2 = normalizeTextOrNull(cand.delivery_line_2);
@@ -433,10 +457,10 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
         const lat = canProvideCoords ? (cand.metadata?.latitude ?? null) : null;
         const lon = canProvideCoords ? (cand.metadata?.longitude ?? null) : null;
 
-        const currentZip5 = normalizeZip5(o.postal_code);
         const newZip5 = zip4 ? zip4.slice(0, 5) : null;
 
-        // Guardrail: only apply if current ZIP is empty or matches Smarty ZIP5.
+        // Guardrail: only apply ZIP+4 if current ZIP is empty or matches Smarty ZIP5.
+        // ZIP5 corrections are intentionally not auto-applied; they require explicit review.
         if (zip4 && currentZip5 && newZip5 && currentZip5 !== newZip5) {
           skipped += 1;
           continue;
@@ -463,11 +487,19 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
               WHEN NULLIF(BTRIM(normalized_state), '') IS NULL THEN $5::text
               ELSE normalized_state
             END,
+            postal_code = CASE
+              WHEN $12::text IS NOT NULL
+                AND (postal_code IS NULL OR BTRIM(postal_code) = '' OR postal_code ~ '^[0-9]{5}$')
+                AND $12::text ~ '^[0-9]{5}-[0-9]{4}$'
+              THEN $12::text
+              ELSE postal_code
+            END,
             normalized_postal_code = CASE
               WHEN NULLIF(BTRIM(normalized_postal_code), '') IS NULL THEN $6::text
+              WHEN normalized_postal_code ~ '^[0-9]{5}$' AND $6::text ~ '^[0-9]{5}-[0-9]{4}$' THEN $6::text
               ELSE normalized_postal_code
             END,
-            address_validation_provider = COALESCE(address_validation_provider, 'smarty_us_street'),
+            address_validation_provider = 'smarty_us_street',
             address_validated_at = NOW(),
             address_validation_dpv_match_code = CASE
               WHEN NULLIF(BTRIM(address_validation_dpv_match_code), '') IS NULL THEN $7::text
@@ -495,6 +527,8 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
               OR (NULLIF(BTRIM(normalized_city), '') IS NULL AND $4::text IS NOT NULL)
               OR (NULLIF(BTRIM(normalized_state), '') IS NULL AND $5::text IS NOT NULL)
               OR (NULLIF(BTRIM(normalized_postal_code), '') IS NULL AND $6::text IS NOT NULL)
+              OR (normalized_postal_code ~ '^[0-9]{5}$' AND $6::text ~ '^[0-9]{5}-[0-9]{4}$')
+              OR ((postal_code IS NULL OR BTRIM(postal_code) = '' OR postal_code ~ '^[0-9]{5}$') AND $12::text ~ '^[0-9]{5}-[0-9]{4}$')
               OR ($9::boolean = true AND (latitude IS NULL OR longitude IS NULL OR location IS NULL) AND $10::double precision IS NOT NULL AND $11::double precision IS NOT NULL)
             )
         `,
@@ -516,6 +550,7 @@ async function enrichZip4(options: EnrichOptions): Promise<void> {
             Boolean(wantCoords && canProvideCoords),
             lat,
             lon,
+            zip4,
           ]
         );
 

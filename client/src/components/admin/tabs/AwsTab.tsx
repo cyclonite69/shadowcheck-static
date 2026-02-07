@@ -16,16 +16,42 @@ const CloudIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const ExpandIcon = ({ size = 16, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+  </svg>
+);
+
 export const AwsTab: React.FC = () => {
   const { overview, loading, error, refresh } = useAwsOverview();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmTerminate, setConfirmTerminate] = useState<string | null>(null);
+  const [ssmConsole, setSsmConsole] = useState<{ instanceId: string; region: string } | null>(null);
 
   const instances = overview?.instances || [];
   const counts = overview?.counts || { total: 0, states: {} };
   const stateBadges = Object.entries(counts.states || {});
   const displayError = error || overview?.error || actionError;
+
+  const openSsmConsole = (instanceId: string) => {
+    const region = overview?.region || 'us-east-1';
+    setSsmConsole({ instanceId, region });
+  };
+
+  const expandSsmConsole = () => {
+    if (!ssmConsole) return;
+    const url = `https://${ssmConsole.region}.console.aws.amazon.com/systems-manager/session-manager/${ssmConsole.instanceId}?region=${ssmConsole.region}`;
+    window.open(url, '_blank', 'width=1400,height=900');
+  };
 
   const handleInstanceAction = async (instanceId: string, action: string) => {
     setActionLoading(instanceId);
@@ -172,7 +198,14 @@ export const AwsTab: React.FC = () => {
                         <td className="py-2 pr-4">{instance.instanceType || '—'}</td>
                         <td className="py-2 pr-4 font-mono text-xs">{instance.publicIp || '—'}</td>
                         <td className="py-2 pr-4">
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => openSsmConsole(instance.instanceId)}
+                              className="px-2 py-1 bg-purple-900/40 text-purple-300 rounded text-xs hover:bg-purple-800/60"
+                              title="Open SSM Console"
+                            >
+                              SSM
+                            </button>
                             {isRunning && (
                               <>
                                 <button
@@ -248,6 +281,43 @@ export const AwsTab: React.FC = () => {
           )}
         </div>
       </AdminCard>
+
+      {ssmConsole && (
+        <AdminCard icon={CloudIcon} title="SSM Console" color="from-purple-500 to-purple-600">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-slate-300">
+                Instance:{' '}
+                <span className="text-white font-mono text-xs">{ssmConsole.instanceId}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={expandSsmConsole}
+                  className="px-3 py-1.5 bg-purple-900/40 text-purple-300 rounded text-sm hover:bg-purple-800/60 flex items-center gap-2"
+                  title="Open in new window"
+                >
+                  <ExpandIcon size={14} />
+                  Expand
+                </button>
+                <button
+                  onClick={() => setSsmConsole(null)}
+                  className="px-3 py-1.5 bg-slate-800/60 border border-slate-700/60 rounded text-sm text-white hover:bg-slate-700/60"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="relative w-full" style={{ height: '600px' }}>
+              <iframe
+                src={`https://${ssmConsole.region}.console.aws.amazon.com/systems-manager/session-manager/${ssmConsole.instanceId}?region=${ssmConsole.region}`}
+                className="w-full h-full border border-slate-700/60 rounded-lg bg-slate-900"
+                title="AWS SSM Console"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+              />
+            </div>
+          </div>
+        </AdminCard>
+      )}
     </div>
   );
 };

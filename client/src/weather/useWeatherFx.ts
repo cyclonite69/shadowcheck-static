@@ -32,14 +32,7 @@ export function useWeatherFx(
 
     overlayRef.current = new WeatherParticleOverlay(mapContainerRef.current);
 
-    // Attach ResizeObserver to handle container resize
-    const resizeObserver = new ResizeObserver(() => {
-      overlayRef.current?.resize();
-    });
-    resizeObserver.observe(mapContainerRef.current);
-
     return () => {
-      resizeObserver.disconnect();
       overlayRef.current?.destroy();
       overlayRef.current = null;
     };

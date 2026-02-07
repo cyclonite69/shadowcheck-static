@@ -40,7 +40,7 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./backups:/app/backups
-      - ${XDG_DATA_HOME:-~/.local/share}/shadowcheck:/home/nodejs/.local/share/shadowcheck:ro
+      - ${XDG_DATA_HOME:-~/.local/share}/shadowcheck:/home/nodejs/.local/share/shadowcheck
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - shadowcheck_net

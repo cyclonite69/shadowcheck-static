@@ -1,5 +1,3 @@
-version: "3.8"
-
 # Shared PostgreSQL + PostGIS infrastructure for ShadowCheck
 # This should be started first before application containers
 
@@ -112,5 +110,4 @@ volumes:
 
 networks:
   shadowcheck_net:
-    driver: bridge
-    name: shadowcheck_net
+    external: true
