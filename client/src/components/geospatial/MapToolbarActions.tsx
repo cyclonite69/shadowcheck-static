@@ -34,6 +34,9 @@ interface MapToolbarActionsProps {
   setHomeButtonActive: (value: boolean) => void;
   homeLocation: { center: [number, number]; zoom?: number };
   logError: (message: string, error: unknown) => void;
+  // Weather FX
+  weatherFxMode?: string;
+  onWeatherFxModeChange?: (mode: string) => void;
   // WiGLE observations
   canWigle?: boolean;
   wigleLoading?: boolean;
@@ -68,6 +71,8 @@ export const MapToolbarActions = ({
   setHomeButtonActive,
   homeLocation,
   logError,
+  weatherFxMode,
+  onWeatherFxModeChange,
   canWigle,
   wigleLoading,
   wigleActive,
@@ -134,6 +139,8 @@ export const MapToolbarActions = ({
           }
         );
       }}
+      weatherFxMode={weatherFxMode}
+      onWeatherFxModeChange={onWeatherFxModeChange}
       canWigle={canWigle}
       wigleLoading={wigleLoading}
       wigleActive={wigleActive}
