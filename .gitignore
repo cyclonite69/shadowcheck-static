@@ -1,44 +1,9 @@
-# ============================================================================
-# Dependencies
-# ============================================================================
-node_modules/
-package-lock.json.backup
-yarn.lock
-pnpm-lock.yaml
-
-# ============================================================================
-# Environment & Configuration
-# ============================================================================
-.env
-.env.*
-!.env.example
-!.env.local.example
-
-# Secrets (Docker secrets directory)
-secrets/
-*.secret
-.secrets/
-
-# ============================================================================
-# Logs
-# ============================================================================
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-server.log
-nohup.out
-pnpm-debug.log*
-
-# Runtime logs (server/data/logs/)
-server/data/logs/
-data/logs/
-
-# ============================================================================
-# Editor & IDE
-# ============================================================================
-.vscode/
+# IDE & Editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -49,61 +14,41 @@ data/logs/
 .project
 .settings/
 
-# ============================================================================
 # AI Assistants
-# ============================================================================
 .claude/
 .claude/settings.local.json
 .cursor/
 .cursorrules
 
-# ============================================================================
 # Build Output
-# ============================================================================
 dist/
+client/dist/
 build/
 out/
 .next/
 .nuxt/
 .cache/
+node_modules/
+package-lock.json.backup
+yarn.lock
+pnpm-lock.yaml
 
-# ============================================================================
-# Backup Files
-# ============================================================================
-*.backup
-*.old
-*.bak
-*.tar.gz
-*.zip
-backup-*.sql
-*.dump
-backups/*.sql
-backups/*.dump
-backups/**
-checksums.sha256
+# Environment & Configuration
+.env
+.env.*
+!.env.example
+!.env.local.example
+deploy/aws/.env.aws
+.env.aws
+*.env.local
 
-# Keep backup directory structure but not large files
-!backups/.gitkeep
-
-# Analysis reports with sensitive data
-backups/analysis-reports/*.txt
-backups/analysis-reports/*-analysis.*
-
-# ============================================================================
-# Database Files (DO NOT COMMIT TO GIT)
-# ============================================================================
-*.db
-*.sqlite
-*.sqlite3
-backup-*.sqlite
-backups/sqlite/
-*.sql.gz
-
-# ============================================================================
-# Credentials & Secrets (NEVER COMMIT)
-# ============================================================================
+# Secrets
+secrets/
+*.secret
+.secrets/
 .pgpass
 pgadmin-servers.json
+config/pgadmin-servers.json
 credentials.json
 *.key
 *.pem
@@ -115,113 +60,97 @@ credentials.json
 .ssh/
 .gnupg/
 
-# Keyring scripts (contain sensitive operations)
+# Data & Backups
+data/
+!data/.gitkeep
+backups/
+!backups/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+*.tar.gz
+*.zip
+*.sql.gz
+backup-*.sql
+checksums.sha256
+
+# Analysis Reports
+backups/analysis-reports/
+scripts/db-usage-audit-results.txt
+scripts/*-audit-results.txt
+
+# Keyring scripts
 get-keyring-password.py
 list-keyring-items.py
 setup-postgres-keyring.sh
 install-keyring-tool.sh
 
-# ============================================================================
-# Data Files (DO NOT COMMIT - Use backups/ for local storage)
-# ============================================================================
-# CSV data files
-*.csv
-!**/examples/**/*.csv
-data/
-!data/.gitkeep
-data/csv/
-data/imports/
-data/exports/
-backups/csv/
-
-# Temporary data
+# Temporary & System Files
 /tmp/
 temp/
 tmp/
 *_snapshot.txt
 *.tmp
-
-# ============================================================================
-# Test & Coverage
-# ============================================================================
-coverage/
-.nyc_output/
-test-results/
-junit.xml
-.jest-cache/
-
-# Test files in root (should be in tests/)
-/test-*.js
-/test_*.sh
-/debug_pie_chart.js
-/test_pie_charts.sh
-
-# ============================================================================
-# Temporary & Generated Files
-# ============================================================================
+*.temp
 compose_snapshot.txt
 project_snapshot.txt
 postgres_schema_current.sql
 shadowcheck-static.backup/
 shadowcheck-debug.tar.gz
-*.tmp
-*.temp
-
-# Setup scripts in root (should be in scripts/)
-/setup_*.sh
-/*_setup_*.sh
-
-# ============================================================================
-# OS & System Files
-# ============================================================================
 Thumbs.db
-.DS_Store
 Desktop.ini
 $RECYCLE.BIN/
 *.lnk
 
-# ============================================================================
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+server.log
+nohup.out
+pnpm-debug.log*
+server/data/logs/
+data/logs/
+
+# Test & Coverage
+coverage/
+.nyc_output/
+test-results/
+junit.xml
+.jest-cache/
+/test-*.js
+/test_*.sh
+/debug_pie_chart.js
+/test_pie_charts.sh
+
 # Docker & Infrastructure
-# ============================================================================
 pgadmin-config/
 pgadmin_data/
 postgres_data/
 docker-data/
-
-# Keep infrastructure docs
 !docker/infrastructure/README.md
+docker-compose.override.yml
 
-# ============================================================================
 # Build Artifacts
-# ============================================================================
 *.exe
 *.dll
 *.so
 *.dylib
 
-# ============================================================================
-# Project Specific
-# ============================================================================
-# Database audit results (contain sensitive data)
-scripts/db-usage-audit-results.txt
-scripts/*-audit-results.txt
-
-# Legacy/deprecated files
+# Project Specific Legacy
 tooltip-search.js
 tooltip-search-backup.js
 assets/images/
-
-# Local development overrides
-docker-compose.override.yml
-
-# Analysis and debug files (move to docs/archive/)
 /analyze-*.sql
 /database-analysis.*
 /DATABASE_ANALYSIS_*.md
-secrets/*.txt
-data/logs/*.log
 
-# AWS deployment configs
-deploy/aws/.env.aws
-.env.aws
-*.env.local
+# Setup scripts in root (should be in scripts/)
+/setup_*.sh
+/*_setup_*.sh
+
