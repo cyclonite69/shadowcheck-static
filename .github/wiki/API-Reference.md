@@ -12,6 +12,81 @@ http://localhost:3001/api
 
 ---
 
+## API Architecture
+
+```mermaid
+graph TB
+    subgraph "API Endpoints"
+        A[Networks API]
+        B[Threats API]
+        C[Analytics API]
+        D[ML API]
+        E[Admin API]
+        F[Auth API]
+    end
+
+    subgraph "Middleware"
+        G[Rate Limiter<br/>1000/15min]
+        H[Auth Check]
+        I[Role Check]
+    end
+
+    subgraph "Services"
+        J[Network Service]
+        K[Threat Service]
+        L[Analytics Service]
+        M[ML Service]
+    end
+
+    N[Client] --> G
+    G --> H
+    H --> A
+    H --> B
+    H --> C
+    H --> D
+    H --> I
+    I --> E
+    H --> F
+
+    A --> J
+    B --> K
+    C --> L
+    D --> M
+    E --> J
+
+    style N fill:#4a5568,stroke:#cbd5e0,color:#fff
+    style G fill:#f56565,stroke:#c53030,color:#fff
+    style H fill:#ed8936,stroke:#c05621,color:#fff
+```
+
+---
+
+## Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant API as API Gateway
+    participant Auth as Auth Middleware
+    participant Session as Redis Session
+    participant Handler as Route Handler
+
+    C->>API: Request with Cookie
+    API->>Auth: Validate session
+    Auth->>Session: Check session ID
+
+    alt Valid Session
+        Session-->>Auth: User data
+        Auth->>Handler: Proceed with user context
+        Handler-->>C: 200 OK + data
+    else Invalid Session
+        Session-->>Auth: No session
+        Auth-->>C: 401 Unauthorized
+    end
+```
+
+---
+
 ## Authentication
 
 **Session-Based**: Most GET endpoints are public
@@ -20,8 +95,10 @@ http://localhost:3001/api
 
 - `POST /api/network-tags/:bssid`
 - `POST /api/wigle/detail/:netid` (with import)
+- `POST /api/ml/train`
+- `POST /api/admin/*`
 
-**API Key Required**:
+**API Key Required** (Alternative to session):
 
 ```bash
 curl -H "x-api-key: your-key" http://localhost:3001/api/admin/backup
@@ -31,74 +108,41 @@ curl -H "x-api-key: your-key" http://localhost:3001/api/admin/backup
 
 ## Rate Limiting
 
+```mermaid
+flowchart LR
+    A[Request] --> B{Check Redis Counter}
+    B -->|< 1000 requests| C[Increment Counter]
+    B -->|>= 1000 requests| D[429 Too Many Requests]
+    C --> E[Process Request]
+    E --> F[200 OK]
+
+    G[15 min window] -.->|Reset| B
+
+    style F fill:#48bb78,stroke:#2f855a,color:#fff
+    style D fill:#f56565,stroke:#c53030,color:#fff
+```
+
 - **Limit**: 1000 requests per 15 minutes per IP
 - **Response**: 429 Too Many Requests when exceeded
+- **Headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
 
 ---
 
-## Endpoints
+## Endpoints Overview
 
-### Dashboard
+### Networks API
 
-```http
-GET /api/dashboard-metrics
+```mermaid
+graph LR
+    A[/api/networks] --> B[GET List Networks]
+    A --> C[GET /observations/:bssid]
+    A --> D[GET /search/:ssid]
+    A --> E[GET /tagged]
+    A --> F[POST /network-tags/:bssid]
+
+    style B fill:#4299e1,stroke:#2b6cb0,color:#fff
+    style F fill:#ed8936,stroke:#c05621,color:#fff
 ```
-
-**Response:**
-
-```json
-{
-  "totalNetworks": 173326,
-  "threatsCount": 1842,
-  "surveillanceCount": 256,
-  "enrichedCount": 45123
-}
-```
-
----
-
-### Threats
-
-#### Quick Threat Detection
-
-```http
-GET /api/threats/quick?page=1&limit=100&minSeverity=40
-```
-
-**Query Parameters:**
-
-- `page` (integer, default: 1): Page number
-- `limit` (integer, default: 100, max: 5000): Results per page
-- `minSeverity` (integer, default: 40): Minimum threat score
-
-**Response:**
-
-```json
-{
-  "threats": [
-    {
-      "bssid": "AA:BB:CC:DD:EE:FF",
-      "ssid": "Hidden Network",
-      "threat_score": 75,
-      "distance_range_km": 2.5,
-      "observation_count": 45,
-      "seen_at_home": true,
-      "seen_away_from_home": true,
-      "max_speed_kmh": 65
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 100,
-    "total": 1842,
-    "totalPages": 19
-  }
-}
-```
-
----
-
-### Networks
 
 #### List Networks
 
@@ -108,9 +152,15 @@ GET /api/networks?page=1&limit=100&sort=lastSeen&order=DESC
 
 **Query Parameters:**
 
-- `page`, `limit`: Pagination
-- `sort`: `lastSeen`, `ssid`, `type`, `bssid`
-- `order`: `ASC` or `DESC`
+| Parameter   | Type    | Default  | Description                            |
+| ----------- | ------- | -------- | -------------------------------------- |
+| `page`      | integer | 1        | Page number                            |
+| `limit`     | integer | 100      | Results per page (max 5000)            |
+| `sort`      | string  | lastSeen | Sort field                             |
+| `order`     | string  | DESC     | Sort order (ASC/DESC)                  |
+| `type`      | string  | -        | Filter by network type (W, E, B, etc.) |
+| `minSignal` | integer | -        | Minimum signal strength                |
+| `maxSignal` | integer | -        | Maximum signal strength                |
 
 **Response:**
 
@@ -122,10 +172,15 @@ GET /api/networks?page=1&limit=100&sort=lastSeen&order=DESC
       "ssid": "Home WiFi",
       "type": "W",
       "encryption": "WPA3-PSK",
-      "last_seen": "2025-12-02T08:30:00Z"
+      "manufacturer": "Apple",
+      "last_seen": "2025-12-02T08:30:00Z",
+      "observation_count": 145,
+      "threat_score": 15
     }
   ],
-  "total": 173326
+  "total": 173326,
+  "page": 1,
+  "limit": 100
 }
 ```
 
@@ -147,6 +202,8 @@ GET /api/networks/observations/:bssid
         "lat": 40.7128,
         "lon": -74.006,
         "signal_strength": -65,
+        "channel": 6,
+        "frequency": 2437,
         "time": "2025-12-02T08:00:00Z"
       }
     ]
@@ -154,7 +211,7 @@ GET /api/networks/observations/:bssid
 }
 ```
 
-#### Tag Network
+#### Tag Network (Admin)
 
 ```http
 POST /api/network-tags/:bssid
@@ -170,43 +227,197 @@ POST /api/network-tags/:bssid
 }
 ```
 
-**Tag Types:** `INVESTIGATE`, `THREAT`, `SUSPECT`, `FALSE_POSITIVE`
+**Tag Types:**
+
+- `INVESTIGATE` - Requires further analysis
+- `THREAT` - Confirmed threat
+- `SUSPECT` - Suspicious behavior
+- `FALSE_POSITIVE` - Not a threat
 
 ---
 
-### Analytics
+### Threats API
+
+```mermaid
+graph LR
+    A[/api/threats] --> B[GET /quick]
+    A --> C[GET /detect]
+
+    style B fill:#f56565,stroke:#c53030,color:#fff
+    style C fill:#ed8936,stroke:#c05621,color:#fff
+```
+
+#### Quick Threat Detection
+
+```http
+GET /api/threats/quick?page=1&limit=100&minSeverity=40
+```
+
+**Query Parameters:**
+
+| Parameter     | Type    | Default | Description          |
+| ------------- | ------- | ------- | -------------------- |
+| `page`        | integer | 1       | Page number          |
+| `limit`       | integer | 100     | Results per page     |
+| `minSeverity` | integer | 40      | Minimum threat score |
+
+**Response:**
+
+```json
+{
+  "threats": [
+    {
+      "bssid": "AA:BB:CC:DD:EE:FF",
+      "ssid": "Hidden Network",
+      "threat_score": 75,
+      "rule_score": 60,
+      "ml_score": 0.85,
+      "distance_range_km": 2.5,
+      "observation_count": 45,
+      "seen_at_home": true,
+      "seen_away_from_home": true,
+      "max_speed_kmh": 65,
+      "unique_days": 12
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 100,
+    "total": 1842,
+    "totalPages": 19
+  }
+}
+```
+
+#### Detailed Threat Detection
+
+```http
+GET /api/threats/detect
+```
+
+Performs comprehensive movement-based forensic analysis.
+
+---
+
+### Analytics API
+
+```mermaid
+graph TB
+    A[/api/analytics] --> B[/dashboard-metrics]
+    A --> C[/network-types]
+    A --> D[/signal-strength]
+    A --> E[/temporal-activity]
+    A --> F[/security]
+    A --> G[/radio-type-over-time]
+    A --> H[/threat-trends]
+
+    style B fill:#4299e1,stroke:#2b6cb0,color:#fff
+```
+
+#### Dashboard Metrics
+
+```http
+GET /api/analytics/dashboard-metrics
+```
+
+**Response:**
+
+```json
+{
+  "totalNetworks": 173326,
+  "threatsCount": 1842,
+  "surveillanceCount": 256,
+  "enrichedCount": 45123,
+  "avgThreatScore": 28.5,
+  "maxDistance": 45.2
+}
+```
+
+#### Network Types Distribution
 
 ```http
 GET /api/analytics/network-types
-GET /api/analytics/signal-strength
-GET /api/analytics/temporal-activity
-GET /api/analytics/security
-GET /api/analytics/radio-type-over-time
 ```
 
-**Response (network-types):**
+**Response:**
 
 ```json
 {
   "ok": true,
   "data": [
     { "type": "W", "type_name": "WiFi", "count": 145230 },
-    { "type": "E", "type_name": "BLE", "count": 18456 }
+    { "type": "E", "type_name": "BLE", "count": 18456 },
+    { "type": "B", "type_name": "Bluetooth", "count": 9640 }
   ]
 }
 ```
 
+#### Temporal Activity
+
+```http
+GET /api/analytics/temporal-activity
+```
+
+Returns hourly activity distribution.
+
 ---
 
-### Machine Learning
+### Machine Learning API
 
-#### Train Model
+```mermaid
+flowchart LR
+    A[/api/ml] --> B[POST /train]
+    A --> C[GET /status]
+    A --> D[GET /predict/:bssid]
+
+    B --> E[Train Models]
+    C --> F[Model Stats]
+    D --> G[Threat Prediction]
+
+    style B fill:#ed8936,stroke:#c05621,color:#fff
+    style G fill:#f56565,stroke:#c53030,color:#fff
+```
+
+#### Train Model (Admin)
 
 ```http
 POST /api/ml/train
 ```
 
-**Headers:** `x-api-key: your-key`
+**Headers:** `x-api-key: your-key` or valid admin session
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "model": {
+    "type": "logistic_regression",
+    "accuracy": 0.92,
+    "precision": 0.88,
+    "recall": 0.95,
+    "f1": 0.91,
+    "rocAuc": 0.94
+  },
+  "trainingData": {
+    "totalNetworks": 45,
+    "threats": 18,
+    "falsePositives": 27
+  },
+  "message": "Model trained successfully"
+}
+```
+
+**Errors:**
+
+- `400`: Fewer than 10 tagged networks
+- `503`: ML model module unavailable
+
+#### Get Model Status
+
+```http
+GET /api/ml/status
+```
 
 **Response:**
 
@@ -214,18 +425,12 @@ POST /api/ml/train
 {
   "ok": true,
   "data": {
-    "accuracy": 0.89,
-    "precision": 0.88,
-    "recall": 0.95,
-    "f1": 0.91
+    "modelTrained": true,
+    "lastTrainedAt": "2025-12-02T10:30:00Z",
+    "taggedNetworks": 45,
+    "accuracy": 0.92
   }
 }
-```
-
-#### Get Model Status
-
-```http
-GET /api/ml/status
 ```
 
 #### Predict Threat
@@ -234,15 +439,116 @@ GET /api/ml/status
 GET /api/ml/predict/:bssid
 ```
 
+Returns ML-based threat prediction for a specific network.
+
 ---
 
-### Utilities
+### Admin API
+
+```mermaid
+graph TB
+    A[/api/admin] --> B[POST /import-sqlite]
+    A --> C[POST /cleanup-duplicates]
+    A --> D[GET /backup]
+    A --> E[POST /aws/instances/:id/start]
+    A --> F[POST /aws/instances/:id/stop]
+    A --> G[GET /pgadmin/status]
+    A --> H[POST /pgadmin/start]
+    A --> I[POST /pgadmin/stop]
+
+    style B fill:#ed8936,stroke:#c05621,color:#fff
+    style D fill:#4299e1,stroke:#2b6cb0,color:#fff
+```
+
+All admin endpoints require authentication and admin role.
+
+---
+
+### Weather API
 
 ```http
-GET /api/manufacturer/:bssid   # OUI lookup
-GET /api/mapbox-token           # Mapbox token
-GET /api/health                 # Health check
+GET /api/weather?lat=40.7128&lon=-74.006
 ```
+
+Proxies Open-Meteo weather data for map overlays.
+
+**Response:**
+
+```json
+{
+  "temperature": 15.5,
+  "precipitation": 0.2,
+  "visibility": 10000,
+  "weather_code": 61
+}
+```
+
+---
+
+## Request/Response Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant RL as Rate Limiter
+    participant Auth as Auth Middleware
+    participant API as API Handler
+    participant Cache as Redis Cache
+    participant DB as PostgreSQL
+
+    C->>RL: HTTP Request
+    RL->>RL: Check rate limit
+
+    alt Rate Limit Exceeded
+        RL-->>C: 429 Too Many Requests
+    else OK
+        RL->>Auth: Check authentication
+
+        alt Auth Required & Invalid
+            Auth-->>C: 401 Unauthorized
+        else OK
+            Auth->>API: Process request
+            API->>Cache: Check cache
+
+            alt Cache Hit
+                Cache-->>API: Cached data
+            else Cache Miss
+                API->>DB: Query database
+                DB-->>API: Results
+                API->>Cache: Store in cache
+            end
+
+            API-->>C: 200 OK + JSON
+        end
+    end
+```
+
+---
+
+## Error Responses
+
+### Standard Error Format
+
+```json
+{
+  "ok": false,
+  "error": "Error message",
+  "code": "ERROR_CODE"
+}
+```
+
+### HTTP Status Codes
+
+| Code | Meaning               | Description                     |
+| ---- | --------------------- | ------------------------------- |
+| 200  | OK                    | Request successful              |
+| 400  | Bad Request           | Invalid parameters              |
+| 401  | Unauthorized          | Authentication required         |
+| 403  | Forbidden             | Insufficient permissions        |
+| 404  | Not Found             | Resource not found              |
+| 429  | Too Many Requests     | Rate limit exceeded             |
+| 500  | Internal Server Error | Server error                    |
+| 503  | Service Unavailable   | Service temporarily unavailable |
 
 ---
 
@@ -264,11 +570,18 @@ GET /api/health                 # Health check
 - `MIN_VALID_TIMESTAMP`: 946684800000 (Jan 1, 2000)
 - `THREAT_THRESHOLD`: 40 points
 - `MAX_PAGE_SIZE`: 5000
+- `RATE_LIMIT`: 1000 requests per 15 minutes
+- `CACHE_TTL`: 5 minutes
 
 ---
 
 ## Related Documentation
 
 - [Architecture](Architecture) - System design and data flow
+- [Data Flow](Data-Flow) - Complete data flow visualizations
 - [Development](Development) - Adding new API endpoints
 - [Database](Database) - Database schema reference
+
+---
+
+_Last Updated: 2026-02-07_
