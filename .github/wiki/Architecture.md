@@ -573,10 +573,9 @@ graph TB
 | ------------ | ------- | ---------------- |
 | React        | 19.x    | UI framework     |
 | TypeScript   | 5.x     | Type safety      |
-| Vite         | 6.x     | Build tool       |
+| Vite         | 7.x     | Build tool       |
 | Tailwind CSS | 4.x     | Styling          |
 | Mapbox GL JS | 3.x     | Mapping          |
-| Chart.js     | 4.x     | Analytics charts |
 | Zustand      | 5.x     | State management |
 
 ### Backend Stack
@@ -588,6 +587,8 @@ graph TB
 | PostgreSQL | 18+     | Database         |
 | PostGIS    | 3.6+    | Geospatial       |
 | Redis      | 4+      | Cache & sessions |
+| Winston    | 3.x     | Logging          |
+| Jest       | 30.x    | Testing          |
 | Winston    | 3.x     | Logging          |
 | Jest       | 29.x    | Testing          |
 
