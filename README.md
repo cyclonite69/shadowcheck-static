@@ -6,12 +6,13 @@
 [![GitHub license](https://img.shields.io/github/license/cyclonite69/shadowcheck-static?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D18-blue?style=flat-square)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/redis-%3E%3D4.0.0-red?style=flat-square)](https://redis.io/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static/commits)
 [![GitHub repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck-static?style=flat-square)](https://github.com/cyclonite69/shadowcheck-static)
 
 🛡️ **Production-grade SIGINT forensics and wireless network analysis platform.** Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
-## Current Development Direction
+## Current System Status
 
 - **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-intel`, `/analytics`, `/ml-training`, `/endpoint-test`)
 - **Modern modular backend architecture** with organized services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
@@ -21,40 +22,49 @@
 - **PostGIS materialized views** for fast explorer pages with precomputed threat intelligence
 - **ETL pipeline** lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed
 - **Machine learning** with multiple algorithms (Logistic Regression, Random Forest, Gradient Boosting) and hyperparameter optimization
+- **Redis Integration** handles caching, session management, and rate limiting.
 
 ## Features
 
-- **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards
-- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**
-- **Geospatial Explorer:** Map-based network exploration with overlays and timeline views
-- **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering
-- **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms
-- **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations
-- **Address Enrichment:** Multi-API venue and business identification (4 sources: OpenCage, LocationIQ, Abstract, Overpass)
-- **Device Classification:** Automatic identification of device types and behavioral profiling
-- **Network Tagging:** Manual classification and tag retrieval for networks
-- **Trilateration:** AP location calculation from multiple observations with accuracy estimation
-- **Machine Learning:** Multi-algorithm threat detection with hyperparameter optimization and model versioning
-- **Universal Filters:** 20+ filter types supporting complex temporal, spatial, and behavioral queries
-- **WiGLE Integration:** Local WiGLE database search with optional live API lookups
-- **Kepler Integration:** Kepler.gl-ready GeoJSON endpoints with filter support
-- **Home Location & Markers:** Saved locations and distance-from-home filters
-- **Data Export & Backup:** CSV/JSON/GeoJSON exports plus admin-protected backups
-- **Authentication & Roles:** Session-based login with admin-gated operations
-- **Admin Settings:** Keyring-backed Mapbox/WiGLE/Google Maps configuration
-- **DevContainer Support:** Consistent development environment with VS Code integration
-- **Security Headers:** Production-ready deployment with CSP, HTTPS enforcement, and Lighthouse optimization
-- **Admin Features:** System administration interface with configuration management, user settings, and role-based gating
-- **Admin Database Security**: Multi-user model with read-only `shadowcheck_user` and privileged `shadowcheck_admin`
+- **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards.
+- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**.
+- **Weather FX System:** Real-time atmospheric visualization with rain/snow particle effects, dynamic fog, and historical weather lookup for observation points.
+- **Geospatial Explorer:** Map-based network exploration with overlays and timeline views.
+- **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering.
+- **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms.
+- **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations.
+- **Address Enrichment:** Multi-API venue and business identification (4 sources: OpenCage, LocationIQ, Abstract, Overpass).
+- **Device Classification:** Automatic identification of device types and behavioral profiling.
+- **Network Tagging:** Manual classification and tag retrieval for networks.
+- **Trilateration:** AP location calculation from multiple observations with accuracy estimation.
+- **Machine Learning:** Multi-algorithm threat detection with hyperparameter optimization and model versioning.
+- **Universal Filters:** 20+ filter types supporting complex temporal, spatial, and behavioral queries.
+- **WiGLE Integration:** Local WiGLE database search with live API lookups.
+- **Kepler Integration:** Kepler.gl-ready GeoJSON endpoints with filter support.
+- **Home Location & Markers:** Saved locations and distance-from-home filters.
+- **Data Export & Backup:** CSV/JSON/GeoJSON exports plus admin-protected backups.
+- **Authentication & Roles:** Session-based login with admin-gated operations.
+- **Admin Settings:** Keyring-backed Mapbox/WiGLE/Google Maps configuration.
+- **DevContainer Support:** Consistent development environment with VS Code integration.
+- **Security Headers:** Production-ready deployment with CSP, HTTPS enforcement, and Lighthouse optimization.
+- **Admin Features:** System administration interface with configuration management, user settings, and role-based gating.
+- **Admin Database Security**: Multi-user model with read-only `shadowcheck_user` and privileged `shadowcheck_admin`.
 
 See `docs/FEATURES.md` for the full feature catalog.
 
 ## Kepler.gl Data Policy
 
 - **No default limits** on Kepler endpoints unless explicitly requested via query params.
-- Prefer filters over caps; Kepler.gl is designed for large datasets.
+- Filters are used instead of caps; Kepler.gl is designed for large datasets.
 
-## Recent Improvements (January 2026)
+## Recent Improvements (February 2026)
+
+✅ **Weather FX & Atmospheric Visualization**
+
+- **Real-time Weather Overlay**: Dynamic fog, rain, and snow effects based on live Open-Meteo data at the map center.
+- **Particle System**: High-performance canvas-based particle engine for realistic rain (vertical streaks) and snow (sinusoidal drift).
+- **Historical Weather Context**: Ability to view weather conditions (temp, pressure, visibility) for any past observation point via the backend proxy.
+- **Backend Proxy**: New `/api/weather` endpoints to securely fetch external weather data without exposing keys or triggering CSP issues.
 
 ✅ **TypeScript Migration & Build Pipeline**
 
@@ -63,11 +73,12 @@ See `docs/FEATURES.md` for the full feature catalog.
 - **Type safety**: Added comprehensive interfaces and types for database operations, API responses, and service layers
 - **Build optimization**: Frontend and server compile separately with proper path resolution for containerized deployment
 
-✅ **Dashboard & UI Enhancements**
+✅ **Redis Implementation**
 
-- **Fixed analytics card display**: Removed incorrect "0 Total Observations" from navigation cards
-- **Threat level filtering**: Dashboard threat severity counts now properly respect active filter selections
-- **Interactive metrics**: Real-time dashboard cards with proper data binding and filter awareness
+- **Threat Score Caching**: Redis caches threat scores at 5-minute intervals.
+- **Analytics Caching**: Redis caches analytics aggregations.
+- **Session Management**: Redis handles session storage.
+- **Rate Limiting**: Redis backend enforces 1000 req/15min per IP.
 
 ✅ **Data Integrity Fixes**
 
@@ -96,21 +107,23 @@ See `docs/FEATURES.md` for the full feature catalog.
 
 ## Architecture
 
-**Backend:** Node.js/Express REST API with PostgreSQL + PostGIS (Modular architecture with Repositories and Services)  
-**Frontend:** React + Vite with TypeScript (explorers and dashboards)  
-**Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)  
-**Development:** DevContainer support with VS Code integration  
+**Backend:** Node.js/Express REST API with PostgreSQL + PostGIS + Redis (Modular architecture with Repositories and Services)
+**Frontend:** React + Vite with TypeScript (explorers and dashboards)
+**Database:** PostgreSQL 18 with PostGIS extension (566,400+ location records, 173,326+ unique networks)
+**Cache:** Redis v4+ for sessions, rate limiting, and analytics
+**Development:** DevContainer support with VS Code integration
 **Deployment:** Static server with security headers for production
 
 ## Prerequisites
 
 - Node.js 20+
 - PostgreSQL 18+ with PostGIS
+- Redis 4.0+
 - TypeScript 5.0+ (included in devDependencies)
 
 ## Quick Start
 
-### Local Development (Fastest)
+### Local Development
 
 ```bash
 git clone https://github.com/cyclonite69/shadowcheck-static.git
@@ -131,7 +144,7 @@ See [deploy/homelab/README.md](deploy/homelab/README.md) for hardware requiremen
 
 ### AWS Production
 
-**🚀 Quick Start (5 minutes):** See [deploy/aws/QUICKSTART.md](deploy/aws/QUICKSTART.md)
+**🚀 Quick Start:** See [deploy/aws/QUICKSTART.md](deploy/aws/QUICKSTART.md)
 
 ```bash
 # 1. Launch instance (from local machine)
@@ -172,9 +185,9 @@ cd shadowcheck-static
 npm install
 ```
 
-### 2. Database Setup
+### 2. Database & Redis Setup
 
-Create PostgreSQL database with PostGIS and secure users:
+Create PostgreSQL database with PostGIS and secure users. Ensure Redis is running.
 
 ```sql
 -- Standard application user (Read-only on production tables)
@@ -199,11 +212,13 @@ DB_HOST=shadowcheck_postgres
 DB_NAME=shadowcheck_db
 DB_PASSWORD=your_password
 DB_PORT=5432
+REDIS_HOST=localhost
+REDIS_PORT=6379
 PORT=3001
 ```
 
 See `.env.example` for all options.
-If you're running PostgreSQL locally, set `DB_HOST=localhost` and use your local database name.
+If running PostgreSQL locally, set `DB_HOST=localhost` and use your local database name.
 
 ### 4. Run Migrations
 
@@ -241,6 +256,7 @@ Server runs on `http://localhost:3001`
 - `GET /api/threats/quick` - High-performance threat detection overview
 - `GET /api/threats/detect` - Detailed movement-based threat analysis
 - `GET /api/analytics/*` - Statistical data distribution endpoints
+- `GET /api/weather` - Current weather proxy for map overlays
 - `POST /api/network-tags/:bssid` - Manually classify a network (admin)
 - `GET /api/network-tags/:bssid` - Get tags for a specific network
 - `GET /api/mapbox-token` - Retrieve Mapbox API token
@@ -369,16 +385,17 @@ npm test
 Key environment variables (see `.env.example`):
 
 - `DB_*` - PostgreSQL connection
+- `REDIS_*` - Redis connection
 - `PORT` - Server port (default: 3001)
 - `NODE_ENV` - development or production
 
 ## Security
 
-- Use strong database credentials in production
-- Rotate passwords every 60-90 days (see `deploy/aws/docs/PASSWORD_ROTATION.md`)
-- Enable HTTPS/TLS at reverse proxy layer
-- Restrict API access via rate limiting (already enabled)
-- See `SECURITY.md` for detailed security guidelines
+- Use strong database credentials in production.
+- Rotate passwords every 60-90 days (see `deploy/aws/docs/PASSWORD_ROTATION.md`).
+- Enable HTTPS/TLS at reverse proxy layer.
+- Restrict API access via rate limiting (enabled via Redis).
+- See `SECURITY.md` for detailed security guidelines.
 
 ### Security Headers & Lighthouse Audits
 
@@ -409,7 +426,7 @@ This is an expected behavior when using Mapbox GL JS. Mapbox sets cookies for:
 - Telemetry (can be disabled via `mapboxgl.config.COLLECT_TELEMETRY = false`)
 - Tile caching
 
-These cookies are required for Mapbox functionality and cannot be eliminated without self-hosting all map tiles (impractical for most use cases).
+These cookies are required for Mapbox functionality and cannot be eliminated without self-hosting all map tiles.
 
 ### SEO Indexing
 
