@@ -4,6 +4,268 @@
 
 ---
 
+## Complete Database Schema Diagram
+
+```mermaid
+erDiagram
+    %% Core Network Tables
+    NETWORKS ||--o{ OBSERVATIONS : "has many"
+    NETWORKS ||--o{ NETWORK_TAGS : "has many"
+    NETWORKS ||--o{ NETWORK_NOTES : "has many"
+    NETWORKS ||--o{ NETWORK_MEDIA : "has many"
+    NETWORKS ||--o{ SSID_HISTORY : "tracks"
+    NETWORKS ||--o{ NETWORK_THREAT_SCORES : "scored by"
+
+    %% Device Sources
+    DEVICE_SOURCES ||--o{ NETWORKS : "sources"
+    DEVICE_SOURCES ||--o{ OBSERVATIONS : "collects"
+
+    %% Geospatial
+    LOCATION_MARKERS ||--o{ NETWORKS : "distance from"
+    ROUTES }o--|| USERS : "created by"
+    GEOCODING_CACHE }o--o{ OBSERVATIONS : "enriches"
+
+    %% WiGLE Integration
+    WIGLE_V3_OBSERVATIONS }o--|| NETWORKS : "enriches"
+    WIGLE_V3_NETWORK_DETAILS }o--|| NETWORKS : "enriches"
+
+    %% Agency Data
+    AGENCY_OFFICES }o--o{ OBSERVATIONS : "proximity to"
+
+    %% Authentication
+    USERS ||--o{ USER_SESSIONS : "has sessions"
+    USERS ||--o{ NETWORK_TAGS : "creates"
+    USERS ||--o{ NETWORK_NOTES : "creates"
+    USERS ||--o{ NETWORK_MEDIA : "uploads"
+    USERS ||--o{ LOCATION_MARKERS : "creates"
+
+    %% Machine Learning
+    ML_MODEL_METADATA ||--o{ ML_TRAINING_HISTORY : "has history"
+    ML_MODEL_METADATA ||--o{ NETWORK_THREAT_SCORES : "generates"
+
+    %% Reference Data
+    RADIO_MANUFACTURERS }o--o{ NETWORKS : "identifies"
+
+    NETWORKS {
+        text bssid PK
+        text ssid
+        text type
+        integer frequency
+        text capabilities
+        bigint lasttime_ms
+        double lastlat
+        double lastlon
+        integer bestlevel
+        text source_device FK
+        numeric threat_score_v2
+        jsonb threat_factors
+        varchar threat_level
+        timestamptz threat_updated_at
+    }
+
+    OBSERVATIONS {
+        bigint id PK
+        text device_id FK
+        text bssid FK
+        text ssid
+        text radio_type
+        integer radio_frequency
+        integer level
+        double lat
+        double lon
+        double altitude
+        double accuracy
+        timestamptz time
+        bigint observed_at_ms
+        geometry geom
+    }
+
+    NETWORK_TAGS {
+        bigint id PK
+        text bssid FK
+        text tag
+        boolean is_threat
+        float confidence
+        text notes
+        text tagged_by FK
+        timestamptz tagged_at
+    }
+
+    NETWORK_NOTES {
+        bigint id PK
+        text bssid FK
+        text note
+        text created_by FK
+        timestamptz created_at
+    }
+
+    NETWORK_MEDIA {
+        bigint id PK
+        text bssid FK
+        text media_type
+        text file_path
+        bigint file_size
+        text mime_type
+        timestamptz captured_at
+        text uploaded_by FK
+    }
+
+    SSID_HISTORY {
+        bigint id PK
+        text bssid FK
+        text ssid
+        timestamptz first_seen
+        timestamptz last_seen
+        integer observation_count
+    }
+
+    NETWORK_THREAT_SCORES {
+        bigint id PK
+        text bssid FK
+        float rule_score
+        float ml_score
+        float ml_weight
+        float combined_score
+        timestamptz calculated_at
+        text model_version FK
+    }
+
+    LOCATION_MARKERS {
+        bigint id PK
+        text name
+        text description
+        geometry location
+        boolean is_home
+        float radius_km
+        text color
+        text created_by FK
+    }
+
+    ROUTES {
+        bigint id PK
+        text name
+        geometry path
+        float distance_km
+        integer duration_seconds
+        timestamptz recorded_at
+        text created_by FK
+    }
+
+    GEOCODING_CACHE {
+        bigint id PK
+        geometry location
+        text address
+        text venue_name
+        text venue_type
+        text source
+        timestamptz cached_at
+        timestamptz expires_at
+    }
+
+    WIGLE_V3_OBSERVATIONS {
+        bigint id PK
+        text bssid FK
+        text ssid
+        geometry location
+        double trilat
+        double trilong
+        text source
+        timestamptz fetched_at
+    }
+
+    WIGLE_V3_NETWORK_DETAILS {
+        bigint id PK
+        text bssid FK
+        text ssid
+        text encryption
+        integer channel
+        timestamptz first_seen
+        timestamptz last_update
+        text country
+    }
+
+    AGENCY_OFFICES {
+        bigint id PK
+        text name
+        text office_type
+        geometry location
+        text address
+        text city
+        text state
+        text postal_code
+        text phone
+    }
+
+    USERS {
+        bigint id PK
+        text username UK
+        text password_hash
+        text email
+        text role
+        timestamptz created_at
+        timestamptz last_login
+        boolean is_active
+    }
+
+    USER_SESSIONS {
+        text session_id PK
+        bigint user_id FK
+        inet ip_address
+        text user_agent
+        timestamptz created_at
+        timestamptz expires_at
+    }
+
+    ML_MODEL_METADATA {
+        bigint id PK
+        text model_type
+        text version
+        float accuracy
+        float precision
+        float recall
+        float f1_score
+        float roc_auc
+        timestamptz trained_at
+        boolean is_active
+    }
+
+    ML_TRAINING_HISTORY {
+        bigint id PK
+        bigint model_id FK
+        integer training_samples
+        integer threat_samples
+        integer benign_samples
+        jsonb hyperparameters
+        jsonb cross_val_scores
+        timestamptz trained_at
+    }
+
+    RADIO_MANUFACTURERS {
+        bigint id PK
+        text oui_prefix UK
+        text manufacturer
+        timestamptz updated_at
+    }
+
+    DEVICE_SOURCES {
+        text code PK
+        text name
+        text device_type
+        text description
+        timestamptz created_at
+    }
+
+    SETTINGS {
+        text key PK
+        text value
+        text description
+        timestamptz updated_at
+        text updated_by FK
+    }
+```
+
+---
+
 ## Table of Contents
 
 - [Core Tables](#core-tables)
