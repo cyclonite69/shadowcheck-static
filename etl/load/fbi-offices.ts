@@ -11,6 +11,25 @@ import { createPool } from '../utils/db';
 
 type OfficeType = 'field_office' | 'resident_agency';
 
+// These entries show up on some field office pages under "Main Field Office Territory",
+// but they are coverage/jurisdiction notes, not physical offices.
+const PLACEHOLDER_NAMES = new Set([
+  'Areas covered',
+  'City covered',
+  'Counties served',
+  'Counties covered',
+  'Counties and city covered',
+  'Counties and cities covered',
+  'Municipalities covered',
+  'Parishes covered',
+  'North',
+  'South',
+  'East',
+  'West',
+  'Iowa',
+  'Nebraska',
+]);
+
 interface OfficeRecord {
   agency: string;
   officeType: OfficeType;
@@ -357,6 +376,12 @@ function extractResidentAgencies(
     const jurisdiction = normalizeLine(parts.slice(1).join(':')) || null;
 
     if (!name) continue;
+
+    // These are coverage/jurisdiction notes, not physical offices.
+    // They should live under the field office as metadata (handled separately).
+    if (PLACEHOLDER_NAMES.has(name)) {
+      continue;
+    }
 
     agencies.push({
       agency: 'FBI',

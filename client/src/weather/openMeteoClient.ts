@@ -7,13 +7,11 @@ const CACHE_BUCKET_MS = 300000; // 5 minutes
 const RATE_LIMIT_MS = 60000; // 60 seconds
 
 export async function fetchCurrentWeather(lat: number, lon: number): Promise<WeatherData | null> {
-  // Rate limiting
   const now = Date.now();
   if (now - lastFetchMs < RATE_LIMIT_MS) {
     return null;
   }
 
-  // Cache key: 2-decimal grid + 5-min bucket
   const gridKey = `${lat.toFixed(2)},${lon.toFixed(2)}`;
   const bucketKey = Math.floor(now / CACHE_BUCKET_MS);
   const cacheKey = `${gridKey}:${bucketKey}`;
@@ -24,15 +22,9 @@ export async function fetchCurrentWeather(lat: number, lon: number): Promise<Wea
 
   try {
     lastFetchMs = now;
-    const url = new URL('https://api.open-meteo.com/v1/forecast');
-    url.searchParams.set('latitude', lat.toString());
-    url.searchParams.set('longitude', lon.toString());
-    url.searchParams.set(
-      'current',
-      'precipitation,snowfall,cloud_cover,visibility,weather_code,is_day'
-    );
-    url.searchParams.set('timezone', 'auto');
-
+    const url = new URL('/api/weather', window.location.origin);
+    url.searchParams.set('lat', lat.toString());
+    url.searchParams.set('lon', lon.toString());
     const response = await fetch(url.toString());
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -41,7 +33,7 @@ export async function fetchCurrentWeather(lat: number, lon: number): Promise<Wea
 
     const weather: WeatherData = {
       precip_mm: data.current.precipitation ?? 0,
-      snowfall_cm: (data.current.snowfall ?? 0) / 10, // convert mm to cm
+      snowfall_cm: (data.current.snowfall ?? 0) / 10,
       cloudcover_pct: data.current.cloud_cover ?? 0,
       visibility_m: data.current.visibility ?? 10000,
       weathercode: data.current.weather_code ?? 0,
