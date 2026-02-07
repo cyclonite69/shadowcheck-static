@@ -15,4 +15,7 @@ COPY init-postgis.sh /docker-entrypoint-initdb.d/
 EXPOSE 5432
 
 # Use official postgres entrypoint
+RUN useradd -U -u 1000 appuser && \
+    chown -R 1000:1000 /docker-entrypoint-initdb.d
+USER 1000
 CMD ["postgres"]

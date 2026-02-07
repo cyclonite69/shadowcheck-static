@@ -31,4 +31,8 @@ RUN echo 'add_header X-Frame-Options "DENY" always;' > /etc/nginx/conf.d/securit
 # Use host network to access backend on localhost
 EXPOSE 80
 
+RUN apk add --no-cache shadow && \
+    useradd -U -u 1000 appuser && \
+    chown -R 1000:1000 /usr/share/nginx/html /etc/nginx/conf.d
+USER 1000
 CMD ["nginx", "-g", "daemon off;"]

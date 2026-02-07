@@ -36,8 +36,8 @@ FROM node:20-alpine
 RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec
 
 # Create app user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN addgroup -g 1000 -S nodejs && \
+    adduser -S nodejs -u 1000
 
 # Set working directory
 WORKDIR /app
@@ -59,8 +59,8 @@ RUN mkdir -p data/logs data/csv && \
     chown -R nodejs:nodejs /app && \
     chmod +x /entrypoint.sh
 
-# Don't switch to nodejs user yet - entrypoint needs to run as root
-# USER nodejs will be handled by entrypoint via su-exec
+# Switch to nodejs user for better security
+USER nodejs
 
 # Set production environment
 ENV NODE_ENV=production
@@ -73,7 +73,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Use entrypoint to handle Docker socket permissions, then dumb-init for signals
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["dumb-init", "--"]
 
 # Start application with compiled server
 CMD ["node", "dist/server/server/server.js"]
