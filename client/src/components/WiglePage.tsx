@@ -143,9 +143,10 @@ const WiglePage: React.FC = () => {
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [tilesReady, setTilesReady] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showAgencyOffices, setShowAgencyOffices] = useState(true);
 
   // Agency offices layer
-  useAgencyOffices(mapRef, mapReady);
+  useAgencyOffices(mapRef, mapReady, showAgencyOffices);
   const [showMenu, setShowMenu] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [mapStyle, setMapStyleState] = useState(() => {
@@ -767,6 +768,8 @@ const WiglePage: React.FC = () => {
         totalRows={total}
         dataSource={dataSource}
         onDataSourceChange={setDataSource}
+        showAgencyOffices={showAgencyOffices}
+        onToggleAgencyOffices={() => setShowAgencyOffices(!showAgencyOffices)}
       />
 
       <FilterPanelContainer
