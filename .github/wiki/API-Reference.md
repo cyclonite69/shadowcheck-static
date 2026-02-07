@@ -134,11 +134,11 @@ flowchart LR
 
 ```mermaid
 graph LR
-    A[/api/networks] --> B[GET List Networks]
-    A --> C[GET /observations/:bssid]
-    A --> D[GET /search/:ssid]
-    A --> E[GET /tagged]
-    A --> F[POST /network-tags/:bssid]
+    A["Networks API"] --> B["GET List Networks"]
+    A --> C["GET observations/:bssid"]
+    A --> D["GET search/:ssid"]
+    A --> E["GET tagged"]
+    A --> F["POST network-tags/:bssid"]
 
     style B fill:#4299e1,stroke:#2b6cb0,color:#fff
     style F fill:#ed8936,stroke:#c05621,color:#fff
@@ -240,8 +240,8 @@ POST /api/network-tags/:bssid
 
 ```mermaid
 graph LR
-    A[/api/threats] --> B[GET /quick]
-    A --> C[GET /detect]
+    A["Threats API"] --> B["GET quick"]
+    A --> C["GET detect"]
 
     style B fill:#f56565,stroke:#c53030,color:#fff
     style C fill:#ed8936,stroke:#c05621,color:#fff
@@ -303,13 +303,13 @@ Performs comprehensive movement-based forensic analysis.
 
 ```mermaid
 graph TB
-    A[/api/analytics] --> B[/dashboard-metrics]
-    A --> C[/network-types]
-    A --> D[/signal-strength]
-    A --> E[/temporal-activity]
-    A --> F[/security]
-    A --> G[/radio-type-over-time]
-    A --> H[/threat-trends]
+    A["Analytics API"] --> B["dashboard-metrics"]
+    A --> C["network-types"]
+    A --> D["signal-strength"]
+    A --> E["temporal-activity"]
+    A --> F["security"]
+    A --> G["radio-type-over-time"]
+    A --> H["threat-trends"]
 
     style B fill:#4299e1,stroke:#2b6cb0,color:#fff
 ```
@@ -366,9 +366,9 @@ Returns hourly activity distribution.
 
 ```mermaid
 flowchart LR
-    A[/api/ml] --> B[POST /train]
-    A --> C[GET /status]
-    A --> D[GET /predict/:bssid]
+    A["ML API"] --> B["POST train"]
+    A --> C["GET status"]
+    A --> D["GET predict/:bssid"]
 
     B --> E[Train Models]
     C --> F[Model Stats]
@@ -447,14 +447,14 @@ Returns ML-based threat prediction for a specific network.
 
 ```mermaid
 graph TB
-    A[/api/admin] --> B[POST /import-sqlite]
-    A --> C[POST /cleanup-duplicates]
-    A --> D[GET /backup]
-    A --> E[POST /aws/instances/:id/start]
-    A --> F[POST /aws/instances/:id/stop]
-    A --> G[GET /pgadmin/status]
-    A --> H[POST /pgadmin/start]
-    A --> I[POST /pgadmin/stop]
+    A["Admin API"] --> B["POST import-sqlite"]
+    A --> C["POST cleanup-duplicates"]
+    A --> D["GET backup"]
+    A --> E["POST aws/instances/:id/start"]
+    A --> F["POST aws/instances/:id/stop"]
+    A --> G["GET pgadmin/status"]
+    A --> H["POST pgadmin/start"]
+    A --> I["POST pgadmin/stop"]
 
     style B fill:#ed8936,stroke:#c05621,color:#fff
     style D fill:#4299e1,stroke:#2b6cb0,color:#fff
