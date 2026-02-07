@@ -30,7 +30,8 @@ interface AgencyOfficesGeoJSON {
 
 export const useAgencyOffices = (
   mapRef: React.MutableRefObject<mapboxgl.Map | null>,
-  mapReady: boolean
+  mapReady: boolean,
+  visible: boolean = true
 ) => {
   const [data, setData] = useState<AgencyOfficesGeoJSON | null>(null);
   const [loading, setLoading] = useState(false);
@@ -213,6 +214,19 @@ export const useAgencyOffices = (
       addAgencyLayers();
     }
   }, [mapReady, data, addAgencyLayers]);
+
+  // Toggle visibility
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !layersAddedRef.current) return;
+
+    const visibility = visible ? 'visible' : 'none';
+    ['agency-clusters', 'agency-cluster-count', 'agency-unclustered'].forEach((layerId) => {
+      if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, 'visibility', visibility);
+      }
+    });
+  }, [visible, mapRef]);
 
   return { data, loading, error };
 };
