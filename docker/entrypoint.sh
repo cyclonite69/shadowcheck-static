@@ -20,5 +20,11 @@ if [ -S "$SOCKET" ]; then
   fi
 fi
 
+# Ensure keyring directory is writable by the app user
+KEYRING_DIR="/home/nodejs/.local/share/shadowcheck"
+if [ -d "$KEYRING_DIR" ] || mkdir -p "$KEYRING_DIR" 2>/dev/null; then
+  chown -R nodejs:nodejs "$KEYRING_DIR"
+fi
+
 # Use su-exec without setting supplementary groups
 exec dumb-init -- su-exec nodejs "$@"
