@@ -28,6 +28,9 @@ interface MapToolbarProps {
   homeButtonActive: boolean;
   onHome: () => void;
   onGps: () => void;
+  // Weather FX
+  weatherFxMode?: string;
+  onWeatherFxModeChange?: (mode: string) => void;
   // WiGLE observations
   canWigle?: boolean;
   wigleLoading?: boolean;
@@ -59,6 +62,8 @@ export const MapToolbar = ({
   homeButtonActive,
   onHome,
   onGps,
+  weatherFxMode,
+  onWeatherFxModeChange,
   canWigle,
   wigleLoading,
   wigleActive,
@@ -215,6 +220,38 @@ export const MapToolbar = ({
       >
         ⛰️ Terrain
       </button>
+      {onWeatherFxModeChange && (
+        <>
+          <label className="sr-only" htmlFor="weather-fx">
+            Weather effects
+          </label>
+          <select
+            id="weather-fx"
+            value={weatherFxMode ?? 'off'}
+            onChange={(e) => onWeatherFxModeChange(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              fontSize: '11px',
+              background:
+                weatherFxMode && weatherFxMode !== 'off'
+                  ? 'rgba(59, 130, 246, 0.2)'
+                  : 'rgba(30, 41, 59, 0.9)',
+              border:
+                weatherFxMode && weatherFxMode !== 'off'
+                  ? '1px solid rgba(59, 130, 246, 0.5)'
+                  : '1px solid rgba(148, 163, 184, 0.2)',
+              color: weatherFxMode && weatherFxMode !== 'off' ? '#60a5fa' : '#f8fafc',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="off">Weather: Off</option>
+            <option value="auto">Weather: Auto</option>
+            <option value="rain">Weather: Rain</option>
+            <option value="snow">Weather: Snow</option>
+          </select>
+        </>
+      )}
       <button
         onClick={onFit}
         style={{
