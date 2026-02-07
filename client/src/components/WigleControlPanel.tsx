@@ -17,6 +17,8 @@ interface WigleControlPanelProps {
   totalRows: number | null;
   dataSource: 'v2' | 'v3';
   onDataSourceChange: (source: 'v2' | 'v3') => void;
+  showAgencyOffices?: boolean;
+  onToggleAgencyOffices?: () => void;
 }
 
 export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
@@ -36,6 +38,8 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
   totalRows,
   dataSource,
   onDataSourceChange,
+  showAgencyOffices = true,
+  onToggleAgencyOffices,
 }) => {
   if (!isOpen) return null;
 
@@ -125,6 +129,23 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
           {showTerrain ? '✓ ' : ''}Terrain
         </button>
       </div>
+
+      {/* Layer Visibility */}
+      {onToggleAgencyOffices && (
+        <div>
+          <label className="block mb-1 text-xs text-slate-300">Layers</label>
+          <button
+            onClick={onToggleAgencyOffices}
+            className={`w-full rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+              showAgencyOffices
+                ? 'bg-red-600 text-white shadow-lg'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            {showAgencyOffices ? '✓ ' : ''}Agency Offices
+          </button>
+        </div>
+      )}
 
       {/* Load Points button */}
       <button
