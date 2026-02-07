@@ -35,7 +35,6 @@ export const AwsTab: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmTerminate, setConfirmTerminate] = useState<string | null>(null);
-  const [ssmConsole, setSsmConsole] = useState<{ instanceId: string; region: string } | null>(null);
 
   const instances = overview?.instances || [];
   const counts = overview?.counts || { total: 0, states: {} };
@@ -44,13 +43,9 @@ export const AwsTab: React.FC = () => {
 
   const openSsmConsole = (instanceId: string) => {
     const region = overview?.region || 'us-east-1';
-    setSsmConsole({ instanceId, region });
-  };
-
-  const expandSsmConsole = () => {
-    if (!ssmConsole) return;
-    const url = `https://${ssmConsole.region}.console.aws.amazon.com/systems-manager/session-manager/${ssmConsole.instanceId}?region=${ssmConsole.region}`;
-    window.open(url, '_blank', 'width=1400,height=900');
+    // Open SSM console in new window - AWS blocks iframe embedding
+    const url = `https://${region}.console.aws.amazon.com/systems-manager/session-manager/${instanceId}?region=${region}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleInstanceAction = async (instanceId: string, action: string) => {
@@ -281,43 +276,6 @@ export const AwsTab: React.FC = () => {
           )}
         </div>
       </AdminCard>
-
-      {ssmConsole && (
-        <AdminCard icon={CloudIcon} title="SSM Console" color="from-purple-500 to-purple-600">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-300">
-                Instance:{' '}
-                <span className="text-white font-mono text-xs">{ssmConsole.instanceId}</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={expandSsmConsole}
-                  className="px-3 py-1.5 bg-purple-900/40 text-purple-300 rounded text-sm hover:bg-purple-800/60 flex items-center gap-2"
-                  title="Open in new window"
-                >
-                  <ExpandIcon size={14} />
-                  Expand
-                </button>
-                <button
-                  onClick={() => setSsmConsole(null)}
-                  className="px-3 py-1.5 bg-slate-800/60 border border-slate-700/60 rounded text-sm text-white hover:bg-slate-700/60"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-            <div className="relative w-full" style={{ height: '600px' }}>
-              <iframe
-                src={`https://${ssmConsole.region}.console.aws.amazon.com/systems-manager/session-manager/${ssmConsole.instanceId}?region=${ssmConsole.region}`}
-                className="w-full h-full border border-slate-700/60 rounded-lg bg-slate-900"
-                title="AWS SSM Console"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-              />
-            </div>
-          </div>
-        </AdminCard>
-      )}
     </div>
   );
 };

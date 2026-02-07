@@ -5,6 +5,7 @@ Complete guide for setting up and developing ShadowCheck-Static with modern Reac
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
+- [System Constraints](#system-constraints)
 - [Initial Setup](#initial-setup)
 - [Development Workflow](#development-workflow)
 - [Frontend Development](#frontend-development)
@@ -21,13 +22,14 @@ Complete guide for setting up and developing ShadowCheck-Static with modern Reac
 
 ### Required Software
 
-- **Node.js** 20+ (LTS recommended) - Check with `node --version`
+- **Node.js** 20+ (LTS) - Check with `node --version`
 - **PostgreSQL** 18+ with PostGIS extension
-- **Docker** (optional, for containerized development)
+- **Redis** 4.0+
+- **Docker** (for containerized development)
 - **Git** for version control
-- **VS Code** (recommended) with DevContainer support
+- **VS Code** with DevContainer support
 
-### Recommended Tools
+### Tools
 
 - **VS Code Extensions**:
   - ESLint
@@ -39,6 +41,21 @@ Complete guide for setting up and developing ShadowCheck-Static with modern Reac
   - TypeScript Importer
 - **Database Tools**: pgAdmin, DBeaver, or TablePlus
 - **API Testing**: Postman, Insomnia, or VS Code REST Client
+
+## System Constraints
+
+The following rules are immutable constraints of the development environment:
+
+1.  **Kepler.gl Endpoints**: No default pagination limits are applied.
+2.  **Dataset Scaling**: The dataset size scales linearly with observations.
+3.  **Universal Filters**: The filter system applies uniformly across all pages.
+4.  **Distance Calculations**: All distance calculations utilize PostGIS `ST_Distance` (spheroid).
+5.  **Weather FX Integration**: All weather data is fetched via the `/api/weather` backend proxy.
+6.  **Authentication**: Authentication is session-based using Redis.
+7.  **API Format**: All API responses use JSON.
+8.  **Database**: The system requires PostgreSQL 18+ with PostGIS.
+9.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7.
+10. **Threat Scoring**: Threat scoring utilizes multi-factor analysis with immutable weights per version.
 
 ## Initial Setup
 
@@ -79,6 +96,10 @@ DB_NAME=shadowcheck_db
 DB_PASSWORD=your_secure_password
 DB_PORT=5432
 
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
 # Server Configuration
 PORT=3001
 NODE_ENV=development
@@ -90,15 +111,19 @@ CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173
 # Frontend Configuration (stored in keyring or .env)
 MAPBOX_TOKEN=pk.your_mapbox_token_here
 
-# Optional: API Keys for enrichment
+# API Keys for enrichment
 OPENCAGE_API_KEY=your_opencage_key
 LOCATIONIQ_API_KEY=your_locationiq_key
 ABSTRACT_API_KEY=your_abstract_key
+
+# Weather FX Proxy (Open-Meteo)
+# No API key required for standard usage (<10k daily calls)
+# Endpoint: /api/weather -> https://api.open-meteo.com/v1/forecast
 ```
 
-**Note**: For production, use the keyring system instead of storing secrets in `.env`.
+**Note**: For production, the keyring system stores secrets instead of `.env`.
 
-## DevContainer Setup (Recommended)
+## DevContainer Setup
 
 The project includes a complete DevContainer configuration for consistent development environments.
 
@@ -123,6 +148,7 @@ The DevContainer includes:
 
 - **Node.js 20** with npm
 - **PostgreSQL 18** with PostGIS
+- **Redis**
 - **All VS Code extensions** pre-installed
 - **Database setup** with sample data
 - **Port forwarding** for development servers

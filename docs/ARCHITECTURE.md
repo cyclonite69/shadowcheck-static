@@ -5,6 +5,7 @@ This document describes the high-level architecture of the ShadowCheck-Static pl
 ## Table of Contents
 
 - [Overview](#overview)
+- [System Constraints](#system-constraints)
 - [System Architecture](#system-architecture)
 - [Frontend Architecture](#frontend-architecture)
 - [Backend Architecture](#backend-architecture)
@@ -18,7 +19,7 @@ This document describes the high-level architecture of the ShadowCheck-Static pl
 
 ## Overview
 
-ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built on a modern modular architecture combining a React/Vite frontend with a Node.js/Express backend, using PostgreSQL + PostGIS for geospatial data processing.
+ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built on a modern modular architecture combining a React/Vite frontend with a Node.js/Express backend, using PostgreSQL + PostGIS for geospatial data processing and Redis for caching and session management.
 
 ### Core Components
 
@@ -37,6 +38,7 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 │  State Management: Zustand + React Hooks                   │
 │  Routing: React Router with lazy loading                   │
 │  Styling: Tailwind CSS with dark theme                     │
+│  Modules: Weather FX (Canvas Overlay), Mapbox GL JS        │
 └───────────────────────────┬─────────────────────────────────┘
                             │ REST API (JSON)
 ┌───────────────────────────┴─────────────────────────────────┐
@@ -50,6 +52,7 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 │  │  • /api/networks/* (CRUD operations)                 │   │
 │  │  • /api/analytics/* (temporal, signal, security)     │   │
 │  │  • /api/ml/* (training, prediction)                  │   │
+│  │  • /api/weather (Open-Meteo Proxy)                   │   │
 │  └──────────────────────────────────────────────────────┘   │
   │  ┌──────────────────────────────────────────────────────┐   │
   │  Business Logic Layer                                 │   │
@@ -62,40 +65,39 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Middleware Stack                                     │   │
-│  │  • CORS + Rate Limiting (1000 req/15min)            │   │
+│  │  • CORS + Rate Limiting (1000 req/15min via Redis)    │   │
 │  │  • Security Headers (CSP, X-Frame-Options)           │   │
 │  │  • HTTPS Redirect (configurable)                     │   │
 │  │  • Request Body Size Limiting (10MB)                 │   │
 │  │  • Structured Logging with Winston                   │   │
 │  │  • Error Handler with client logger integration      │   │
 │  └──────────────────────────────────────────────────────┘   │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ Connection Pool (pg)
-┌─────────────────────────────────────────────────────────────┐
-│            PostgreSQL 18 + PostGIS (Geospatial)              │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │  Multi-User Security Model                            │   │
-│  │  • shadowcheck_user (Read-Only Prod Data)            │   │
-│  │  • shadowcheck_admin (Full Admin Access)             │   │
-│  │                                                      │   │
-│  │  Schema: app (Production Data)                        │   │
-│  │  • networks_legacy (BSSID, SSID, type, encryption)   │   │
-│  │  • locations_legacy (observations with lat/lon)      │   │
-│  │  • network_tags (user classifications)               │   │
-│  │  • location_markers (home/work coordinates)          │   │
-│  │  • wigle_networks_enriched (WiGLE API data)          │   │
-│  │  • radio_manufacturers (OUI → manufacturer mapping)  │   │
-│  │  • ml_model_metadata (ML model versioning)           │   │
-│  │  • network_threat_scores (precomputed scores)        │   │
-│  └──────────────────────────────────────────────────────┘   │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │  Materialized Views (Performance)                     │   │
-│  │  • api_network_explorer_mv (fast network queries)    │   │
-│  │  • threat_analysis_mv (precomputed threat metrics)   │   │
-│  │  • analytics_summary_mv (dashboard metrics)          │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+└─────────────┬───────────────────────────┬───────────────────┘
+              │                           │
+              │ Connection Pool (pg)      │ Redis Client
+┌─────────────┴────────────────┐     ┌────┴────────────────────────┐
+│ PostgreSQL 18 + PostGIS      │     │ Redis 4+                    │
+│ • Production Data            │     │ • Session Store             │
+│ • Materialized Views         │     │ • Rate Limiting             │
+│ • Spatial Indexing           │     │ • Analytics Cache           │
+│ • Threat Scores              │     │ • Threat Score Cache        │
+└──────────────────────────────┘     └─────────────────────────────┘
 ```
+
+## System Constraints
+
+The following rules are immutable constraints of the system architecture:
+
+1.  **Kepler.gl Endpoints**: No default pagination limits are applied. The system is designed to handle 1M+ observations without artificial caps.
+2.  **Dataset Scaling**: The dataset size scales linearly with observations; no result set limits are imposed on exports or analysis.
+3.  **Universal Filters**: The filter system applies uniformly across all pages (Dashboard, Explorer, Analytics) with no page-specific exceptions.
+4.  **Distance Calculations**: All distance calculations utilize PostGIS `ST_Distance` (spheroid). No planar approximations or haversine formulas are used in SQL.
+5.  **Weather FX Integration**: All weather data is fetched via the `/api/weather` backend proxy. No direct external API calls (e.g., to Open-Meteo) are permitted from the frontend.
+6.  **Authentication**: Authentication is session-based using Redis. OAuth and stateless JWTs are not supported.
+7.  **API Format**: All API responses use JSON. XML, CSV (except for exports), or other formats are not supported.
+8.  **Database**: The system requires PostgreSQL 18+ with PostGIS. Migration to other relational or NoSQL databases is not supported.
+9.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7. No other frameworks (Angular, Vue, Next.js) are supported.
+10. **Threat Scoring**: Threat scoring utilizes multi-factor analysis. The weights are immutable for each algorithm version to ensure consistency.
 
 ## System Architecture
 
@@ -118,6 +120,7 @@ ShadowCheck-Static is a SIGINT (Signals Intelligence) forensics platform built o
 - **Universal filter system** with 20+ filter types
 - **Structured logging** with Winston
 - **Connection pooling** with PostgreSQL
+- **Redis Integration** for caching and session management
 
 **Pros:**
 
@@ -152,7 +155,13 @@ client/src/
 ├── hooks/                # Custom React hooks
 │   ├── useFilteredData.ts       # Data filtering logic
 │   ├── useAdaptedFilters.ts     # Filter adaptation
-│   └── usePageFilters.ts        # Page-specific filters
+│   ├── usePageFilters.ts        # Page-specific filters
+│   └── useWeatherFx.ts          # Weather visualization orchestration
+├── weather/              # Weather FX System
+│   ├── weatherFxPolicy.ts       # Fog/Particle logic classification
+│   ├── WeatherParticleOverlay.ts # Canvas particle engine
+│   ├── openMeteoClient.ts       # Frontend API client
+│   └── applyWeatherFog.ts       # Mapbox fog controller
 ├── stores/               # State management
 │   └── filterStore.ts           # Zustand filter store
 ├── utils/                # Utility functions
@@ -174,6 +183,9 @@ server/server.js                 # Main Express server (legacy + new)
 server/src/
 ├── api/                  # Modern API routes (v2)
 │   └── routes/           # Route handlers
+│       ├── v1/
+│       │   ├── weather.ts      # Weather proxy endpoints
+│       │   └── ...
 ├── services/             # Business logic layer
 │   ├── filterQueryBuilder.js   # Universal filter system
 │   ├── threatScoringService.js # Threat detection
@@ -197,52 +209,6 @@ server/src/
     └── middleware.js           # Request logging
 ```
 
-server/src/
-├── api/ # HTTP layer
-│ ├── routes/ # Route handlers
-│ │ ├── v1/
-│ │ │ ├── networks.js
-│ │ │ ├── threats.js
-│ │ │ ├── analytics.js
-│ │ │ └── ml.js
-│ ├── middleware/ # Express middleware
-│ │ ├── auth.js
-│ │ ├── validation.js
-│ │ ├── errorHandler.js
-│ │ └── requestLogger.js
-│ └── schemas/ # Request/response validation
-│ ├── network.js
-│ └── threat.js
-│
-├── services/ # Business logic layer
-│ ├── threatService.js
-│ ├── analyticsService.js
-│ ├── networkService.js
-│ └── mlService.js
-│
-├── repositories/ # Data access layer
-│ ├── networkRepository.js
-│ ├── locationRepository.js
-│ ├── networkTagsRepository.js
-│ └── unitOfWork.js
-│
-├── models/ # Domain models
-│ ├── Network.js
-│ ├── Threat.js
-│ └── NetworkTag.js
-│
-├── config/ # Configuration management
-│ ├── index.js
-│ ├── database.js
-│ └── secrets.js
-│
-└── utils/ # Utilities
-├── logger.js
-├── validation.js
-└── errorHandler.js
-
-```
-
 ## Data Flow
 
 ### Threat Detection Request Flow
@@ -253,24 +219,42 @@ User Request
 ↓
 [Frontend] → GET /api/threats/quick?page=1&limit=100&minSeverity=40
 ↓
-[Middleware] → Rate Limiting → CORS → Authentication
+[Middleware] → Rate Limiting (Redis) → CORS → Authentication (Redis Session)
 ↓
 [Route Handler] → Parse & Validate Query Params
 ↓
-[Threat Service] → Calculate Threat Scores
-↓
-[Repository Layer] → Query Database (CTEs)
-↓
-[PostgreSQL] → Execute Query with PostGIS Distance Calculations
-↓
-[Repository Layer] → Map DB Results to Domain Models
-↓
-[Threat Service] → Apply Pagination & Filtering
+[Threat Service] → Check Redis Cache
+├─→ [Cache Hit] → Return Cached Score
+└─→ [Cache Miss] → Calculate Threat Scores
+    ↓
+    [Repository Layer] → Query Database (CTEs)
+    ↓
+    [PostgreSQL] → Execute Query with PostGIS Distance Calculations
+    ↓
+    [Repository Layer] → Map DB Results to Domain Models
+    ↓
+    [Threat Service] → Cache Result in Redis (5 min TTL)
 ↓
 [Route Handler] → Format Response
 ↓
 [Frontend] → Render Threat Table
 
+```
+
+### Weather FX Request Flow
+
+```
+[Frontend Map Move] → useWeatherFx Hook
+↓
+[openMeteoClient] → GET /api/weather?lat=...&lon=...
+↓
+[Express Proxy] → GET https://api.open-meteo.com/v1/forecast?...
+↓
+[Open-Meteo API] → Returns JSON (Temp, Code, CloudCover)
+↓
+[Frontend] → weatherFxPolicy.ts (Classifies weather: Rain/Snow/Clear)
+├─→ [applyWeatherFog] → Update Mapbox Fog (Color/Range)
+└─→ [WeatherParticleOverlay] → Render Canvas Particles (Rain/Snow)
 ```
 
 ### Enrichment Data Flow
@@ -305,11 +289,11 @@ User Request
 │ bssid (PK) │────┐ │ id (PK) │
 │ ssid │ │ │ bssid (FK) │
 │ type (W/E/B/L/N/G) │ └───→│ lat │
-│ encryption │ │ lon │
-│ last_seen │ │ signal_strength │
-│ capabilities │ │ time │
-└──────────────────────────┘ │ accuracy │
-│ └───────────────────────────┘
+│ lon │
+│ encryption │ │ signal_strength │
+│ last_seen │ │ time │
+│ capabilities │ │ accuracy │
+└──────────────────────────┘ │ └───────────────────────────┘
 │
 │ 1:1
 ↓
@@ -335,7 +319,7 @@ User Request
 │ first_seen │ └───────────────────────────┘
 └──────────────────────────┘
 
-````
+```
 
 ### Key Indexes
 
@@ -351,7 +335,7 @@ CREATE INDEX idx_network_tags_bssid ON app.network_tags(bssid);
 CREATE INDEX idx_locations_geom ON app.locations_legacy USING GIST (
   ST_SetSRID(ST_MakePoint(lon, lat), 4326)
 );
-````
+```
 
 ## Threat Detection Algorithm
 
@@ -464,7 +448,7 @@ HAVING COUNT(DISTINCT location_id) >= 2
 
 - **Primary Threat**: Unauthorized data access and manipulation
 - **Mitigation**:
-  - Rate limiting (1000 req/15min per IP)
+  - Rate limiting (1000 req/15min per IP) via Redis
   - API key for sensitive endpoints
   - CORS origin whitelisting
   - SQL injection prevention (parameterized queries)
@@ -571,7 +555,6 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 ### Phase 2: Data Layer Optimization
 
-- [ ] Add Redis caching layer
 - [ ] Implement database read replicas
 - [ ] Add connection pool monitoring
 - [ ] Optimize slow queries with materialized views
@@ -610,6 +593,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - Express 4.x (HTTP server)
 - pg 8.x (PostgreSQL client)
 - PostgreSQL 18 + PostGIS (geospatial database)
+- Redis 4.0+ (Caching, Sessions)
 
 **Frontend:**
 
@@ -625,7 +609,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 - Docker + Docker Compose (containerization)
 - GitHub Actions (CI/CD)
 - PostgreSQL (database)
-- Redis (future: caching)
+- Redis (cache)
 
 **Testing:**
 
