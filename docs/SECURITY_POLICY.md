@@ -56,6 +56,11 @@ This project follows strict security guidelines:
    - Use environment variables or keyring for passwords
    - Enable SSL connections in production
 
+4. **Agency Offices Data Source**:
+   - Data is sourced from the FBI public website (FBI.gov).
+   - Metadata includes enrichment sources (Smarty, Mapbox, Nominatim, USPS).
+   - The dataset contains no PII beyond public contact information for government offices.
+
 ## Security Audit History
 
 - **2025-12-04**: Comprehensive security audit completed

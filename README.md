@@ -19,6 +19,7 @@
 - **Integrated Asset Serving**: The main Express server natively serves compiled frontend assets from `dist/` with optimized security headers.
 - **Universal filter system** with 20+ filter types supporting complex queries across all pages
 - **DevContainer support** for consistent development environments with VS Code integration
+- **Static server** with security headers for production deployment and Lighthouse audits
 - **PostGIS materialized views** for fast explorer pages with precomputed threat intelligence
 - **ETL pipeline** lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed
 - **Machine learning** with multiple algorithms (Logistic Regression, Random Forest, Gradient Boosting) and hyperparameter optimization
@@ -29,6 +30,7 @@
 - **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards.
 - **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**.
 - **Weather FX System:** Real-time atmospheric visualization with rain/snow particle effects, dynamic fog, and historical weather lookup for observation points.
+- **Agency Offices Dataset:** [NEW] 56 Field Offices (100% ZIP+4 coverage) and 334 Resident Agencies (93.4% ZIP+4 coverage) with PostGIS coordinate points for geospatial correlation.
 - **Geospatial Explorer:** Map-based network exploration with overlays and timeline views.
 - **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering.
 - **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms.
@@ -58,6 +60,13 @@ See `docs/FEATURES.md` for the full feature catalog.
 - Filters are used instead of caps; Kepler.gl is designed for large datasets.
 
 ## Recent Improvements (February 2026)
+
+✅ **Agency Offices Dataset Completion**
+
+- **Field Offices**: 56 total, 56 ZIP+4 (100%), 0 ZIP5-only.
+- **Resident Agencies**: 334 total, 312 ZIP+4 (93.4%), 22 ZIP5-only.
+- **Data Completeness**: 0 missing cities, states, postal codes, phones, websites, or coordinates across all 390 primary records.
+- **Normalization**: Full address and phone normalization (10 digits) with original value preservation.
 
 ✅ **Weather FX & Atmospheric Visualization**
 
