@@ -41,6 +41,7 @@ interface RouteModules {
   settingsRoutes: Router;
   networkTagsRoutes: Router;
   authRoutes: Router;
+  weatherRoutes: Router;
   miscRoutes: Router;
 }
 
