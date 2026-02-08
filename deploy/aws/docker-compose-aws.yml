@@ -23,10 +23,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
