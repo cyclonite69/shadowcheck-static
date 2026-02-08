@@ -9,6 +9,7 @@ services:
       dockerfile: Dockerfile
       network: host
     container_name: shadowcheck_static_api
+    hostname: parrot
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -18,6 +19,8 @@ services:
       DB_PORT: 5432
       DB_USER: ${DB_USER:-shadowcheck_user}
       DB_NAME: ${DB_NAME:-shadowcheck_db}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_SSL: ${DB_SSL:-false}
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       # Connect to local Redis

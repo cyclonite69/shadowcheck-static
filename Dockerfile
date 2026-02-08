@@ -33,22 +33,24 @@ RUN npm prune --omit=dev
 FROM node:20-alpine
 
 # Install dumb-init for proper signal handling, pg_dump for backups, AWS CLI for S3, and Docker CLI for PgAdmin management
-RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec
+RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl
 
 # Install AWS SSM Session Manager Plugin for in-app terminal
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
-      SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb"; \
+      SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+      SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_arm64/session-manager-plugin.rpm"; \
     else \
-      SSM_URL="https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_arm64/session-manager-plugin.deb"; \
+      echo "Unsupported architecture: $ARCH"; exit 1; \
     fi && \
-    apk add --no-cache --virtual .ssm-deps dpkg && \
-    wget -q "$SSM_URL" -O /tmp/ssm.deb && \
-    dpkg -x /tmp/ssm.deb /tmp/ssm && \
-    mv /tmp/ssm/usr/local/sessionmanagerplugin/bin/session-manager-plugin /usr/local/bin/ && \
+    curl -sL "$SSM_URL" -o /tmp/ssm.rpm && \
+    apk add --no-cache rpm && \
+    cd /tmp && rpm2cpio ssm.rpm | cpio -idmv && \
+    mv /tmp/usr/local/sessionmanagerplugin/bin/session-manager-plugin /usr/local/bin/ && \
     chmod +x /usr/local/bin/session-manager-plugin && \
-    rm -rf /tmp/ssm /tmp/ssm.deb && \
-    apk del .ssm-deps
+    rm -rf /tmp/* && \
+    apk del rpm
 
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \

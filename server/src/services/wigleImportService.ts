@@ -12,6 +12,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'changeme',
   port: process.env.DB_PORT || 5432,
   max: 1,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });
 
 async function importWigleV2Json(jsonFilePath) {

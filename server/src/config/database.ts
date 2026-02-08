@@ -48,6 +48,7 @@ const pool = new Pool({
   statement_timeout: 60000, // 60 seconds
   application_name: DB_APP_NAME,
   options: `-c search_path=${DB_SEARCH_PATH}`,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });
 
 // Pool error handler
