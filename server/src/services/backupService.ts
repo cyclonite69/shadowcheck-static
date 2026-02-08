@@ -4,6 +4,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('../logging/logger');
 const secretsManager = require('./secretsManager');
+const { getAwsConfig } = require('./awsService');
 
 export {};
 
@@ -95,15 +96,29 @@ const uploadToS3 = async (filePath, fileName) => {
 
   logger.info(`[Backup] Uploading to S3: s3://${bucketName}/${s3Key}`);
 
+  const awsConfig = await getAwsConfig();
+  const env: Record<string, string> = {
+    ...(process.env as Record<string, string>),
+    PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
+  };
+
+  if (awsConfig.hasExplicitCredentials) {
+    env.AWS_ACCESS_KEY_ID = awsConfig.credentials.accessKeyId;
+    env.AWS_SECRET_ACCESS_KEY = awsConfig.credentials.secretAccessKey;
+    if (awsConfig.credentials.sessionToken) {
+      env.AWS_SESSION_TOKEN = awsConfig.credentials.sessionToken;
+    }
+  }
+  if (awsConfig.region) {
+    env.AWS_DEFAULT_REGION = awsConfig.region;
+  }
+
   return new Promise((resolve, reject) => {
-    const child = spawn('aws', [
-      's3',
-      'cp',
-      filePath,
-      `s3://${bucketName}/${s3Key}`,
-      '--storage-class',
-      'STANDARD_IA',
-    ]);
+    const child = spawn(
+      'aws',
+      ['s3', 'cp', filePath, `s3://${bucketName}/${s3Key}`, '--storage-class', 'STANDARD_IA'],
+      { env }
+    );
 
     let stdout = '';
     let stderr = '';
@@ -206,19 +221,40 @@ const listS3Backups = async () => {
 
   logger.info(`[Backup] Listing S3 backups from s3://${bucketName}/backups/`);
 
+  const awsConfig = await getAwsConfig();
+  const env: Record<string, string> = {
+    ...(process.env as Record<string, string>),
+    PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
+  };
+
+  if (awsConfig.hasExplicitCredentials) {
+    env.AWS_ACCESS_KEY_ID = awsConfig.credentials.accessKeyId;
+    env.AWS_SECRET_ACCESS_KEY = awsConfig.credentials.secretAccessKey;
+    if (awsConfig.credentials.sessionToken) {
+      env.AWS_SESSION_TOKEN = awsConfig.credentials.sessionToken;
+    }
+  }
+  if (awsConfig.region) {
+    env.AWS_DEFAULT_REGION = awsConfig.region;
+  }
+
   return new Promise((resolve, reject) => {
-    const child = spawn('aws', [
-      's3api',
-      'list-objects-v2',
-      '--bucket',
-      bucketName,
-      '--prefix',
-      'backups/',
-      '--query',
-      'Contents[?Size>`0`].{Key:Key,Size:Size,LastModified:LastModified}',
-      '--output',
-      'json',
-    ]);
+    const child = spawn(
+      'aws',
+      [
+        's3api',
+        'list-objects-v2',
+        '--bucket',
+        bucketName,
+        '--prefix',
+        'backups/',
+        '--query',
+        'Contents[?Size>`0`].{Key:Key,Size:Size,LastModified:LastModified}',
+        '--output',
+        'json',
+      ],
+      { env }
+    );
 
     let stdout = '';
     let stderr = '';
@@ -263,8 +299,27 @@ const deleteS3Backup = async (key: string) => {
 
   logger.info(`[Backup] Deleting S3 backup: s3://${bucketName}/${key}`);
 
+  const awsConfig = await getAwsConfig();
+  const env: Record<string, string> = {
+    ...(process.env as Record<string, string>),
+    PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
+  };
+
+  if (awsConfig.hasExplicitCredentials) {
+    env.AWS_ACCESS_KEY_ID = awsConfig.credentials.accessKeyId;
+    env.AWS_SECRET_ACCESS_KEY = awsConfig.credentials.secretAccessKey;
+    if (awsConfig.credentials.sessionToken) {
+      env.AWS_SESSION_TOKEN = awsConfig.credentials.sessionToken;
+    }
+  }
+  if (awsConfig.region) {
+    env.AWS_DEFAULT_REGION = awsConfig.region;
+  }
+
   return new Promise((resolve, reject) => {
-    const child = spawn('aws', ['s3api', 'delete-object', '--bucket', bucketName, '--key', key]);
+    const child = spawn('aws', ['s3api', 'delete-object', '--bucket', bucketName, '--key', key], {
+      env,
+    });
 
     let stdout = '';
     let stderr = '';

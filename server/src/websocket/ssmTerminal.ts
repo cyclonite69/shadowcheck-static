@@ -123,6 +123,7 @@ function initializeSsmWebSocket(
           ...(process.env as Record<string, string>),
           AWS_ACCESS_KEY_ID: awsConfig.credentials.accessKeyId,
           AWS_SECRET_ACCESS_KEY: awsConfig.credentials.secretAccessKey,
+          PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
         };
         if (awsConfig.region) {
           env.AWS_DEFAULT_REGION = awsConfig.region;

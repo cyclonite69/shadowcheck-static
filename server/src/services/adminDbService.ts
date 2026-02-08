@@ -46,6 +46,7 @@ function getAdminPool() {
     statement_timeout: 300000, // 5 minutes for heavy admin tasks
     application_name: DB_APP_NAME,
     options: `-c search_path=${DB_SEARCH_PATH}`,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   });
 
   adminPool.on('error', (err) => {
