@@ -14,15 +14,21 @@ const KEYRING_FILE = path.join(os.homedir(), '.local/share/shadowcheck/keyring.e
 
 function decrypt(encryptedData, machineId) {
   const key = crypto.scryptSync(machineId, 'shadowcheck-salt', 32);
-  const parts = encryptedData.split(':');
-  const iv = Buffer.from(parts[0], 'hex');
-  const encrypted = Buffer.from(parts[1], 'hex');
+  const [ivHex, encryptedHex] = encryptedData.split(':');
+  const iv = Buffer.from(ivHex, 'hex');
+  const encBuffer = Buffer.from(encryptedHex, 'hex');
 
-  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-  let decrypted = decipher.update(encrypted);
+  // Extract auth tag (last 16 bytes)
+  const authTag = encBuffer.slice(-16);
+  const ciphertext = encBuffer.slice(0, -16);
+
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(authTag);
+
+  let decrypted = decipher.update(ciphertext);
   decrypted = Buffer.concat([decrypted, decipher.final()]);
 
-  return JSON.parse(decrypted.toString());
+  return JSON.parse(decrypted.toString('utf8'));
 }
 
 const secretName = process.argv[2];
