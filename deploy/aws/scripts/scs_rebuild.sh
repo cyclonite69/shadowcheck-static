@@ -19,10 +19,10 @@ echo "=== scs_rebuild ==="
 echo "[1/4] Pulling latest..."
 git pull origin master
 
-# 2. Build images
+# 2. Build images (--no-cache ensures code changes are picked up)
 echo "[2/4] Building images..."
-docker build -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
-docker build -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
+docker build --no-cache -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
+docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
 
 # 3. Build env
 echo "[3/4] Preparing environment..."
