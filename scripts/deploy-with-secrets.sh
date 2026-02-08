@@ -17,7 +17,17 @@ fi
 
 # Load secrets
 echo "🔑 Loading secrets from keyring..."
-source "$SCRIPT_DIR/load-secrets.sh"
+export DB_PASSWORD=$(node "$SCRIPT_DIR/get-secret-simple.js" db_password 2>/dev/null || echo "")
+export SESSION_SECRET=$(node "$SCRIPT_DIR/get-secret-simple.js" session_secret 2>/dev/null || echo "")
+export MAPBOX_TOKEN=$(node "$SCRIPT_DIR/get-secret-simple.js" mapbox_token 2>/dev/null || echo "")
+export KEYRING_MACHINE_ID=$(cat "$HOME/.shadowcheck-machine-id" 2>/dev/null || echo "")
+
+if [ -z "$DB_PASSWORD" ]; then
+  echo "❌ Required secret 'db_password' not found"
+  exit 1
+fi
+
+echo "✅ Secrets loaded"
 
 # Start containers with secrets
 echo "🚀 Starting containers..."
