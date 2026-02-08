@@ -33,11 +33,11 @@ git pull origin master
 
 # Build new images
 echo "==> Building frontend and backend images..."
-docker-compose -f "$COMPOSE_FILE" build --no-cache
+docker-compose -f "$COMPOSE_FILE" --env-file "$REPO_ROOT/.env" build --no-cache
 
 # Start services
 echo "==> Starting separated containers..."
-docker-compose -f "$COMPOSE_FILE" up -d
+docker-compose -f "$COMPOSE_FILE" --env-file "$REPO_ROOT/.env" up -d
 
 # Wait for health checks
 echo "==> Waiting for services to be healthy..."
@@ -45,7 +45,7 @@ sleep 10
 
 # Check status
 echo "==> Container status:"
-docker-compose -f "$COMPOSE_FILE" ps
+docker-compose -f "$COMPOSE_FILE" --env-file "$REPO_ROOT/.env" ps
 
 echo ""
 echo "==> Deployment complete!"
