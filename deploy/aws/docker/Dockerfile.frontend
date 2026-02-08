@@ -12,7 +12,7 @@ RUN npm ci --include=dev
 COPY client ./client
 COPY scripts ./scripts
 
-RUN npm run build
+RUN npm run build:frontend
 
 ###########################################
 # Production image - Nginx
