@@ -22,22 +22,37 @@ router.get('/health', async (req, res) => {
   }
 
   // 2. Secrets check
-  const requiredSecrets = ['db_password', 'mapbox_token'];
-  const loadedCount = requiredSecrets.filter((s) => secretsManager.has(s)).length;
+  // Only db_password is truly required for the API to function.
+  // mapbox_token is important but its absence should degrade, not block.
+  const criticalSecrets = ['db_password'];
+  const importantSecrets = ['mapbox_token'];
+  const criticalLoaded = criticalSecrets.filter((s) => secretsManager.has(s)).length;
+  const importantLoaded = importantSecrets.filter((s) => secretsManager.has(s)).length;
+  const totalRequired = criticalSecrets.length + importantSecrets.length;
+  const totalLoaded = criticalLoaded + importantLoaded;
 
-  if (loadedCount === requiredSecrets.length) {
-    (checks as any).secrets = {
-      status: 'ok',
-      required_count: requiredSecrets.length,
-      loaded_count: loadedCount,
-    };
-  } else {
+  if (criticalLoaded < criticalSecrets.length) {
     (checks as any).secrets = {
       status: 'error',
-      required_count: requiredSecrets.length,
-      loaded_count: loadedCount,
+      required_count: totalRequired,
+      loaded_count: totalLoaded,
     };
     overallStatus = 'unhealthy';
+  } else if (importantLoaded < importantSecrets.length) {
+    (checks as any).secrets = {
+      status: 'degraded',
+      required_count: totalRequired,
+      loaded_count: totalLoaded,
+    };
+    if (overallStatus === 'healthy') {
+      overallStatus = 'degraded';
+    }
+  } else {
+    (checks as any).secrets = {
+      status: 'ok',
+      required_count: totalRequired,
+      loaded_count: totalLoaded,
+    };
   }
 
   // 3. Keyring check (optional - degraded if fails)
