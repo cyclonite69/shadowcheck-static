@@ -1,4 +1,5 @@
 import React from 'react';
+import { WigleLayerState } from './WiglePage';
 
 interface WigleControlPanelProps {
   isOpen: boolean;
@@ -15,10 +16,8 @@ interface WigleControlPanelProps {
   loading: boolean;
   rowsLoaded: number;
   totalRows: number | null;
-  dataSource: 'v2' | 'v3';
-  onDataSourceChange: (source: 'v2' | 'v3') => void;
-  showAgencyOffices?: boolean;
-  onToggleAgencyOffices?: () => void;
+  layers: WigleLayerState;
+  onToggleLayer: (key: keyof WigleLayerState) => void;
 }
 
 export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
@@ -36,10 +35,8 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
   loading,
   rowsLoaded,
   totalRows,
-  dataSource,
-  onDataSourceChange,
-  showAgencyOffices = true,
-  onToggleAgencyOffices,
+  layers,
+  onToggleLayer,
 }) => {
   if (!isOpen) return null;
 
@@ -62,27 +59,23 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
 
       {/* Data Source Toggle */}
       <div>
-        <label className="block mb-1 text-xs text-slate-300">Data Source</label>
+        <label className="block mb-1 text-xs text-slate-300">WiGLE Data</label>
         <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
           <button
-            onClick={() => onDataSourceChange('v2')}
+            onClick={() => onToggleLayer('v2')}
             className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
-              dataSource === 'v2'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:text-white'
+              layers.v2 ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
-            v2 (Search)
+            {layers.v2 ? '✓ ' : ''}v2
           </button>
           <button
-            onClick={() => onDataSourceChange('v3')}
+            onClick={() => onToggleLayer('v3')}
             className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
-              dataSource === 'v3'
-                ? 'bg-violet-600 text-white shadow'
-                : 'text-slate-400 hover:text-white'
+              layers.v3 ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
-            v3 (Detail)
+            {layers.v3 ? '✓ ' : ''}v3
           </button>
         </div>
       </div>
@@ -131,21 +124,31 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
       </div>
 
       {/* Layer Visibility */}
-      {onToggleAgencyOffices && (
-        <div>
-          <label className="block mb-1 text-xs text-slate-300">Layers</label>
+      <div>
+        <label className="block mb-1 text-xs text-slate-300">Agency Offices</label>
+        <div className="flex gap-2">
           <button
-            onClick={onToggleAgencyOffices}
-            className={`w-full rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-              showAgencyOffices
+            onClick={() => onToggleLayer('fieldOffices')}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+              layers.fieldOffices
                 ? 'bg-red-600 text-white shadow-lg'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
-            {showAgencyOffices ? '✓ ' : ''}Agency Offices
+            {layers.fieldOffices ? '✓ ' : ''}Field
+          </button>
+          <button
+            onClick={() => onToggleLayer('residentAgencies')}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+              layers.residentAgencies
+                ? 'bg-orange-600 text-white shadow-lg'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            {layers.residentAgencies ? '✓ ' : ''}Resident
           </button>
         </div>
-      )}
+      </div>
 
       {/* Load Points button */}
       <button
