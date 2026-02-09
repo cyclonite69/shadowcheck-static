@@ -75,7 +75,7 @@ export const PgAdminTab: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <AdminCard icon={DatabaseIcon} title="PgAdmin Status" color="from-slate-500 to-slate-600">
         <div className="space-y-4">
           <div className="flex items-center justify-between">

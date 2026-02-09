@@ -91,7 +91,7 @@ export const ApiTestingTab: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-4">
       {/* Status Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <AdminCard icon={DatabaseIcon} title="API Status" color="from-cyan-500 to-cyan-600" compact>
@@ -135,7 +135,7 @@ export const ApiTestingTab: React.FC = () => {
       </div>
 
       {/* Request/Response */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Request Panel */}
         <AdminCard icon={UploadIcon} title="Request" color="from-purple-500 to-purple-600">
           <div className="space-y-4">
