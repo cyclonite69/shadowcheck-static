@@ -192,6 +192,8 @@ const WiglePage: React.FC = () => {
   const clusterColorCache = useRef<Record<string, Record<number, string>>>({ v2: {}, v3: {} });
   const v2FCRef = useRef<any>(null);
   const v3FCRef = useRef<any>(null);
+  const autoFetchedRef = useRef<{ v2: boolean; v3: boolean }>({ v2: false, v3: false });
+  const styleEffectInitRef = useRef(false);
   const [limit, setLimit] = useState<number | null>(DEFAULT_LIMIT);
   const [offset, setOffset] = useState(0);
   const [typeFilter, setTypeFilter] = useState('');
@@ -210,6 +212,8 @@ const WiglePage: React.FC = () => {
 
   // Layer visibility state (persisted)
   const [layers, setLayersState] = useState<WigleLayerState>(loadLayerState);
+  const layersRef = useRef(layers);
+  layersRef.current = layers;
   const setLayers = useCallback(
     (updater: WigleLayerState | ((prev: WigleLayerState) => WigleLayerState)) => {
       setLayersState((prev) => {
@@ -460,7 +464,7 @@ const WiglePage: React.FC = () => {
     ensureV3Layers();
   }, [ensureV2Layers, ensureV3Layers]);
 
-  // Apply layer visibility on the map
+  // Apply layer visibility on the map (stable ref — reads current layers from layersRef)
   const applyLayerVisibility = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -471,13 +475,14 @@ const WiglePage: React.FC = () => {
       }
     };
 
-    setVis('wigle-v2-clusters', layers.v2);
-    setVis('wigle-v2-cluster-count', layers.v2);
-    setVis('wigle-v2-unclustered', layers.v2);
-    setVis('wigle-v3-clusters', layers.v3);
-    setVis('wigle-v3-cluster-count', layers.v3);
-    setVis('wigle-v3-unclustered', layers.v3);
-  }, [layers.v2, layers.v3]);
+    const { v2, v3 } = layersRef.current;
+    setVis('wigle-v2-clusters', v2);
+    setVis('wigle-v2-cluster-count', v2);
+    setVis('wigle-v2-unclustered', v2);
+    setVis('wigle-v3-clusters', v3);
+    setVis('wigle-v3-cluster-count', v3);
+    setVis('wigle-v3-unclustered', v3);
+  }, []);
 
   // Attach click handlers once
   const attachClickHandlers = useCallback(() => {
@@ -751,7 +756,7 @@ const WiglePage: React.FC = () => {
   // Apply layer visibility whenever layers toggle
   useEffect(() => {
     applyLayerVisibility();
-  }, [applyLayerVisibility]);
+  }, [layers.v2, layers.v3, applyLayerVisibility]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -818,17 +823,42 @@ const WiglePage: React.FC = () => {
       );
     }
 
-    if (promises.length === 0) {
-      setError('Enable at least one data layer (v2 or v3) to load points');
-    }
+    if (promises.length === 0) return;
 
     await Promise.all(promises);
   }, [limit, offset, typeFilter, adaptedFilters, layers.v2, layers.v3]);
+
+  // Auto-fetch when a data layer is toggled ON and has no data yet
+  useEffect(() => {
+    if (!mapReady) return;
+    const needsV2 = layers.v2 && v2Rows.length === 0 && !v2Loading && !autoFetchedRef.current.v2;
+    const needsV3 = layers.v3 && v3Rows.length === 0 && !v3Loading && !autoFetchedRef.current.v3;
+    if (needsV2 || needsV3) {
+      if (needsV2) autoFetchedRef.current.v2 = true;
+      if (needsV3) autoFetchedRef.current.v3 = true;
+      fetchPoints();
+    }
+  }, [
+    layers.v2,
+    layers.v3,
+    mapReady,
+    v2Rows.length,
+    v3Rows.length,
+    v2Loading,
+    v3Loading,
+    fetchPoints,
+  ]);
 
   // Handle map style changes - use ref to get latest featureCollection without causing re-runs
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
+
+    // Skip on initial mount — initMap already set up the correct style and layers
+    if (!styleEffectInitRef.current) {
+      styleEffectInitRef.current = true;
+      return;
+    }
 
     const recreateLayers = () => {
       ensureAllLayers();
