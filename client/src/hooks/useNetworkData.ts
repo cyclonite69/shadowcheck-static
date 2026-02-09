@@ -168,7 +168,7 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     latitude: typeof row.lat === 'number' ? row.lat : null,
     longitude: typeof row.lon === 'number' ? row.lon : null,
     distanceFromHome:
-      typeof row.distance_from_home_km === 'number' ? row.distance_from_home_km : null,
+      typeof row.distance_from_home_km === 'number' ? row.distance_from_home_km * 1000 : null,
     accuracy: typeof row.accuracy_meters === 'number' ? row.accuracy_meters : null,
     firstSeen: row.first_observed_at || null,
     lastSeen: row.last_observed_at || row.observed_at || null,

@@ -228,10 +228,8 @@ export const NetworkTableRow = ({
           }
         } else if (col === 'distanceFromHome') {
           const distValue = value as number | null;
-          if (distValue !== null && distValue !== 9497.62809709848) {
-            // Remove hardcoded fallback
-            content =
-              distValue >= 1 ? `${distValue.toFixed(2)} km` : `${(distValue * 1000).toFixed(0)} m`;
+          if (distValue !== null) {
+            content = `${Math.round(distValue)} m`;
           } else {
             content = 'Not computed';
           }
