@@ -105,7 +105,7 @@ export const GeocodingTab: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <AdminCard icon={MapIcon} title="Geocoding Cache" color="from-indigo-500 to-indigo-600">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 text-sm">

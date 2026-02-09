@@ -59,7 +59,7 @@ export const AwsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-4">
       <AdminCard icon={CloudIcon} title="AWS Overview" color="from-cyan-500 to-cyan-600">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

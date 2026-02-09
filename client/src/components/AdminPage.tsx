@@ -219,31 +219,39 @@ const AdminPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-transparent">
+    <div className="relative w-full h-screen overflow-y-auto bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Fixed background accents */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+      </div>
+
       {/* Centered Container */}
-      <div className="w-full max-w-6xl mx-auto px-6 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mb-4">
-            <SettingsIcon size={32} className="text-white" />
+      <div className="relative w-full max-w-7xl mx-auto px-6 py-4">
+        {/* Compact Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg shadow-blue-500/20">
+            <SettingsIcon size={20} className="text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Admin Panel</h1>
-          <p className="text-slate-400 text-base">System configuration and data management</p>
+          <div>
+            <h1 className="text-xl font-bold text-white leading-tight">Admin Panel</h1>
+            <p className="text-xs text-slate-400">System configuration and data management</p>
+          </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap justify-center gap-2 mb-12 bg-slate-800/20 p-3 rounded-xl border border-slate-700/50 max-w-4xl mx-auto">
+        <div className="flex flex-wrap gap-1.5 mb-5 bg-slate-900/60 p-2 rounded-xl border border-slate-700/40 backdrop-blur-sm">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-medium transition-all text-xs whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/30'
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25 ring-1 ring-blue-400/30 scale-[1.02]'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700/40 hover:shadow-md'
               }`}
             >
-              <tab.icon size={16} />
+              <tab.icon size={14} />
               <span>{tab.label}</span>
             </button>
           ))}

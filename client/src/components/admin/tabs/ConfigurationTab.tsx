@@ -83,7 +83,7 @@ export const ConfigurationTab: React.FC = () => {
   } = useConfiguration();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Mapbox */}
       <AdminCard icon={DatabaseIcon} title="Mapbox Configuration" color="from-blue-500 to-blue-600">
         <div className="space-y-4">

@@ -22,7 +22,7 @@ export const DataImportTab: React.FC = () => {
   const { isLoading, importStatus, handleFileImport } = useDataImport();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* SQLite Import */}
       <AdminCard icon={UploadIcon} title="SQLite Import" color="from-orange-500 to-orange-600">
         <div className="space-y-4">

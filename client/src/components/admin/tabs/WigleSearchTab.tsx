@@ -73,7 +73,7 @@ export const WigleSearchTab: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-4">
       {/* Status Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <AdminCard
@@ -176,7 +176,7 @@ export const WigleSearchTab: React.FC = () => {
       </div>
 
       {/* Coordinate Ranges */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Latitude Range */}
         <AdminCard
           icon={DatabaseIcon}
@@ -245,7 +245,7 @@ export const WigleSearchTab: React.FC = () => {
       </div>
 
       {/* Search Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Search Card */}
         <AdminCard icon={SearchIcon} title="Execute Search" color="from-purple-500 to-purple-600">
           <div className="space-y-4">
@@ -282,7 +282,7 @@ export const WigleSearchTab: React.FC = () => {
         </AdminCard>
 
         {/* Results Card - now full width if results exist */}
-        <div className={searchResults ? 'md:col-span-2' : ''}>
+        <div className={searchResults ? 'md:col-span-3' : ''}>
           <AdminCard
             icon={DownloadIcon}
             title="Search Results"
