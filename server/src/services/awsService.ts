@@ -1,6 +1,6 @@
 export {};
 const keyringService = require('./keyringService').default;
-const secretsManager = require('./secretsManager');
+const secretsManager = require('./secretsManager').default;
 
 type AwsCredentials = {
   accessKeyId: string;

@@ -163,7 +163,7 @@ router.get('/networks-v2', validateWigleNetworksQuery, async (req, res, next) =>
       total = parseInt(countResult.rows[0].total, 10);
     }
 
-    res.json({ ok: true, count: rows.length, total, networks: rows });
+    res.json({ ok: true, count: rows.length, total, data: rows });
   } catch (err) {
     next(err);
   }
@@ -210,7 +210,7 @@ router.get('/networks-v3', validateWigleNetworksQuery, async (req, res, next) =>
                        FROM app.wigle_v3_networks ORDER BY lastupdt DESC ${paginationSql}`;
     const { rows } = await query(dataQuery, params);
 
-    res.json({ ok: true, count: rows.length, networks: rows });
+    res.json({ ok: true, count: rows.length, data: rows });
   } catch (err) {
     next(err);
   }

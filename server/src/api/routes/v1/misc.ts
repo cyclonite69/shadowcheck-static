@@ -8,7 +8,7 @@ const express = require('express');
 const path = require('path');
 const { pool } = require('../../../config/database');
 const logger = require('../../../logging/logger');
-const secretsManager = require('../../../services/secretsManager');
+const secretsManager = require('../../../services/secretsManager').default;
 const { importWigleDirectory } = require('../../../services/wigleImportService');
 
 const router = express.Router();

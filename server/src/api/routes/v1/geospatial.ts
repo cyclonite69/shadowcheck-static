@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const secretsManager = require('../../../services/secretsManager');
+const secretsManager = require('../../../services/secretsManager').default;
 const keyringService = require('../../../services/keyringService').default;
 const { Readable } = require('stream');
 const { URL } = require('url');

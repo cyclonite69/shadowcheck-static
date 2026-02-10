@@ -2,7 +2,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const keyringService = require('../../../services/keyringService').default;
-const secretsManager = require('../../../services/secretsManager');
+const secretsManager = require('../../../services/secretsManager').default;
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const { validateString } = require('../../../validation/schemas');
 
