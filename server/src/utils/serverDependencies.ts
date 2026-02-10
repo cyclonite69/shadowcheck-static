@@ -87,7 +87,7 @@ function loadRouteModules(): RouteModules {
     settingsRoutes: require('../api/routes/v1/settings'),
     networkTagsRoutes: require('../api/routes/v1/network-tags'),
     authRoutes: require('../api/routes/v1/auth'),
-    weatherRoutes: require('../api/routes/v1/weather'),
+    weatherRoutes: require('../api/routes/v1/weather').default,
     miscRoutes: require('../api/routes/v1/misc'),
   };
 }
