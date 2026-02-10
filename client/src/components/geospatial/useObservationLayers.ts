@@ -94,32 +94,42 @@ export const useObservationLayers = ({
 
     // Create numbered point features for each observation (numbered per network)
     const jitterIndex = new Map<string, number>();
-    const features = activeObservationSets.flatMap((set) => {
+    const features: any[] = [];
+
+    activeObservationSets.forEach((set) => {
       let lastPoint: [number, number] | null = null;
       let lastTime: Date | null = null;
 
-      return set.observations.map((obs, index) => {
+      set.observations.forEach((obs, index) => {
         const network = networkLookup.get(obs.bssid);
         const threatLevel = network?.threat?.level ?? 'NONE';
         const lat = obs.lat;
         const lon = obs.lon;
 
-        // Calculate distance from last point in meters
+        // Calculate distance from last point in meters (optimized)
         let deltaMeters = null;
         if (lastPoint) {
           const [lastLon, lastLat] = lastPoint;
-          // Simple haversine approximation for small distances
-          const R = 6371e3; // metres
-          const φ1 = (lastLat * Math.PI) / 180;
-          const φ2 = (lat * Math.PI) / 180;
-          const Δφ = ((lat - lastLat) * Math.PI) / 180;
-          const Δλ = ((lon - lastLon) * Math.PI) / 180;
+          const latDiff = Math.abs(lat - lastLat);
+          const lonDiff = Math.abs(lon - lastLon);
 
-          const a =
-            Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          deltaMeters = R * c;
+          // Quick check: if very close, skip expensive calculation
+          if (latDiff > 0.00001 || lonDiff > 0.00001) {
+            // Simple haversine approximation for small distances
+            const R = 6371e3; // metres
+            const φ1 = (lastLat * Math.PI) / 180;
+            const φ2 = (lat * Math.PI) / 180;
+            const Δφ = ((lat - lastLat) * Math.PI) / 180;
+            const Δλ = ((lon - lastLon) * Math.PI) / 180;
+
+            const a =
+              Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            deltaMeters = R * c;
+          } else {
+            deltaMeters = 0; // Very close, essentially same location
+          }
         }
         lastPoint = [lon, lat];
 
@@ -148,7 +158,7 @@ export const useObservationLayers = ({
           displayLon = lon + Math.cos(angle) * radius;
         }
 
-        return {
+        features.push({
           type: 'Feature',
           geometry: {
             type: 'Point',
@@ -183,7 +193,7 @@ export const useObservationLayers = ({
             number: index + 1,
             color: bssidColors[obs.bssid],
           },
-        };
+        });
       });
     });
 
@@ -216,18 +226,14 @@ export const useObservationLayers = ({
       });
     }
 
-    // Auto-zoom to fit bounds of all observations (only on first load or significant change)
-    const totalObservations = features.length;
-    const shouldZoom = totalObservations > 0 && prevObservationCountRef.current === 0;
-    prevObservationCountRef.current = totalObservations;
-
-    if (shouldZoom) {
+    // Auto-zoom to fit bounds of all observations
+    if (features.length > 0) {
       const coords = features.map((f: any) => f.geometry.coordinates as [number, number]);
       const bounds = coords.reduce(
         (bounds, coord) => bounds.extend(coord),
         new mapboxgl.LngLatBounds(coords[0], coords[0])
       );
-      map.fitBounds(bounds, { padding: 50, duration: 800, maxZoom: 15 });
+      map.fitBounds(bounds, { padding: 50, duration: 600, maxZoom: 15 });
     }
   }, [activeObservationSets, mapReady, mapRef, mapboxRef, networkLookup]);
 
