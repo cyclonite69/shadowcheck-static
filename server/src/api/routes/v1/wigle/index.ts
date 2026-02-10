@@ -10,14 +10,16 @@ const router = express.Router();
 import liveRoutes from './live';
 import statusRoutes from './status';
 import databaseRoutes from './database';
+import searchRoutes from './search';
+import detailRoutes from './detail';
+import observationsRoutes from './observations';
 
 // Mount routes
 router.use('/wigle', liveRoutes);
 router.use('/wigle', statusRoutes);
 router.use('/wigle', databaseRoutes);
-
-// Fallback to monolithic routes for endpoints not yet extracted
-const legacyRoutes = require('./routes');
-router.use('/', legacyRoutes);
+router.use('/wigle', searchRoutes);
+router.use('/wigle', detailRoutes);
+router.use('/wigle', observationsRoutes);
 
 export default router;
