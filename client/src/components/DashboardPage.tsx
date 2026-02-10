@@ -20,13 +20,24 @@ import {
 } from './dashboard/icons';
 import { MetricCard } from './dashboard/MetricCard';
 import type { CardData } from './dashboard/MetricCard';
-import { initialCards } from './dashboard/cardDefinitions';
+import { createInitialCards } from './dashboard/cardDefinitions';
 
 export default function DashboardPage() {
   // Set current page for filter scoping
   usePageFilters('dashboard');
 
-  const [cards, setCards] = useState(initialCards);
+  const [cards, setCards] = useState(() =>
+    createInitialCards({
+      Network,
+      Wifi,
+      Smartphone,
+      Bluetooth,
+      Tower,
+      Radio,
+      BarChart3,
+      AlertTriangle,
+    })
+  );
 
   const [dragging, setDragging] = useState(null);
   const [resizing, setResizing] = useState(null);
