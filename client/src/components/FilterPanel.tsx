@@ -16,17 +16,8 @@ import {
   ThreatCategory,
 } from '../types/filters';
 import { FilterSection, FilterInput } from './filter';
-
-const Filter = ({ className = '' }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"
-    />
-  </svg>
-);
+import { FilterPanelHeader } from './filters/FilterPanelHeader';
+import { IdentityFilters, RadioFilters } from './filters/sections';
 
 type FilterPanelDensity = 'normal' | 'compact';
 
@@ -71,239 +62,36 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
       }`}
     >
       {/* Header */}
-      <div
-        className={`filter-panel__header border-b border-slate-700 ${isCompact ? 'p-3' : 'p-4'}`}
-      >
-        <div className={`flex items-center justify-between ${isCompact ? 'mb-2' : 'mb-3'}`}>
-          <div className="flex items-center space-x-2">
-            <Filter className="filter-panel__header-icon w-5 h-5 text-slate-400" />
-            <h2 className="filter-panel__title font-semibold text-slate-200">Filters</h2>
-            {activeFilterCount > 0 && (
-              <span className="filter-panel__badge px-2 py-1 text-xs bg-blue-600 text-white rounded-full">
-                {activeFilterCount}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={clearFilters}
-            className={`bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors ${
-              isCompact ? 'px-1.5 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'
-            }`}
-          >
-            Clear All
-          </button>
-          <button
-            onClick={resetFilters}
-            className={`bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors ${
-              isCompact ? 'px-1.5 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'
-            }`}
-          >
-            Reset
-          </button>
-        </div>
-      </div>
+      <FilterPanelHeader
+        activeFilterCount={activeFilterCount}
+        isCompact={isCompact}
+        onClearAll={clearFilters}
+        onReset={resetFilters}
+      />
 
       {/* Filter Sections */}
       <div className="flex-1 overflow-y-auto overflow-x-visible">
         {/* Identity Filters */}
-        <FilterSection title="Identity" compact={isCompact}>
-          <FilterInput
-            label="SSID"
-            enabled={enabled.ssid || false}
-            onToggle={() => toggleFilter('ssid')}
-            compact={isCompact}
-          >
-            <input
-              type="text"
-              value={filters.ssid || ''}
-              onChange={(e) => setFilter('ssid', e.target.value)}
-              placeholder="Network name..."
-              className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            />
-          </FilterInput>
-
-          <FilterInput
-            label="BSSID (exact or prefix)"
-            enabled={enabled.bssid || false}
-            onToggle={() => toggleFilter('bssid')}
-            compact={isCompact}
-          >
-            <input
-              type="text"
-              value={filters.bssid || ''}
-              onChange={(e) => setFilter('bssid', e.target.value)}
-              placeholder="AA:BB:CC:DD:EE:FF or AA:BB:CC"
-              className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Full BSSID = exact match. Prefix = starts-with match.
-            </p>
-          </FilterInput>
-
-          <FilterInput
-            label="Manufacturer / OUI"
-            enabled={enabled.manufacturer || false}
-            onToggle={() => toggleFilter('manufacturer')}
-            compact={isCompact}
-          >
-            <input
-              type="text"
-              value={filters.manufacturer || ''}
-              onChange={(e) => setFilter('manufacturer', e.target.value)}
-              placeholder="Apple, Samsung, 001A2B..."
-              className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            />
-          </FilterInput>
-
-          <FilterInput
-            label="Internal Network ID"
-            enabled={enabled.networkId || false}
-            onToggle={() => toggleFilter('networkId')}
-            compact={isCompact}
-          >
-            <input
-              type="text"
-              value={filters.networkId || ''}
-              onChange={(e) => setFilter('networkId', e.target.value)}
-              placeholder="unified_id..."
-              className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            />
-          </FilterInput>
-        </FilterSection>
+        <IdentityFilters
+          filters={filters}
+          enabled={enabled}
+          isCompact={isCompact}
+          controlClass={controlClass}
+          onSetFilter={setFilter}
+          onToggleFilter={toggleFilter}
+        />
 
         {/* Radio / Physical Layer */}
-        <FilterSection title="Radio & Physical" compact={isCompact}>
-          <FilterInput
-            label="Radio Types"
-            enabled={enabled.radioTypes || false}
-            onToggle={() => toggleFilter('radioTypes')}
-            compact={isCompact}
-          >
-            <div className={listLayoutClass}>
-              {(['W', 'E', 'B', 'L', 'G', 'N', '?'] as RadioType[]).map((type) => (
-                <label key={type} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.radioTypes?.includes(type) || false}
-                    onChange={(e) => {
-                      const current = filters.radioTypes || [];
-                      const updated = e.target.checked
-                        ? [...current, type]
-                        : current.filter((t) => t !== type);
-                      setFilter('radioTypes', updated);
-                    }}
-                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
-                  />
-                  <span className={`${listItemTextClass} text-slate-300`}>
-                    {type === 'W'
-                      ? 'WiFi'
-                      : type === 'E'
-                        ? 'BLE'
-                        : type === 'B'
-                          ? 'Bluetooth'
-                          : type === 'L'
-                            ? 'LTE'
-                            : type === 'G'
-                              ? 'GSM'
-                              : type === 'N'
-                                ? '5G NR'
-                                : 'Unknown'}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </FilterInput>
-
-          <FilterInput
-            label="Frequency Band"
-            enabled={enabled.frequencyBands || false}
-            onToggle={() => toggleFilter('frequencyBands')}
-            compact={isCompact}
-          >
-            <div className={listLayoutClass}>
-              {(['2.4GHz', '5GHz', '6GHz', 'BLE', 'Cellular'] as FrequencyBand[]).map((band) => (
-                <label key={band} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.frequencyBands?.includes(band) || false}
-                    onChange={(e) => {
-                      const current = filters.frequencyBands || [];
-                      const updated = e.target.checked
-                        ? [...current, band]
-                        : current.filter((b) => b !== band);
-                      setFilter('frequencyBands', updated);
-                    }}
-                    className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
-                  />
-                  <span className={`${listItemTextClass} text-slate-300`}>{band}</span>
-                </label>
-              ))}
-            </div>
-          </FilterInput>
-
-          <FilterInput
-            label="Channel Min"
-            enabled={enabled.channelMin || false}
-            onToggle={() => toggleFilter('channelMin')}
-            compact={isCompact}
-          >
-            <input
-              type="number"
-              value={filters.channelMin ?? ''}
-              onChange={(e) => setFilter('channelMin', parseInt(e.target.value, 10))}
-              placeholder="e.g. 1"
-              className={controlClass}
-            />
-          </FilterInput>
-
-          <FilterInput
-            label="Channel Max"
-            enabled={enabled.channelMax || false}
-            onToggle={() => toggleFilter('channelMax')}
-            compact={isCompact}
-          >
-            <input
-              type="number"
-              value={filters.channelMax ?? ''}
-              onChange={(e) => setFilter('channelMax', parseInt(e.target.value, 10))}
-              placeholder="e.g. 165"
-              className={controlClass}
-            />
-          </FilterInput>
-
-          <FilterInput
-            label="RSSI Min (dBm)"
-            enabled={enabled.rssiMin || false}
-            onToggle={() => toggleFilter('rssiMin')}
-            compact={isCompact}
-          >
-            <input
-              type="number"
-              value={filters.rssiMin ?? ''}
-              onChange={(e) => setFilter('rssiMin', parseInt(e.target.value, 10))}
-              placeholder="-95"
-              className={controlClass}
-            />
-            <p className="mt-1 text-xs text-slate-500">Noise floor enforced at -95 dBm.</p>
-          </FilterInput>
-
-          <FilterInput
-            label="RSSI Max (dBm)"
-            enabled={enabled.rssiMax || false}
-            onToggle={() => toggleFilter('rssiMax')}
-            compact={isCompact}
-          >
-            <input
-              type="number"
-              value={filters.rssiMax ?? ''}
-              onChange={(e) => setFilter('rssiMax', parseInt(e.target.value, 10))}
-              placeholder="-30"
-              className={controlClass}
-            />
-          </FilterInput>
-        </FilterSection>
+        <RadioFilters
+          filters={filters}
+          enabled={enabled}
+          isCompact={isCompact}
+          controlClass={controlClass}
+          listLayoutClass={listLayoutClass}
+          listItemTextClass={listItemTextClass}
+          onSetFilter={setFilter}
+          onToggleFilter={toggleFilter}
+        />
 
         {/* Security */}
         <FilterSection title="Security" compact={isCompact}>

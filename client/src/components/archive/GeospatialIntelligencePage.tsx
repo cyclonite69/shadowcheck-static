@@ -4,6 +4,7 @@ import NetworksExplorer from './NetworksExplorer';
 import ThreatsExplorer from './ThreatsExplorer';
 import { FilterPanel } from './FilterPanel';
 import NetworkTimeFrequencyModal from './modals/NetworkTimeFrequencyModal';
+import { NearestAgenciesPanel } from './geospatial/NearestAgenciesPanel';
 import { useDebouncedFilters, useFilterStore } from '../stores/filterStore';
 import { useFilterURLSync } from '../hooks/useFilteredData';
 import { usePageFilters } from '../hooks/usePageFilters';
@@ -294,6 +295,8 @@ export default function GeospatialIntelligencePage() {
             </div>
 
             <div className="space-y-4">
+              <NearestAgenciesPanel bssid={selectedBssid} />
+
               <ThreatsExplorer
                 networks={networks}
                 onSelect={(bssid) => setSelectedBssid(bssid)}

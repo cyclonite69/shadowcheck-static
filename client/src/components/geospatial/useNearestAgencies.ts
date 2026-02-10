@@ -1,0 +1,61 @@
+import { useState, useEffect } from 'react';
+
+export interface Agency {
+  office_name: string;
+  office_type: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  latitude: number;
+  longitude: number;
+  distance_km: number;
+  has_wigle_obs: boolean;
+}
+
+export const useNearestAgencies = (bssid: string | null) => {
+  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!bssid) {
+      setAgencies([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      const loadAgencies = async () => {
+        setLoading(true);
+        setError('');
+        try {
+          const res = await fetch(
+            `/api/networks/${encodeURIComponent(bssid)}/nearest-agencies?limit=10`,
+            { signal: controller.signal }
+          );
+          const data = await res.json();
+          if (!data.ok) {
+            throw new Error(data.error || 'Failed to load agencies');
+          }
+          setAgencies(data.agencies || []);
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            setError(err.message);
+            setAgencies([]);
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadAgencies();
+    }, 300); // 300ms debounce
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [bssid]);
+
+  return { agencies, loading, error };
+};
