@@ -8,3 +8,5 @@ export { useWigleMapPreferences } from './useWigleMapPreferences';
 export { useWigleLayers } from './useWigleLayers';
 export { useWigleData } from './useWigleData';
 export * from './clusterColors';
+export * from './eventHandlers';
+export * from './layerManagement';
