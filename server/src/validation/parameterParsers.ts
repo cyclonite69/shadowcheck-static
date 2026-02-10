@@ -192,7 +192,7 @@ function parseRadiusParams(latRaw, lngRaw, radiusRaw) {
   };
 }
 
-module.exports = {
+export {
   parseRequiredInteger,
   parseOptionalNumber,
   parseOptionalInteger,
