@@ -1,44 +1,44 @@
-/**
- * WiGLE Cluster Colors Utility
- * Handles cluster color generation and caching
- */
+import type mapboxglType from 'mapbox-gl';
+import { dominantClusterColor, CLUSTER_SAMPLE_LIMIT } from '../../utils/wigle';
 
-import { dominantClusterColor } from '../../utils/wigle';
-
-export function createClusterColorCache() {
-  return { v2: {}, v3: {} } as Record<string, Record<number, string>>;
-}
-
-export function updateClusterColors(
-  map: any,
+export const updateClusterColors = (
+  map: mapboxglType.Map,
   sourceId: string,
   cacheKey: 'v2' | 'v3',
-  cache: Record<string, Record<number, string>>
-) {
-  if (!map) return;
-
-  const source = map.getSource(sourceId);
+  clusterColorCache: React.MutableRefObject<Record<string, Record<number, string>>>
+) => {
+  const source = map.getSource(sourceId) as mapboxglType.GeoJSONSource | undefined;
   if (!source) return;
 
-  const features = map.querySourceFeatures(sourceId, {
-    sourceLayer: undefined,
-    filter: ['has', 'point_count'],
-  });
+  const clusterLayerId = sourceId === 'wigle-v2-points' ? 'wigle-v2-clusters' : 'wigle-v3-clusters';
+  const clusters = map.querySourceFeatures(sourceId, { filter: ['has', 'point_count'] });
 
-  features.forEach((feature: any) => {
-    const clusterId = feature.properties.cluster_id;
-    if (!clusterId || cache[cacheKey][clusterId]) return;
+  clusters.forEach((feature) => {
+    const clusterId = feature.properties?.cluster_id;
+    const featureId = feature.id ?? clusterId;
+    if (clusterId == null || featureId == null) return;
 
-    source.getClusterLeaves(clusterId, 100, 0, (err: any, leaves: any[]) => {
-      if (err || !leaves) return;
-      const color = dominantClusterColor(leaves);
-      cache[cacheKey][clusterId] = color;
+    const cached = clusterColorCache.current[cacheKey]?.[clusterId];
+    if (cached) {
+      map.setFeatureState({ source: sourceId, id: featureId }, { color: cached });
+      return;
+    }
+
+    source.getClusterLeaves(clusterId, CLUSTER_SAMPLE_LIMIT, 0, (err, leaves) => {
+      if (err || !leaves || leaves.length === 0) return;
+      const bssids = leaves.map((leaf) => String(leaf.properties?.bssid || '')).filter(Boolean);
+      const color = dominantClusterColor(bssids);
+      if (!clusterColorCache.current[cacheKey]) clusterColorCache.current[cacheKey] = {};
+      clusterColorCache.current[cacheKey][clusterId] = color;
+      map.setFeatureState({ source: sourceId, id: featureId }, { color });
     });
   });
-}
+};
 
-export function updateAllClusterColors(map: any, cache: Record<string, Record<number, string>>) {
-  if (!map) return;
-  updateClusterColors(map, 'wigle-v2', 'v2', cache);
-  updateClusterColors(map, 'wigle-v3', 'v3', cache);
-}
+export const updateAllClusterColors = (
+  map: mapboxglType.Map,
+  clusterColorCache: React.MutableRefObject<Record<string, Record<number, string>>>
+) => {
+  updateClusterColors(map, 'wigle-v2-points', 'v2', clusterColorCache);
+  updateClusterColors(map, 'wigle-v3-points', 'v3', clusterColorCache);
+};
