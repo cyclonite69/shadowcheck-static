@@ -7,7 +7,6 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { query } = require('../../../config/database');
-const { adminQuery } = require('../../../services/adminDbService');
 const secretsManager = require('../../../services/secretsManager');
 const logger = require('../../../logging/logger');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
@@ -546,12 +545,14 @@ router.post('/wigle/search-api', requireAdmin, async (req, res, next) => {
     let importedCount = 0;
     const importErrors = [];
 
+    console.log('[WiGLE DEBUG] shouldImport:', shouldImport, 'results.length:', results.length);
+
     if (shouldImport && results.length > 0) {
       logger.info(`[WiGLE] Importing ${results.length} results to database...`);
 
       for (const network of results) {
         try {
-          await adminQuery(
+          const result = await query(
             `
             INSERT INTO app.wigle_v2_networks_search (
               bssid, ssid, trilat, trilong, location, firsttime, lasttime, lastupdt,
@@ -559,19 +560,19 @@ router.post('/wigle/search-api', requireAdmin, async (req, res, next) => {
               dhcp, paynet, transid, rcois, name, comment, userfound, source,
               country, region, city, road, housenumber, postalcode
             ) VALUES (
-              $1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $3), 4326),
+              $1, $2, $3::numeric, $4::numeric, ST_SetSRID(ST_MakePoint($5::numeric, $3::numeric), 4326),
               $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
               $17, $18, $19, $20, $21, $22, $23, 'wigle_api_search',
               $24, $25, $26, $27, $28, $29
             )
-            ON CONFLICT (id) DO NOTHING
+            ON CONFLICT (bssid, trilat, trilong, lastupdt) DO NOTHING
           `,
             [
               network.netid || network.bssid,
               network.ssid,
-              parseFloat(network.trilat) || 0,
-              parseFloat(network.trilong) || 0,
-              parseFloat(network.trilong) || 0,
+              network.trilat ? parseFloat(network.trilat) : null,
+              network.trilong ? parseFloat(network.trilong) : null,
+              network.trilong ? parseFloat(network.trilong) : null,
               network.firsttime,
               network.lasttime,
               network.lastupdt,
@@ -598,14 +599,21 @@ router.post('/wigle/search-api', requireAdmin, async (req, res, next) => {
               network.postalcode,
             ]
           );
-          importedCount++;
+          console.log('[WiGLE DEBUG] rowCount:', result.rowCount, 'for BSSID:', network.netid);
+          if (result.rowCount > 0) {
+            importedCount++;
+          }
         } catch (err) {
+          console.error('[WiGLE DEBUG] Insert error:', err.message, 'for BSSID:', network.netid);
           if (!err.message.includes('duplicate key')) {
             importErrors.push({ bssid: network.netid, error: err.message });
+            logger.error(`[WiGLE] Import error for ${network.netid}: ${err.message}`);
           }
         }
       }
-      logger.info(`[WiGLE] Imported ${importedCount} networks`);
+      logger.info(
+        `[WiGLE] Import complete: ${importedCount} new records, ${results.length - importedCount} duplicates/skipped`
+      );
     }
 
     res.json({
@@ -667,7 +675,7 @@ async function importWigleV3Observations(netid, locationClusters) {
             : cluster.clusterSsid || loc.ssid;
         const sanitizedSsid = stripNullBytes(ssidToUse);
 
-        await adminQuery(
+        await query(
           `
           INSERT INTO app.wigle_v3_observations (
             netid, latitude, longitude, altitude, accuracy,
@@ -792,7 +800,7 @@ async function handleWigleDetailRequest(req, res, next, endpoint) {
 
       logger.info(`[WiGLE] Importing detail for ${netid} to database...`);
 
-      await adminQuery(
+      await query(
         `
         INSERT INTO app.wigle_v3_network_details (
           netid, name, type, comment, ssid,
@@ -915,7 +923,7 @@ router.post('/wigle/import/v3', requireAdmin, async (req, res, next) => {
 
     logger.info(`[WiGLE] Importing v3 detail for ${data.networkId} from file...`);
 
-    await adminQuery(
+    await query(
       `
       INSERT INTO app.wigle_v3_network_details (
         netid, name, type, comment, ssid,
