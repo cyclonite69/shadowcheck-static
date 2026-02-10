@@ -12,99 +12,16 @@ import { ControlPanel } from './ControlPanel';
 import { FilterPanelContainer } from './FilterPanelContainer';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 
+import { formatSecurity } from '../utils/wigle';
+import { NetworkData, LayerType, DrawMode } from './kepler/types';
+import { loadScript, loadCss } from './kepler/utils';
+
 declare global {
   interface Window {
     deck?: any;
     mapboxgl?: any;
   }
 }
-
-type NetworkData = {
-  position: [number, number];
-  bssid: string;
-  ssid: string;
-  signal: number;
-  level: number;
-  encryption: string;
-  channel: number;
-  frequency: number;
-  manufacturer: string;
-  device_type: string;
-  type: string;
-  capabilities: string;
-  timestamp: string;
-  last_seen: string;
-  device_id?: string;
-  source_tag?: string;
-  accuracy?: number;
-  altitude?: number;
-  obs_count?: number;
-  threat_level?: string;
-  threat_score?: number;
-  is_suspicious?: boolean;
-  distance_from_home?: number;
-};
-
-type LayerType = 'scatterplot' | 'heatmap' | 'hexagon';
-type DrawMode = 'none' | 'rectangle' | 'polygon' | 'circle';
-
-// Format security capabilities string into readable label
-const formatSecurity = (capabilities: string | null | undefined): string => {
-  const value = String(capabilities || '').toUpperCase();
-  if (!value || value === 'UNKNOWN' || value === 'OPEN/UNKNOWN') {
-    return 'Open';
-  }
-  const hasWpa3 = value.includes('WPA3');
-  const hasWpa2 = value.includes('WPA2');
-  const hasWpa = value.includes('WPA');
-  const hasWep = value.includes('WEP');
-  const hasPsk = value.includes('PSK');
-  const hasEap = value.includes('EAP');
-  const hasSae = value.includes('SAE');
-  const hasOwe = value.includes('OWE');
-
-  if (hasOwe) return 'OWE';
-  if (hasWpa3 && hasSae) return 'WPA3-SAE';
-  if (hasWpa3 && hasEap) return 'WPA3-EAP';
-  if (hasWpa3) return 'WPA3';
-  if (hasWpa2 && hasEap) return 'WPA2-EAP';
-  if (hasWpa2 && hasPsk) return 'WPA2-PSK';
-  if (hasWpa2) return 'WPA2';
-  if (hasWpa && hasEap) return 'WPA-EAP';
-  if (hasWpa && hasPsk) return 'WPA-PSK';
-  if (hasWpa) return 'WPA';
-  if (hasWep) return 'WEP';
-  return 'Open';
-};
-
-const loadScript = (src: string) =>
-  new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${src}"]`);
-    if (existing) {
-      resolve();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load ${src}`));
-    document.head.appendChild(script);
-  });
-
-const loadCss = (href: string) =>
-  new Promise<void>((resolve, reject) => {
-    if (document.querySelector(`link[href="${href}"]`)) {
-      resolve();
-      return;
-    }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    link.onload = () => resolve();
-    link.onerror = () => reject(new Error(`Failed to load CSS ${href}`));
-    document.head.appendChild(link);
-  });
 
 const KeplerPage: React.FC = () => {
   // Set current page for filter scoping
