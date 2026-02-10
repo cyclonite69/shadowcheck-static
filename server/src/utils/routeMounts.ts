@@ -76,6 +76,37 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     query,
   } = deps;
 
+  // Debug: Check for undefined routes
+  const routes = {
+    healthRoutes,
+    geospatialRoutes,
+    networksRoutes,
+    threatsRoutes,
+    wigleRoutes,
+    adminRoutes,
+    explorerRoutes,
+    mlRoutes,
+    analyticsRoutes,
+    networksV2Routes,
+    threatsV2Routes,
+    filteredRoutes,
+    homeLocationRoutes,
+    keplerRoutes,
+    backupRoutes,
+    exportRoutes,
+    analyticsPublicRoutes,
+    settingsRoutes,
+    networkTagsRoutes,
+    authRoutes,
+    weatherRoutes,
+  };
+
+  for (const [name, route] of Object.entries(routes)) {
+    if (!route) {
+      console.error(`[ROUTE ERROR] ${name} is undefined!`);
+    }
+  }
+
   // Health check (no prefix, available at /health)
   app.use('/', healthRoutes);
 
@@ -89,7 +120,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/analytics-public', analyticsPublicRoutes);
 
   // Weather proxy (no auth required)
-  app.use('/', weatherRoutes);
+  // app.use('/', weatherRoutes); // Temporarily disabled - import issue
 
   // Agency offices (public data - mount outside /api to avoid admin auth middleware)
   const agencyOfficesRoutes = require('../api/routes/v1/agencyOffices').default;
