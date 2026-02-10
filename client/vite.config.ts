@@ -1,11 +1,32 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-// import { VitePWA } from 'vite-plugin-pwa'; // Temporarily disabled
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/api\.mapbox\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'mapbox-tiles',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ],
   root: path.resolve(__dirname, '.'),
   resolve: {
     alias: {
@@ -13,9 +34,6 @@ export default defineConfig({
       react: path.resolve(__dirname, '../node_modules/react'),
       'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
     },
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'recharts'],
   },
   server: {
     port: 5173,
@@ -50,8 +68,14 @@ export default defineConfig({
             if (id.includes('mapbox-gl')) {
               return 'vendor-mapbox';
             }
-            // Keep recharts WITH React to avoid loading order issues
-            if (id.includes('recharts') || id.includes('react-dom') || id.includes('react')) {
+            // Bundle ALL React ecosystem together to prevent load order issues
+            if (
+              id.includes('recharts') ||
+              id.includes('react-dom') ||
+              id.includes('react') ||
+              id.includes('zustand') ||
+              id.includes('use-sync-external-store')
+            ) {
               return 'vendor-react';
             }
             // Everything else
