@@ -174,6 +174,23 @@ router.get('/networks-v2', validateWigleNetworksQuery, async (req, res, next) =>
  */
 router.get('/networks-v3', validateWigleNetworksQuery, async (req, res, next) => {
   try {
+    // Check if table exists
+    const tableCheck = await query(
+      `SELECT EXISTS (
+         SELECT FROM information_schema.tables
+         WHERE table_schema = 'app' AND table_name = 'wigle_v3_networks'
+       ) as exists`
+    );
+
+    if (!tableCheck.rows[0]?.exists) {
+      return res.json({
+        ok: true,
+        count: 0,
+        networks: [],
+        message: 'WiGLE v3 networks table not available',
+      });
+    }
+
     const limit = (req as any).validated?.limit ?? null;
     const offset = (req as any).validated?.offset ?? null;
     const params: any[] = [];
