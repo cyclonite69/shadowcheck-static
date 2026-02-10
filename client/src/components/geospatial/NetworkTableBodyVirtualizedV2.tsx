@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { List } from 'react-window';
+import React, { useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { NetworkRow } from '../../types/network';
 import { NetworkTableEmptyState } from './NetworkTableEmptyState';
 import { NetworkTableFooter } from './NetworkTableFooter';
@@ -20,9 +20,7 @@ interface NetworkTableBodyProps {
   onLoadMore: () => void;
 }
 
-const ROW_HEIGHT = 32; // Height of each table row in pixels
-
-export const NetworkTableBodyVirtualized = ({
+export const NetworkTableBodyVirtualizedV2 = ({
   tableContainerRef,
   visibleColumns,
   loadingNetworks,
@@ -36,32 +34,14 @@ export const NetworkTableBodyVirtualized = ({
   hasMore,
   onLoadMore,
 }: NetworkTableBodyProps) => {
-  const Row = useCallback(
-    ({ index, style }: { index: number; style: React.CSSProperties }) => {
-      const net = filteredNetworks[index];
-      return (
-        <div style={{ ...style, display: 'table-row' }}>
-          <NetworkTableRow
-            net={net}
-            index={index}
-            visibleColumns={visibleColumns}
-            isSelected={selectedNetworks.has(net.bssid)}
-            onSelectExclusive={onSelectExclusive}
-            onOpenContextMenu={onOpenContextMenu}
-            onToggleSelectNetwork={onToggleSelectNetwork}
-          />
-        </div>
-      );
-    },
-    [
-      filteredNetworks,
-      visibleColumns,
-      selectedNetworks,
-      onSelectExclusive,
-      onOpenContextMenu,
-      onToggleSelectNetwork,
-    ]
-  );
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: filteredNetworks.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 32, // Row height in pixels
+    overscan: 5,
+  });
 
   // Show empty state if loading or no data
   if (loadingNetworks || filteredNetworks.length === 0 || error) {
@@ -89,23 +69,52 @@ export const NetworkTableBodyVirtualized = ({
     );
   }
 
-  // Calculate container height
-  const containerHeight = tableContainerRef.current?.clientHeight || 600;
+  const items = virtualizer.getVirtualItems();
 
   return (
-    <div ref={tableContainerRef} className="flex-1 overflow-hidden min-h-0">
-      <div style={{ display: 'table', width: '100%', tableLayout: 'fixed' }}>
-        <List
-          height={containerHeight - 40}
-          itemCount={filteredNetworks.length}
-          itemSize={ROW_HEIGHT}
-          width="100%"
-          overscanCount={5}
+    <>
+      <div ref={parentRef} className="flex-1 overflow-auto min-h-0" style={{ contain: 'strict' }}>
+        <table
+          style={{
+            width: '100%',
+            tableLayout: 'fixed',
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            fontSize: '11px',
+          }}
         >
-          {Row}
-        </List>
+          <tbody
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              position: 'relative',
+            }}
+          >
+            {items.map((virtualRow) => {
+              const net = filteredNetworks[virtualRow.index];
+              return (
+                <NetworkTableRow
+                  key={net.bssid}
+                  net={net}
+                  index={virtualRow.index}
+                  visibleColumns={visibleColumns}
+                  isSelected={selectedNetworks.has(net.bssid)}
+                  onSelectExclusive={onSelectExclusive}
+                  onOpenContextMenu={onOpenContextMenu}
+                  onToggleSelectNetwork={onToggleSelectNetwork}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                />
+              );
+            })}
+          </tbody>
+        </table>
       </div>
       <NetworkTableFooter isLoadingMore={isLoadingMore} hasMore={hasMore} onLoadMore={onLoadMore} />
-    </div>
+    </>
   );
 };

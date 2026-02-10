@@ -40,6 +40,7 @@ import { WigleLookupDialog } from './geospatial/WigleLookupDialog';
 import { WigleObservationsPanel } from './geospatial/WigleObservationsPanel';
 import { NearestAgenciesPanel } from './geospatial/NearestAgenciesPanel';
 import { useNearestAgencies } from './geospatial/useNearestAgencies';
+import { useWeatherFx } from '../weather/useWeatherFx';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -252,19 +253,8 @@ export default function GeospatialExplorer() {
     logError,
   });
 
-  // Defer weather effects initialization
-  const [enableWeather, setEnableWeather] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setEnableWeather(true), 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Lazy load weather hook
-  const weatherHook = enableWeather
-    ? // eslint-disable-next-line react-hooks/rules-of-hooks
-      require('../weather/useWeatherFx').useWeatherFx(mapRef, mapContainerRef, mapReady)
-    : { weatherFxMode: 'off', setWeatherFxMode: () => {} };
-  const { weatherFxMode, setWeatherFxMode } = weatherHook;
+  // Weather effects
+  const { weatherFxMode, setWeatherFxMode } = useWeatherFx(mapRef, mapContainerRef, mapReady);
 
   const {
     mode: searchMode,
