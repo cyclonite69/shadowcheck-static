@@ -60,6 +60,9 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     const quickSearchRaw = req.query.q;
     const sortRaw = req.query.sort || 'last_seen';
     const orderRaw = req.query.order || 'DESC';
+
+    console.log('[SORT DEBUG] Received sort params:', { sortRaw, orderRaw });
+
     const planCheck = req.query.planCheck === '1';
     const _qualityFilter = req.query.quality_filter; // none, temporal, extreme, duplicate, all
 
@@ -386,7 +389,10 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       channel: channelExpr,
       obs_count: 'ne.observations',
       observations: 'ne.observations',
-      distance_from_home_km: 'ne.distance_from_home_km',
+      // Note: distance_from_home_km stores values in kilometers for database efficiency.
+      // Frontend converts to meters for display consistency with other distance metrics.
+      // This column is calculated in the SELECT clause, so we reference it without table prefix.
+      distance_from_home_km: 'distance_from_home_km',
       accuracy_meters: 'ne.accuracy_meters',
       avg_signal: 'ne.signal',
       min_signal: 'ne.signal',
@@ -497,15 +503,25 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       });
     }
 
+    // Define distance columns before using them in ORDER BY
+    const distanceColumns = ['max_distance_meters', 'distance_from_home_km'];
+
     const orderByClause = `${sortEntries
-      .map((entry) => `${sortColumnMap[entry.column]} ${entry.direction}`)
+      .map((entry) => {
+        const col = sortColumnMap[entry.column];
+        const dir = entry.direction;
+        // For distance columns, always put NULLs last regardless of sort direction
+        if (distanceColumns.includes(entry.column)) {
+          return `${col} ${dir} NULLS LAST`;
+        }
+        return `${col} ${dir}`;
+      })
       .join(', ')}, ne.bssid ASC`;
 
     const params = [];
     const whereClauses = [];
 
     // Filter out networks with no observations when sorting by distance-related columns
-    const distanceColumns = ['max_distance_meters', 'distance_from_home_km'];
     const sortingByDistance = sortEntries.some((entry) => distanceColumns.includes(entry.column));
     if (sortingByDistance) {
       whereClauses.push('ne.observations > 0');
@@ -1014,6 +1030,29 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       }
 
       const { rows } = await client.query(sql, params);
+
+      // Debug: Log sort info and first 20 rows
+      if (sortingByDistance) {
+        const distSort = sortEntries.find((e) => distanceColumns.includes(e.column));
+        console.log(
+          '[DISTANCE SORT DEBUG] Sort column:',
+          distSort?.column,
+          'Direction:',
+          distSort?.direction
+        );
+        console.log('[DISTANCE SORT DEBUG] ORDER BY clause:', orderByClause);
+        console.log('[DISTANCE SORT DEBUG] SQL (first 500 chars):', sql.substring(0, 500));
+        console.log(
+          '[DISTANCE SORT DEBUG] First 20 rows:',
+          rows.slice(0, 20).map((r) => ({
+            bssid: r.bssid,
+            distance_from_home: r.distance_from_home_km,
+            max_distance: r.max_distance_meters,
+            type: r.type,
+          }))
+        );
+      }
+
       const countSql = `
         SELECT COUNT(*)::bigint AS total
         FROM app.api_network_explorer_mv ne
