@@ -7,152 +7,19 @@ import { usePageFilters } from '../hooks/usePageFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
 
 // SVG Icons - Industry Standard
-const AlertTriangle = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-    <line x1="12" y1="9" x2="12" y2="13" />
-    <line x1="12" y1="17" x2="12.01" y2="17" />
-  </svg>
-);
-
-const Wifi = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path d="M5.59 15.87A24 24 0 0 1 12 13c2.59 0 5.11.28 7.59.87M2.13 12.94A36 36 0 0 1 12 10c3.46 0 6.87.48 10.13 1.36M2 9.13a48 48 0 0 1 20 0" />
-  </svg>
-);
-
-const Network = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <rect x="16" y="16" width="6" height="6" rx="1" />
-    <rect x="2" y="16" width="6" height="6" rx="1" />
-    <rect x="9" y="2" width="6" height="6" rx="1" />
-    <path d="M5 22v-5M19 22v-5M12 8v-3M7 19h10" />
-  </svg>
-);
-
-const Bluetooth = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path d="M6.5 6.5l11 11L12 23l-5.5-5.5L12 12l5.5-5.5L12 1l5.5 5.5-11 11" />
-  </svg>
-);
-
-const Radio = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <circle cx="12" cy="12" r="2" />
-    <path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 16.24a6 6 0 0 1 0-8.49M20.07 4.93a10 10 0 0 1 0 14.14M3.93 19.07a10 10 0 0 1 0-14.14" />
-  </svg>
-);
-
-const BarChart3 = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path d="M3 3v18h18" />
-    <path d="M18 17V9" />
-    <path d="M13 17V5" />
-    <path d="M8 17v-3" />
-  </svg>
-);
-
-const Smartphone = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-    <line x1="12" y1="18" x2="12.01" y2="18" />
-  </svg>
-);
-
-const Tower = ({ size = 24, className = '', style = {} }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width={size}
-    height={size}
-    className={className}
-    style={style}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path d="M4 11a9 9 0 0 1 16 0" />
-    <path d="M6 11a7 7 0 0 1 12 0" />
-    <path d="M8 11a5 5 0 0 1 8 0" />
-    <path d="M10 11a3 3 0 0 1 4 0" />
-    <path d="M12 11v10" />
-    <path d="M8 21l8-4" />
-    <path d="M16 21l-8-4" />
-  </svg>
-);
-
-const GripHorizontal = ({ size = 24, className = '' }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor">
-    <circle cx="9" cy="5" r="1.5" />
-    <circle cx="9" cy="12" r="1.5" />
-    <circle cx="9" cy="19" r="1.5" />
-    <circle cx="15" cy="5" r="1.5" />
-    <circle cx="15" cy="12" r="1.5" />
-    <circle cx="15" cy="19" r="1.5" />
-  </svg>
-);
+import {
+  AlertTriangle,
+  Wifi,
+  Network,
+  Bluetooth,
+  Radio,
+  BarChart3,
+  Smartphone,
+  Tower,
+  GripHorizontal,
+} from './dashboard/icons';
+import { MetricCard } from './dashboard/MetricCard';
+import type { CardData } from './dashboard/MetricCard';
 
 export default function DashboardPage() {
   // Set current page for filter scoping
