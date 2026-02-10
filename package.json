@@ -73,6 +73,7 @@
     "react-dom": "^19.2.4",
     "react-is": "19.2.4",
     "react-router-dom": "^7.13.0",
+    "react-window": "^2.2.6",
     "recharts": "^3.5.1",
     "redis": "^5.10.0",
     "sqlite3": "^5.1.7",
@@ -106,7 +107,8 @@
     "ts-jest": "^29.4.6",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vite-plugin-pwa": "^1.2.0"
   },
   "engines": {
     "node": ">=20.0.0"

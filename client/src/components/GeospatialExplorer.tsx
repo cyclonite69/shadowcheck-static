@@ -31,7 +31,6 @@ import { useNetworkSort } from './geospatial/useNetworkSort';
 import { useResetPaginationOnFilters } from './geospatial/useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './geospatial/useDebouncedFilterState';
 import { useMapPreferences } from './geospatial/useMapPreferences';
-import { useWeatherFx } from '../weather/useWeatherFx';
 import { useDirectionsMode } from '../directions/useDirectionsMode';
 import { useObservationSummary } from './geospatial/useObservationSummary';
 import { useApplyMapLayerDefaults } from './geospatial/useApplyMapLayerDefaults';
@@ -253,7 +252,19 @@ export default function GeospatialExplorer() {
     logError,
   });
 
-  const { weatherFxMode, setWeatherFxMode } = useWeatherFx(mapRef, mapContainerRef, mapReady);
+  // Defer weather effects initialization
+  const [enableWeather, setEnableWeather] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setEnableWeather(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Lazy load weather hook
+  const weatherHook = enableWeather
+    ? // eslint-disable-next-line react-hooks/rules-of-hooks
+      require('../weather/useWeatherFx').useWeatherFx(mapRef, mapContainerRef, mapReady)
+    : { weatherFxMode: 'off', setWeatherFxMode: () => {} };
+  const { weatherFxMode, setWeatherFxMode } = weatherHook;
 
   const {
     mode: searchMode,

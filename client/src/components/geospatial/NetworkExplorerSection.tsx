@@ -4,7 +4,11 @@ import { MapStatusBar } from './MapStatusBar';
 import { NetworkExplorerCard } from './NetworkExplorerCard';
 import { NetworkExplorerHeader } from './NetworkExplorerHeader';
 import { NetworkTableBody } from './NetworkTableBody';
+import { NetworkTableBodyVirtualized } from './NetworkTableBodyVirtualized';
 import { NetworkTableHeader } from './NetworkTableHeader';
+
+// Feature flag for virtualization - enable when network count > 100
+const USE_VIRTUALIZATION = true;
 
 interface ColumnDefinition {
   label: string;
@@ -123,20 +127,37 @@ export const NetworkExplorerSection = ({
         onReorderColumns={onReorderColumns}
       />
 
-      <NetworkTableBody
-        tableContainerRef={tableContainerRef}
-        visibleColumns={visibleColumns}
-        loadingNetworks={loadingNetworks}
-        filteredNetworks={filteredNetworks}
-        error={error}
-        selectedNetworks={selectedNetworks}
-        onSelectExclusive={onSelectExclusive}
-        onOpenContextMenu={onOpenContextMenu}
-        onToggleSelectNetwork={onToggleSelectNetwork}
-        isLoadingMore={isLoadingMore}
-        hasMore={hasMore}
-        onLoadMore={onLoadMore}
-      />
+      {USE_VIRTUALIZATION && filteredNetworks.length > 100 ? (
+        <NetworkTableBodyVirtualized
+          tableContainerRef={tableContainerRef}
+          visibleColumns={visibleColumns}
+          loadingNetworks={loadingNetworks}
+          filteredNetworks={filteredNetworks}
+          error={error}
+          selectedNetworks={selectedNetworks}
+          onSelectExclusive={onSelectExclusive}
+          onOpenContextMenu={onOpenContextMenu}
+          onToggleSelectNetwork={onToggleSelectNetwork}
+          isLoadingMore={isLoadingMore}
+          hasMore={hasMore}
+          onLoadMore={onLoadMore}
+        />
+      ) : (
+        <NetworkTableBody
+          tableContainerRef={tableContainerRef}
+          visibleColumns={visibleColumns}
+          loadingNetworks={loadingNetworks}
+          filteredNetworks={filteredNetworks}
+          error={error}
+          selectedNetworks={selectedNetworks}
+          onSelectExclusive={onSelectExclusive}
+          onOpenContextMenu={onOpenContextMenu}
+          onToggleSelectNetwork={onToggleSelectNetwork}
+          isLoadingMore={isLoadingMore}
+          hasMore={hasMore}
+          onLoadMore={onLoadMore}
+        />
+      )}
 
       <MapStatusBar
         visibleCount={visibleCount}
