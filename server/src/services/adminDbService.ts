@@ -4,7 +4,7 @@
  */
 
 const { Pool } = require('pg');
-const secretsManager = require('./secretsManager');
+const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
 
 export {};

@@ -14,7 +14,7 @@ interface SecretsManager {
  */
 async function initializeCredentials(): Promise<SecretsManager> {
   const { validateSecrets } = require('./validateSecrets');
-  const secretsManager = require('../services/secretsManager');
+  const secretsManager = require('../services/secretsManager').default;
 
   await validateSecrets();
 

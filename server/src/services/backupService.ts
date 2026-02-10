@@ -3,7 +3,7 @@ const { constants } = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('../logging/logger');
-const secretsManager = require('./secretsManager');
+const secretsManager = require('./secretsManager').default;
 const { getAwsConfig } = require('./awsService');
 
 export {};
