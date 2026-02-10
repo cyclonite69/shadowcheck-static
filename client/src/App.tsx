@@ -9,7 +9,6 @@ import { LoginForm } from './components/auth/LoginForm';
 import DashboardPage from './components/DashboardPage';
 
 // Lazy load: heavy map/visualization pages (reduce initial bundle size)
-const GeospatialIntelligencePage = lazy(() => import('./components/GeospatialIntelligencePage'));
 const AnalyticsPage = lazy(() => import('./components/AnalyticsPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const WiglePage = lazy(() => import('./components/WiglePage'));
@@ -70,8 +69,6 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/geospatial" element={<GeospatialIntelligencePage />} />
-            <Route path="/geospatial-intel" element={<GeospatialIntelligencePage />} />
             <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/wigle" element={<WiglePage />} />

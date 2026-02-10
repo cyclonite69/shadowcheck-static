@@ -114,6 +114,10 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/api', settingsRoutes);
   app.use('/api/network-tags', networkTagsRoutes);
 
+  // Network agencies (nearest agencies to network observations)
+  const networkAgenciesRoutes = require('../api/routes/v1/network-agencies');
+  app.use('/api/networks', networkAgenciesRoutes);
+
   // Admin routes (MUST BE LAST - has requireAdmin middleware on all routes)
   app.use('/api', adminRoutes);
 }
