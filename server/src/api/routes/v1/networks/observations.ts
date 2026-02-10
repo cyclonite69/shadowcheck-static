@@ -39,13 +39,13 @@ router.get('/networks/observations/:bssid', async (req, res, next) => {
               CASE
                 WHEN $1::numeric IS NOT NULL AND $2::numeric IS NOT NULL THEN
                   ST_Distance(
-                    ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
+                    o.geom::geography,
                     ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
                   ) / 1000.0
                 ELSE NULL
               END as distance_from_home_km
        FROM app.observations o
-       WHERE o.bssid = $3 AND o.lat IS NOT NULL AND o.lon IS NOT NULL
+       WHERE o.bssid = $3 AND o.geom IS NOT NULL
        ORDER BY o.time ASC LIMIT 1000`,
       [home?.lon, home?.lat, bssidValidation.cleaned]
     );
