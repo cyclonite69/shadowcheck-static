@@ -70,6 +70,9 @@ export default defineConfig({
       'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
     },
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'recharts'],
+  },
   server: {
     port: 5173,
     proxy: {
