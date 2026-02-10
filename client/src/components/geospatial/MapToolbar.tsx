@@ -43,6 +43,9 @@ interface MapToolbarProps {
   searchMode?: SearchMode;
   onSearchModeToggle?: () => void;
   directionsLoading?: boolean;
+  // Agencies panel
+  showAgenciesPanel?: boolean;
+  onToggleAgenciesPanel?: () => void;
 }
 
 export const MapToolbar = ({
@@ -78,6 +81,8 @@ export const MapToolbar = ({
   searchMode,
   onSearchModeToggle,
   directionsLoading,
+  showAgenciesPanel,
+  onToggleAgenciesPanel,
 }: MapToolbarProps) => {
   return (
     <div
@@ -360,6 +365,25 @@ export const MapToolbar = ({
           }}
         >
           🌐 {wigleLoading ? 'Loading...' : `WiGLE${selectedCount ? ` (${selectedCount})` : ''}`}
+        </button>
+      )}
+      {onToggleAgenciesPanel && (
+        <button
+          onClick={onToggleAgenciesPanel}
+          style={{
+            padding: '6px 10px',
+            fontSize: '11px',
+            background: showAgenciesPanel ? 'rgba(16, 185, 129, 0.2)' : 'rgba(30, 41, 59, 0.9)',
+            border: showAgenciesPanel
+              ? '1px solid rgba(16, 185, 129, 0.5)'
+              : '1px solid rgba(148, 163, 184, 0.2)',
+            color: showAgenciesPanel ? '#10b981' : '#94a3b8',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          🏢 Agencies
         </button>
       )}
     </div>

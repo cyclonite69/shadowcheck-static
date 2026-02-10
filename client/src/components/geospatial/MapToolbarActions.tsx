@@ -47,6 +47,9 @@ interface MapToolbarActionsProps {
   searchMode?: 'address' | 'directions';
   onSearchModeToggle?: () => void;
   directionsLoading?: boolean;
+  // Agencies panel
+  showAgenciesPanel?: boolean;
+  onToggleAgenciesPanel?: () => void;
 }
 
 export const MapToolbarActions = ({
@@ -85,6 +88,8 @@ export const MapToolbarActions = ({
   searchMode,
   onSearchModeToggle,
   directionsLoading,
+  showAgenciesPanel,
+  onToggleAgenciesPanel,
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
@@ -156,6 +161,8 @@ export const MapToolbarActions = ({
       searchMode={searchMode}
       onSearchModeToggle={onSearchModeToggle}
       directionsLoading={directionsLoading}
+      showAgenciesPanel={showAgenciesPanel}
+      onToggleAgenciesPanel={onToggleAgenciesPanel}
     />
   );
 };

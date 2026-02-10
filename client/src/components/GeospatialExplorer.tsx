@@ -39,6 +39,8 @@ import { useExplorerPanels } from './geospatial/useExplorerPanels';
 import { useTimeFrequencyModal } from './geospatial/useTimeFrequencyModal';
 import { WigleLookupDialog } from './geospatial/WigleLookupDialog';
 import { WigleObservationsPanel } from './geospatial/WigleObservationsPanel';
+import { NearestAgenciesPanel } from './geospatial/NearestAgenciesPanel';
+import { useNearestAgencies } from './geospatial/useNearestAgencies';
 
 // Types
 import type { NetworkRow } from '../types/network';
@@ -117,8 +119,22 @@ export default function GeospatialExplorer() {
   const { visibleColumns, toggleColumn, reorderColumns } = useColumnVisibility({
     columns: NETWORK_COLUMNS,
   });
-  const { filtersOpen, showColumnSelector, toggleFilters, toggleColumnSelector } =
-    useExplorerPanels();
+  const {
+    filtersOpen,
+    showColumnSelector,
+    showAgenciesPanel,
+    toggleFilters,
+    toggleColumnSelector,
+    toggleAgenciesPanel,
+  } = useExplorerPanels();
+
+  // Nearest agencies for selected network
+  const nearestAgencyBssid = selectedNetworks.size > 0 ? Array.from(selectedNetworks)[0] : null;
+  const {
+    agencies,
+    loading: agenciesLoading,
+    error: agenciesError,
+  } = useNearestAgencies(showAgenciesPanel ? nearestAgencyBssid : null);
 
   // Map and location state
   const [mapReady, setMapReady] = useState(false);
@@ -289,6 +305,88 @@ export default function GeospatialExplorer() {
     addTerrain,
   });
 
+  // Render nearest agency markers
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !mapboxRef.current) return;
+    const map = mapRef.current;
+    const mapboxgl = mapboxRef.current;
+
+    const sourceId = 'nearest-agencies';
+    const layerId = 'nearest-agencies-layer';
+
+    // Remove existing layer and source
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getSource(sourceId)) map.removeSource(sourceId);
+
+    if (agencies.length === 0 || !showAgenciesPanel) return;
+
+    // Create features for all agencies
+    const features = agencies.map((agency) => ({
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [agency.longitude, agency.latitude],
+      },
+      properties: {
+        name: agency.office_name,
+        type: agency.office_type,
+        distance: agency.distance_km,
+        hasWigleObs: agency.has_wigle_obs,
+      },
+    }));
+
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features,
+      },
+    });
+
+    map.addLayer({
+      id: layerId,
+      type: 'circle',
+      source: sourceId,
+      paint: {
+        'circle-radius': 12,
+        'circle-color': ['case', ['get', 'hasWigleObs'], '#ef4444', '#10b981'],
+        'circle-stroke-width': 3,
+        'circle-stroke-color': '#ffffff',
+      },
+    });
+
+    // Add click handler for tooltip
+    map.on('click', layerId, (e: any) => {
+      if (!e.features || e.features.length === 0) return;
+      const feature = e.features[0];
+      const props = feature.properties;
+
+      new mapboxgl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(
+          `<div style="padding: 8px;">
+            <strong>${props.name}</strong><br/>
+            <span style="font-size: 12px;">${props.type === 'field_office' ? '🏢 Field Office' : '📍 Resident Agency'}</span><br/>
+            <span style="font-size: 12px; color: #64748b;">${props.distance.toFixed(1)} km away</span>
+          </div>`
+        )
+        .addTo(map);
+    });
+
+    map.on('mouseenter', layerId, () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    map.on('mouseleave', layerId, () => {
+      map.getCanvas().style.cursor = '';
+    });
+
+    return () => {
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+    };
+  }, [mapReady, mapRef, mapboxRef, agencies, showAgenciesPanel]);
+
   const { changeMapStyle } = useMapStyleControls({
     mapRef,
     setMapStyle,
@@ -381,6 +479,8 @@ export default function GeospatialExplorer() {
                     loadBatchWigleObservations(Array.from(selectedNetworks));
                   }
                 }}
+                showAgenciesPanel={showAgenciesPanel}
+                onToggleAgenciesPanel={toggleAgenciesPanel}
               />
             }
             mapReady={mapReady}
@@ -507,6 +607,13 @@ export default function GeospatialExplorer() {
             batchStats={wigleObservations.batchStats}
             onClose={clearWigleObservations}
           />
+          {showAgenciesPanel && (
+            <NearestAgenciesPanel
+              agencies={agencies}
+              loading={agenciesLoading}
+              error={agenciesError}
+            />
+          )}
         </>
       }
     />
