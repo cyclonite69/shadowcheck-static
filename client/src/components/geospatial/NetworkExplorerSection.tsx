@@ -4,10 +4,11 @@ import { MapStatusBar } from './MapStatusBar';
 import { NetworkExplorerCard } from './NetworkExplorerCard';
 import { NetworkExplorerHeader } from './NetworkExplorerHeader';
 import { NetworkTableBody } from './NetworkTableBody';
-import { NetworkTableBodyVirtualized } from './NetworkTableBodyVirtualized';
+import { NetworkTableBodyGrid } from './NetworkTableBodyGrid';
 import { NetworkTableHeader } from './NetworkTableHeader';
+import { NetworkTableHeaderGrid } from './NetworkTableHeaderGrid';
 
-// Feature flag for virtualization - enable when network count > 100
+// Feature flag for virtualization - using CSS Grid layout
 const USE_VIRTUALIZATION = true;
 
 interface ColumnDefinition {
@@ -117,46 +118,57 @@ export const NetworkExplorerSection = ({
         onToggleColumn={onToggleColumn}
       />
 
-      <NetworkTableHeader
-        visibleColumns={visibleColumns}
-        sort={sort}
-        allSelected={allSelected}
-        someSelected={someSelected}
-        onToggleSelectAll={onToggleSelectAll}
-        onColumnSort={onColumnSort}
-        onReorderColumns={onReorderColumns}
-      />
-
       {USE_VIRTUALIZATION && filteredNetworks.length > 100 ? (
-        <NetworkTableBodyVirtualized
-          tableContainerRef={tableContainerRef}
-          visibleColumns={visibleColumns}
-          loadingNetworks={loadingNetworks}
-          filteredNetworks={filteredNetworks}
-          error={error}
-          selectedNetworks={selectedNetworks}
-          onSelectExclusive={onSelectExclusive}
-          onOpenContextMenu={onOpenContextMenu}
-          onToggleSelectNetwork={onToggleSelectNetwork}
-          isLoadingMore={isLoadingMore}
-          hasMore={hasMore}
-          onLoadMore={onLoadMore}
-        />
+        <>
+          <NetworkTableHeaderGrid
+            visibleColumns={visibleColumns}
+            sort={sort}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onToggleSelectAll={onToggleSelectAll}
+            onColumnSort={onColumnSort}
+          />
+          <NetworkTableBodyGrid
+            tableContainerRef={tableContainerRef}
+            visibleColumns={visibleColumns}
+            loadingNetworks={loadingNetworks}
+            filteredNetworks={filteredNetworks}
+            error={error}
+            selectedNetworks={selectedNetworks}
+            onSelectExclusive={onSelectExclusive}
+            onOpenContextMenu={onOpenContextMenu}
+            onToggleSelectNetwork={onToggleSelectNetwork}
+            isLoadingMore={isLoadingMore}
+            hasMore={hasMore}
+            onLoadMore={onLoadMore}
+          />
+        </>
       ) : (
-        <NetworkTableBody
-          tableContainerRef={tableContainerRef}
-          visibleColumns={visibleColumns}
-          loadingNetworks={loadingNetworks}
-          filteredNetworks={filteredNetworks}
-          error={error}
-          selectedNetworks={selectedNetworks}
-          onSelectExclusive={onSelectExclusive}
-          onOpenContextMenu={onOpenContextMenu}
-          onToggleSelectNetwork={onToggleSelectNetwork}
-          isLoadingMore={isLoadingMore}
-          hasMore={hasMore}
-          onLoadMore={onLoadMore}
-        />
+        <>
+          <NetworkTableHeader
+            visibleColumns={visibleColumns}
+            sort={sort}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onToggleSelectAll={onToggleSelectAll}
+            onColumnSort={onColumnSort}
+            onReorderColumns={onReorderColumns}
+          />
+          <NetworkTableBody
+            tableContainerRef={tableContainerRef}
+            visibleColumns={visibleColumns}
+            loadingNetworks={loadingNetworks}
+            filteredNetworks={filteredNetworks}
+            error={error}
+            selectedNetworks={selectedNetworks}
+            onSelectExclusive={onSelectExclusive}
+            onOpenContextMenu={onOpenContextMenu}
+            onToggleSelectNetwork={onToggleSelectNetwork}
+            isLoadingMore={isLoadingMore}
+            hasMore={hasMore}
+            onLoadMore={onLoadMore}
+          />
+        </>
       )}
 
       <MapStatusBar

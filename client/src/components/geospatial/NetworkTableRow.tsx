@@ -12,6 +12,7 @@ interface NetworkTableRowProps {
   onSelectExclusive: (bssid: string) => void;
   onOpenContextMenu: (event: React.MouseEvent<HTMLTableRowElement>, net: NetworkRow) => void;
   onToggleSelectNetwork: (bssid: string) => void;
+  style?: React.CSSProperties;
 }
 
 export const NetworkTableRow = ({
@@ -22,10 +23,12 @@ export const NetworkTableRow = ({
   onSelectExclusive,
   onOpenContextMenu,
   onToggleSelectNetwork,
+  style,
 }: NetworkTableRowProps) => {
   return (
     <tr
       style={{
+        ...style,
         borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
         background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
         cursor: 'pointer',
