@@ -3,7 +3,7 @@
  */
 
 import type { Response } from 'express';
-const { query } = require('../../config/database');
+const { query } = require('../../../config/database');
 
 // Type definitions
 

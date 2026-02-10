@@ -2,24 +2,25 @@
  * Dashboard Card Definitions
  */
 
-import {
-  Network,
-  Wifi,
-  Smartphone,
-  Bluetooth,
-  Tower,
-  Radio,
-  BarChart3,
-  AlertTriangle,
-} from 'lucide-react';
 import type { CardData } from './MetricCard';
+import type { LucideIcon } from 'lucide-react';
 
-export const initialCards: CardData[] = [
+// Icons will be provided by the parent component
+export const createInitialCards = (icons: {
+  Network: LucideIcon;
+  Wifi: LucideIcon;
+  Smartphone: LucideIcon;
+  Bluetooth: LucideIcon;
+  Tower: LucideIcon;
+  Radio: LucideIcon;
+  BarChart3: LucideIcon;
+  AlertTriangle: LucideIcon;
+}): CardData[] => [
   {
     id: 1,
     title: 'Total Networks',
     value: 0,
-    icon: Network,
+    icon: icons.Network,
     color: '#3b82f6',
     x: 0,
     y: 80,
@@ -32,7 +33,7 @@ export const initialCards: CardData[] = [
     id: 2,
     title: 'WiFi Networks',
     value: 0,
-    icon: Wifi,
+    icon: icons.Wifi,
     color: '#10b981',
     x: 33.33,
     y: 80,
@@ -45,7 +46,7 @@ export const initialCards: CardData[] = [
     id: 3,
     title: 'BLE Devices',
     value: 0,
-    icon: Smartphone,
+    icon: icons.Smartphone,
     color: '#8b5cf6',
     x: 66.66,
     y: 80,
@@ -58,7 +59,7 @@ export const initialCards: CardData[] = [
     id: 4,
     title: 'Bluetooth Classic',
     value: 0,
-    icon: Bluetooth,
+    icon: icons.Bluetooth,
     color: '#06b6d4',
     x: 0,
     y: 290,
@@ -71,7 +72,7 @@ export const initialCards: CardData[] = [
     id: 5,
     title: 'LTE Networks',
     value: 0,
-    icon: Tower,
+    icon: icons.Tower,
     color: '#ec4899',
     x: 33.33,
     y: 290,
@@ -84,7 +85,7 @@ export const initialCards: CardData[] = [
     id: 6,
     title: 'GSM Networks',
     value: 0,
-    icon: Radio,
+    icon: icons.Radio,
     color: '#f59e0b',
     x: 66.66,
     y: 290,
@@ -97,7 +98,7 @@ export const initialCards: CardData[] = [
     id: 7,
     title: '5G NR Networks',
     value: 0,
-    icon: Tower,
+    icon: icons.Tower,
     color: '#14b8a6',
     x: 0,
     y: 500,
@@ -110,7 +111,7 @@ export const initialCards: CardData[] = [
     id: 8,
     title: 'Analytics Dashboard',
     value: '→',
-    icon: BarChart3,
+    icon: icons.BarChart3,
     color: '#64748b',
     x: 33.33,
     y: 500,
@@ -123,7 +124,7 @@ export const initialCards: CardData[] = [
     id: 9,
     title: 'Critical Threats',
     value: 0,
-    icon: AlertTriangle,
+    icon: icons.AlertTriangle,
     color: '#ef4444',
     x: 66.66,
     y: 500,
@@ -136,7 +137,7 @@ export const initialCards: CardData[] = [
     id: 10,
     title: 'High Threats',
     value: 0,
-    icon: AlertTriangle,
+    icon: icons.AlertTriangle,
     color: '#f97316',
     x: 0,
     y: 710,
@@ -149,7 +150,7 @@ export const initialCards: CardData[] = [
     id: 11,
     title: 'Medium Threats',
     value: 0,
-    icon: AlertTriangle,
+    icon: icons.AlertTriangle,
     color: '#eab308',
     x: 33.33,
     y: 710,
@@ -162,7 +163,7 @@ export const initialCards: CardData[] = [
     id: 12,
     title: 'Low Threats',
     value: 0,
-    icon: AlertTriangle,
+    icon: icons.AlertTriangle,
     color: '#22c55e',
     x: 66.66,
     y: 710,
