@@ -8,8 +8,8 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
-const logger = require('../../../logging/logger');
+const { query } = require('../../../../config/database');
+const logger = require('../../../../logging/logger');
 
 // Import shared utilities
 const {
@@ -57,7 +57,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
     const homeLon = -83.69682688;
     const homeLat = 43.02345147;
 
-    const { DATA_QUALITY_FILTERS } = require('../../../services/dataQualityFilters');
+    const { DATA_QUALITY_FILTERS } = require('../../../../services/dataQualityFilters');
     let qualityWhere = '';
     if (qualityFilter === 'temporal') {
       qualityWhere = DATA_QUALITY_FILTERS.temporal_clusters;
