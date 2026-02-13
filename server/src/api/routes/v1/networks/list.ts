@@ -6,18 +6,12 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { pool, query } = require('../../../config/database');
-const { escapeLikePattern } = require('../../../utils/escapeSQL');
+const { query } = require('../../../config/database');
 const { safeJsonParse } = require('../../../utils/safeJsonParse');
-const logger = require('../../../logging/logger');
 const { cacheMiddleware } = require('../../../middleware/cacheMiddleware');
 const {
-  validateBSSID,
   validateBSSIDList,
-  validateConfidence,
   validateEnum,
-  validateMACAddress,
-  validateNetworkIdentifier,
   validateNumberRange,
   validateString,
 } = require('../../../validation/schemas');
@@ -29,52 +23,46 @@ const {
   parseBoundingBoxParams,
   parseRadiusParams,
 } = require('../../../validation/parameterParsers');
-const { NETWORK_CHANNEL_EXPR } = require('../../../services/filterQueryBuilder/sqlExpressions');
-
-const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
+const {
+  typeExpr,
+  threatScoreExpr,
+  threatLevelExpr,
+  sortColumnMap,
+  indexedSorts,
+  selectColumns,
+} = require('./networkListSql');
+const { parseSortParams } = require('./parseSortParams');
+const { buildNetworkListConditions } = require('./buildNetworkListConditions');
 
 // GET /api/networks - List all networks with pagination and filtering
 router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
   try {
-    const limitRaw = req.query.limit;
-    const offsetRaw = req.query.offset;
-    const threatLevelRaw = req.query.threat_level;
-    const threatCategoriesRaw = req.query.threat_categories;
-    const threatScoreMinRaw = req.query.threat_score_min;
-    const threatScoreMaxRaw = req.query.threat_score_max;
-    const lastSeenRaw = req.query.last_seen;
-    const distanceRaw = req.query.distance_from_home_km;
-    const distanceMinRaw = req.query.distance_from_home_km_min;
-    const distanceMaxRaw = req.query.distance_from_home_km_max;
-    const minSignalRaw = req.query.min_signal;
-    const maxSignalRaw = req.query.max_signal;
-    const minObsRaw = req.query.min_obs_count;
-    const maxObsRaw = req.query.max_obs_count;
-    const ssidRaw = req.query.ssid;
-    const bssidRaw = req.query.bssid;
-    const radioTypesRaw = req.query.radioTypes;
-    const encryptionTypesRaw = req.query.encryptionTypes;
-    const authMethodsRaw = req.query.authMethods;
-    const insecureFlagsRaw = req.query.insecureFlags;
-    const securityFlagsRaw = req.query.securityFlags;
-    const quickSearchRaw = req.query.q;
-    const sortRaw = req.query.sort || 'last_seen';
-    const orderRaw = req.query.order || 'DESC';
+    // --- Parse & validate basic params ---
+    const limitResult = parseRequiredInteger(
+      req.query.limit,
+      1,
+      1000,
+      'limit',
+      'Missing limit parameter.',
+      'Invalid limit parameter. Must be between 1 and 1000.'
+    );
+    if (!limitResult.ok) return res.status(400).json({ error: limitResult.error });
 
-    console.log('[SORT DEBUG] Received sort params:', { sortRaw, orderRaw });
+    const offsetResult = parseRequiredInteger(
+      req.query.offset,
+      0,
+      10000000,
+      'offset',
+      'Missing offset parameter.',
+      'Invalid offset parameter. Must be >= 0.'
+    );
+    if (!offsetResult.ok) return res.status(400).json({ error: offsetResult.error });
 
+    const limit = limitResult.value;
+    const offset = offsetResult.value;
     const planCheck = req.query.planCheck === '1';
-    const _qualityFilter = req.query.quality_filter;
 
-    // Spatial filter parameters
-    const bboxMinLatRaw = req.query.bbox_min_lat;
-    const bboxMaxLatRaw = req.query.bbox_max_lat;
-    const bboxMinLngRaw = req.query.bbox_min_lng;
-    const bboxMaxLngRaw = req.query.bbox_max_lng;
-    const radiusCenterLatRaw = req.query.radius_center_lat;
-    const radiusCenterLngRaw = req.query.radius_center_lng;
-    const radiusMetersRaw = req.query.radius_meters;
-
+    // --- Location mode ---
     const locationModeRaw = String(req.query.location_mode || 'latest_observation');
     const locationMode = [
       'latest_observation',
@@ -85,64 +73,33 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       ? locationModeRaw
       : 'latest_observation';
 
-    const limitResult = parseRequiredInteger(
-      limitRaw,
-      1,
-      1000,
-      'limit',
-      'Missing limit parameter.',
-      'Invalid limit parameter. Must be between 1 and 1000.'
-    );
-    if (!limitResult.ok) {
-      return res.status(400).json({ error: limitResult.error });
-    }
-
-    const offsetResult = parseRequiredInteger(
-      offsetRaw,
-      0,
-      10000000,
-      'offset',
-      'Missing offset parameter.',
-      'Invalid offset parameter. Must be >= 0.'
-    );
-    if (!offsetResult.ok) {
-      return res.status(400).json({ error: offsetResult.error });
-    }
-
-    const limit = limitResult.value;
-    const offset = offsetResult.value;
-
+    // --- Threat filters ---
     let threatLevel = null;
     let threatCategories = null;
     let threatScoreMin = null;
     let threatScoreMax = null;
 
-    if (threatLevelRaw !== undefined) {
+    if (req.query.threat_level !== undefined) {
       const validation = validateEnum(
-        threatLevelRaw,
+        req.query.threat_level,
         ['NONE', 'LOW', 'MED', 'HIGH', 'CRITICAL'],
         'threat_level'
       );
-      if (!validation.valid) {
-        return res.status(400).json({
-          error: 'Invalid threat_level parameter. Must be NONE, LOW, MED, HIGH, or CRITICAL.',
-        });
-      }
+      if (!validation.valid)
+        return res
+          .status(400)
+          .json({
+            error: 'Invalid threat_level parameter. Must be NONE, LOW, MED, HIGH, or CRITICAL.',
+          });
       threatLevel = validation.value;
     }
-
-    if (threatCategoriesRaw !== undefined) {
+    if (req.query.threat_categories !== undefined) {
       try {
-        const categories = Array.isArray(threatCategoriesRaw)
-          ? threatCategoriesRaw
-          : safeJsonParse(threatCategoriesRaw);
+        const categories = Array.isArray(req.query.threat_categories)
+          ? req.query.threat_categories
+          : safeJsonParse(req.query.threat_categories);
         if (Array.isArray(categories) && categories.length > 0) {
-          const threatLevelMap = {
-            critical: 'CRITICAL',
-            high: 'HIGH',
-            medium: 'MED',
-            low: 'LOW',
-          };
+          const threatLevelMap = { critical: 'CRITICAL', high: 'HIGH', medium: 'MED', low: 'LOW' };
           threatCategories = categories.map((cat) => threatLevelMap[cat]).filter(Boolean);
         }
       } catch {
@@ -151,388 +108,166 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
           .json({ error: 'Invalid threat_categories parameter. Must be JSON array.' });
       }
     }
-
-    if (threatScoreMinRaw !== undefined) {
-      const validation = validateNumberRange(threatScoreMinRaw, 0, 100, 'threat_score_min');
-      if (!validation.valid) {
+    if (req.query.threat_score_min !== undefined) {
+      const v = validateNumberRange(req.query.threat_score_min, 0, 100, 'threat_score_min');
+      if (!v.valid)
         return res
           .status(400)
           .json({ error: 'Invalid threat_score_min parameter. Must be 0-100.' });
-      }
-      threatScoreMin = validation.value;
+      threatScoreMin = v.value;
     }
-
-    if (threatScoreMaxRaw !== undefined) {
-      const validation = validateNumberRange(threatScoreMaxRaw, 0, 100, 'threat_score_max');
-      if (!validation.valid) {
+    if (req.query.threat_score_max !== undefined) {
+      const v = validateNumberRange(req.query.threat_score_max, 0, 100, 'threat_score_max');
+      if (!v.valid)
         return res
           .status(400)
           .json({ error: 'Invalid threat_score_max parameter. Must be 0-100.' });
-      }
-      threatScoreMax = validation.value;
+      threatScoreMax = v.value;
     }
 
+    // --- Temporal ---
     let lastSeen = null;
-    if (lastSeenRaw !== undefined) {
-      const parsed = new Date(lastSeenRaw);
-      if (Number.isNaN(parsed.getTime())) {
+    if (req.query.last_seen !== undefined) {
+      const parsed = new Date(req.query.last_seen);
+      if (Number.isNaN(parsed.getTime()))
         return res.status(400).json({ error: 'Invalid last_seen parameter.' });
-      }
       lastSeen = parsed.toISOString();
     }
 
+    // --- Distance filters ---
     const distanceResult = parseOptionalNumber(
-      distanceRaw,
+      req.query.distance_from_home_km,
       0,
       Number.MAX_SAFE_INTEGER,
       'distance_from_home_km'
     );
-    if (!distanceResult.ok) {
+    if (!distanceResult.ok)
       return res
         .status(400)
         .json({ error: 'Invalid distance_from_home_km parameter. Must be >= 0.' });
-    }
-    const distanceFromHomeKm = distanceResult.value;
-
     const distanceMinResult = parseOptionalNumber(
-      distanceMinRaw,
+      req.query.distance_from_home_km_min,
       0,
       Number.MAX_SAFE_INTEGER,
       'distance_from_home_km_min'
     );
-    if (!distanceMinResult.ok) {
+    if (!distanceMinResult.ok)
       return res
         .status(400)
         .json({ error: 'Invalid distance_from_home_km_min parameter. Must be >= 0.' });
-    }
-    const distanceFromHomeMinKm = distanceMinResult.value;
-
     const distanceMaxResult = parseOptionalNumber(
-      distanceMaxRaw,
+      req.query.distance_from_home_km_max,
       0,
       Number.MAX_SAFE_INTEGER,
       'distance_from_home_km_max'
     );
-    if (!distanceMaxResult.ok) {
+    if (!distanceMaxResult.ok)
       return res
         .status(400)
         .json({ error: 'Invalid distance_from_home_km_max parameter. Must be >= 0.' });
-    }
-    const distanceFromHomeMaxKm = distanceMaxResult.value;
 
+    // --- Spatial filters ---
     const bboxResult = parseBoundingBoxParams(
-      bboxMinLatRaw,
-      bboxMaxLatRaw,
-      bboxMinLngRaw,
-      bboxMaxLngRaw
+      req.query.bbox_min_lat,
+      req.query.bbox_max_lat,
+      req.query.bbox_min_lng,
+      req.query.bbox_max_lng
     );
-    const bboxMinLat = bboxResult.value?.minLat ?? null;
-    const bboxMaxLat = bboxResult.value?.maxLat ?? null;
-    const bboxMinLng = bboxResult.value?.minLng ?? null;
-    const bboxMaxLng = bboxResult.value?.maxLng ?? null;
+    const radiusResult = parseRadiusParams(
+      req.query.radius_center_lat,
+      req.query.radius_center_lng,
+      req.query.radius_meters
+    );
 
-    const radiusResult = parseRadiusParams(radiusCenterLatRaw, radiusCenterLngRaw, radiusMetersRaw);
-    const radiusCenterLat = radiusResult.value?.centerLat ?? null;
-    const radiusCenterLng = radiusResult.value?.centerLng ?? null;
-    const radiusMeters = radiusResult.value?.radius ?? null;
-
+    // --- Signal / obs count ---
     const minSignalResult = parseOptionalInteger(
-      minSignalRaw,
+      req.query.min_signal,
       Number.MIN_SAFE_INTEGER,
       Number.MAX_SAFE_INTEGER,
       'min_signal'
     );
-    if (!minSignalResult.ok) {
+    if (!minSignalResult.ok)
       return res.status(400).json({ error: 'Invalid min_signal parameter.' });
-    }
-    const minSignal = minSignalResult.value;
-
     const maxSignalResult = parseOptionalInteger(
-      maxSignalRaw,
+      req.query.max_signal,
       Number.MIN_SAFE_INTEGER,
       Number.MAX_SAFE_INTEGER,
       'max_signal'
     );
-    if (!maxSignalResult.ok) {
+    if (!maxSignalResult.ok)
       return res.status(400).json({ error: 'Invalid max_signal parameter.' });
-    }
-    const maxSignal = maxSignalResult.value;
-
-    const minObsResult = parseOptionalInteger(minObsRaw, 0, 100000000, 'min_obs_count');
-    if (!minObsResult.ok) {
+    const minObsResult = parseOptionalInteger(
+      req.query.min_obs_count,
+      0,
+      100000000,
+      'min_obs_count'
+    );
+    if (!minObsResult.ok)
       return res.status(400).json({ error: 'Invalid min_obs_count parameter.' });
-    }
-    const minObsCount = minObsResult.value !== null ? minObsResult.value : 1;
-
-    const maxObsResult = parseOptionalInteger(maxObsRaw, 0, 100000000, 'max_obs_count');
-    if (!maxObsResult.ok) {
+    const maxObsResult = parseOptionalInteger(
+      req.query.max_obs_count,
+      0,
+      100000000,
+      'max_obs_count'
+    );
+    if (!maxObsResult.ok)
       return res.status(400).json({ error: 'Invalid max_obs_count parameter.' });
-    }
-    const maxObsCount = maxObsResult.value;
 
-    let radioTypes = null;
-    if (radioTypesRaw !== undefined) {
-      const values = parseCommaList(radioTypesRaw, 20);
-      if (values && values.length > 0) {
-        radioTypes = values.map((value) => value.toUpperCase());
-      }
+    // --- Identity / security filters ---
+    let ssidPattern = null;
+    if (req.query.ssid !== undefined) {
+      const v = validateString(req.query.ssid, 100, 'ssid');
+      if (!v.valid) return res.status(400).json({ error: 'Invalid ssid parameter.' });
+      ssidPattern = v.value;
     }
-
-    const wifiTypes = new Set(['W', 'B', 'E']);
-    const cellularTypes = new Set(['G', 'C', 'D', 'L', 'N', 'F']);
-    const isWifiOnly =
-      Array.isArray(radioTypes) &&
-      radioTypes.length > 0 &&
-      radioTypes.every((type) => wifiTypes.has(type));
-    const hasCellular =
-      Array.isArray(radioTypes) && radioTypes.some((type) => cellularTypes.has(type));
-    const requireMacForBssid = isWifiOnly && !hasCellular;
-
-    let encryptionTypes = null;
-    if (encryptionTypesRaw !== undefined) {
-      const values = parseCommaList(encryptionTypesRaw, 50);
-      if (values && values.length > 0) {
-        encryptionTypes = values;
-      }
+    let bssidList = null;
+    if (req.query.bssid !== undefined) {
+      const v = validateBSSIDList(req.query.bssid, 1000);
+      if (!v.valid) return res.status(400).json({ error: v.error });
+      bssidList = v.value;
     }
-    let authMethods = null;
-    if (authMethodsRaw !== undefined) {
-      const values = parseCommaList(authMethodsRaw, 20);
-      if (values && values.length > 0) {
-        authMethods = values;
-      }
-    }
-    let insecureFlags = null;
-    if (insecureFlagsRaw !== undefined) {
-      const values = parseCommaList(insecureFlagsRaw, 20);
-      if (values && values.length > 0) {
-        insecureFlags = values;
-      }
-    }
-    let securityFlags = null;
-    if (securityFlagsRaw !== undefined) {
-      const values = parseCommaList(securityFlagsRaw, 20);
-      if (values && values.length > 0) {
-        securityFlags = values;
-      }
+    let quickSearchPattern = null;
+    if (req.query.q !== undefined) {
+      const v = validateString(req.query.q, 100, 'q');
+      if (!v.valid) return res.status(400).json({ error: 'Invalid q parameter.' });
+      quickSearchPattern = v.value;
     }
 
-    const typeExpr = `
-      CASE
-        WHEN ne.type IS NOT NULL AND ne.type <> '?' THEN
-          CASE
-            WHEN UPPER(ne.type) IN ('W', 'WIFI', 'WI-FI') THEN 'W'
-            WHEN UPPER(ne.type) IN ('E', 'BLE', 'BTLE', 'BLUETOOTHLE', 'BLUETOOTH_LOW_ENERGY') THEN 'E'
-            WHEN UPPER(ne.type) IN ('B', 'BT', 'BLUETOOTH') THEN 'B'
-            WHEN UPPER(ne.type) IN ('L', 'LTE', '4G') THEN 'L'
-            WHEN UPPER(ne.type) IN ('N', 'NR', '5G') THEN 'N'
-            WHEN UPPER(ne.type) IN ('G', 'GSM', '2G') THEN 'G'
-            WHEN UPPER(ne.type) IN ('C', 'CDMA') THEN 'C'
-            WHEN UPPER(ne.type) IN ('D', '3G', 'UMTS') THEN 'D'
-            WHEN UPPER(ne.type) IN ('F', 'NFC') THEN 'F'
-            ELSE UPPER(ne.type)
-          END
-        WHEN ne.frequency BETWEEN 2412 AND 7125 THEN 'W'
-        WHEN COALESCE(ne.security, '') ~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)' THEN 'W'
-        WHEN COALESCE(ne.security, '') ~* '(BLE|BTLE|BLUETOOTH.?LOW.?ENERGY)' THEN 'E'
-        WHEN COALESCE(ne.security, '') ~* '(BLUETOOTH)' THEN 'B'
-        ELSE '?'
-      END
-    `;
-    const channelExpr = NETWORK_CHANNEL_EXPR('ne');
+    const radioTypes =
+      req.query.radioTypes !== undefined
+        ? (parseCommaList(req.query.radioTypes, 20) || []).map((v) => v.toUpperCase())
+        : null;
+    const encryptionTypes =
+      req.query.encryptionTypes !== undefined
+        ? parseCommaList(req.query.encryptionTypes, 50)
+        : null;
+    const authMethods =
+      req.query.authMethods !== undefined ? parseCommaList(req.query.authMethods, 20) : null;
+    const insecureFlags =
+      req.query.insecureFlags !== undefined ? parseCommaList(req.query.insecureFlags, 20) : null;
+    const securityFlags =
+      req.query.securityFlags !== undefined ? parseCommaList(req.query.securityFlags, 20) : null;
 
-    const threatScoreExpr = `COALESCE(
-      CASE 
-        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
-        WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
-        WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-        ELSE (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
-      END,
-      0
-    )`;
+    // --- Sort ---
+    const sortRaw = req.query.sort || 'last_seen';
+    const orderRaw = req.query.order || 'DESC';
+    console.log('[SORT DEBUG] Received sort params:', { sortRaw, orderRaw });
 
-    const threatLevelExpr = `CASE
-      WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
-      WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
-      ELSE (
-        CASE
-          WHEN ${threatScoreExpr} >= 80 THEN 'CRITICAL'
-          WHEN ${threatScoreExpr} >= 60 THEN 'HIGH'
-          WHEN ${threatScoreExpr} >= 40 THEN 'MED'
-          WHEN ${threatScoreExpr} >= 20 THEN 'LOW'
-          ELSE 'NONE'
-        END
-      )
-    END`;
+    const { sortEntries, ignoredSorts, sortClauses, expensiveSort } = parseSortParams(
+      sortRaw,
+      orderRaw,
+      sortColumnMap,
+      indexedSorts
+    );
 
-    const threatOrderExpr = `CASE ${threatLevelExpr}
-      WHEN 'CRITICAL' THEN 4
-      WHEN 'HIGH' THEN 3
-      WHEN 'MED' THEN 2
-      WHEN 'LOW' THEN 1
-      ELSE 0
-    END`;
-
-    const sortColumnMap = {
-      last_seen: 'ne.last_seen',
-      last_observed_at: 'ne.last_seen',
-      first_observed_at: 'ne.first_seen',
-      observed_at: 'ne.observed_at',
-      ssid: 'lower(ne.ssid)',
-      bssid: 'ne.bssid',
-      type: typeExpr,
-      security: 'ne.security',
-      signal: 'ne.signal',
-      frequency: 'ne.frequency',
-      channel: channelExpr,
-      obs_count: 'ne.observations',
-      observations: 'ne.observations',
-      distance_from_home_km: 'distance_from_home_km',
-      accuracy_meters: 'ne.accuracy_meters',
-      avg_signal: 'ne.signal',
-      min_signal: 'ne.signal',
-      max_signal: 'ne.signal',
-      unique_days: 'ne.unique_days',
-      unique_locations: 'ne.unique_locations',
-      threat: threatOrderExpr,
-      threat_score: `(${threatScoreExpr})::numeric`,
-      threat_rule_score: "COALESCE((nts.ml_feature_values->>'rule_score')::numeric, 0)",
-      threat_ml_score: "COALESCE((nts.ml_feature_values->>'ml_score')::numeric, 0)",
-      threat_ml_weight: "COALESCE((nts.ml_feature_values->>'evidence_weight')::numeric, 0)",
-      threat_ml_boost: "COALESCE((nts.ml_feature_values->>'ml_boost')::numeric, 0)",
-      threat_level: threatOrderExpr,
-      lat: 'ne.lat',
-      lon: 'ne.lon',
-      manufacturer: 'lower(rm.manufacturer)',
-      manufacturer_address: 'lower(rm.address)',
-      capabilities: 'ne.security',
-      min_altitude_m: 'ne.min_altitude_m',
-      max_altitude_m: 'ne.max_altitude_m',
-      altitude_span_m: 'ne.altitude_span_m',
-      max_distance_meters: 'ne.max_distance_meters',
-      last_altitude_m: 'ne.last_altitude_m',
-      is_sentinel: 'ne.is_sentinel',
-      timespan_days: 'EXTRACT(EPOCH FROM (ne.last_seen - ne.first_seen)) / 86400.0',
-    };
-
-    const parseSortJson = (value) => {
-      return safeJsonParse(value);
-    };
-    const parseOrderColumns = (value) =>
-      String(value)
-        .split(',')
-        .map((item) => item.trim().toUpperCase())
-        .filter(Boolean);
-
-    const parsedSortJson = parseSortJson(sortRaw);
-    const parsedOrderJson = parseSortJson(orderRaw);
-
-    const sortEntries = [];
-    const ignoredSorts = [];
-
-    if (Array.isArray(parsedSortJson) || (parsedSortJson && typeof parsedSortJson === 'object')) {
-      const entries = Array.isArray(parsedSortJson) ? parsedSortJson : [parsedSortJson];
-      entries.forEach((entry) => {
-        if (!entry || typeof entry !== 'object') {
-          return;
-        }
-        const column = String(entry.column || '')
-          .trim()
-          .toLowerCase();
-        if (!sortColumnMap[column]) {
-          if (column) {
-            ignoredSorts.push(column);
-          }
-          return;
-        }
-        const dir = String(entry.direction || 'ASC')
-          .trim()
-          .toUpperCase();
-        sortEntries.push({ column, direction: ['ASC', 'DESC'].includes(dir) ? dir : 'ASC' });
-      });
-    } else {
-      const sortColumns = String(sortRaw)
-        .split(',')
-        .map((value) => value.trim().toLowerCase())
-        .filter(Boolean);
-      const orderColumns = Array.isArray(parsedOrderJson)
-        ? parsedOrderJson.map((v) => String(v).trim().toUpperCase())
-        : parseOrderColumns(orderRaw);
-
-      const normalizedOrders =
-        orderColumns.length === 1 ? sortColumns.map(() => orderColumns[0]) : orderColumns;
-
-      sortColumns.forEach((col, idx) => {
-        if (!sortColumnMap[col]) {
-          ignoredSorts.push(col);
-          return;
-        }
-        const dir = normalizedOrders[idx] || 'ASC';
-        sortEntries.push({
-          column: col,
-          direction: ['ASC', 'DESC'].includes(dir) ? dir : 'ASC',
-        });
-      });
-    }
-
-    if (sortEntries.length === 0) {
-      sortEntries.push({ column: 'last_seen', direction: 'DESC' });
-    }
-
-    const indexedSorts = new Set([
-      'bssid',
-      'last_seen',
-      'last_seen',
-      'first_observed_at',
-      'observed_at',
-      'ssid',
-      'signal',
-      'obs_count',
-      'distance_from_home_km',
-      'max_distance_meters',
-    ]);
-    const expensiveSort = !(sortEntries.length === 1 && indexedSorts.has(sortEntries[0].column));
     if (expensiveSort && limit > 2000) {
       return res.status(400).json({
         error:
-          'Query plan check would be too expensive. Please reduce limit to <= 2000 for expensive sorts, or use an indexed sort column (bssid, last_seen, first_observed_at, observed_at, ssid, signal, obs_count, distance_from_home_km, max_distance_meters).',
+          'Query plan check would be too expensive. Please reduce limit to <= 2000 for expensive sorts, or use an indexed sort column.',
       });
     }
 
-    const sortClauses = sortEntries
-      .map((entry) => {
-        const col = sortColumnMap[entry.column];
-        return `${col} ${entry.direction}`;
-      })
-      .join(', ');
-
-    let ssidPattern = null;
-    if (ssidRaw !== undefined) {
-      const validation = validateString(ssidRaw, 100, 'ssid');
-      if (!validation.valid) {
-        return res.status(400).json({ error: 'Invalid ssid parameter.' });
-      }
-      ssidPattern = validation.value;
-    }
-
-    let bssidList = null;
-    if (bssidRaw !== undefined) {
-      const validation = validateBSSIDList(bssidRaw, 1000);
-      if (!validation.valid) {
-        return res.status(400).json({ error: validation.error });
-      }
-      bssidList = validation.value;
-    }
-
-    let quickSearchPattern = null;
-    if (quickSearchRaw !== undefined) {
-      const validation = validateString(quickSearchRaw, 100, 'q');
-      if (!validation.valid) {
-        return res.status(400).json({ error: 'Invalid q parameter.' });
-      }
-      quickSearchPattern = validation.value;
-    }
-
+    // --- Home location ---
     let homeLocation: { lat: number; lon: number } | null = null;
     try {
       const homeResult = await query(
@@ -540,55 +275,16 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       );
       if (homeResult.rows.length > 0) {
         const { lat, lon } = homeResult.rows[0];
-        if (lat !== null && lon !== null) {
+        if (lat !== null && lon !== null)
           homeLocation = { lat: parseFloat(lat), lon: parseFloat(lon) };
-        }
       }
     } catch (err) {
       console.log('[WARN] Could not fetch home location:', err.message);
     }
 
-    const selectColumns = [
-      'ne.bssid',
-      'ne.ssid',
-      `TRIM(ne.type) AS type`,
-      `ne.frequency`,
-      `ne.signal`,
-      `ne.lat`,
-      `ne.lon`,
-      `ne.last_seen`,
-      `ne.first_seen`,
-      `ne.observations`,
-      `ne.accuracy_meters`,
-      `ne.security`,
-      `ne.channel`,
-      `ne.wps`,
-      `ne.battery`,
-      `ne.altitude_m`,
-      `ne.min_altitude_m`,
-      `ne.max_altitude_m`,
-      `ne.altitude_accuracy_m`,
-      `ne.max_distance_meters`,
-      `ne.last_altitude_m`,
-      `ne.unique_days`,
-      `ne.unique_locations`,
-      `ne.is_sentinel`,
-      `rm.manufacturer`,
-      `rm.address`,
-    ];
-
     const distanceExpr =
       homeLocation !== null
-        ? `
-        CASE
-          WHEN ne.lat IS NOT NULL AND ne.lon IS NOT NULL THEN
-            6371 * ACOS(
-              COS(RADIANS(${homeLocation.lat})) * COS(RADIANS(ne.lat)) *
-              COS(RADIANS(ne.lon) - RADIANS(${homeLocation.lon})) +
-              SIN(RADIANS(${homeLocation.lat})) * SIN(RADIANS(ne.lat))
-            )
-          ELSE NULL
-        END`
+        ? `CASE WHEN ne.lat IS NOT NULL AND ne.lon IS NOT NULL THEN 6371 * ACOS(COS(RADIANS(${homeLocation.lat})) * COS(RADIANS(ne.lat)) * COS(RADIANS(ne.lon) - RADIANS(${homeLocation.lon})) + SIN(RADIANS(${homeLocation.lat})) * SIN(RADIANS(ne.lat))) ELSE NULL END`
         : 'NULL';
 
     const columnsWithDistance =
@@ -596,208 +292,60 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
         ? [...selectColumns, `(${distanceExpr})::numeric(10,4) AS distance_from_home_km`]
         : selectColumns;
 
-    const countColumns = ['ne.bssid'];
+    // --- Build conditions ---
+    const { conditions, params, paramIndex, extraJoins } = buildNetworkListConditions(
+      {
+        ssidPattern,
+        bssidList,
+        threatLevel,
+        threatCategories,
+        threatScoreMin,
+        threatScoreMax,
+        lastSeen,
+        distanceFromHomeKm: distanceResult.value,
+        distanceFromHomeMinKm: distanceMinResult.value,
+        distanceFromHomeMaxKm: distanceMaxResult.value,
+        minSignal: minSignalResult.value,
+        maxSignal: maxSignalResult.value,
+        minObsCount: minObsResult.value !== null ? minObsResult.value : 1,
+        maxObsCount: maxObsResult.value,
+        radioTypes: radioTypes && radioTypes.length > 0 ? radioTypes : null,
+        encryptionTypes: encryptionTypes && encryptionTypes.length > 0 ? encryptionTypes : null,
+        authMethods: authMethods && authMethods.length > 0 ? authMethods : null,
+        insecureFlags: insecureFlags && insecureFlags.length > 0 ? insecureFlags : null,
+        securityFlags: securityFlags && securityFlags.length > 0 ? securityFlags : null,
+        quickSearchPattern,
+        bboxMinLat: bboxResult.value?.minLat ?? null,
+        bboxMaxLat: bboxResult.value?.maxLat ?? null,
+        bboxMinLng: bboxResult.value?.minLng ?? null,
+        bboxMaxLng: bboxResult.value?.maxLng ?? null,
+        radiusCenterLat: radiusResult.value?.centerLat ?? null,
+        radiusCenterLng: radiusResult.value?.centerLng ?? null,
+        radiusMeters: radiusResult.value?.radius ?? null,
+        locationMode,
+      },
+      { typeExpr, threatScoreExpr, threatLevelExpr, distanceExpr }
+    );
 
+    // --- Execute queries ---
     const joins = [
       `LEFT JOIN radio_manufacturers rm ON ne.oui = rm.oui`,
       `LEFT JOIN network_tags nt ON ne.bssid = nt.bssid`,
       `LEFT JOIN network_threat_scores nts ON ne.bssid = nts.bssid`,
+      ...extraJoins,
     ];
 
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-    let paramIndex = 1;
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : '';
 
-    const addCondition = (condition: string, value: unknown) => {
-      conditions.push(condition);
-      params.push(value);
-      paramIndex++;
-    };
-
-    if (ssidPattern !== null) {
-      const escapedPattern = escapeLikePattern(ssidPattern);
-      addCondition(`ne.ssid ILIKE $${paramIndex}`, `%${escapedPattern}%`);
-    }
-
-    if (bssidList !== null && bssidList.length > 0) {
-      conditions.push(`ne.bssid = ANY($${paramIndex}::text[])`);
-      params.push(bssidList);
-      paramIndex++;
-    }
-
-    if (threatLevel !== null) {
-      addCondition(`(${threatLevelExpr}) = $${paramIndex}`, threatLevel);
-    }
-
-    if (threatCategories !== null && threatCategories.length > 0) {
-      addCondition(`nt.threat_category = ANY($${paramIndex}::text[])`, threatCategories);
-    }
-
-    if (threatScoreMin !== null) {
-      addCondition(`${threatScoreExpr} >= $${paramIndex}`, threatScoreMin);
-    }
-
-    if (threatScoreMax !== null) {
-      addCondition(`${threatScoreExpr} <= $${paramIndex}`, threatScoreMax);
-    }
-
-    if (lastSeen !== null) {
-      addCondition(`ne.last_seen >= $${paramIndex}`, lastSeen);
-    }
-
-    if (distanceFromHomeKm !== null) {
-      addCondition(`(${distanceExpr}) <= $${paramIndex}`, distanceFromHomeKm);
-    }
-
-    if (distanceFromHomeMinKm !== null) {
-      addCondition(`(${distanceExpr}) >= $${paramIndex}`, distanceFromHomeMinKm);
-    }
-
-    if (distanceFromHomeMaxKm !== null) {
-      addCondition(`(${distanceExpr}) <= $${paramIndex}`, distanceFromHomeMaxKm);
-    }
-
-    if (minSignal !== null) {
-      addCondition(`ne.signal >= $${paramIndex}`, minSignal);
-    }
-
-    if (maxSignal !== null) {
-      addCondition(`ne.signal <= $${paramIndex}`, maxSignal);
-    }
-
-    if (minObsCount !== null) {
-      addCondition(`ne.observations >= $${paramIndex}`, minObsCount);
-    }
-
-    if (maxObsCount !== null) {
-      addCondition(`ne.observations <= $${paramIndex}`, maxObsCount);
-    }
-
-    if (radioTypes !== null && radioTypes.length > 0) {
-      if (radioTypes.includes('W')) {
-        conditions.push(`(${typeExpr}) = 'W'`);
-      } else if (radioTypes.length > 0) {
-        const radioConditions = radioTypes.map((rt) => `(${typeExpr}) = '${rt}'`);
-        conditions.push(`(${radioConditions.join(' OR ')})`);
-      }
-    }
-
-    if (encryptionTypes !== null && encryptionTypes.length > 0) {
-      const encConditions = encryptionTypes.map((enc) => {
-        if (enc === 'WEP') {
-          return `ne.security ILIKE '%WEP%'`;
-        } else if (enc === 'WPA') {
-          return `(ne.security ILIKE '%WPA%' OR ne.security ILIKE '%WPA2%' OR ne.security ILIKE '%WPA3%' OR ne.security ILIKE '%WPA%')`;
-        } else if (enc === 'WPA2') {
-          return `ne.security ILIKE '%WPA2%'`;
-        } else if (enc === 'WPA3') {
-          return `ne.security ILIKE '%WPA3%'`;
-        } else if (enc === 'OWE') {
-          return `ne.security ILIKE '%OWE%'`;
-        } else if (enc === 'SAE') {
-          return `ne.security ILIKE '%SAE%'`;
-        } else if (enc === 'NONE') {
-          return `(ne.security IS NULL OR ne.security = '' OR ne.security ILIKE '%NONE%' OR ne.security !~* '(WPA|WEP|ESS|RSN|CCMP|TKIP|OWE|SAE)')`;
-        } else {
-          return `ne.security ILIKE '%${enc.replace(/'/g, "''")}%'`;
-        }
-      });
-      conditions.push(`(${encConditions.join(' OR ')})`);
-    }
-
-    if (authMethods !== null && authMethods.length > 0) {
-      const authConditions = authMethods.map((auth) => {
-        if (auth === 'NONE') {
-          return `(ne.auth IS NULL OR ne.auth = '' OR ne.auth ILIKE '%NONE%')`;
-        } else {
-          return `ne.auth ILIKE '%${auth.replace(/'/g, "''")}%'`;
-        }
-      });
-      conditions.push(`(${authConditions.join(' OR ')})`);
-    }
-
-    if (insecureFlags !== null && insecureFlags.length > 0) {
-      conditions.push(`(ne.insecure_flags && $${paramIndex}::text[])`);
-      params.push(insecureFlags);
-      paramIndex++;
-    }
-
-    if (securityFlags !== null && securityFlags.length > 0) {
-      conditions.push(`(ne.security_flags && $${paramIndex}::text[])`);
-      params.push(securityFlags);
-      paramIndex++;
-    }
-
-    if (quickSearchPattern !== null) {
-      const escapedQuickSearch = escapeLikePattern(quickSearchPattern);
-      const quickSearchCondition = `
-        (ne.ssid ILIKE $${paramIndex} OR ne.bssid ILIKE $${paramIndex} OR rm.manufacturer ILIKE $${paramIndex})
-      `;
-      conditions.push(quickSearchCondition);
-      params.push(`%${escapedQuickSearch}%`);
-      paramIndex++;
-    }
-
-    if (
-      locationMode === 'centroid' ||
-      locationMode === 'weighted_centroid' ||
-      locationMode === 'triangulated'
-    ) {
-      joins.push(
-        `STATIC JOIN (SELECT bssid, ${locationMode === 'weighted_centroid' ? 'weighted' : locationMode === 'triangulated' ? 'triangulated' : 'centroid'}_lat AS lat, ${locationMode === 'weighted_centroid' ? 'weighted' : locationMode === 'triangulated' ? 'triangulated' : 'centroid'}_lon AS lon FROM network_locations WHERE bssid = ne.bssid) AS nl ON ne.bssid = nl.bssid`
-      );
-    }
-
-    if (bboxMinLat !== null && bboxMaxLat !== null && bboxMinLng !== null && bboxMaxLng !== null) {
-      if (locationMode === 'latest_observation') {
-        conditions.push(`ne.lat BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-        params.push(bboxMinLat, bboxMaxLat);
-        paramIndex += 2;
-        conditions.push(`ne.lon BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-        params.push(bboxMinLng, bboxMaxLng);
-        paramIndex += 2;
-      } else {
-        joins.push(`STATIC JOIN network_locations nl ON ne.bssid = nl.bssid`);
-        conditions.push(`nl.lat BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-        params.push(bboxMinLat, bboxMaxLat);
-        paramIndex += 2;
-        conditions.push(`nl.lon BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
-        params.push(bboxMinLng, bboxMaxLng);
-        paramIndex += 2;
-      }
-    }
-
-    if (radiusCenterLat !== null && radiusCenterLng !== null && radiusMeters !== null) {
-      const radiusExpr = `
-        (
-          6371 * ACOS(
-            COS(RADIANS($${paramIndex})) * COS(RADIANS(ne.lat)) *
-            COS(RADIANS(ne.lon) - RADIANS($${paramIndex + 1})) +
-            SIN(RADIANS($${paramIndex})) * SIN(RADIANS(ne.lat))
-          ) * 1000 <= $${paramIndex + 2}
-        )
-      `;
-      conditions.push(radiusExpr);
-      params.push(radiusCenterLat, radiusCenterLng, radiusMeters);
-      paramIndex += 3;
-    }
-
-    const totalCountQuery = `
-      SELECT COUNT(DISTINCT ne.bssid) AS total
-      FROM network_entries ne
-      ${joins.join('\n')}
-      ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
-    `;
-
+    const totalCountQuery = `SELECT COUNT(DISTINCT ne.bssid) AS total FROM network_entries ne ${joins.join('\n')} ${whereClause}`;
     const totalResult = await query(totalCountQuery, params);
     const total = parseInt(totalResult.rows[0]?.total || '0', 10);
 
     const dataQuery = `
-      SELECT
-        ${columnsWithDistance.join(',\n')}
+      SELECT ${columnsWithDistance.join(',\n')}
       FROM network_entries ne
       ${joins.join('\n')}
-      ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
+      ${whereClause}
       ORDER BY ${sortClauses}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
@@ -806,9 +354,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     const dataResult = await query(dataQuery, dataParams);
     const rows = dataResult.rows.map((row) => {
       const typedRow = { ...row };
-      if (row.type === '?') {
-        typedRow.type = null;
-      }
+      if (row.type === '?') typedRow.type = null;
       return typedRow;
     });
 
