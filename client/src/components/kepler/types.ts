@@ -26,6 +26,12 @@ export type NetworkData = {
   threat_score?: number;
   is_suspicious?: boolean;
   distance_from_home?: number;
+  max_distance_km?: number;
+  timespan_days?: number;
+  unique_days?: number;
+  first_seen?: string;
+  observation_count?: number;
+  bestlevel?: number;
 };
 
 export type LayerType = 'scatterplot' | 'heatmap' | 'hexagon';
