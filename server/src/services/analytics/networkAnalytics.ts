@@ -143,8 +143,8 @@ async function getDashboardStats() {
       `),
     ]);
 
-    const radioCounts = {};
-    radioTypes.rows.forEach((row) => {
+    const radioCounts: Record<string, number> = {};
+    radioTypes.rows.forEach((row: { radio_type: string; count: string }) => {
       radioCounts[row.radio_type] = parseInt(row.count);
     });
 
@@ -171,3 +171,4 @@ module.exports = {
   getTopNetworks,
   getDashboardStats,
 };
+export {};

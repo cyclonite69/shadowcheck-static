@@ -160,3 +160,4 @@ router.get('/', validateNetworkTagsQuery, async (req, res) => {
 });
 
 module.exports = router;
+export {};

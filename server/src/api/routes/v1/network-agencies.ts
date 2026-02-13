@@ -79,3 +79,4 @@ router.get('/:bssid/nearest-agencies', async (req, res, next) => {
 });
 
 module.exports = router;
+export {};

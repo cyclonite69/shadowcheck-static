@@ -14,3 +14,4 @@ router.use('/', listRoutes);
 router.use('/', manageRoutes);
 
 module.exports = router;
+export {};
