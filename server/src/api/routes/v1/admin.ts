@@ -15,7 +15,7 @@ const { validateBSSID, validateTimestampMs } = require('../../../validation/sche
 const { requireAdmin } = require('../../../middleware/authMiddleware');
 
 export {};
-const adminMlRoutes = require('../ml');
+const adminMlRoutes = require('./ml');
 const adminTagsRoutes = require('./admin/tags');
 const adminNotesRoutes = require('./admin/notes');
 const adminMediaRoutes = require('./admin/media');
