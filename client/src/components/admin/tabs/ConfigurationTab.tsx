@@ -1,6 +1,7 @@
 import React from 'react';
-import { AdminCard } from '../components/AdminCard';
 import { useConfiguration } from '../hooks/useConfiguration';
+import { ApiKeyCard } from '../components/ApiKeyCard';
+import { HomeLocationCard } from '../components/HomeLocationCard';
 
 const DatabaseIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -37,10 +38,16 @@ export const ConfigurationTab: React.FC = () => {
     isLoading,
     mapboxToken,
     setMapboxToken,
+    mapboxConfigured,
+    saveMapboxToken,
     mapboxUnlimitedApiKey,
     setMapboxUnlimitedApiKey,
+    mapboxUnlimitedConfigured,
+    saveMapboxUnlimitedApiKey,
     googleMapsApiKey,
     setGoogleMapsApiKey,
+    googleMapsConfigured,
+    saveGoogleMapsApiKey,
     awsAccessKeyId,
     setAwsAccessKeyId,
     awsSecretAccessKey,
@@ -49,453 +56,235 @@ export const ConfigurationTab: React.FC = () => {
     setAwsSessionToken,
     awsRegion,
     setAwsRegion,
+    awsConfigured,
+    saveAwsCredentials,
     opencageApiKey,
     setOpencageApiKey,
+    opencageConfigured,
+    saveOpencageApiKey,
     locationIqApiKey,
     setLocationIqApiKey,
+    locationIqConfigured,
+    saveLocationIqApiKey,
     smartyAuthId,
     setSmartyAuthId,
     smartyAuthToken,
     setSmartyAuthToken,
-    mapboxConfigured,
-    mapboxUnlimitedConfigured,
-    googleMapsConfigured,
-    wigleConfigured,
-    awsConfigured,
-    opencageConfigured,
-    locationIqConfigured,
     smartyConfigured,
-    homeLocation,
-    setHomeLocation,
+    saveSmartyCredentials,
     wigleApiName,
     setWigleApiName,
     wigleApiToken,
     setWigleApiToken,
-    saveMapboxToken,
-    saveMapboxUnlimitedApiKey,
-    saveGoogleMapsApiKey,
-    saveAwsCredentials,
-    saveOpencageApiKey,
-    saveLocationIqApiKey,
-    saveSmartyCredentials,
-    saveHomeLocation,
+    wigleConfigured,
     saveWigleCredentials,
+    homeLocation,
+    setHomeLocation,
+    saveHomeLocation,
   } = useConfiguration();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Mapbox */}
-      <AdminCard icon={DatabaseIcon} title="Mapbox Configuration" color="from-blue-500 to-blue-600">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              API Token
-            </label>
-            <input
-              type="text"
-              value={mapboxToken}
-              onChange={(e) => setMapboxToken(e.target.value)}
-              placeholder="pk.eyJ1..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
-            />
-            <div className="mt-2 text-xs text-slate-400">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  mapboxConfigured ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
-                }`}
-              >
-                {mapboxConfigured ? '✓ Configured' : '✗ Not Configured'}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={saveMapboxToken}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save Token'}
-          </button>
-        </div>
-      </AdminCard>
+      <ApiKeyCard
+        icon={DatabaseIcon}
+        title="Mapbox Configuration"
+        color="from-blue-500 to-blue-600"
+        ringColor="focus:ring-blue-500/40"
+        buttonGradient="from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600"
+        fields={[
+          {
+            label: 'API Token',
+            value: mapboxToken,
+            onChange: setMapboxToken,
+            placeholder: 'pk.eyJ1...',
+          },
+        ]}
+        isConfigured={mapboxConfigured}
+        onSave={saveMapboxToken}
+        isLoading={isLoading}
+        saveLabel="Save Token"
+      />
 
-      {/* Mapbox Geocoding (Unlimited) */}
-      <AdminCard icon={DatabaseIcon} title="Mapbox Geocoding Key" color="from-sky-500 to-sky-600">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              API Key
-            </label>
-            <input
-              type="password"
-              value={mapboxUnlimitedApiKey}
-              onChange={(e) => setMapboxUnlimitedApiKey(e.target.value)}
-              placeholder="sk."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
-            />
-            <div className="mt-2 text-xs text-slate-400">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  mapboxUnlimitedConfigured
-                    ? 'bg-green-900/40 text-green-300'
-                    : 'bg-red-900/40 text-red-300'
-                }`}
-              >
-                {mapboxUnlimitedConfigured ? '✓ Configured' : '✗ Not Configured'}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={saveMapboxUnlimitedApiKey}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-sky-600 to-sky-700 text-white rounded-lg font-medium hover:from-sky-500 hover:to-sky-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save Geocoding Key'}
-          </button>
-        </div>
-      </AdminCard>
+      <ApiKeyCard
+        icon={DatabaseIcon}
+        title="Mapbox Geocoding Key"
+        color="from-sky-500 to-sky-600"
+        ringColor="focus:ring-sky-500/40"
+        buttonGradient="from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600"
+        fields={[
+          {
+            label: 'API Key',
+            value: mapboxUnlimitedApiKey,
+            onChange: setMapboxUnlimitedApiKey,
+            placeholder: 'sk.',
+            type: 'password' as const,
+          },
+        ]}
+        isConfigured={mapboxUnlimitedConfigured}
+        onSave={saveMapboxUnlimitedApiKey}
+        isLoading={isLoading}
+        saveLabel="Save Geocoding Key"
+      />
 
-      {/* Google Maps */}
-      <AdminCard
+      <ApiKeyCard
         icon={DatabaseIcon}
         title="Google Maps Configuration"
         color="from-emerald-500 to-emerald-600"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              API Key
-            </label>
-            <input
-              type="text"
-              value={googleMapsApiKey}
-              onChange={(e) => setGoogleMapsApiKey(e.target.value)}
-              placeholder="AIzaSy..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
-            />
-            <div className="mt-2 text-xs text-slate-400">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  googleMapsConfigured
-                    ? 'bg-green-900/40 text-green-300'
-                    : 'bg-red-900/40 text-red-300'
-                }`}
-              >
-                {googleMapsConfigured ? '✓ Configured' : '✗ Not Configured'}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={saveGoogleMapsApiKey}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save API Key'}
-          </button>
-        </div>
-      </AdminCard>
+        ringColor="focus:ring-emerald-500/40"
+        buttonGradient="from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600"
+        fields={[
+          {
+            label: 'API Key',
+            value: googleMapsApiKey,
+            onChange: setGoogleMapsApiKey,
+            placeholder: 'AIzaSy...',
+          },
+        ]}
+        isConfigured={googleMapsConfigured}
+        onSave={saveGoogleMapsApiKey}
+        isLoading={isLoading}
+        saveLabel="Save API Key"
+      />
 
-      {/* AWS */}
-      <AdminCard icon={DatabaseIcon} title="AWS Configuration" color="from-cyan-500 to-cyan-600">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Access Key ID
-            </label>
-            <input
-              type="text"
-              value={awsAccessKeyId}
-              onChange={(e) => setAwsAccessKeyId(e.target.value)}
-              placeholder="AKIA..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Secret Access Key
-            </label>
-            <input
-              type="password"
-              value={awsSecretAccessKey}
-              onChange={(e) => setAwsSecretAccessKey(e.target.value)}
-              placeholder="secret"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Session Token (Optional)
-            </label>
-            <input
-              type="password"
-              value={awsSessionToken}
-              onChange={(e) => setAwsSessionToken(e.target.value)}
-              placeholder="token"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Region
-            </label>
-            <input
-              type="text"
-              value={awsRegion}
-              onChange={(e) => setAwsRegion(e.target.value)}
-              placeholder="us-east-1"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
-            />
-            <div className="mt-2 text-xs text-slate-400">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  awsConfigured ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
-                }`}
-              >
-                {awsConfigured ? '✓ Configured' : '✗ Not Configured'}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={saveAwsCredentials}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg font-medium hover:from-cyan-500 hover:to-cyan-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save AWS Credentials'}
-          </button>
-        </div>
-      </AdminCard>
+      <ApiKeyCard
+        icon={DatabaseIcon}
+        title="AWS Configuration"
+        color="from-cyan-500 to-cyan-600"
+        ringColor="focus:ring-cyan-500/40"
+        buttonGradient="from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600"
+        fields={[
+          {
+            label: 'Access Key ID',
+            value: awsAccessKeyId,
+            onChange: setAwsAccessKeyId,
+            placeholder: 'AKIA...',
+          },
+          {
+            label: 'Secret Access Key',
+            value: awsSecretAccessKey,
+            onChange: setAwsSecretAccessKey,
+            placeholder: 'secret',
+            type: 'password' as const,
+          },
+          {
+            label: 'Session Token (Optional)',
+            value: awsSessionToken,
+            onChange: setAwsSessionToken,
+            placeholder: 'token',
+            type: 'password' as const,
+          },
+          { label: 'Region', value: awsRegion, onChange: setAwsRegion, placeholder: 'us-east-1' },
+        ]}
+        isConfigured={awsConfigured}
+        onSave={saveAwsCredentials}
+        isLoading={isLoading}
+        saveLabel="Save AWS Credentials"
+      />
 
-      {/* OpenCage */}
-      <AdminCard
+      <ApiKeyCard
         icon={DatabaseIcon}
         title="OpenCage Configuration"
         color="from-indigo-500 to-indigo-600"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              API Key
-            </label>
-            <input
-              type="password"
-              value={opencageApiKey}
-              onChange={(e) => setOpencageApiKey(e.target.value)}
-              placeholder="opencage..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
-            />
-            <div className="mt-2 text-xs text-slate-400">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  opencageConfigured
-                    ? 'bg-green-900/40 text-green-300'
-                    : 'bg-red-900/40 text-red-300'
-                }`}
-              >
-                {opencageConfigured ? '✓ Configured' : '✗ Not Configured'}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={saveOpencageApiKey}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-medium hover:from-indigo-500 hover:to-indigo-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save API Key'}
-          </button>
-        </div>
-      </AdminCard>
+        ringColor="focus:ring-indigo-500/40"
+        buttonGradient="from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600"
+        fields={[
+          {
+            label: 'API Key',
+            value: opencageApiKey,
+            onChange: setOpencageApiKey,
+            placeholder: 'opencage...',
+            type: 'password' as const,
+          },
+        ]}
+        isConfigured={opencageConfigured}
+        onSave={saveOpencageApiKey}
+        isLoading={isLoading}
+        saveLabel="Save API Key"
+      />
 
-      {/* LocationIQ */}
-      <AdminCard
+      <ApiKeyCard
         icon={DatabaseIcon}
         title="LocationIQ Configuration"
         color="from-teal-500 to-teal-600"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              API Key
-            </label>
-            <input
-              type="password"
-              value={locationIqApiKey}
-              onChange={(e) => setLocationIqApiKey(e.target.value)}
-              placeholder="locationiq..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all"
-            />
-            <div className="mt-2 text-xs text-slate-400">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  locationIqConfigured
-                    ? 'bg-green-900/40 text-green-300'
-                    : 'bg-red-900/40 text-red-300'
-                }`}
-              >
-                {locationIqConfigured ? '✓ Configured' : '✗ Not Configured'}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={saveLocationIqApiKey}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg font-medium hover:from-teal-500 hover:to-teal-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save API Key'}
-          </button>
-        </div>
-      </AdminCard>
+        ringColor="focus:ring-teal-500/40"
+        buttonGradient="from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600"
+        fields={[
+          {
+            label: 'API Key',
+            value: locationIqApiKey,
+            onChange: setLocationIqApiKey,
+            placeholder: 'locationiq...',
+            type: 'password' as const,
+          },
+        ]}
+        isConfigured={locationIqConfigured}
+        onSave={saveLocationIqApiKey}
+        isLoading={isLoading}
+        saveLabel="Save API Key"
+      />
 
-      {/* Smarty */}
-      <AdminCard icon={ShieldIcon} title="Smarty Configuration" color="from-rose-500 to-rose-600">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Auth ID
-            </label>
-            <input
-              type="password"
-              value={smartyAuthId}
-              onChange={(e) => setSmartyAuthId(e.target.value)}
-              placeholder="auth-id"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Auth Token
-            </label>
-            <input
-              type="password"
-              value={smartyAuthToken}
-              onChange={(e) => setSmartyAuthToken(e.target.value)}
-              placeholder="auth-token"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40 transition-all"
-            />
-            <div className="mt-2 text-xs text-slate-400">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  smartyConfigured ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
-                }`}
-              >
-                {smartyConfigured ? '✓ Configured' : '✗ Not Configured'}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={saveSmartyCredentials}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-lg font-medium hover:from-rose-500 hover:to-rose-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save Credentials'}
-          </button>
-        </div>
-      </AdminCard>
+      <ApiKeyCard
+        icon={ShieldIcon}
+        title="Smarty Configuration"
+        color="from-rose-500 to-rose-600"
+        ringColor="focus:ring-rose-500/40"
+        buttonGradient="from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600"
+        fields={[
+          {
+            label: 'Auth ID',
+            value: smartyAuthId,
+            onChange: setSmartyAuthId,
+            placeholder: 'auth-id',
+            type: 'password' as const,
+          },
+          {
+            label: 'Auth Token',
+            value: smartyAuthToken,
+            onChange: setSmartyAuthToken,
+            placeholder: 'auth-token',
+            type: 'password' as const,
+          },
+        ]}
+        isConfigured={smartyConfigured}
+        onSave={saveSmartyCredentials}
+        isLoading={isLoading}
+        saveLabel="Save Credentials"
+      />
 
-      {/* WiGLE Credentials */}
-      <AdminCard
+      <ApiKeyCard
         icon={ShieldIcon}
         title="WiGLE Configuration"
         color="from-orange-500 to-orange-600"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              API Name
-            </label>
-            <input
-              type="text"
-              value={wigleApiName}
-              onChange={(e) => setWigleApiName(e.target.value)}
-              placeholder="AIDc40fa13..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              API Token
-            </label>
-            <input
-              type="password"
-              value={wigleApiToken}
-              onChange={(e) => setWigleApiToken(e.target.value)}
-              placeholder="32 character hex token"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 transition-all"
-            />
-            <div className="mt-2 text-xs text-slate-400">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  wigleConfigured ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'
-                }`}
-              >
-                {wigleConfigured ? '✓ Configured' : '✗ Not Configured'}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={saveWigleCredentials}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-medium hover:from-orange-500 hover:to-orange-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save Credentials'}
-          </button>
-        </div>
-      </AdminCard>
+        ringColor="focus:ring-orange-500/40"
+        buttonGradient="from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600"
+        fields={[
+          {
+            label: 'API Name',
+            value: wigleApiName,
+            onChange: setWigleApiName,
+            placeholder: 'AIDc40fa13...',
+          },
+          {
+            label: 'API Token',
+            value: wigleApiToken,
+            onChange: setWigleApiToken,
+            placeholder: '32 character hex token',
+            type: 'password' as const,
+          },
+        ]}
+        isConfigured={wigleConfigured}
+        onSave={saveWigleCredentials}
+        isLoading={isLoading}
+        saveLabel="Save Credentials"
+      />
 
-      {/* Home Location */}
-      <AdminCard icon={ShieldIcon} title="Home Location" color="from-green-500 to-green-600">
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-                Latitude
-              </label>
-              <input
-                type="number"
-                value={homeLocation.lat}
-                onChange={(e) => setHomeLocation({ ...homeLocation, lat: e.target.value })}
-                placeholder="39.1031"
-                className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-                Longitude
-              </label>
-              <input
-                type="number"
-                value={homeLocation.lng}
-                onChange={(e) => setHomeLocation({ ...homeLocation, lng: e.target.value })}
-                placeholder="-84.5120"
-                className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 transition-all"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Radius: {homeLocation.radius}m
-            </label>
-            <input
-              type="range"
-              min="10"
-              max="5000"
-              step="10"
-              value={homeLocation.radius}
-              onChange={(e) => setHomeLocation({ ...homeLocation, radius: e.target.value })}
-              className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
-            />
-            <div className="flex justify-between text-xs text-slate-400 mt-2">
-              <span>10m</span>
-              <span>5km</span>
-            </div>
-          </div>
-          <button
-            onClick={saveHomeLocation}
-            disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 transition-all disabled:opacity-50 text-sm"
-          >
-            {isLoading ? 'Saving...' : 'Save Location'}
-          </button>
-        </div>
-      </AdminCard>
+      <HomeLocationCard
+        icon={ShieldIcon}
+        homeLocation={homeLocation}
+        setHomeLocation={setHomeLocation}
+        onSave={saveHomeLocation}
+        isLoading={isLoading}
+      />
     </div>
   );
 };
