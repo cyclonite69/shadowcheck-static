@@ -80,15 +80,19 @@ rm -f "$ENV_FILE"
 # 5. Run database bootstrap + migrations
 echo "[5/6] Running database bootstrap & migrations..."
 
-# Run bootstrap (idempotent — safe on existing DBs)
-DB_ADMIN_PASSWORD=$(docker exec shadowcheck_postgres printenv DB_ADMIN_PASSWORD 2>/dev/null || echo "")
-docker exec -i shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
-  -v "bootstrap.admin_password=$DB_ADMIN_PASSWORD" \
-  < sql/init/00_bootstrap.sql 2>&1 | tail -5
-
-# Copy migrations into postgres container and run
+# Create /sql/ in postgres container and copy files
+docker exec shadowcheck_postgres mkdir -p /sql
+docker cp sql/init/00_bootstrap.sql shadowcheck_postgres:/sql/00_bootstrap.sql
 docker cp sql/migrations shadowcheck_postgres:/sql/migrations
 docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
+
+# Run bootstrap (idempotent — safe on existing DBs)
+DB_ADMIN_PASSWORD=$(docker exec shadowcheck_postgres printenv DB_ADMIN_PASSWORD 2>/dev/null || echo "")
+docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
+  -v admin_password="$DB_ADMIN_PASSWORD" \
+  -f /sql/00_bootstrap.sql 2>&1 | tail -5
+
+# Run migrations
 docker exec shadowcheck_postgres bash /sql/run-migrations.sh 2>&1 | tail -10
 
 # 6. Health check
