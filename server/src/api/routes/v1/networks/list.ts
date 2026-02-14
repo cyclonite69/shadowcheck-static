@@ -784,7 +784,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
 
     const totalCountQuery = `
       SELECT COUNT(DISTINCT ne.bssid) AS total
-      FROM network_entries ne
+      FROM app.network_entries ne
       ${joins.join('\n')}
       ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
     `;
@@ -795,7 +795,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     const dataQuery = `
       SELECT
         ${columnsWithDistance.join(',\n')}
-      FROM network_entries ne
+      FROM app.network_entries ne
       ${joins.join('\n')}
       ${conditions.length > 0 ? `WHERE ${conditions.join('\nAND ')}` : ''}
       ORDER BY ${sortClauses}
