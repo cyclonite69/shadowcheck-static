@@ -106,11 +106,20 @@ router.post('/settings/wigle', async (req, res) => {
     const name = String(apiName).trim();
     const token = String(apiToken).trim();
     const encoded = Buffer.from(`${name}:${token}`).toString('base64');
-    await secretsManager.putSecrets({
-      wigle_api_name: name,
-      wigle_api_token: token,
-      wigle_api_encoded: encoded,
-    });
+
+    try {
+      await secretsManager.putSecrets({
+        wigle_api_name: name,
+        wigle_api_token: token,
+        wigle_api_encoded: encoded,
+      });
+    } catch (smError: any) {
+      console.error('[WiGLE Settings] Failed to save to Secrets Manager:', smError);
+      return res.status(500).json({
+        error: 'Failed to save credentials to AWS Secrets Manager',
+        details: smError?.message || String(smError),
+      });
+    }
 
     // Test credentials
     let testResult;
@@ -132,8 +141,9 @@ router.post('/settings/wigle', async (req, res) => {
       success: true,
       test: testResult,
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (error: any) {
+    console.error('[WiGLE Settings] Unexpected error:', error);
+    res.status(500).json({ error: error?.message || String(error) });
   }
 });
 
