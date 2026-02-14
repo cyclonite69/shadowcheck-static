@@ -50,16 +50,27 @@ const WiglePage: React.FC = () => {
   const layersRef = useRef(layers);
   layersRef.current = layers;
 
+  // Map initialization error state
+  const [mapError, setError] = useState<string | null>(null);
+
   // Data fetching
-  const { v2Loading, v3Loading, error, v2Rows, v3Rows, v2Total, v3Total, fetchPoints } =
-    useWigleData({
-      limit,
-      offset,
-      typeFilter,
-      adaptedFilters,
-      v2Enabled: layers.v2,
-      v3Enabled: layers.v3,
-    });
+  const {
+    v2Loading,
+    v3Loading,
+    error: dataError,
+    v2Rows,
+    v3Rows,
+    v2Total,
+    v3Total,
+    fetchPoints,
+  } = useWigleData({
+    limit,
+    offset,
+    typeFilter,
+    adaptedFilters,
+    v2Enabled: layers.v2,
+    v3Enabled: layers.v3,
+  });
 
   // Agency offices visibility derived from layer state
   const agencyVisibility = useMemo<AgencyVisibility>(
@@ -473,7 +484,7 @@ const WiglePage: React.FC = () => {
       <WigleMap
         mapContainerRef={mapContainerRef}
         loading={loading}
-        error={error}
+        error={mapError || dataError}
         mapReady={mapReady}
       />
     </div>
