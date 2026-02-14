@@ -72,7 +72,8 @@ rm -f "$ENV_FILE"
 # 5. Run database bootstrap + migrations
 echo "[5/6] Running database bootstrap & migrations..."
 
-# Create /sql/ in postgres container and copy files
+# Create /sql/ in postgres container and copy files (clean first to remove stale files)
+docker exec shadowcheck_postgres rm -rf /sql/migrations
 docker exec shadowcheck_postgres mkdir -p /sql
 docker cp sql/init/00_bootstrap.sql shadowcheck_postgres:/sql/00_bootstrap.sql
 docker cp sql/migrations shadowcheck_postgres:/sql/migrations
