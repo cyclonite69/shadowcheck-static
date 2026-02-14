@@ -358,10 +358,14 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
           error: null,
         });
       } else {
+        const errorMsg =
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message || data.message || 'Failed to load WiGLE observations';
         setWigleObservations((prev) => ({
           ...prev,
           loading: false,
-          error: data.error || 'Failed to load WiGLE observations',
+          error: errorMsg,
         }));
       }
     } catch (err) {
@@ -418,10 +422,14 @@ export const useNetworkContextMenu = ({ logError }: NetworkContextMenuProps) => 
           error: null,
         });
       } else {
+        const errorMsg =
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message || data.message || 'Failed to load WiGLE observations';
         setWigleObservations((prev) => ({
           ...prev,
           loading: false,
-          error: data.error || 'Failed to load WiGLE observations',
+          error: errorMsg,
         }));
       }
     } catch (err) {
