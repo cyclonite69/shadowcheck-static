@@ -233,7 +233,9 @@ class SecretsManager {
         `[SecretsManager] Persisted ${Object.keys(updates).length} secret(s) to AWS Secrets Manager`
       );
     } catch (err: any) {
-      console.warn(`[SecretsManager] Failed to write secrets to AWS SM: ${err.message}`);
+      const errorMsg = `Failed to write secrets to AWS SM: ${err.message}`;
+      console.error(`[SecretsManager] ${errorMsg}`);
+      throw new Error(errorMsg);
     }
   }
 
