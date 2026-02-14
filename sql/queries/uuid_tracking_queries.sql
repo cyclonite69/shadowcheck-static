@@ -2,7 +2,7 @@
 CREATE OR REPLACE FUNCTION app.get_device_journey(target_bssid TEXT)
 RETURNS TABLE (
   device_uuid UUID,
-  timestamp TIMESTAMP,
+  observed_at TIMESTAMP,
   address TEXT,
   lat DOUBLE PRECISION,
   lon DOUBLE PRECISION,

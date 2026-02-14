@@ -1,15 +1,18 @@
 /**
  * Background Jobs Service
- * Manages scheduled tasks for ML scoring
+ * Manages scheduled tasks for ML scoring and automated backups
  */
 
 const schedule = require('node-schedule');
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
+const { runPostgresBackup } = require('./backupService');
 
 export {};
 
 const ML_SCORING_CRON = '0 */4 * * *';
+// Daily backup at 3:00 AM (off-peak)
+const BACKUP_CRON = process.env.BACKUP_CRON || '0 3 * * *';
 const ML_SCORING_LIMIT = 10000;
 const MAX_BSSID_LENGTH = 17;
 const MIN_OBSERVATIONS = 2;
@@ -42,6 +45,9 @@ class BackgroundJobsService {
       // Schedule ML scoring every 4 hours
       this.scheduleMLScoring();
 
+      // Schedule daily backup to S3
+      this.scheduleBackup();
+
       logger.info('[Background Jobs] Initialization complete');
     } catch (error) {
       logger.error('[Background Jobs] Initialization failed:', error);
@@ -61,6 +67,42 @@ class BackgroundJobsService {
     });
 
     logger.info('[Background Jobs] ML scoring scheduled: every 4 hours (0, 4, 8, 12, 16, 20:00)');
+  }
+
+  /**
+   * Schedule automated backup: Daily at 3:00 AM (configurable via BACKUP_CRON)
+   */
+  static scheduleBackup() {
+    this.jobs.backup = schedule.scheduleJob(BACKUP_CRON, async () => {
+      await this.runScheduledBackup();
+    });
+
+    logger.info(`[Background Jobs] Backup scheduled: ${BACKUP_CRON}`);
+  }
+
+  /**
+   * Run automated backup with S3 upload
+   */
+  static async runScheduledBackup() {
+    const startTime = Date.now();
+    logger.info('[Backup Job] Starting scheduled backup...');
+
+    try {
+      const result = await runPostgresBackup({ uploadToS3: true });
+      const duration = Date.now() - startTime;
+
+      if (result.s3) {
+        logger.info(
+          `[Backup Job] Complete: ${result.fileName} (${result.bytes} bytes) uploaded to ${result.s3.url} in ${duration}ms`
+        );
+      } else if (result.s3Error) {
+        logger.warn(
+          `[Backup Job] Backup created locally (${result.fileName}) but S3 upload failed: ${result.s3Error}`
+        );
+      }
+    } catch (error) {
+      logger.error(`[Backup Job] Failed: ${error.message}`);
+    }
   }
 
   /**

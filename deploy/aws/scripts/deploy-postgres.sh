@@ -156,22 +156,45 @@ PGHBA
 chmod 600 /var/lib/postgresql/pg_hba.conf
 echo "✅ pg_hba.conf created"
 
-# 5. Create secrets directory
+# 5. Fetch or generate DB password via AWS Secrets Manager (sole secret store)
 echo ""
-echo "🔑 Setting up secrets..."
+echo "🔑 Setting up secrets from AWS Secrets Manager..."
 mkdir -p /home/ssm-user/secrets
 chmod 700 /home/ssm-user/secrets
 
-# Generate default password if not exists
-if [ ! -f /home/ssm-user/secrets/db_password.txt ]; then
-  openssl rand -base64 32 | tr -d "=+/" | cut -c1-32 > /home/ssm-user/secrets/db_password.txt
-  chmod 600 /home/ssm-user/secrets/db_password.txt
-  echo "✅ Generated database password"
-  echo "⚠️  Password saved to: /home/ssm-user/secrets/db_password.txt"
+# Try to read db_password from AWS SM
+SM_JSON=$(aws secretsmanager get-secret-value \
+  --secret-id shadowcheck/config --region us-east-1 \
+  --query 'SecretString' --output text 2>/dev/null || echo "{}")
+DB_PASSWORD=$(echo "$SM_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
+
+if [ -z "$DB_PASSWORD" ]; then
+  # Auto-generate and persist to AWS SM
+  DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+  DB_ADMIN_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+
+  # Merge into existing SM blob (or create new)
+  NEW_JSON=$(echo "$SM_JSON" | python3 -c "
+import sys, json
+raw = sys.stdin.read().strip()
+blob = json.loads(raw) if raw and raw != '{}' else {}
+blob['db_password'] = '$DB_PASSWORD'
+blob['db_admin_password'] = '$DB_ADMIN_PASSWORD'
+print(json.dumps(blob))
+" 2>/dev/null || echo "{\"db_password\":\"$DB_PASSWORD\",\"db_admin_password\":\"$DB_ADMIN_PASSWORD\"}")
+
+  aws secretsmanager put-secret-value \
+    --secret-id shadowcheck/config --region us-east-1 \
+    --secret-string "$NEW_JSON" 2>/dev/null \
+    && echo "✅ Auto-generated passwords and stored in AWS SM" \
+    || echo "⚠️  Could not persist to AWS SM — passwords are ephemeral!"
 else
-  echo "✅ Using existing password"
+  echo "✅ Loaded db_password from AWS Secrets Manager"
 fi
 
+# Write to Docker secrets file (required by POSTGRES_PASSWORD_FILE)
+echo -n "$DB_PASSWORD" > /home/ssm-user/secrets/db_password.txt
+chmod 600 /home/ssm-user/secrets/db_password.txt
 chown -R ssm-user:ssm-user /home/ssm-user/secrets
 
 # 6. Create docker-compose.yml

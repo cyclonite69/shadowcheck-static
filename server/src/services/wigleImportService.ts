@@ -1,22 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const { Pool } = require('pg');
 const logger = require('../logging/logger');
+const adminDb = require('./adminDbService');
 
 export {};
 
-const pool = new Pool({
-  user: process.env.DB_USER || 'shadowcheck_user',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'shadowcheck_db',
-  password: process.env.DB_PASSWORD || 'changeme',
-  port: process.env.DB_PORT || 5432,
-  max: 1,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-});
-
 async function importWigleV2Json(jsonFilePath) {
-  const client = await pool.connect();
+  const client = await adminDb.getAdminPool().connect();
 
   try {
     const data = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
