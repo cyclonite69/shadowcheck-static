@@ -20,10 +20,6 @@ jest.mock('../../server/src/services/secretsManager', () => ({
   has: jest.fn(),
 }));
 
-jest.mock('../../server/src/services/keyringService', () => ({
-  getCredential: jest.fn(),
-}));
-
 describeIfIntegration('Observability Integration', () => {
   if (!runIntegration) {
     test.skip('requires RUN_INTEGRATION_TESTS', () => {});
@@ -32,19 +28,16 @@ describeIfIntegration('Observability Integration', () => {
   let app;
   let pool;
   let secretsManager;
-  let keyringService;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     pool = require('../../server/src/config/database').pool;
     secretsManager = require('../../server/src/services/secretsManager');
-    keyringService = require('../../server/src/services/keyringService');
 
     // Setup mocks for healthy state
     pool.query.mockResolvedValue({ rows: [{ '?column?': 1 }] });
     secretsManager.has.mockReturnValue(true);
-    keyringService.getCredential.mockResolvedValue(null);
 
     // Create app with both features
     app = express();
@@ -141,14 +134,14 @@ describeIfIntegration('Observability Integration', () => {
       expect(response.headers['x-request-id']).toBeDefined();
     });
 
-    test('returns degraded when optional checks fail', async () => {
-      keyringService.getCredential.mockRejectedValue(new Error('Keyring unavailable'));
+    test('returns degraded when mapbox token missing', async () => {
+      secretsManager.has.mockImplementation((key) => key === 'db_password');
 
       const response = await request(app).get('/health');
 
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('degraded');
-      expect(response.body.checks.keyring.status).toBe('degraded');
+      expect(response.body.checks.secrets.status).toBe('degraded');
       expect(response.headers['x-request-id']).toBeDefined();
     });
   });

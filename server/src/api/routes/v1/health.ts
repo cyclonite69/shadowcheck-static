@@ -2,7 +2,6 @@ import express from 'express';
 const router = express.Router();
 import { pool } from '../../../config/database';
 import secretsManager from '../../../services/secretsManager';
-import keyringService from '../../../services/keyringService';
 
 const startTime = Date.now();
 
@@ -54,18 +53,7 @@ router.get('/health', async (req, res) => {
     };
   }
 
-  // 3. Keyring check (optional - degraded if fails)
-  try {
-    await keyringService.getCredential('test_health_check');
-    (checks as any).keyring = { status: 'ok' };
-  } catch {
-    (checks as any).keyring = { status: 'degraded', error: 'Keyring not accessible' };
-    if (overallStatus === 'healthy') {
-      overallStatus = 'degraded';
-    }
-  }
-
-  // 4. Memory check
+  // 3. Memory check
   const mem = process.memoryUsage();
   const heapUsedMB = Math.round(mem.heapUsed / 1024 / 1024);
   const heapMaxMB = Math.round(mem.heapTotal / 1024 / 1024);

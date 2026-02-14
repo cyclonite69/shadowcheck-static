@@ -1,6 +1,5 @@
 const logger = require('../logging/logger');
 const secretsManager = require('./secretsManager').default;
-const keyringService = require('./keyringService').default;
 const { query } = require('../config/database');
 
 export {};
