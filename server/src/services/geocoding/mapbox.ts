@@ -5,7 +5,6 @@
 import type { GeocodeMode, GeocodeResult } from './types';
 
 const secretsManager = require('../secretsManager').default;
-const keyringService = require('../keyringService').default;
 
 const parseMapboxContext = (
   context?: Array<{ id?: string; text?: string; short_code?: string }>
@@ -38,13 +37,7 @@ export const mapboxReverse = async (
 ): Promise<GeocodeResult> => {
   let token = await secretsManager.getSecret('mapbox_unlimited_api_key');
   if (!token) {
-    token = await keyringService.getCredential('mapbox_unlimited_api_key');
-  }
-  if (!token) {
     token = await secretsManager.getSecret('mapbox_token');
-  }
-  if (!token) {
-    token = await keyringService.getMapboxToken();
   }
   if (!token) {
     throw new Error('Mapbox token not configured');

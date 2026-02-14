@@ -54,10 +54,6 @@ services:
       FORCE_HTTPS: "false"
       CORS_ORIGINS: "*"
       SESSION_SECRET: ${SESSION_SECRET}
-      # Keyring: mount the host keyring and set machine ID so the container
-      # can decrypt it with the same key the host used to create it.
-      KEYRING_MACHINE_ID: ${KEYRING_MACHINE_ID}
-      XDG_DATA_HOME: /data
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
@@ -70,7 +66,6 @@ services:
     networks:
       - shadowcheck_net
     volumes:
-      - /home/ssm-user/.local/share/shadowcheck:/data/shadowcheck
       - /home/ssm-user/shadowcheck/backups:/app/backups
       - /home/ssm-user/shadowcheck/logs:/app/logs
     logging:

@@ -141,9 +141,9 @@ phase_postgres() {
 # Phase 4: Secrets from AWS SM
 ########################################
 phase_secrets() {
-  log "=== Phase 4: Secrets (AWS SM -> Keyring) ==="
+  log "=== Phase 4: Secrets (from AWS SM) ==="
 
-  # Pull secret blob from AWS SM
+  # Pull secret blob from AWS SM to extract db_password for PostgreSQL container
   local secret_json
   secret_json=$(aws secretsmanager get-secret-value \
     --secret-id "$AWS_SECRET_NAME" \
@@ -165,29 +165,7 @@ phase_secrets() {
     log "db_password written to $SECRETS_DIR/db_password.txt"
   fi
 
-  # Bootstrap keyring with all SM secrets so the app can read them
-  cd "$PROJECT_ROOT"
-  local machine_id
-  machine_id="$(hostname)$(whoami)"
-
-  # Write each known key into the keyring
-  local keys=(
-    db_password db_admin_password mapbox_token
-    wigle_api_name wigle_api_token
-    google_maps_api_key mapbox_unlimited_api_key
-    opencage_api_key locationiq_api_key
-    smarty_auth_id smarty_auth_token
-  )
-
-  for key in "${keys[@]}"; do
-    local val
-    val=$(echo "$secret_json" | jq -r ".${key} // empty")
-    if [ -n "$val" ]; then
-      KEYRING_MACHINE_ID="$machine_id" npx tsx scripts/set-secret.ts "$key" "$val" 2>/dev/null || true
-    fi
-  done
-
-  log "Keyring populated from AWS SM"
+  log "Secrets ready (app reads directly from AWS SM at startup)"
 }
 
 ########################################
@@ -217,8 +195,6 @@ phase_deploy() {
   db_password=$(docker exec shadowcheck_postgres printenv POSTGRES_PASSWORD 2>/dev/null || cat "$SECRETS_DIR/db_password.txt" 2>/dev/null || echo "")
   local public_ip
   public_ip=$(curl -s --connect-timeout 3 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
-  local machine_id
-  machine_id="$(hostname)$(whoami)"
 
   cat > "$env_file" <<ENVEOF
 NODE_ENV=production
@@ -229,25 +205,14 @@ DB_USER=shadowcheck_user
 DB_PASSWORD=$db_password
 DB_NAME=shadowcheck_db
 CORS_ORIGINS=http://${public_ip},http://localhost
-KEYRING_MACHINE_ID=$machine_id
-XDG_DATA_HOME=/data
 SHADOWCHECK_AWS_SECRET=$AWS_SECRET_NAME
 AWS_DEFAULT_REGION=$AWS_REGION
 ENVEOF
-
-  # Keyring mount
-  local keyring_dir="$HOME/.local/share/shadowcheck"
-  local keyring_mount=""
-  if [ -f "$keyring_dir/keyring.enc" ]; then
-    keyring_mount="-v $keyring_dir:/data/shadowcheck:ro"
-    log "Mounting keyring"
-  fi
 
   # Start backend
   docker run -d --name shadowcheck_backend \
     --network host \
     --env-file "$env_file" \
-    $keyring_mount \
     --restart unless-stopped \
     shadowcheck/backend:latest
 

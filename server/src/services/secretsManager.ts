@@ -6,14 +6,12 @@ import {
   PutSecretValueCommand,
 } from '@aws-sdk/client-secrets-manager';
 
-const keyringService = require('./keyringService').default;
-
 export {};
 
 const AWS_SECRET_NAME = process.env.SHADOWCHECK_AWS_SECRET || 'shadowcheck/config';
 const AWS_REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
 
-type SecretSource = 'aws' | 'keyring' | 'local' | 'env';
+type SecretSource = 'aws' | 'local' | 'env';
 
 type AccessLogEntry = {
   secret: string;
@@ -113,38 +111,12 @@ class SecretsManager {
     }
   }
 
-  private async loadFromKeyring(secret: string): Promise<string | null> {
-    try {
-      if (secret === 'mapbox_token') {
-        const envBackup = process.env.MAPBOX_TOKEN;
-        if (envBackup !== undefined) {
-          delete process.env.MAPBOX_TOKEN;
-        }
-        try {
-          return await keyringService.getMapboxToken();
-        } finally {
-          if (envBackup !== undefined) {
-            process.env.MAPBOX_TOKEN = envBackup;
-          }
-        }
-      }
-      return await keyringService.getCredential(secret);
-    } catch {
-      return null;
-    }
-  }
-
   private async resolveSecret(
     secret: string
   ): Promise<{ value: string | null; source?: SecretSource }> {
     const awsValue = await this.loadFromAws(secret);
     if (awsValue) {
       return { value: awsValue, source: 'aws' };
-    }
-
-    const keyringValue = await this.loadFromKeyring(secret);
-    if (keyringValue) {
-      return { value: keyringValue, source: 'keyring' };
     }
 
     const localValue = await this.loadFromLocal(secret);
@@ -209,8 +181,8 @@ class SecretsManager {
       const missing = missingRequired[0];
       const message = [
         `Required secret '${missing}' not found`,
-        'Tried AWS Secrets Manager, Keyring, local secrets (./secrets), Environment',
-        'Hint: store in AWS Secrets Manager (shadowcheck/config) or use npx tsx scripts/set-secret.ts <secret_name>',
+        'Tried AWS Secrets Manager, local secrets (./secrets), Environment',
+        'Hint: store in AWS Secrets Manager (shadowcheck/config) or set via environment variable',
       ].join('. ');
       throw new Error(message);
     }
@@ -270,9 +242,7 @@ class SecretsManager {
       this.awsCache = blob;
       console.log(`[SecretsManager] Persisted '${normalized}' to AWS Secrets Manager`);
     } catch (err: any) {
-      console.warn(
-        `[SecretsManager] Failed to write '${normalized}' to AWS SM: ${err.message}. Local keyring write may still succeed.`
-      );
+      console.warn(`[SecretsManager] Failed to write '${normalized}' to AWS SM: ${err.message}`);
     }
   }
 
@@ -304,9 +274,32 @@ class SecretsManager {
         `[SecretsManager] Persisted ${Object.keys(updates).length} secret(s) to AWS Secrets Manager`
       );
     } catch (err: any) {
-      console.warn(
-        `[SecretsManager] Failed to write secrets to AWS SM: ${err.message}. Local keyring write may still succeed.`
+      console.warn(`[SecretsManager] Failed to write secrets to AWS SM: ${err.message}`);
+    }
+  }
+
+  async deleteSecret(key: string): Promise<void> {
+    const normalized = key.toLowerCase();
+    this.secrets.delete(normalized);
+    this.sources.delete(normalized);
+
+    try {
+      const client = new SecretsManagerClient({ region: AWS_REGION });
+      const current = await client.send(new GetSecretValueCommand({ SecretId: AWS_SECRET_NAME }));
+      const blob: Record<string, string> = current.SecretString
+        ? JSON.parse(current.SecretString)
+        : {};
+      delete blob[normalized];
+      await client.send(
+        new PutSecretValueCommand({
+          SecretId: AWS_SECRET_NAME,
+          SecretString: JSON.stringify(blob),
+        })
       );
+      this.awsCache = blob;
+      console.log(`[SecretsManager] Deleted '${normalized}' from AWS Secrets Manager`);
+    } catch (err: any) {
+      console.warn(`[SecretsManager] Failed to delete '${normalized}' from AWS SM: ${err.message}`);
     }
   }
 

@@ -2,7 +2,6 @@ export {};
 const express = require('express');
 const router = express.Router();
 const secretsManager = require('../../../services/secretsManager').default;
-const keyringService = require('../../../services/keyringService').default;
 const { Readable } = require('stream');
 const { URL } = require('url');
 const logger = require('../../../logging/logger');
@@ -92,18 +91,13 @@ const validateMapboxProxyQuery = validateQuery({
  */
 router.get('/api/mapbox-token', async (req, res) => {
   try {
-    // Try keyring first, then fallback to secrets manager
-    let token = await keyringService.getMapboxToken();
-
-    if (!token) {
-      const tokenRaw = secretsManager.get('mapbox_token');
-      token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
-    }
+    const tokenRaw = secretsManager.get('mapbox_token');
+    const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
 
     if (!token) {
       return res.status(500).json({
         error: 'Mapbox token not configured',
-        message: 'MAPBOX_TOKEN is not available in keyring or secrets',
+        message: 'MAPBOX_TOKEN is not available in secrets',
       });
     }
 
@@ -217,9 +211,7 @@ router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req, res) => {
  */
 router.get('/api/google-maps-token', async (req, res) => {
   try {
-    const apiKey =
-      (await keyringService.getCredential('google_maps_api_key')) ||
-      secretsManager.get('google_maps_api_key');
+    const apiKey = secretsManager.get('google_maps_api_key');
     if (!apiKey) {
       return res.status(500).json({
         error: 'Google Maps API key not configured',
@@ -240,9 +232,7 @@ router.get('/api/google-maps-token', async (req, res) => {
  */
 router.get('/api/google-maps-tile/:type/:z/:x/:y', async (req, res) => {
   try {
-    const apiKey =
-      (await keyringService.getCredential('google_maps_api_key')) ||
-      secretsManager.get('google_maps_api_key');
+    const apiKey = secretsManager.get('google_maps_api_key');
     if (!apiKey) {
       return res.status(500).json({ error: 'Google Maps API key not configured' });
     }

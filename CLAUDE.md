@@ -117,7 +117,7 @@ const AppError = require('../errors/AppError');
 if (!network) throw new AppError('Network not found', 404);
 ```
 
-**Secrets Management** (priority: Encrypted keyring → Local files → Environment variables):
+**Secrets Management** (priority: AWS Secrets Manager → Local files → Environment variables):
 
 ```javascript
 const secretsManager = require('../services/secretsManager');
@@ -207,15 +207,9 @@ python3 scripts/ml/ml-iterate.py
 
 ## Secrets Management
 
-Secrets are stored in an encrypted keyring at `~/.local/share/shadowcheck/keyring.enc`, encrypted with a machine-specific key derived from hostname + username.
+Secrets are stored in AWS Secrets Manager (`shadowcheck/config`). The app reads them at startup via `secretsManager.load()`. Secrets can also be set via the Config UI or admin API, which writes through to AWS SM.
 
-```bash
-npx tsx scripts/set-secret.ts db_password "password"    # Set secret in keyring
-npx tsx scripts/set-secret.ts db_admin_password "pass"  # Set admin password
-npx tsx scripts/set-secret.ts mapbox_token "pk.xxx"     # Set Mapbox token
-```
-
-For Docker: set `KEYRING_MACHINE_ID` env var to `$(hostname)$(whoami)` so the container can decrypt the same keyring file as the host.
+Resolution order: AWS Secrets Manager → local files (`./secrets/`) → environment variables.
 
 ## Troubleshooting
 

@@ -2,15 +2,13 @@
 # scs_rebuild - Pull, rebuild, and redeploy ShadowCheck on EC2
 # Install: echo 'alias scs_rebuild="bash ~/shadowcheck/deploy/aws/scripts/scs_rebuild.sh"' >> ~/.bashrc
 #
-# Secrets: Copy your local keyring to EC2 once:
-#   scp ~/.local/share/shadowcheck/keyring.enc  ec2-user@HOST:~/.local/share/shadowcheck/keyring.enc
-# Then set KEYRING_MACHINE_ID in ~/.shadowcheck-env to your local machine's hostname+username.
+# Secrets are loaded from AWS Secrets Manager at startup.
 set -e
 
 APP_DIR="${SCS_DIR:-$HOME/shadowcheck}"
 cd "$APP_DIR"
 
-# Config file for persistent settings (KEYRING_MACHINE_ID, MAPBOX_TOKEN overrides, etc.)
+# Config file for persistent settings (custom env overrides, etc.)
 SCS_ENV="$HOME/.shadowcheck-env"
 
 echo "=== scs_rebuild ==="
@@ -48,21 +46,11 @@ ENVEOF
   echo "  Built env from defaults"
 fi
 
-# Overlay with persistent config (KEYRING_MACHINE_ID, etc.)
+# Overlay with persistent config
 if [ -f "$SCS_ENV" ]; then
   # Append — later values override earlier ones in --env-file
   cat "$SCS_ENV" >> "$ENV_FILE"
   echo "  Loaded overrides from $SCS_ENV"
-fi
-
-# Keyring volume mount — share the host keyring with the container
-KEYRING_DIR="$HOME/.local/share/shadowcheck"
-KEYRING_MOUNT=""
-if [ -f "$KEYRING_DIR/keyring.enc" ]; then
-  KEYRING_MOUNT="-v $KEYRING_DIR:/data/shadowcheck:ro"
-  # Tell the app where to find keyring inside the container
-  echo "XDG_DATA_HOME=/data" >> "$ENV_FILE"
-  echo "  Mounting keyring from $KEYRING_DIR"
 fi
 
 # 4. Stop, remove, restart
@@ -73,7 +61,6 @@ docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker run -d --name shadowcheck_backend \
   --network host \
   --env-file "$ENV_FILE" \
-  $KEYRING_MOUNT \
   --restart unless-stopped \
   shadowcheck/backend:latest
 

@@ -2,7 +2,6 @@ import express from 'express';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 
 const router = express.Router();
-const keyringService = require('../../../../services/keyringService');
 const secretsManager = require('../../../../services/secretsManager').default;
 const logger = require('../../../../logging/logger');
 
@@ -23,16 +22,11 @@ router.get('/admin/secrets', requireAdmin, async (req, res) => {
       'google_maps_api_key',
     ];
 
-    const status = await Promise.all(
-      secrets.map(async (key) => {
-        const value = await keyringService.getCredential(key);
-        return {
-          key,
-          configured: !!value,
-          required: ['db_password', 'session_secret'].includes(key),
-        };
-      })
-    );
+    const status = secrets.map((key) => ({
+      key,
+      configured: secretsManager.has(key),
+      required: ['db_password', 'session_secret'].includes(key),
+    }));
 
     res.json({ ok: true, secrets: status });
   } catch (err) {
@@ -54,7 +48,6 @@ router.post('/admin/secrets/:key', requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Value is required' });
     }
 
-    await keyringService.setCredential(key, value);
     await secretsManager.putSecret(key, value);
     logger.info('[Admin] Secret stored', { key });
 
@@ -81,7 +74,7 @@ router.delete('/admin/secrets/:key', requireAdmin, async (req, res) => {
       });
     }
 
-    await keyringService.deleteCredential(key);
+    await secretsManager.deleteSecret(key);
     logger.info('[Admin] Secret deleted', { key });
 
     res.json({ ok: true, message: `Secret '${key}' deleted successfully` });
