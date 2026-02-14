@@ -213,7 +213,7 @@ router.post('/networks/wigle-observations/batch', async (req, res, next) => {
     const tableCheck = await query(
       `SELECT EXISTS (
          SELECT FROM information_schema.tables
-         WHERE table_schema = 'app' AND table_name = 'wigle_v3_observations'
+         WHERE table_schema = 'public' AND table_name = 'wigle_v3_observations'
        ) as exists`
     );
 
@@ -245,7 +245,7 @@ router.post('/networks/wigle-observations/batch', async (req, res, next) => {
                     o.geog, 5
                   ) AND w.observed_at::date = o.obs_date
                 ) as is_matched
-         FROM app.wigle_v3_observations w
+         FROM public.wigle_v3_observations w
          WHERE UPPER(w.netid) = ANY($1) AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
        ),
        our_centers AS (
