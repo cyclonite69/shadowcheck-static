@@ -49,6 +49,7 @@ INSERT INTO app.schema_migrations (filename) VALUES
   ('20260213_tighten_user_permissions.sql'),
   ('20260214_add_radio_manufacturers_compat_columns.sql'),
   ('20260214_create_network_entries_view.sql'),
+  ('20260214_drop_uppercase_ssid_triggers.sql'),
   ('99_enforce_uppercase_ssid.sql'),
   ('add_analytics_performance_indexes.sql'),
   ('add_business_names.sql'),
