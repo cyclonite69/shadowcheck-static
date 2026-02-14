@@ -137,6 +137,22 @@ export const BackupsTab: React.FC = () => {
                       {backupResult.filePath}
                     </span>
                   </div>
+                  {backupResult.source && (
+                    <div className="flex justify-between">
+                      <span className="text-emerald-300">Source:</span>
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          backupResult.source.environment === 'aws-ec2'
+                            ? 'bg-amber-900/40 text-amber-300 border border-amber-700/50'
+                            : 'bg-cyan-900/40 text-cyan-300 border border-cyan-700/50'
+                        }`}
+                      >
+                        {backupResult.source.environment === 'aws-ec2'
+                          ? `EC2 (${backupResult.source.instanceId})`
+                          : `Local (${backupResult.source.hostname})`}
+                      </span>
+                    </div>
+                  )}
                   {backupResult.s3 && (
                     <div className="flex justify-between">
                       <span className="text-blue-300">S3 Location:</span>
@@ -196,9 +212,24 @@ export const BackupsTab: React.FC = () => {
                       <div className="text-xs font-mono text-slate-200 break-all">
                         {backup.fileName}
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
-                        {formatBytes(backup.size)} •{' '}
-                        {new Date(backup.lastModified).toLocaleDateString()}
+                      <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                        <span>{formatBytes(backup.size)}</span>
+                        <span>•</span>
+                        <span>{new Date(backup.lastModified).toLocaleDateString()}</span>
+                        {backup.sourceEnv && backup.sourceEnv !== 'unknown' && (
+                          <>
+                            <span>•</span>
+                            <span
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                backup.sourceEnv === 'aws-ec2'
+                                  ? 'bg-amber-900/40 text-amber-300 border border-amber-700/50'
+                                  : 'bg-cyan-900/40 text-cyan-300 border border-cyan-700/50'
+                              }`}
+                            >
+                              {backup.sourceEnv === 'aws-ec2' ? 'EC2' : 'LOCAL'}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <button

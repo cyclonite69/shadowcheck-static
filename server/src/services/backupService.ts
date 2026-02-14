@@ -1,7 +1,8 @@
 const fs = require('fs').promises;
 const { constants } = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const os = require('os');
+const { spawn, execSync } = require('child_process');
 const logger = require('../logging/logger');
 const secretsManager = require('./secretsManager').default;
 const { getAwsConfig } = require('./awsService');
@@ -9,6 +10,33 @@ const { getAwsConfig } = require('./awsService');
 export {};
 
 const repoRoot = '/app';
+
+/**
+ * Detect backup source environment.
+ * Returns metadata identifying where the backup was created.
+ */
+const getBackupSource = (): {
+  hostname: string;
+  environment: string;
+  instanceId?: string;
+} => {
+  const hostname = os.hostname();
+
+  // Check if running on EC2 by querying IMDS (non-blocking, cached)
+  try {
+    const instanceId = execSync(
+      'curl -s --connect-timeout 1 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null',
+      { timeout: 2000, encoding: 'utf8' }
+    ).trim();
+    if (instanceId && instanceId.startsWith('i-')) {
+      return { hostname, environment: 'aws-ec2', instanceId };
+    }
+  } catch {
+    // Not on EC2
+  }
+
+  return { hostname, environment: 'local' };
+};
 
 const getBackupDir = () => {
   const configured = process.env.BACKUP_DIR;
@@ -90,9 +118,14 @@ const resolvePgDumpPath = async () => {
   return 'pg_dump';
 };
 
-const uploadToS3 = async (filePath, fileName) => {
+const uploadToS3 = async (
+  filePath,
+  fileName,
+  source?: { hostname: string; environment: string; instanceId?: string }
+) => {
   const bucketName = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
-  const s3Key = `backups/${fileName}`;
+  const env_label = source?.environment || 'unknown';
+  const s3Key = `backups/${env_label}/${fileName}`;
 
   logger.info(`[Backup] Uploading to S3: s3://${bucketName}/${s3Key}`);
 
@@ -114,9 +147,27 @@ const uploadToS3 = async (filePath, fileName) => {
   }
 
   return new Promise((resolve, reject) => {
+    const metadataStr = [
+      `source-env=${env_label}`,
+      `source-host=${source?.hostname || os.hostname()}`,
+      source?.instanceId ? `instance-id=${source.instanceId}` : null,
+      `created-at=${new Date().toISOString()}`,
+    ]
+      .filter(Boolean)
+      .join(',');
+
     const child = spawn(
       'aws',
-      ['s3', 'cp', filePath, `s3://${bucketName}/${s3Key}`, '--storage-class', 'STANDARD_IA'],
+      [
+        's3',
+        'cp',
+        filePath,
+        `s3://${bucketName}/${s3Key}`,
+        '--storage-class',
+        'STANDARD_IA',
+        '--metadata',
+        metadataStr,
+      ],
       { env }
     );
 
@@ -193,19 +244,24 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   await pruneOldBackups(backupDir, retentionDays);
 
   const stat = await fs.stat(filePath);
-  logger.info(`[Backup] Completed pg_dump (${stat.size} bytes)`);
+  const source = getBackupSource();
+  logger.info(
+    `[Backup] Completed pg_dump (${stat.size} bytes) [source: ${source.environment}/${source.hostname}]`
+  );
 
   const result: any = {
     backupDir,
     fileName,
     filePath,
     bytes: stat.size,
+    source,
+    createdAt: new Date().toISOString(),
   };
 
   // Upload to S3 if requested
   if (shouldUploadToS3) {
     try {
-      const s3Result = await uploadToS3(filePath, fileName);
+      const s3Result = await uploadToS3(filePath, fileName, source);
       result.s3 = s3Result;
     } catch (error: any) {
       logger.error(`[Backup] S3 upload failed: ${error.message}`);
@@ -276,13 +332,19 @@ const listS3Backups = async () => {
         try {
           const backups = JSON.parse(stdout || '[]');
           resolve(
-            backups.map((backup: any) => ({
-              key: backup.Key,
-              fileName: backup.Key.replace('backups/', ''),
-              size: backup.Size,
-              lastModified: backup.LastModified,
-              url: `s3://${bucketName}/${backup.Key}`,
-            }))
+            backups.map((backup: any) => {
+              // Parse source from key: backups/<env>/<filename> or legacy backups/<filename>
+              const parts = backup.Key.replace('backups/', '').split('/');
+              const hasEnvPrefix = parts.length > 1;
+              return {
+                key: backup.Key,
+                fileName: hasEnvPrefix ? parts.slice(1).join('/') : parts[0],
+                sourceEnv: hasEnvPrefix ? parts[0] : 'unknown',
+                size: backup.Size,
+                lastModified: backup.LastModified,
+                url: `s3://${bucketName}/${backup.Key}`,
+              };
+            })
           );
         } catch (parseError) {
           reject(new Error(`Failed to parse S3 response: ${parseError}`));

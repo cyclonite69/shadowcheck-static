@@ -1,5 +1,4 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { randomBytes } from 'crypto';
 import {
   SecretsManagerClient,
   GetSecretValueCommand,
@@ -11,12 +10,9 @@ export {};
 const AWS_SECRET_NAME = process.env.SHADOWCHECK_AWS_SECRET || 'shadowcheck/config';
 const AWS_REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
 
-type SecretSource = 'aws' | 'local' | 'env';
-
 type AccessLogEntry = {
   secret: string;
   found: boolean;
-  source?: SecretSource;
   timestamp: string;
 };
 
@@ -38,33 +34,19 @@ const OPTIONAL_SECRETS = [
   'db_admin_password',
 ];
 
-const ENV_KEY_ALIASES: Record<string, string[]> = {
-  db_password: ['DB_PASSWORD'],
-  db_admin_password: ['DB_ADMIN_PASSWORD'],
-  mapbox_token: ['MAPBOX_TOKEN'],
-  wigle_api_name: ['WIGLE_API_NAME', 'WIGLE_API_KEY'],
-  wigle_api_token: ['WIGLE_API_TOKEN'],
-  wigle_api_encoded: ['WIGLE_API_ENCODED'],
-  google_maps_api_key: ['GOOGLE_MAPS_API_KEY'],
-  mapbox_unlimited_api_key: ['MAPBOX_UNLIMITED_API_KEY', 'MAPBOX_GEOCODING_KEY'],
-  aws_access_key_id: ['AWS_ACCESS_KEY_ID'],
-  aws_secret_access_key: ['AWS_SECRET_ACCESS_KEY'],
-  aws_region: ['AWS_REGION', 'AWS_DEFAULT_REGION'],
-  opencage_api_key: ['OPENCAGE_API_KEY'],
-  locationiq_api_key: ['LOCATIONIQ_API_KEY'],
-  smarty_auth_id: ['SMARTY_AUTH_ID'],
-  smarty_auth_token: ['SMARTY_AUTH_TOKEN'],
-};
-
-const LOCAL_SECRETS_DIR = path.resolve(process.cwd(), 'secrets');
+// Secrets that should be auto-generated if missing from AWS SM
+const AUTO_GEN_SECRETS = ['db_password', 'db_admin_password'];
 
 class SecretsManager {
   secrets = new Map<string, string>();
-  sources = new Map<string, SecretSource>();
   accessLog: AccessLogEntry[] = [];
   private awsCache: Record<string, string> | null = null;
   private awsLoaded = false;
   private deferredRetryScheduled = false;
+
+  private generatePassword(): string {
+    return randomBytes(32).toString('base64').replace(/[=+/]/g, '').slice(0, 32);
+  }
 
   private async loadAwsSecretBlob(): Promise<Record<string, string>> {
     if (this.awsLoaded) return this.awsCache || {};
@@ -89,104 +71,58 @@ class SecretsManager {
     return {};
   }
 
-  private async loadFromAws(secret: string): Promise<string | null> {
-    const blob = await this.loadAwsSecretBlob();
-    return blob[secret] || null;
-  }
-
-  private logAccess(secret: string, found: boolean, source?: SecretSource): void {
+  private logAccess(secret: string, found: boolean): void {
     this.accessLog.push({
       secret,
       found,
-      source,
       timestamp: new Date().toISOString(),
     });
   }
 
-  private async loadFromLocal(secret: string): Promise<string | null> {
-    const filePath = path.join(LOCAL_SECRETS_DIR, secret);
-    try {
-      const value = await fs.readFile(filePath, 'utf8');
-      return value.trim();
-    } catch {
-      return null;
-    }
-  }
-
-  private async resolveSecret(
-    secret: string
-  ): Promise<{ value: string | null; source?: SecretSource }> {
-    const awsValue = await this.loadFromAws(secret);
-    if (awsValue) {
-      return { value: awsValue, source: 'aws' };
-    }
-
-    const localValue = await this.loadFromLocal(secret);
-    if (localValue) {
-      return { value: localValue, source: 'local' };
-    }
-
-    const envValue = this.loadFromEnv(secret);
-    if (envValue) {
-      return { value: envValue, source: 'env' };
-    }
-
-    return { value: null };
-  }
-
-  private loadFromEnv(secret: string): string | null {
-    const aliases = ENV_KEY_ALIASES[secret] || [secret.toUpperCase()];
-    for (const key of aliases) {
-      const value = process.env[key];
-      if (value) {
-        return value;
-      }
-    }
-    return null;
-  }
-
-  private register(secret: string, value: string, source: SecretSource): void {
-    this.secrets.set(secret, value);
-    this.sources.set(secret, source);
-  }
-
   async load(): Promise<void> {
     this.secrets.clear();
-    this.sources.clear();
 
+    const blob = await this.loadAwsSecretBlob();
     const allSecrets = [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS];
-    let usedEnvInProduction = false;
+    const generated: Record<string, string> = {};
 
     for (const secret of allSecrets) {
-      const resolved = await this.resolveSecret(secret);
-      if (resolved.value && resolved.source) {
-        this.register(secret, resolved.value, resolved.source);
-        if (resolved.source === 'env' && process.env.NODE_ENV === 'production') {
-          usedEnvInProduction = true;
-        }
+      const value = blob[secret];
+      if (value) {
+        this.secrets.set(secret, value);
         continue;
       }
 
-      if (!REQUIRED_SECRETS.includes(secret)) {
-        console.log(`[SecretsManager] ${secret} not found (optional)`);
+      // Auto-generate missing secrets that support it
+      if (AUTO_GEN_SECRETS.includes(secret)) {
+        const newPassword = this.generatePassword();
+        this.secrets.set(secret, newPassword);
+        generated[secret] = newPassword;
+        console.log(`[SecretsManager] Auto-generated '${secret}' (will persist to AWS SM)`);
+        continue;
+      }
+
+      if (REQUIRED_SECRETS.includes(secret)) {
+        // Required but not auto-gennable — shouldn't happen since all required are in AUTO_GEN
+        throw new Error(
+          `Required secret '${secret}' not found in AWS Secrets Manager (${AWS_SECRET_NAME})`
+        );
       }
     }
 
-    if (usedEnvInProduction) {
-      console.warn(
-        '[SecretsManager] Warning: one or more secrets loaded from env vars in production'
-      );
-    }
-
-    const missingRequired = REQUIRED_SECRETS.filter((secret) => !this.secrets.has(secret));
-    if (missingRequired.length > 0) {
-      const missing = missingRequired[0];
-      const message = [
-        `Required secret '${missing}' not found`,
-        'Tried AWS Secrets Manager, local secrets (./secrets), Environment',
-        'Hint: store in AWS Secrets Manager (shadowcheck/config) or set via environment variable',
-      ].join('. ');
-      throw new Error(message);
+    // Persist any auto-generated secrets back to AWS SM
+    if (Object.keys(generated).length > 0) {
+      try {
+        await this.putSecrets(generated);
+        console.log(
+          `[SecretsManager] Persisted ${Object.keys(generated).length} auto-generated secret(s) to AWS SM`
+        );
+      } catch (err: any) {
+        console.warn(
+          `[SecretsManager] Could not persist auto-generated secrets to AWS SM: ${err.message}`
+        );
+        console.warn('[SecretsManager] Secrets are in-memory only — they will be lost on restart!');
+      }
     }
 
     const mapboxToken = this.secrets.get('mapbox_token');
@@ -210,7 +146,7 @@ class SecretsManager {
       for (const [key, value] of Object.entries(blob)) {
         const current = this.secrets.get(key);
         if (current !== value) {
-          this.register(key, value, 'aws');
+          this.secrets.set(key, value);
           updated++;
         }
       }
@@ -225,7 +161,7 @@ class SecretsManager {
   get(secret: string): string | null {
     const key = secret.toLowerCase();
     const value = this.secrets.get(key) ?? null;
-    this.logAccess(key, Boolean(value), this.sources.get(key));
+    this.logAccess(key, Boolean(value));
     return value;
   }
 
@@ -241,10 +177,6 @@ class SecretsManager {
     return this.secrets.has(secret);
   }
 
-  getSource(secret: string): SecretSource | undefined {
-    return this.sources.get(secret);
-  }
-
   getAccessLog(): AccessLogEntry[] {
     return [...this.accessLog];
   }
@@ -252,7 +184,6 @@ class SecretsManager {
   async putSecret(key: string, value: string): Promise<void> {
     const normalized = key.toLowerCase();
     this.secrets.set(normalized, value);
-    this.sources.set(normalized, 'aws');
 
     try {
       const client = new SecretsManagerClient({ region: AWS_REGION });
@@ -280,7 +211,6 @@ class SecretsManager {
     for (const [key, value] of Object.entries(updates)) {
       const normalized = key.toLowerCase();
       this.secrets.set(normalized, value);
-      this.sources.set(normalized, 'aws');
     }
 
     try {
@@ -310,7 +240,6 @@ class SecretsManager {
   async deleteSecret(key: string): Promise<void> {
     const normalized = key.toLowerCase();
     this.secrets.delete(normalized);
-    this.sources.delete(normalized);
 
     try {
       const client = new SecretsManagerClient({ region: AWS_REGION });
@@ -340,13 +269,6 @@ class SecretsManager {
     if (this.secrets.has(normalized)) {
       return this.get(normalized);
     }
-
-    const resolved = await this.resolveSecret(normalized);
-    if (resolved.value && resolved.source) {
-      this.register(normalized, resolved.value, resolved.source);
-      return resolved.value;
-    }
-
     return null;
   }
 }

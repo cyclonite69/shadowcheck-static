@@ -32,29 +32,21 @@ docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/
 echo "[3/6] Preparing environment..."
 ENV_FILE=$(mktemp)
 
-# Start with captured env from running backend, or build from scratch
-if docker inspect shadowcheck_backend >/dev/null 2>&1; then
-  docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' shadowcheck_backend > "$ENV_FILE"
-  echo "  Captured env from running backend"
-else
-  DB_PASSWORD=$(docker exec shadowcheck_postgres printenv POSTGRES_PASSWORD 2>/dev/null || echo "")
-  PUBLIC_IP=$(curl -s --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
-  cat > "$ENV_FILE" <<ENVEOF
+# Build env — secrets come from AWS Secrets Manager at runtime, not env vars
+PUBLIC_IP=$(curl -s --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
+cat > "$ENV_FILE" <<ENVEOF
 NODE_ENV=development
 PORT=3001
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USER=shadowcheck_user
-DB_PASSWORD=$DB_PASSWORD
 DB_NAME=shadowcheck_db
 CORS_ORIGINS=http://${PUBLIC_IP},http://localhost
 ENVEOF
-  echo "  Built env from defaults"
-fi
+echo "  Built env (passwords loaded from AWS SM at startup)"
 
-# Overlay with persistent config
+# Overlay with persistent config (non-secret overrides only)
 if [ -f "$SCS_ENV" ]; then
-  # Append — later values override earlier ones in --env-file
   cat "$SCS_ENV" >> "$ENV_FILE"
   echo "  Loaded overrides from $SCS_ENV"
 fi
@@ -85,14 +77,23 @@ docker exec shadowcheck_postgres mkdir -p /sql
 docker cp sql/init/00_bootstrap.sql shadowcheck_postgres:/sql/00_bootstrap.sql
 docker cp sql/migrations shadowcheck_postgres:/sql/migrations
 docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
+docker cp sql/seed-migrations-tracker.sql shadowcheck_postgres:/sql/seed-migrations-tracker.sql
 
 # Run bootstrap (idempotent — safe on existing DBs)
-DB_ADMIN_PASSWORD=$(docker exec shadowcheck_postgres printenv DB_ADMIN_PASSWORD 2>/dev/null || echo "")
+# Pull admin password from AWS Secrets Manager (sole secret store)
+DB_ADMIN_PASSWORD=$(aws secretsmanager get-secret-value \
+  --secret-id shadowcheck/config --region us-east-1 \
+  --query 'SecretString' --output text 2>/dev/null \
+  | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_admin_password',''))" 2>/dev/null || echo "")
 docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
   -v admin_password="$DB_ADMIN_PASSWORD" \
   -f /sql/00_bootstrap.sql 2>&1 | tail -5
 
-# Run migrations
+# Seed migration tracker (marks pre-existing migrations as applied)
+docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
+  -f /sql/seed-migrations-tracker.sql -q 2>&1 | tail -3
+
+# Run migrations (only applies new/untracked ones)
 docker exec shadowcheck_postgres bash /sql/run-migrations.sh 2>&1 | tail -10
 
 # 6. Health check

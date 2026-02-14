@@ -84,5 +84,6 @@ async function closeAdminPool() {
 
 module.exports = {
   adminQuery,
+  getAdminPool,
   closeAdminPool,
 };

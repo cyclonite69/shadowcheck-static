@@ -826,7 +826,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     }
 
     res.json({
-      data: rows,
+      networks: rows,
       total,
       count: rows.length,
       limit,
