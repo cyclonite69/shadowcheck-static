@@ -23,16 +23,22 @@ CREATE SCHEMA IF NOT EXISTS app;
 -- ============================================================================
 \echo '[2/7] Creating shadowcheck_admin role...'
 
--- Password comes from DB_ADMIN_PASSWORD env var, passed via psql -v
--- Falls back to a random password if not set (never 'changeme')
+-- Bridge psql variable (from -v admin_password=xxx) into a GUC readable by PL/pgSQL
+-- If the variable wasn't passed, default to empty string
+\if :{?admin_password}
+  SET app.admin_password = :'admin_password';
+\else
+  SET app.admin_password = '';
+\endif
+
 DO $$
 DECLARE
     admin_pass text;
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'shadowcheck_admin') THEN
-        -- Try to read from environment via current_setting (set by -v flag)
+        -- Read from GUC set above (bridged from psql -v flag)
         BEGIN
-            admin_pass := current_setting('bootstrap.admin_password');
+            admin_pass := current_setting('app.admin_password');
         EXCEPTION WHEN OTHERS THEN
             admin_pass := NULL;
         END;
