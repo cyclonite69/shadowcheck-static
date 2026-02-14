@@ -124,9 +124,11 @@ CREATE TABLE IF NOT EXISTS app.radio_manufacturers (
     prefix_36bit TEXT,
     organization_name TEXT NOT NULL,
     organization_address TEXT,
-    -- Compatibility columns referenced by application code
+    -- Compatibility columns referenced by application code (list.ts, manufacturer.ts)
     oui TEXT GENERATED ALWAYS AS (oui_assignment_hex) STORED,
     oui_prefix_24bit TEXT GENERATED ALWAYS AS (prefix_24bit) STORED,
+    manufacturer TEXT GENERATED ALWAYS AS (organization_name) STORED,
+    address TEXT GENERATED ALWAYS AS (organization_address) STORED,
     PRIMARY KEY (registry_type, oui_assignment_hex)
 );
 
