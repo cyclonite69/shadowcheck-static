@@ -33,7 +33,12 @@ echo "[3/6] Preparing environment..."
 ENV_FILE=$(mktemp)
 
 # Build env — secrets come from AWS Secrets Manager at runtime, not env vars
-PUBLIC_IP=$(curl -s --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
+IMDS_TOKEN=$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || echo "")
+if [ -n "$IMDS_TOKEN" ]; then
+  PUBLIC_IP=$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
+else
+  PUBLIC_IP=$(curl -s --connect-timeout 2 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
+fi
 cat > "$ENV_FILE" <<ENVEOF
 NODE_ENV=development
 PORT=3001
