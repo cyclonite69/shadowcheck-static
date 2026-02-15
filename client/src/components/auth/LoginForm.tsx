@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 interface LoginFormProps {
   onLogin: (user: any) => void;
   onError: (error: string) => void;
+  onChangePassword?: () => void;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError, onChangePassword }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -119,6 +120,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
               )}
             </button>
           </div>
+
+          {onChangePassword && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={onChangePassword}
+                className="text-sm text-slate-400 hover:text-blue-400 transition-colors"
+              >
+                Change Password
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

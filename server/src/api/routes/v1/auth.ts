@@ -110,6 +110,44 @@ router.get('/auth/me', async (req, res) => {
 });
 
 /**
+ * POST /api/auth/change-password
+ * Change user password (requires current password)
+ */
+router.post('/auth/change-password', async (req, res) => {
+  try {
+    const { username, currentPassword, newPassword } = req.body;
+
+    if (!username || !currentPassword || !newPassword) {
+      return res.status(400).json({
+        error: 'Username, current password, and new password are required',
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        error: 'New password must be at least 8 characters',
+      });
+    }
+
+    const result = await authService.changePassword(username, currentPassword, newPassword);
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    logger.info(`Password changed for user ${username}`);
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error) {
+    logger.error('Change password route error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+/**
  * POST /api/auth/create-user
  * Create new user (admin only)
  */
