@@ -19,6 +19,26 @@
 CREATE SCHEMA IF NOT EXISTS app;
 
 -- ============================================================================
+-- PostgreSQL 18 Performance Configuration (ARM Graviton2)
+-- ============================================================================
+-- Database-level optimizer settings that persist across restarts.
+-- Server-level resource limits (shared_buffers, work_mem) are in deploy-postgres.sh
+
+-- Parallel query optimization for ARM (2 vCPU t4g.large)
+ALTER DATABASE shadowcheck_db SET parallel_setup_cost = 100;
+ALTER DATABASE shadowcheck_db SET parallel_tuple_cost = 0.01;
+ALTER DATABASE shadowcheck_db SET min_parallel_table_scan_size = '8MB';
+ALTER DATABASE shadowcheck_db SET min_parallel_index_scan_size = '512kB';
+ALTER DATABASE shadowcheck_db SET enable_incremental_sort = on;
+
+-- JIT compilation (excellent on ARM Graviton2)
+ALTER DATABASE shadowcheck_db SET jit = on;
+ALTER DATABASE shadowcheck_db SET jit_above_cost = 100000;
+ALTER DATABASE shadowcheck_db SET jit_optimize_above_cost = 500000;
+
+\echo '  Applied PostgreSQL 18 performance tuning for ARM'
+
+-- ============================================================================
 -- 2. Create shadowcheck_admin role
 -- ============================================================================
 \echo '[2/7] Creating shadowcheck_admin role...'
