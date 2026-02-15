@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ShadowCheck - S3 Backup Permissions for EC2 Instance'
+
+Parameters:
+  RoleName:
+    Type: String
+    Default: EC2-SSM-Role
+    Description: Existing IAM role attached to EC2 instance
+
+  BackupBucketName:
+    Type: String
+    Default: dbcoopers-briefcase-161020170158
+    Description: S3 bucket for database backups
+
+Resources:
+  S3BackupPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ShadowCheck-S3-Backup-Access
+      Roles:
+        - !Ref RoleName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: S3BackupAccess
+            Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:PutObjectAcl
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:DeleteObject
+            Resource:
+              - !Sub 'arn:aws:s3:::${BackupBucketName}/*'
+              - !Sub 'arn:aws:s3:::${BackupBucketName}'
+
+Outputs:
+  PolicyArn:
+    Description: ARN of the S3 backup policy
+    Value: !Ref S3BackupPolicy
+
+  RoleName:
+    Description: IAM role with backup permissions
+    Value: !Ref RoleName
