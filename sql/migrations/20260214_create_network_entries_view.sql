@@ -41,7 +41,7 @@ SELECT
     LEFT(REPLACE(n.bssid, ':', ''), 6) AS oui,
     NULL::text[] AS insecure_flags,
     NULL::text[] AS security_flags,
-    COUNT(DISTINCT o.source_type) AS unique_source_count,
+    COUNT(DISTINCT o.source_tag) AS unique_source_count,
     AVG(o.level) AS avg_signal,
     MIN(o.level) AS min_signal,
     MAX(o.level) AS max_signal
