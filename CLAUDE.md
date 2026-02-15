@@ -88,8 +88,9 @@ PostgreSQL 18 with PostGIS. Network types: `W` (WiFi), `E` (BLE), `B` (Bluetooth
 
 **Key Tables**:
 
-- `public.networks` - Network metadata (bssid, ssid, type, frequency, bestlevel, bestlat/bestlon, lasttime_ms)
-- `public.observations` - Observation records with location data
+- `app.networks` - Network metadata (bssid, ssid, type, frequency, bestlevel, bestlat/bestlon, lasttime_ms)
+- `app.observations` - Observation records with location data
+- `app.network_entries` - View mapping networks columns to API-expected names
 - `app.location_markers` - Home/work locations for threat analysis
 - `app.network_tags` - Manual network classifications (threat, false_positive, known_safe)
 
@@ -101,7 +102,7 @@ PostgreSQL 18 with PostGIS. Network types: `W` (WiFi), `E` (BLE), `B` (Bluetooth
 ```javascript
 // Read operations (default)
 const { query } = require('../config/database');
-const result = await query('SELECT * FROM public.networks WHERE bssid = $1', [bssid.toUpperCase()]);
+const result = await query('SELECT * FROM app.networks WHERE bssid = $1', [bssid.toUpperCase()]);
 
 // Write operations (admin only)
 const adminDb = require('../services/adminDbService');
@@ -221,7 +222,7 @@ Resolution order: AWS Secrets Manager → local files (`./secrets/`) → environ
 
 **Dashboard Shows Zeros**:
 
-- Check data exists: `SELECT COUNT(*) FROM public.networks;`
+- Check data exists: `SELECT COUNT(*) FROM app.networks;`
 - Verify home location set in `app.location_markers`
 - Check if filters are active (displayed in UI)
 
