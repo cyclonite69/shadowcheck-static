@@ -162,6 +162,46 @@ class AuthService {
   }
 
   /**
+   * Change user password (requires current password verification)
+   */
+  async changePassword(username, currentPassword, newPassword) {
+    try {
+      // Find user
+      const userResult = await query(
+        'SELECT id, username, password_hash, is_active FROM app.users WHERE username = $1',
+        [username]
+      );
+
+      if (userResult.rows.length === 0) {
+        return { success: false, error: 'Invalid credentials' };
+      }
+
+      const user = userResult.rows[0];
+
+      if (!user.is_active) {
+        return { success: false, error: 'Account is disabled' };
+      }
+
+      // Verify current password
+      const isValid = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!isValid) {
+        return { success: false, error: 'Current password is incorrect' };
+      }
+
+      // Hash and update new password
+      const newHash = await bcrypt.hash(newPassword, this.saltRounds);
+      await query('UPDATE app.users SET password_hash = $1 WHERE id = $2', [newHash, user.id]);
+
+      logger.info(`Password changed for user ${username}`, { userId: user.id });
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Change password error:', error);
+      return { success: false, error: 'Failed to change password' };
+    }
+  }
+
+  /**
    * Clean up expired sessions
    */
   async cleanupExpiredSessions() {

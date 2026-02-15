@@ -4,6 +4,7 @@ import Navigation from './components/Navigation';
 import LazyMapComponent from './components/LazyMapComponent';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LoginForm } from './components/auth/LoginForm';
+import { ChangePasswordForm } from './components/auth/ChangePasswordForm';
 
 // Eager load: lightweight pages that are commonly accessed first
 import DashboardPage from './components/DashboardPage';
@@ -37,12 +38,17 @@ function RouteLoadingFallback() {
 function AppContent() {
   const { loading, login, isAuthenticated } = useAuth();
   const [error, setError] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   if (loading) {
     return <RouteLoadingFallback />;
   }
 
   if (!isAuthenticated) {
+    if (showChangePassword) {
+      return <ChangePasswordForm onBack={() => setShowChangePassword(false)} />;
+    }
+
     return (
       <div>
         {error && (
@@ -50,7 +56,11 @@ function AppContent() {
             {error}
           </div>
         )}
-        <LoginForm onLogin={login} onError={setError} />
+        <LoginForm
+          onLogin={login}
+          onError={setError}
+          onChangePassword={() => setShowChangePassword(true)}
+        />
       </div>
     );
   }
