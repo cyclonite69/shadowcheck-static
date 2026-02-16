@@ -42,7 +42,7 @@ fi
 cat > "$ENV_FILE" <<ENVEOF
 NODE_ENV=development
 PORT=3001
-DB_HOST=127.0.0.1
+DB_HOST=shadowcheck_postgres
 DB_PORT=5432
 DB_USER=shadowcheck_user
 DB_NAME=shadowcheck_db

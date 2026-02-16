@@ -52,6 +52,7 @@ services:
       DB_PORT: 5432
       DB_USER: shadowcheck_user
       DB_PASSWORD: ${DB_PASSWORD}
+      DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD}
       DB_NAME: shadowcheck_db
       REDIS_HOST: shadowcheck_redis
       REDIS_PORT: 6379
