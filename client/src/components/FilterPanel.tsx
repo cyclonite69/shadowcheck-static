@@ -110,17 +110,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ density = 'normal' }) 
           onToggleFilter={toggleFilter}
           onEnableFilter={enableFilter}
         />
-        {/* Security */}
-        <SecurityFilters
-          filters={filters}
-          enabled={enabled}
-          isCompact={isCompact}
-          listLayoutClass={listLayoutClass}
-          listItemTextClass={listItemTextClass}
-          onSetFilter={setFilter}
-          onToggleFilter={toggleFilter}
-          onEnableFilter={enableFilter}
-        />
 
         {/* Time Range */}
         <TimeFilters
