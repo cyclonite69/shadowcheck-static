@@ -194,10 +194,6 @@ router.post('/networks/wigle-observations/batch', async (req, res, next) => {
       return res.status(400).json({ error: 'bssids array is required' });
     }
 
-    if (bssids.length > 100) {
-      return res.status(400).json({ error: 'Maximum 100 networks per request' });
-    }
-
     const cleanBssids = [];
     for (const bssid of bssids) {
       const validation = validateBSSID(bssid);

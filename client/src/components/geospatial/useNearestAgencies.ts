@@ -12,13 +12,13 @@ export interface Agency {
   has_wigle_obs: boolean;
 }
 
-export const useNearestAgencies = (bssid: string | null) => {
+export const useNearestAgencies = (bssid: string | string[] | null) => {
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!bssid) {
+    if (!bssid || (Array.isArray(bssid) && bssid.length === 0)) {
       setAgencies([]);
       return;
     }
@@ -29,10 +29,24 @@ export const useNearestAgencies = (bssid: string | null) => {
         setLoading(true);
         setError('');
         try {
-          const res = await fetch(
-            `/api/networks/${encodeURIComponent(bssid)}/nearest-agencies?limit=10`,
-            { signal: controller.signal }
-          );
+          let res;
+
+          if (Array.isArray(bssid)) {
+            // Batch mode: multiple BSSIDs
+            res = await fetch('/api/networks/nearest-agencies/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ bssids: bssid }),
+              signal: controller.signal,
+            });
+          } else {
+            // Single mode: one BSSID
+            res = await fetch(
+              `/api/networks/${encodeURIComponent(bssid)}/nearest-agencies?limit=10`,
+              { signal: controller.signal }
+            );
+          }
+
           const data = await res.json();
           if (!data.ok) {
             throw new Error(data.error || 'Failed to load agencies');

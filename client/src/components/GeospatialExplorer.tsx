@@ -146,8 +146,13 @@ export default function GeospatialExplorer() {
     toggleAgenciesPanel,
   } = useExplorerPanels();
 
-  // Nearest agencies for selected network
-  const nearestAgencyBssid = selectedNetworks.size > 0 ? Array.from(selectedNetworks)[0] : null;
+  // Nearest agencies for selected network(s)
+  const nearestAgencyBssid =
+    selectedNetworks.size === 1
+      ? Array.from(selectedNetworks)[0]
+      : selectedNetworks.size > 1
+        ? Array.from(selectedNetworks)
+        : null;
   const {
     agencies,
     loading: agenciesLoading,
@@ -631,6 +636,7 @@ export default function GeospatialExplorer() {
               agencies={agencies}
               loading={agenciesLoading}
               error={agenciesError}
+              networkCount={selectedNetworks.size}
             />
           )}
         </>
