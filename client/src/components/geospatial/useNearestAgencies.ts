@@ -17,6 +17,9 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Create stable key for dependency tracking
+  const bssidKey = Array.isArray(bssid) ? bssid.sort().join(',') : bssid || '';
+
   useEffect(() => {
     if (!bssid || (Array.isArray(bssid) && bssid.length === 0)) {
       setAgencies([]);
@@ -69,7 +72,7 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [Array.isArray(bssid) ? JSON.stringify(bssid) : bssid]);
+  }, [bssidKey]);
 
   return { agencies, loading, error };
 };

@@ -383,7 +383,7 @@ export default function GeospatialExplorer() {
     });
 
     // Add click handler for tooltip
-    map.on('click', layerId, (e: any) => {
+    const clickHandler = (e: any) => {
       if (!e.features || e.features.length === 0) return;
       const feature = e.features[0];
       const props = feature.properties;
@@ -398,17 +398,24 @@ export default function GeospatialExplorer() {
           </div>`
         )
         .addTo(map);
-    });
+    };
 
-    map.on('mouseenter', layerId, () => {
+    const mouseEnterHandler = () => {
       map.getCanvas().style.cursor = 'pointer';
-    });
+    };
 
-    map.on('mouseleave', layerId, () => {
+    const mouseLeaveHandler = () => {
       map.getCanvas().style.cursor = '';
-    });
+    };
+
+    map.on('click', layerId, clickHandler);
+    map.on('mouseenter', layerId, mouseEnterHandler);
+    map.on('mouseleave', layerId, mouseLeaveHandler);
 
     return () => {
+      map.off('click', layerId, clickHandler);
+      map.off('mouseenter', layerId, mouseEnterHandler);
+      map.off('mouseleave', layerId, mouseLeaveHandler);
       if (map.getLayer(layerId)) map.removeLayer(layerId);
       if (map.getSource(sourceId)) map.removeSource(sourceId);
     };
