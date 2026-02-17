@@ -32,7 +32,7 @@ router.post('/auth/login', async (req, res) => {
     res.cookie('session_token', result.token, {
       httpOnly: true,
       secure: process.env.COOKIE_SECURE !== 'false', // Allow override for HTTP deployments
-      sameSite: 'strict',
+      sameSite: 'lax', // Allow cookie on top-level navigation (fixes SPA page-to-page auth)
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
 
@@ -59,8 +59,12 @@ router.post('/auth/logout', async (req, res) => {
       await authService.logout(token);
     }
 
-    // Clear cookie
-    res.clearCookie('session_token');
+    // Clear cookie (must match original cookie options)
+    res.clearCookie('session_token', {
+      httpOnly: true,
+      secure: process.env.COOKIE_SECURE !== 'false',
+      sameSite: 'lax',
+    });
 
     res.json({
       success: true,
