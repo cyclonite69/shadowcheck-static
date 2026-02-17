@@ -1,17 +1,21 @@
 #!/bin/bash
 # ShadowCheck Spot Instance Launcher
-# Usage: ./launch-shadowcheck-spot.sh
+# Usage: ./launch-shadowcheck-spot.sh [instance-type]
+# Example: ./launch-shadowcheck-spot.sh m6g.large
 
 VOLUME_ID="vol-0f38f7789ac264d59"  # PostgreSQL data volume (optional)
 EIP_ALLOC_ID="eipalloc-0a85ace4f0c10d738"  # Elastic IP allocation
 TEMPLATE_NAME="shadowcheck-spot-template"
 REGION="us-east-1"
+INSTANCE_TYPE="${1:-m6g.large}"  # Default to m6g.large (Graviton2, non-burstable)
 
 echo "🚀 Launching ShadowCheck Spot Instance..."
+echo "Instance type: $INSTANCE_TYPE"
 
-# Launch instance from template
+# Launch instance from template with instance type override
 INSTANCE_ID=$(aws ec2 run-instances \
   --launch-template LaunchTemplateName=$TEMPLATE_NAME \
+  --instance-type "$INSTANCE_TYPE" \
   --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.067,SpotInstanceType=persistent,InstanceInterruptionBehavior=stop}' \
   --region $REGION \
   --query 'Instances[0].InstanceId' \
