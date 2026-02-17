@@ -16,35 +16,41 @@ fi
 # 1. Format and mount persistent volume
 echo "📦 Setting up persistent XFS volume..."
 if ! mountpoint -q /var/lib/postgresql; then
-  if lsblk /dev/nvme1n1 &>/dev/null; then
-    if ! blkid /dev/nvme1n1 | grep -q xfs; then
-      echo "Formatting /dev/nvme1n1 with XFS (PostgreSQL-optimized)..."
-      mkfs.xfs -f \
-        -d agcount=4,su=256k,sw=1 \
-        -i size=512 \
-        -n size=8192 \
-        -l size=128m,su=256k \
-        /dev/nvme1n1
-      echo "✅ XFS filesystem created"
-    fi
-    
-    mkdir -p /var/lib/postgresql
-    
-    echo "Mounting with PostgreSQL-optimized options..."
-    mount -o noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m \
-      /dev/nvme1n1 /var/lib/postgresql
-    
-    # Add to fstab for persistence
-    if ! grep -q "/dev/nvme1n1" /etc/fstab; then
-      echo '/dev/nvme1n1 /var/lib/postgresql xfs noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m,nofail 0 2' >> /etc/fstab
-    fi
-    
-    chmod 700 /var/lib/postgresql
-    echo "✅ Volume mounted at /var/lib/postgresql"
-  else
-    echo "❌ Data volume /dev/nvme1n1 not found"
+  # Auto-detect data volume (30GB, not root)
+  DATA_VOL=$(lsblk -ndo NAME,SIZE,TYPE | grep '30G.*disk' | grep -v "$(lsblk -ndo NAME,MOUNTPOINT | grep '/$' | awk '{print $1}')" | head -1 | awk '{print $1}')
+  
+  if [ -z "$DATA_VOL" ]; then
+    echo "❌ Data volume not found (looking for 30GB disk)"
     exit 1
   fi
+  
+  DATA_DEV="/dev/$DATA_VOL"
+  echo "Found data volume: $DATA_DEV"
+  
+  if ! blkid $DATA_DEV | grep -q xfs; then
+    echo "Formatting $DATA_DEV with XFS (PostgreSQL-optimized)..."
+    mkfs.xfs -f \
+      -d agcount=4,su=256k,sw=1 \
+      -i size=512 \
+      -n size=8192 \
+      -l size=128m,su=256k \
+      $DATA_DEV
+    echo "✅ XFS filesystem created"
+  fi
+  
+  mkdir -p /var/lib/postgresql
+  
+  echo "Mounting with PostgreSQL-optimized options..."
+  mount -o noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m \
+    $DATA_DEV /var/lib/postgresql
+  
+  # Add to fstab for persistence
+  if ! grep -q "$DATA_DEV" /etc/fstab; then
+    echo "$DATA_DEV /var/lib/postgresql xfs noatime,nodiratime,logbufs=8,logbsize=256k,allocsize=16m,nofail 0 2" >> /etc/fstab
+  fi
+  
+  chmod 700 /var/lib/postgresql
+  echo "✅ Volume mounted at /var/lib/postgresql"
 else
   echo "✅ Volume already mounted"
 fi
