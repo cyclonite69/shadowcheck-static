@@ -69,7 +69,7 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [bssid]);
+  }, [Array.isArray(bssid) ? JSON.stringify(bssid) : bssid]);
 
   return { agencies, loading, error };
 };
