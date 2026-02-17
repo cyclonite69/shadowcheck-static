@@ -16,11 +16,17 @@ fi
 # 1. Format and mount persistent volume
 echo "📦 Setting up persistent XFS volume..."
 if ! mountpoint -q /var/lib/postgresql; then
-  # Auto-detect data volume (30GB, not root)
-  DATA_VOL=$(lsblk -ndo NAME,SIZE,TYPE | grep '30G.*disk' | grep -v "$(lsblk -ndo NAME,MOUNTPOINT | grep '/$' | awk '{print $1}')" | head -1 | awk '{print $1}')
+  # Auto-detect data volume (disk with no partitions, not mounted)
+  DATA_VOL=$(lsblk -ndo NAME,TYPE | grep 'disk$' | while read name type; do
+    if ! lsblk -n /dev/$name | grep -q 'part'; then
+      echo $name
+      break
+    fi
+  done)
   
   if [ -z "$DATA_VOL" ]; then
-    echo "❌ Data volume not found (looking for 30GB disk)"
+    echo "❌ Data volume not found (looking for unpartitioned disk)"
+    lsblk
     exit 1
   fi
   
