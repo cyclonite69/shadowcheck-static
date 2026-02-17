@@ -27,6 +27,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError, onChange
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include cookies
         body: JSON.stringify({ username, password }),
       });
 
