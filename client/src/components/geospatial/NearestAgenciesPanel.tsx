@@ -16,12 +16,14 @@ interface NearestAgenciesPanelProps {
   agencies: Agency[];
   loading: boolean;
   error: string;
+  networkCount?: number;
 }
 
 export const NearestAgenciesPanel: React.FC<NearestAgenciesPanelProps> = ({
   agencies,
   loading,
   error,
+  networkCount = 1,
 }) => {
   if (agencies.length === 0 && !loading) return null;
 
@@ -51,7 +53,9 @@ export const NearestAgenciesPanel: React.FC<NearestAgenciesPanelProps> = ({
         )}
       </div>
       <p className="text-xs text-slate-500 mb-3">
-        Agencies near all observation points (local + WiGLE)
+        {networkCount > 1
+          ? `Agencies near all observation points from ${networkCount} networks (local + WiGLE)`
+          : 'Agencies near all observation points (local + WiGLE)'}
       </p>
 
       {loading && <p className="text-slate-400 text-sm">Loading...</p>}
