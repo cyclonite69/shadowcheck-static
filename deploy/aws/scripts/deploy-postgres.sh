@@ -205,7 +205,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgis/postgis:18-3.6-bookworm
+    image: postgis/postgis:18-3.6
     container_name: shadowcheck_postgres
     restart: unless-stopped
     environment:
@@ -255,7 +255,7 @@ echo "✅ docker-compose.yml created"
 # 7. Pull PostgreSQL image
 echo ""
 echo "📥 Pulling PostgreSQL image..."
-docker pull postgis/postgis:18-3.6-bookworm
+docker pull postgis/postgis:18-3.6
 echo "✅ Image pulled"
 
 # 8. Start PostgreSQL
