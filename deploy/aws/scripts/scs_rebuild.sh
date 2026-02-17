@@ -14,22 +14,31 @@ SCS_ENV="$HOME/.shadowcheck-env"
 echo "=== scs_rebuild ==="
 
 # 0. Clean up old Docker artifacts to prevent disk fill
-echo "[0/6] Cleaning up old Docker artifacts..."
+echo "[0/7] Cleaning up old Docker artifacts..."
 docker system prune -f 2>/dev/null || true
 docker image prune -a -f --filter "until=24h" 2>/dev/null || true
 echo "  Disk usage: $(df -h / | awk 'NR==2{print $5, "used,", $4, "free"}')"
 
 # 1. Pull latest
-echo "[1/6] Pulling latest..."
+echo "[1/7] Pulling latest..."
 git pull origin master
 
 # 2. Build images (--no-cache ensures code changes are picked up)
-echo "[2/6] Building images..."
+echo "[2/7] Building images..."
 docker build --no-cache -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
 docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
 
-# 3. Build env
-echo "[3/6] Preparing environment..."
+# 3. Ensure infrastructure is running
+echo "[3/7] Ensuring infrastructure is running..."
+if ! docker ps | grep -q shadowcheck_postgres; then
+  echo "  Starting PostgreSQL and Redis..."
+  sudo "$APP_DIR/deploy/aws/scripts/deploy-postgres.sh"
+else
+  echo "  ✅ Infrastructure already running"
+fi
+
+# 4. Build env
+echo "[4/7] Preparing environment..."
 ENV_FILE=$(mktemp)
 
 # Build env — secrets come from AWS Secrets Manager at runtime, not env vars
@@ -57,7 +66,7 @@ if [ -f "$SCS_ENV" ]; then
 fi
 
 # 4. Stop, remove, restart
-echo "[4/6] Restarting containers..."
+echo "[5/7] Restarting containers..."
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
@@ -75,7 +84,7 @@ docker run -d --name shadowcheck_frontend \
 rm -f "$ENV_FILE"
 
 # 5. Run database bootstrap + migrations
-echo "[5/6] Running database bootstrap & migrations..."
+echo "[6/7] Running database bootstrap & migrations..."
 
 # Create /sql/ in postgres container and copy files (clean first to remove stale files)
 docker exec shadowcheck_postgres rm -rf /sql/migrations
@@ -103,7 +112,7 @@ docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db \
 docker exec shadowcheck_postgres bash /sql/run-migrations.sh 2>&1 | tail -10
 
 # 6. Health check
-echo "[6/6] Verifying deployment..."
+echo "[7/7] Verifying deployment..."
 sleep 3
 
 # Check containers are running
