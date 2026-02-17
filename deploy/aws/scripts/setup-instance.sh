@@ -63,9 +63,16 @@ if ! command -v docker &>/dev/null; then
   systemctl enable docker
   systemctl start docker
   usermod -aG docker ssm-user
+  systemctl restart docker
   echo "✅ Docker installed"
 else
   echo "✅ Docker already installed"
+  # Ensure ssm-user is in docker group
+  if ! groups ssm-user | grep -q docker; then
+    usermod -aG docker ssm-user
+    systemctl restart docker
+    echo "✅ Added ssm-user to docker group"
+  fi
 fi
 echo ""
 
@@ -129,6 +136,12 @@ echo ""
 # 10. Install pgcli for easier database management
 echo "🗄️  Installing pgcli..."
 if ! command -v pgcli &>/dev/null; then
+  # Install pip3 if not available
+  if ! command -v pip3 &>/dev/null; then
+    echo "📦 Installing python3-pip..."
+    sudo dnf install -y python3-pip
+  fi
+  
   pip3 install --user pgcli
   echo "✅ pgcli installed"
 else
