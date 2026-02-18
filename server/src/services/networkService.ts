@@ -181,6 +181,40 @@ export async function upsertThreatTag(bssid: string, notes: string): Promise<any
   return result.rows[0];
 }
 
+export async function getNetworkTagByBssid(bssid: string): Promise<any | null> {
+  const result = await query(
+    `SELECT bssid, is_ignored, ignore_reason, threat_tag, threat_confidence, notes,
+            wigle_lookup_requested, wigle_lookup_at, wigle_result, created_at, updated_at, tag_history
+     FROM app.network_tags WHERE bssid = $1`,
+    [bssid]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+export async function listNetworkTags(
+  whereClauses: string[],
+  params: any[],
+  limit: number,
+  offset: number
+): Promise<{ rows: any[]; totalCount: number }> {
+  const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+  params.push(limit, offset);
+
+  const result = await query(
+    `SELECT nt.*, n.ssid, n.type as network_type, n.frequency, n.bestlevel as signal_dbm,
+            n.bestlat as latitude, n.bestlon as longitude, COUNT(*) OVER() as total_count
+     FROM app.network_tags nt
+     LEFT JOIN app.networks n ON nt.bssid = n.bssid
+     ${whereClause}
+     ORDER BY nt.updated_at DESC
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+
+  const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+  return { rows: result.rows, totalCount };
+}
+
 module.exports = {
   getHomeLocation,
   getNetworkCount,
@@ -194,4 +228,6 @@ module.exports = {
   insertNetworkTag,
   deleteNetworkTagReturning,
   upsertThreatTag,
+  getNetworkTagByBssid,
+  listNetworkTags,
 };

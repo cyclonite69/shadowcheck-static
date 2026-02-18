@@ -5,8 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../../config/database');
-const { adminQuery } = require('../../../../services/adminDbService');
+const networkService = require('../../../../services/networkService');
+const adminDbService = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 const { requireAdmin } = require('../../../../middleware/authMiddleware');
 const { bssidParamMiddleware } = require('../../../../validation/middleware');
@@ -67,26 +67,13 @@ router.post('/:bssid', requireAdmin, async (req, res) => {
       }
     }
 
-    const result = await adminQuery(
-      `INSERT INTO app.network_tags (
-        bssid, is_ignored, ignore_reason, threat_tag, threat_confidence, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (bssid) DO UPDATE SET
-        is_ignored = COALESCE($2, app.network_tags.is_ignored),
-        ignore_reason = CASE WHEN $2 IS NOT NULL THEN $3 ELSE app.network_tags.ignore_reason END,
-        threat_tag = COALESCE($4, app.network_tags.threat_tag),
-        threat_confidence = CASE WHEN $4 IS NOT NULL THEN $5 ELSE app.network_tags.threat_confidence END,
-        notes = COALESCE($6, app.network_tags.notes),
-        updated_at = NOW()
-      RETURNING *`,
-      [
-        normalizedBssid,
-        is_ignored ?? null,
-        ignore_reason ?? null,
-        threat_tag ?? null,
-        threat_confidence ?? null,
-        notes ?? null,
-      ]
+    const result = await adminDbService.upsertNetworkTag(
+      normalizedBssid,
+      is_ignored ?? null,
+      ignore_reason ?? null,
+      threat_tag ?? null,
+      threat_confidence ?? null,
+      notes ?? null
     );
 
     logger.info(`Network tagged: ${normalizedBssid}`, {
@@ -95,7 +82,7 @@ router.post('/:bssid', requireAdmin, async (req, res) => {
       threat_tag,
     });
 
-    res.json({ ok: true, tag: result.rows[0] });
+    res.json({ ok: true, tag: result });
   } catch (error) {
     logger.error(`Error tagging network: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
@@ -112,39 +99,30 @@ router.patch('/:bssid/ignore', requireAdmin, async (req, res) => {
     const normalizedBssid = bssid.toUpperCase();
     const { ignore_reason } = req.body;
 
-    // First check if tag exists and get current state
-    const existing = await query('SELECT is_ignored FROM app.network_tags WHERE bssid = $1', [
-      normalizedBssid,
-    ]);
+    const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
-    if (existing.rows.length === 0) {
-      // Create new with is_ignored = true
-      result = await adminQuery(
-        `INSERT INTO app.network_tags (bssid, is_ignored, ignore_reason)
-         VALUES ($1, true, $2)
-         RETURNING *`,
-        [normalizedBssid, ignore_reason ?? null]
+    if (!existing) {
+      result = await adminDbService.insertNetworkTagIgnore(
+        normalizedBssid,
+        true,
+        ignore_reason ?? null
       );
     } else {
-      // Toggle existing (COALESCE handles NULL as false)
-      result = await adminQuery(
-        `UPDATE app.network_tags
-         SET is_ignored = NOT COALESCE(is_ignored, false),
-             ignore_reason = CASE WHEN NOT COALESCE(is_ignored, false) THEN $2 ELSE NULL END,
-             updated_at = NOW()
-         WHERE bssid = $1
-         RETURNING *`,
-        [normalizedBssid, ignore_reason ?? null]
+      const newIgnoreState = !existing.is_ignored;
+      result = await adminDbService.updateNetworkTagIgnore(
+        normalizedBssid,
+        newIgnoreState,
+        newIgnoreState ? (ignore_reason ?? null) : null
       );
     }
 
-    logger.info(`Network ignore toggled: ${normalizedBssid} -> ${result.rows[0].is_ignored}`, {
+    logger.info(`Network ignore toggled: ${normalizedBssid} -> ${result.is_ignored}`, {
       bssid: normalizedBssid,
-      is_ignored: result.rows[0].is_ignored,
+      is_ignored: result.is_ignored,
     });
 
-    res.json({ ok: true, tag: result.rows[0] });
+    res.json({ ok: true, tag: result });
   } catch (error) {
     logger.error(`Error toggling ignore: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
@@ -169,27 +147,20 @@ router.patch('/:bssid/threat', requireAdmin, async (req, res) => {
     }
 
     // Check if exists
-    const existing = await query('SELECT id FROM app.network_tags WHERE bssid = $1', [
-      normalizedBssid,
-    ]);
+    const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
-    if (existing.rows.length === 0) {
-      result = await adminQuery(
-        `INSERT INTO app.network_tags (bssid, threat_tag, threat_confidence)
-         VALUES ($1, $2, $3)
-         RETURNING *`,
-        [normalizedBssid, threat_tag, threat_confidence ?? null]
+    if (!existing) {
+      result = await adminDbService.insertNetworkThreatTag(
+        normalizedBssid,
+        threat_tag,
+        threat_confidence ?? null
       );
     } else {
-      result = await adminQuery(
-        `UPDATE app.network_tags
-         SET threat_tag = $2,
-             threat_confidence = $3,
-             updated_at = NOW()
-         WHERE bssid = $1
-         RETURNING *`,
-        [normalizedBssid, threat_tag, threat_confidence ?? null]
+      result = await adminDbService.updateNetworkThreatTag(
+        normalizedBssid,
+        threat_tag,
+        threat_confidence ?? null
       );
     }
 
@@ -199,7 +170,7 @@ router.patch('/:bssid/threat', requireAdmin, async (req, res) => {
       threat_confidence,
     });
 
-    res.json({ ok: true, tag: result.rows[0] });
+    res.json({ ok: true, tag: result });
   } catch (error) {
     logger.error(`Error setting threat tag: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
@@ -217,30 +188,16 @@ router.patch('/:bssid/notes', requireAdmin, async (req, res) => {
     const { notes } = req.body;
 
     // Check if exists
-    const existing = await query('SELECT id FROM app.network_tags WHERE bssid = $1', [
-      normalizedBssid,
-    ]);
+    const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
-    if (existing.rows.length === 0) {
-      result = await adminQuery(
-        `INSERT INTO app.network_tags (bssid, notes)
-         VALUES ($1, $2)
-         RETURNING *`,
-        [normalizedBssid, notes]
-      );
+    if (!existing) {
+      result = await adminDbService.insertNetworkTagNotes(normalizedBssid, notes);
     } else {
-      result = await adminQuery(
-        `UPDATE app.network_tags
-         SET notes = $2,
-             updated_at = NOW()
-         WHERE bssid = $1
-         RETURNING *`,
-        [normalizedBssid, notes]
-      );
+      result = await adminDbService.updateNetworkTagNotes(normalizedBssid, notes);
     }
 
-    res.json({ ok: true, tag: result.rows[0] });
+    res.json({ ok: true, tag: result });
   } catch (error) {
     logger.error(`Error updating notes: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
@@ -257,33 +214,27 @@ router.patch('/:bssid/investigate', requireAdmin, async (req, res) => {
     const normalizedBssid = bssid.toUpperCase();
 
     // Check if exists
-    const existing = await query('SELECT id FROM app.network_tags WHERE bssid = $1', [
-      normalizedBssid,
-    ]);
+    const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
-    if (existing.rows.length === 0) {
-      result = await adminQuery(
-        `INSERT INTO app.network_tags (bssid, threat_tag, wigle_lookup_requested)
-         VALUES ($1, 'INVESTIGATE', true)
-         RETURNING *`,
-        [normalizedBssid]
+    if (!existing) {
+      result = await adminDbService.upsertNetworkTag(
+        normalizedBssid,
+        null,
+        null,
+        'INVESTIGATE',
+        null,
+        null
       );
+      result = await adminDbService.requestWigleLookup(normalizedBssid);
     } else {
-      result = await adminQuery(
-        `UPDATE app.network_tags
-         SET threat_tag = 'INVESTIGATE',
-             wigle_lookup_requested = true,
-             updated_at = NOW()
-         WHERE bssid = $1
-         RETURNING *`,
-        [normalizedBssid]
-      );
+      result = await adminDbService.updateNetworkThreatTag(normalizedBssid, 'INVESTIGATE', null);
+      result = await adminDbService.requestWigleLookup(normalizedBssid);
     }
 
     logger.info(`Network queued for investigation: ${normalizedBssid}`, { bssid: normalizedBssid });
 
-    res.json({ ok: true, tag: result.rows[0] });
+    res.json({ ok: true, tag: result });
   } catch (error) {
     logger.error(`Error queuing investigation: ${error.message}`, {
       error,
@@ -302,12 +253,9 @@ router.delete('/:bssid', requireAdmin, async (req, res) => {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
 
-    const result = await adminQuery(
-      'DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid',
-      [normalizedBssid]
-    );
+    const rowCount = await adminDbService.deleteNetworkTag(normalizedBssid);
 
-    if (result.rows.length === 0) {
+    if (rowCount === 0) {
       return res.status(404).json({ error: 'No tags found for this network' });
     }
 
@@ -326,36 +274,11 @@ router.delete('/:bssid', requireAdmin, async (req, res) => {
  */
 router.get('/export/ml', requireAdmin, async (req, res) => {
   try {
-    const result = await query(
-      `SELECT
-        nt.bssid,
-        nt.threat_tag,
-        nt.threat_confidence,
-        nt.is_ignored,
-        nt.tag_history,
-        n.ssid,
-        n.type as network_type,
-        n.frequency,
-        n.capabilities,
-        n.bestlevel as signal_dbm,
-        COUNT(o.id) as observation_count,
-        COUNT(DISTINCT DATE(o.observed_at)) as unique_days,
-        ST_Distance(
-          ST_MakePoint(MIN(o.lon), MIN(o.lat))::geography,
-          ST_MakePoint(MAX(o.lon), MAX(o.lat))::geography
-        ) / 1000.0 as distance_range_km
-      FROM app.network_tags nt
-      LEFT JOIN app.networks n ON nt.bssid = n.bssid
-      LEFT JOIN app.observations o ON nt.bssid = o.bssid
-      WHERE nt.threat_tag IS NOT NULL
-      GROUP BY nt.bssid, nt.threat_tag, nt.threat_confidence, nt.is_ignored,
-               nt.tag_history, n.ssid, n.type, n.frequency, n.capabilities, n.bestlevel, nt.updated_at
-      ORDER BY nt.updated_at DESC`
-    );
+    const trainingData = await adminDbService.exportMLTrainingData();
 
     res.json({
-      training_data: result.rows,
-      count: result.rows.length,
+      training_data: trainingData,
+      count: trainingData.length,
       exported_at: new Date().toISOString(),
     });
   } catch (error) {

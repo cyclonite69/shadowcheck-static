@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../../config/database');
+const networkService = require('../../../../services/networkService');
 const logger = require('../../../../logging/logger');
 const {
   bssidParamMiddleware,
@@ -43,26 +43,9 @@ router.get('/:bssid', async (req, res) => {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
 
-    const result = await query(
-      `SELECT
-        bssid,
-        is_ignored,
-        ignore_reason,
-        threat_tag,
-        threat_confidence,
-        notes,
-        wigle_lookup_requested,
-        wigle_lookup_at,
-        wigle_result,
-        created_at,
-        updated_at,
-        tag_history
-      FROM app.network_tags
-      WHERE bssid = $1`,
-      [normalizedBssid]
-    );
+    const tag = await networkService.getNetworkTagByBssid(normalizedBssid);
 
-    if (result.rows.length === 0) {
+    if (!tag) {
       return res.json({
         bssid: normalizedBssid,
         is_ignored: false,
@@ -74,7 +57,7 @@ router.get('/:bssid', async (req, res) => {
       });
     }
 
-    res.json({ ...result.rows[0], exists: true });
+    res.json({ ...tag, exists: true });
   } catch (error) {
     logger.error(`Error fetching network tag: ${error.message}`, {
       error,
@@ -124,28 +107,15 @@ router.get('/', validateNetworkTagsQuery, async (req, res) => {
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    const result = await query(
-      `SELECT
-        nt.*,
-        n.ssid,
-        n.type as network_type,
-        n.frequency,
-        n.bestlevel as signal_dbm,
-        n.bestlat as latitude,
-        n.bestlon as longitude,
-        COUNT(*) OVER() as total_count
-      FROM app.network_tags nt
-      LEFT JOIN app.networks n ON nt.bssid = n.bssid
-      ${whereClause}
-      ORDER BY nt.updated_at DESC
-      LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params
+    const { rows, totalCount } = await networkService.listNetworkTags(
+      whereClauses,
+      params.slice(0, -2),
+      limit,
+      offset
     );
 
-    const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
-
     res.json({
-      tags: result.rows.map((row) => {
+      tags: rows.map((row) => {
         const { total_count: _total_count, ...rest } = row;
         return rest;
       }),
