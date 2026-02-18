@@ -174,7 +174,191 @@ async function getBackupData(): Promise<{
   };
 }
 
+/**
+ * Upsert network tag (admin operation)
+ */
+async function upsertNetworkTag(
+  bssid: string,
+  is_ignored: boolean | null,
+  ignore_reason: string | null,
+  threat_tag: string | null,
+  threat_confidence: number | null,
+  notes: string | null
+): Promise<any> {
+  const result = await adminQuery(
+    `INSERT INTO app.network_tags (
+      bssid, is_ignored, ignore_reason, threat_tag, threat_confidence, notes
+    ) VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (bssid) DO UPDATE SET
+      is_ignored = COALESCE($2, app.network_tags.is_ignored),
+      ignore_reason = CASE WHEN $2 IS NOT NULL THEN $3 ELSE app.network_tags.ignore_reason END,
+      threat_tag = COALESCE($4, app.network_tags.threat_tag),
+      threat_confidence = CASE WHEN $4 IS NOT NULL THEN $5 ELSE app.network_tags.threat_confidence END,
+      notes = COALESCE($6, app.network_tags.notes),
+      updated_at = NOW()
+    RETURNING *`,
+    [bssid, is_ignored, ignore_reason, threat_tag, threat_confidence, notes]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Update network tag ignore status
+ */
+async function updateNetworkTagIgnore(
+  bssid: string,
+  is_ignored: boolean,
+  ignore_reason: string | null
+): Promise<any> {
+  const result = await adminQuery(
+    `UPDATE app.network_tags SET is_ignored = $1, ignore_reason = $2, updated_at = NOW()
+     WHERE bssid = $3 RETURNING *`,
+    [is_ignored, ignore_reason, bssid]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Insert network tag ignore status
+ */
+async function insertNetworkTagIgnore(
+  bssid: string,
+  is_ignored: boolean,
+  ignore_reason: string | null
+): Promise<any> {
+  const result = await adminQuery(
+    `INSERT INTO app.network_tags (bssid, is_ignored, ignore_reason)
+     VALUES ($1, $2, $3) RETURNING *`,
+    [bssid, is_ignored, ignore_reason]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Update network threat tag
+ */
+async function updateNetworkThreatTag(
+  bssid: string,
+  threat_tag: string,
+  threat_confidence: number | null
+): Promise<any> {
+  const result = await adminQuery(
+    `UPDATE app.network_tags SET threat_tag = $1, threat_confidence = $2, updated_at = NOW()
+     WHERE bssid = $3 RETURNING *`,
+    [threat_tag, threat_confidence, bssid]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Insert network threat tag
+ */
+async function insertNetworkThreatTag(
+  bssid: string,
+  threat_tag: string,
+  threat_confidence: number | null
+): Promise<any> {
+  const result = await adminQuery(
+    `INSERT INTO app.network_tags (bssid, threat_tag, threat_confidence)
+     VALUES ($1, $2, $3) RETURNING *`,
+    [bssid, threat_tag, threat_confidence]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Update network tag notes
+ */
+async function updateNetworkTagNotes(bssid: string, notes: string): Promise<any> {
+  const result = await adminQuery(
+    `UPDATE app.network_tags SET notes = $1, updated_at = NOW()
+     WHERE bssid = $2 RETURNING *`,
+    [notes, bssid]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Insert network tag notes
+ */
+async function insertNetworkTagNotes(bssid: string, notes: string): Promise<any> {
+  const result = await adminQuery(
+    `INSERT INTO app.network_tags (bssid, notes) VALUES ($1, $2) RETURNING *`,
+    [bssid, notes]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Delete network tag
+ */
+async function deleteNetworkTag(bssid: string): Promise<number> {
+  const result = await adminQuery(`DELETE FROM app.network_tags WHERE bssid = $1`, [bssid]);
+  return result.rowCount || 0;
+}
+
+/**
+ * Request WiGLE lookup for network
+ */
+async function requestWigleLookup(bssid: string): Promise<any> {
+  const result = await adminQuery(
+    `UPDATE app.network_tags SET wigle_lookup_requested = true, updated_at = NOW()
+     WHERE bssid = $1 RETURNING *`,
+    [bssid]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Get networks pending WiGLE lookup
+ */
+async function getNetworksPendingWigleLookup(limit: number): Promise<any[]> {
+  const result = await query(
+    `SELECT bssid FROM app.network_tags
+     WHERE wigle_lookup_requested = true AND wigle_result IS NULL
+     ORDER BY updated_at ASC LIMIT $1`,
+    [limit]
+  );
+  return result.rows;
+}
+
+/**
+ * Export tagged networks for ML training
+ */
+async function exportMLTrainingData(): Promise<any[]> {
+  const result = await query(
+    `SELECT
+      nt.bssid, nt.threat_tag, nt.threat_confidence, nt.is_ignored, nt.tag_history,
+      n.ssid, n.type as network_type, n.frequency, n.capabilities, n.bestlevel as signal_dbm,
+      COUNT(o.id) as observation_count,
+      COUNT(DISTINCT DATE(o.observed_at)) as unique_days,
+      ST_Distance(
+        ST_MakePoint(MIN(o.lon), MIN(o.lat))::geography,
+        ST_MakePoint(MAX(o.lon), MAX(o.lat))::geography
+      ) / 1000.0 as distance_range_km
+    FROM app.network_tags nt
+    LEFT JOIN app.networks n ON nt.bssid = n.bssid
+    LEFT JOIN app.observations o ON nt.bssid = o.bssid
+    WHERE nt.threat_tag IS NOT NULL
+    GROUP BY nt.bssid, nt.threat_tag, nt.threat_confidence, nt.is_ignored,
+             nt.tag_history, n.ssid, n.type, n.frequency, n.capabilities, n.bestlevel, nt.updated_at
+    ORDER BY nt.updated_at DESC`
+  );
+  return result.rows;
+}
+
 module.exports.checkDuplicateObservations = checkDuplicateObservations;
 module.exports.addNetworkNote = addNetworkNote;
 module.exports.getNetworkSummary = getNetworkSummary;
 module.exports.getBackupData = getBackupData;
+module.exports.upsertNetworkTag = upsertNetworkTag;
+module.exports.updateNetworkTagIgnore = updateNetworkTagIgnore;
+module.exports.insertNetworkTagIgnore = insertNetworkTagIgnore;
+module.exports.updateNetworkThreatTag = updateNetworkThreatTag;
+module.exports.insertNetworkThreatTag = insertNetworkThreatTag;
+module.exports.updateNetworkTagNotes = updateNetworkTagNotes;
+module.exports.insertNetworkTagNotes = insertNetworkTagNotes;
+module.exports.deleteNetworkTag = deleteNetworkTag;
+module.exports.requestWigleLookup = requestWigleLookup;
+module.exports.getNetworksPendingWigleLookup = getNetworksPendingWigleLookup;
+module.exports.exportMLTrainingData = exportMLTrainingData;
