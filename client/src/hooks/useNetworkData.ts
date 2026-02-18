@@ -151,7 +151,22 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const frequency = typeof row.frequency === 'number' ? row.frequency : null;
   const networkType = inferNetworkType(row.type, frequency, row.ssid, row.capabilities);
   const isWiFi = networkType === 'W';
-  const threatInfo = parseThreatInfo(row.threat, bssidValue);
+
+  // Build threat object from separate columns
+  const threatScore = typeof row.final_threat_score === 'number' ? row.final_threat_score : 0;
+  const threatLevel = row.final_threat_level || 'NONE';
+  const threatInfo: ThreatInfo = {
+    score: threatScore / 100,
+    level: threatLevel as 'NONE' | 'LOW' | 'MED' | 'HIGH' | 'CRITICAL',
+    summary: `Threat level: ${threatLevel}`,
+    debug: {
+      rule_score: row.rule_score ?? null,
+      ml_score: row.ml_score ?? null,
+      evidence_weight: row.evidence_weight ?? null,
+      ml_boost: row.ml_boost ?? null,
+      model_version: row.model_version ?? null,
+    },
+  };
 
   const channelValue =
     typeof row.channel === 'number' ? row.channel : isWiFi ? calculateChannel(frequency) : null;
@@ -174,12 +189,12 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     lastSeen: row.last_observed_at || row.observed_at || null,
     timespanDays: calculateTimespan(row.first_observed_at, row.last_observed_at),
     threat: threatInfo,
-    threat_score: threatInfo ? threatInfo.score * 100 : 0,
-    threat_level: threatInfo ? threatInfo.level : 'NONE',
-    threat_rule_score: threatInfo?.debug?.rule_score ?? null,
-    threat_ml_score: threatInfo?.debug?.ml_score ?? null,
-    threat_ml_weight: threatInfo?.debug?.evidence_weight ?? null,
-    threat_ml_boost: threatInfo?.debug?.ml_boost ?? null,
+    threat_score: threatScore,
+    threat_level: threatLevel,
+    threat_rule_score: row.rule_score ?? null,
+    threat_ml_score: row.ml_score ?? null,
+    threat_ml_weight: row.evidence_weight ?? null,
+    threat_ml_boost: row.ml_boost ?? null,
     threatReasons: [],
     threatEvidence: [],
     stationaryConfidence:

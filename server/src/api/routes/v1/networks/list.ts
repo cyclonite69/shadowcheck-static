@@ -576,6 +576,13 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       `ne.is_sentinel`,
       `rm.manufacturer`,
       `rm.address`,
+      `nts.final_threat_score`,
+      `nts.final_threat_level`,
+      `nts.rule_score`,
+      `nts.ml_score`,
+      `nts.evidence_weight`,
+      `nts.ml_boost`,
+      `nts.model_version`,
     ];
 
     const distanceExpr =
