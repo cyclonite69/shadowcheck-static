@@ -69,7 +69,8 @@ class AuthService {
       };
     } catch (error) {
       logger.error('Login error:', error);
-      return { success: false, error: 'Authentication failed' };
+      console.error('[AUTH SERVICE ERROR]', error);
+      return { success: false, error: `Authentication failed: ${error.message}` };
     }
   }
 
