@@ -143,6 +143,44 @@ export async function checkNetworkExists(bssid: string): Promise<boolean> {
   return result.rowCount > 0;
 }
 
+export async function deleteNetworkTag(bssid: string): Promise<void> {
+  await query(`DELETE FROM app.network_tags WHERE bssid = $1`, [bssid]);
+}
+
+export async function insertNetworkTag(
+  bssid: string,
+  tagType: string,
+  confidence: number,
+  notes: string | null
+): Promise<any> {
+  const result = await query(
+    `INSERT INTO app.network_tags (bssid, tag_type, confidence, notes)
+     VALUES ($1, $2, $3, $4)
+     RETURNING bssid, tag_type, confidence, threat_score, ml_confidence`,
+    [bssid, tagType, confidence, notes]
+  );
+  return result.rows[0];
+}
+
+export async function deleteNetworkTagReturning(bssid: string): Promise<number> {
+  const result = await query(`DELETE FROM app.network_tags WHERE bssid = $1 RETURNING bssid`, [
+    bssid,
+  ]);
+  return result.rowCount || 0;
+}
+
+export async function upsertThreatTag(bssid: string, notes: string): Promise<any> {
+  const result = await query(
+    `INSERT INTO app.network_tags (bssid, tag_type, confidence, threat_score, notes)
+     VALUES ($1, 'THREAT', 0.9, 0.8, $2)
+     ON CONFLICT (bssid) DO UPDATE SET
+       tag_type = 'THREAT', confidence = 0.9, threat_score = 0.8, notes = $2
+     RETURNING bssid, tag_type, confidence, threat_score`,
+    [bssid, notes]
+  );
+  return result.rows[0];
+}
+
 module.exports = {
   getHomeLocation,
   getNetworkCount,
@@ -152,4 +190,8 @@ module.exports = {
   getManufacturerByBSSID,
   getTaggedNetworks,
   checkNetworkExists,
+  deleteNetworkTag,
+  insertNetworkTag,
+  deleteNetworkTagReturning,
+  upsertThreatTag,
 };
