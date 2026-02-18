@@ -405,6 +405,32 @@ async function toggleMLBlending(): Promise<boolean> {
   return result.rows[0]?.value;
 }
 
+/**
+ * Save ML model configuration
+ */
+async function saveMLModelConfig(
+  modelType: string,
+  coefficients: any,
+  intercept: number,
+  featureNames: string[]
+): Promise<void> {
+  await adminQuery(
+    `INSERT INTO app.ml_model_config (model_type, coefficients, intercept, feature_names, created_at)
+     VALUES ($1, $2, $3, $4, NOW())
+     ON CONFLICT (model_type) DO UPDATE
+     SET coefficients = $2, intercept = $3, feature_names = $4, updated_at = NOW()`,
+    [modelType, JSON.stringify(coefficients), intercept, JSON.stringify(featureNames)]
+  );
+}
+
+/**
+ * Truncate all data (dangerous admin operation)
+ */
+async function truncateAllData(): Promise<void> {
+  await adminQuery('TRUNCATE TABLE app.observations CASCADE');
+  await adminQuery('TRUNCATE TABLE app.networks CASCADE');
+}
+
 module.exports.checkDuplicateObservations = checkDuplicateObservations;
 module.exports.addNetworkNote = addNetworkNote;
 module.exports.getNetworkSummary = getNetworkSummary;
