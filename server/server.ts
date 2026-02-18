@@ -37,20 +37,20 @@ require('ts-node').register({
     const { initializeApp } = require('./src/utils/appInit');
 
     // ============================================================================
-    // 4. ROUTE MODULES
-    // ============================================================================
-    const routes = loadRouteModules();
-
-    // ============================================================================
-    // 5. APP INITIALIZATION
+    // 4. APP INITIALIZATION
     // ============================================================================
     const { app, port, host, forceHttps, allowedOrigins } = initializeApp(express);
 
     // ============================================================================
-    // 6. SECRETS VALIDATION
+    // 5. SECRETS VALIDATION (must happen before loading routes/database)
     // ============================================================================
     const { validateSecrets } = require('./src/utils/validateSecrets');
     await validateSecrets();
+
+    // ============================================================================
+    // 6. ROUTE MODULES (after secrets loaded)
+    // ============================================================================
+    const routes = loadRouteModules();
 
     // ============================================================================
     // 7. MIDDLEWARE SETUP
