@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-import { query } from '../../../../config/database';
+const wigleService = require('../../../../services/wigleService');
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
@@ -108,51 +108,8 @@ router.post('/search-api', requireAdmin, async (req, res, next) => {
 
       for (const network of results) {
         try {
-          const result = await query(
-            `INSERT INTO app.wigle_v2_networks_search (
-              bssid, ssid, trilat, trilong, location, firsttime, lasttime, lastupdt,
-              type, encryption, channel, frequency, qos, wep, bcninterval, freenet,
-              dhcp, paynet, transid, rcois, name, comment, userfound, source,
-              country, region, city, road, housenumber, postalcode
-            ) VALUES (
-              $1, $2, $3::numeric, $4::numeric, ST_SetSRID(ST_MakePoint($5::numeric, $3::numeric), 4326),
-              $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-              $17, $18, $19, $20, $21, $22, $23, 'wigle_api_search',
-              $24, $25, $26, $27, $28, $29
-            ) ON CONFLICT (bssid, trilat, trilong, lastupdt) DO NOTHING`,
-            [
-              network.netid || network.bssid,
-              network.ssid,
-              network.trilat ? parseFloat(network.trilat) : null,
-              network.trilong ? parseFloat(network.trilong) : null,
-              network.trilong ? parseFloat(network.trilong) : null,
-              network.firsttime,
-              network.lasttime,
-              network.lastupdt,
-              network.type || 'wifi',
-              network.encryption,
-              network.channel,
-              network.frequency,
-              network.qos || 0,
-              network.wep,
-              network.bcninterval,
-              network.freenet,
-              network.dhcp,
-              network.paynet,
-              network.transid,
-              network.rcois,
-              network.name,
-              network.comment,
-              network.userfound === true,
-              network.country,
-              network.region,
-              network.city,
-              network.road,
-              network.housenumber,
-              network.postalcode,
-            ]
-          );
-          if (result.rowCount && result.rowCount > 0) {
+          const rowCount = await wigleService.importWigleV2SearchResult(network);
+          if (rowCount > 0) {
             importedCount++;
           }
         } catch (err: any) {
