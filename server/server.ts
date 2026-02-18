@@ -47,12 +47,18 @@ require('ts-node').register({
     const { app, port, host, forceHttps, allowedOrigins } = initializeApp(express);
 
     // ============================================================================
-    // 6. MIDDLEWARE SETUP
+    // 6. SECRETS VALIDATION
+    // ============================================================================
+    const { validateSecrets } = require('./src/utils/validateSecrets');
+    await validateSecrets();
+
+    // ============================================================================
+    // 7. MIDDLEWARE SETUP
     // ============================================================================
     initializeMiddleware(app, { forceHttps, allowedOrigins });
 
     // ============================================================================
-    // 7. DATABASE SETUP
+    // 8. DATABASE SETUP
     // ============================================================================
     const { pool, query } = await initializeDatabaseConnection(logger);
 
