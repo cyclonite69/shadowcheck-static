@@ -6,25 +6,15 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
+const homeLocationService = require('../../../services/homeLocationService');
 const { adminQuery } = require('../../../services/adminDbService');
 
 // GET /api/home-location - Get current home location
 router.get('/home-location', async (req, res, next) => {
   try {
-    const result = await query(`
-      SELECT 
-        latitude,
-        longitude,
-        radius,
-        created_at
-      FROM app.location_markers
-      WHERE marker_type = 'home'
-      ORDER BY created_at DESC
-      LIMIT 1
-    `);
+    const location = await homeLocationService.getCurrentHomeLocation();
 
-    if (result.rows.length === 0) {
+    if (!location) {
       // Return default home location if none set
       return res.json({
         latitude: 43.02345147,
@@ -33,7 +23,7 @@ router.get('/home-location', async (req, res, next) => {
       });
     }
 
-    res.json(result.rows[0]);
+    res.json(location);
   } catch (err) {
     next(err);
   }
