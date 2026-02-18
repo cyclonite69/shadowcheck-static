@@ -2,7 +2,6 @@ export {};
 const express = require('express');
 const router = express.Router();
 const adminDbService = require('../../../services/adminDbService');
-const { adminQuery } = require('../../../services/adminDbService');
 const { requireAdmin } = require('../../../middleware/authMiddleware');
 
 // Backup database as JSON (simpler than pg_dump version issues)
@@ -53,8 +52,7 @@ router.post('/restore', requireAdmin, async (req, res) => {
     }
 
     // Truncate tables
-    await adminQuery('TRUNCATE TABLE app.observations CASCADE');
-    await adminQuery('TRUNCATE TABLE app.networks CASCADE');
+    await adminDbService.truncateAllData();
 
     // Restore data (simplified - would need proper INSERT statements)
     res.json({

@@ -6,7 +6,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { adminQuery } = require('../../../services/adminDbService');
+const adminDbService = require('../../../services/adminDbService');
 const mlScoringService = require('../../../services/ml/scoringService');
 const logger = require('../../../logging/logger');
 const mlTrainingLock = require('../../../services/mlTrainingLock');
@@ -114,16 +114,11 @@ router.post('/ml/train', async (req, res, next) => {
 
     const trainingResult = await mlModel.train(rows);
 
-    await adminQuery(
-      `INSERT INTO app.ml_model_config (model_type, coefficients, intercept, feature_names, created_at)
-       VALUES ('threat_logistic_regression', $1, $2, $3, NOW())
-       ON CONFLICT (model_type) DO UPDATE
-       SET coefficients = $1, intercept = $2, feature_names = $3, updated_at = NOW()`,
-      [
-        JSON.stringify(trainingResult.coefficients),
-        trainingResult.intercept,
-        JSON.stringify(trainingResult.featureNames),
-      ]
+    await adminDbService.saveMLModelConfig(
+      'threat_logistic_regression',
+      trainingResult.coefficients,
+      trainingResult.intercept,
+      trainingResult.featureNames
     );
 
     const autoScore = parseBoolean(req.body?.auto_score, true);
