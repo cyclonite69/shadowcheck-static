@@ -7,7 +7,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../../config/database');
+const adminDbService = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 /**
@@ -16,26 +16,12 @@ const logger = require('../../../../logging/logger');
  */
 router.get('/admin/oui/groups', async (req, res) => {
   try {
-    const result = await query(`
-      SELECT
-        oui,
-        device_count,
-        collective_threat_score,
-        threat_level,
-        primary_bssid,
-        secondary_bssids,
-        has_randomization,
-        randomization_confidence,
-        last_updated
-      FROM app.oui_device_groups
-      WHERE device_count > 1
-      ORDER BY collective_threat_score DESC
-    `);
+    const groups = await adminDbService.getOUIGroups();
 
     res.json({
       ok: true,
-      groups: result.rows,
-      count: result.rows.length,
+      groups,
+      count: groups.length,
     });
   } catch (err) {
     logger.error('Failed to get OUI groups:', err);
@@ -51,43 +37,13 @@ router.get('/admin/oui/:oui/details', async (req, res) => {
   try {
     const { oui } = req.params;
 
-    const group = await query(
-      `
-      SELECT * FROM app.oui_device_groups WHERE oui = $1
-    `,
-      [oui]
-    );
-
-    const randomization = await query(
-      `
-      SELECT * FROM app.mac_randomization_suspects WHERE oui = $1
-    `,
-      [oui]
-    );
-
-    const networks = await query(
-      `
-      SELECT
-        ap.bssid,
-        nts.final_threat_score,
-        nts.final_threat_level,
-        ap.ssid,
-        COUNT(obs.id) as observation_count
-      FROM app.access_points ap
-      LEFT JOIN app.network_threat_scores nts ON ap.bssid = nts.bssid
-      LEFT JOIN app.observations obs ON ap.bssid = obs.bssid
-      WHERE SUBSTRING(ap.bssid, 1, 8) = $1
-      GROUP BY ap.bssid, nts.final_threat_score, nts.final_threat_level, ap.ssid
-      ORDER BY nts.final_threat_score DESC
-    `,
-      [oui]
-    );
+    const { group, randomization, networks } = await adminDbService.getOUIGroupDetails(oui);
 
     res.json({
       ok: true,
-      group: group.rows[0],
-      randomization: randomization.rows[0],
-      networks: networks.rows,
+      group,
+      randomization,
+      networks,
     });
   } catch (err) {
     logger.error('Failed to get OUI details:', err);
@@ -101,23 +57,12 @@ router.get('/admin/oui/:oui/details', async (req, res) => {
  */
 router.get('/admin/oui/randomization/suspects', async (req, res) => {
   try {
-    const result = await query(`
-      SELECT
-        oui,
-        status,
-        confidence_score,
-        avg_distance_km,
-        movement_speed_kmh,
-        array_length(mac_sequence, 1) as mac_count,
-        created_at
-      FROM app.mac_randomization_suspects
-      ORDER BY confidence_score DESC
-    `);
+    const suspects = await adminDbService.getMACRandomizationSuspects();
 
     res.json({
       ok: true,
-      suspects: result.rows,
-      count: result.rows.length,
+      suspects,
+      count: suspects.length,
     });
   } catch (err) {
     logger.error('Failed to get randomization suspects:', err);

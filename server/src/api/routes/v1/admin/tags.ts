@@ -6,8 +6,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../../config/database');
-const { adminQuery } = require('../../../../services/adminDbService');
+const adminDbService = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 const { validateString, validateIntegerRange } = require('../../../../validation/schemas');
 
@@ -31,62 +30,35 @@ router.post('/admin/network-tags/toggle', async (req, res, next) => {
     }
 
     // Check if network exists and has the tag
-    const existingResult = await query('SELECT tags FROM app.network_tags WHERE bssid = $1', [
-      bssid,
-    ]);
+    const existingResult = await adminDbService.getNetworkTagsByBssid(bssid);
 
     let action, _newTags;
 
-    if (existingResult.rows.length === 0) {
+    if (!existingResult) {
       // Network doesn't exist, create with tag
-      await adminQuery(
-        `
-        INSERT INTO app.network_tags (bssid, tags, notes, created_by)
-        VALUES ($1, $2::jsonb, $3, 'admin')
-      `,
-        [bssid, JSON.stringify([tag]), notes]
-      );
+      await adminDbService.insertNetworkTagWithNotes(bssid, [tag], notes);
       action = 'added';
       _newTags = [tag];
     } else {
       // Network exists, toggle the tag
-      const currentTags = existingResult.rows[0].tags || [];
+      const currentTags = existingResult.tags || [];
       const hasTag = currentTags.includes(tag);
 
       if (hasTag) {
         // Remove tag
-        await adminQuery(
-          `
-          UPDATE app.network_tags
-          SET tags = app.network_remove_tag(tags, $2),
-              updated_at = NOW()
-          WHERE bssid = $1
-        `,
-          [bssid, tag]
-        );
+        await adminDbService.removeTagFromNetwork(bssid, tag);
         action = 'removed';
         _newTags = currentTags.filter((t) => t !== tag);
       } else {
         // Add tag
-        await adminQuery(
-          `
-          UPDATE app.network_tags
-          SET tags = app.network_add_tag(tags, $2),
-              notes = COALESCE($3, notes),
-              updated_at = NOW()
-          WHERE bssid = $1
-        `,
-          [bssid, tag, notes]
-        );
+        await adminDbService.addTagToNetwork(bssid, tag, notes);
         action = 'added';
         _newTags = [...currentTags, tag];
       }
     }
 
     // Get updated network info
-    const result = await query('SELECT bssid, tags, notes FROM app.network_tags WHERE bssid = $1', [
-      bssid,
-    ]);
+    const result = await adminDbService.getNetworkTagsAndNotes(bssid);
 
     res.json({
       ok: true,
@@ -112,25 +84,15 @@ router.delete('/admin/network-tags/remove', async (req, res, next) => {
     }
 
     // Remove tag
-    await adminQuery(
-      `
-      UPDATE app.network_tags
-      SET tags = app.network_remove_tag(tags, $2),
-          updated_at = NOW()
-      WHERE bssid = $1
-    `,
-      [bssid, tag]
-    );
+    await adminDbService.removeTagFromNetwork(bssid, tag);
 
     // Get updated tags
-    const result = await query('SELECT bssid, tags, notes FROM app.network_tags WHERE bssid = $1', [
-      bssid,
-    ]);
+    const result = await adminDbService.getNetworkTagsAndNotes(bssid);
 
     res.json({
       ok: true,
       message: `Tag '${tag}' removed from network ${bssid}`,
-      network: result.rows[0],
+      network: result,
     });
   } catch (error) {
     logger.error(`Remove tag error: ${error.message}`);
@@ -143,26 +105,9 @@ router.get('/admin/network-tags/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(
-      `
-      SELECT
-        bssid,
-        tags,
-        tag_array,
-        is_threat,
-        is_investigate,
-        is_false_positive,
-        is_suspect,
-        notes,
-        created_at,
-        updated_at
-      FROM app.network_tags_expanded
-      WHERE bssid = $1
-    `,
-      [bssid]
-    );
+    const result = await adminDbService.getNetworkTagsExpanded(bssid);
 
-    if (!result.rows.length) {
+    if (!result) {
       return res.status(404).json({
         error: { message: `No tags found for network ${bssid}` },
       });
@@ -170,7 +115,7 @@ router.get('/admin/network-tags/:bssid', async (req, res, next) => {
 
     res.json({
       ok: true,
-      network: result.rows[0],
+      network: result,
     });
   } catch (error) {
     next(error);
@@ -205,31 +150,13 @@ router.get('/admin/network-tags/search', async (req, res, next) => {
     }
 
     // Find networks that have ALL specified tags
-    const result = await query(
-      `
-      SELECT
-        bssid,
-        tags,
-        tag_array,
-        is_threat,
-        is_investigate,
-        is_false_positive,
-        is_suspect,
-        notes,
-        updated_at
-      FROM app.network_tags_expanded
-      WHERE tags ?& $1
-      ORDER BY updated_at DESC
-      LIMIT $2
-    `,
-      [tagArray, limitValidation.value]
-    );
+    const result = await adminDbService.searchNetworksByTagArray(tagArray, limitValidation.value);
 
     res.json({
       ok: true,
       searchTags: tagArray,
-      networks: result.rows,
-      count: result.rows.length,
+      networks: result,
+      count: result.length,
     });
   } catch (error) {
     next(error);
