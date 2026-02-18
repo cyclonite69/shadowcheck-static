@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-const pool = require('../../../config/database');
+const agencyService = require('../../../services/agencyService');
 
 const router = Router();
 
@@ -9,41 +9,7 @@ const router = Router();
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const query = `
-      SELECT 
-        jsonb_build_object(
-          'type', 'FeatureCollection',
-          'features', jsonb_agg(
-            jsonb_build_object(
-              'type', 'Feature',
-              'id', id,
-              'geometry', ST_AsGeoJSON(location)::jsonb,
-              'properties', jsonb_build_object(
-                'id', id,
-                'name', name,
-                'office_type', office_type,
-                'address_line1', address_line1,
-                'address_line2', address_line2,
-                'city', city,
-                'state', state,
-                'postal_code', postal_code,
-                'phone', phone,
-                'website', website,
-                'parent_office', parent_office
-              )
-            )
-          )
-        ) as geojson
-      FROM app.agency_offices
-      WHERE location IS NOT NULL;
-    `;
-
-    const result = await pool.query(query);
-    const geojson = result.rows[0]?.geojson || {
-      type: 'FeatureCollection',
-      features: [],
-    };
-
+    const geojson = await agencyService.getAgencyOfficesGeoJSON();
     res.json(geojson);
   } catch (error) {
     console.error('Error fetching agency offices:', error);
@@ -60,20 +26,11 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.get('/count', async (req: Request, res: Response) => {
   try {
-    const query = `
-      SELECT 
-        office_type,
-        COUNT(*) as count
-      FROM app.agency_offices
-      GROUP BY office_type
-      ORDER BY office_type;
-    `;
-
-    const result = await pool.query(query);
+    const rows = await agencyService.getAgencyOfficeCountByType();
     res.json({
       ok: true,
-      data: result.rows,
-      total: result.rows.reduce((sum, row) => sum + parseInt(row.count), 0),
+      data: rows,
+      total: rows.reduce((sum, row) => sum + parseInt(row.count), 0),
     });
   } catch (error) {
     console.error('Error counting agency offices:', error);
