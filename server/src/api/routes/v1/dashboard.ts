@@ -174,10 +174,9 @@ router.get('/home-location', async (req, res) => {
     const location = await homeLocationService.getCurrentHomeLocation();
 
     if (!location) {
-      return res.json({
-        latitude: 43.02345147,
-        longitude: -83.69682688,
-        radius: 100,
+      return res.status(404).json({
+        error: 'No home location configured',
+        message: 'Set a home location via the location markers API',
       });
     }
 
