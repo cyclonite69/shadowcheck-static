@@ -588,13 +588,10 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
         ? `
         CASE
           WHEN ne.lat IS NOT NULL AND ne.lon IS NOT NULL THEN
-            6371 * ACOS(
-              LEAST(1.0, GREATEST(-1.0,
-                COS(RADIANS(${homeLocation.lat})) * COS(RADIANS(ne.lat)) *
-                COS(RADIANS(ne.lon) - RADIANS(${homeLocation.lon})) +
-                SIN(RADIANS(${homeLocation.lat})) * SIN(RADIANS(ne.lat))
-              ))
-            )
+            ST_Distance(
+              ST_MakePoint(${homeLocation.lon}, ${homeLocation.lat})::geography,
+              ST_MakePoint(ne.lon, ne.lat)::geography
+            ) / 1000
           ELSE NULL
         END`
         : 'NULL';
@@ -779,11 +776,10 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     if (radiusCenterLat !== null && radiusCenterLng !== null && radiusMeters !== null) {
       const radiusExpr = `
         (
-          6371 * ACOS(
-            COS(RADIANS($${paramIndex})) * COS(RADIANS(ne.lat)) *
-            COS(RADIANS(ne.lon) - RADIANS($${paramIndex + 1})) +
-            SIN(RADIANS($${paramIndex})) * SIN(RADIANS(ne.lat))
-          ) * 1000 <= $${paramIndex + 2}
+          ST_Distance(
+            ST_MakePoint($${paramIndex + 1}, $${paramIndex})::geography,
+            ST_MakePoint(ne.lon, ne.lat)::geography
+          ) <= $${paramIndex + 2}
         )
       `;
       conditions.push(radiusExpr);
