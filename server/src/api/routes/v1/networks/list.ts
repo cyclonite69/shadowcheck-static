@@ -569,7 +569,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       `ne.min_altitude_m`,
       `ne.max_altitude_m`,
       `ne.altitude_accuracy_m`,
-      `ne.max_distance_meters`,
+      `COALESCE(mv.max_distance_meters, 0) AS max_distance_meters`,
       `ne.last_altitude_m`,
       `ne.unique_days`,
       `ne.unique_locations`,
@@ -610,6 +610,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       `LEFT JOIN app.radio_manufacturers rm ON ne.oui = rm.oui`,
       `LEFT JOIN app.network_tags nt ON ne.bssid = nt.bssid`,
       `LEFT JOIN app.network_threat_scores nts ON ne.bssid = nts.bssid`,
+      `LEFT JOIN app.api_network_explorer_mv mv ON ne.bssid = mv.bssid`,
     ];
 
     const conditions: string[] = [];
