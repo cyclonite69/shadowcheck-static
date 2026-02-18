@@ -153,7 +153,10 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const isWiFi = networkType === 'W';
 
   // Build threat object from separate columns
-  const threatScore = typeof row.final_threat_score === 'number' ? row.final_threat_score : 0;
+  const threatScore =
+    typeof row.final_threat_score === 'number'
+      ? row.final_threat_score
+      : parseFloat(row.final_threat_score) || 0;
   const threatLevel = row.final_threat_level || 'NONE';
   const threatInfo: ThreatInfo = {
     score: threatScore / 100,
@@ -169,6 +172,16 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const channelValue =
     typeof row.channel === 'number' ? row.channel : isWiFi ? calculateChannel(frequency) : null;
 
+  // Parse numeric fields that may come as strings
+  const parseNumeric = (val: any): number | null => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  };
+
   return {
     bssid: bssidValue,
     ssid: row.ssid || '(hidden)',
@@ -180,30 +193,29 @@ const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     observations: parseInt(String(row.obs_count || 0), 10),
     latitude: typeof row.lat === 'number' ? row.lat : null,
     longitude: typeof row.lon === 'number' ? row.lon : null,
-    distanceFromHome:
-      typeof row.distance_from_home_km === 'number' ? row.distance_from_home_km * 1000 : null,
-    accuracy: typeof row.accuracy_meters === 'number' ? row.accuracy_meters : null,
+    distanceFromHome: parseNumeric(row.distance_from_home_km)
+      ? parseNumeric(row.distance_from_home_km)! * 1000
+      : null,
+    accuracy: parseNumeric(row.accuracy_meters),
     firstSeen: row.first_observed_at || null,
     lastSeen: row.last_observed_at || row.observed_at || null,
     timespanDays: calculateTimespan(row.first_observed_at, row.last_observed_at),
     threat: threatInfo,
     threat_score: threatScore,
     threat_level: threatLevel,
-    threat_rule_score: row.rule_based_score ?? null,
-    threat_ml_score: row.ml_threat_score ?? null,
+    threat_rule_score: parseNumeric(row.rule_based_score),
+    threat_ml_score: parseNumeric(row.ml_threat_score),
     threat_ml_weight: null,
     threat_ml_boost: null,
     threatReasons: [],
     threatEvidence: [],
-    stationaryConfidence:
-      typeof row.stationary_confidence === 'number' ? row.stationary_confidence : null,
+    stationaryConfidence: parseNumeric(row.stationary_confidence),
     manufacturer: row.manufacturer || null,
-    min_altitude_m: typeof row.min_altitude_m === 'number' ? row.min_altitude_m : null,
-    max_altitude_m: typeof row.max_altitude_m === 'number' ? row.max_altitude_m : null,
-    altitude_span_m: typeof row.altitude_span_m === 'number' ? row.altitude_span_m : null,
-    max_distance_meters:
-      typeof row.max_distance_meters === 'number' ? row.max_distance_meters : null,
-    last_altitude_m: typeof row.last_altitude_m === 'number' ? row.last_altitude_m : null,
+    min_altitude_m: parseNumeric(row.min_altitude_m),
+    max_altitude_m: parseNumeric(row.max_altitude_m),
+    altitude_span_m: parseNumeric(row.altitude_span_m),
+    max_distance_meters: parseNumeric(row.max_distance_meters),
+    last_altitude_m: parseNumeric(row.last_altitude_m),
     is_sentinel: typeof row.is_sentinel === 'boolean' ? row.is_sentinel : null,
     rawLatitude:
       typeof row.raw_lat === 'number' ? row.raw_lat : typeof row.lat === 'number' ? row.lat : null,
