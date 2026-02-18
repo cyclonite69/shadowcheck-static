@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-import { query } from '../../../../config/database';
+const wigleService = require('../../../../services/wigleService');
 import logger from '../../../../logging/logger';
 import { macParamMiddleware, validateQuery, optional } from '../../../../validation/middleware';
 import { validateIntegerRange, validateString } from '../../../../validation/schemas';
@@ -60,15 +60,11 @@ const validateWigleNetworksQuery = validateQuery({
 router.get('/network/:bssid', macParamMiddleware, async (req, res, next) => {
   try {
     const { bssid } = req.params;
-    const { rows } = await query(
-      `SELECT bssid, ssid, encryption, country, region, city, trilat, trilon, first_seen, last_seen
-       FROM app.wigle_networks_enriched WHERE bssid = $1 LIMIT 1`,
-      [bssid]
-    );
-    if (rows.length === 0) {
+    const network = await wigleService.getWigleNetworkByBSSID(bssid);
+    if (!network) {
       return res.status(404).json({ error: 'Network not found in WiGLE database' });
     }
-    res.json({ success: true, results: [rows[0]] });
+    res.json({ success: true, results: [network] });
   } catch (err) {
     next(err);
   }
@@ -87,26 +83,7 @@ router.get('/search', validateWigleSearchQuery, async (req, res, next) => {
       return res.status(400).json({ error: 'Either ssid or bssid parameter is required' });
     }
 
-    const params: any[] = [];
-    const paginationClauses: string[] = [];
-    let searchQuery: string;
-
-    if (bssid) {
-      searchQuery = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime
-                     FROM app.wigle_v2_networks_search WHERE bssid ILIKE $1 ORDER BY lasttime DESC`;
-      params.push(`%${bssid}%`);
-    } else {
-      searchQuery = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime
-                     FROM app.wigle_v2_networks_search WHERE ssid ILIKE $1 ORDER BY lasttime DESC`;
-      params.push(`%${ssid}%`);
-    }
-
-    if (limit !== null) {
-      params.push(limit);
-      paginationClauses.push(`LIMIT $${params.length}`);
-    }
-
-    const { rows } = await query(`${searchQuery} ${paginationClauses.join(' ')}`.trim(), params);
+    const rows = await wigleService.searchWigleDatabase({ ssid, bssid, limit });
     res.json({ ok: true, query: ssid || bssid, count: rows.length, networks: rows });
   } catch (err) {
     next(err);
@@ -128,29 +105,29 @@ router.get('/networks-v2', validateWigleNetworksQuery, async (req, res, next) =>
     }
     const includeTotal = includeTotalValidation.value;
 
-    const params: any[] = [];
+    const queryParams: any[] = [];
     const whereClauses = ['trilat IS NOT NULL', 'trilong IS NOT NULL'];
 
     if (typeRaw && String(typeRaw).trim() !== '') {
-      params.push(String(typeRaw).trim());
-      whereClauses.push(`type = $${params.length}`);
+      queryParams.push(String(typeRaw).trim());
+      whereClauses.push(`type = $${queryParams.length}`);
     }
 
     if (filters && enabled) {
       try {
         const filterObj = JSON.parse(filters as string);
         const enabledObj = JSON.parse(enabled as string);
-        let paramIndex = params.length + 1;
+        let paramIndex = queryParams.length + 1;
 
         if (enabledObj.ssid && filterObj.ssid) {
           whereClauses.push(`ssid ILIKE $${paramIndex}`);
-          params.push(`%${filterObj.ssid}%`);
+          queryParams.push(`%${filterObj.ssid}%`);
           paramIndex++;
         }
 
         if (enabledObj.bssid && filterObj.bssid) {
           whereClauses.push(`bssid ILIKE $${paramIndex}`);
-          params.push(`${filterObj.bssid}%`);
+          queryParams.push(`${filterObj.bssid}%`);
           paramIndex++;
         }
       } catch (e: any) {
@@ -158,27 +135,17 @@ router.get('/networks-v2', validateWigleNetworksQuery, async (req, res, next) =>
       }
     }
 
-    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-    const paginationClauses: string[] = [];
-    if (limit !== null) {
-      params.push(limit);
-      paginationClauses.push(`LIMIT $${params.length}`);
-    }
-    if (offset !== null) {
-      params.push(offset);
-      paginationClauses.push(`OFFSET $${params.length}`);
-    }
-
-    const paginationSql = paginationClauses.join(' ');
-    const dataQuery = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime, type
-                       FROM app.wigle_v2_networks_search ${whereSql} ORDER BY lasttime DESC ${paginationSql}`;
-    const { rows } = await query(dataQuery, params);
+    const rows = await wigleService.getWigleV2Networks({
+      limit,
+      offset,
+      type: typeRaw,
+      whereClauses,
+      queryParams,
+    });
 
     let total = null;
     if (includeTotal) {
-      const countQuery = `SELECT COUNT(*) as total FROM app.wigle_v2_networks_search ${whereSql}`;
-      const countResult = await query(countQuery, params.slice(0, whereClauses.length - 2));
-      total = parseInt(countResult.rows[0].total, 10);
+      total = await wigleService.getWigleV2NetworksCount(whereClauses, queryParams);
     }
 
     res.json({ ok: true, count: rows.length, total, data: rows });
@@ -193,14 +160,9 @@ router.get('/networks-v2', validateWigleNetworksQuery, async (req, res, next) =>
 router.get('/networks-v3', validateWigleNetworksQuery, async (req, res, next) => {
   try {
     // Check if table exists
-    const tableCheck = await query(
-      `SELECT EXISTS (
-         SELECT FROM information_schema.tables
-         WHERE table_schema = 'app' AND table_name = 'wigle_v3_networks'
-       ) as exists`
-    );
+    const tableExists = await wigleService.checkWigleV3TableExists();
 
-    if (!tableCheck.rows[0]?.exists) {
+    if (!tableExists) {
       return res.json({
         ok: true,
         count: 0,
@@ -211,22 +173,8 @@ router.get('/networks-v3', validateWigleNetworksQuery, async (req, res, next) =>
 
     const limit = (req as any).validated?.limit ?? null;
     const offset = (req as any).validated?.offset ?? null;
-    const params: any[] = [];
-    const paginationClauses: string[] = [];
 
-    if (limit !== null) {
-      params.push(limit);
-      paginationClauses.push(`LIMIT $${params.length}`);
-    }
-    if (offset !== null) {
-      params.push(offset);
-      paginationClauses.push(`OFFSET $${params.length}`);
-    }
-
-    const paginationSql = paginationClauses.join(' ');
-    const dataQuery = `SELECT netid, ssid, encryption, trilat, trilong, lastupdt
-                       FROM app.wigle_v3_networks ORDER BY lastupdt DESC ${paginationSql}`;
-    const { rows } = await query(dataQuery, params);
+    const rows = await wigleService.getWigleV3Networks({ limit, offset });
 
     res.json({ ok: true, count: rows.length, data: rows });
   } catch (err) {

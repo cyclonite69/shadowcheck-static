@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-import { query } from '../../../../config/database';
+const wigleService = require('../../../../services/wigleService');
 
 /**
  * GET /observations/:netid - Fetch stored individual observations
@@ -14,15 +14,7 @@ router.get('/observations/:netid', async (req, res, next) => {
   try {
     const { netid } = req.params;
 
-    const { rows } = await query(
-      `SELECT id, netid, latitude, longitude, altitude, accuracy,
-              signal, observed_at, last_update, ssid,
-              frequency, channel, encryption, noise, snr, month
-       FROM app.wigle_v3_observations
-       WHERE netid = $1
-       ORDER BY observed_at DESC`,
-      [netid]
-    );
+    const rows = await wigleService.getWigleV3Observations(netid);
 
     res.json({
       ok: true,

@@ -5,7 +5,7 @@
 
 import express from 'express';
 const router = express.Router();
-import { query } from '../../../../config/database';
+const wigleService = require('../../../../services/wigleService');
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
@@ -49,33 +49,7 @@ async function importWigleV3Observations(netid: string, locationClusters: any[])
             : cluster.clusterSsid || loc.ssid;
         const sanitizedSsid = stripNullBytes(ssidToUse);
 
-        await query(
-          `INSERT INTO app.wigle_v3_observations (
-            netid, latitude, longitude, altitude, accuracy,
-            signal, observed_at, last_update, ssid,
-            frequency, channel, encryption, noise, snr, month, location
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-            ST_SetSRID(ST_MakePoint($3, $2), 4326)
-          ) ON CONFLICT DO NOTHING`,
-          [
-            netid,
-            parseFloat(loc.latitude),
-            parseFloat(loc.longitude),
-            parseFloat(loc.alt) || null,
-            parseFloat(loc.accuracy) || null,
-            parseInt(loc.signal) || null,
-            loc.time,
-            loc.lastupdt,
-            sanitizedSsid,
-            parseInt(loc.frequency) || null,
-            parseInt(loc.channel) || null,
-            stripNullBytes(loc.encryptionValue),
-            parseInt(loc.noise) || null,
-            parseInt(loc.snr) || null,
-            loc.month,
-          ]
-        );
+        await wigleService.importWigleV3Observation(netid, loc, sanitizedSsid);
         totalImported++;
       } catch (err: any) {
         logger.error(`[WiGLE] Failed to import observation for ${netid}: ${err.message}`);
@@ -155,43 +129,27 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
 
       logger.info(`[WiGLE] Importing detail for ${netid} to database...`);
 
-      await query(
-        `INSERT INTO app.wigle_v3_network_details (
-          netid, name, type, comment, ssid, trilat, trilon, encryption, channel,
-          bcninterval, freenet, dhcp, paynet, qos, first_seen, last_seen, last_update,
-          street_address, location_clusters
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-        ON CONFLICT (netid) DO UPDATE SET
-          name = EXCLUDED.name, type = EXCLUDED.type, comment = EXCLUDED.comment,
-          ssid = EXCLUDED.ssid, trilat = EXCLUDED.trilat, trilon = EXCLUDED.trilon,
-          encryption = EXCLUDED.encryption, channel = EXCLUDED.channel,
-          bcninterval = EXCLUDED.bcninterval, freenet = EXCLUDED.freenet,
-          dhcp = EXCLUDED.dhcp, paynet = EXCLUDED.paynet, qos = EXCLUDED.qos,
-          first_seen = EXCLUDED.first_seen, last_seen = EXCLUDED.last_seen,
-          last_update = EXCLUDED.last_update, street_address = EXCLUDED.street_address,
-          location_clusters = EXCLUDED.location_clusters, imported_at = NOW()`,
-        [
-          data.networkId,
-          sanitizedName,
-          data.type,
-          sanitizedComment,
-          sanitizedSsid,
-          data.trilateratedLatitude,
-          data.trilateratedLongitude,
-          sanitizedEncryption,
-          data.channel,
-          data.bcninterval,
-          sanitizedFreenet,
-          sanitizedDhcp,
-          sanitizedPaynet,
-          data.bestClusterWiGLEQoS,
-          data.firstSeen,
-          data.lastSeen,
-          data.lastUpdate,
-          JSON.stringify(data.streetAddress),
-          JSON.stringify(data.locationClusters),
-        ]
-      );
+      await wigleService.importWigleV3NetworkDetail({
+        netid: data.networkId,
+        name: sanitizedName,
+        type: data.type,
+        comment: sanitizedComment,
+        ssid: sanitizedSsid,
+        trilat: data.trilateratedLatitude,
+        trilon: data.trilateratedLongitude,
+        encryption: sanitizedEncryption,
+        channel: data.channel,
+        bcninterval: data.bcninterval,
+        freenet: sanitizedFreenet,
+        dhcp: sanitizedDhcp,
+        paynet: sanitizedPaynet,
+        qos: data.bestClusterWiGLEQoS,
+        first_seen: data.firstSeen,
+        last_seen: data.lastSeen,
+        last_update: data.lastUpdate,
+        street_address: JSON.stringify(data.streetAddress),
+        location_clusters: JSON.stringify(data.locationClusters),
+      });
 
       importedObservations = await importWigleV3Observations(data.networkId, data.locationClusters);
       logger.info(`[WiGLE] Imported ${importedObservations} observations for ${netid}`);
@@ -251,43 +209,27 @@ router.post('/import/v3', requireAdmin, async (req, res, next) => {
 
     logger.info(`[WiGLE] Importing v3 detail for ${data.networkId} from file...`);
 
-    await query(
-      `INSERT INTO app.wigle_v3_network_details (
-        netid, name, type, comment, ssid, trilat, trilon, encryption, channel,
-        bcninterval, freenet, dhcp, paynet, qos, first_seen, last_seen, last_update,
-        street_address, location_clusters
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-      ON CONFLICT (netid) DO UPDATE SET
-        name = EXCLUDED.name, type = EXCLUDED.type, comment = EXCLUDED.comment,
-        ssid = EXCLUDED.ssid, trilat = EXCLUDED.trilat, trilon = EXCLUDED.trilon,
-        encryption = EXCLUDED.encryption, channel = EXCLUDED.channel,
-        bcninterval = EXCLUDED.bcninterval, freenet = EXCLUDED.freenet,
-        dhcp = EXCLUDED.dhcp, paynet = EXCLUDED.paynet, qos = EXCLUDED.qos,
-        first_seen = EXCLUDED.first_seen, last_seen = EXCLUDED.last_seen,
-        last_update = EXCLUDED.last_update, street_address = EXCLUDED.street_address,
-        location_clusters = EXCLUDED.location_clusters, imported_at = NOW()`,
-      [
-        data.networkId,
-        sanitizedName,
-        data.type,
-        sanitizedComment,
-        sanitizedSsid,
-        data.trilateratedLatitude,
-        data.trilateratedLongitude,
-        sanitizedEncryption,
-        data.channel,
-        data.bcninterval,
-        sanitizedFreenet,
-        sanitizedDhcp,
-        sanitizedPaynet,
-        data.bestClusterWiGLEQoS,
-        data.firstSeen,
-        data.lastSeen,
-        data.lastUpdate,
-        JSON.stringify(data.streetAddress),
-        JSON.stringify(data.locationClusters),
-      ]
-    );
+    await wigleService.importWigleV3NetworkDetail({
+      netid: data.networkId,
+      name: sanitizedName,
+      type: data.type,
+      comment: sanitizedComment,
+      ssid: sanitizedSsid,
+      trilat: data.trilateratedLatitude,
+      trilon: data.trilateratedLongitude,
+      encryption: sanitizedEncryption,
+      channel: data.channel,
+      bcninterval: data.bcninterval,
+      freenet: sanitizedFreenet,
+      dhcp: sanitizedDhcp,
+      paynet: sanitizedPaynet,
+      qos: data.bestClusterWiGLEQoS,
+      first_seen: data.firstSeen,
+      last_seen: data.lastSeen,
+      last_update: data.lastUpdate,
+      street_address: JSON.stringify(data.streetAddress),
+      location_clusters: JSON.stringify(data.locationClusters),
+    });
 
     const importedObservations = await importWigleV3Observations(
       data.networkId,
