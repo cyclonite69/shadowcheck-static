@@ -2,7 +2,8 @@ export {};
 const express = require('express');
 const router = express.Router();
 const logger = require('../../../logging/logger');
-const { query } = require('../../../config/database');
+const keplerService = require('../../../services/keplerService');
+const homeLocationService = require('../../../services/homeLocationService');
 const { adminQuery } = require('../../../services/adminDbService');
 
 let dashboardService = null;
@@ -34,10 +35,8 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
     return true;
   }
   try {
-    const home = await query(
-      "SELECT 1 FROM app.location_markers WHERE marker_type = 'home' LIMIT 1"
-    );
-    if (home.rowCount === 0) {
+    const exists = await keplerService.checkHomeLocationExists();
+    if (!exists) {
       res.status(400).json({
         ok: false,
         error: 'Home location is required for distance filters.',
@@ -46,14 +45,11 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
     }
     return true;
   } catch (err) {
-    if (err && err.code === '42P01') {
-      res.status(400).json({
-        ok: false,
-        error: 'Home location markers table is missing (app.location_markers).',
-      });
-      return false;
-    }
-    throw err;
+    res.status(400).json({
+      ok: false,
+      error: err.message,
+    });
+    return false;
   }
 };
 
@@ -175,16 +171,9 @@ router.get('/dashboard/summary', async (req, res) => {
 // GET /api/home-location
 router.get('/home-location', async (req, res) => {
   try {
-    const { query } = require('../../../config/database');
-    const result = await query(`
-      SELECT latitude, longitude, radius, created_at
-      FROM app.location_markers
-      WHERE marker_type = 'home'
-      ORDER BY created_at DESC
-      LIMIT 1
-    `);
+    const location = await homeLocationService.getCurrentHomeLocation();
 
-    if (result.rows.length === 0) {
+    if (!location) {
       return res.json({
         latitude: 43.02345147,
         longitude: -83.69682688,
@@ -192,7 +181,7 @@ router.get('/home-location', async (req, res) => {
       });
     }
 
-    res.json(result.rows[0]);
+    res.json(location);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
