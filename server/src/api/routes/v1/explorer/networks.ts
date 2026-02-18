@@ -54,8 +54,20 @@ router.get('/explorer/networks', async (req, res, _next) => {
     };
     const sortColumn = sortMap[sort] || 'last_seen';
 
-    const homeLon = -83.69682688;
-    const homeLat = 43.02345147;
+    // Fetch home location from database
+    let homeLon = null;
+    let homeLat = null;
+    try {
+      const homeResult = await query(
+        "SELECT longitude, latitude FROM app.location_markers WHERE marker_type = 'home' ORDER BY created_at DESC LIMIT 1"
+      );
+      if (homeResult.rows.length > 0) {
+        homeLon = homeResult.rows[0].longitude;
+        homeLat = homeResult.rows[0].latitude;
+      }
+    } catch (err) {
+      logger.warn('Could not fetch home location for distance calculation');
+    }
 
     const { DATA_QUALITY_FILTERS } = require('../../../../services/dataQualityFilters');
     let qualityWhere = '';
@@ -69,7 +81,7 @@ router.get('/explorer/networks', async (req, res, _next) => {
       qualityWhere = DATA_QUALITY_FILTERS.all();
     }
 
-    const params: any[] = [+homeLon, +homeLat];
+    const params: any[] = [homeLon, homeLat];
     const where = [];
     if (search) {
       params.push(`%${search}%`, `%${search}%`);
