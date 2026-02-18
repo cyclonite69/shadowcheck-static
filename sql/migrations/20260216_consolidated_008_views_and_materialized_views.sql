@@ -144,7 +144,7 @@ DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_matviews WHERE schemaname = 'app' AND matviewname = 'api_network_explorer_mv') THEN
         CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
         SELECT n.bssid, n.ssid, n.type, n.frequency,
-            n.bestlevel AS signal, n.bestlat AS lat, n.bestlon AS lon,
+            n.bestlevel AS signal, n.lastlat AS lat, n.lastlon AS lon,
             to_timestamp((((n.lasttime_ms)::numeric / 1000.0))::double precision) AS observed_at,
             n.capabilities AS security,
             COALESCE(t.threat_tag, 'untagged'::character varying) AS tag_type,
@@ -157,7 +157,7 @@ DO $$ BEGIN
             COALESCE(ts.final_threat_score, (0)::numeric) AS threat_score,
             COALESCE(ts.final_threat_level, 'NONE'::character varying) AS threat_level,
             ts.model_version,
-            COALESCE((public.st_distance((public.st_setsrid(public.st_makepoint(n.bestlon, n.bestlat), 4326))::public.geography,
+            COALESCE((public.st_distance((public.st_setsrid(public.st_makepoint(n.lastlon, n.lastlat), 4326))::public.geography,
                 (SELECT (public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326))::public.geography
                  FROM app.location_markers lm WHERE (lm.marker_type = 'home'::text) LIMIT 1)) / (1000.0)::double precision), (0)::double precision) AS distance_from_home_km,
             (SELECT MAX(public.st_distance(
@@ -172,9 +172,9 @@ DO $$ BEGIN
             LEFT JOIN app.network_tags t ON ((n.bssid = (t.bssid)::text)))
             LEFT JOIN app.observations o ON ((n.bssid = o.bssid)))
             LEFT JOIN app.network_threat_scores ts ON ((n.bssid = (ts.bssid)::text)))
-        WHERE ((n.bestlat IS NOT NULL) AND (n.bestlon IS NOT NULL) 
-               AND (n.bestlat != 0 OR n.bestlon != 0))
-        GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel, n.bestlat, n.bestlon,
+        WHERE ((n.lastlat IS NOT NULL) AND (n.lastlon IS NOT NULL) 
+               AND (n.lastlat != 0 OR n.lastlon != 0))
+        GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel, n.lastlat, n.lastlon,
                  n.lasttime_ms, n.capabilities, t.threat_tag, ts.final_threat_score, ts.final_threat_level, ts.model_version
         WITH NO DATA;
     END IF;
