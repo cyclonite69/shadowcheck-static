@@ -43,7 +43,8 @@ router.post('/auth/login', async (req, res) => {
     });
   } catch (error) {
     logger.error('Login route error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    console.error('[AUTH ERROR]', error);
+    res.status(500).json({ error: 'Login failed', details: error.message });
   }
 });
 
