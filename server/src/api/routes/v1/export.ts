@@ -1,7 +1,7 @@
 export {};
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../config/database');
+const exportService = require('../../../services/exportService');
 
 // No authentication required for exports
 const requireAuth = (req, res, next) => {
@@ -11,21 +11,7 @@ const requireAuth = (req, res, next) => {
 // Export as CSV with all available observation fields
 router.get('/csv', requireAuth, async (req, res) => {
   try {
-    const result = await query(`
-      SELECT
-        bssid,
-        ssid,
-        lat as latitude,
-        lon as longitude,
-        level as signal_dbm,
-        time as observed_at,
-        radio_type,
-        radio_frequency as frequency,
-        radio_capabilities as capabilities,
-        accuracy
-      FROM app.observations
-      ORDER BY time DESC
-    `);
+    const rows = await exportService.getObservationsForCSV();
 
     const headers = [
       'bssid',
@@ -42,7 +28,7 @@ router.get('/csv', requireAuth, async (req, res) => {
 
     const csv = [
       headers.join(','),
-      ...result.rows.map((row) =>
+      ...rows.map((row) =>
         headers
           .map((h) => {
             const val = row[h];
@@ -66,23 +52,14 @@ router.get('/csv', requireAuth, async (req, res) => {
 // Export as JSON with observations and networks
 router.get('/json', requireAuth, async (req, res) => {
   try {
-    const [observations, networks] = await Promise.all([
-      query(`
-        SELECT * FROM app.observations
-        ORDER BY time DESC
-      `),
-      query(`
-        SELECT * FROM app.networks
-        ORDER BY lasttime DESC
-      `),
-    ]);
+    const { observations, networks } = await exportService.getObservationsAndNetworksForJSON();
 
     const data = {
       exported_at: new Date().toISOString(),
-      total_observations: observations.rows.length,
-      total_networks: networks.rows.length,
-      observations: observations.rows,
-      networks: networks.rows,
+      total_observations: observations.length,
+      total_networks: networks.length,
+      observations,
+      networks,
     };
 
     res.setHeader('Content-Type', 'application/json');
@@ -99,24 +76,9 @@ router.get('/json', requireAuth, async (req, res) => {
 // Export as GeoJSON
 router.get('/geojson', requireAuth, async (req, res) => {
   try {
-    const result = await query(`
-      SELECT
-        bssid,
-        ssid,
-        lat as latitude,
-        lon as longitude,
-        level as signal_dbm,
-        time as observed_at,
-        radio_type,
-        radio_frequency as frequency,
-        radio_capabilities as capabilities,
-        accuracy
-      FROM app.observations
-      WHERE lat IS NOT NULL AND lon IS NOT NULL
-      ORDER BY time DESC
-    `);
+    const rows = await exportService.getObservationsForGeoJSON();
 
-    const features = result.rows.map((row) => ({
+    const features = rows.map((row) => ({
       type: 'Feature',
       geometry: {
         type: 'Point',
