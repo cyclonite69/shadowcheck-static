@@ -7,8 +7,7 @@ export {};
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../../../../config/database');
-const { adminQuery } = require('../../../../services/adminDbService');
+const adminDbService = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 // POST /api/admin/network-media/upload - Upload media (image/video) to network
@@ -33,20 +32,20 @@ router.post('/admin/network-media/upload', async (req, res, next) => {
     const fileSize = mediaBuffer.length;
 
     // Insert media
-    const result = await adminQuery(
-      `
-      INSERT INTO app.network_media
-        (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin')
-      RETURNING id, filename, file_size, created_at
-    `,
-      [bssid, media_type, filename, fileSize, mime_type, mediaBuffer, description]
+    const media = await adminDbService.uploadNetworkMedia(
+      bssid,
+      media_type,
+      filename,
+      fileSize,
+      mime_type,
+      mediaBuffer,
+      description
     );
 
     res.json({
       ok: true,
       message: `${media_type} uploaded successfully`,
-      media: result.rows[0],
+      media,
     });
   } catch (error) {
     logger.error(`Upload media error: ${error.message}`);
@@ -59,22 +58,13 @@ router.get('/admin/network-media/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(
-      `
-      SELECT id, media_type, filename, original_filename, file_size,
-             mime_type, description, uploaded_by, created_at
-      FROM app.network_media
-      WHERE bssid = $1
-      ORDER BY created_at DESC
-    `,
-      [bssid]
-    );
+    const media = await adminDbService.getNetworkMediaList(bssid);
 
     res.json({
       ok: true,
       bssid,
-      media: result.rows,
-      count: result.rows.length,
+      media,
+      count: media.length,
     });
   } catch (error) {
     next(error);
@@ -86,18 +76,13 @@ router.get('/admin/network-media/download/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const result = await query(
-      'SELECT filename, mime_type, media_data FROM app.network_media WHERE id = $1',
-      [id]
-    );
+    const media = await adminDbService.getNetworkMediaFile(id);
 
-    if (!result.rows.length) {
+    if (!media) {
       return res.status(404).json({
         error: { message: 'Media not found' },
       });
     }
-
-    const media = result.rows[0];
 
     res.set({
       'Content-Type': media.mime_type || 'application/octet-stream',

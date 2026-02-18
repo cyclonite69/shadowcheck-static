@@ -8,8 +8,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { query } = require('../../../../config/database');
-const { adminQuery } = require('../../../../services/adminDbService');
+const adminDbService = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
 
 // Configure multer for media uploads (notes attachments)
@@ -62,16 +61,12 @@ router.post('/admin/network-notations/add', async (req, res, next) => {
     }
 
     // Add notation
-    const result = await adminQuery('SELECT app.network_add_notation($1, $2, $3) as notation', [
-      bssid,
-      text,
-      type,
-    ]);
+    const notation = await adminDbService.addNetworkNotation(bssid, text, type);
 
     res.json({
       ok: true,
       message: 'Notation added successfully',
-      notation: result.rows[0].notation,
+      notation,
     });
   } catch (error) {
     logger.error(`Add notation error: ${error.message}`);
@@ -84,11 +79,7 @@ router.get('/admin/network-notations/:bssid', async (req, res, next) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query('SELECT detailed_notes FROM app.network_tags WHERE bssid = $1', [
-      bssid,
-    ]);
-
-    const notations = result.rows.length > 0 ? result.rows[0].detailed_notes || [] : [];
+    const notations = await adminDbService.getNetworkNotations(bssid);
 
     res.json({
       ok: true,
@@ -113,17 +104,17 @@ router.post('/admin/network-notes/add', async (req, res) => {
       });
     }
 
-    const result = await adminQuery('SELECT app.network_add_note($1, $2, $3, $4) as note_id', [
+    const note_id = await adminDbService.addNetworkNoteWithFunction(
       bssid,
       content,
       note_type,
-      user_id,
-    ]);
+      user_id
+    );
 
     res.json({
       ok: true,
       bssid,
-      note_id: result.rows[0].note_id,
+      note_id,
       message: 'Note added successfully',
     });
   } catch (error) {
@@ -141,21 +132,13 @@ router.get('/admin/network-notes/:bssid', async (req, res) => {
   try {
     const { bssid } = req.params;
 
-    const result = await query(
-      `
-      SELECT id, content, note_type, user_id, created_at, updated_at
-      FROM app.network_notes
-      WHERE bssid = $1
-      ORDER BY created_at DESC
-    `,
-      [bssid]
-    );
+    const notes = await adminDbService.getNetworkNotes(bssid);
 
     res.json({
       ok: true,
       bssid,
-      notes: result.rows,
-      count: result.rows.length,
+      notes,
+      count: notes.length,
     });
   } catch (error) {
     logger.error('Get notes failed:', error);
@@ -171,13 +154,11 @@ router.get('/admin/network-notes/:bssid', async (req, res) => {
 router.delete('/admin/network-notes/:noteId', async (req, res) => {
   try {
     const { noteId } = req.params;
-    const result = await adminQuery('DELETE FROM app.network_notes WHERE id = $1 RETURNING bssid', [
-      noteId,
-    ]);
-    if (result.rows.length === 0) {
+    const bssid = await adminDbService.deleteNetworkNote(noteId);
+    if (!bssid) {
       return res.status(404).json({ ok: false, error: 'Note not found' });
     }
-    res.json({ ok: true, note_id: noteId, bssid: result.rows[0].bssid, message: 'Note deleted' });
+    res.json({ ok: true, note_id: noteId, bssid, message: 'Note deleted' });
   } catch (error) {
     logger.error('Delete note failed:', error);
     res.status(500).json({ ok: false, error: 'Failed to delete note' });
@@ -192,26 +173,19 @@ router.post('/admin/network-notes/:noteId/media', mediaUpload.single('file'), as
     if (!req.file) {
       return res.status(400).json({ ok: false, error: 'No file provided' });
     }
-    const result = await adminQuery(
-      `
-      INSERT INTO app.note_media (note_id, bssid, file_path, file_name, file_size, media_type)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, file_path
-    `,
-      [
-        noteId,
-        bssid,
-        `/api/media/${req.file.filename}`,
-        req.file.originalname,
-        req.file.size,
-        req.file.mimetype,
-      ]
+    const media = await adminDbService.addNoteMedia(
+      noteId,
+      bssid,
+      `/api/media/${req.file.filename}`,
+      req.file.originalname,
+      req.file.size,
+      req.file.mimetype
     );
     res.json({
       ok: true,
       note_id: noteId,
-      media_id: result.rows[0].id,
-      file_path: result.rows[0].file_path,
+      media_id: media.id,
+      file_path: media.file_path,
       message: 'Media uploaded',
     });
   } catch (error) {
