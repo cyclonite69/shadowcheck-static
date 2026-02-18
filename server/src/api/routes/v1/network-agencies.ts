@@ -9,7 +9,7 @@ const { query } = require('../../../config/database');
 router.get('/:bssid/nearest-agencies', async (req, res, next) => {
   try {
     const { bssid } = req.params;
-    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    const radius = parseFloat(req.query.radius) || 250; // Default 250km
 
     const sql = `
       WITH all_observations AS (
@@ -60,18 +60,19 @@ router.get('/:bssid/nearest-agencies', async (req, res, next) => {
         MIN(distance_km) as distance_km,
         BOOL_OR(has_wigle_obs) as has_wigle_obs
       FROM nearest_per_observation
+      WHERE distance_km <= $2
       GROUP BY office_name, office_type, city, state, postal_code, latitude, longitude
       ORDER BY MIN(distance_km) ASC
-      LIMIT $2
     `;
 
-    const result = await query(sql, [bssid, limit]);
+    const result = await query(sql, [bssid, radius]);
 
     res.json({
       ok: true,
       bssid,
       agencies: result.rows,
       count: result.rows.length,
+      radius_km: radius,
     });
   } catch (error) {
     next(error);
@@ -90,7 +91,7 @@ router.post('/nearest-agencies/batch', async (req, res, next) => {
       return res.status(400).json({ error: 'bssids array is required' });
     }
 
-    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    const radius = parseFloat(req.query.radius) || 250; // Default 250km
 
     // Convert all BSSIDs to uppercase for consistent matching
     const upperBssids = bssids.map((b) => String(b).toUpperCase());
@@ -144,18 +145,19 @@ router.post('/nearest-agencies/batch', async (req, res, next) => {
         MIN(distance_km) as distance_km,
         BOOL_OR(has_wigle_obs) as has_wigle_obs
       FROM nearest_per_observation
+      WHERE distance_km <= $2
       GROUP BY office_name, office_type, city, state, postal_code, latitude, longitude
       ORDER BY MIN(distance_km) ASC
-      LIMIT $2
     `;
 
-    const result = await query(sql, [upperBssids, limit]);
+    const result = await query(sql, [upperBssids, radius]);
 
     res.json({
       ok: true,
       bssids,
       agencies: result.rows,
       count: result.rows.length,
+      radius_km: radius,
     });
   } catch (error) {
     next(error);
