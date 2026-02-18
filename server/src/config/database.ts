@@ -36,7 +36,7 @@ const CONFIG: DatabaseConfig = {
 // Create connection pool
 const pool = new Pool({
   user: DB_USER,
-  password: secretsManager.getOrThrow('db_password'),
+  password: process.env.DB_PASSWORD || secretsManager.getOrThrow('db_password'),
   host: DB_HOST,
   port: DB_PORT,
   database: DB_NAME,
