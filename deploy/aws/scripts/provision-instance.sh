@@ -157,14 +157,6 @@ phase_secrets() {
   log "Loaded secrets from AWS SM"
 
   # Extract db_password to file (for docker-compose postgres secret)
-  local db_pw
-  db_pw=$(echo "$secret_json" | jq -r '.db_password // empty')
-  if [ -n "$db_pw" ]; then
-    echo -n "$db_pw" > "$SECRETS_DIR/db_password.txt"
-    chmod 600 "$SECRETS_DIR/db_password.txt"
-    log "db_password written to $SECRETS_DIR/db_password.txt"
-  fi
-
   log "Secrets ready (app reads directly from AWS SM at startup)"
 }
 
