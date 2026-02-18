@@ -36,7 +36,7 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
 
           if (Array.isArray(bssid)) {
             // Batch mode: multiple BSSIDs
-            res = await fetch('/api/networks/nearest-agencies/batch', {
+            res = await fetch('/api/networks/nearest-agencies/batch?radius=250', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ bssids: bssid }),
@@ -45,7 +45,7 @@ export const useNearestAgencies = (bssid: string | string[] | null) => {
           } else {
             // Single mode: one BSSID
             res = await fetch(
-              `/api/networks/${encodeURIComponent(bssid)}/nearest-agencies?limit=10`,
+              `/api/networks/${encodeURIComponent(bssid)}/nearest-agencies?radius=250`,
               { signal: controller.signal }
             );
           }
