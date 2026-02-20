@@ -278,4 +278,26 @@ router.get('/admin/import-history', async (req: any, res: any, next: any) => {
   }
 });
 
+// GET /api/admin/device-sources — known source tags with last import date
+router.get('/admin/device-sources', async (req: any, res: any, next: any) => {
+  try {
+    // Union device_sources (canonical) with import_history tags so new sources
+    // show up as soon as they've been imported at least once.
+    const { rows } = await adminDbService.query(`
+      SELECT
+        ds.source_tag,
+        MAX(ih.started_at) AS last_import,
+        SUM(COALESCE(ih.imported, 0)) AS total_imported
+      FROM app.device_sources ds
+      LEFT JOIN app.import_history ih
+             ON ih.source_tag = ds.source_tag AND ih.status = 'success'
+      GROUP BY ds.source_tag
+      ORDER BY last_import DESC NULLS LAST
+    `);
+    res.json({ ok: true, sources: rows });
+  } catch (e: any) {
+    next(e);
+  }
+});
+
 module.exports = router;

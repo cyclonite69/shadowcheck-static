@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useDataImport } from '../hooks/useDataImport';
 import { adminApi } from '../../../api/adminApi';
+import { SourceTagInput } from '../components/SourceTagInput';
 
 const UploadIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -237,16 +238,9 @@ export const DataImportTab: React.FC = () => {
 
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">
-                Source Tag <span className="text-slate-500">(e.g. s22_backup)</span>
+                Source Tag <span className="text-slate-500">(pick existing or type new)</span>
               </label>
-              <input
-                type="text"
-                value={sourceTag}
-                onChange={(e) => setSourceTag(e.target.value)}
-                placeholder="e.g. s22_backup"
-                disabled={isLoading}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500 disabled:opacity-50"
-              />
+              <SourceTagInput value={sourceTag} onChange={setSourceTag} disabled={isLoading} />
             </div>
 
             <label className="flex items-center gap-2 cursor-pointer select-none">
