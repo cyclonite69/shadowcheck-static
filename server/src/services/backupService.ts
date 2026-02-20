@@ -221,31 +221,28 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   const pgDumpAllPath = pgDumpPath.replace('pg_dump', 'pg_dumpall');
   const pgEnv = buildPgEnv();
 
-  // 1. Dump Globals (Roles, Users, etc)
+  // 1. Dump Globals (Roles, Users, etc) - OPTIONAL
+  let globalsSuccess = false;
   logger.info(`[Backup] Starting globals dump to ${globalsFilePath}`);
-  await new Promise((resolve, reject) => {
-    const child = spawn(pgDumpAllPath, ['--globals-only', '--file', globalsFilePath], {
-      env: pgEnv,
+  try {
+    await new Promise((resolve, reject) => {
+      const child = spawn(pgDumpAllPath, ['--globals-only', '--file', globalsFilePath], {
+        env: pgEnv,
+      });
+      let stderr = '';
+      child.stderr.on('data', (data) => (stderr += data.toString()));
+      child.on('error', reject);
+      child.on('close', (code) => {
+        if (code === 0) resolve(undefined);
+        else reject(new Error(`pg_dumpall globals failed: ${stderr}`));
+      });
     });
-    let stderr = '';
-    child.stderr.on('data', (data) => {
-      stderr += data.toString();
-      logger.debug(`[Backup] pg_dumpall stderr: ${data.toString().trim()}`);
-    });
-    child.on('error', (err) => {
-      logger.error(`[Backup] pg_dumpall process error: ${err.message}`);
-      reject(err);
-    });
-    child.on('close', (code) => {
-      if (code === 0) resolve(undefined);
-      else {
-        logger.error(`[Backup] pg_dumpall failed with code ${code}. Stderr: ${stderr}`);
-        reject(new Error(`pg_dumpall globals failed (code ${code}): ${stderr}`));
-      }
-    });
-  });
+    globalsSuccess = true;
+  } catch (err: any) {
+    logger.warn(`[Backup] Globals dump failed, continuing with data-only backup: ${err.message}`);
+  }
 
-  // 2. Dump Main Database
+  // 2. Dump Main Database - MANDATORY
   logger.info(`[Backup] Starting main database dump to ${dbFilePath}`);
   await new Promise((resolve, reject) => {
     const child = spawn(
@@ -274,19 +271,27 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   await pruneOldBackups(backupDir, retentionDays);
 
   const dbStat = await fs.stat(dbFilePath);
-  const globalsStat = await fs.stat(globalsFilePath);
   const source = getBackupSource();
 
+  const files = [{ name: dbFileName, path: dbFilePath, bytes: dbStat.size, type: 'database' }];
+
+  if (globalsSuccess) {
+    const globalsStat = await fs.stat(globalsFilePath);
+    files.push({
+      name: globalsFileName,
+      path: globalsFilePath,
+      bytes: globalsStat.size,
+      type: 'globals',
+    });
+  }
+
   logger.info(
-    `[Backup] Multi-stage backup complete. DB: ${dbStat.size} bytes, Globals: ${globalsStat.size} bytes.`
+    `[Backup] Multi-stage backup complete. Data: ${dbStat.size} bytes. Globals: ${globalsSuccess ? 'Success' : 'Skipped'}`
   );
 
   const result: any = {
     backupDir,
-    files: [
-      { name: dbFileName, path: dbFilePath, bytes: dbStat.size, type: 'database' },
-      { name: globalsFileName, path: globalsFilePath, bytes: globalsStat.size, type: 'globals' },
-    ],
+    files,
     source,
     createdAt: new Date().toISOString(),
   };
@@ -298,8 +303,10 @@ const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
       const dbUpload = (await uploadToS3(dbFilePath, dbFileName, source)) as any;
       result.s3.push({ ...dbUpload, type: 'database' });
 
-      const globalsUpload = (await uploadToS3(globalsFilePath, globalsFileName, source)) as any;
-      result.s3.push({ ...globalsUpload, type: 'globals' });
+      if (globalsSuccess) {
+        const globalsUpload = (await uploadToS3(globalsFilePath, globalsFileName, source)) as any;
+        result.s3.push({ ...globalsUpload, type: 'globals' });
+      }
     } catch (error: any) {
       logger.error(`[Backup] S3 upload failed: ${error.message}`);
       result.s3Error = error.message;
