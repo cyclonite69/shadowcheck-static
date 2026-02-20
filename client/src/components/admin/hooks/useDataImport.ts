@@ -5,6 +5,8 @@ export const useDataImport = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [importStatus, setImportStatus] = useState('');
   const [sourceTag, setSourceTag] = useState('');
+  const [backupEnabled, setBackupEnabled] = useState(true);
+  const [lastResult, setLastResult] = useState<any>(null);
 
   const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -18,21 +20,25 @@ export const useDataImport = () => {
     const formData = new FormData();
     formData.append('database', file);
     formData.append('source_tag', sourceTag.trim());
+    formData.append('backup', String(backupEnabled));
 
     try {
       setIsLoading(true);
-      setImportStatus('Uploading and importing (this may take a minute)...');
+      setLastResult(null);
+      setImportStatus(
+        backupEnabled ? 'Running pre-import backup...' : 'Uploading and importing...'
+      );
       const result = await adminApi.importSQLite(formData);
+      setLastResult(result);
       setImportStatus(
         result.ok
-          ? `Imported ${(result.imported ?? 0).toLocaleString()} observations (${result.failed ?? 0} failed) — source: ${sourceTag.trim()}`
+          ? `Imported ${(result.imported ?? 0).toLocaleString()} observations (${result.failed ?? 0} failed)`
           : `Failed: ${result.error || 'Unknown error'}`
       );
     } catch {
       setImportStatus('Import failed: Network error');
     } finally {
       setIsLoading(false);
-      // Reset file input
       event.target.value = '';
     }
   };
@@ -42,6 +48,9 @@ export const useDataImport = () => {
     importStatus,
     sourceTag,
     setSourceTag,
+    backupEnabled,
+    setBackupEnabled,
+    lastResult,
     handleFileImport,
   };
 };
