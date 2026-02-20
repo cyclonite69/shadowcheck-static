@@ -2,6 +2,8 @@
  * Agency API
  */
 
+import { apiClient } from './client';
+
 interface AgencyOffice {
   name: string;
   address: string;
@@ -25,23 +27,21 @@ export const agencyApi = {
     bssids: string[],
     radius: number = 250
   ): Promise<Record<string, AgencyOffice[]>> {
-    const response = await fetch(`/api/networks/nearest-agencies/batch?radius=${radius}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bssids }),
-    });
-    return response.json();
+    return apiClient.post<Record<string, AgencyOffice[]>>(
+      `/networks/nearest-agencies/batch?radius=${radius}`,
+      { bssids }
+    );
   },
 
   async getNearestAgencies(bssid: string, radius: number): Promise<NearestAgenciesResponse> {
-    const response = await fetch(
-      `/api/networks/nearest-agencies/${encodeURIComponent(bssid)}?radius=${radius}`
+    return apiClient.get<NearestAgenciesResponse>(
+      `/networks/nearest-agencies/${encodeURIComponent(bssid)}?radius=${radius}`
     );
-    return response.json();
   },
 
+  // Static file at root (not under /api/) — raw fetch
   async getAgencyOffices(): Promise<any> {
-    const response = await fetch('/agency-offices');
+    const response = await fetch('/agency-offices', { credentials: 'include' });
     return response.json();
   },
 };
