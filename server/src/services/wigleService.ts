@@ -83,7 +83,7 @@ export async function checkWigleV3TableExists(): Promise<boolean> {
   const tableCheck = await query(
     `SELECT EXISTS (
        SELECT FROM information_schema.tables
-       WHERE table_schema = 'app' AND table_name = 'wigle_v3_networks'
+       WHERE table_schema = 'app' AND table_name = 'wigle_v3_network_details'
      ) as exists`
   );
   return tableCheck.rows[0]?.exists || false;
@@ -106,8 +106,8 @@ export async function getWigleV3Networks(params: {
   }
 
   const paginationSql = paginationClauses.join(' ');
-  const dataQuery = `SELECT netid, ssid, encryption, trilat, trilong, lastupdt
-                     FROM app.wigle_v3_networks ORDER BY lastupdt DESC ${paginationSql}`;
+  const dataQuery = `SELECT netid, ssid, encryption, trilat, trilon, last_update
+                     FROM app.wigle_v3_network_details ORDER BY last_update DESC ${paginationSql}`;
   const { rows } = await query(dataQuery, queryParams);
   return rows;
 }
