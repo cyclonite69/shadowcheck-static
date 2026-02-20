@@ -19,18 +19,27 @@ RUN npm run build:frontend
 ###########################################
 FROM nginx:alpine
 
+# Install openssl and curl for cert generation
+RUN apk add --no-cache openssl curl
+
 # Copy built frontend
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY deploy/aws/configs/nginx.conf /etc/nginx/nginx.conf
 
-# Create health check endpoint
-RUN echo "OK" > /usr/share/nginx/html/health
+# Copy cert generation script and entrypoint
+COPY --chmod=755 certs/generate-cert.sh /usr/local/bin/generate-cert.sh
+COPY --chmod=755 deploy/aws/docker/nginx-entrypoint.sh /usr/local/bin/nginx-entrypoint.sh
+
+# Create health check endpoint and certs directory
+RUN echo "OK" > /usr/share/nginx/html/health && \
+    mkdir -p /etc/nginx/certs
 
 EXPOSE 80 443
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:80/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -sfk https://localhost/health || exit 1
 
+ENTRYPOINT ["/usr/local/bin/nginx-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

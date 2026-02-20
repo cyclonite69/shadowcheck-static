@@ -55,7 +55,7 @@ DB_HOST=shadowcheck_postgres
 DB_PORT=5432
 DB_USER=shadowcheck_user
 DB_NAME=shadowcheck_db
-CORS_ORIGINS=http://${PUBLIC_IP},http://localhost
+CORS_ORIGINS=http://${PUBLIC_IP},https://${PUBLIC_IP},http://localhost,https://localhost
 ENVEOF
 echo "  Built env (passwords loaded from AWS SM at startup)"
 
@@ -70,6 +70,11 @@ echo "[5/7] Restarting containers..."
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 
+# Ensure certs directory exists and is writable by the nginx container (UID 101 for nginx:alpine)
+CERTS_DIR=/home/ssm-user/certs
+mkdir -p "$CERTS_DIR"
+chmod 755 "$CERTS_DIR"
+
 docker run -d --name shadowcheck_backend \
   --network host \
   --env-file "$ENV_FILE" \
@@ -79,6 +84,8 @@ docker run -d --name shadowcheck_backend \
 
 docker run -d --name shadowcheck_frontend \
   --network host \
+  -v "$CERTS_DIR":/etc/nginx/certs \
+  -e CERT_DIR=/etc/nginx/certs \
   --restart unless-stopped \
   shadowcheck/frontend:latest
 
@@ -126,6 +133,12 @@ if curl -sf http://localhost:3001/api/health >/dev/null 2>&1; then
   echo "API health check: OK"
 else
   echo "API health check: WAITING (may need a few more seconds to start)"
+fi
+
+if curl -sfk https://localhost/health >/dev/null 2>&1; then
+  echo "HTTPS frontend check: OK"
+else
+  echo "HTTPS frontend check: WAITING (cert generation may still be in progress)"
 fi
 
 echo ""
