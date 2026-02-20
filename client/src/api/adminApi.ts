@@ -91,10 +91,12 @@ export const adminApi = {
     return apiClient.get('/settings/smarty');
   },
 
+  async getImportHistory(limit = 20): Promise<any> {
+    return apiClient.get(`/admin/import-history?limit=${limit}`);
+  },
+
   // Data Import — FormData: raw fetch (apiClient forces application/json header)
-  async importSQLite(
-    formData: FormData
-  ): Promise<{
+  async importSQLite(formData: FormData): Promise<{
     ok: boolean;
     imported?: number;
     failed?: number;
