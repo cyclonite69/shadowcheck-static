@@ -6,11 +6,27 @@
 const { query } = require('../../config/database');
 const { DatabaseError } = require('../../errors/AppError');
 
+export {};
+
+interface ThreatDistributionRow {
+  range: string;
+  count: string;
+}
+
+interface ThreatTrendRow {
+  date: unknown;
+  avg_score: string | null;
+  critical_count: string;
+  high_count: string;
+  medium_count: string;
+  low_count: string;
+  network_count: string;
+}
+
 /**
  * Get threat score distribution
- * @returns Array of threat score ranges with counts
  */
-async function getThreatDistribution() {
+async function getThreatDistribution(): Promise<{ range: string; count: number }[]> {
   try {
     const { rows } = await query(`
       SELECT
@@ -40,11 +56,21 @@ async function getThreatDistribution() {
 
 /**
  * Get threat trends over time
- * @param range - Time range (24h, 7d, 30d, 90d, all)
- * @param minTimestamp - Minimum timestamp
- * @returns Array of time periods with threat metrics
  */
-async function getThreatTrends(range, minTimestamp) {
+async function getThreatTrends(
+  range: string,
+  minTimestamp: number
+): Promise<
+  {
+    date: unknown;
+    avgScore: string | null;
+    criticalCount: number;
+    highCount: number;
+    mediumCount: number;
+    lowCount: number;
+    networkCount: number;
+  }[]
+> {
   try {
     const { rows } = await query(
       `

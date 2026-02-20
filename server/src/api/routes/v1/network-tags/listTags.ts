@@ -3,6 +3,8 @@
  * GET endpoints for listing and retrieving network tags
  */
 
+export {};
+
 const express = require('express');
 const router = express.Router();
 const networkService = require('../../../../services/networkService');
@@ -18,17 +20,13 @@ const {
   validateString,
 } = require('../../../../validation/schemas');
 
-/**
- * Validates query parameters for listing network tags.
- * @type {function}
- */
 const validateNetworkTagsQuery = validateQuery({
   ignored: optional(validateBoolean),
-  threat_tag: optional((value) => validateString(String(value), 1, 64, 'threat_tag')),
+  threat_tag: optional((value: unknown) => validateString(String(value), 1, 64, 'threat_tag')),
   has_notes: optional(validateBoolean),
   pending_wigle: optional(validateBoolean),
-  limit: optional((value) => validateIntegerRange(value, 1, 5000, 'limit')),
-  offset: optional((value) => validateIntegerRange(value, 0, 10000000, 'offset')),
+  limit: optional((value: unknown) => validateIntegerRange(value, 1, 5000, 'limit')),
+  offset: optional((value: unknown) => validateIntegerRange(value, 0, 10000000, 'offset')),
 });
 
 // Validate BSSID path parameters for tag routes
@@ -38,7 +36,7 @@ router.use('/:bssid', bssidParamMiddleware);
  * GET /api/network-tags/:bssid
  * Get tags for a specific network
  */
-router.get('/:bssid', async (req, res) => {
+router.get('/:bssid', async (req: any, res: any) => {
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
@@ -58,7 +56,7 @@ router.get('/:bssid', async (req, res) => {
     }
 
     res.json({ ...tag, exists: true });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error fetching network tag: ${error.message}`, {
       error,
       bssid: req.params.bssid,
@@ -71,7 +69,7 @@ router.get('/:bssid', async (req, res) => {
  * GET /api/network-tags
  * List all tagged networks with optional filters
  */
-router.get('/', validateNetworkTagsQuery, async (req, res) => {
+router.get('/', validateNetworkTagsQuery, async (req: any, res: any) => {
   try {
     const ignored = req.validated?.ignored;
     const threat_tag = req.validated?.threat_tag;
@@ -80,8 +78,8 @@ router.get('/', validateNetworkTagsQuery, async (req, res) => {
     const limit = req.validated?.limit ?? 100;
     const offset = req.validated?.offset ?? 0;
 
-    const whereClauses = [];
-    const params = [];
+    const whereClauses: string[] = [];
+    const params: unknown[] = [];
 
     if (ignored === true) {
       whereClauses.push('nt.is_ignored = true');
@@ -102,20 +100,15 @@ router.get('/', validateNetworkTagsQuery, async (req, res) => {
       whereClauses.push('nt.wigle_lookup_requested = true AND nt.wigle_result IS NULL');
     }
 
-    params.push(limit);
-    params.push(offset);
-
-    const _whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
     const { rows, totalCount } = await networkService.listNetworkTags(
       whereClauses,
-      params.slice(0, -2),
+      params,
       limit,
       offset
     );
 
     res.json({
-      tags: rows.map((row) => {
+      tags: rows.map((row: any) => {
         const { total_count: _total_count, ...rest } = row;
         return rest;
       }),
@@ -123,7 +116,7 @@ router.get('/', validateNetworkTagsQuery, async (req, res) => {
       limit,
       offset,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error listing network tags: ${error.message}`, { error });
     res.status(500).json({ error: error.message });
   }

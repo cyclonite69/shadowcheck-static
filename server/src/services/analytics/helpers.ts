@@ -3,24 +3,42 @@
  * Utility functions for analytics normalization, formatting, and validation
  */
 
+export {};
+
+interface AnalyticsRow {
+  count?: string | number;
+  [key: string]: unknown;
+}
+
+interface FilterCondition {
+  condition: string;
+  param: unknown;
+}
+
+interface FilterResult {
+  query: string;
+  params: unknown[];
+}
+
+interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
 /**
  * Normalizes analytics result counts to numbers.
- * @param rows - Database rows with count as string
- * @returns Array with count parsed to number
  */
-function normalizeAnalyticsResult(rows) {
+function normalizeAnalyticsResult(rows: AnalyticsRow[]): AnalyticsRow[] {
   return rows.map((row) => ({
     ...row,
-    count: row.count ? parseInt(row.count) : 0,
+    count: row.count ? parseInt(String(row.count)) : 0,
   }));
 }
 
 /**
  * Formats analytics data for API response.
- * @param data - Raw analytics data
- * @returns Formatted data with ISO timestamps
  */
-function formatAnalyticsData(data) {
+function formatAnalyticsData(data: Record<string, unknown>): Record<string, unknown> {
   return {
     ...data,
     generatedAt: new Date().toISOString(),
@@ -29,10 +47,8 @@ function formatAnalyticsData(data) {
 
 /**
  * Validates analytics parameters.
- * @param params - Parameters to validate
- * @returns { valid: boolean, error?: string }
  */
-function validateAnalyticsParams(params) {
+function validateAnalyticsParams(params: { limit?: number; range?: string }): ValidationResult {
   if (
     params.limit !== undefined &&
     (isNaN(params.limit) || params.limit < 1 || params.limit > 10000)
@@ -50,11 +66,8 @@ function validateAnalyticsParams(params) {
 
 /**
  * Applies filters to analytics query.
- * @param baseQuery - Base SQL query
- * @param filters - Filter conditions
- * @returns Query with WHERE clause appended
  */
-function applyFiltersToAnalytics(baseQuery, filters) {
+function applyFiltersToAnalytics(baseQuery: string, filters: FilterCondition[]): FilterResult {
   if (filters.length === 0) {
     return { query: baseQuery, params: [] };
   }
@@ -70,12 +83,12 @@ function applyFiltersToAnalytics(baseQuery, filters) {
 
 /**
  * Calculates aggregates from analytics data.
- * @param data - Array of data points
- * @param field - Field to aggregate
- * @param operation - Aggregation operation (sum, avg, min, max)
- * @returns Aggregated value
  */
-function calculateAggregates(data, field, operation) {
+function calculateAggregates(
+  data: Record<string, unknown>[],
+  field: string,
+  operation: 'sum' | 'avg' | 'min' | 'max'
+): number {
   if (data.length === 0) {
     return 0;
   }
@@ -101,12 +114,10 @@ function calculateAggregates(data, field, operation) {
 
 /**
  * Converts timestamp range to milliseconds.
- * @param range - Time range string
- * @returns Milliseconds timestamp
  */
-function rangeToMilliseconds(range) {
+function rangeToMilliseconds(range: string): number {
   const now = Date.now();
-  const ranges = {
+  const ranges: Record<string, number> = {
     '24h': 24 * 60 * 60 * 1000,
     '7d': 7 * 24 * 60 * 60 * 1000,
     '30d': 30 * 24 * 60 * 60 * 1000,
