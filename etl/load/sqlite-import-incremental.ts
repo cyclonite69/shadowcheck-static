@@ -176,10 +176,13 @@ class IncrementalImporter {
       // 8. Import new observations
       await this.importNewObservations();
 
-      // 9. Refresh materialized views
+      // 9. Remove orphan networks (no access_points entry — no coords, no SSID)
+      await this.pruneOrphanNetworks();
+
+      // 10. Refresh materialized views
       await this.refreshMaterializedViews();
 
-      // 8. Print summary
+      // 11. Print summary
       this.printSummary();
     } catch (error) {
       const err = error as Error;
@@ -645,6 +648,27 @@ class IncrementalImporter {
     console.log(
       `   Upserted ${upserted.toLocaleString()} networks (${skipped} skipped - no metadata)`
     );
+  }
+
+  private async pruneOrphanNetworks(): Promise<void> {
+    console.log('\n🧹 Pruning orphan networks...');
+    try {
+      const result = await this.pool.query(
+        `DELETE FROM app.networks
+         WHERE NOT EXISTS (
+           SELECT 1 FROM app.access_points ap WHERE ap.bssid = networks.bssid
+         )`
+      );
+      const deleted = result.rowCount ?? 0;
+      if (deleted > 0) {
+        console.log(`   Removed ${deleted.toLocaleString()} orphan network(s) (no observations)`);
+      } else {
+        console.log('   No orphans found');
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.warn(`   ⚠️ Orphan prune failed: ${err.message}`);
+    }
   }
 
   private async refreshMaterializedViews(): Promise<void> {
