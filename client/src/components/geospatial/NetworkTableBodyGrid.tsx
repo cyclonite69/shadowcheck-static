@@ -88,6 +88,7 @@ export const NetworkTableBodyGrid = ({
         threatScore: '110px',
         frequency: '90px',
         channel: '80px',
+        timespanDays: '100px',
         manufacturer: '120px',
       };
       return widths[col] || '100px';
@@ -281,6 +282,49 @@ export const NetworkTableBodyGrid = ({
                   return (
                     <div key={col} style={{ padding: '0 4px', color: '#cbd5e1' }}>
                       N/A
+                    </div>
+                  );
+                }
+
+                // Timespan badge (3-tier traffic light)
+                if (col === 'timespanDays') {
+                  const days = value as number | null;
+                  if (days !== null && days >= 0) {
+                    const bg =
+                      days > 30
+                        ? 'rgba(239, 68, 68, 0.2)'
+                        : days > 7
+                          ? 'rgba(251, 191, 36, 0.2)'
+                          : 'rgba(34, 197, 94, 0.2)';
+                    const color = days > 30 ? '#f87171' : days > 7 ? '#fbbf24' : '#4ade80';
+                    const border =
+                      days > 30
+                        ? 'rgba(239, 68, 68, 0.3)'
+                        : days > 7
+                          ? 'rgba(251, 191, 36, 0.3)'
+                          : 'rgba(34, 197, 94, 0.3)';
+                    return (
+                      <div key={col} style={{ padding: '0 4px' }}>
+                        <span
+                          style={{
+                            background: bg,
+                            color,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '500',
+                            border: `1px solid ${border}`,
+                            display: 'inline-block',
+                          }}
+                        >
+                          {days === 0 ? 'Same day' : `${days} days`}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={col} style={{ padding: '0 4px', color: '#94a3b8' }}>
+                      Not computed
                     </div>
                   );
                 }
