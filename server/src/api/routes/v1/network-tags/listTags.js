@@ -105,7 +105,7 @@ router.get('/', validateNetworkTagsQuery, async (req, res) => {
     params.push(limit);
     params.push(offset);
 
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const _whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     const { rows, totalCount } = await networkService.listNetworkTags(
       whereClauses,
