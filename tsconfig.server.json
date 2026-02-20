@@ -6,7 +6,7 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["server/**/*"],
+  "include": ["server/**/*", "etl/**/*"],
   "exclude": [
     "node_modules",
     "dist",
