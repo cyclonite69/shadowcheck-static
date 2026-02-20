@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const v2Service = require('../../../services/v2Service');
 const logger = require('../../../logging/logger');
+const { CONFIG } = require('../../../config/database');
 
 // Type definitions
 
@@ -103,7 +104,7 @@ router.get('/threats/severity-counts', async (req: Request, res: Response) => {
               CASE
                 WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 80 THEN 'CRITICAL'
                 WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 60 THEN 'HIGH'
-                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 40 THEN 'MED'
+                WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= CONFIG.THREAT_THRESHOLD THEN 'MED'
                 WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 20 THEN 'LOW'
                 ELSE 'NONE'
               END
