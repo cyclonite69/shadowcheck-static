@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from 'express';
 const express = require('express');
 const router = express.Router();
 const v2Service = require('../../../services/v2Service');
+const { CONFIG } = require('../../../config/database');
 
 // Type definitions
 
@@ -130,7 +131,7 @@ const SORT_MAP: Record<SortKey, string> = {
 
 router.get('/v2/networks', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500, 5000);
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500, CONFIG.MAX_PAGE_SIZE);
     const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
     const search = req.query.search ? String(req.query.search).trim() : '';
     const sort = ((req.query.sort as string) || 'observed_at').toLowerCase() as SortKey;
@@ -381,7 +382,7 @@ router.get('/v2/threats/map', async (req: Request, res: Response, next: NextFunc
         AND ne.threat->>'level' != 'NONE'
         ${severityFilter ? "AND ne.threat->>'level' = $1" : ''}
       ORDER BY (ne.threat->>'score')::numeric DESC
-      LIMIT 5000
+      LIMIT ${CONFIG.MAX_PAGE_SIZE}
     `;
 
     const observationsSql = `

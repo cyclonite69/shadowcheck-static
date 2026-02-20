@@ -27,6 +27,7 @@ const {
 } = require('../../../services/filterQueryBuilder');
 const v2Service = require('../../../services/v2Service');
 const logger = require('../../../logging/logger');
+const { CONFIG } = require('../../../config/database');
 
 // GET /api/v2/networks/filtered
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
@@ -49,7 +50,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500, 5000);
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 500, CONFIG.MAX_PAGE_SIZE);
     const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
     const orderBy = buildOrderBy(req.query.sort as string, req.query.order as string);
 
