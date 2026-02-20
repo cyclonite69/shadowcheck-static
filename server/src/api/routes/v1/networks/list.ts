@@ -407,7 +407,7 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
       min_altitude_m: 'ne.min_altitude_m',
       max_altitude_m: 'ne.max_altitude_m',
       altitude_span_m: 'ne.altitude_span_m',
-      max_distance_meters: 'ne.max_distance_meters',
+      max_distance_meters: 'COALESCE(mv.max_distance_meters, 0)',
       last_altitude_m: 'ne.last_altitude_m',
       is_sentinel: 'ne.is_sentinel',
       timespan_days: 'EXTRACT(EPOCH FROM (ne.last_seen - ne.first_seen)) / 86400.0',
