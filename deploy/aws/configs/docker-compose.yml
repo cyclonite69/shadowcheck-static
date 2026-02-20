@@ -82,6 +82,31 @@ services:
       retries: 3
       start_period: 40s
 
+  # Frontend (nginx) - TLS termination + static files + API proxy
+  frontend:
+    image: ${FRONTEND_IMAGE:-shadowcheck/frontend:latest}
+    container_name: shadowcheck_frontend
+    restart: unless-stopped
+    # host network so nginx can reach api on 127.0.0.1:3001
+    network_mode: host
+    environment:
+      CERT_DIR: /etc/nginx/certs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - /home/ssm-user/certs:/etc/nginx/certs
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
 networks:
   shadowcheck_internal:
     driver: bridge

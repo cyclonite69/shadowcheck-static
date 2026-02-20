@@ -83,7 +83,7 @@ export async function checkWigleV3TableExists(): Promise<boolean> {
   const tableCheck = await query(
     `SELECT EXISTS (
        SELECT FROM information_schema.tables
-       WHERE table_schema = 'app' AND table_name = 'wigle_v3_network_details'
+       WHERE table_schema = 'app' AND table_name = 'wigle_v3_observations'
      ) as exists`
   );
   return tableCheck.rows[0]?.exists || false;
@@ -270,6 +270,7 @@ module.exports = {
   getWigleV2NetworksCount,
   checkWigleV3TableExists,
   getWigleV3Networks,
+  getWigleV3NetworksCount,
   importWigleV3NetworkDetail,
   importWigleV3Observation,
   getWigleV3Observations,
