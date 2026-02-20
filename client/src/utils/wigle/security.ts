@@ -4,14 +4,18 @@
 
 /**
  * Format security capabilities string into readable label
- * @param capabilities - Raw security/encryption string from WiGLE
+ * @param capabilities - Raw security/encryption string from WiGLE or network data
+ * @param fallback - Optional fallback value when capabilities are empty/unknown
  * @returns Human-readable security label
  */
-export const formatSecurity = (capabilities: string | null | undefined): string => {
+export const formatSecurity = (
+  capabilities: string | null | undefined,
+  fallback?: string | null
+): string => {
   const value = String(capabilities || '').toUpperCase();
 
   if (!value || value === 'UNKNOWN' || value === 'OPEN/UNKNOWN' || value === 'NONE') {
-    return 'Open';
+    return fallback || 'Open';
   }
 
   const hasWpa3 = value.includes('WPA3');
@@ -35,5 +39,5 @@ export const formatSecurity = (capabilities: string | null | undefined): string 
   if (hasWpa) return 'WPA';
   if (hasWep) return 'WEP';
 
-  return 'Open';
+  return fallback || 'Open';
 };

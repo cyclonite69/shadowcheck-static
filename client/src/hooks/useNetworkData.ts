@@ -2,37 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { logDebug } from '../logging/clientLogger';
 import { apiClient } from '../api/client';
+import { formatSecurity } from '../utils/wigle/security';
 import type { NetworkRow, ThreatInfo, SortState } from '../types/network';
 import { API_SORT_MAP, NETWORK_PAGE_LIMIT } from '../constants/network';
-
-// Format security capabilities string
-const formatSecurity = (capabilities: string | null | undefined, fallback?: string | null) => {
-  const value = String(capabilities || '').toUpperCase();
-  if (!value || value === 'UNKNOWN') {
-    return fallback || 'Open';
-  }
-  const hasWpa3 = value.includes('WPA3');
-  const hasWpa2 = value.includes('WPA2');
-  const hasWpa = value.includes('WPA');
-  const hasWep = value.includes('WEP');
-  const hasPsk = value.includes('PSK');
-  const hasEap = value.includes('EAP');
-  const hasSae = value.includes('SAE');
-  const hasOwe = value.includes('OWE');
-
-  if (hasOwe) return 'OWE';
-  if (hasWpa3 && hasSae) return 'WPA3-SAE';
-  if (hasWpa3 && hasEap) return 'WPA3-EAP';
-  if (hasWpa3) return 'WPA3';
-  if (hasWpa2 && hasEap) return 'WPA2-EAP';
-  if (hasWpa2 && hasPsk) return 'WPA2-PSK';
-  if (hasWpa2) return 'WPA2';
-  if (hasWpa && hasEap) return 'WPA-EAP';
-  if (hasWpa && hasPsk) return 'WPA-PSK';
-  if (hasWpa) return 'WPA';
-  if (hasWep) return 'WEP';
-  return fallback || 'Open';
-};
 
 // Calculate WiFi channel from frequency
 const calculateChannel = (freq: number | null): number | null => {
