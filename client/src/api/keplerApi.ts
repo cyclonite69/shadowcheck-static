@@ -2,6 +2,8 @@
  * Kepler.gl API
  */
 
+import { apiClient } from './client';
+
 interface KeplerFilters {
   filtersForPage: Record<string, unknown>;
   enabledForPage: Record<string, boolean>;
@@ -30,25 +32,26 @@ interface KeplerGeoJSON {
 
 export const keplerApi = {
   async getMapboxToken(): Promise<MapboxTokenResponse> {
-    const response = await fetch('/api/mapbox-token');
-    return response.json();
+    return apiClient.get<MapboxTokenResponse>('/mapbox-token');
   },
 
   async getNetworks(filters: KeplerFilters, signal?: AbortSignal): Promise<KeplerGeoJSON> {
-    const params = new URLSearchParams({
-      filters: JSON.stringify(filters.filtersForPage),
-      enabled: JSON.stringify(filters.enabledForPage),
+    return apiClient.get<KeplerGeoJSON>('/kepler/networks', {
+      params: {
+        filters: JSON.stringify(filters.filtersForPage),
+        enabled: JSON.stringify(filters.enabledForPage),
+      },
+      signal,
     });
-    const response = await fetch(`/api/kepler/networks?${params}`, { signal });
-    return response.json();
   },
 
   async getObservations(filters: KeplerFilters, signal?: AbortSignal): Promise<KeplerGeoJSON> {
-    const params = new URLSearchParams({
-      filters: JSON.stringify(filters.filtersForPage),
-      enabled: JSON.stringify(filters.enabledForPage),
+    return apiClient.get<KeplerGeoJSON>('/kepler/observations', {
+      params: {
+        filters: JSON.stringify(filters.filtersForPage),
+        enabled: JSON.stringify(filters.enabledForPage),
+      },
+      signal,
     });
-    const response = await fetch(`/api/kepler/observations?${params}`, { signal });
-    return response.json();
   },
 };
