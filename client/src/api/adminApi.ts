@@ -95,6 +95,10 @@ export const adminApi = {
     return apiClient.get(`/admin/import-history?limit=${limit}`);
   },
 
+  async getDeviceSources(): Promise<any> {
+    return apiClient.get('/admin/device-sources');
+  },
+
   // Data Import — FormData: raw fetch (apiClient forces application/json header)
   async importSQLite(formData: FormData): Promise<{
     ok: boolean;
