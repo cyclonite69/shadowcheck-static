@@ -2,6 +2,8 @@
  * Mapbox API
  */
 
+import { apiClient } from './client';
+
 interface MapboxTokenResponse {
   token: string;
   error?: string;
@@ -35,17 +37,19 @@ interface GeocodingResponse {
 
 export const mapboxApi = {
   async getMapboxToken(): Promise<MapboxTokenResponse> {
-    const response = await fetch('/api/mapbox-token');
-    return response.json();
+    return apiClient.get<MapboxTokenResponse>('/mapbox-token');
   },
 
+  // Returns text/xml not JSON — raw fetch
   async exportKML(bssids: string): Promise<string> {
-    const url = `/api/kml?bssids=${encodeURIComponent(bssids)}`;
-    const response = await fetch(url);
+    const response = await fetch(`/api/kml?bssids=${encodeURIComponent(bssids)}`, {
+      credentials: 'include',
+    });
     if (!response.ok) throw new Error('Failed to export KML');
     return response.text();
   },
 
+  // External Mapbox API — raw fetch (no internal auth needed)
   async geocodeSearch(
     query: string,
     token: string,
