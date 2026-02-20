@@ -2,25 +2,22 @@
  * WiGLE API
  */
 
+import { apiClient } from './client';
+
 export const wigleApi = {
   // WiGLE API Status
   async getApiStatus(): Promise<any> {
-    const res = await fetch('/api/wigle/api-status');
-    return res.json();
+    return apiClient.get('/wigle/api-status');
   },
 
   // WiGLE Search
   async searchWigle(params: URLSearchParams): Promise<any> {
-    const res = await fetch(`/api/wigle/search-api?${params.toString()}`, {
-      credentials: 'same-origin',
-    });
-    return res.json();
+    return apiClient.get(`/wigle/search-api?${params.toString()}`);
   },
 
   // WiGLE Detail
   async getWigleObservations(netid: string): Promise<any> {
-    const res = await fetch(`/api/wigle/observations/${encodeURIComponent(netid)}`);
-    return res.json();
+    return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}`);
   },
 
   async getWigleDetail(
@@ -29,41 +26,34 @@ export const wigleApi = {
     importData: boolean = true
   ): Promise<any> {
     const endpoint = isBluetooth
-      ? `/api/wigle/detail/bt/${encodeURIComponent(bssid)}`
-      : `/api/wigle/detail/${encodeURIComponent(bssid)}`;
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ import: importData }),
-    });
-    return response.json();
+      ? `/wigle/detail/bt/${encodeURIComponent(bssid)}`
+      : `/wigle/detail/${encodeURIComponent(bssid)}`;
+    return apiClient.post(endpoint, { import: importData });
   },
 
-  // WiGLE Import
+  // FormData — raw fetch (apiClient forces application/json header)
   async importWigleV3(formData: FormData): Promise<any> {
     const res = await fetch('/api/wigle/import/v3', {
       method: 'POST',
       body: formData,
+      credentials: 'include',
     });
     return res.json();
   },
 
   // Network WiGLE Observations
   async getNetworkWigleObservations(bssid: string): Promise<any> {
-    const response = await fetch(`/api/networks/${encodeURIComponent(bssid)}/wigle-observations`);
-    return response.json();
+    return apiClient.get(`/networks/${encodeURIComponent(bssid)}/wigle-observations`);
   },
 
   // Mapbox Token (for WiGLE map)
   async getMapboxToken(): Promise<any> {
-    const tokenRes = await fetch('/api/mapbox-token');
-    return tokenRes.json();
+    return apiClient.get('/mapbox-token');
   },
 
-  // Local WiGLE Database Search
+  // Arbitrary caller-supplied path — raw fetch (apiClient would double-prefix /api/)
   async searchLocalWigle(endpoint: string, params: URLSearchParams): Promise<any> {
-    const res = await fetch(`${endpoint}?${params.toString()}`);
+    const res = await fetch(`${endpoint}?${params.toString()}`, { credentials: 'include' });
     return res.json();
   },
 };
