@@ -1,5 +1,8 @@
 /**
  * Admin SQLite Import Route
+ *
+ * Accepts a WiGLE SQLite backup file and a source_tag, then runs the
+ * incremental importer (only new observations since last import for that tag).
  */
 
 const express = require('express');
@@ -8,7 +11,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
-const adminDbService = require('../../../../services/adminDbService');
+const secretsManager = require('../../../../services/secretsManager').default;
 const logger = require('../../../../logging/logger');
 
 export {};
@@ -16,7 +19,7 @@ export {};
 // Configure multer for SQLite file uploads
 const upload = multer({
   dest: '/tmp/',
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     const allowedExts = ['.sqlite', '.db', '.sqlite3'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExts.includes(ext)) {
@@ -30,103 +33,130 @@ const upload = multer({
   },
 });
 
-router.post('/admin/import-sqlite', upload.single('sqlite'), async (req, res, next) => {
-  try {
+// Project root: 6 levels up from server/src/api/routes/v1/admin/
+const PROJECT_ROOT = path.resolve(__dirname, '../../../../../../');
+
+function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string; args: string[] } {
+  // In production the TS source is pre-compiled; in dev use tsx
+  if (process.env.NODE_ENV === 'production') {
+    const compiledScript = path.join(
+      PROJECT_ROOT,
+      'dist/server/etl/load/sqlite-import-incremental.js'
+    );
+    return { cmd: 'node', args: [compiledScript, sqliteFile, sourceTag] };
+  }
+  const tsxBin = path.join(PROJECT_ROOT, 'node_modules/.bin/tsx');
+  const tsScript = path.join(PROJECT_ROOT, 'etl/load/sqlite-import-incremental.ts');
+  return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
+}
+
+router.post(
+  '/admin/import-sqlite',
+  upload.single('database'),
+  async (req: any, res: any, next: any) => {
     if (!req.file) {
-      return res.status(400).json({ error: 'No SQLite file uploaded' });
+      return res.status(400).json({ ok: false, error: 'No SQLite file uploaded' });
+    }
+
+    const rawTag = (req.body?.source_tag || '') as string;
+    const sourceTag = rawTag
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_')
+      .slice(0, 50);
+
+    if (!sourceTag) {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res
+        .status(400)
+        .json({
+          ok: false,
+          error: 'source_tag is required (device/source identifier, e.g. s22_backup)',
+        });
     }
 
     const sqliteFile = req.file.path;
     const originalName = req.file.originalname;
 
-    logger.info(`Starting turbo SQLite import: ${originalName}`);
+    logger.info(`Starting incremental SQLite import: ${originalName} (source_tag: ${sourceTag})`);
 
-    // Use the fastest turbo import script
-    const scriptPath = path.join(__dirname, '../../../../../scripts/import/turbo-import.js');
+    const { cmd, args } = getImportCommand(sqliteFile, sourceTag);
 
-    const importProcess = spawn('node', [scriptPath, sqliteFile], {
-      cwd: path.dirname(scriptPath),
+    const adminPassword: string = secretsManager.get('db_admin_password') || '';
+
+    const importProcess = spawn(cmd, args, {
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        DB_ADMIN_PASSWORD: adminPassword,
+        DB_ADMIN_USER: 'shadowcheck_admin',
+      },
     });
 
     let output = '';
     let errorOutput = '';
 
-    importProcess.stdout.on('data', (data) => {
-      output += data.toString();
-      logger.debug(data.toString().trim());
+    importProcess.stdout.on('data', (data: Buffer) => {
+      const text = data.toString();
+      output += text;
+      logger.debug(text.trim());
     });
 
-    importProcess.stderr.on('data', (data) => {
+    importProcess.stderr.on('data', (data: Buffer) => {
       errorOutput += data.toString();
       logger.warn(data.toString().trim());
     });
 
-    importProcess.on('close', async (code) => {
+    importProcess.on('close', async (code: number) => {
       try {
-        // Clean up uploaded file
         await fs.unlink(sqliteFile);
-      } catch (e) {
+      } catch (e: any) {
         logger.warn(`Failed to clean up temp file: ${e.message}`);
       }
 
       if (code === 0) {
-        // Get final counts
-        try {
-          const result = await adminDbService.getImportCounts();
+        const importedMatch = output.match(/Imported:\s*([\d,]+)/);
+        const failedMatch = output.match(/Failed:\s*([\d,]+)/);
+        const imported = importedMatch ? parseInt(importedMatch[1].replace(/,/g, '')) : 0;
+        const failed = failedMatch ? parseInt(failedMatch[1].replace(/,/g, '')) : 0;
 
-          logger.info(
-            `Turbo SQLite import completed: ${result.observations} observations, ${result.networks} networks`
-          );
+        logger.info(
+          `Incremental import complete: ${imported} imported, ${failed} failed (source: ${sourceTag})`
+        );
 
-          res.json({
-            ok: true,
-            message: 'SQLite database imported successfully (turbo processing)',
-            observations: parseInt(result.observations),
-            networks: parseInt(result.networks),
-            output: output,
-          });
-        } catch (e) {
-          logger.error(`Error getting final counts: ${e.message}`, { error: e });
-          res.json({
-            ok: true,
-            message: 'SQLite database imported successfully (counts unavailable)',
-            output: output,
-          });
-        }
+        res.json({
+          ok: true,
+          message: `Incremental import complete (source: ${sourceTag})`,
+          imported,
+          failed,
+          output,
+        });
       } else {
         logger.error(`Import script failed with code ${code}`);
         res.status(500).json({
+          ok: false,
           error: 'Import script failed',
-          code: code,
-          output: output,
-          errorOutput: errorOutput,
+          code,
+          output,
+          errorOutput,
         });
       }
     });
 
-    importProcess.on('error', async (error) => {
+    importProcess.on('error', async (error: Error) => {
       logger.error(`Failed to start import script: ${error.message}`, { error });
       try {
         await fs.unlink(sqliteFile);
       } catch (e) {
-        logger.warn(`Failed to clean up temp file: ${e.message}`);
+        // ignore
       }
       res.status(500).json({
+        ok: false,
         error: 'Failed to start import process',
         details: error.message,
       });
     });
-  } catch (err) {
-    // Clean up file on error
-    if (req.file) {
-      try {
-        await fs.unlink(req.file.path);
-      } catch (e) {
-        logger.warn(`Failed to clean up temp file: ${e.message}`);
-      }
-    }
-    next(err);
   }
-});
+);
 
 module.exports = router;

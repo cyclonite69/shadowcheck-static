@@ -92,13 +92,28 @@ export const adminApi = {
   },
 
   // Data Import — FormData: raw fetch (apiClient forces application/json header)
-  async importSQLite(formData: FormData): Promise<any> {
+  async importSQLite(
+    formData: FormData
+  ): Promise<{
+    ok: boolean;
+    imported?: number;
+    failed?: number;
+    message?: string;
+    error?: string;
+  }> {
     const response = await fetch('/api/admin/import-sqlite', {
       method: 'POST',
       body: formData,
       credentials: 'include',
     });
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: typeof data.error === 'string' ? data.error : data.error?.message || 'Import failed',
+      };
+    }
+    return data;
   },
 
   // PgAdmin
