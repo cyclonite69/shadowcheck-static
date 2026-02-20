@@ -1,39 +1,11 @@
 /**
  * BSSID-based color generation for network visualization
- * Generates consistent colors based on MAC address OUI and device parts
+ * macColor is the canonical implementation in utils/mapHelpers.ts
  */
 
-const BASE_HUES = [0, 60, 120, 180, 240, 270, 300, 330];
+import { macColor } from '../mapHelpers';
 
-const stringToHash = (str: string): number => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-};
-
-/**
- * Generate a color for a MAC address
- * @param mac - MAC address (BSSID)
- * @returns HSL color string
- */
-export const macColor = (mac: string): string => {
-  if (!mac || mac.length < 6) return '#999999';
-
-  const cleanedMac = mac.replace(/[^0-9A-F]/gi, '');
-  if (cleanedMac.length < 6) return '#999999';
-
-  const oui = cleanedMac.substring(0, 6); // Manufacturer part
-  const devicePart = cleanedMac.substring(6); // Device-specific part
-
-  const hue = BASE_HUES[stringToHash(oui) % BASE_HUES.length];
-  const saturation = 50 + (stringToHash(devicePart) % 41); // 50-90%
-  const lightness = 40 + (stringToHash(devicePart) % 31); // 40-70%
-
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-};
+export { macColor } from '../mapHelpers';
 
 /**
  * Parse HSL color string to components
