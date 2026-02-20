@@ -2,6 +2,8 @@
  * Dashboard API
  */
 
+import { apiClient } from './client';
+
 interface DashboardFilters {
   filters: Record<string, unknown>;
   enabled: Record<string, boolean>;
@@ -42,25 +44,25 @@ interface ThreatSeverityCounts {
 
 export const dashboardApi = {
   async getMetrics(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardMetrics> {
-    const params = new URLSearchParams({
-      filters: JSON.stringify(filters.filters),
-      enabled: JSON.stringify(filters.enabled),
+    return apiClient.get<DashboardMetrics>('/dashboard-metrics', {
+      params: {
+        filters: JSON.stringify(filters.filters),
+        enabled: JSON.stringify(filters.enabled),
+      },
+      signal,
     });
-    const response = await fetch(`/api/dashboard-metrics?${params}`, { signal });
-    if (!response.ok) throw new Error('Failed to fetch dashboard metrics');
-    return response.json();
   },
 
   async getThreatSeverityCounts(
     filters: DashboardFilters,
     signal?: AbortSignal
   ): Promise<ThreatSeverityCounts> {
-    const params = new URLSearchParams({
-      filters: JSON.stringify(filters.filters),
-      enabled: JSON.stringify(filters.enabled),
+    return apiClient.get<ThreatSeverityCounts>('/v2/threats/severity-counts', {
+      params: {
+        filters: JSON.stringify(filters.filters),
+        enabled: JSON.stringify(filters.enabled),
+      },
+      signal,
     });
-    const response = await fetch(`/api/v2/threats/severity-counts?${params}`, { signal });
-    if (!response.ok) throw new Error('Failed to fetch threat severity counts');
-    return response.json();
   },
 };
