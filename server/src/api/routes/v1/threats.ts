@@ -8,7 +8,6 @@ const express = require('express');
 const router = express.Router();
 const { CONFIG } = require('../../../config/database');
 const threatScoringService = require('../../../services/threatScoringService');
-const homeLocationService = require('../../../services/homeLocationService');
 const { paginationMiddleware, validateQuery, optional } = require('../../../validation/middleware');
 const {
   validateIntegerRange,
@@ -158,47 +157,6 @@ router.get('/threats/detect', async (req, res, next) => {
     });
   } catch (err) {
     next(err);
-  }
-});
-
-// GET /api/home-location - Get current home location
-router.get('/home-location', async (req, res) => {
-  try {
-    const location = await homeLocationService.getCurrentHomeLocation();
-
-    if (!location) {
-      return res.status(404).json({
-        error: 'No home location configured',
-        message: 'Set a home location via the location markers API',
-      });
-    }
-
-    res.json(location);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/admin/home-location - Set home location and radius
-router.post('/admin/home-location', async (req, res) => {
-  try {
-    const { latitude, longitude, radius = 100 } = req.body;
-
-    if (!latitude || !longitude) {
-      return res.status(400).json({ error: 'Latitude and longitude are required' });
-    }
-
-    await homeLocationService.setHomeLocation(latitude, longitude, radius);
-
-    res.json({
-      ok: true,
-      message: 'Home location saved successfully',
-      latitude,
-      longitude,
-      radius,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 });
 
