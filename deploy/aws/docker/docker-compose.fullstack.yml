@@ -16,7 +16,8 @@ services:
     volumes:
       - /var/lib/postgresql:/var/lib/postgresql
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
+    command: postgres -c ssl=on -c ssl_cert_file=/var/lib/postgresql/certs/server.crt -c ssl_key_file=/var/lib/postgresql/certs/server.key
     networks:
       - shadowcheck_net
     shm_size: 512m
@@ -54,10 +55,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD}
       DB_NAME: shadowcheck_db
+      DB_SSL: "true"
+      DB_SSL_REJECT_UNAUTHORIZED: "false"
       REDIS_HOST: shadowcheck_redis
       REDIS_PORT: 6379
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
       ADMIN_ALLOW_DOCKER: ${ADMIN_ALLOW_DOCKER:-false}

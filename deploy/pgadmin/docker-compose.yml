@@ -1,0 +1,22 @@
+services:
+  pgadmin:
+    build: .
+    container_name: shadowcheck_pgadmin
+    network_mode: host
+    env_file: .env
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD
+      - PGADMIN_CONFIG_SERVER_MODE=True
+      - PGADMIN_LISTEN_PORT=8888
+      # Forces pgAdmin to load the file even if the DB already exists
+      - PGADMIN_SERVER_JSON_FILE=/pgadmin4/servers.json
+      # AWS configuration
+      - AWS_DEFAULT_REGION
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    # Note: ports mapping is ignored when using network_mode: host
+    # pgAdmin will be available directly on port 8888
+
+volumes:
+  pgadmin_data:

@@ -92,24 +92,40 @@ export async function checkWigleV3TableExists(): Promise<boolean> {
 export async function getWigleV3Networks(params: {
   limit: number | null;
   offset: number | null;
+  whereClauses?: string[];
+  queryParams?: any[];
 }): Promise<any[]> {
-  const queryParams: any[] = [];
+  const whereSql =
+    params.whereClauses && params.whereClauses.length > 0
+      ? `WHERE ${params.whereClauses.join(' AND ')}`
+      : '';
   const paginationClauses: string[] = [];
+  const allParams = params.queryParams ? [...params.queryParams] : [];
 
   if (params.limit !== null) {
-    queryParams.push(params.limit);
-    paginationClauses.push(`LIMIT $${queryParams.length}`);
+    allParams.push(params.limit);
+    paginationClauses.push(`LIMIT $${allParams.length}`);
   }
   if (params.offset !== null) {
-    queryParams.push(params.offset);
-    paginationClauses.push(`OFFSET $${queryParams.length}`);
+    allParams.push(params.offset);
+    paginationClauses.push(`OFFSET $${allParams.length}`);
   }
 
   const paginationSql = paginationClauses.join(' ');
   const dataQuery = `SELECT netid, ssid, encryption, latitude, longitude, observed_at
-                    FROM app.wigle_v3_observations ORDER BY observed_at DESC ${paginationSql}`;
-  const { rows } = await query(dataQuery, queryParams);
+                    FROM app.wigle_v3_observations ${whereSql} ORDER BY observed_at DESC ${paginationSql}`;
+  const { rows } = await query(dataQuery, allParams);
   return rows;
+}
+
+export async function getWigleV3NetworksCount(
+  whereClauses: string[] = [],
+  queryParams: any[] = []
+): Promise<number> {
+  const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+  const countQuery = `SELECT COUNT(*) as total FROM app.wigle_v3_observations ${whereSql}`;
+  const countResult = await query(countQuery, queryParams);
+  return parseInt(countResult.rows[0].total, 10);
 }
 
 export async function importWigleV3NetworkDetail(data: any): Promise<void> {

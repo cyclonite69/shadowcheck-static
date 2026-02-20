@@ -204,65 +204,84 @@ const uploadToS3 = async (
 const runPostgresBackup = async (options: { uploadToS3?: boolean } = {}) => {
   const { uploadToS3: shouldUploadToS3 = false } = options;
   const backupDir = getBackupDir();
-  const database = process.env.PGDATABASE || process.env.DB_NAME || 'postgres';
-  const fileName = `${database}_${stamp()}.dump`;
-  const filePath = path.join(backupDir, fileName);
+  const database = process.env.PGDATABASE || process.env.DB_NAME || 'shadowcheck_db';
+  const timestamp = stamp();
+
+  const dbFileName = `${database}_${timestamp}.dump`;
+  const dbFilePath = path.join(backupDir, dbFileName);
+
+  const globalsFileName = `globals_${timestamp}.sql`;
+  const globalsFilePath = path.join(backupDir, globalsFileName);
+
   const retentionDays = parseInt(process.env.BACKUP_RETENTION_DAYS, 10) || 14;
 
   await fs.mkdir(backupDir, { recursive: true });
 
-  logger.info(`[Backup] Starting pg_dump to ${filePath}`);
-
   const pgDumpPath = await resolvePgDumpPath();
+  const pgDumpAllPath = pgDumpPath.replace('pg_dump', 'pg_dumpall');
+  const pgEnv = buildPgEnv();
 
+  // 1. Dump Globals (Roles, Users, etc)
+  logger.info(`[Backup] Starting globals dump to ${globalsFilePath}`);
+  await new Promise((resolve, reject) => {
+    const child = spawn(pgDumpAllPath, ['--globals-only', '--file', globalsFilePath], {
+      env: pgEnv,
+    });
+    let stderr = '';
+    child.stderr.on('data', (data) => (stderr += data.toString()));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) resolve(undefined);
+      else reject(new Error(`pg_dumpall globals failed: ${stderr}`));
+    });
+  });
+
+  // 2. Dump Main Database
+  logger.info(`[Backup] Starting main database dump to ${dbFilePath}`);
   await new Promise((resolve, reject) => {
     const child = spawn(
       pgDumpPath,
-      ['--format=custom', '--no-owner', '--no-privileges', '--file', filePath],
-      { env: buildPgEnv() }
+      ['--format=custom', '--no-owner', '--no-privileges', '--blobs', '--file', dbFilePath],
+      { env: pgEnv }
     );
-
     let stderr = '';
-
-    child.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    child.on('error', (err) => {
-      reject(err);
-    });
-
+    child.stderr.on('data', (data) => (stderr += data.toString()));
+    child.on('error', reject);
     child.on('close', (code) => {
-      if (code === 0) {
-        resolve(undefined);
-      } else {
-        reject(new Error(stderr || `pg_dump exited with code ${code}`));
-      }
+      if (code === 0) resolve(undefined);
+      else reject(new Error(`pg_dump failed: ${stderr}`));
     });
   });
 
   await pruneOldBackups(backupDir, retentionDays);
 
-  const stat = await fs.stat(filePath);
+  const dbStat = await fs.stat(dbFilePath);
+  const globalsStat = await fs.stat(globalsFilePath);
   const source = getBackupSource();
+
   logger.info(
-    `[Backup] Completed pg_dump (${stat.size} bytes) [source: ${source.environment}/${source.hostname}]`
+    `[Backup] Multi-stage backup complete. DB: ${dbStat.size} bytes, Globals: ${globalsStat.size} bytes.`
   );
 
   const result: any = {
     backupDir,
-    fileName,
-    filePath,
-    bytes: stat.size,
+    files: [
+      { name: dbFileName, path: dbFilePath, bytes: dbStat.size, type: 'database' },
+      { name: globalsFileName, path: globalsFilePath, bytes: globalsStat.size, type: 'globals' },
+    ],
     source,
     createdAt: new Date().toISOString(),
   };
 
-  // Upload to S3 if requested
+  // 3. Upload to S3 if requested
   if (shouldUploadToS3) {
     try {
-      const s3Result = await uploadToS3(filePath, fileName, source);
-      result.s3 = s3Result;
+      result.s3 = [];
+      const dbUpload = await uploadToS3(dbFilePath, dbFileName, source);
+      result.s3.push({ ...dbUpload, type: 'database' });
+
+      const globalsUpload = await uploadToS3(globalsFilePath, globalsFileName, source);
+      result.s3.push({ ...globalsUpload, type: 'globals' });
     } catch (error: any) {
       logger.error(`[Backup] S3 upload failed: ${error.message}`);
       result.s3Error = error.message;

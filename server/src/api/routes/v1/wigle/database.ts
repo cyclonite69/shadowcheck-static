@@ -159,24 +159,64 @@ router.get('/networks-v2', validateWigleNetworksQuery, async (req, res, next) =>
  */
 router.get('/networks-v3', validateWigleNetworksQuery, async (req, res, next) => {
   try {
-    // Check if table exists
     const tableExists = await wigleService.checkWigleV3TableExists();
-
     if (!tableExists) {
       return res.json({
         ok: true,
         count: 0,
+        total: 0,
         networks: [],
         message: 'WiGLE v3 networks table not available',
       });
     }
 
+    const { filters, enabled } = req.query;
     const limit = (req as any).validated?.limit ?? null;
     const offset = (req as any).validated?.offset ?? null;
+    const includeTotalValidation = parseIncludeTotalFlag(req.query.include_total);
+    if (!includeTotalValidation.valid) {
+      return res.status(400).json({ error: includeTotalValidation.error });
+    }
+    const includeTotal = includeTotalValidation.value;
 
-    const rows = await wigleService.getWigleV3Networks({ limit, offset });
+    const queryParams: any[] = [];
+    const whereClauses: string[] = [];
 
-    res.json({ ok: true, count: rows.length, networks: rows });
+    if (filters && enabled) {
+      try {
+        const filterObj = JSON.parse(filters as string);
+        const enabledObj = JSON.parse(enabled as string);
+        let paramIndex = queryParams.length + 1;
+
+        if (enabledObj.ssid && filterObj.ssid) {
+          whereClauses.push(`ssid ILIKE $${paramIndex}`);
+          queryParams.push(`%${filterObj.ssid}%`);
+          paramIndex++;
+        }
+
+        if (enabledObj.bssid && filterObj.bssid) {
+          whereClauses.push(`netid ILIKE $${paramIndex}`);
+          queryParams.push(`${filterObj.bssid}%`);
+          paramIndex++;
+        }
+      } catch (e: any) {
+        logger.warn('Invalid filter parameters for v3:', e.message);
+      }
+    }
+
+    const rows = await wigleService.getWigleV3Networks({
+      limit,
+      offset,
+      whereClauses,
+      queryParams,
+    });
+
+    let total = null;
+    if (includeTotal) {
+      total = await wigleService.getWigleV3NetworksCount(whereClauses, queryParams);
+    }
+
+    res.json({ ok: true, count: rows.length, total, networks: rows });
   } catch (err) {
     next(err);
   }
