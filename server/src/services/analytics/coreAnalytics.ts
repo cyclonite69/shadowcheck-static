@@ -6,11 +6,28 @@
 const { query } = require('../../config/database');
 const { DatabaseError } = require('../../errors/AppError');
 
+export {};
+
+interface SignalRow {
+  signal_range: string;
+  count: string;
+}
+
+interface TemporalRow {
+  hour: string;
+  count: string;
+}
+
+interface RadioTypeRow {
+  date: unknown;
+  network_type: string;
+  count: string;
+}
+
 /**
  * Get signal strength distribution
- * @returns Array of signal ranges with counts
  */
-async function getSignalStrengthDistribution() {
+async function getSignalStrengthDistribution(): Promise<{ range: string; count: number }[]> {
   try {
     const { rows } = await query(`
       SELECT
@@ -41,10 +58,10 @@ async function getSignalStrengthDistribution() {
 
 /**
  * Get temporal activity (hourly distribution)
- * @param minTimestamp - Minimum timestamp filter
- * @returns Array of hours with activity counts
  */
-async function getTemporalActivity(minTimestamp) {
+async function getTemporalActivity(
+  minTimestamp: number
+): Promise<{ hour: number; count: number }[]> {
   try {
     const { rows } = await query(
       `
@@ -71,11 +88,11 @@ async function getTemporalActivity(minTimestamp) {
 
 /**
  * Get radio type distribution over time
- * @param range - Time range (24h, 7d, 30d, 90d, all)
- * @param minTimestamp - Minimum timestamp
- * @returns Array of time periods with type distribution
  */
-async function getRadioTypeOverTime(range, minTimestamp) {
+async function getRadioTypeOverTime(
+  range: string,
+  minTimestamp: number
+): Promise<{ date: unknown; type: string; count: number }[]> {
   try {
     const { rows } = await query(
       `

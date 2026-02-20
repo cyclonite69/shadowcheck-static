@@ -3,11 +3,13 @@
  * Common functions used across explorer routes
  */
 
+export {};
+
 const explorerService = require('../../../../services/explorerService');
 const logger = require('../../../../logging/logger');
 const { validateIntegerRange } = require('../../../../validation/schemas');
 
-const parseJsonParam = (value, fallback, name) => {
+const parseJsonParam = (value: string | undefined, fallback: unknown, name: string): unknown => {
   if (!value) {
     return fallback;
   }
@@ -18,7 +20,7 @@ const parseJsonParam = (value, fallback, name) => {
   }
 };
 
-const assertHomeExistsIfNeeded = async (enabled, res) => {
+const assertHomeExistsIfNeeded = async (enabled: boolean, res: any): Promise<boolean> => {
   try {
     const exists = await explorerService.checkHomeLocationForFilters(enabled);
     if (!exists) {
@@ -29,7 +31,7 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
       return false;
     }
     return true;
-  } catch (err) {
+  } catch (err: any) {
     res.status(400).json({
       ok: false,
       error: err.message || 'Home location check failed.',
@@ -38,7 +40,10 @@ const assertHomeExistsIfNeeded = async (enabled, res) => {
   }
 };
 
-function inferSecurity(capabilities, encryption) {
+function inferSecurity(
+  capabilities: string | null | undefined,
+  encryption: string | null | undefined
+): string {
   const cap = String(capabilities || encryption || '').toUpperCase();
   if (!cap) {
     return 'OPEN';
@@ -62,7 +67,12 @@ function inferSecurity(capabilities, encryption) {
   return 'Unknown';
 }
 
-function inferRadioType(radioType, ssid, frequency, capabilities) {
+function inferRadioType(
+  radioType: string | null | undefined,
+  ssid: string | null | undefined,
+  frequency: number | string | null | undefined,
+  capabilities: string | null | undefined
+): string {
   if (radioType && radioType !== '' && radioType !== null) {
     return radioType;
   }
@@ -131,7 +141,7 @@ function inferRadioType(radioType, ssid, frequency, capabilities) {
   }
 
   if (frequency) {
-    const freq = parseInt(frequency, 10);
+    const freq = parseInt(String(frequency), 10);
     if (freq >= 2412 && freq <= 2484) {
       return 'W';
     }
@@ -158,7 +168,11 @@ function inferRadioType(radioType, ssid, frequency, capabilities) {
   return '?';
 }
 
-function parseOptionalString(value, maxLength, fieldName) {
+function parseOptionalString(
+  value: unknown,
+  maxLength: number,
+  fieldName: string
+): { ok: boolean; value: string } {
   if (value === undefined || value === null || value === '') {
     return { ok: true, value: '' };
   }
@@ -172,7 +186,11 @@ function parseOptionalString(value, maxLength, fieldName) {
   return { ok: true, value: normalized };
 }
 
-function parseLimit(value, defaultValue, maxValue) {
+function parseLimit(
+  value: unknown,
+  defaultValue: number | null,
+  maxValue: number
+): { ok: boolean; value: number | null } {
   if (value === undefined || value === null || value === '') {
     return { ok: true, value: defaultValue };
   }
@@ -189,7 +207,11 @@ function parseLimit(value, defaultValue, maxValue) {
   return { ok: true, value: validation.value };
 }
 
-function parsePage(value, defaultValue, maxValue) {
+function parsePage(
+  value: unknown,
+  defaultValue: number,
+  maxValue: number
+): { ok: boolean; value: number } {
   if (value === undefined || value === null || value === '') {
     return { ok: true, value: defaultValue };
   }
@@ -202,7 +224,11 @@ function parsePage(value, defaultValue, maxValue) {
   return { ok: true, value: validation.value };
 }
 
-function parseOffset(value, defaultValue, maxValue) {
+function parseOffset(
+  value: unknown,
+  defaultValue: number,
+  maxValue: number
+): { ok: boolean; value: number } {
   if (value === undefined || value === null || value === '') {
     return { ok: true, value: defaultValue };
   }
@@ -215,7 +241,7 @@ function parseOffset(value, defaultValue, maxValue) {
   return { ok: true, value: validation.value };
 }
 
-function normalizeQualityFilter(value) {
+function normalizeQualityFilter(value: unknown): string {
   const normalized = String(value || 'none')
     .trim()
     .toLowerCase();

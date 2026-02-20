@@ -3,6 +3,8 @@
  * POST, PATCH, DELETE endpoints for managing network tags
  */
 
+export {};
+
 const express = require('express');
 const router = express.Router();
 const networkService = require('../../../../services/networkService');
@@ -29,13 +31,12 @@ router.use('/:bssid', bssidParamMiddleware);
  * POST /api/network-tags/:bssid
  * Create or update tags for a network (upsert)
  */
-router.post('/:bssid', requireAdmin, async (req, res) => {
+router.post('/:bssid', requireAdmin, async (req: any, res: any) => {
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
     const { is_ignored, ignore_reason, threat_tag, threat_confidence, notes } = req.body;
 
-    // Validate threat_tag if provided
     if (
       threat_tag !== undefined &&
       threat_tag !== null &&
@@ -46,7 +47,6 @@ router.post('/:bssid', requireAdmin, async (req, res) => {
       });
     }
 
-    // Validate ignore_reason if provided
     if (
       ignore_reason !== undefined &&
       ignore_reason !== null &&
@@ -57,7 +57,6 @@ router.post('/:bssid', requireAdmin, async (req, res) => {
       });
     }
 
-    // Validate threat_confidence if provided
     if (threat_confidence !== undefined && threat_confidence !== null) {
       const conf = parseFloat(threat_confidence);
       if (isNaN(conf) || conf < 0 || conf > 1) {
@@ -83,7 +82,7 @@ router.post('/:bssid', requireAdmin, async (req, res) => {
     });
 
     res.json({ ok: true, tag: result });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error tagging network: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
   }
@@ -93,7 +92,7 @@ router.post('/:bssid', requireAdmin, async (req, res) => {
  * PATCH /api/network-tags/:bssid/ignore
  * Toggle ignore status for a network
  */
-router.patch('/:bssid/ignore', requireAdmin, async (req, res) => {
+router.patch('/:bssid/ignore', requireAdmin, async (req: any, res: any) => {
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
@@ -123,7 +122,7 @@ router.patch('/:bssid/ignore', requireAdmin, async (req, res) => {
     });
 
     res.json({ ok: true, tag: result });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error toggling ignore: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
   }
@@ -133,20 +132,18 @@ router.patch('/:bssid/ignore', requireAdmin, async (req, res) => {
  * PATCH /api/network-tags/:bssid/threat
  * Set threat classification for a network
  */
-router.patch('/:bssid/threat', requireAdmin, async (req, res) => {
+router.patch('/:bssid/threat', requireAdmin, async (req: any, res: any) => {
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
     const { threat_tag, threat_confidence } = req.body;
 
-    // Validate threat_tag
     if (threat_tag !== null && !VALID_THREAT_TAGS.includes(threat_tag)) {
       return res.status(400).json({
         error: `Invalid threat_tag. Must be one of: ${VALID_THREAT_TAGS.join(', ')}, or null to clear`,
       });
     }
 
-    // Check if exists
     const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
@@ -171,7 +168,7 @@ router.patch('/:bssid/threat', requireAdmin, async (req, res) => {
     });
 
     res.json({ ok: true, tag: result });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error setting threat tag: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
   }
@@ -181,13 +178,12 @@ router.patch('/:bssid/threat', requireAdmin, async (req, res) => {
  * PATCH /api/network-tags/:bssid/notes
  * Update notes for a network
  */
-router.patch('/:bssid/notes', requireAdmin, async (req, res) => {
+router.patch('/:bssid/notes', requireAdmin, async (req: any, res: any) => {
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
     const { notes } = req.body;
 
-    // Check if exists
     const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
@@ -198,7 +194,7 @@ router.patch('/:bssid/notes', requireAdmin, async (req, res) => {
     }
 
     res.json({ ok: true, tag: result });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error updating notes: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
   }
@@ -208,12 +204,11 @@ router.patch('/:bssid/notes', requireAdmin, async (req, res) => {
  * PATCH /api/network-tags/:bssid/investigate
  * Queue network for WiGLE lookup
  */
-router.patch('/:bssid/investigate', requireAdmin, async (req, res) => {
+router.patch('/:bssid/investigate', requireAdmin, async (req: any, res: any) => {
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
 
-    // Check if exists
     const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
 
     let result;
@@ -235,7 +230,7 @@ router.patch('/:bssid/investigate', requireAdmin, async (req, res) => {
     logger.info(`Network queued for investigation: ${normalizedBssid}`, { bssid: normalizedBssid });
 
     res.json({ ok: true, tag: result });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error queuing investigation: ${error.message}`, {
       error,
       bssid: req.params.bssid,
@@ -248,7 +243,7 @@ router.patch('/:bssid/investigate', requireAdmin, async (req, res) => {
  * DELETE /api/network-tags/:bssid
  * Remove all tags for a network
  */
-router.delete('/:bssid', requireAdmin, async (req, res) => {
+router.delete('/:bssid', requireAdmin, async (req: any, res: any) => {
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
@@ -262,7 +257,7 @@ router.delete('/:bssid', requireAdmin, async (req, res) => {
     logger.info(`Network tags removed: ${normalizedBssid}`, { bssid: normalizedBssid });
 
     res.json({ ok: true, deleted: normalizedBssid });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error deleting tags: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
   }
@@ -272,7 +267,7 @@ router.delete('/:bssid', requireAdmin, async (req, res) => {
  * GET /api/network-tags/export/ml
  * Export tagged networks for ML training
  */
-router.get('/export/ml', requireAdmin, async (req, res) => {
+router.get('/export/ml', requireAdmin, async (req: any, res: any) => {
   try {
     const trainingData = await adminDbService.exportMLTrainingData();
 
@@ -281,7 +276,7 @@ router.get('/export/ml', requireAdmin, async (req, res) => {
       count: trainingData.length,
       exported_at: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`Error exporting ML data: ${error.message}`, { error });
     res.status(500).json({ error: error.message });
   }

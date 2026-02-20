@@ -6,11 +6,37 @@
 const { query } = require('../../config/database');
 const { DatabaseError } = require('../../errors/AppError');
 
+export {};
+
+interface NetworkTypeRow {
+  network_type: string;
+  count: string;
+}
+
+interface SecurityRow {
+  security_type: string;
+  count: string;
+}
+
+interface TopNetworkRow {
+  bssid: string;
+  ssid: string | null;
+  type: string;
+  signal: number | null;
+  observations: string | number;
+  first_seen: unknown;
+  last_seen: unknown;
+}
+
+interface RadioTypeRow {
+  radio_type: string;
+  count: string;
+}
+
 /**
  * Get network type distribution
- * @returns Array of network types with counts
  */
-async function getNetworkTypes() {
+async function getNetworkTypes(): Promise<{ type: string; count: number }[]> {
   try {
     const { rows } = await query(`
       SELECT
@@ -43,9 +69,8 @@ async function getNetworkTypes() {
 
 /**
  * Get security type distribution
- * @returns Array of security types with counts
  */
-async function getSecurityDistribution() {
+async function getSecurityDistribution(): Promise<{ type: string; count: number }[]> {
   try {
     const { rows } = await query(`
       SELECT
@@ -80,10 +105,18 @@ async function getSecurityDistribution() {
 
 /**
  * Get top networks by observation count
- * @param limit - Number of results to return
- * @returns Array of top networks
  */
-async function getTopNetworks(limit = 100) {
+async function getTopNetworks(limit = 100): Promise<
+  {
+    bssid: string;
+    ssid: string;
+    type: string;
+    signal: number | null;
+    observations: number;
+    firstSeen: unknown;
+    lastSeen: unknown;
+  }[]
+> {
   try {
     const { rows } = await query(
       `
@@ -108,7 +141,7 @@ async function getTopNetworks(limit = 100) {
       ssid: row.ssid || '<Hidden>',
       type: row.type,
       signal: row.signal,
-      observations: parseInt(row.observations) || 0,
+      observations: parseInt(String(row.observations)) || 0,
       firstSeen: row.first_seen,
       lastSeen: row.last_seen,
     }));
@@ -119,9 +152,19 @@ async function getTopNetworks(limit = 100) {
 
 /**
  * Get network statistics dashboard
- * @returns Dashboard statistics
  */
-async function getDashboardStats() {
+async function getDashboardStats(): Promise<{
+  totalNetworks: number;
+  threatsCount: number;
+  surveillanceCount: number;
+  enrichedCount: number;
+  wifiCount: number;
+  btCount: number;
+  bleCount: number;
+  lteCount: number;
+  gsmCount: number;
+  nrCount: number;
+}> {
   try {
     const [totalNetworks, radioTypes] = await Promise.all([
       query('SELECT COUNT(*) as count FROM app.networks'),
@@ -143,8 +186,8 @@ async function getDashboardStats() {
       `),
     ]);
 
-    const radioCounts = {};
-    radioTypes.rows.forEach((row) => {
+    const radioCounts: Record<string, number> = {};
+    radioTypes.rows.forEach((row: RadioTypeRow) => {
       radioCounts[row.radio_type] = parseInt(row.count);
     });
 

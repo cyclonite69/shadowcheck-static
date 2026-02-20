@@ -3,6 +3,8 @@
  * Barrel export for analytics modules
  */
 
+export {};
+
 const coreAnalytics = require('./coreAnalytics');
 const threatAnalytics = require('./threatAnalytics');
 const networkAnalytics = require('./networkAnalytics');

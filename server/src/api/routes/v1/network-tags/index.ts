@@ -3,6 +3,8 @@
  * Coordinates sub-routes for network tags
  */
 
+export {};
+
 const express = require('express');
 const router = express.Router();
 
