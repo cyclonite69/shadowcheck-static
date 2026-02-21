@@ -79,7 +79,7 @@ export async function getNearestAgenciesToNetwork(bssid: string, radius: number)
     agency_distances AS (
       SELECT
         a.id,
-        a.name as office_name,
+        a.name,
         a.office_type,
         a.city,
         a.state,
@@ -89,15 +89,15 @@ export async function getNearestAgenciesToNetwork(bssid: string, radius: number)
         MIN(ST_Distance(
           ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
           a.location::geography
-        ) / 1000.0) as distance_km,
+        )) as distance_meters,
         BOOL_OR(o.source = 'wigle') as has_wigle_obs
       FROM all_observations o
       CROSS JOIN app.agency_offices a
       GROUP BY a.id, a.name, a.office_type, a.city, a.state, a.postal_code, a.location
     )
     SELECT * FROM agency_distances
-    WHERE distance_km <= $2
-    ORDER BY distance_km ASC
+    WHERE distance_meters <= ($2 * 1000)
+    ORDER BY distance_meters ASC
     LIMIT 1
   `;
 
@@ -130,7 +130,7 @@ export async function getNearestAgenciesToNetworksBatch(
       SELECT
         o.bssid,
         a.id,
-        a.name as office_name,
+        a.name,
         a.office_type,
         a.city,
         a.state,
@@ -140,7 +140,7 @@ export async function getNearestAgenciesToNetworksBatch(
         MIN(ST_Distance(
           ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
           a.location::geography
-        ) / 1000.0) as distance_km,
+        )) as distance_meters,
         BOOL_OR(o.source = 'wigle') as has_wigle_obs
       FROM all_observations o
       CROSS JOIN app.agency_offices a
@@ -149,12 +149,12 @@ export async function getNearestAgenciesToNetworksBatch(
     ranked AS (
       -- Pick only the single closest agency per bssid
       SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY distance_km ASC) as rn
+        ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY distance_meters ASC) as rn
       FROM agency_distances
-      WHERE distance_km <= $2
+      WHERE distance_meters <= ($2 * 1000)
     )
-    SELECT bssid, id, office_name, office_type, city, state, postal_code,
-           latitude, longitude, distance_km, has_wigle_obs
+    SELECT bssid, id, name, office_type, city, state, postal_code,
+           latitude, longitude, distance_meters, has_wigle_obs
     FROM ranked
     WHERE rn = 1
     ORDER BY bssid
