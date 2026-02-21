@@ -261,7 +261,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
   const handleWigleLookup = async (withLookup: boolean) => {
     if (!wigleLookupDialog.network) return;
 
-    const bssid = wigleLookupDialog.network.bssid;
+    const bssid = wigleLookupDialog.network.bssid.trim().toUpperCase();
     setWigleLookupDialog((prev) => ({ ...prev, loading: true }));
 
     try {

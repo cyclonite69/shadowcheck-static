@@ -105,7 +105,7 @@ async function fetchWigleDetail(netid: string, endpoint: string) {
 
 async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint: string) {
   try {
-    const { netid } = req.params;
+    const netid = (req.params.netid || '').trim().toUpperCase();
     const shouldImport = req.body?.import === true;
 
     const detailResponse = await fetchWigleDetail(netid, endpoint);
