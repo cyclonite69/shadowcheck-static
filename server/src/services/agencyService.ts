@@ -62,19 +62,19 @@ export async function getAgencyOfficeCountByType(): Promise<any[]> {
 export async function getNearestAgenciesToNetwork(bssid: string, radius: number): Promise<any[]> {
   const sql = `
     WITH all_observations AS (
-      -- Local observations
+      -- Local observations (exclude default (0,0) coordinates)
       SELECT DISTINCT lat, lon, 'local' as source
-      FROM app.observations 
-      WHERE UPPER(bssid) = UPPER($1) 
-        AND lat IS NOT NULL 
-        AND lon IS NOT NULL
+      FROM app.observations
+      WHERE UPPER(bssid) = UPPER($1)
+        AND lat IS NOT NULL AND lon IS NOT NULL
+        AND NOT (lat = 0 AND lon = 0)
       UNION
-      -- WiGLE v3 observations
+      -- WiGLE v3 observations (exclude default (0,0) coordinates)
       SELECT DISTINCT latitude as lat, longitude as lon, 'wigle' as source
-      FROM app.wigle_v3_observations 
-      WHERE UPPER(netid) = UPPER($1) 
-        AND latitude IS NOT NULL 
-        AND longitude IS NOT NULL
+      FROM app.wigle_v3_observations
+      WHERE UPPER(netid) = UPPER($1)
+        AND latitude IS NOT NULL AND longitude IS NOT NULL
+        AND NOT (latitude = 0 AND longitude = 0)
     ),
     agency_distances AS (
       SELECT
@@ -98,6 +98,7 @@ export async function getNearestAgenciesToNetwork(bssid: string, radius: number)
     SELECT * FROM agency_distances
     WHERE distance_km <= $2
     ORDER BY distance_km ASC
+    LIMIT 1
   `;
 
   const result = await query(sql, [bssid, radius]);
@@ -110,22 +111,24 @@ export async function getNearestAgenciesToNetworksBatch(
 ): Promise<any[]> {
   const sql = `
     WITH all_observations AS (
-      -- Local observations for all networks
-      SELECT DISTINCT lat, lon, 'local' as source
-      FROM app.observations 
+      -- Local observations for all networks, keyed by bssid
+      SELECT DISTINCT UPPER(bssid) as bssid, lat, lon, 'local' as source
+      FROM app.observations
       WHERE UPPER(bssid) = ANY($1)
-        AND lat IS NOT NULL 
-        AND lon IS NOT NULL
+        AND lat IS NOT NULL AND lon IS NOT NULL
+        AND NOT (lat = 0 AND lon = 0)
       UNION
-      -- WiGLE v3 observations for all networks
-      SELECT DISTINCT latitude as lat, longitude as lon, 'wigle' as source
-      FROM app.wigle_v3_observations 
+      -- WiGLE v3 observations for all networks, keyed by bssid
+      SELECT DISTINCT UPPER(netid) as bssid, latitude as lat, longitude as lon, 'wigle' as source
+      FROM app.wigle_v3_observations
       WHERE UPPER(netid) = ANY($1)
-        AND latitude IS NOT NULL 
-        AND longitude IS NOT NULL
+        AND latitude IS NOT NULL AND longitude IS NOT NULL
+        AND NOT (latitude = 0 AND longitude = 0)
     ),
     agency_distances AS (
+      -- For each (bssid, agency) pair: minimum distance across all obs points
       SELECT
+        o.bssid,
         a.id,
         a.name as office_name,
         a.office_type,
@@ -141,11 +144,20 @@ export async function getNearestAgenciesToNetworksBatch(
         BOOL_OR(o.source = 'wigle') as has_wigle_obs
       FROM all_observations o
       CROSS JOIN app.agency_offices a
-      GROUP BY a.id, a.name, a.office_type, a.city, a.state, a.postal_code, a.location
+      GROUP BY o.bssid, a.id, a.name, a.office_type, a.city, a.state, a.postal_code, a.location
+    ),
+    ranked AS (
+      -- Pick only the single closest agency per bssid
+      SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY bssid ORDER BY distance_km ASC) as rn
+      FROM agency_distances
+      WHERE distance_km <= $2
     )
-    SELECT * FROM agency_distances
-    WHERE distance_km <= $2
-    ORDER BY distance_km ASC
+    SELECT bssid, id, office_name, office_type, city, state, postal_code,
+           latitude, longitude, distance_km, has_wigle_obs
+    FROM ranked
+    WHERE rn = 1
+    ORDER BY bssid
   `;
 
   const result = await query(sql, [bssids, radius]);
