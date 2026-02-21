@@ -22,7 +22,7 @@ I will:
 ### Option 2: Use With Kiro-CLI
 
 ```bash
-kiro run-job shadowcheck JOB-01 --manifest KIRO_JOBS.md
+kiro run-job shadowcheck JOB-01 --manifest docs/kiro/KIRO_JOBS.md
 ```
 
 ### Option 3: Manual Execution

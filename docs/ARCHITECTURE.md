@@ -1,5 +1,7 @@
 # ShadowCheck Architecture
 
+**Wiki version (diagrams):** [Architecture](../.github/wiki/Architecture.md)
+
 This document describes the high-level architecture of the ShadowCheck-Static platform.
 
 ## Table of Contents
@@ -566,8 +568,8 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 **Current:**
 
-- System keyring for credentials (db_password, wigle_api_token, etc.)
-- `secretsManager.ts` handles loading from keyring, Docker secrets, or env vars.
+- AWS Secrets Manager for credentials (db_password, wigle_api_token, etc.)
+- `secretsManager.ts` handles loading from AWS SM (env vars only for explicit overrides).
 - No hardcoded tokens in frontend; served via protected backend endpoints.
 
 ## Scalability Considerations
@@ -654,7 +656,7 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 ### Phase 3: Security Hardening
 
-- [x] Move to system keyring for secrets
+- [x] Use AWS Secrets Manager for secrets
 - [ ] Implement OAuth2 authentication
 - [ ] Add audit logging for all mutations
 - [ ] Implement field-level encryption for PII

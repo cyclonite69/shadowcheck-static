@@ -1,5 +1,9 @@
 # Security Policy
 
+**Wiki version (diagrams):** [Security](../.github/wiki/Security.md)
+
+See [SECRETS.md](SECRETS.md) for the authoritative secrets guide.
+
 ## Reporting Security Vulnerabilities
 
 If you discover a security vulnerability in ShadowCheck-Static, please report it privately:
@@ -15,10 +19,10 @@ This project follows strict security guidelines:
 
 ### No Secrets in Code
 
-- ✅ All credentials stored in encrypted keyring (~/.local/share/shadowcheck/keyring.enc)
-- ✅ .env files are gitignored and contain only placeholders
+- ✅ All credentials stored in AWS Secrets Manager
+- ✅ No secrets written to disk
 - ✅ API keys never committed to version control
-- ✅ Database passwords retrieved from system keyring
+- ✅ Database passwords retrieved at runtime from AWS SM
 
 ### Security Features
 
@@ -39,10 +43,9 @@ This project follows strict security guidelines:
 
 ## Known Security Considerations
 
-1. **Keyring Storage**: File-based encrypted keyring (~/.local/share/shadowcheck/)
-   - Only accessible by the user who created it
-   - Uses machine-specific encryption key
-   - Not suitable for multi-user environments without additional access controls
+1. **Secrets Management**: AWS Secrets Manager
+   - Access controlled via IAM policies/roles
+   - No local secret files
 
 2. **Admin Interface**: Protected by role-based authentication
    - Access to `/admin` requires a user with the `admin` role
@@ -53,7 +56,7 @@ This project follows strict security guidelines:
      - `shadowcheck_user`: Used for general app operation. Restricted to read-only access on production tables.
      - `shadowcheck_admin`: Used for administrative tasks (imports, tagging). Requires separate password.
    - Credentials should never be hardcoded
-   - Use environment variables or keyring for passwords
+   - Use AWS Secrets Manager (env vars only for explicit local overrides)
    - Enable SSL connections in production
 
 4. **Agency Offices Data Source**:
@@ -61,11 +64,22 @@ This project follows strict security guidelines:
    - Metadata includes enrichment sources (Smarty, Mapbox, Nominatim, USPS).
    - The dataset contains no PII beyond public contact information for government offices.
 
+## Authentication & Roles
+
+- Session-based authentication using HTTP-only cookies.
+- Two primary roles: `user` and `admin`.
+- Admin-only routes are gated by middleware (imports, tagging, backups).
+
+## SQL Injection Prevention
+
+- Parameterized queries for all database access.
+- Validation middleware for common inputs (BSSID, pagination, coordinates).
+- Centralized SQL escaping utilities where dynamic fragments are unavoidable.
+
 ## Security Audit History
 
 - **2025-12-04**: Comprehensive security audit completed
   - Fixed XSS vulnerabilities in frontend
   - Removed hardcoded credentials
-  - Implemented encrypted keyring storage
   - Added CORS restrictions
   - Added request size limiting

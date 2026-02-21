@@ -35,7 +35,7 @@ ShadowCheck implements several security measures:
 
 - Parameterized queries to prevent SQL injection
 - Connection pooling with limits
-- Encrypted credential storage via system keyring
+- Credential storage via AWS Secrets Manager (no secrets on disk)
 - Database user with minimal required privileges
 
 ### API Security

@@ -1,5 +1,7 @@
 # ShadowCheck Feature Catalog
 
+**Wiki version (diagrams):** [Features](../.github/wiki/Features.md)
+
 This catalog summarizes the features implemented in the current ShadowCheck codebase (UI routes, API modules, services, and data pipelines). It complements the deeper feature docs under `docs/features/`.
 
 ## Core UI & Exploration
@@ -12,6 +14,7 @@ This catalog summarizes the features implemented in the current ShadowCheck code
 - **Analytics**: Temporal activity, radio-type trends, and threat score charts.
 - **WiGLE Page**: Local WiGLE data search with optional live API lookups.
 - **Kepler Page**: Kepler.gl-ready GeoJSON feeds with filter support.
+- **Kepler Data Policy**: Kepler endpoints do not apply default limits; use filters/bbox instead.
 - **API Test Page**: Endpoint smoke tests and response inspection.
 - **Admin Page**: Configuration workflows and operational controls.
 
@@ -90,9 +93,9 @@ A comprehensive dataset of FBI field offices and resident agencies for geospatia
 
 - **Authentication**: Session-based login, logout, and user info endpoints.
 - **Role-based gating**: Admin-only routes for sensitive actions.
-- **Settings management**: Keyring-backed Mapbox tokens, WiGLE credentials, and Google Maps keys.
+- **Settings management**: AWS Secrets Manager-backed Mapbox tokens, WiGLE credentials, and Google Maps keys.
 - **Security headers**: CSP and hardened response headers for production.
-- **Secrets handling**: `.env` + keyring support for sensitive values.
+- **Secrets handling**: AWS Secrets Manager with runtime loading (no secrets on disk).
 
 ## Platform & Operations
 

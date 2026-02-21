@@ -1,5 +1,7 @@
 # Deployment Guide
 
+**Docs version (repo):** [docs/DEPLOYMENT.md](../../docs/DEPLOYMENT.md)
+
 > **Complete deployment workflows for all environments**
 
 ---

@@ -1,5 +1,7 @@
 # ShadowCheck Wiki
 
+**Docs index (repo):** [docs/README.md](../../docs/README.md)
+
 > **Production-grade SIGINT forensics and wireless network analysis platform**
 >
 > Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.

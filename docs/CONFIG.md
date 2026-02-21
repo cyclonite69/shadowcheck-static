@@ -2,13 +2,15 @@
 
 This document describes all configuration options for ShadowCheckStatic.
 
+**Wiki references (diagrams):** [Deployment Guide](../.github/wiki/Deployment-Guide.md), [Installation](../.github/wiki/Installation.md)
+
 ## Configuration Files
 
 | File                               | Purpose                        |
 | ---------------------------------- | ------------------------------ |
-| `.env`                             | Main environment configuration |
-| `.env.example`                     | Template for `.env`            |
-| `.env.local`                       | Local overrides (gitignored)   |
+| `.env`                             | Optional non-secret config only |
+| `.env.example`                     | Template (non-secret values)    |
+| `.env.local`                       | Optional non-secret overrides   |
 | `server/src/config/database.ts`    | Database configuration         |
 | `server/src/utils/serverConfig.ts` | Server configuration           |
 | `config/servers.json`              | Server definitions             |
@@ -51,11 +53,10 @@ This document describes all configuration options for ShadowCheckStatic.
 
 ## Secrets Management
 
-Secrets are loaded in priority order:
+Secrets are loaded from **AWS Secrets Manager** at runtime. Secrets are never written to disk.
+Environment variables are allowed only as explicit, non-persistent overrides (e.g., local dev).
 
-1. **Docker secrets** (`/run/secrets/*`)
-2. **System keyring** (via keyringService)
-3. **Environment variables**
+See [SECRETS.md](SECRETS.md) for the authoritative secrets guide.
 
 ### Required Secrets
 
@@ -79,20 +80,7 @@ Secrets are loaded in priority order:
 | `aws_access_key_id`     | AWS credentials        |
 | `aws_secret_access_key` | AWS credentials        |
 
-### Setting Secrets via Keyring
-
-```bash
-# Set a secret
-node scripts/keyring-cli.js set db_password
-
-# Get a secret
-node scripts/keyring-cli.js get db_password
-
-# Delete a secret
-node scripts/keyring-cli.js delete db_password
-```
-
-### Setting Secrets via Environment
+### Setting Secrets via Environment (Local Overrides Only)
 
 ```bash
 export DB_PASSWORD=your_password
@@ -111,48 +99,41 @@ Frontend environment variables must be prefixed with `VITE_`:
 
 Place these in `.env.local` for local development.
 
+## Redis Configuration
+
+Redis is optional but recommended for caching and rate limiting.
+
+```bash
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
+
+If Redis is unavailable, the app degrades gracefully with caching disabled.
+
+## Mapbox Token
+
+Set `mapbox_token` in AWS Secrets Manager. Use `MAPBOX_TOKEN` only for explicit local overrides.
+
 ## Configuration in Development
 
-1. Copy `.env.example` to `.env`:
+Use environment variables for any secret overrides, and keep `.env` free of secrets.
+
+1. Export required values:
 
    ```bash
-   cp .env.example .env
+   export DB_PASSWORD=...
+   export DB_ADMIN_PASSWORD=...
+   export MAPBOX_TOKEN=...
    ```
 
-2. Edit `.env` with your values:
-
-   ```bash
-   nano .env
-   ```
-
-3. Start the development server:
+2. Start the development server:
    ```bash
    npm run dev
    ```
 
 ## Configuration in Production
 
-### Docker Secrets
-
-Create Docker secrets in `/run/secrets/`:
-
-```bash
-echo "your_password" | docker secret create db_password -
-```
-
-### Environment File
-
-Use a production `.env` file with strong passwords:
-
-```bash
-# Generate strong passwords
-openssl rand -base64 32
-
-# Set in .env
-DB_PASSWORD=<generated_password>
-DB_ADMIN_PASSWORD=<generated_password>
-MAPBOX_TOKEN=<your_mapbox_token>
-```
+Secrets must be provisioned in AWS Secrets Manager. Do not store secrets in `.env` files.
 
 ### Environment Variables in Docker
 
@@ -272,7 +253,7 @@ services:
 Error: Missing required config: DB_HOST
 ```
 
-**Fix**: Ensure `.env` file exists and contains all required variables.
+**Fix**: Ensure required environment variables are set (non-secret values can be stored in `.env` if desired).
 
 ### Database Connection Failed
 
@@ -288,7 +269,7 @@ Error: connect ECONNREFUSED 127.0.0.1:5432
 Error: Secret not found: db_password
 ```
 
-**Fix**: Set the secret via keyring, environment, or Docker secrets.
+**Fix**: Ensure the secret exists in AWS Secrets Manager (env vars only for explicit local overrides).
 
 ### Invalid Environment
 
@@ -303,5 +284,5 @@ Error: NODE_ENV must be 'production' or 'development'
 - [Development Guide](DEVELOPMENT.md)
 - [Deployment Guide](DEPLOYMENT.md)
 - [Security Guidelines](SECURITY.md)
-- [Secrets Management](security/SECRETS_MANAGEMENT.md)
+- [Secrets Management](SECRETS.md)
 - [AWS Infrastructure](../deploy/aws/docs/AWS_INFRASTRUCTURE.md)

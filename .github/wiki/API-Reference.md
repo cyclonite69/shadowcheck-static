@@ -1,5 +1,7 @@
 # API Reference
 
+**Docs version (repo):** [docs/API_REFERENCE.md](../../docs/API_REFERENCE.md)
+
 > **Complete REST API documentation for ShadowCheck**
 
 ---

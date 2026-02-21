@@ -1,5 +1,7 @@
 # Installation Guide
 
+**Docs version (repo):** [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md)
+
 Complete setup instructions for ShadowCheck development and production environments.
 
 ---
@@ -100,16 +102,11 @@ MAPBOX_TOKEN=pk.your_mapbox_token_here
 
 ### 5. Set Secrets
 
-```bash
-# Set database password in keyring
-node scripts/set-secret.js db_password "your_password"
+Store secrets in **AWS Secrets Manager**:
 
-# Set admin password
-node scripts/set-secret.js db_admin_password "admin_password"
-
-# Set Mapbox token
-node scripts/set-secret.js mapbox_token "pk.your_token"
-```
+- `db_password`
+- `db_admin_password`
+- `mapbox_token`
 
 ### 6. Run Migrations
 

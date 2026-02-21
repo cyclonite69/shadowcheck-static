@@ -1,5 +1,7 @@
 # Database
 
+**Docs version (repo):** [docs/DATABASE_RADIO_ARCHITECTURE.md](../../docs/DATABASE_RADIO_ARCHITECTURE.md)
+
 > **PostgreSQL + PostGIS schema and query reference**
 
 ---

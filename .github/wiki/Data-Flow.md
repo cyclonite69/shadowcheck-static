@@ -1,5 +1,7 @@
 # Data Flow
 
+**Docs references (repo):** [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md), [docs/FEATURES.md](../../docs/FEATURES.md)
+
 > **Complete data flow diagrams for ShadowCheck platform**
 
 ---

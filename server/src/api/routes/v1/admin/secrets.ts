@@ -37,7 +37,7 @@ router.get('/admin/secrets', requireAdmin, async (req, res) => {
 
 /**
  * POST /api/admin/secrets/:key
- * Store a secret in keyring
+ * Store a secret in AWS Secrets Manager
  */
 router.post('/admin/secrets/:key', requireAdmin, async (req, res) => {
   try {
@@ -60,7 +60,7 @@ router.post('/admin/secrets/:key', requireAdmin, async (req, res) => {
 
 /**
  * DELETE /api/admin/secrets/:key
- * Remove a secret from keyring
+ * Remove a secret from AWS Secrets Manager
  */
 router.delete('/admin/secrets/:key', requireAdmin, async (req, res) => {
   try {

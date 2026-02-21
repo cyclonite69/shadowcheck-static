@@ -1,5 +1,7 @@
 # Features
 
+**Docs version (repo):** [docs/FEATURES.md](../../docs/FEATURES.md)
+
 > **Complete feature catalog for ShadowCheck**
 
 ---
@@ -617,7 +619,7 @@ _Last Updated: 2026-02-07_
 | **Role-Based Gating**   | Admin-only routes for sensitive actions |
 | **Settings Management** | Keyring-backed credentials              |
 | **Security Headers**    | CSP and hardened response headers       |
-| **Secrets Handling**    | `.env` + keyring support                |
+| **Secrets Handling**    | AWS Secrets Manager (no secrets on disk) |
 
 ---
 

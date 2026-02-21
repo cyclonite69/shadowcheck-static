@@ -1,5 +1,7 @@
 # Wiki Quick Reference
 
+**Docs index (repo):** [docs/README.md](../../docs/README.md)
+
 > **Quick navigation guide for ShadowCheck wiki**
 
 ---

@@ -1,5 +1,7 @@
 # API Reference
 
+**Wiki version (diagrams):** [API Reference](../.github/wiki/API-Reference.md)
+
 Complete REST API documentation for ShadowCheck SIGINT Forensics Platform.
 
 ## Base URL

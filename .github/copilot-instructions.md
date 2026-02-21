@@ -83,7 +83,7 @@ const AppError = require('../../errors/AppError');
 if (!network) throw new AppError('Network not found', 404);
 ```
 
-**Secrets Management**: Priority order: Encrypted keyring → Local files → Environment variables
+**Secrets Management**: AWS Secrets Manager only (env vars for explicit local overrides)
 
 ```javascript
 const secretsManager = require('../../services/secretsManager');
@@ -464,20 +464,14 @@ docker exec -it shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db
 
 ## Secrets Management
 
-**Keyring Location**: `~/.local/share/shadowcheck/keyring.enc` (encrypted)
+**Source of Truth**: AWS Secrets Manager
 
-**Setting Secrets**:
-
-```bash
-npx tsx scripts/set-secret.ts db_password "password"
-npx tsx scripts/set-secret.ts db_admin_password "admin_pass"
-npx tsx scripts/set-secret.ts mapbox_token "pk.xxx"
-```
-
-**In Docker**: Set `KEYRING_MACHINE_ID` env var to allow container to decrypt host keyring:
+**Local Overrides (optional)**:
 
 ```bash
-KEYRING_MACHINE_ID=$(hostname)$(whoami) docker-compose up
+export DB_PASSWORD=...
+export DB_ADMIN_PASSWORD=...
+export MAPBOX_TOKEN=...
 ```
 
 ## ETL Pipeline

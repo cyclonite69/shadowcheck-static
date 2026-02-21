@@ -60,7 +60,7 @@ const BATCH_SIZE = 500;
 const THREAD_COUNT = os.cpus().length; // Use all CPU cores
 const PROGRESS_INTERVAL = 1000;
 
-// Get password from keyring
+// Get password from AWS Secrets Manager or explicit env override
 function getKeyringPassword(service: string, username: string): string {
   const script = `
 import dbus
@@ -128,7 +128,7 @@ async function fullImport(): Promise<void> {
   console.log(`📁 Source: ${sqliteFile}`);
   console.log(`🧵 Threads: ${THREAD_COUNT} cores`);
   console.log(`📦 Batch size: ${BATCH_SIZE}`);
-  console.log('🔒 Password: From keyring\n');
+  console.log('🔒 Password: From AWS Secrets Manager or env override\n');
 
   const startTime = Date.now();
 

@@ -1,203 +1,81 @@
 # ShadowCheck Documentation
 
-Welcome to the ShadowCheck documentation! This guide will help you navigate all available documentation.
+This folder holds the long-form docs. Root `README.md` is the entry point for the repo.
+The wiki in `.github/wiki/` is the primary source for diagram-heavy documentation.
 
-## 📋 Documentation Overview
+## Current Status (Short)
 
-### Getting Started
+- **Secrets**: AWS Secrets Manager only (no secrets on disk).
+- **Data stack**: PostgreSQL 18 + PostGIS, Redis optional.
+- **Frontend**: React + Vite (TypeScript).
+- **Backend**: Express + TypeScript services/repositories.
 
-- [Development Setup](DEVELOPMENT.md) - Local environment setup
-- [Deployment](DEPLOYMENT.md) - Production deployment
-- [Configuration](CONFIG.md) - Configuration reference
+## Doc Rules
 
-### Architecture & Design
+- Do not add new docs unless they replace an existing page.
+- Wiki is the primary source for diagrams; docs are for concise current state.
 
-- [Architecture Overview](ARCHITECTURE.md) - System architecture & module organization
-- [Modularity Framework](MODULARITY.md) - How we structure code (NEW)
-- [Database Schema](DATABASE_RADIO_ARCHITECTURE.md) - Database design
-- [Security Policy](SECURITY_POLICY.md) - Security considerations
+## Start Here
+- [Architecture](ARCHITECTURE.md) - System overview and module organization.
+- [Development](DEVELOPMENT.md) - Local dev setup and workflow.
+- [Deployment](DEPLOYMENT.md) - Production deployment guidance.
+- [Configuration](CONFIG.md) - Environment variables and configuration.
+- [API Reference](API_REFERENCE.md) - REST endpoints.
+ - [Wiki Home](../.github/wiki/Home.md) - Diagram-heavy documentation hub.
+ - [Wiki Map](WIKI_MAP.md) - Docs ↔ wiki mapping.
 
-### Development
+## Development Guides
+- [Frontend](CLIENT.md) - React components and client patterns.
+- [Testing](TESTING.md) - Test strategy and commands.
+- [Scripts](SCRIPTS.md) - Utility scripts and maintenance.
 
-- [Frontend Guide](CLIENT.md) - React components & hooks
-- [Backend Guide](BACKEND.md) or [API Reference](API_REFERENCE.md) - Server & API
-- [Testing](TESTING.md) - Testing strategy
-- [Scripts](SCRIPTS.md) - Utility scripts
+## Data & Infrastructure
+- [Database](DATABASE_RADIO_ARCHITECTURE.md) - Schema and data design.
+- [Redis](REDIS.md) - Caching and sessions.
+- [Secrets](SECRETS.md) - Secrets management.
+- [Auth](AUTH.md) - Authentication and authorization.
 
-### Reference
+## Security
+- [Security Policy](SECURITY_POLICY.md) - Disclosure and security posture.
+- See `security/` for additional material.
 
-- [Configuration](CONFIG.md) - All configuration options
-- [Secrets Management](SECRETS.md) - Managing secrets
-- [Authentication](AUTH.md) - Auth & authorization
-- [Redis Caching](REDIS.md) - Redis setup & usage
+## Optional/Internal
+- `kiro/` - Job manifest and execution guides for internal quality passes.
+- `bugfixes/` - Targeted fix plans and notes.
 
-### Archived Sessions
-
-See `docs/archive/sessions/` for historical development notes and modularity session records.
-
-## 🚀 Quick Links
-
-### Key Files
-
-- **Module Organization:** See [ARCHITECTURE.md](ARCHITECTURE.md#server-module-organization)
-- **Modularity Framework:** [MODULARITY.md](MODULARITY.md) - How to identify what should be split
-- **API Endpoints:** [API_REFERENCE.md](API_REFERENCE.md)
-- **Environment Setup:** [CONFIG.md](CONFIG.md)
-
-### Current Status
-
-- **Modularity:** Fast Phase complete (3 files modularized)
-- **Audit:** 6 files audited, 4 scheduled for refactoring
-- **Build:** ✅ Passing
-- **Tests:** Running
-
----
-
-| I want to...              | Go to...                                 |
-| ------------------------- | ---------------------------------------- |
-| Get started quickly       | [README.md](../README.md)                |
-| Understand architecture   | [ARCHITECTURE.md](ARCHITECTURE.md)       |
-| Set up development env    | [DEVELOPMENT.md](DEVELOPMENT.md)         |
-| Deploy to production      | [DEPLOYMENT.md](DEPLOYMENT.md)           |
-| Configure the application | [CONFIG.md](CONFIG.md)                   |
-| Understand the API        | [API_REFERENCE.md](API_REFERENCE.md)     |
-| Learn about features      | [FEATURES.md](FEATURES.md)               |
-| Run tests                 | [TESTING.md](TESTING.md)                 |
-| Configure authentication  | [AUTH.md](AUTH.md)                       |
-| Set up secrets            | [SECRETS.md](SECRETS.md)                 |
-| View security policy      | [SECURITY_POLICY.md](SECURITY_POLICY.md) |
-
----
-
-## Documentation Structure
+## Directory Map
 
 ```
 docs/
-├── README.md                    # This file
-├── ARCHITECTURE.md              # System architecture overview
-├── API_REFERENCE.md             # Complete API documentation
-├── AUTH.md                     # Authentication & authorization
-├── BACKEND.md                  # Backend development guide
-├── CLIENT.md                   # Frontend documentation
-├── CONFIG.md                   # Configuration reference
-├── DATABASE_RADIO_ARCHITECTURE.md  # Database schema
-├── DEPLOYMENT.md               # Production deployment guide
-├── DEVELOPMENT.md              # Development setup guide
-├── FEATURES.md                # Feature catalog
-├── MODULARITY.md              # Modularity framework (NEW)
-├── REDIS.md                   # Redis caching documentation
-├── SCRIPTS.md                # Utility scripts reference
-├── SECURITY_POLICY.md         # Security policy
-├── SECRETS.md                 # Secrets management guide
-├── TESTING.md                 # Testing guide
-│
-├── architecture/               # Detailed architecture docs
-│   ├── PROJECT_STRUCTURE.md
-│   └── ... (specialized architecture docs)
-│
-├── archive/                   # Historical documentation
-│   ├── sessions/              # Development session notes
-│   └── ... (archived content)
-│
-├── bugfixes/                  # Bug fix documentation
-│
-├── deployment/                # Deployment guides
-│
-├── development/               # Development guides
-│
-├── getting-started/            # Getting started guides
-│
-├── guides/                    # Implementation guides
-│
-├── integrations/              # Integration documentation
-│
-├── security/                  # Security documentation
-│
-├── setup/                     # Setup guides
-│
-└── testing/                   # Testing documentation
+├── README.md
+├── ARCHITECTURE.md
+├── API_REFERENCE.md
+├── AUTH.md
+├── CLIENT.md
+├── CONFIG.md
+├── DATABASE_RADIO_ARCHITECTURE.md
+├── DEPLOYMENT.md
+├── DEVELOPMENT.md
+├── FEATURES.md
+├── MODULARITY.md
+├── PERFORMANCE_OPTIMIZATION_SUMMARY.md
+├── REDIS.md
+├── SCRIPTS.md
+├── SECURITY_POLICY.md
+├── SECRETS.md
+├── TESTING.md
+├── architecture/
+├── bugfixes/
+├── deployment/
+├── development/
+├── getting-started/
+├── guides/
+├── integrations/
+├── kiro/
+├── security/
+├── setup/
+└── testing/
 ```
-
----
-
-## Core Documentation
-
-### Getting Started
-
-1. **[README.md](../README.md)** - Project overview and quick start
-2. **[DEVELOPMENT.md](DEVELOPMENT.md)** - Set up your development environment
-3. **[ARCHITECTURE.md](ARCHITECTURE.md)** - Understand the system design
-
-### Configuration & Setup
-
-- **[CONFIG.md](CONFIG.md)** - Environment variables and configuration
-- **[SECRETS.md](SECRETS.md)** - Secrets management with keyring
-- **[AUTH.md](AUTH.md)** - Authentication configuration
-
-### Development
-
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Local development workflow
-- **[TESTING.md](TESTING.md)** - Testing guidelines
-- **[SCRIPTS.md](SCRIPTS.md)** - Available utility scripts
-
-### Deployment
-
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment
-- **[REDIS.md](REDIS.md)** - Redis caching setup
-- See `deploy/` directory for environment-specific guides
-
----
-
-## Reference Documentation
-
-### API
-
-- **[API_REFERENCE.md](API_REFERENCE.md)** - Complete REST API reference
-- **[openapi.yaml](../openapi.yaml)** - OpenAPI specification
-
-### Database
-
-- **[DATABASE_RADIO_ARCHITECTURE.md](DATABASE_RADIO_ARCHITECTURE.md)** - Database schema
-- **[REDIS.md](REDIS.md)** - Redis caching
-
-### Features
-
-- **[FEATURES.md](FEATURES.md)** - Comprehensive feature catalog
-- **architecture/** - Detailed architecture documentation
-
-### Security
-
-- **[SECURITY_POLICY.md](SECURITY_POLICY.md)** - Security policy
-- **[SECRETS.md](SECRETS.md)** - Secrets management
-- **security/** - Additional security documentation
-
----
-
-## Topic Index
-
-### Authentication & Security
-
-- [AUTH.md](AUTH.md) - Authentication setup
-- [SECURITY_POLICY.md](SECURITY_POLICY.md) - Security policy
-- [SECRETS.md](SECRETS.md) - Secrets management
-
-### Development
-
-- [DEVELOPMENT.md](DEVELOPMENT.md) - Dev setup
-- [TESTING.md](TESTING.md) - Testing
-- [SCRIPTS.md](SCRIPTS.md) - Scripts reference
-
-### Deployment
-
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Main deployment guide
-- [REDIS.md](REDIS.md) - Redis
-- `deploy/` - Environment-specific guides
-
-### Architecture
-
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System overview
-- [DATABASE_RADIO_ARCHITECTURE.md](DATABASE_RADIO_ARCHITECTURE.md) - Database
-- `architecture/` - Detailed docs
 
 ### Features & UI
 

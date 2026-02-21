@@ -5,7 +5,7 @@
  * Goals:
  * - Fill ZIP+4 (postal_code) for rows that currently have only a 5-digit ZIP (or blank).
  * - Do not overwrite existing address fields or provenance (source_url/source_status/etc).
- * - Use Smarty credentials from keyring/env via the server secretsManager.
+ * - Use Smarty credentials from AWS Secrets Manager (env overrides only).
  *
  * Usage:
  *   # Dry run (no API calls, no DB updates)
@@ -267,7 +267,7 @@ async function fetchSmartyCandidates(
           'Your stored Smarty credentials were rejected by the US Street API.',
           'Fix:',
           '- Re-enter the Auth ID/Auth Token in Admin -> Configuration -> Smarty, or',
-          '- Set via keyring: npx tsx scripts/set-secret.ts smarty_auth_id <value> and smarty_auth_token <value>, or',
+          '- Set in AWS Secrets Manager: smarty_auth_id and smarty_auth_token, or',
           '- Set env vars: SMARTY_AUTH_ID / SMARTY_AUTH_TOKEN.',
           `Response: ${text.slice(0, 200)}`,
         ].join('\n')

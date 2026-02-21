@@ -1,5 +1,7 @@
 # Security
 
+**Docs version (repo):** [docs/SECURITY_POLICY.md](../../docs/SECURITY_POLICY.md)
+
 > **Security best practices and hardening guide for ShadowCheck**
 
 ---
@@ -117,8 +119,8 @@ curl -H "x-api-key: your-key" http://localhost:3001/api/admin/backup
 
 ### ✅ DO
 
-- Use system keyring for local development
-- Use Docker secrets for production
+- Use AWS Secrets Manager for all environments
+- Use environment variables only for explicit local overrides
 - Rotate secrets regularly
 - Use strong, randomly generated passwords
 - Restrict file permissions on secret files (`chmod 600`)
@@ -182,13 +184,13 @@ Error: Required secret 'db_password' not found
 
 **Solution**:
 
-1. Set via keyring: `node scripts/set-secret.js db_password "password"`
+1. Set via AWS Secrets Manager (e.g., update `db_password`)
 2. Create Docker secret file: `echo "password" > secrets/db_password.txt`
 
 ### Keyring Access Denied
 
 ```
-Error: Access to keyring denied
+Error: Access to AWS Secrets Manager denied
 ```
 
 **Linux**: Install libsecret

@@ -118,7 +118,7 @@ history -w              # Write empty history
 - Environment detection (local vs AWS)
 - Generates cryptographically secure 32-character passwords
 - Updates PostgreSQL user password via `ALTER USER`
-- Updates all storage locations (secrets, keyring, .env)
+- Updates AWS Secrets Manager and PostgreSQL
 - Restarts affected services automatically
 
 ### Rotation Process
