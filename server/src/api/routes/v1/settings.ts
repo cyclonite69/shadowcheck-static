@@ -11,7 +11,7 @@ const { validateString } = require('../../../validation/schemas');
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
 function validateMapboxToken(value) {
-  const validation = validateString(String(value || ''), 1, 256, 'token');
+  const validation = validateString(String(value || ''), 'token');
   if (!validation.valid) {
     return validation;
   }
@@ -30,7 +30,7 @@ function validateMapboxToken(value) {
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
 function validateLabel(value) {
-  const validation = validateString(String(value || ''), 1, 64, 'label');
+  const validation = validateString(String(value || ''), 'label');
   if (!validation.valid) {
     return validation;
   }
@@ -43,7 +43,7 @@ function validateLabel(value) {
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
 function validateGoogleMapsKey(value) {
-  const validation = validateString(String(value || ''), 10, 256, 'google_maps_api_key');
+  const validation = validateString(String(value || ''), 'google_maps_api_key');
   if (!validation.valid) {
     return validation;
   }
@@ -57,7 +57,7 @@ function validateGoogleMapsKey(value) {
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
 function validateGenericKey(value, field) {
-  const validation = validateString(String(value || ''), 1, 256, field);
+  const validation = validateString(String(value || ''), field);
   if (!validation.valid) {
     return validation;
   }
@@ -70,7 +70,7 @@ function validateGenericKey(value, field) {
  * @returns {{ valid: boolean, error?: string, value?: string }}
  */
 function validateAwsRegion(value) {
-  const validation = validateString(String(value || ''), 1, 64, 'aws_region');
+  const validation = validateString(String(value || ''), 'aws_region');
   if (!validation.valid) {
     return validation;
   }

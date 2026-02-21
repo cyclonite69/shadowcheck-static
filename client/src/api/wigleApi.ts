@@ -27,9 +27,10 @@ export const wigleApi = {
     isBluetooth: boolean,
     importData: boolean = true
   ): Promise<any> {
+    const cleanBssid = bssid.trim().toUpperCase();
     const path = isBluetooth
-      ? `/api/wigle/detail/bt/${encodeURIComponent(bssid)}`
-      : `/api/wigle/detail/${encodeURIComponent(bssid)}`;
+      ? `/api/wigle/detail/bt/${encodeURIComponent(cleanBssid)}`
+      : `/api/wigle/detail/${encodeURIComponent(cleanBssid)}`;
     const res = await fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

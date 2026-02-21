@@ -32,7 +32,7 @@ export const adminApi = {
   },
 
   async saveGoogleMapsKey(key: string): Promise<any> {
-    return apiClient.post('/settings/google-maps', { key });
+    return apiClient.post('/settings/google-maps', { apiKey: key });
   },
 
   async saveAwsCredentials(
@@ -44,11 +44,11 @@ export const adminApi = {
   },
 
   async saveOpenCageKey(key: string): Promise<any> {
-    return apiClient.post('/settings/opencage', { key });
+    return apiClient.post('/settings/opencage', { apiKey: key });
   },
 
   async saveLocationIQKey(key: string): Promise<any> {
-    return apiClient.post('/settings/locationiq', { key });
+    return apiClient.post('/settings/locationiq', { apiKey: key });
   },
 
   async saveSmartyKey(authId: string, authToken: string): Promise<any> {
