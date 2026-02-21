@@ -576,21 +576,16 @@ router.get('/networks', cacheMiddleware(60), async (req, res, next) => {
     const distanceExpr =
       homeLocation !== null
         ? `
-        CASE
-          WHEN ne.lat IS NOT NULL AND ne.lon IS NOT NULL
-            AND ne.lat != 0 AND ne.lon != 0 THEN
-            ST_Distance(
-              ST_MakePoint(${homeLocation.lon}, ${homeLocation.lat})::geography,
-              ST_MakePoint(ne.lon, ne.lat)::geography
-            ) / 1000
-          WHEN ne.lastlat IS NOT NULL AND ne.lastlon IS NOT NULL
-            AND ne.lastlat != 0 AND ne.lastlon != 0 THEN
-            ST_Distance(
-              ST_MakePoint(${homeLocation.lon}, ${homeLocation.lat})::geography,
-              ST_MakePoint(ne.lastlon, ne.lastlat)::geography
-            ) / 1000
-          ELSE NULL
-        END`
+        (
+          SELECT MAX(ST_Distance(
+            ST_MakePoint(${homeLocation.lon}, ${homeLocation.lat})::geography,
+            ST_MakePoint(o.lon, o.lat)::geography
+          )) / 1000
+          FROM app.observations o
+          WHERE o.bssid = ne.bssid
+            AND o.lat IS NOT NULL AND o.lon IS NOT NULL
+            AND o.lat != 0 AND o.lon != 0
+        )`
         : 'NULL';
 
     const columnsWithDistance =
