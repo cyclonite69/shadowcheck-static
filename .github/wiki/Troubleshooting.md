@@ -1,5 +1,7 @@
 # Troubleshooting
 
+**Docs references (repo):** [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md)
+
 > **Common issues and solutions for ShadowCheck**
 
 ---
@@ -35,8 +37,8 @@ docker exec shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
 sudo -u postgres psql
 postgres=# ALTER USER shadowcheck_user WITH PASSWORD 'new_password';
 
-# Update keyring
-node scripts/set-secret.js db_password "new_password"
+# Update AWS Secrets Manager
+# (Set db_password to "new_password")
 ```
 
 ---
@@ -50,7 +52,7 @@ node scripts/set-secret.js db_password "new_password"
 
 **Solutions:**
 
-1. Verify `mapbox_token` is set in keyring
+1. Verify `mapbox_token` is set in AWS Secrets Manager
 2. Check browser console for Mapbox GL errors
 3. Ensure token has correct permissions
 

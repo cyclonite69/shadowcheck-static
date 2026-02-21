@@ -177,11 +177,6 @@ sudo ./deploy/aws/scripts/deploy-postgres.sh
 **Purpose:** Deploy CloudFormation stack for infrastructure  
 **Usage:** `./deploy/aws/scripts/setup-cloudformation.sh`
 
-### 🔑 setup-keyring.sh
-
-**Purpose:** Setup encrypted keyring for secrets  
-**Usage:** `./deploy/aws/scripts/setup-keyring.sh`
-
 ### 🔒 setup-passwords.sh
 
 **Purpose:** Generate initial passwords (first-time setup)  

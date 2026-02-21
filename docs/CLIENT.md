@@ -2,6 +2,8 @@
 
 This document covers the ShadowCheckStatic React frontend application structure, components, hooks, and utilities.
 
+**Wiki reference (diagrams):** [Architecture](../.github/wiki/Architecture.md)
+
 ## Project Overview
 
 The client is a React application built with Vite, TypeScript, and Tailwind CSS. It provides a geospatial surveillance detection dashboard with network exploration, analytics, and administrative features.

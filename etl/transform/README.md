@@ -32,7 +32,7 @@ Adds reverse geocoding data to observations.
 
 Adds ZIP+4 to `app.agency_offices.postal_code` using Smarty US Street API.
 
-- Reads Smarty credentials from keyring/env (`smarty_auth_id` / `smarty_auth_token`)
+- Reads Smarty credentials from AWS Secrets Manager (env overrides only)
 - Only fills `postal_code` when it is blank or 5-digit
 - Optional: can also fill missing `latitude`/`longitude`/`location` if Smarty returns coordinates (`--with-coordinates`)
 

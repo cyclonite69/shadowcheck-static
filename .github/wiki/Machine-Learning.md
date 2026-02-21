@@ -1,5 +1,7 @@
 # Machine Learning
 
+**Docs references (repo):** [docs/FEATURES.md](../../docs/FEATURES.md)
+
 > **ML-powered threat detection system**
 
 ---

@@ -1,6 +1,17 @@
 # Testing Strategy & Guidelines
 
+**Wiki reference (diagrams):** [Development](../.github/wiki/Development.md)
+
 This document outlines the testing strategy, practices, and guidelines for ShadowCheckStatic.
+
+## Quick Test Run
+
+```bash
+npm test
+npm run test:integration
+```
+
+Requires database connectivity and secrets available via AWS Secrets Manager (or explicit local overrides).
 
 ## Test Framework
 

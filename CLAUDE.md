@@ -234,7 +234,7 @@ Resolution order: AWS Secrets Manager → local files (`./secrets/`) → environ
 
 **Admin Operations Failing (500 errors on tags/imports)**:
 
-- Ensure `db_admin_password` secret is in keyring: `npx tsx scripts/set-secret.ts db_admin_password`
+- Ensure `db_admin_password` secret exists in AWS Secrets Manager
 - Verify migration applied: `sql/migrations/20260129_implement_db_security.sql`
 
 ## Key Frontend Utilities

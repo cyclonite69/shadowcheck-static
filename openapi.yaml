@@ -64,7 +64,7 @@ paths:
       tags:
         - Health
       summary: System health check
-      description: Returns overall system health including database, secrets, keyring, and memory status
+      description: Returns overall system health including database, secrets, and memory status
       operationId: getHealth
       responses:
         '200':
@@ -1026,7 +1026,7 @@ components:
                   type: integer
                 loaded_count:
                   type: integer
-            keyring:
+            secretsManager:
               type: object
               properties:
                 status:

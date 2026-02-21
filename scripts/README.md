@@ -11,7 +11,7 @@
 Automated password rotation for PostgreSQL. Works in both local and AWS environments.
 
 - Generates secure 32-character password
-- Updates all storage locations (secrets, keyring, .env)
+- Updates secrets in AWS Secrets Manager (no secrets on disk)
 - Updates PostgreSQL user password
 - Restarts affected services
 - See `docs/security/PASSWORD_ROTATION.md` for details

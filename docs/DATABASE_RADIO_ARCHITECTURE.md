@@ -1,5 +1,7 @@
 # Radio-Specific Table Architecture Decision
 
+**Wiki versions (diagrams):** [Database](../.github/wiki/Database.md), [Database Schema](../.github/wiki/Database-Schema.md)
+
 ## Current Situation
 
 ### ShadowCheckMobile (Separate Tables)

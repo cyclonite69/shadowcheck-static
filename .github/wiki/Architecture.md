@@ -1,5 +1,7 @@
 # Architecture
 
+**Docs version (repo):** [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)
+
 > **System architecture and design patterns for ShadowCheck**
 
 ---

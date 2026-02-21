@@ -6,7 +6,7 @@
  *   npx --yes tsx scripts/debug-smarty-one.ts --street="2508 Bluecutt Rd" --city="Columbus" --state="MS" --zip="39705"
  *
  * Notes:
- * - Reads Smarty creds from keyring via server secretsManager, falling back to env vars.
+ * - Reads Smarty creds from AWS Secrets Manager via server secretsManager, falling back to env vars.
  * - Does not print auth-id/auth-token.
  */
 

@@ -2,6 +2,8 @@
 
 Production deployment guide for ShadowCheck-Static.
 
+**Wiki version (diagrams):** [Deployment Guide](../.github/wiki/Deployment-Guide.md)
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -556,16 +558,11 @@ const AWS = require('aws-sdk');
 const secretsManager = new AWS.SecretsManager();
 ```
 
-**Environment-based:**
+**Environment-based (local overrides only):**
 
 ```bash
-# Use system keyring (Linux)
-npm install keytar
-```
-
-```javascript
-const keytar = require('keytar');
-const password = await keytar.getPassword('shadowcheck', 'db-password');
+export DB_PASSWORD=your-password
+export MAPBOX_TOKEN=your-token
 ```
 
 ## Database Setup
@@ -938,6 +935,35 @@ LIMIT 10;
 
 ---
 
-For API documentation, see [API.md](API.md).
+## Docker Deployment Notes
+
+- Core containers: `shadowcheck_postgres`, `shadowcheck_redis`, `shadowcheck_pgadmin` (optional).
+- Start services: `docker-compose up -d`.
+- Logs: `docker logs shadowcheck_postgres` and `docker logs shadowcheck_static_api`.
+- psql: `docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db`.
+
+## Deployment Checklist (Short)
+
+- AWS Secrets Manager contains required secrets (`db_password`, `db_admin_password`, `mapbox_token`).
+- PostgreSQL + PostGIS running and reachable.
+- Migrations applied.
+- Health endpoint responds: `GET /health`.
+- Redis reachable (optional).
+
+## Ops Quick Reference
+
+```bash
+docker-compose up -d
+docker logs shadowcheck_postgres
+docker logs shadowcheck_static_api
+docker exec -it shadowcheck_postgres psql -U shadowcheck_user -d shadowcheck_db
+```
+
+## Postgres SSL/SCRAM (Short)
+
+- Use SCRAM-SHA-256 for `pg_hba.conf` and user passwords.
+- Enable SSL in application config for production.
+
+For API documentation, see [API_REFERENCE.md](API_REFERENCE.md).
 For development setup, see [DEVELOPMENT.md](DEVELOPMENT.md).
 For architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md).

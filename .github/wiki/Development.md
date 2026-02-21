@@ -86,6 +86,8 @@ npm run dev:frontend
 
 ```bash
 # Development
+
+**Docs version (repo):** [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md)
 npm run dev              # Backend with nodemon
 npm run dev:frontend     # Frontend with Vite HMR
 

@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Password Rotation System**: Automated database password rotation script
   - Environment-aware (detects local vs AWS automatically)
   - Generates cryptographically secure 32-character passwords
-  - Updates all storage locations (secrets, keyring, .env, PostgreSQL)
+  - Updates AWS Secrets Manager and PostgreSQL
   - Comprehensive documentation in `deploy/aws/docs/PASSWORD_ROTATION.md`
 - **PostgreSQL Security Hardening**:
   - Logging configuration to prevent password exposure (`log_statement = 'none'`)
@@ -162,7 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - Implemented Docker secrets management
-- Added keyring-based credential storage
+- Added AWS Secrets Manager-based credential storage
 - Enhanced SQL injection protection
 
 ## [0.7.0] - 2025-11-20

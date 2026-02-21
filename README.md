@@ -46,7 +46,7 @@
 - **Home Location & Markers:** Saved locations and distance-from-home filters.
 - **Data Export & Backup:** CSV/JSON/GeoJSON exports plus admin-protected backups.
 - **Authentication & Roles:** Session-based login with admin-gated operations.
-- **Admin Settings:** Keyring-backed Mapbox/WiGLE/Google Maps configuration.
+- **Admin Settings:** AWS Secrets Manager-backed Mapbox/WiGLE/Google Maps configuration.
 - **DevContainer Support:** Consistent development environment with VS Code integration.
 - **Security Headers:** Production-ready deployment with CSP, HTTPS enforcement, and Lighthouse optimization.
 - **Admin Features:** System administration interface with configuration management, user settings, and role-based gating.
@@ -213,7 +213,7 @@ Apply security migration: `psql -U shadowcheck_admin -d shadowcheck_db -f sql/mi
 
 ### 3. Environment Configuration
 
-Create `.env` in project root (or load secrets via keyring):
+Provision secrets in AWS Secrets Manager and export any local overrides via environment variables:
 
 ```
 DB_USER=shadowcheck_user
@@ -226,7 +226,7 @@ REDIS_PORT=6379
 PORT=3001
 ```
 
-See `.env.example` for all options.
+See `.env.example` for non-secret options only.
 
 > **Bare-metal only**: Replace `DB_HOST` and `REDIS_HOST` with `localhost` if running without Docker.
 
@@ -472,6 +472,15 @@ npm run build:public  # Sets ROBOTS_ALLOW_INDEXING=true
 ## Documentation
 
 Additional documentation is available in the `docs` directory. See [docs/README.md](docs/README.md) for navigation.
+
+## Wiki (Diagrams & Visual Docs)
+
+The wiki in `.github/wiki/` contains diagram-heavy documentation and is the primary source for architecture and flow visuals.
+
+- [Wiki Home](.github/wiki/Home.md)
+- [Architecture (Wiki)](.github/wiki/Architecture.md)
+- [Data Flow (Wiki)](.github/wiki/Data-Flow.md)
+- [Deployment Guide (Wiki)](.github/wiki/Deployment-Guide.md)
 
 ## Contributing
 

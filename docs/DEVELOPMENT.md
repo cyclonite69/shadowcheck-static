@@ -1,5 +1,7 @@
 # Development Guide
 
+**Wiki versions (diagrams):** [Development](../.github/wiki/Development.md), [Installation](../.github/wiki/Installation.md)
+
 Complete guide for setting up and developing ShadowCheck-Static with modern React + Express architecture.
 
 ## Table of Contents
@@ -99,23 +101,30 @@ This installs all dependencies including:
 
 ### 3. Environment Configuration
 
-Create `.env` file in project root:
+Provision secrets in **AWS Secrets Manager**. For local development, use environment
+variables only as explicit overrides (no secrets written to disk).
 
 ```bash
+# Non-secret config can live in .env if desired
 cp .env.example .env
+
+# Local overrides for secrets
+export DB_PASSWORD=...
+export DB_ADMIN_PASSWORD=...
+export MAPBOX_TOKEN=...
 ```
 
-Edit `.env` with your configuration:
+Non-secret config example:
 
 ```env
-# Database Configuration
 DB_USER=shadowcheck_user
 DB_HOST=localhost  # or shadowcheck_postgres for Docker
 DB_NAME=shadowcheck_db
-DB_PASSWORD=your_secure_password
 DB_PORT=5432
-
-# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+PORT=3001
+```
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
@@ -127,7 +136,7 @@ FORCE_HTTPS=false
 # CORS Configuration (comma-separated origins)
 CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173
 
-# Frontend Configuration (stored in keyring or .env)
+# Frontend Configuration (use AWS Secrets Manager; env vars for local overrides)
 MAPBOX_TOKEN=pk.your_mapbox_token_here
 
 # API Keys for enrichment
@@ -140,7 +149,7 @@ ABSTRACT_API_KEY=your_abstract_key
 # Endpoint: /api/weather -> https://api.open-meteo.com/v1/forecast
 ```
 
-**Note**: For production, the keyring system stores secrets instead of `.env`.
+**Note**: In production, secrets are stored in AWS Secrets Manager, not `.env`.
 
 ## DevContainer Setup
 
@@ -700,6 +709,31 @@ const pool = new Pool({
 ```
 
 ## Common Tasks
+
+### Quick Start (Local)
+
+```bash
+docker-compose up -d
+npm install
+npm run dev
+```
+
+### Common Scripts
+
+- `scripts/docker-manage.sh` — start/stop/status/logs for Docker services
+- `scripts/db-connect.sh` — open psql connection
+- `scripts/refresh-threat-scores.sh` — recompute threat scores
+- `scripts/test-endpoints.sh` — API smoke tests
+
+### Logging & Errors
+
+- Logging uses Winston; runtime logs live under `server/data/logs/` and `logs/` and are gitignored.
+- API errors use `AppError` classes with centralized middleware for consistent responses.
+
+### Input Validation
+
+- Validation helpers and middleware live in `server/src/validation/`.
+- Prefer middleware (pagination, bssid, coordinates) to keep routes clean and safe.
 
 ### Add New API Endpoint
 

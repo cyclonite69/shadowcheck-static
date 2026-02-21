@@ -1,5 +1,7 @@
 # Database Schema Reference
 
+**Docs version (repo):** [docs/DATABASE_RADIO_ARCHITECTURE.md](../../docs/DATABASE_RADIO_ARCHITECTURE.md)
+
 > **Complete field-level documentation for all tables**
 
 ---
