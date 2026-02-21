@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'mapbox-gl';
 import { agencyApi } from '../../api/agencyApi';
+import { useAsyncData } from '../../hooks/useAsyncData';
 
 interface AgencyOffice {
   type: 'Feature';
@@ -39,33 +40,19 @@ export const useAgencyOffices = (
   mapReady: boolean,
   visibility: AgencyVisibility = { fieldOffices: true, residentAgencies: true }
 ) => {
-  const [data, setData] = useState<AgencyOfficesGeoJSON | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data,
+    loading,
+    error: fetchError,
+  } = useAsyncData<AgencyOfficesGeoJSON>(() => agencyApi.getAgencyOffices(), []);
+  const error = fetchError?.message ?? null;
+
   const dataRef = useRef<AgencyOfficesGeoJSON | null>(null);
   const visibilityRef = useRef(visibility);
 
   // Keep refs in sync so the style.load handler always uses current values
   dataRef.current = data;
   visibilityRef.current = visibility;
-
-  // Fetch agency offices data
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const geojson = await agencyApi.getAgencyOffices();
-        setData(geojson);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   // Add/restore layers on map — runs on initial load and after every style reload
   useEffect(() => {

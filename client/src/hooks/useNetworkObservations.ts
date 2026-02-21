@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
 import { networkApi } from '../api/networkApi';
+import { useAsyncData } from './useAsyncData';
 
 export interface Observation {
   time: number; // epoch ms
@@ -37,44 +37,25 @@ function normalizeObservation(o: Record<string, unknown>): Observation {
 }
 
 export function useNetworkObservations(bssid: string): UseNetworkObservationsReturn {
-  const [observations, setObservations] = useState<Observation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchObservations = useCallback(async () => {
-    if (!bssid) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await networkApi.getNetworkObservations(bssid);
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Normalize data: API returns strings for some fields, frontend expects numbers
-      const rawObs = data.observations || [];
-      const normalized: Observation[] = rawObs
-        .map((o: Record<string, unknown>): Observation => normalizeObservation(o))
-        .filter((o: Observation) => o.time > 0 && !isNaN(o.time));
-
-      setObservations(normalized);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load observations';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+  const {
+    data,
+    loading,
+    error: fetchError,
+    refetch,
+  } = useAsyncData<Observation[]>(async () => {
+    if (!bssid) return [];
+    const res = await networkApi.getNetworkObservations(bssid);
+    if (res.error) throw new Error(res.error);
+    // Normalize data: API returns strings for some fields, frontend expects numbers
+    return (res.observations || [])
+      .map((o: Record<string, unknown>): Observation => normalizeObservation(o))
+      .filter((o: Observation) => o.time > 0 && !isNaN(o.time));
   }, [bssid]);
 
-  useEffect(() => {
-    fetchObservations();
-  }, [fetchObservations]);
-
   return {
-    observations,
+    observations: data ?? [],
     loading,
-    error,
-    refetch: fetchObservations,
+    error: fetchError?.message ?? null,
+    refetch,
   };
 }
