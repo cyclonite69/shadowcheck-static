@@ -2,7 +2,7 @@
 // PURPOSE: Custom hook for managing analytics data fetching and state
 // EXTRACTS: Data fetching logic from lines 314-516 in original AnalyticsPage.tsx
 
-import { useState, useEffect } from 'react';
+import { useAsyncData } from '../../../hooks/useAsyncData';
 import { analyticsApi } from '../../../api/analyticsApi';
 import {
   transformNetworkTypesData,
@@ -45,22 +45,25 @@ export interface UseAnalyticsDataReturn {
   refetch: () => void;
 }
 
-export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataReturn => {
-  const [data, setData] = useState<AnalyticsData>({
-    networkTypes: [],
-    signalStrength: [],
-    security: [],
-    threatDistribution: [],
-    temporal: [],
-    radioTime: [],
-    threatTrends: [],
-    topNetworks: [],
-    severityCounts: [],
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const EMPTY_DATA: AnalyticsData = {
+  networkTypes: [],
+  signalStrength: [],
+  security: [],
+  threatDistribution: [],
+  temporal: [],
+  radioTime: [],
+  threatTrends: [],
+  topNetworks: [],
+  severityCounts: [],
+};
 
-  const fetchAnalytics = async () => {
+export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataReturn => {
+  const {
+    data,
+    loading,
+    error: fetchError,
+    refetch,
+  } = useAsyncData<AnalyticsData>(async () => {
     const isAllTime = !debouncedFilterState?.enabled?.timeframe;
     if (DEBUG_ANALYTICS) {
       console.info('[analytics] fetchAnalytics start:', {
@@ -70,102 +73,78 @@ export const useAnalyticsData = (debouncedFilterState: any): UseAnalyticsDataRet
         filters: debouncedFilterState?.filters,
       });
     }
-    setLoading(true);
-    setError(null);
 
-    try {
-      if (DEBUG_ANALYTICS) {
-        console.info('[analytics] fetch start', { isAllTime });
-      }
-      // Use working analytics endpoints with real data
-      const [
-        networkPayload,
-        signalPayload,
-        securityPayload,
-        topNetworksPayload,
-        threatPayload,
-        severityPayload,
-        temporalPayload,
-        radioTimePayload,
-        threatTrendsPayload,
-      ] = await Promise.all([
-        analyticsApi.getNetworkTypes(),
-        analyticsApi.getSignalStrength(),
-        analyticsApi.getSecurity(),
-        analyticsApi.getTopNetworks(10),
-        analyticsApi.getThreatDistribution(),
-        analyticsApi.getThreatSeverityCounts(),
-        analyticsApi.getTemporalActivity(),
-        analyticsApi.getRadioTypeOverTime('all'),
-        analyticsApi.getThreatTrends('all'),
-      ]);
-
-      if (networkPayload?.ok === false) {
-        const message =
-          networkPayload?.message || networkPayload?.error || 'Analytics fetch failed';
-        throw new Error(message);
-      }
-
-      // Transform real analytics data - no sample data
-      const transformedData: AnalyticsData = {
-        networkTypes: networkPayload?.data ? transformNetworkTypesData(networkPayload.data) : [],
-        signalStrength: signalPayload?.data ? transformSignalStrengthData(signalPayload.data) : [],
-        security: securityPayload?.data ? transformSecurityData(securityPayload.data) : [],
-        threatDistribution: threatPayload?.data
-          ? transformThreatDistributionData(threatPayload.data)
-          : [],
-        temporal: temporalPayload?.data ? transformTemporalData(temporalPayload.data) : [],
-        radioTime: radioTimePayload?.data ? transformRadioTimeData(radioTimePayload.data) : [],
-        threatTrends: threatTrendsPayload?.data
-          ? transformThreatTrendsData(threatTrendsPayload.data)
-          : [],
-        topNetworks: topNetworksPayload?.data
-          ? transformTopNetworksData(topNetworksPayload.data)
-          : [],
-        severityCounts: severityPayload?.counts
-          ? transformSeverityCounts(severityPayload.counts)
-          : [],
-      };
-
-      if (DEBUG_ANALYTICS) {
-        console.info('[analytics] Data transformed:', {
-          networkTypes: transformedData.networkTypes.length,
-          signalStrength: transformedData.signalStrength.length,
-          security: transformedData.security.length,
-          threatDistribution: transformedData.threatDistribution.length,
-          temporal: transformedData.temporal.length,
-          radioTime: transformedData.radioTime.length,
-          threatTrends: transformedData.threatTrends.length,
-          topNetworks: transformedData.topNetworks.length,
-        });
-      }
-
-      setData(transformedData);
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        setError(err.message);
-        if (DEBUG_ANALYTICS) {
-        }
-      }
-    } finally {
-      setLoading(false);
-      if (DEBUG_ANALYTICS) {
-        console.info('[analytics] fetch end');
-      }
+    if (DEBUG_ANALYTICS) {
+      console.info('[analytics] fetch start', { isAllTime });
     }
-  };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchAnalytics();
-    return () => controller.abort();
+    // Use working analytics endpoints with real data
+    const [
+      networkPayload,
+      signalPayload,
+      securityPayload,
+      topNetworksPayload,
+      threatPayload,
+      severityPayload,
+      temporalPayload,
+      radioTimePayload,
+      threatTrendsPayload,
+    ] = await Promise.all([
+      analyticsApi.getNetworkTypes(),
+      analyticsApi.getSignalStrength(),
+      analyticsApi.getSecurity(),
+      analyticsApi.getTopNetworks(10),
+      analyticsApi.getThreatDistribution(),
+      analyticsApi.getThreatSeverityCounts(),
+      analyticsApi.getTemporalActivity(),
+      analyticsApi.getRadioTypeOverTime('all'),
+      analyticsApi.getThreatTrends('all'),
+    ]);
+
+    if (networkPayload?.ok === false) {
+      const message = networkPayload?.message || networkPayload?.error || 'Analytics fetch failed';
+      throw new Error(message);
+    }
+
+    // Transform real analytics data - no sample data
+    const transformedData: AnalyticsData = {
+      networkTypes: networkPayload?.data ? transformNetworkTypesData(networkPayload.data) : [],
+      signalStrength: signalPayload?.data ? transformSignalStrengthData(signalPayload.data) : [],
+      security: securityPayload?.data ? transformSecurityData(securityPayload.data) : [],
+      threatDistribution: threatPayload?.data
+        ? transformThreatDistributionData(threatPayload.data)
+        : [],
+      temporal: temporalPayload?.data ? transformTemporalData(temporalPayload.data) : [],
+      radioTime: radioTimePayload?.data ? transformRadioTimeData(radioTimePayload.data) : [],
+      threatTrends: threatTrendsPayload?.data
+        ? transformThreatTrendsData(threatTrendsPayload.data)
+        : [],
+      topNetworks: topNetworksPayload?.data
+        ? transformTopNetworksData(topNetworksPayload.data)
+        : [],
+      severityCounts: severityPayload?.counts
+        ? transformSeverityCounts(severityPayload.counts)
+        : [],
+    };
+
+    if (DEBUG_ANALYTICS) {
+      console.info('[analytics] Data transformed:', {
+        networkTypes: transformedData.networkTypes.length,
+        signalStrength: transformedData.signalStrength.length,
+        security: transformedData.security.length,
+        threatDistribution: transformedData.threatDistribution.length,
+        temporal: transformedData.temporal.length,
+        radioTime: transformedData.radioTime.length,
+        threatTrends: transformedData.threatTrends.length,
+        topNetworks: transformedData.topNetworks.length,
+      });
+      console.info('[analytics] fetch end');
+    }
+
+    return transformedData;
   }, [JSON.stringify(debouncedFilterState)]);
 
-  const refetch = () => {
-    fetchAnalytics();
-  };
-
-  return { data, loading, error, refetch };
+  return { data: data ?? EMPTY_DATA, loading, error: fetchError?.message ?? null, refetch };
 };
 
 // ===== END FILE =====
