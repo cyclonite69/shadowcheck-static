@@ -48,27 +48,6 @@ function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string;
   return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
 }
 
-async function captureMetrics(): Promise<Record<string, number>> {
-  try {
-    const { rows } = await adminDbService.query(`
-      SELECT
-        (SELECT COUNT(*) FROM app.networks)               AS networks,
-        (SELECT COUNT(*) FROM app.access_points)          AS access_points,
-        (SELECT COUNT(*) FROM app.observations)           AS observations,
-        (SELECT COUNT(*) FROM app.api_network_explorer_mv) AS in_explorer_mv
-    `);
-    return {
-      networks: parseInt(rows[0].networks),
-      access_points: parseInt(rows[0].access_points),
-      observations: parseInt(rows[0].observations),
-      in_explorer_mv: parseInt(rows[0].in_explorer_mv),
-    };
-  } catch (e: any) {
-    logger.warn(`Failed to capture metrics: ${e.message}`);
-    return {};
-  }
-}
-
 router.post(
   '/admin/import-sqlite',
   upload.single('database'),
@@ -101,23 +80,14 @@ router.post(
       `Starting incremental SQLite import: ${originalName} (source_tag: ${sourceTag}, backup: ${backupRequested})`
     );
 
-    // Capture before metrics
-    const metricsBefore = await captureMetrics();
+    const metricsBefore = await adminDbService.captureImportMetrics();
 
-    // Open history row immediately
-    let historyId = 0;
-    try {
-      const { rows } = await adminDbService.query(
-        `INSERT INTO app.import_history (source_tag, filename, status, metrics_before)
-         VALUES ($1, $2, 'running', $3) RETURNING id`,
-        [sourceTag, originalName, JSON.stringify(metricsBefore)]
-      );
-      historyId = rows[0].id;
-    } catch (e: any) {
-      logger.warn(`Could not create import_history row: ${e.message}`);
-    }
+    let historyId = await adminDbService.createImportHistoryEntry(
+      sourceTag,
+      originalName,
+      metricsBefore
+    );
 
-    // Optional backup before import
     let backupTaken = false;
     if (backupRequested) {
       logger.info('Running pre-import backup...');
@@ -125,11 +95,7 @@ router.post(
         await runPostgresBackup({ uploadToS3: true });
         backupTaken = true;
         logger.info('Pre-import backup complete');
-        if (historyId)
-          await adminDbService.query(
-            `UPDATE app.import_history SET backup_taken = TRUE WHERE id = $1`,
-            [historyId]
-          );
+        if (historyId) await adminDbService.markImportBackupTaken(historyId);
       } catch (e: any) {
         logger.warn(`Pre-import backup failed (continuing): ${e.message}`);
       }
@@ -176,19 +142,15 @@ router.post(
         const imported = importedMatch ? parseInt(importedMatch[1].replace(/,/g, '')) : 0;
         const failed = failedMatch ? parseInt(failedMatch[1].replace(/,/g, '')) : 0;
 
-        const metricsAfter = await captureMetrics();
+        const metricsAfter = await adminDbService.captureImportMetrics();
 
         if (historyId) {
-          await adminDbService.query(
-            `UPDATE app.import_history
-               SET finished_at   = NOW(),
-                   status        = 'success',
-                   imported      = $2,
-                   failed        = $3,
-                   duration_s    = $4,
-                   metrics_after = $5
-             WHERE id = $1`,
-            [historyId, imported, failed, durationS, JSON.stringify(metricsAfter)]
+          await adminDbService.completeImportSuccess(
+            historyId,
+            imported,
+            failed,
+            durationS,
+            metricsAfter
           );
         }
 
@@ -210,15 +172,7 @@ router.post(
       } else {
         const errMsg = errorOutput.slice(0, 500) || `exit code ${code}`;
         if (historyId) {
-          await adminDbService.query(
-            `UPDATE app.import_history
-               SET finished_at  = NOW(),
-                   status       = 'failed',
-                   duration_s   = $2,
-                   error_detail = $3
-             WHERE id = $1`,
-            [historyId, durationS, errMsg]
-          );
+          await adminDbService.failImportHistory(historyId, errMsg, durationS);
         }
 
         logger.error(`Import script failed with code ${code}`);
@@ -235,14 +189,7 @@ router.post(
     importProcess.on('error', async (error: Error) => {
       logger.error(`Failed to start import script: ${error.message}`, { error });
       if (historyId) {
-        await adminDbService.query(
-          `UPDATE app.import_history
-             SET finished_at  = NOW(),
-                 status       = 'failed',
-                 error_detail = $2
-           WHERE id = $1`,
-          [historyId, error.message]
-        );
+        await adminDbService.failImportHistory(historyId, error.message);
       }
       try {
         await fs.unlink(sqliteFile);
@@ -262,16 +209,8 @@ router.post(
 router.get('/admin/import-history', async (req: any, res: any, next: any) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-    const { rows } = await adminDbService.query(
-      `SELECT id, started_at, finished_at, source_tag, filename,
-              imported, failed, duration_s, status, error_detail,
-              metrics_before, metrics_after, backup_taken
-         FROM app.import_history
-        ORDER BY started_at DESC
-        LIMIT $1`,
-      [limit]
-    );
-    res.json({ ok: true, history: rows });
+    const history = await adminDbService.getImportHistory(limit);
+    res.json({ ok: true, history });
   } catch (e: any) {
     next(e);
   }
@@ -280,20 +219,8 @@ router.get('/admin/import-history', async (req: any, res: any, next: any) => {
 // GET /api/admin/device-sources — known source tags with last import date
 router.get('/admin/device-sources', async (req: any, res: any, next: any) => {
   try {
-    // Union device_sources (canonical) with import_history tags so new sources
-    // show up as soon as they've been imported at least once.
-    const { rows } = await adminDbService.query(`
-      SELECT
-        ds.source_tag,
-        MAX(ih.started_at) AS last_import,
-        SUM(COALESCE(ih.imported, 0)) AS total_imported
-      FROM app.device_sources ds
-      LEFT JOIN app.import_history ih
-             ON ih.source_tag = ds.source_tag AND ih.status = 'success'
-      GROUP BY ds.source_tag
-      ORDER BY last_import DESC NULLS LAST
-    `);
-    res.json({ ok: true, sources: rows });
+    const sources = await adminDbService.getDeviceSources();
+    res.json({ ok: true, sources });
   } catch (e: any) {
     next(e);
   }

@@ -778,6 +778,149 @@ async function searchNetworksByTagArray(tagArray: string[], limit: number): Prom
   return result.rows;
 }
 
+// ── Import history methods ─────────────────────────────────────────────────────
+
+/**
+ * Counts key tables for before/after import metrics snapshots.
+ */
+async function captureImportMetrics(): Promise<Record<string, number>> {
+  try {
+    const { rows } = await adminQuery(`
+      SELECT
+        (SELECT COUNT(*) FROM app.networks)               AS networks,
+        (SELECT COUNT(*) FROM app.access_points)          AS access_points,
+        (SELECT COUNT(*) FROM app.observations)           AS observations,
+        (SELECT COUNT(*) FROM app.api_network_explorer_mv) AS in_explorer_mv
+    `);
+    return {
+      networks: parseInt(rows[0].networks),
+      access_points: parseInt(rows[0].access_points),
+      observations: parseInt(rows[0].observations),
+      in_explorer_mv: parseInt(rows[0].in_explorer_mv),
+    };
+  } catch (e: any) {
+    logger.warn(`Failed to capture metrics: ${e.message}`);
+    return {};
+  }
+}
+
+/**
+ * Opens a new import_history row with status='running'.
+ * Returns the generated id, or 0 on failure.
+ */
+async function createImportHistoryEntry(
+  sourceTag: string,
+  filename: string,
+  metricsBefore: Record<string, number>
+): Promise<number> {
+  try {
+    const { rows } = await adminQuery(
+      `INSERT INTO app.import_history (source_tag, filename, status, metrics_before)
+       VALUES ($1, $2, 'running', $3) RETURNING id`,
+      [sourceTag, filename, JSON.stringify(metricsBefore)]
+    );
+    return rows[0].id;
+  } catch (e: any) {
+    logger.warn(`Could not create import_history row: ${e.message}`);
+    return 0;
+  }
+}
+
+/**
+ * Marks the import history row as having taken a backup.
+ */
+async function markImportBackupTaken(historyId: number): Promise<void> {
+  await adminQuery(`UPDATE app.import_history SET backup_taken = TRUE WHERE id = $1`, [historyId]);
+}
+
+/**
+ * Closes an import history row with status='success'.
+ */
+async function completeImportSuccess(
+  historyId: number,
+  imported: number,
+  failed: number,
+  durationS: string,
+  metricsAfter: Record<string, number>
+): Promise<void> {
+  await adminQuery(
+    `UPDATE app.import_history
+       SET finished_at   = NOW(),
+           status        = 'success',
+           imported      = $2,
+           failed        = $3,
+           duration_s    = $4,
+           metrics_after = $5
+     WHERE id = $1`,
+    [historyId, imported, failed, durationS, JSON.stringify(metricsAfter)]
+  );
+}
+
+/**
+ * Closes an import history row with status='failed'.
+ * durationS is optional (unknown if the process errored before spawning).
+ */
+async function failImportHistory(
+  historyId: number,
+  errorDetail: string,
+  durationS?: string
+): Promise<void> {
+  if (durationS !== undefined) {
+    await adminQuery(
+      `UPDATE app.import_history
+         SET finished_at  = NOW(),
+             status       = 'failed',
+             duration_s   = $2,
+             error_detail = $3
+       WHERE id = $1`,
+      [historyId, durationS, errorDetail]
+    );
+  } else {
+    await adminQuery(
+      `UPDATE app.import_history
+         SET finished_at  = NOW(),
+             status       = 'failed',
+             error_detail = $2
+       WHERE id = $1`,
+      [historyId, errorDetail]
+    );
+  }
+}
+
+/**
+ * Returns the most recent import history rows.
+ */
+async function getImportHistory(limit: number): Promise<any[]> {
+  const { rows } = await adminQuery(
+    `SELECT id, started_at, finished_at, source_tag, filename,
+            imported, failed, duration_s, status, error_detail,
+            metrics_before, metrics_after, backup_taken
+       FROM app.import_history
+      ORDER BY started_at DESC
+      LIMIT $1`,
+    [limit]
+  );
+  return rows;
+}
+
+/**
+ * Returns all known device source tags with their last import date and total imported count.
+ */
+async function getDeviceSources(): Promise<any[]> {
+  const { rows } = await adminQuery(`
+    SELECT
+      ds.source_tag,
+      MAX(ih.started_at) AS last_import,
+      SUM(COALESCE(ih.imported, 0)) AS total_imported
+    FROM app.device_sources ds
+    LEFT JOIN app.import_history ih
+           ON ih.source_tag = ds.source_tag AND ih.status = 'success'
+    GROUP BY ds.source_tag
+    ORDER BY last_import DESC NULLS LAST
+  `);
+  return rows;
+}
+
 module.exports.checkDuplicateObservations = checkDuplicateObservations;
 module.exports.addNetworkNote = addNetworkNote;
 module.exports.getNetworkSummary = getNetworkSummary;
@@ -829,3 +972,10 @@ module.exports.removeTagFromNetwork = removeTagFromNetwork;
 module.exports.addTagToNetwork = addTagToNetwork;
 module.exports.getNetworkTagsExpanded = getNetworkTagsExpanded;
 module.exports.searchNetworksByTagArray = searchNetworksByTagArray;
+module.exports.captureImportMetrics = captureImportMetrics;
+module.exports.createImportHistoryEntry = createImportHistoryEntry;
+module.exports.markImportBackupTaken = markImportBackupTaken;
+module.exports.completeImportSuccess = completeImportSuccess;
+module.exports.failImportHistory = failImportHistory;
+module.exports.getImportHistory = getImportHistory;
+module.exports.getDeviceSources = getDeviceSources;
