@@ -11,14 +11,15 @@
 
 ### Score Progression
 
-| Phase                   | Score    | Route Violation Rate | Key Deliverable                                                                                  |
-| ----------------------- | -------- | -------------------- | ------------------------------------------------------------------------------------------------ |
-| Baseline (2026-02-21)   | 6/10     | 50% (12/24)          | Initial audit                                                                                    |
-| Phase 2 (2026-02-22)    | 8/10     | 21% (5/24)           | `networkSqlExpressions.ts` created; v2 routes + location-markers cleaned; DI container populated |
-| Phase 3 (2026-02-22)    | 8.5/10   | 8% (2/24)            | `networkListService`; search pagination; manufacturer networks endpoint                          |
-| Phase 4 P1 (2026-02-22) | 8.5/10   | 8% (2/24)            | Bug fix: WPA3-SAE→WPA3-P, Unknown→UNKNOWN in universalFilterQueryBuilder                         |
-| Phase 4 P2 (2026-02-22) | **9/10** | **0% (0/24)**        | `buildTypeExpr()` + `buildDistanceExpr()` extracted; `list.ts` fully compliant                   |
-| Phase 5 (2026-02-22)    | **9/10** | **0% (0/24)**        | 93 new tests; 321 total; critical services fully covered                                         |
+| Phase                   | Score      | Route Violation Rate | Key Deliverable                                                                                  |
+| ----------------------- | ---------- | -------------------- | ------------------------------------------------------------------------------------------------ |
+| Baseline (2026-02-21)   | 6/10       | 50% (12/24)          | Initial audit                                                                                    |
+| Phase 2 (2026-02-22)    | 8/10       | 21% (5/24)           | `networkSqlExpressions.ts` created; v2 routes + location-markers cleaned; DI container populated |
+| Phase 3 (2026-02-22)    | 8.5/10     | 8% (2/24)            | `networkListService`; search pagination; manufacturer networks endpoint                          |
+| Phase 4 P1 (2026-02-22) | 8.5/10     | 8% (2/24)            | Bug fix: WPA3-SAE→WPA3-P, Unknown→UNKNOWN in universalFilterQueryBuilder                         |
+| Phase 4 P2 (2026-02-22) | **9/10**   | **0% (0/24)**        | `buildTypeExpr()` + `buildDistanceExpr()` extracted; `list.ts` fully compliant                   |
+| Phase 5 (2026-02-22)    | **9/10**   | **0% (0/24)**        | 93 new tests; 321 total; critical services fully covered                                         |
+| Phase 6 (2026-02-22)    | **9.5/10** | **0% (0/24)**        | Client-side: 3 utility modules extracted; duplication eliminated; 64 new tests; 385 total        |
 
 ### Eliminated Route Violations (all 5 + 1 bonus)
 
