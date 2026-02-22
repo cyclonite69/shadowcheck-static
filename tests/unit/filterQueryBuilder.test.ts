@@ -39,3 +39,109 @@ describe('UniversalFilterQueryBuilder', () => {
     expect(result.warnings.some((w: string) => w.includes('Threat window'))).toBe(true);
   });
 });
+
+// ── SQL content / filter application ─────────────────────────────────────────
+
+describe('UniversalFilterQueryBuilder – SQL content', () => {
+  test('SSID filter enabled → SQL references ssid column', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { ssid: 'HomeRouter' },
+      { ssid: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql.toLowerCase()).toContain('ssid');
+    expect(result.appliedFilters.some((f: { field: string }) => f.field === 'ssid')).toBe(true);
+  });
+
+  test('SSID filter disabled → ssid not in appliedFilters', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { ssid: 'HomeRouter' },
+      { ssid: false }
+    ).buildNetworkListQuery();
+
+    expect(result.appliedFilters.some((f: { field: string }) => f.field === 'ssid')).toBe(false);
+  });
+
+  test('BSSID filter enabled → SQL references bssid', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { bssid: 'AA:BB:CC:DD:EE:FF' },
+      { bssid: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql.toLowerCase()).toContain('bssid');
+    expect(result.appliedFilters.some((f: { field: string }) => f.field === 'bssid')).toBe(true);
+  });
+
+  test('encryptionTypes filter with WPA2 → SQL contains RSN or WPA2 predicate', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { encryptionTypes: ['WPA2'] },
+      { encryptionTypes: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).toMatch(/WPA2|RSN/i);
+  });
+
+  test('encryptionTypes filter with OPEN → SQL contains IS NULL or !~* predicate', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { encryptionTypes: ['OPEN'] },
+      { encryptionTypes: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).toMatch(/IS NULL|!~\*/i);
+  });
+
+  test('threatScoreMin filter enabled → value is parameterized and filter is applied', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { threatScoreMin: 60 },
+      { threatScoreMin: true }
+    ).buildNetworkListQuery();
+
+    expect(result.appliedFilters.some((f: { field: string }) => f.field === 'threatScoreMin')).toBe(
+      true
+    );
+    // Value is passed as a bound parameter, not embedded inline
+    expect(result.params).toContain(60);
+  });
+
+  test('threatScoreMax filter enabled → value is parameterized and filter is applied', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { threatScoreMax: 80 },
+      { threatScoreMax: true }
+    ).buildNetworkListQuery();
+
+    expect(result.appliedFilters.some((f: { field: string }) => f.field === 'threatScoreMax')).toBe(
+      true
+    );
+    // Value is passed as a bound parameter, not embedded inline
+    expect(result.params).toContain(80);
+  });
+
+  test('network-only-compatible filters → buildNetworkListQuery returns valid SQL', () => {
+    // All keys used here are in NETWORK_ONLY_FILTERS, exercising the fast path
+    const result = new UniversalFilterQueryBuilder(
+      { rssiMin: -75, encryptionTypes: ['WPA2'], ssid: 'test' },
+      { rssiMin: true, encryptionTypes: true, ssid: true }
+    ).buildNetworkListQuery();
+
+    expect(typeof result.sql).toBe('string');
+    expect(result.sql.length).toBeGreaterThan(0);
+  });
+
+  test('buildGeospatialQuery → returns non-empty SQL with lat/lon references', () => {
+    const result = new UniversalFilterQueryBuilder({}, {}).buildGeospatialQuery();
+
+    expect(typeof result.sql).toBe('string');
+    expect(result.sql.length).toBeGreaterThan(0);
+    // Geospatial queries always include coordinate columns
+    expect(result.sql.toLowerCase()).toMatch(/lat|lon/);
+  });
+
+  test('all filters disabled → appliedFilters is empty', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { rssiMin: -70, ssid: 'any', bssid: 'AA:BB' },
+      { rssiMin: false, ssid: false, bssid: false }
+    ).buildNetworkListQuery();
+
+    expect(result.appliedFilters).toHaveLength(0);
+  });
+});
