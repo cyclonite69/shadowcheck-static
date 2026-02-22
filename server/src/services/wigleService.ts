@@ -264,6 +264,166 @@ export async function importWigleV2SearchResult(network: any): Promise<number> {
   return result.rowCount || 0;
 }
 
+// ── Unified higher-level helpers ──────────────────────────────────────────
+
+export interface WigleDatabaseFilters {
+  /** 'v2' queries wigle_v2_networks_search; 'v3' queries wigle_v3_observations */
+  version?: 'v2' | 'v3';
+  ssid?: string;
+  bssid?: string;
+  /** Network type filter (v2 only, e.g. 'wifi', 'bt') */
+  type?: string;
+  limit?: number | null;
+  offset?: number | null;
+  /** When true, also return the total count for pagination */
+  includeTotal?: boolean;
+}
+
+/**
+ * Unified paginated list of WiGLE networks.
+ *
+ * Builds WHERE clauses internally so routes deal only with typed filter
+ * values rather than SQL fragment arrays.
+ */
+export async function getWigleDatabase(
+  filters: WigleDatabaseFilters = {}
+): Promise<{ rows: any[]; total: number | null }> {
+  const {
+    version = 'v2',
+    ssid,
+    bssid,
+    type,
+    limit = null,
+    offset = null,
+    includeTotal = false,
+  } = filters;
+
+  if (version === 'v3') {
+    const where: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+
+    if (ssid) {
+      where.push(`ssid ILIKE $${idx++}`);
+      params.push(`%${ssid}%`);
+    }
+    if (bssid) {
+      where.push(`netid ILIKE $${idx++}`);
+      params.push(`${bssid}%`);
+    }
+
+    const rows = await getWigleV3Networks({
+      limit,
+      offset,
+      whereClauses: where,
+      queryParams: params,
+    });
+    const total = includeTotal ? await getWigleV3NetworksCount(where, params) : null;
+    return { rows, total };
+  }
+
+  // v2 (default) — requires valid coordinates
+  const where = ['trilat IS NOT NULL', 'trilong IS NOT NULL'];
+  const params: any[] = [];
+  let idx = 1;
+
+  if (type && String(type).trim()) {
+    where.push(`type = $${idx++}`);
+    params.push(String(type).trim());
+  }
+  if (ssid) {
+    where.push(`ssid ILIKE $${idx++}`);
+    params.push(`%${ssid}%`);
+  }
+  if (bssid) {
+    where.push(`bssid ILIKE $${idx++}`);
+    params.push(`${bssid}%`);
+  }
+
+  const rows = await getWigleV2Networks({
+    limit,
+    offset,
+    type,
+    whereClauses: where,
+    queryParams: params,
+  });
+  const total = includeTotal ? await getWigleV2NetworksCount(where, params) : null;
+  return { rows, total };
+}
+
+/**
+ * Full detail for a single network by netid / BSSID.
+ *
+ * Queries `wigle_v3_network_details` (enriched with latest observation) first,
+ * then falls back to the `wigle_networks_enriched` view for v2-only imports.
+ */
+export async function getWigleDetail(netid: string): Promise<any | null> {
+  const { rows } = await query(
+    `SELECT
+       nd.netid, nd.ssid, nd.type, nd.encryption, nd.channel,
+       nd.trilat, nd.trilon, nd.first_seen, nd.last_seen,
+       nd.street_address, nd.location_clusters,
+       nd.name, nd.comment, nd.qos,
+       obs.latitude  AS last_lat,
+       obs.longitude AS last_lon,
+       obs.observed_at AS last_observed_at
+     FROM app.wigle_v3_network_details nd
+     LEFT JOIN LATERAL (
+       SELECT latitude, longitude, observed_at
+       FROM app.wigle_v3_observations
+       WHERE netid = nd.netid
+       ORDER BY observed_at DESC
+       LIMIT 1
+     ) obs ON true
+     WHERE nd.netid = $1
+     LIMIT 1`,
+    [netid]
+  );
+
+  if (rows.length > 0) return rows[0];
+
+  // Fall back to v2 enriched view
+  return getWigleNetworkByBSSID(netid);
+}
+
+/**
+ * Paginated observation timeline for a network.
+ *
+ * Unlike the original `getWigleV3Observations`, this variant accepts
+ * `limit` and `offset` for cursor-style pagination and also returns
+ * the total observation count.
+ */
+export async function getWigleObservations(
+  netid: string,
+  limit?: number | null,
+  offset?: number | null
+): Promise<{ rows: any[]; total: number }> {
+  const params: any[] = [netid];
+
+  let sql = `SELECT id, netid, latitude, longitude, altitude, accuracy,
+                    signal, observed_at, last_update, ssid,
+                    frequency, channel, encryption, noise, snr, month
+             FROM app.wigle_v3_observations
+             WHERE netid = $1
+             ORDER BY observed_at DESC`;
+
+  if (limit !== null && limit !== undefined) {
+    params.push(limit);
+    sql += ` LIMIT $${params.length}`;
+  }
+  if (offset !== null && offset !== undefined) {
+    params.push(offset);
+    sql += ` OFFSET $${params.length}`;
+  }
+
+  const [{ rows }, countResult] = await Promise.all([
+    query(sql, params),
+    query(`SELECT COUNT(*) AS total FROM app.wigle_v3_observations WHERE netid = $1`, [netid]),
+  ]);
+
+  return { rows, total: parseInt(countResult.rows[0]?.total || '0', 10) };
+}
+
 module.exports = {
   getWigleNetworkByBSSID,
   searchWigleDatabase,
@@ -276,4 +436,7 @@ module.exports = {
   importWigleV3Observation,
   getWigleV3Observations,
   importWigleV2SearchResult,
+  getWigleDatabase,
+  getWigleDetail,
+  getWigleObservations,
 };

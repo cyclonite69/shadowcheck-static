@@ -56,14 +56,17 @@ const validateWigleNetworksQuery = validateQuery({
 });
 
 /**
- * GET /network/:bssid - Get WiGLE data for specific network (local DB)
+ * GET /network/:bssid - Get WiGLE detail for specific network (local DB)
+ *
+ * Queries wigle_v3_network_details first (richest data), falls back to
+ * the wigle_networks_enriched view for v2-only imports.
  */
 router.get(
   '/network/:bssid',
   macParamMiddleware,
   asyncHandler(async (req, res) => {
     const { bssid } = req.params;
-    const network = await wigleService.getWigleNetworkByBSSID(bssid);
+    const network = await wigleService.getWigleDetail(bssid);
     if (!network) {
       return res.status(404).json({ error: 'Network not found in WiGLE database' });
     }
@@ -92,7 +95,7 @@ router.get(
 );
 
 /**
- * GET /networks-v2 - Fetch WiGLE v2 networks for map testing
+ * GET /networks-v2 - Fetch WiGLE v2 networks with filtering and pagination
  */
 router.get(
   '/networks-v2',
@@ -108,55 +111,36 @@ router.get(
     }
     const includeTotal = includeTotalValidation.value;
 
-    const queryParams: any[] = [];
-    const whereClauses = ['trilat IS NOT NULL', 'trilong IS NOT NULL'];
-
-    if (typeRaw && String(typeRaw).trim() !== '') {
-      queryParams.push(String(typeRaw).trim());
-      whereClauses.push(`type = $${queryParams.length}`);
-    }
+    let ssid: string | undefined;
+    let bssid: string | undefined;
 
     if (filters && enabled) {
       try {
         const filterObj = JSON.parse(filters as string);
         const enabledObj = JSON.parse(enabled as string);
-        let paramIndex = queryParams.length + 1;
-
-        if (enabledObj.ssid && filterObj.ssid) {
-          whereClauses.push(`ssid ILIKE $${paramIndex}`);
-          queryParams.push(`%${filterObj.ssid}%`);
-          paramIndex++;
-        }
-
-        if (enabledObj.bssid && filterObj.bssid) {
-          whereClauses.push(`bssid ILIKE $${paramIndex}`);
-          queryParams.push(`${filterObj.bssid}%`);
-          paramIndex++;
-        }
+        if (enabledObj.ssid && filterObj.ssid) ssid = String(filterObj.ssid);
+        if (enabledObj.bssid && filterObj.bssid) bssid = String(filterObj.bssid);
       } catch (e: any) {
         logger.warn('Invalid filter parameters:', e.message);
       }
     }
 
-    const rows = await wigleService.getWigleV2Networks({
+    const { rows, total } = await wigleService.getWigleDatabase({
+      version: 'v2',
+      ssid,
+      bssid,
+      type: typeRaw ? String(typeRaw) : undefined,
       limit,
       offset,
-      type: typeRaw,
-      whereClauses,
-      queryParams,
+      includeTotal,
     });
-
-    let total = null;
-    if (includeTotal) {
-      total = await wigleService.getWigleV2NetworksCount(whereClauses, queryParams);
-    }
 
     res.json({ ok: true, count: rows.length, total, data: rows });
   })
 );
 
 /**
- * GET /networks-v3 - Fetch WiGLE v3 networks
+ * GET /networks-v3 - Fetch WiGLE v3 networks with filtering and pagination
  */
 router.get(
   '/networks-v3',
@@ -182,42 +166,28 @@ router.get(
     }
     const includeTotal = includeTotalValidation.value;
 
-    const queryParams: any[] = [];
-    const whereClauses: string[] = [];
+    let ssid: string | undefined;
+    let bssid: string | undefined;
 
     if (filters && enabled) {
       try {
         const filterObj = JSON.parse(filters as string);
         const enabledObj = JSON.parse(enabled as string);
-        let paramIndex = queryParams.length + 1;
-
-        if (enabledObj.ssid && filterObj.ssid) {
-          whereClauses.push(`ssid ILIKE $${paramIndex}`);
-          queryParams.push(`%${filterObj.ssid}%`);
-          paramIndex++;
-        }
-
-        if (enabledObj.bssid && filterObj.bssid) {
-          whereClauses.push(`netid ILIKE $${paramIndex}`);
-          queryParams.push(`${filterObj.bssid}%`);
-          paramIndex++;
-        }
+        if (enabledObj.ssid && filterObj.ssid) ssid = String(filterObj.ssid);
+        if (enabledObj.bssid && filterObj.bssid) bssid = String(filterObj.bssid);
       } catch (e: any) {
         logger.warn('Invalid filter parameters for v3:', e.message);
       }
     }
 
-    const rows = await wigleService.getWigleV3Networks({
+    const { rows, total } = await wigleService.getWigleDatabase({
+      version: 'v3',
+      ssid,
+      bssid,
       limit,
       offset,
-      whereClauses,
-      queryParams,
+      includeTotal,
     });
-
-    let total = null;
-    if (includeTotal) {
-      total = await wigleService.getWigleV3NetworksCount(whereClauses, queryParams);
-    }
 
     res.json({ ok: true, count: rows.length, total, networks: rows });
   })
