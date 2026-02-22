@@ -23,6 +23,8 @@ interface DatabaseConfig {
   MIN_OBSERVATIONS: number;
   MAX_PAGE_SIZE: number;
   DEFAULT_PAGE_SIZE: number;
+  /** When true, skip confidence blending and use rule_based_score only for threat scoring. */
+  SIMPLE_RULE_SCORING_ENABLED: boolean;
 }
 
 const CONFIG: DatabaseConfig = {
@@ -31,6 +33,7 @@ const CONFIG: DatabaseConfig = {
   MIN_OBSERVATIONS: parseInt(process.env.MIN_OBSERVATIONS || '2'),
   MAX_PAGE_SIZE: 5000,
   DEFAULT_PAGE_SIZE: 100,
+  SIMPLE_RULE_SCORING_ENABLED: process.env.SIMPLE_RULE_SCORING_ENABLED === 'true',
 };
 
 // Create connection pool
