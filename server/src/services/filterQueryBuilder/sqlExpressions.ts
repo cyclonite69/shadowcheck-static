@@ -23,7 +23,7 @@ const SECURITY_EXPR = (alias = 'o'): string => `
     WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
     WHEN UPPER(${alias}.radio_capabilities) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
     WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-OWE' THEN 'WPA3-OWE'
-    WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-SAE' THEN 'WPA3-SAE'
+    WHEN UPPER(${alias}.radio_capabilities) ~ 'RSN-SAE' THEN 'WPA3-P'
     WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' AND UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT)' THEN 'WPA3-E'
     WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA3|SAE)' THEN 'WPA3'
     WHEN UPPER(${alias}.radio_capabilities) ~ '(WPA2|RSN)' AND UPPER(${alias}.radio_capabilities) ~ '(EAP|MGT)' THEN 'WPA2-E'
@@ -32,7 +32,7 @@ const SECURITY_EXPR = (alias = 'o'): string => `
     WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA2%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA3%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPA'
     WHEN UPPER(${alias}.radio_capabilities) LIKE '%WPS%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%WPA%' AND UPPER(${alias}.radio_capabilities) NOT LIKE '%RSN%' THEN 'WPS'
     WHEN UPPER(${alias}.radio_capabilities) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
-    ELSE 'Unknown'
+    ELSE 'UNKNOWN'
   END
 `;
 

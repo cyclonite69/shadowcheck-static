@@ -288,7 +288,7 @@ class UniversalFilterQueryBuilder {
             break;
           case 'WPA3':
             securityClauses.push(
-              `${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-SAE', 'WPA3-OWE', 'WPA3-E')`
+              `${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
             );
             break;
         }
@@ -301,13 +301,13 @@ class UniversalFilterQueryBuilder {
       f.authMethods.forEach((method) => {
         switch (method) {
           case 'PSK':
-            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-SAE')`);
+            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-P')`);
             break;
           case 'Enterprise':
             securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2-E', 'WPA3-E')`);
             break;
           case 'SAE':
-            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-SAE')`);
+            securityClauses.push(`${SECURITY_EXPR('o')} IN ('WPA3', 'WPA3-P')`);
             break;
           case 'OWE':
             securityClauses.push(`${SECURITY_EXPR('o')} = 'WPA3-OWE'`);
@@ -357,10 +357,10 @@ class UniversalFilterQueryBuilder {
         flagClauses.push(`${SECURITY_EXPR('o')} IN ('WPA2-E', 'WPA3-E')`);
       }
       if (f.securityFlags.includes('personal')) {
-        flagClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-SAE')`);
+        flagClauses.push(`${SECURITY_EXPR('o')} IN ('WPA', 'WPA2', 'WPA3', 'WPA3-P')`);
       }
       if (f.securityFlags.includes('unknown')) {
-        flagClauses.push(`${SECURITY_EXPR('o')} = 'Unknown'`);
+        flagClauses.push(`${SECURITY_EXPR('o')} = 'UNKNOWN'`);
       }
       if (flagClauses.length > 0) {
         where.push(`(${flagClauses.join(' OR ')})`);
@@ -619,7 +619,7 @@ class UniversalFilterQueryBuilder {
                 WHEN ne.security ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
                 WHEN ne.security ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
                 WHEN ne.security ~ 'RSN-OWE' THEN 'WPA3-OWE'
-                WHEN ne.security ~ 'RSN-SAE' THEN 'WPA3-SAE'
+                WHEN ne.security ~ 'RSN-SAE' THEN 'WPA3-P'
                 WHEN ne.security ~ '(WPA3|SAE)' AND ne.security ~ '(EAP|MGT)' THEN 'WPA3-E'
                 WHEN ne.security ~ '(WPA3|SAE)' THEN 'WPA3'
                 WHEN ne.security ~ '(WPA2|RSN)' AND ne.security ~ '(EAP|MGT)' THEN 'WPA2-E'
@@ -629,7 +629,7 @@ class UniversalFilterQueryBuilder {
                 WHEN ne.security LIKE '%WPS%' AND ne.security NOT LIKE '%WPA%' AND ne.security NOT LIKE '%RSN%' THEN 'WPS'
                 WHEN ne.security ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
                 WHEN COALESCE(ne.security, '') = '' THEN 'OPEN'
-                ELSE 'Unknown'
+                ELSE 'UNKNOWN'
               END
             ELSE ${SECURITY_EXPR('ola')}
           END AS security,
@@ -870,7 +870,7 @@ class UniversalFilterQueryBuilder {
             WHEN UPPER(ne.security) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
             WHEN UPPER(ne.security) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
             WHEN UPPER(ne.security) ~ 'RSN-OWE' THEN 'WPA3-OWE'
-            WHEN UPPER(ne.security) ~ 'RSN-SAE' THEN 'WPA3-SAE'
+            WHEN UPPER(ne.security) ~ 'RSN-SAE' THEN 'WPA3-P'
             WHEN UPPER(ne.security) ~ '(WPA3|SAE)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA3-E'
             WHEN UPPER(ne.security) ~ '(WPA3|SAE)' THEN 'WPA3'
             WHEN UPPER(ne.security) ~ '(WPA2|RSN)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA2-E'
@@ -879,7 +879,7 @@ class UniversalFilterQueryBuilder {
             WHEN UPPER(ne.security) LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%WPA2%' AND UPPER(ne.security) NOT LIKE '%WPA3%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPA'
             WHEN UPPER(ne.security) LIKE '%WPS%' AND UPPER(ne.security) NOT LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPS'
             WHEN UPPER(ne.security) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
-            ELSE 'Unknown'
+            ELSE 'UNKNOWN'
           END
         ELSE ${SECURITY_EXPR('ola')}
       END
@@ -993,7 +993,7 @@ class UniversalFilterQueryBuilder {
             break;
           case 'WPA3':
             securityClauses.push(
-              `${networkSecurityExpr} IN ('WPA3', 'WPA3-SAE', 'WPA3-OWE', 'WPA3-E')`
+              `${networkSecurityExpr} IN ('WPA3', 'WPA3-P', 'WPA3-OWE', 'WPA3-E')`
             );
             break;
         }
@@ -1018,7 +1018,7 @@ class UniversalFilterQueryBuilder {
         flagClauses.push(`${networkSecurityExpr} IN ('WPA', 'WPA2-P', 'WPA3-P')`);
       }
       if (f.securityFlags.includes('unknown')) {
-        flagClauses.push(`${networkSecurityExpr} = 'Unknown'`);
+        flagClauses.push(`${networkSecurityExpr} = 'UNKNOWN'`);
       }
       if (flagClauses.length > 0) {
         where.push(`(${flagClauses.join(' OR ')})`);
@@ -1316,7 +1316,7 @@ class UniversalFilterQueryBuilder {
         WHEN UPPER(ne.security) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
         WHEN UPPER(ne.security) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
         WHEN UPPER(ne.security) ~ 'RSN-OWE' THEN 'WPA3-OWE'
-        WHEN UPPER(ne.security) ~ 'RSN-SAE' THEN 'WPA3-SAE'
+        WHEN UPPER(ne.security) ~ 'RSN-SAE' THEN 'WPA3-P'
         WHEN UPPER(ne.security) ~ '(WPA3|SAE)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA3-E'
         WHEN UPPER(ne.security) ~ '(WPA3|SAE)' THEN 'WPA3'
         WHEN UPPER(ne.security) ~ '(WPA2|RSN)' AND UPPER(ne.security) ~ '(EAP|MGT)' THEN 'WPA2-E'
@@ -1326,7 +1326,7 @@ class UniversalFilterQueryBuilder {
         WHEN UPPER(ne.security) LIKE '%WEP%' THEN 'WEP'
         WHEN UPPER(ne.security) LIKE '%WPS%' AND UPPER(ne.security) NOT LIKE '%WPA%' AND UPPER(ne.security) NOT LIKE '%RSN%' THEN 'WPS'
         WHEN UPPER(ne.security) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
-        ELSE 'Unknown'
+        ELSE 'UNKNOWN'
       END
     `;
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
@@ -1347,7 +1347,7 @@ class UniversalFilterQueryBuilder {
         flagClauses.push(`(${computedSecurityExpr}) IN ('WPA', 'WPA2-P', 'WPA3-P')`);
       }
       if (f.securityFlags.includes('unknown')) {
-        flagClauses.push(`(${computedSecurityExpr}) = 'Unknown'`);
+        flagClauses.push(`(${computedSecurityExpr}) = 'UNKNOWN'`);
       }
       if (flagClauses.length > 0) {
         where.push(`(${flagClauses.join(' OR ')})`);
