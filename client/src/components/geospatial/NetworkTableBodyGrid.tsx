@@ -4,6 +4,12 @@ import type { NetworkRow } from '../../types/network';
 import { NETWORK_COLUMNS } from '../../constants/network';
 import { macColor } from '../../utils/mapHelpers';
 import { TypeBadge, ThreatBadge } from '../badges';
+import {
+  getSignalColor,
+  getSignalDisplay,
+  getTimespanBadgeStyle,
+  getTimespanDisplay,
+} from '../../utils/networkFormatting';
 
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -193,16 +199,10 @@ export const NetworkTableBodyGrid = ({
                 // Signal with color coding
                 if (col === 'signal') {
                   const signalValue = value as number | null;
-                  let color = '#6b7280';
-                  if (signalValue != null && signalValue !== 0) {
-                    if (signalValue >= -50) color = '#10b981';
-                    else if (signalValue >= -70) color = '#f59e0b';
-                    else color = '#ef4444';
-                  }
                   return (
                     <div key={col} style={{ padding: '0 4px' }}>
-                      <span style={{ color, fontWeight: 600 }}>
-                        {signalValue != null && signalValue !== 0 ? `${signalValue} dBm` : 'N/A'}
+                      <span style={{ color: getSignalColor(signalValue), fontWeight: 600 }}>
+                        {getSignalDisplay(signalValue)}
                       </span>
                     </div>
                   );
@@ -290,19 +290,7 @@ export const NetworkTableBodyGrid = ({
                 if (col === 'timespanDays') {
                   const days = value as number | null;
                   if (days !== null && days >= 0) {
-                    const bg =
-                      days > 30
-                        ? 'rgba(239, 68, 68, 0.2)'
-                        : days > 7
-                          ? 'rgba(251, 191, 36, 0.2)'
-                          : 'rgba(34, 197, 94, 0.2)';
-                    const color = days > 30 ? '#f87171' : days > 7 ? '#fbbf24' : '#4ade80';
-                    const border =
-                      days > 30
-                        ? 'rgba(239, 68, 68, 0.3)'
-                        : days > 7
-                          ? 'rgba(251, 191, 36, 0.3)'
-                          : 'rgba(34, 197, 94, 0.3)';
+                    const { bg, color, border } = getTimespanBadgeStyle(days);
                     return (
                       <div key={col} style={{ padding: '0 4px' }}>
                         <span
@@ -317,7 +305,7 @@ export const NetworkTableBodyGrid = ({
                             display: 'inline-block',
                           }}
                         >
-                          {days === 0 ? 'Same day' : `${days} days`}
+                          {getTimespanDisplay(days)}
                         </span>
                       </div>
                     );

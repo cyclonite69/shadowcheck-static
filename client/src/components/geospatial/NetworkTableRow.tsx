@@ -3,6 +3,12 @@ import type { NetworkRow } from '../../types/network';
 import { NETWORK_COLUMNS } from '../../constants/network';
 import { macColor } from '../../utils/mapHelpers';
 import { TypeBadge, ThreatBadge, SecurityBadge } from '../badges';
+import {
+  getSignalColor,
+  getSignalDisplay,
+  getTimespanBadgeStyle,
+  getTimespanDisplay,
+} from '../../utils/networkFormatting';
 
 interface NetworkTableRowProps {
   net: NetworkRow;
@@ -95,15 +101,9 @@ export const NetworkTableRow = ({
           content = <SecurityBadge security={value as string | null} />;
         } else if (col === 'signal') {
           const signalValue = value as number | null;
-          let color = '#6b7280';
-          if (signalValue != null && signalValue !== 0) {
-            if (signalValue >= -50) color = '#10b981';
-            else if (signalValue >= -70) color = '#f59e0b';
-            else color = '#ef4444';
-          }
           content = (
-            <span style={{ color, fontWeight: 600 }}>
-              {signalValue != null && signalValue !== 0 ? `${signalValue} dBm` : 'N/A'}
+            <span style={{ color: getSignalColor(signalValue), fontWeight: 600 }}>
+              {getSignalDisplay(signalValue)}
             </span>
           );
         } else if (col === 'observations') {
@@ -145,25 +145,21 @@ export const NetworkTableRow = ({
         } else if (col === 'timespanDays') {
           const days = value as number | null;
           if (days !== null && days >= 0) {
+            const { bg, color, border } = getTimespanBadgeStyle(days);
             content = (
               <span
                 style={{
-                  background:
-                    days > 30
-                      ? 'rgba(239, 68, 68, 0.2)'
-                      : days > 7
-                        ? 'rgba(251, 191, 36, 0.2)'
-                        : 'rgba(34, 197, 94, 0.2)',
-                  color: days > 30 ? '#f87171' : days > 7 ? '#fbbf24' : '#4ade80',
+                  background: bg,
+                  color,
                   padding: '2px 6px',
                   borderRadius: '4px',
                   fontSize: '11px',
                   fontWeight: '500',
-                  border: `1px solid ${days > 30 ? 'rgba(239, 68, 68, 0.3)' : days > 7 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                  border: `1px solid ${border}`,
                   display: 'inline-block',
                 }}
               >
-                {days === 0 ? 'Same day' : `${days} days`}
+                {getTimespanDisplay(days)}
               </span>
             );
           } else {
