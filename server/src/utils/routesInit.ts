@@ -38,7 +38,7 @@ interface RouteModules {
   networksV2Routes: Router;
   threatsV2Routes: Router;
   filteredRoutes: Router;
-  locationMarkersRoutes: (query: QueryFunction) => Router;
+  locationMarkersRoutes: Router;
   homeLocationRoutes: Router;
   keplerRoutes: Router;
   backupRoutes: Router;
@@ -52,7 +52,7 @@ interface RouteModules {
 
 interface InitializeRoutesOptions {
   routes: RouteModules;
-  query: QueryFunction;
+  query?: QueryFunction;
   secretsManager: SecretsManager;
   logger: Logger;
 }
@@ -61,7 +61,7 @@ interface InitializeRoutesOptions {
  * Initialize API routes and their dependencies.
  */
 function initializeRoutes(app: Express, options: InitializeRoutesOptions): void {
-  const { routes, query, secretsManager, logger } = options;
+  const { routes, secretsManager, logger } = options;
 
   // Make secretsManager available to routes
   app.locals.secretsManager = secretsManager;
@@ -93,7 +93,6 @@ function initializeRoutes(app: Express, options: InitializeRoutesOptions): void 
     settingsRoutes: routes.settingsRoutes,
     networkTagsRoutes: routes.networkTagsRoutes,
     authRoutes: routes.authRoutes,
-    query,
   });
 
   logger.info('All routes mounted successfully');

@@ -8,7 +8,7 @@ const { adminQuery } = require('./adminDbService');
 
 export async function getCurrentHomeLocation(): Promise<any | null> {
   const result = await query(`
-    SELECT 
+    SELECT
       latitude,
       longitude,
       radius,
@@ -43,8 +43,85 @@ export async function deleteHomeLocation(): Promise<void> {
   await adminQuery("DELETE FROM app.location_markers WHERE marker_type = 'home'");
 }
 
+/**
+ * Returns all location markers ordered by creation date.
+ */
+export async function getAllLocationMarkers(): Promise<any[]> {
+  const result = await query(`
+    SELECT
+      id,
+      marker_type,
+      latitude,
+      longitude,
+      created_at
+    FROM app.location_markers
+    ORDER BY created_at DESC
+  `);
+  return result.rows;
+}
+
+/**
+ * Returns the single home location marker row (with id, marker_type, lat/lon, created_at),
+ * or null if no home is set.
+ */
+export async function getHomeLocationMarker(): Promise<any | null> {
+  const result = await query(`
+    SELECT
+      id,
+      marker_type,
+      latitude,
+      longitude,
+      created_at
+    FROM app.location_markers
+    WHERE marker_type = 'home'
+    LIMIT 1
+  `);
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+/**
+ * Replaces the home marker for a given device (DELETE + INSERT).
+ * Returns the newly created marker row.
+ */
+export async function setHomeLocationMarker(opts: {
+  lat: number;
+  lng: number;
+  altGps: number | null;
+  altBaro: number | null;
+  devId: string;
+  devType: string;
+}): Promise<any> {
+  const { lat, lng, altGps, altBaro, devId, devType } = opts;
+
+  await adminQuery("DELETE FROM app.location_markers WHERE name = 'home' AND device_id = $1", [
+    devId,
+  ]);
+
+  const result = await adminQuery(
+    `INSERT INTO app.location_markers
+       (name, marker_type, latitude, longitude, altitude_gps, altitude_baro, device_id, device_type, location)
+     VALUES ('home', 'home', $1, $2, $3, $4, $5, $6, ST_SetSRID(ST_MakePoint($2, $1), 4326))
+     RETURNING
+       id,
+       name as marker_type,
+       latitude,
+       longitude,
+       altitude_gps,
+       altitude_baro,
+       device_id,
+       device_type,
+       created_at`,
+    [lat, lng, altGps, altBaro, devId, devType]
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
   getCurrentHomeLocation,
   setHomeLocation,
   deleteHomeLocation,
+  getAllLocationMarkers,
+  getHomeLocationMarker,
+  setHomeLocationMarker,
 };

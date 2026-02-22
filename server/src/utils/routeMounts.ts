@@ -25,7 +25,7 @@ interface ApiRouteDependencies {
   networksV2Routes: Router;
   threatsV2Routes: Router;
   filteredRoutes: Router;
-  locationMarkersRoutes: (query: QueryFunction) => Router;
+  locationMarkersRoutes: Router;
   homeLocationRoutes: Router;
   keplerRoutes: Router;
   backupRoutes: Router;
@@ -35,7 +35,6 @@ interface ApiRouteDependencies {
   networkTagsRoutes: Router;
   authRoutes: Router;
   weatherRoutes: Router;
-  query: QueryFunction;
 }
 
 /**
@@ -73,7 +72,6 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     networkTagsRoutes,
     authRoutes,
     weatherRoutes,
-    query,
   } = deps;
 
   // Debug: Check for undefined routes
@@ -139,7 +137,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/api/v2/networks/filtered', filteredRoutes);
   app.use('/api', networksV2Routes);
   app.use('/api/v2', threatsV2Routes);
-  app.use('/api', locationMarkersRoutes(query));
+  app.use('/api', locationMarkersRoutes);
   app.use('/api', homeLocationRoutes);
   app.use('/api', keplerRoutes);
   app.use('/api', backupRoutes);
