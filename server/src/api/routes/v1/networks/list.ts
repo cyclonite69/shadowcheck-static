@@ -31,6 +31,7 @@ const {
 } = require('../../../../validation/parameterParsers');
 const { NETWORK_CHANNEL_EXPR } = filterQueryBuilder;
 const { asyncHandler } = require('../../../../utils/asyncHandler');
+const { CONFIG } = require('../../../../config/database');
 
 const VALID_TAG_TYPES = ['LEGIT', 'FALSE_POSITIVE', 'INVESTIGATE', 'THREAT'];
 
@@ -345,8 +346,19 @@ router.get(
     `;
     const channelExpr = NETWORK_CHANNEL_EXPR('ne');
 
-    const threatScoreExpr = `COALESCE(
-      CASE 
+    // When SIMPLE_RULE_SCORING_ENABLED, skip confidence blending and use
+    // the deterministic rule_based_score only (max_distance_meters-dominant).
+    const threatScoreExpr = CONFIG.SIMPLE_RULE_SCORING_ENABLED
+      ? `COALESCE(
+      CASE
+        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
+        WHEN nt.threat_tag = 'INVESTIGATE'    THEN COALESCE(nts.rule_based_score, 0)::numeric
+        ELSE                                       COALESCE(nts.rule_based_score, 0)::numeric
+      END,
+      0
+    )`
+      : `COALESCE(
+      CASE
         WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 0
         WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_score, 0)::numeric
         WHEN nt.threat_tag = 'THREAT' THEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3)
@@ -572,8 +584,8 @@ router.get(
       `ne.is_sentinel`,
       `rm.manufacturer`,
       `rm.address`,
-      `nts.final_threat_score`,
-      `nts.final_threat_level`,
+      `(${threatScoreExpr}) AS final_threat_score`,
+      `(${threatLevelExpr}) AS final_threat_level`,
       `nts.rule_based_score`,
       `nts.ml_threat_score`,
       `nts.model_version`,
