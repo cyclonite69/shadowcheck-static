@@ -74,6 +74,9 @@ const RM_MANUFACTURER_EXPR =
   "COALESCE(to_jsonb(rm)->>'organization_name', to_jsonb(rm)->>'manufacturer', to_jsonb(rm)->>'manufacturer_name')";
 const RM_MANUFACTURER_ADDRESS_EXPR =
   "COALESCE(to_jsonb(rm)->>'organization_address', to_jsonb(rm)->>'address')";
+const NT_TAG_EXPR = "COALESCE(to_jsonb(nt)->>'threat_tag', to_jsonb(nt)->>'tag_type')";
+const NT_TAG_LOWER_EXPR = `LOWER(${NT_TAG_EXPR})`;
+const NT_IS_IGNORED_EXPR = "COALESCE((to_jsonb(nt)->>'is_ignored')::boolean, FALSE)";
 
 class UniversalFilterQueryBuilder {
   private filters: Filters;
@@ -685,8 +688,8 @@ class UniversalFilterQueryBuilder {
           ne.lon,
           COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
           NULL::numeric AS stationary_confidence,
-          nt.threat_tag,
-          COALESCE(nt.is_ignored, FALSE) AS is_ignored,
+          ${NT_TAG_EXPR} AS threat_tag,
+          ${NT_IS_IGNORED_EXPR} AS is_ignored,
           (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
           JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
           NULL::text AS network_id
@@ -842,8 +845,8 @@ class UniversalFilterQueryBuilder {
         l.lon,
         l.accuracy AS accuracy_meters,
         s.stationary_confidence,
-        nt.threat_tag,
-        COALESCE(nt.is_ignored, FALSE) AS is_ignored,
+        ${NT_TAG_EXPR} AS threat_tag,
+        ${NT_IS_IGNORED_EXPR} AS is_ignored,
         (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
@@ -1074,11 +1077,11 @@ class UniversalFilterQueryBuilder {
       const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
       let tagClause = '';
       if (tagValues.length > 0 && wantsIgnore) {
-        tagClause = `(LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)}) OR nt.is_ignored IS TRUE)`;
+        tagClause = `(${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)}) OR ${NT_IS_IGNORED_EXPR} IS TRUE)`;
       } else if (tagValues.length > 0) {
-        tagClause = `LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)})`;
+        tagClause = `${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)})`;
       } else if (wantsIgnore) {
-        tagClause = 'nt.is_ignored IS TRUE';
+        tagClause = `${NT_IS_IGNORED_EXPR} IS TRUE`;
       }
       if (tagClause) {
         where.push(
@@ -1221,8 +1224,8 @@ class UniversalFilterQueryBuilder {
         ne.lon,
         COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
         NULL::numeric AS stationary_confidence,
-        nt.threat_tag,
-        COALESCE(nt.is_ignored, FALSE) AS is_ignored,
+        ${NT_TAG_EXPR} AS threat_tag,
+        ${NT_IS_IGNORED_EXPR} AS is_ignored,
         (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
@@ -1449,11 +1452,11 @@ class UniversalFilterQueryBuilder {
       const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
       let tagClause = '';
       if (tagValues.length > 0 && wantsIgnore) {
-        tagClause = `(LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)}) OR nt.is_ignored IS TRUE)`;
+        tagClause = `(${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)}) OR ${NT_IS_IGNORED_EXPR} IS TRUE)`;
       } else if (tagValues.length > 0) {
-        tagClause = `LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)})`;
+        tagClause = `${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)})`;
       } else if (wantsIgnore) {
-        tagClause = 'nt.is_ignored IS TRUE';
+        tagClause = `${NT_IS_IGNORED_EXPR} IS TRUE`;
       }
       if (tagClause) {
         where.push(
@@ -1574,12 +1577,12 @@ class UniversalFilterQueryBuilder {
       const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
       if (tagValues.length > 0 && wantsIgnore) {
         networkWhere.push(
-          `(LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)}) OR nt.is_ignored IS TRUE)`
+          `(${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)}) OR ${NT_IS_IGNORED_EXPR} IS TRUE)`
         );
       } else if (tagValues.length > 0) {
-        networkWhere.push(`LOWER(nt.threat_tag) = ANY(${this.addParam(tagValues)})`);
+        networkWhere.push(`${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)})`);
       } else if (wantsIgnore) {
-        networkWhere.push('nt.is_ignored IS TRUE');
+        networkWhere.push(`${NT_IS_IGNORED_EXPR} IS TRUE`);
       }
       this.addApplied('engagement', 'tag_type', f.tag_type);
     }
