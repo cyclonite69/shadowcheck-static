@@ -5,11 +5,6 @@ import { apiClient } from '../api/client';
 import type { NetworkRow, SortState } from '../types/network';
 import { API_SORT_MAP, NETWORK_PAGE_LIMIT } from '../constants/network';
 import { mapApiRowToNetwork } from '../utils/networkDataTransformation';
-import {
-  appendNetworkFilterParams,
-  parseRelativeTimeframeToMs,
-  toFiniteNumber,
-} from '../utils/networkFilterParams';
 
 interface UseNetworkDataOptions {
   locationMode?: string;
@@ -91,45 +86,24 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           offset: String(pagination.offset),
           sort: sortKeys.join(','),
           order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
+          filters: JSON.stringify(debouncedFilterState.filters),
+          enabled: JSON.stringify(debouncedFilterState.enabled),
         });
-        params.set('location_mode', locationMode);
+        if (debouncedFilterState.enabled.wigle_v3_observation_count_min) {
+          params.set('pageType', 'wigle');
+        }
 
         if (planCheck) {
           params.set('planCheck', '1');
         }
 
-        const { filters, enabled } = debouncedFilterState;
-
-        appendNetworkFilterParams(params, filters, enabled);
-
-        // Live distance filters — reads live Zustand state (must stay in hook)
-        const liveState = useFilterStore.getState().getAPIFilters();
-        const liveMaxDistance = toFiniteNumber(liveState.filters.distanceFromHomeMax);
-        if (liveState.enabled.distanceFromHomeMax && liveMaxDistance !== null) {
-          params.set('distance_from_home_km_max', String(liveMaxDistance / 1000));
-        }
-        const liveMinDistance = toFiniteNumber(liveState.filters.distanceFromHomeMin);
-        if (liveState.enabled.distanceFromHomeMin && liveMinDistance !== null) {
-          params.set('distance_from_home_km_min', String(liveMinDistance / 1000));
-        }
-
-        // Timeframe filter
-        if (enabled.timeframe && filters.timeframe?.type === 'relative') {
-          const window = filters.timeframe.relativeWindow || '30d';
-          const ms = parseRelativeTimeframeToMs(window);
-          if (ms !== null) {
-            const since = new Date(Date.now() - ms).toISOString();
-            params.set('last_seen', since);
-          }
-        }
-
-        const data = await apiClient.get<any>(`/networks?${params.toString()}`, {
+        const data = await apiClient.get<any>(`/v2/networks/filtered?${params.toString()}`, {
           signal: controller.signal,
         });
         logDebug(`Networks response received`);
-        const rows = data.networks || [];
+        const rows = data.data || [];
         setExpensiveSort(Boolean(data.expensive_sort));
-        setNetworkTotal(typeof data.total === 'number' ? data.total : null);
+        setNetworkTotal(typeof data.pagination?.total === 'number' ? data.pagination.total : null);
         setNetworkTruncated(Boolean(data.truncated));
 
         const mapped: NetworkRow[] = rows.map(mapApiRowToNetwork);
@@ -142,7 +116,10 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
 
         setPagination((prev) => ({
           ...prev,
-          hasMore: mapped.length === NETWORK_PAGE_LIMIT,
+          hasMore:
+            typeof data.pagination?.hasMore === 'boolean'
+              ? data.pagination.hasMore
+              : mapped.length === NETWORK_PAGE_LIMIT,
         }));
       } catch (err: any) {
         if (err.name !== 'AbortError') {

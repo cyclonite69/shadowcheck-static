@@ -19,10 +19,14 @@ export const useObservationSummary = ({
 }: ObservationSummaryProps) => {
   const activeObservationSets = useMemo<ObservationSet[]>(
     () =>
-      Array.from(selectedNetworks).map((bssid) => ({
-        bssid,
-        observations: observationsByBssid[bssid] || [],
-      })),
+      Array.from(selectedNetworks).map((bssid) => {
+        const normalizedBssid = String(bssid).toUpperCase();
+        return {
+          bssid: normalizedBssid,
+          observations:
+            observationsByBssid[normalizedBssid] || observationsByBssid[bssid] || [],
+        };
+      }),
     [observationsByBssid, selectedNetworks]
   );
 
@@ -34,7 +38,8 @@ export const useObservationSummary = ({
   const networkLookup = useMemo(() => {
     const map = new Map<string, NetworkRow>();
     networks.forEach((net) => {
-      map.set(net.bssid, net);
+      map.set(String(net.bssid), net);
+      map.set(String(net.bssid).toUpperCase(), net);
     });
     return map;
   }, [networks]);
