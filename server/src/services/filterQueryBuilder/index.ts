@@ -42,6 +42,7 @@ import { validateFilterPayload } from './validators';
 import { DEFAULT_ENABLED } from './constants';
 import { FilterPredicateBuilder } from './FilterPredicateBuilder';
 import { QueryState } from './QueryState';
+import { FIELD_EXPRESSIONS, NULL_SAFE_COMPARISONS, SCHEMA_ALIASES } from './SchemaCompat';
 import { SqlFragmentLibrary } from './SqlFragmentLibrary';
 import { NetworkListQueryBuilder } from './builders/NetworkListQueryBuilder';
 import { NetworkOnlyQueryBuilder } from './builders/NetworkOnlyQueryBuilder';
@@ -52,6 +53,9 @@ export {
   UniversalFilterQueryBuilder,
   FilterPredicateBuilder,
   QueryState,
+  SCHEMA_ALIASES,
+  FIELD_EXPRESSIONS,
+  NULL_SAFE_COMPARISONS,
   SqlFragmentLibrary,
   NetworkListQueryBuilder,
   NetworkOnlyQueryBuilder,

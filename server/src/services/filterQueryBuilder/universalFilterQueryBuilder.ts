@@ -43,6 +43,7 @@ import {
 import { FilterPredicateBuilder, type QueryContext } from './FilterPredicateBuilder';
 import { QueryState } from './QueryState';
 import { SqlFragmentLibrary } from './SqlFragmentLibrary';
+import { FIELD_EXPRESSIONS, NULL_SAFE_COMPARISONS } from './SchemaCompat';
 import { NetworkListQueryBuilder } from './builders/NetworkListQueryBuilder';
 import { NetworkOnlyQueryBuilder } from './builders/NetworkOnlyQueryBuilder';
 import { GeospatialQueryBuilder } from './builders/GeospatialQueryBuilder';
@@ -73,11 +74,11 @@ interface ThreatLevelMap {
   [key: string]: string;
 }
 
-const RM_MANUFACTURER_EXPR =
-  "COALESCE(to_jsonb(rm)->>'organization_name', to_jsonb(rm)->>'manufacturer', to_jsonb(rm)->>'manufacturer_name')";
-const NT_TAG_EXPR = "COALESCE(to_jsonb(nt)->>'threat_tag', to_jsonb(nt)->>'tag_type')";
-const NT_TAG_LOWER_EXPR = `LOWER(${NT_TAG_EXPR})`;
-const NT_IS_IGNORED_EXPR = "COALESCE((to_jsonb(nt)->>'is_ignored')::boolean, FALSE)";
+const RM_MANUFACTURER_EXPR = FIELD_EXPRESSIONS.manufacturerName('rm');
+const NT_TAG_LOWER_EXPR = FIELD_EXPRESSIONS.threatTagLowercase('nt');
+const NT_IS_IGNORED_EXPR = NULL_SAFE_COMPARISONS.isIgnored('nt');
+const NT_FILTER_TAG_LOWER_EXPR = FIELD_EXPRESSIONS.threatTagLowercase('nt_filter');
+const NT_FILTER_IS_IGNORED_EXPR = NULL_SAFE_COMPARISONS.isIgnored('nt_filter');
 const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
 const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
 
@@ -1630,11 +1631,11 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
       let tagCondition = '';
       if (tagValues.length > 0 && wantsIgnore) {
-        tagCondition = `(LOWER(COALESCE(to_jsonb(nt_filter)->>'threat_tag', to_jsonb(nt_filter)->>'tag_type')) = ANY(${this.addParam(tagValues)}) OR COALESCE((to_jsonb(nt_filter)->>'is_ignored')::boolean, FALSE) IS TRUE)`;
+        tagCondition = `(${NT_FILTER_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)}) OR ${NT_FILTER_IS_IGNORED_EXPR} IS TRUE)`;
       } else if (tagValues.length > 0) {
-        tagCondition = `LOWER(COALESCE(to_jsonb(nt_filter)->>'threat_tag', to_jsonb(nt_filter)->>'tag_type')) = ANY(${this.addParam(tagValues)})`;
+        tagCondition = `${NT_FILTER_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)})`;
       } else if (wantsIgnore) {
-        tagCondition = `COALESCE((to_jsonb(nt_filter)->>'is_ignored')::boolean, FALSE) IS TRUE`;
+        tagCondition = `${NT_FILTER_IS_IGNORED_EXPR} IS TRUE`;
       }
       if (tagCondition) {
         networkWhere.push(
