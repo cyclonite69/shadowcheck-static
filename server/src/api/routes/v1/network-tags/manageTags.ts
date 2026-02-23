@@ -175,7 +175,10 @@ router.patch('/:bssid/threat', requireAdmin, async (req: any, res: any) => {
 
 /**
  * PATCH /api/network-tags/:bssid/notes
- * Update notes for a network
+ * Add a note for a network.
+ *
+ * Writes to app.network_notes (multi-row, timestamped — the authoritative store).
+ * network_tags.notes is kept as a read-only legacy field; new writes go here.
  */
 router.patch('/:bssid/notes', requireAdmin, async (req: any, res: any) => {
   try {
@@ -183,18 +186,20 @@ router.patch('/:bssid/notes', requireAdmin, async (req: any, res: any) => {
     const normalizedBssid = bssid.toUpperCase();
     const { notes } = req.body;
 
-    const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
-
-    let result;
-    if (!existing) {
-      result = await adminDbService.insertNetworkTagNotes(normalizedBssid, notes);
-    } else {
-      result = await adminDbService.updateNetworkTagNotes(normalizedBssid, notes);
+    if (!notes || !String(notes).trim()) {
+      return res.status(400).json({ error: 'notes content is required' });
     }
 
-    res.json({ ok: true, tag: result });
+    const noteId = await adminDbService.addNetworkNoteWithFunction(
+      normalizedBssid,
+      String(notes).trim(),
+      'general',
+      'system'
+    );
+
+    res.json({ ok: true, note_id: noteId });
   } catch (error: any) {
-    logger.error(`Error updating notes: ${error.message}`, { error, bssid: req.params.bssid });
+    logger.error(`Error adding note: ${error.message}`, { error, bssid: req.params.bssid });
     res.status(500).json({ error: error.message });
   }
 });

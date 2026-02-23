@@ -633,17 +633,35 @@ async function addNetworkNoteWithFunction(
 async function getNetworkNotes(bssid: string): Promise<any[]> {
   const result = await query(
     `SELECT id, content, note_type, user_id, created_at, updated_at
-     FROM app.network_notes WHERE bssid = $1 ORDER BY created_at DESC`,
+     FROM app.network_notes
+     WHERE bssid = $1 AND is_deleted IS NOT TRUE
+     ORDER BY created_at DESC`,
     [bssid]
   );
   return result.rows;
 }
 
 async function deleteNetworkNote(noteId: string): Promise<string | null> {
-  const result = await adminQuery('DELETE FROM app.network_notes WHERE id = $1 RETURNING bssid', [
-    noteId,
-  ]);
+  // Soft-delete: retain row for audit; is_deleted IS NOT TRUE guard prevents double-delete.
+  const result = await adminQuery(
+    `UPDATE app.network_notes
+     SET is_deleted = TRUE, updated_at = NOW()
+     WHERE id = $1 AND is_deleted IS NOT TRUE
+     RETURNING bssid`,
+    [noteId]
+  );
   return result.rows.length > 0 ? result.rows[0].bssid : null;
+}
+
+async function updateNetworkNote(noteId: string, content: string): Promise<any | null> {
+  const result = await adminQuery(
+    `UPDATE app.network_notes
+     SET content = $1, updated_at = NOW()
+     WHERE id = $2 AND is_deleted IS NOT TRUE
+     RETURNING id, bssid, content, updated_at`,
+    [content, noteId]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
 }
 
 async function addNoteMedia(
@@ -958,6 +976,7 @@ module.exports.getNetworkNotations = getNetworkNotations;
 module.exports.addNetworkNoteWithFunction = addNetworkNoteWithFunction;
 module.exports.getNetworkNotes = getNetworkNotes;
 module.exports.deleteNetworkNote = deleteNetworkNote;
+module.exports.updateNetworkNote = updateNetworkNote;
 module.exports.addNoteMedia = addNoteMedia;
 module.exports.getNetworkTagsByBssid = getNetworkTagsByBssid;
 module.exports.addNetworkTagArray = addNetworkTagArray;
