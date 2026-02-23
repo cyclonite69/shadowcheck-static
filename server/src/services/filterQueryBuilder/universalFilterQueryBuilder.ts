@@ -591,66 +591,26 @@ class UniversalFilterQueryBuilder {
 
     const noFiltersEnabled = Object.values(this.enabled).every((value) => !value);
     if (noFiltersEnabled) {
+      this.requiresHome = false;
       const safeOrderBy = orderBy
-        .replace(/\bl\.observed_at\b/g, 'COALESCE(ola.time, ne.observed_at)')
-        .replace(/\bl\.level\b/g, 'COALESCE(ola.level, ne.signal)')
+        .replace(/\bl\.observed_at\b/g, 'ne.observed_at')
+        .replace(/\bl\.level\b/g, 'ne.signal')
         .replace(/\bl\.lat\b/g, 'ne.lat')
         .replace(/\bl\.lon\b/g, 'ne.lon')
-        .replace(/\bl\.accuracy\b/g, 'COALESCE(ola.accuracy, ne.accuracy_meters)')
+        .replace(/\bl\.accuracy\b/g, 'ne.accuracy_meters')
         .replace(/\br\.observation_count\b/g, 'ne.observations')
         .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
         .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
         .replace(/\bs\.stationary_confidence\b/g, 'ne.last_seen');
 
       const sql = `
-        WITH obs_latest_any AS (
-          SELECT DISTINCT ON (bssid)
-            bssid,
-            ssid,
-            level,
-            accuracy,
-            time,
-            radio_type,
-            radio_frequency,
-            radio_capabilities
-          FROM app.observations
-          WHERE bssid NOT IN ('00:00:00:00:00:00', 'FF:FF:FF:FF:FF:FF')
-            AND time >= '2000-01-01 00:00:00+00'::timestamptz
-          ORDER BY bssid, time DESC
-        )
         SELECT
           ne.bssid,
-          COALESCE(ola.ssid, ne.ssid) AS ssid,
-          CASE
-            WHEN ola.radio_type IS NULL
-              AND ola.radio_frequency IS NULL
-              AND COALESCE(ola.radio_capabilities, '') = ''
-            THEN ne.type
-            ELSE ${OBS_TYPE_EXPR('ola')}
-          END AS type,
-          CASE
-            WHEN COALESCE(ola.radio_capabilities, '') = '' THEN 
-              CASE
-                WHEN ne.security LIKE '%WEP%' THEN 'WEP'
-                WHEN ne.security ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
-                WHEN ne.security ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
-                WHEN ne.security ~ 'RSN-OWE' THEN 'WPA3-OWE'
-                WHEN ne.security ~ 'RSN-SAE' THEN 'WPA3-P'
-                WHEN ne.security ~ '(WPA3|SAE)' AND ne.security ~ '(EAP|MGT)' THEN 'WPA3-E'
-                WHEN ne.security ~ '(WPA3|SAE)' THEN 'WPA3'
-                WHEN ne.security ~ '(WPA2|RSN)' AND ne.security ~ '(EAP|MGT)' THEN 'WPA2-E'
-                WHEN ne.security ~ '(WPA2|RSN)' THEN 'WPA2'
-                WHEN ne.security ~ 'WPA-' AND ne.security NOT LIKE '%WPA2%' THEN 'WPA'
-                WHEN ne.security LIKE '%WPA%' AND ne.security NOT LIKE '%WPA2%' AND ne.security NOT LIKE '%WPA3%' AND ne.security NOT LIKE '%RSN%' THEN 'WPA'
-                WHEN ne.security LIKE '%WPS%' AND ne.security NOT LIKE '%WPA%' AND ne.security NOT LIKE '%RSN%' THEN 'WPS'
-                WHEN ne.security ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
-                WHEN COALESCE(ne.security, '') = '' THEN 'OPEN'
-                ELSE 'UNKNOWN'
-              END
-            ELSE ${SECURITY_EXPR('ola')}
-          END AS security,
-          COALESCE(ola.radio_frequency, ne.frequency) AS frequency,
-          COALESCE(ola.radio_capabilities, ne.security) AS capabilities,
+          ne.ssid,
+          ne.type,
+          ne.security,
+          ne.frequency,
+          ne.capabilities,
           (ne.frequency BETWEEN 5000 AND 5900) AS is_5ghz,
           (ne.frequency BETWEEN 5925 AND 7125) AS is_6ghz,
           (COALESCE(ne.ssid, '') = '') AS is_hidden,
@@ -664,14 +624,7 @@ class UniversalFilterQueryBuilder {
           ne.max_distance_meters,
           NULL::numeric AS last_altitude_m,
           FALSE AS is_sentinel,
-          CASE 
-            WHEN home.home_point IS NOT NULL AND ne.lat IS NOT NULL AND ne.lon IS NOT NULL 
-            THEN ST_Distance(
-              home.home_point,
-              ST_SetSRID(ST_MakePoint(ne.lon, ne.lat), 4326)::geometry::geography
-            ) / 1000.0
-            ELSE NULL 
-          END AS distance_from_home_km,
+          ne.distance_from_home_km,
           ne.observations AS observations,
           ne.wigle_v3_observation_count,
           ne.wigle_v3_last_import_at,
@@ -682,11 +635,11 @@ class UniversalFilterQueryBuilder {
           NULL::numeric AS avg_signal,
           NULL::numeric AS min_signal,
           NULL::numeric AS max_signal,
-          COALESCE(ola.time, ne.observed_at) AS observed_at,
-          COALESCE(ola.level, ne.signal) AS signal,
+          ne.observed_at,
+          ne.signal,
           ne.lat,
           ne.lon,
-          COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
+          ne.accuracy_meters AS accuracy_meters,
           NULL::numeric AS stationary_confidence,
           ${NT_TAG_EXPR} AS threat_tag,
           ${NT_IS_IGNORED_EXPR} AS is_ignored,
@@ -694,7 +647,6 @@ class UniversalFilterQueryBuilder {
           JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
           NULL::text AS network_id
         FROM app.api_network_explorer_mv ne
-        LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
         LEFT JOIN LATERAL (
           SELECT *
           FROM app.network_tags nt_source
@@ -702,7 +654,6 @@ class UniversalFilterQueryBuilder {
           LIMIT 1
         ) nt ON TRUE
         LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
-        ${this.requiresHome ? "CROSS JOIN (SELECT ST_SetSRID(location::geometry, 4326)::geography AS home_point FROM app.location_markers WHERE marker_type = 'home' LIMIT 1) home" : ''}
         ORDER BY ${safeOrderBy}
         LIMIT ${this.addParam(limit)} OFFSET ${this.addParam(offset)}
       `;
