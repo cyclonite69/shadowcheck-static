@@ -79,13 +79,14 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const frequency = typeof row.frequency === 'number' ? row.frequency : null;
   const networkType = inferNetworkType(row.type, frequency, row.ssid, row.capabilities);
   const isWiFi = networkType === 'W';
+  const threatPayload = row.threat && typeof row.threat === 'object' ? row.threat : {};
+  const rawThreatScore = row.final_threat_score ?? threatPayload.score ?? 0;
+  const rawThreatLevel = row.final_threat_level ?? threatPayload.level ?? 'NONE';
 
   // Build threat object from separate columns
   const threatScore =
-    typeof row.final_threat_score === 'number'
-      ? row.final_threat_score
-      : parseFloat(row.final_threat_score) || 0;
-  const threatLevel = row.final_threat_level || 'NONE';
+    typeof rawThreatScore === 'number' ? rawThreatScore : parseFloat(String(rawThreatScore)) || 0;
+  const threatLevel = String(rawThreatLevel || 'NONE').toUpperCase();
   const threatInfo: ThreatInfo = {
     score: threatScore / 100,
     level:
@@ -113,7 +114,7 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     security: securityValue,
     frequency: frequency,
     channel: channelValue,
-    observations: parseInt(String(row.obs_count || 0), 10),
+    observations: parseInt(String(row.observations ?? row.obs_count ?? 0), 10),
     latitude: typeof row.lat === 'number' ? row.lat : null,
     longitude: typeof row.lon === 'number' ? row.lon : null,
     distanceFromHome: (() => {
@@ -145,13 +146,16 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     is_ignored: typeof row.is_ignored === 'boolean' ? row.is_ignored : null,
     notes_count: row.notes_count !== undefined ? parseInt(String(row.notes_count), 10) : null,
     all_tags: (() => {
+      if (row.all_tags) return String(row.all_tags);
       const tags: string[] = [];
       if (row.threat_tag) tags.push(row.threat_tag);
       if (row.is_ignored) tags.push('ignored');
       return tags.length > 0 ? tags.join(',') : null;
     })(),
     wigle_v3_observation_count:
-      typeof row.wigle_v3_observation_count === 'number' ? row.wigle_v3_observation_count : null,
+      row.wigle_v3_observation_count !== undefined && row.wigle_v3_observation_count !== null
+        ? parseInt(String(row.wigle_v3_observation_count), 10)
+        : null,
     wigle_v3_last_import_at: row.wigle_v3_last_import_at || null,
     rawLatitude:
       typeof row.raw_lat === 'number' ? row.raw_lat : typeof row.lat === 'number' ? row.lat : null,

@@ -170,6 +170,10 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     channel: 'ne.frequency',
     manufacturer:
       "COALESCE(to_jsonb(rm)->>'organization_name', to_jsonb(rm)->>'manufacturer', to_jsonb(rm)->>'manufacturer_name')",
+    threat_tag: 'nt.threat_tag',
+    is_ignored: 'nt.is_ignored',
+    wigle_v3_observation_count: 'ne.wigle_v3_observation_count',
+    wigle_v3_last_import_at: 'ne.wigle_v3_last_import_at',
     max_distance_meters: 'ne.max_distance_meters',
   };
 

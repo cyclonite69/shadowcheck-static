@@ -670,6 +670,8 @@ class UniversalFilterQueryBuilder {
             ELSE NULL 
           END AS distance_from_home_km,
           ne.observations AS observations,
+          ne.wigle_v3_observation_count,
+          ne.wigle_v3_last_import_at,
           ne.first_seen AS first_observed_at,
           ne.last_seen AS last_observed_at,
           NULL::integer AS unique_days,
@@ -683,10 +685,14 @@ class UniversalFilterQueryBuilder {
           ne.lon,
           COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
           NULL::numeric AS stationary_confidence,
+          nt.threat_tag,
+          COALESCE(nt.is_ignored, FALSE) AS is_ignored,
+          (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
           JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
           NULL::text AS network_id
         FROM app.api_network_explorer_mv ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
+        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
         LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
         ${this.requiresHome ? "CROSS JOIN (SELECT ST_SetSRID(location::geometry, 4326)::geography AS home_point FROM app.location_markers WHERE marker_type = 'home' LIMIT 1) home" : ''}
         ORDER BY ${safeOrderBy}
@@ -821,6 +827,8 @@ class UniversalFilterQueryBuilder {
           ELSE NULL 
         END AS distance_from_home_km,
         r.observation_count AS observations,
+        ne.wigle_v3_observation_count,
+        ne.wigle_v3_last_import_at,
         r.first_observed_at,
         r.last_observed_at,
         r.unique_days,
@@ -834,6 +842,9 @@ class UniversalFilterQueryBuilder {
         l.lon,
         l.accuracy AS accuracy_meters,
         s.stationary_confidence,
+        nt.threat_tag,
+        COALESCE(nt.is_ignored, FALSE) AS is_ignored,
+        (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM obs_rollup r
@@ -1195,6 +1206,8 @@ class UniversalFilterQueryBuilder {
         FALSE AS is_sentinel,
         ne.distance_from_home_km,
         ne.observations AS observations,
+        ne.wigle_v3_observation_count,
+        ne.wigle_v3_last_import_at,
         ne.first_seen AS first_observed_at,
         ne.last_seen AS last_observed_at,
         NULL::integer AS unique_days,
@@ -1208,10 +1221,14 @@ class UniversalFilterQueryBuilder {
         ne.lon,
         COALESCE(ola.accuracy, ne.accuracy_meters) AS accuracy_meters,
         NULL::numeric AS stationary_confidence,
+        nt.threat_tag,
+        COALESCE(nt.is_ignored, FALSE) AS is_ignored,
+        (SELECT COUNT(*) FROM app.network_notes nn WHERE UPPER(nn.bssid) = UPPER(ne.bssid) AND nn.is_deleted IS NOT TRUE) AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
       LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
+      LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
       LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
       ${whereClause}
       ORDER BY ${safeOrderBy}

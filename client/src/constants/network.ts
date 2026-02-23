@@ -111,7 +111,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
 export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   lastSeen: 'last_seen',
   firstSeen: 'first_observed_at',
-  observations: 'obs_count',
+  observations: 'observations',
   signal: 'signal',
   threat: 'threat',
   threat_score: 'threat_score',
