@@ -60,8 +60,8 @@ export const NetworkTableBodyGrid = ({
     }
   };
 
-  // Show empty state
-  if (loadingNetworks || filteredNetworks.length === 0 || error) {
+  // Show initial loading / empty / error states only when we have no rows yet.
+  if ((loadingNetworks && filteredNetworks.length === 0) || filteredNetworks.length === 0 || error) {
     return (
       <div
         ref={tableContainerRef}
@@ -396,6 +396,18 @@ export const NetworkTableBodyGrid = ({
           );
         })}
       </div>
+      {isLoadingMore && (
+        <div
+          style={{
+            padding: '8px 12px',
+            textAlign: 'center',
+            color: '#94a3b8',
+            fontSize: '11px',
+          }}
+        >
+          Loading more networks...
+        </div>
+      )}
     </div>
   );
 };

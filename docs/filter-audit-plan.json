@@ -1,0 +1,52 @@
+{
+  "planVersion": "1.0.0",
+  "date": "2026-02-23",
+  "target": "server/src/services/filterQueryBuilder/universalFilterQueryBuilder.ts",
+  "goal": "Full correctness + performance audit with per-filter regression protection and staged rollout",
+  "harness": {
+    "unitHarnessFile": "tests/unit/universalFilterQueryBuilder.audit.test.ts",
+    "integrationHarnessFile": "tests/integration/filterAuditMatrix.test.ts",
+    "performanceHarnessFile": "tests/performance/filterAudit.perf.test.ts",
+    "telemetryOutput": "reports/filter-audit-report.json",
+    "measurements": [
+      "generated_sql",
+      "params",
+      "appliedFilters",
+      "ignoredFilters",
+      "warnings",
+      "row_count",
+      "execution_ms",
+      "planning_ms",
+      "cpu_percent",
+      "memory_mb"
+    ],
+    "profilingCommands": {
+      "sql": "EXPLAIN (ANALYZE, BUFFERS, VERBOSE, FORMAT JSON) <QUERY>",
+      "cpuMemory": "pidstat -h -r -u -p <PID> 1",
+      "queryStats": "SELECT * FROM pg_stat_statements WHERE query ILIKE '%filtered_obs%' ORDER BY mean_exec_time DESC LIMIT 50;"
+    }
+  },
+  "performanceHotspotPriority": [
+    "radioTypes",
+    "frequencyBands",
+    "tag_type",
+    "has_notes",
+    "radiusFilter",
+    "distanceFromHomeMin",
+    "distanceFromHomeMax",
+    "threatCategories"
+  ],
+  "rollout": [
+    "Phase 1: baseline profiling + audit harness merge (no behavior change)",
+    "Phase 2: high-risk filter refactors behind feature flag",
+    "Phase 3: index additions from EXPLAIN findings",
+    "Phase 4: staged enablement in staging with telemetry guardrails",
+    "Phase 5: production canary, fallback toggle, then full rollout"
+  ],
+  "exitCriteria": [
+    "Every filter has dedicated unit tests for valid/invalid/ignored behavior",
+    "Pairwise matrix passes for SQL + metadata correctness",
+    "Worst-case p95 latency reduced and documented",
+    "No regression in appliedFilters/ignoredFilters contract"
+  ]
+}

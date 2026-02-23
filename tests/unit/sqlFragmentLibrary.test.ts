@@ -11,12 +11,15 @@ describe('SqlFragmentLibrary', () => {
     expect(manufacturer).toContain('AS manufacturer');
     expect(tags).toContain("to_jsonb(nt)->>'threat_tag'");
     expect(tags).toContain('AS is_ignored');
+    expect(tags).toContain('AS all_tags');
   });
 
   test('network tags lateral join binds caller alias', () => {
     const join = SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt');
     expect(join).toContain('LEFT JOIN LATERAL');
     expect(join).toContain('UPPER(ne.bssid)');
+    expect(join).toContain('STRING_AGG');
+    expect(join).toContain('BOOL_OR');
     expect(join).toContain(') nt ON TRUE');
   });
 

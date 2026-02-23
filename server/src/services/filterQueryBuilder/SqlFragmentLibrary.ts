@@ -22,7 +22,8 @@ export class SqlFragmentLibrary {
   static selectThreatTagFields(tagAlias = 'nt'): string {
     return `
       ${FIELD_EXPRESSIONS.threatTag(tagAlias)} AS threat_tag,
-      ${NULL_SAFE_COMPARISONS.isIgnored(tagAlias)} AS is_ignored
+      ${NULL_SAFE_COMPARISONS.isIgnored(tagAlias)} AS is_ignored,
+      COALESCE(to_jsonb(${tagAlias})->>'all_tags', to_jsonb(${tagAlias})->>'threat_tag', to_jsonb(${tagAlias})->>'tag_type') AS all_tags
     `.trim();
   }
 
@@ -32,10 +33,15 @@ export class SqlFragmentLibrary {
   static joinNetworkTagsLateral(sourceBssidAlias: string, lateralAlias = 'nt'): string {
     return `
       LEFT JOIN LATERAL (
-        SELECT *
+        SELECT
+          MAX(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type')) AS threat_tag,
+          COALESCE(BOOL_OR(COALESCE((to_jsonb(nt_source)->>'is_ignored')::boolean, FALSE)), FALSE) AS is_ignored,
+          STRING_AGG(
+            DISTINCT LOWER(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type')),
+            ',' ORDER BY LOWER(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type'))
+          ) AS all_tags
         FROM app.network_tags nt_source
         WHERE UPPER(nt_source.bssid) = UPPER(${sourceBssidAlias}.bssid)
-        LIMIT 1
       ) ${lateralAlias} ON TRUE
     `.trim();
   }

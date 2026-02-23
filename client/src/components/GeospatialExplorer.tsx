@@ -20,7 +20,6 @@ import { useMapDimensions } from './geospatial/useMapDimensions';
 import { useBoundingBoxFilter } from './geospatial/useBoundingBoxFilter';
 import { useHomeLocationLayer } from './geospatial/useHomeLocationLayer';
 import { useObservationLayers } from './geospatial/useObservationLayers';
-import { useNetworkInfiniteScroll } from './geospatial/useNetworkInfiniteScroll';
 import { useGeospatialMap } from './geospatial/useGeospatialMap';
 import { useMapStyleControls } from './geospatial/useMapStyleControls';
 import { useNetworkContextMenu } from './geospatial/useNetworkContextMenu';
@@ -286,13 +285,6 @@ export default function GeospatialExplorer() {
     fetchRoute,
     clearRoute,
   } = useDirectionsMode(mapRef);
-
-  useNetworkInfiniteScroll({
-    containerRef: tableContainerRef as React.RefObject<HTMLDivElement | null>,
-    hasMore: pagination.hasMore,
-    isLoadingMore,
-    onLoadMore: loadMore,
-  });
 
   const { handleColumnSort } = useNetworkSort({
     setSort,
@@ -588,7 +580,10 @@ export default function GeospatialExplorer() {
             }}
             onMapWigleObservations={() => {
               const n = contextMenu.network;
-              if (n) {
+              const selected = Array.from(selectedNetworks);
+              if (selected.length > 1) {
+                loadBatchWigleObservations(selected);
+              } else if (n) {
                 loadWigleObservations(n);
               }
               closeContextMenu();
