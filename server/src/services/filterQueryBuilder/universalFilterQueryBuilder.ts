@@ -695,7 +695,12 @@ class UniversalFilterQueryBuilder {
           NULL::text AS network_id
         FROM app.api_network_explorer_mv ne
         LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
-        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
+        LEFT JOIN LATERAL (
+          SELECT *
+          FROM app.network_tags nt_source
+          WHERE UPPER(nt_source.bssid) = UPPER(ne.bssid)
+          LIMIT 1
+        ) nt ON TRUE
         LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
         ${this.requiresHome ? "CROSS JOIN (SELECT ST_SetSRID(location::geometry, 4326)::geography AS home_point FROM app.location_markers WHERE marker_type = 'home' LIMIT 1) home" : ''}
         ORDER BY ${safeOrderBy}
@@ -854,7 +859,12 @@ class UniversalFilterQueryBuilder {
       JOIN obs_latest l ON l.bssid = r.bssid
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(l.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
-        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(l.bssid)
+        LEFT JOIN LATERAL (
+          SELECT *
+          FROM app.network_tags nt_source
+          WHERE UPPER(nt_source.bssid) = UPPER(l.bssid)
+          LIMIT 1
+        ) nt ON TRUE
         LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(l.bssid, 1, 8), ':', ''))
       LEFT JOIN obs_spatial s ON s.bssid = r.bssid
       ${this.requiresHome ? 'CROSS JOIN home' : ''}
@@ -1231,7 +1241,12 @@ class UniversalFilterQueryBuilder {
         NULL::text AS network_id
       FROM app.api_network_explorer_mv ne
       LEFT JOIN obs_latest_any ola ON UPPER(ola.bssid) = UPPER(ne.bssid)
-      LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM app.network_tags nt_source
+        WHERE UPPER(nt_source.bssid) = UPPER(ne.bssid)
+        LIMIT 1
+      ) nt ON TRUE
       LEFT JOIN app.radio_manufacturers rm ON rm.oui = UPPER(REPLACE(SUBSTRING(ne.bssid, 1, 8), ':', ''))
       ${whereClause}
       ORDER BY ${safeOrderBy}
@@ -1512,7 +1527,12 @@ class UniversalFilterQueryBuilder {
     return {
       sql: `SELECT COUNT(*) AS total FROM app.api_network_explorer_mv ne
             LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
-            LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid
+            LEFT JOIN LATERAL (
+              SELECT *
+              FROM app.network_tags nt_source
+              WHERE UPPER(nt_source.bssid) = UPPER(ne.bssid)
+              LIMIT 1
+            ) nt ON TRUE
             ${whereClause}`,
       params: [...this.params],
     };
@@ -1575,14 +1595,18 @@ class UniversalFilterQueryBuilder {
     if (e.tag_type && Array.isArray(f.tag_type) && f.tag_type.length > 0) {
       const wantsIgnore = f.tag_type.includes('ignore');
       const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
+      let tagCondition = '';
       if (tagValues.length > 0 && wantsIgnore) {
-        networkWhere.push(
-          `(${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)}) OR ${NT_IS_IGNORED_EXPR} IS TRUE)`
-        );
+        tagCondition = `(LOWER(COALESCE(to_jsonb(nt_filter)->>'threat_tag', to_jsonb(nt_filter)->>'tag_type')) = ANY(${this.addParam(tagValues)}) OR COALESCE((to_jsonb(nt_filter)->>'is_ignored')::boolean, FALSE) IS TRUE)`;
       } else if (tagValues.length > 0) {
-        networkWhere.push(`${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)})`);
+        tagCondition = `LOWER(COALESCE(to_jsonb(nt_filter)->>'threat_tag', to_jsonb(nt_filter)->>'tag_type')) = ANY(${this.addParam(tagValues)})`;
       } else if (wantsIgnore) {
-        networkWhere.push(`${NT_IS_IGNORED_EXPR} IS TRUE`);
+        tagCondition = `COALESCE((to_jsonb(nt_filter)->>'is_ignored')::boolean, FALSE) IS TRUE`;
+      }
+      if (tagCondition) {
+        networkWhere.push(
+          `EXISTS (SELECT 1 FROM app.network_tags nt_filter WHERE UPPER(nt_filter.bssid) = UPPER(ne.bssid) AND ${tagCondition})`
+        );
       }
       this.addApplied('engagement', 'tag_type', f.tag_type);
     }
@@ -1742,7 +1766,12 @@ class UniversalFilterQueryBuilder {
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
-        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
+        LEFT JOIN LATERAL (
+          SELECT *
+          FROM app.network_tags nt_source
+          WHERE UPPER(nt_source.bssid) = UPPER(r.bssid)
+          LIMIT 1
+        ) nt ON TRUE
         ${networkWhereClause}
       )
       SELECT
@@ -1836,7 +1865,12 @@ class UniversalFilterQueryBuilder {
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
-        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
+        LEFT JOIN LATERAL (
+          SELECT *
+          FROM app.network_tags nt_source
+          WHERE UPPER(nt_source.bssid) = UPPER(r.bssid)
+          LIMIT 1
+        ) nt ON TRUE
         ${networkWhereClause}
       )
       SELECT COUNT(*)::bigint AS total
@@ -1913,7 +1947,12 @@ class UniversalFilterQueryBuilder {
         LEFT JOIN obs_spatial s ON s.bssid = r.bssid
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(r.bssid)
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(r.bssid)
-        LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(r.bssid)
+        LEFT JOIN LATERAL (
+          SELECT *
+          FROM app.network_tags nt_source
+          WHERE UPPER(nt_source.bssid) = UPPER(r.bssid)
+          LIMIT 1
+        ) nt ON TRUE
         ${networkWhereClause}
       ),
       filtered_obs_scope AS (
