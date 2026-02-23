@@ -57,6 +57,8 @@ import {
 } from './sqlExpressions';
 import { isOui, coerceOui } from './normalizers';
 import { validateFilterPayload } from './validators';
+import { buildRadioPredicates } from './radioPredicates';
+import { buildEngagementPredicates } from './engagementPredicates';
 import type {
   Filters,
   EnabledFlags,
@@ -132,6 +134,56 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     this.state = this.state.withWarning(message);
   }
 
+  private applyRadioFilters(options: {
+    typeExpr: string;
+    frequencyExpr: string;
+    channelExpr: string;
+    signalExpr: string;
+    channelWrapComparisons?: boolean;
+    rssiRequireNotNullExpr?: string;
+    rssiIncludeNoiseFloor?: boolean;
+  }): string[] {
+    const result = buildRadioPredicates({
+      enabled: this.enabled,
+      filters: this.filters,
+      addParam: this.addParam.bind(this),
+      expressions: {
+        typeExpr: options.typeExpr,
+        frequencyExpr: options.frequencyExpr,
+        channelExpr: options.channelExpr,
+        signalExpr: options.signalExpr,
+      },
+      options: {
+        channelWrapComparisons: options.channelWrapComparisons,
+        rssiRequireNotNullExpr: options.rssiRequireNotNullExpr,
+        rssiIncludeNoiseFloor: options.rssiIncludeNoiseFloor,
+      },
+    });
+
+    result.applied.forEach((entry) => this.addApplied('radio', entry.field, entry.value));
+    return result.where;
+  }
+
+  private applyEngagementFilters(options: {
+    bssidExpr: string;
+    tagAlias: string;
+    tagLowerExpr: string;
+    tagIgnoredExpr: string;
+  }): string[] {
+    const result = buildEngagementPredicates({
+      enabled: this.enabled,
+      filters: this.filters,
+      addParam: this.addParam.bind(this),
+      bssidExpr: options.bssidExpr,
+      tagAlias: options.tagAlias,
+      tagLowerExpr: options.tagLowerExpr,
+      tagIgnoredExpr: options.tagIgnoredExpr,
+    });
+
+    result.applied.forEach((entry) => this.addApplied('engagement', entry.field, entry.value));
+    return result.where;
+  }
+
   // ============================================================================
   // MODULE 1: OBSERVATION FILTERS
   // Constructs WHERE clauses for filtering observations
@@ -196,72 +248,16 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       this.addWarning('networkId filter ignored (app.networks not available).');
     }
 
-    if (e.radioTypes && Array.isArray(f.radioTypes) && f.radioTypes.length > 0) {
-      where.push(`${OBS_TYPE_EXPR('o')} = ANY(${this.addParam(f.radioTypes)})`);
-      this.addApplied('radio', 'radioTypes', f.radioTypes);
-    }
-
-    if (e.frequencyBands && Array.isArray(f.frequencyBands) && f.frequencyBands.length > 0) {
-      const bandConditions = f.frequencyBands.map((band) => {
-        if (band === '2.4GHz') {
-          return '(o.radio_frequency BETWEEN 2412 AND 2484)';
-        }
-        if (band === '5GHz') {
-          return '(o.radio_frequency BETWEEN 5000 AND 5900)';
-        }
-        if (band === '6GHz') {
-          return '(o.radio_frequency BETWEEN 5925 AND 7125)';
-        }
-        if (band === 'BLE') {
-          return `${OBS_TYPE_EXPR('o')} = 'E'`;
-        }
-        if (band === 'Cellular') {
-          return `${OBS_TYPE_EXPR('o')} IN ('L', 'G', 'N')`;
-        }
-        return null;
-      });
-      const clauses = bandConditions.filter(Boolean);
-      if (clauses.length > 0) {
-        where.push(`(${clauses.join(' OR ')})`);
-        this.addApplied('radio', 'frequencyBands', f.frequencyBands);
-      }
-    }
-
-    if (e.channelMin && f.channelMin !== undefined) {
-      where.push(...this.buildRangePredicate({ min: f.channelMin, expr: WIFI_CHANNEL_EXPR('o') }));
-      this.addApplied('radio', 'channelMin', f.channelMin);
-    }
-
-    if (e.channelMax && f.channelMax !== undefined) {
-      where.push(...this.buildRangePredicate({ max: f.channelMax, expr: WIFI_CHANNEL_EXPR('o') }));
-      this.addApplied('radio', 'channelMax', f.channelMax);
-    }
-
-    if (e.rssiMin && f.rssiMin !== undefined) {
-      where.push(
-        ...this.buildRssiPredicate({
-          value: f.rssiMin,
-          comparator: '>=',
-          signalExpr: 'o.level',
-          requireNotNullExpr: 'o.level IS NOT NULL',
-          includeNoiseFloor: true,
-        })
-      );
-      this.addApplied('radio', 'rssiMin', f.rssiMin);
-    }
-
-    if (e.rssiMax && f.rssiMax !== undefined) {
-      where.push(
-        ...this.buildRssiPredicate({
-          value: f.rssiMax,
-          comparator: '<=',
-          signalExpr: 'o.level',
-          requireNotNullExpr: 'o.level IS NOT NULL',
-          includeNoiseFloor: true,
-        })
-      );
-      this.addApplied('radio', 'rssiMax', f.rssiMax);
-    }
+    where.push(
+      ...this.applyRadioFilters({
+        typeExpr: OBS_TYPE_EXPR('o'),
+        frequencyExpr: 'o.radio_frequency',
+        channelExpr: WIFI_CHANNEL_EXPR('o'),
+        signalExpr: 'o.level',
+        rssiRequireNotNullExpr: 'o.level IS NOT NULL',
+        rssiIncludeNoiseFloor: true,
+      })
+    );
 
     // Quality filters for anomalous data
     if (e.qualityFilter && f.qualityFilter && f.qualityFilter !== 'none') {
@@ -938,75 +934,15 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         this.addApplied('identity', 'manufacturer', f.manufacturer);
       }
     }
-    if (e.radioTypes && Array.isArray(f.radioTypes) && f.radioTypes.length > 0) {
-      where.push(`${networkTypeExpr} = ANY(${this.addParam(f.radioTypes)})`);
-      this.addApplied('radio', 'radioTypes', f.radioTypes);
-    }
-    if (e.frequencyBands && Array.isArray(f.frequencyBands) && f.frequencyBands.length > 0) {
-      const bandConditions = f.frequencyBands.map((band) => {
-        if (band === '2.4GHz') {
-          return `(${networkFrequencyExpr} BETWEEN 2412 AND 2484)`;
-        }
-        if (band === '5GHz') {
-          return `(${networkFrequencyExpr} BETWEEN 5000 AND 5900)`;
-        }
-        if (band === '6GHz') {
-          return `(${networkFrequencyExpr} BETWEEN 5925 AND 7125)`;
-        }
-        if (band === 'BLE') {
-          return `${networkTypeExpr} = 'E'`;
-        }
-        if (band === 'Cellular') {
-          return `${networkTypeExpr} IN ('L', 'G', 'N')`;
-        }
-        return null;
-      });
-      const clauses = bandConditions.filter(Boolean);
-      if (clauses.length > 0) {
-        where.push(`(${clauses.join(' OR ')})`);
-        this.addApplied('radio', 'frequencyBands', f.frequencyBands);
-      }
-    }
-    if (e.channelMin && f.channelMin !== undefined) {
-      where.push(
-        ...this.buildRangePredicate({
-          min: f.channelMin,
-          expr: networkChannelExpr,
-          wrapComparisons: true,
-        })
-      );
-      this.addApplied('radio', 'channelMin', f.channelMin);
-    }
-    if (e.channelMax && f.channelMax !== undefined) {
-      where.push(
-        ...this.buildRangePredicate({
-          max: f.channelMax,
-          expr: networkChannelExpr,
-          wrapComparisons: true,
-        })
-      );
-      this.addApplied('radio', 'channelMax', f.channelMax);
-    }
-    if (e.rssiMin && f.rssiMin !== undefined) {
-      where.push(
-        ...this.buildRssiPredicate({
-          value: f.rssiMin,
-          comparator: '>=',
-          signalExpr: networkSignalExpr,
-        })
-      );
-      this.addApplied('radio', 'rssiMin', f.rssiMin);
-    }
-    if (e.rssiMax && f.rssiMax !== undefined) {
-      where.push(
-        ...this.buildRssiPredicate({
-          value: f.rssiMax,
-          comparator: '<=',
-          signalExpr: networkSignalExpr,
-        })
-      );
-      this.addApplied('radio', 'rssiMax', f.rssiMax);
-    }
+    where.push(
+      ...this.applyRadioFilters({
+        typeExpr: networkTypeExpr,
+        frequencyExpr: networkFrequencyExpr,
+        channelExpr: networkChannelExpr,
+        signalExpr: networkSignalExpr,
+        channelWrapComparisons: true,
+      })
+    );
     if (e.encryptionTypes && Array.isArray(f.encryptionTypes) && f.encryptionTypes.length > 0) {
       // Build security clauses that include variants (e.g., WPA2 includes WPA2-E)
       const securityClauses: string[] = [];
@@ -1069,36 +1005,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       where.push(`ne.observations <= ${this.addParam(f.observationCountMax)}`);
       this.addApplied('quality', 'observationCountMax', f.observationCountMax);
     }
-    if (e.has_notes && f.has_notes !== undefined) {
-      if (f.has_notes) {
-        where.push(
-          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) > 0`
-        );
-      } else {
-        where.push(
-          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) = 0`
-        );
-      }
-      this.addApplied('engagement', 'has_notes', f.has_notes);
-    }
-    if (e.tag_type && Array.isArray(f.tag_type) && f.tag_type.length > 0) {
-      const wantsIgnore = f.tag_type.includes('ignore');
-      const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
-      let tagClause = '';
-      if (tagValues.length > 0 && wantsIgnore) {
-        tagClause = `(${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)}) OR ${NT_IS_IGNORED_EXPR} IS TRUE)`;
-      } else if (tagValues.length > 0) {
-        tagClause = `${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)})`;
-      } else if (wantsIgnore) {
-        tagClause = `${NT_IS_IGNORED_EXPR} IS TRUE`;
-      }
-      if (tagClause) {
-        where.push(
-          `EXISTS (SELECT 1 FROM app.network_tags nt WHERE UPPER(nt.bssid) = UPPER(ne.bssid) AND ${tagClause})`
-        );
-        this.addApplied('engagement', 'tag_type', f.tag_type);
-      }
-    }
+    where.push(
+      ...this.applyEngagementFilters({
+        bssidExpr: 'ne.bssid',
+        tagAlias: 'nt',
+        tagLowerExpr: NT_TAG_LOWER_EXPR,
+        tagIgnoredExpr: NT_IS_IGNORED_EXPR,
+      })
+    );
     if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
       if (this.context?.pageType === 'wigle') {
         where.push(
@@ -1364,57 +1278,19 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         where.push(`ne.manufacturer ILIKE ${this.addParam(`%${f.manufacturer}%`)}`);
       }
     }
-    if (e.radioTypes && Array.isArray(f.radioTypes) && f.radioTypes.length > 0) {
-      where.push(`ne.type = ANY(${this.addParam(f.radioTypes)})`);
-    }
-    if (e.frequencyBands && Array.isArray(f.frequencyBands) && f.frequencyBands.length > 0) {
-      const bandConditions = f.frequencyBands.map((band) => {
-        if (band === '2.4GHz') {
-          return '(ne.frequency BETWEEN 2412 AND 2484)';
-        }
-        if (band === '5GHz') {
-          return '(ne.frequency BETWEEN 5000 AND 5900)';
-        }
-        if (band === '6GHz') {
-          return '(ne.frequency BETWEEN 5925 AND 7125)';
-        }
-        if (band === 'BLE') {
-          return "ne.type = 'E'";
-        }
-        if (band === 'Cellular') {
-          return "ne.type IN ('L', 'G', 'N')";
-        }
-        return null;
-      });
-      const clauses = bandConditions.filter(Boolean);
-      if (clauses.length > 0) {
-        where.push(`(${clauses.join(' OR ')})`);
-      }
-    }
-    if (e.channelMin && f.channelMin !== undefined) {
-      where.push(...this.buildRangePredicate({ min: f.channelMin, expr: NETWORK_CHANNEL_EXPR('ne') }));
-    }
-    if (e.channelMax && f.channelMax !== undefined) {
-      where.push(...this.buildRangePredicate({ max: f.channelMax, expr: NETWORK_CHANNEL_EXPR('ne') }));
-    }
-    if (e.rssiMin && f.rssiMin !== undefined) {
-      where.push(
-        ...this.buildRssiPredicate({
-          value: f.rssiMin,
-          comparator: '>=',
+    where.push(
+      ...buildRadioPredicates({
+        enabled: this.enabled,
+        filters: this.filters,
+        addParam: this.addParam.bind(this),
+        expressions: {
+          typeExpr: 'ne.type',
+          frequencyExpr: 'ne.frequency',
+          channelExpr: NETWORK_CHANNEL_EXPR('ne'),
           signalExpr: 'ne.signal',
-        })
-      );
-    }
-    if (e.rssiMax && f.rssiMax !== undefined) {
-      where.push(
-        ...this.buildRssiPredicate({
-          value: f.rssiMax,
-          comparator: '<=',
-          signalExpr: 'ne.signal',
-        })
-      );
-    }
+        },
+      }).where
+    );
     // ne.security contains raw capabilities string, compute security type for comparison
     const computedSecurityExpr = `
       CASE
@@ -1465,34 +1341,17 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     if (e.observationCountMax && f.observationCountMax !== undefined) {
       where.push(`ne.observations <= ${this.addParam(f.observationCountMax)}`);
     }
-    if (e.has_notes && f.has_notes !== undefined) {
-      if (f.has_notes) {
-        where.push(
-          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) > 0`
-        );
-      } else {
-        where.push(
-          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) = 0`
-        );
-      }
-    }
-    if (e.tag_type && Array.isArray(f.tag_type) && f.tag_type.length > 0) {
-      const wantsIgnore = f.tag_type.includes('ignore');
-      const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
-      let tagClause = '';
-      if (tagValues.length > 0 && wantsIgnore) {
-        tagClause = `(${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)}) OR ${NT_IS_IGNORED_EXPR} IS TRUE)`;
-      } else if (tagValues.length > 0) {
-        tagClause = `${NT_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)})`;
-      } else if (wantsIgnore) {
-        tagClause = `${NT_IS_IGNORED_EXPR} IS TRUE`;
-      }
-      if (tagClause) {
-        where.push(
-          `EXISTS (SELECT 1 FROM app.network_tags nt WHERE UPPER(nt.bssid) = UPPER(ne.bssid) AND ${tagClause})`
-        );
-      }
-    }
+    where.push(
+      ...buildEngagementPredicates({
+        enabled: this.enabled,
+        filters: this.filters,
+        addParam: this.addParam.bind(this),
+        bssidExpr: 'ne.bssid',
+        tagAlias: 'nt',
+        tagLowerExpr: NT_TAG_LOWER_EXPR,
+        tagIgnoredExpr: NT_IS_IGNORED_EXPR,
+      }).where
+    );
     if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
       if (this.context?.pageType === 'wigle') {
         where.push(
@@ -1614,36 +1473,14 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       networkWhere.push(`r.observation_count <= ${this.addParam(f.observationCountMax)}`);
       this.addApplied('quality', 'observationCountMax', f.observationCountMax);
     }
-    if (e.has_notes && f.has_notes !== undefined) {
-      if (f.has_notes) {
-        networkWhere.push(
-          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) > 0`
-        );
-      } else {
-        networkWhere.push(
-          `(SELECT COUNT(*) FROM app.network_notes WHERE bssid = ne.bssid AND is_deleted IS NOT TRUE) = 0`
-        );
-      }
-      this.addApplied('engagement', 'has_notes', f.has_notes);
-    }
-    if (e.tag_type && Array.isArray(f.tag_type) && f.tag_type.length > 0) {
-      const wantsIgnore = f.tag_type.includes('ignore');
-      const tagValues = f.tag_type.filter((tag) => tag !== 'ignore');
-      let tagCondition = '';
-      if (tagValues.length > 0 && wantsIgnore) {
-        tagCondition = `(${NT_FILTER_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)}) OR ${NT_FILTER_IS_IGNORED_EXPR} IS TRUE)`;
-      } else if (tagValues.length > 0) {
-        tagCondition = `${NT_FILTER_TAG_LOWER_EXPR} = ANY(${this.addParam(tagValues)})`;
-      } else if (wantsIgnore) {
-        tagCondition = `${NT_FILTER_IS_IGNORED_EXPR} IS TRUE`;
-      }
-      if (tagCondition) {
-        networkWhere.push(
-          `EXISTS (SELECT 1 FROM app.network_tags nt_filter WHERE UPPER(nt_filter.bssid) = UPPER(ne.bssid) AND ${tagCondition})`
-        );
-      }
-      this.addApplied('engagement', 'tag_type', f.tag_type);
-    }
+    networkWhere.push(
+      ...this.applyEngagementFilters({
+        bssidExpr: 'ne.bssid',
+        tagAlias: 'nt_filter',
+        tagLowerExpr: NT_FILTER_TAG_LOWER_EXPR,
+        tagIgnoredExpr: NT_FILTER_IS_IGNORED_EXPR,
+      })
+    );
     if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
       if (this.context?.pageType === 'wigle') {
         networkWhere.push(

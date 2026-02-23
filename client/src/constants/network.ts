@@ -52,7 +52,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   // Tag columns (from network_tags JOIN)
   threat_tag: { label: 'Tag', width: 100, sortable: true, default: false },
   is_ignored: { label: 'Ignored', width: 80, sortable: true, default: false },
-  notes_count: { label: 'Notes', width: 70, sortable: false, default: false },
+  notes_count: { label: 'Notes', width: 70, sortable: true, default: false },
   all_tags: {
     label: 'All Tags',
     width: 120,
@@ -136,8 +136,11 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   max_distance_meters: 'max_distance_meters',
   last_altitude_m: 'last_altitude_m',
   is_sentinel: 'is_sentinel',
+  threat_tag: 'threat_tag',
+  is_ignored: 'is_ignored',
+  notes_count: 'notes_count',
   timespanDays: 'timespan_days',
-  all_tags: 'threat_tag',
+  all_tags: 'all_tags',
   wigle_v3_observation_count: 'wigle_v3_observation_count',
   wigle_v3_last_import_at: 'wigle_v3_last_import_at',
 };

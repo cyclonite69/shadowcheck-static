@@ -152,6 +152,19 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(orderBy).toContain('ASC');
   });
 
+  test('multi-column sort preserves requested order', () => {
+    const orderBy = buildOrderBy('threat_score,last_seen', 'desc,asc');
+    const clauses = orderBy.split(',').map((v) => v.trim());
+    expect(clauses[0]).toContain("::numeric DESC");
+    expect(clauses[1]).toContain('ne.last_seen ASC');
+  });
+
+  test('all_tags sort uses aggregated all_tags field', () => {
+    const orderBy = buildOrderBy('all_tags', 'asc');
+    expect(orderBy).toContain("to_jsonb(nt)->>'all_tags'");
+    expect(orderBy).toContain('ASC');
+  });
+
   test('network list SQL uses schema-compatible manufacturer projection', () => {
     const result = new UniversalFilterQueryBuilder({}, {}).buildNetworkListQuery();
     expect(result.sql).toContain("to_jsonb(rm)->>'organization_name'");
