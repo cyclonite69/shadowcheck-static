@@ -1,3 +1,5 @@
+import { FIELD_EXPRESSIONS, NULL_SAFE_COMPARISONS } from './SchemaCompat';
+
 /**
  * Shared SQL fragment library for query-builder composition.
  * Fragments are intentionally string-based and alias-driven so callers can
@@ -9,8 +11,8 @@ export class SqlFragmentLibrary {
    */
   static selectManufacturerFields(manufacturerAlias = 'rm'): string {
     return `
-      COALESCE(to_jsonb(${manufacturerAlias})->>'organization_name', to_jsonb(${manufacturerAlias})->>'manufacturer', to_jsonb(${manufacturerAlias})->>'manufacturer_name') AS manufacturer,
-      COALESCE(to_jsonb(${manufacturerAlias})->>'organization_address', to_jsonb(${manufacturerAlias})->>'address') AS manufacturer_address
+      ${FIELD_EXPRESSIONS.manufacturerName(manufacturerAlias)} AS manufacturer,
+      ${FIELD_EXPRESSIONS.manufacturerAddress(manufacturerAlias)} AS manufacturer_address
     `.trim();
   }
 
@@ -19,8 +21,8 @@ export class SqlFragmentLibrary {
    */
   static selectThreatTagFields(tagAlias = 'nt'): string {
     return `
-      COALESCE(to_jsonb(${tagAlias})->>'threat_tag', to_jsonb(${tagAlias})->>'tag_type') AS threat_tag,
-      COALESCE((to_jsonb(${tagAlias})->>'is_ignored')::boolean, FALSE) AS is_ignored
+      ${FIELD_EXPRESSIONS.threatTag(tagAlias)} AS threat_tag,
+      ${NULL_SAFE_COMPARISONS.isIgnored(tagAlias)} AS is_ignored
     `.trim();
   }
 
@@ -50,8 +52,8 @@ export class SqlFragmentLibrary {
    */
   static selectObservationCoordinateFields(observationAlias = 'o'): string {
     return `
-      COALESCE(${observationAlias}.lat, ST_Y(${observationAlias}.geom::geometry)) AS lat,
-      COALESCE(${observationAlias}.lon, ST_X(${observationAlias}.geom::geometry)) AS lon
+      ${FIELD_EXPRESSIONS.observationLat(observationAlias)} AS lat,
+      ${FIELD_EXPRESSIONS.observationLon(observationAlias)} AS lon
     `.trim();
   }
 }
