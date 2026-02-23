@@ -5,10 +5,7 @@ SELECT n.bssid,
     n.ssid,
     n.type,
     n.frequency,
-    n.capabilities AS capabilities,
     n.capabilities AS security,
-    n.wigle_v3_observation_count,
-    n.wigle_v3_last_import_at,
     n.service,
     n.rcois,
     n.mfgrid,
@@ -49,7 +46,10 @@ SELECT n.bssid,
     count(DISTINCT o.source_tag) AS unique_source_count,
     avg(o.level) AS avg_signal,
     min(o.level) AS min_signal,
-    max(o.level) AS max_signal
+    max(o.level) AS max_signal,
+    n.capabilities AS capabilities,
+    n.wigle_v3_observation_count,
+    n.wigle_v3_last_import_at
 FROM (app.networks n
     LEFT JOIN app.observations o ON ((o.bssid = n.bssid)))
 GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.capabilities,
