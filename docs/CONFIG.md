@@ -6,14 +6,14 @@ This document describes all configuration options for ShadowCheckStatic.
 
 ## Configuration Files
 
-| File                               | Purpose                        |
-| ---------------------------------- | ------------------------------ |
+| File                               | Purpose                         |
+| ---------------------------------- | ------------------------------- |
 | `.env`                             | Optional non-secret config only |
 | `.env.example`                     | Template (non-secret values)    |
 | `.env.local`                       | Optional non-secret overrides   |
-| `server/src/config/database.ts`    | Database configuration         |
-| `server/src/utils/serverConfig.ts` | Server configuration           |
-| `config/servers.json`              | Server definitions             |
+| `server/src/config/database.ts`    | Database configuration          |
+| `server/src/utils/serverConfig.ts` | Server configuration            |
+| `config/servers.json`              | Server definitions              |
 
 ## Environment Variables
 
@@ -68,17 +68,16 @@ See [SECRETS.md](SECRETS.md) for the authoritative secrets guide.
 
 ### Optional Secrets
 
-| Secret Key              | Description            |
-| ----------------------- | ---------------------- |
-| `api_key`               | API authentication key |
-| `wigle_api_key`         | WiGLE API key          |
-| `wigle_api_token`       | WiGLE API token        |
-| `locationiq_api_key`    | LocationIQ geocoding   |
-| `opencage_api_key`      | OpenCage geocoding     |
-| `smarty_auth_id`        | Smarty geocoding       |
-| `smarty_auth_token`     | Smarty geocoding       |
-| `aws_access_key_id`     | AWS credentials        |
-| `aws_secret_access_key` | AWS credentials        |
+| Secret Key           | Description            |
+| -------------------- | ---------------------- |
+| `api_key`            | API authentication key |
+| `wigle_api_key`      | WiGLE API key          |
+| `wigle_api_token`    | WiGLE API token        |
+| `locationiq_api_key` | LocationIQ geocoding   |
+| `opencage_api_key`   | OpenCage geocoding     |
+| `smarty_auth_id`     | Smarty geocoding       |
+| `smarty_auth_token`  | Smarty geocoding       |
+| `aws_region`         | AWS region hint        |
 
 ### Setting Secrets via Environment (Local Overrides Only)
 

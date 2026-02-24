@@ -41,12 +41,6 @@ export const ConfigurationTab: React.FC = () => {
     setMapboxUnlimitedApiKey,
     googleMapsApiKey,
     setGoogleMapsApiKey,
-    awsAccessKeyId,
-    setAwsAccessKeyId,
-    awsSecretAccessKey,
-    setAwsSecretAccessKey,
-    awsSessionToken,
-    setAwsSessionToken,
     awsRegion,
     setAwsRegion,
     opencageApiKey,
@@ -74,7 +68,7 @@ export const ConfigurationTab: React.FC = () => {
     saveMapboxToken,
     saveMapboxUnlimitedApiKey,
     saveGoogleMapsApiKey,
-    saveAwsCredentials,
+    saveAwsRegion,
     saveOpencageApiKey,
     saveLocationIqApiKey,
     saveSmartyCredentials,
@@ -199,42 +193,6 @@ export const ConfigurationTab: React.FC = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Access Key ID
-            </label>
-            <input
-              type="text"
-              value={awsAccessKeyId}
-              onChange={(e) => setAwsAccessKeyId(e.target.value)}
-              placeholder="AKIA..."
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Secret Access Key
-            </label>
-            <input
-              type="password"
-              value={awsSecretAccessKey}
-              onChange={(e) => setAwsSecretAccessKey(e.target.value)}
-              placeholder="secret"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
-              Session Token (Optional)
-            </label>
-            <input
-              type="password"
-              value={awsSessionToken}
-              onChange={(e) => setAwsSessionToken(e.target.value)}
-              placeholder="token"
-              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
               Region
             </label>
             <input
@@ -253,13 +211,17 @@ export const ConfigurationTab: React.FC = () => {
                 {awsConfigured ? '✓ Configured' : '✗ Not Configured'}
               </span>
             </div>
+            <p className="mt-2 text-xs text-slate-400">
+              Credentials are resolved from the runtime provider chain (IAM role, STS, SSO). Static
+              access keys are intentionally disabled.
+            </p>
           </div>
           <button
-            onClick={saveAwsCredentials}
+            onClick={saveAwsRegion}
             disabled={isLoading}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg font-medium hover:from-cyan-500 hover:to-cyan-600 transition-all disabled:opacity-50 text-sm"
           >
-            {isLoading ? 'Saving...' : 'Save AWS Credentials'}
+            {isLoading ? 'Saving...' : 'Save AWS Region'}
           </button>
         </div>
       </AdminCard>

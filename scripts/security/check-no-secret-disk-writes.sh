@@ -13,7 +13,7 @@ TMP_OUT="/tmp/shadowcheck-secret-policy-violations.txt"
 # Scan tracked source/config files (exclude docs and markdown prose).
 while IFS= read -r file; do
   case "$file" in
-    docs/* | *.md | *.txt | .gitignore | .dockerignore) continue ;;
+    docs/* | *.md | *.txt | .gitignore | .dockerignore | scripts/security/check-no-secret-disk-writes.sh) continue ;;
   esac
 
   # Block known secret-on-disk modalities:

@@ -1,12 +1,6 @@
 export {};
 const secretsManager = require('./secretsManager').default;
 
-type AwsCredentials = {
-  accessKeyId: string;
-  secretAccessKey: string;
-  sessionToken?: string;
-};
-
 const getAwsRegion = async (): Promise<string | null> => {
   return (
     secretsManager.get('aws_region') ||
@@ -16,30 +10,15 @@ const getAwsRegion = async (): Promise<string | null> => {
   );
 };
 
-const getAwsCredentials = async (): Promise<AwsCredentials | null> => {
-  const accessKeyId = secretsManager.get('aws_access_key_id') || process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey =
-    secretsManager.get('aws_secret_access_key') || process.env.AWS_SECRET_ACCESS_KEY;
-  const sessionToken = secretsManager.get('aws_session_token') || process.env.AWS_SESSION_TOKEN;
-
-  if (!accessKeyId || !secretAccessKey) {
-    return null;
-  }
-
-  return {
-    accessKeyId,
-    secretAccessKey,
-    sessionToken: sessionToken || undefined,
-  };
-};
-
 const getAwsConfig = async () => {
   const region = await getAwsRegion();
-  const credentials = await getAwsCredentials();
   return {
     region,
-    credentials,
-    hasExplicitCredentials: Boolean(credentials),
+    // Explicit credential injection is intentionally disabled.
+    // AWS SDK/CLI must resolve credentials from the runtime provider chain
+    // (instance profile, STS, SSO, etc.).
+    credentials: undefined,
+    hasExplicitCredentials: false,
   };
 };
 

@@ -9,15 +9,11 @@ const { EC2Client, DescribeInstancesCommand } = require('@aws-sdk/client-ec2');
 const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
 
 const buildClientConfig = async () => {
-  const { region, credentials } = await getAwsConfig();
+  const { region } = await getAwsConfig();
   if (!region) {
     throw new Error('AWS region not configured');
   }
-  const config: Record<string, any> = { region };
-  if (credentials) {
-    config.credentials = credentials;
-  }
-  return config;
+  return { region };
 };
 
 const listInstances = async (client: any) => {
@@ -64,7 +60,7 @@ const buildStateCounts = (instances: any[]) => {
 
 router.get('/admin/aws/overview', async (req, res) => {
   try {
-    const { region, hasExplicitCredentials } = await getAwsConfig();
+    const { region } = await getAwsConfig();
     if (!region) {
       return res.json({ configured: false, error: 'AWS region not configured' });
     }
@@ -89,7 +85,7 @@ router.get('/admin/aws/overview', async (req, res) => {
     const counts = buildStateCounts(instances);
 
     res.json({
-      configured: hasExplicitCredentials || Boolean(identity),
+      configured: Boolean(identity),
       region,
       identity,
       counts,

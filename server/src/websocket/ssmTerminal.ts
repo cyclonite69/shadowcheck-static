@@ -112,24 +112,13 @@ function initializeSsmWebSocket(
 
       try {
         const awsConfig = await getAwsConfig();
-        if (!awsConfig.hasExplicitCredentials) {
-          send('error', 'AWS credentials not configured');
-          ws.close();
-          activeSessions--;
-          return;
-        }
 
         const env: Record<string, string> = {
           ...(process.env as Record<string, string>),
-          AWS_ACCESS_KEY_ID: awsConfig.credentials.accessKeyId,
-          AWS_SECRET_ACCESS_KEY: awsConfig.credentials.secretAccessKey,
           PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
         };
         if (awsConfig.region) {
           env.AWS_DEFAULT_REGION = awsConfig.region;
-        }
-        if (awsConfig.credentials.sessionToken) {
-          env.AWS_SESSION_TOKEN = awsConfig.credentials.sessionToken;
         }
 
         logger.info(`SSM session starting for ${ctx.instanceId} by ${ctx.user.username}`);

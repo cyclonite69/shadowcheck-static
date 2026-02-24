@@ -35,12 +35,8 @@ export const adminApi = {
     return apiClient.post('/settings/google-maps', { apiKey: key });
   },
 
-  async saveAwsCredentials(
-    accessKeyId: string,
-    secretAccessKey: string,
-    region: string
-  ): Promise<any> {
-    return apiClient.post('/settings/aws', { accessKeyId, secretAccessKey, region });
+  async saveAwsRegion(region: string): Promise<any> {
+    return apiClient.post('/settings/aws', { region });
   },
 
   async saveOpenCageKey(key: string): Promise<any> {
@@ -75,7 +71,7 @@ export const adminApi = {
     return apiClient.get('/settings/wigle');
   },
 
-  async getAwsCredentials(): Promise<any> {
+  async getAwsSettings(): Promise<any> {
     return apiClient.get('/settings/aws');
   },
 

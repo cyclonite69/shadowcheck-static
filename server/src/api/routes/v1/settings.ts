@@ -312,53 +312,33 @@ router.post('/settings/locationiq', async (req, res) => {
   }
 });
 
-// Get AWS credentials (masked)
+// Get AWS runtime configuration (region only; credentials use provider chain)
 router.get('/settings/aws', async (req, res) => {
   try {
-    const accessKeyId = await secretsManager.getSecret('aws_access_key_id');
-    const secretAccessKey = await secretsManager.getSecret('aws_secret_access_key');
-    const sessionToken = await secretsManager.getSecret('aws_session_token');
     const region = await secretsManager.getSecret('aws_region');
 
-    const configured = Boolean(accessKeyId && secretAccessKey && region);
-    res.json({ configured, region: region || null });
+    res.json({
+      configured: Boolean(region),
+      region: region || null,
+      mode: 'runtime_provider_chain',
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Set AWS credentials
+// Set AWS region only (credentials must come from runtime provider chain)
 router.post('/settings/aws', async (req, res) => {
   try {
-    const { accessKeyId, secretAccessKey, sessionToken, region } = req.body;
-    const idValidation = validateGenericKey(accessKeyId, 'aws_access_key_id');
-    if (!idValidation.valid) {
-      return res.status(400).json({ error: idValidation.error });
-    }
-    const secretValidation = validateGenericKey(secretAccessKey, 'aws_secret_access_key');
-    if (!secretValidation.valid) {
-      return res.status(400).json({ error: secretValidation.error });
-    }
+    const { region } = req.body;
     const regionValidation = validateAwsRegion(region);
     if (!regionValidation.valid) {
       return res.status(400).json({ error: regionValidation.error });
     }
 
-    const awsUpdates: Record<string, string> = {
-      aws_access_key_id: idValidation.value,
-      aws_secret_access_key: secretValidation.value,
-      aws_region: regionValidation.value,
-    };
-    if (sessionToken) {
-      const tokenValidation = validateGenericKey(sessionToken, 'aws_session_token');
-      if (!tokenValidation.valid) {
-        return res.status(400).json({ error: tokenValidation.error });
-      }
-      awsUpdates.aws_session_token = tokenValidation.value;
-    }
-    await secretsManager.putSecrets(awsUpdates);
+    await secretsManager.putSecret('aws_region', regionValidation.value);
 
-    res.json({ success: true });
+    res.json({ success: true, mode: 'runtime_provider_chain' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
