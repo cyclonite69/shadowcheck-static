@@ -24,8 +24,6 @@ const OPTIONAL_SECRETS = [
   'wigle_api_encoded',
   'google_maps_api_key',
   'mapbox_unlimited_api_key',
-  'aws_access_key_id',
-  'aws_secret_access_key',
   'aws_region',
   'opencage_api_key',
   'locationiq_api_key',

@@ -63,6 +63,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run filter certification suite
+        run: npm run test:certification
+
       - name: Run tests
         run: npm test
         env:

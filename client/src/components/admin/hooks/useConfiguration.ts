@@ -6,9 +6,6 @@ export const useConfiguration = () => {
   const [mapboxToken, setMapboxToken] = useState('');
   const [mapboxUnlimitedApiKey, setMapboxUnlimitedApiKey] = useState('');
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
-  const [awsAccessKeyId, setAwsAccessKeyId] = useState('');
-  const [awsSecretAccessKey, setAwsSecretAccessKey] = useState('');
-  const [awsSessionToken, setAwsSessionToken] = useState('');
   const [awsRegion, setAwsRegion] = useState('');
   const [opencageApiKey, setOpencageApiKey] = useState('');
   const [locationIqApiKey, setLocationIqApiKey] = useState('');
@@ -78,14 +75,14 @@ export const useConfiguration = () => {
     }
   };
 
-  const saveAwsCredentials = async () => {
+  const saveAwsRegion = async () => {
     try {
       setIsLoading(true);
-      await adminApi.saveAwsCredentials(awsAccessKeyId, awsSecretAccessKey, awsRegion);
+      await adminApi.saveAwsRegion(awsRegion);
       setAwsConfigured(true);
-      alert('AWS credentials saved!');
+      alert('AWS region saved. Runtime credentials provider chain is active.');
     } catch (error) {
-      alert(`Error saving AWS credentials: ${(error as Error).message}`);
+      alert(`Error saving AWS region: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +160,7 @@ export const useConfiguration = () => {
           adminApi.getMapboxUnlimited(),
           adminApi.getGoogleMapsKey(),
           adminApi.getWigleToken(),
-          adminApi.getAwsCredentials(),
+          adminApi.getAwsSettings(),
           adminApi.getOpenCageKey(),
           adminApi.getLocationIQKey(),
           adminApi.getSmartyKey(),
@@ -224,12 +221,6 @@ export const useConfiguration = () => {
     setMapboxUnlimitedApiKey,
     googleMapsApiKey,
     setGoogleMapsApiKey,
-    awsAccessKeyId,
-    setAwsAccessKeyId,
-    awsSecretAccessKey,
-    setAwsSecretAccessKey,
-    awsSessionToken,
-    setAwsSessionToken,
     awsRegion,
     setAwsRegion,
     opencageApiKey,
@@ -257,7 +248,7 @@ export const useConfiguration = () => {
     saveMapboxToken,
     saveMapboxUnlimitedApiKey,
     saveGoogleMapsApiKey,
-    saveAwsCredentials,
+    saveAwsRegion,
     saveOpencageApiKey,
     saveLocationIqApiKey,
     saveSmartyCredentials,

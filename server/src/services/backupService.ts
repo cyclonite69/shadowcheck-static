@@ -135,13 +135,6 @@ const uploadToS3 = async (
     PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
   };
 
-  if (awsConfig.hasExplicitCredentials) {
-    env.AWS_ACCESS_KEY_ID = awsConfig.credentials.accessKeyId;
-    env.AWS_SECRET_ACCESS_KEY = awsConfig.credentials.secretAccessKey;
-    if (awsConfig.credentials.sessionToken) {
-      env.AWS_SESSION_TOKEN = awsConfig.credentials.sessionToken;
-    }
-  }
   if (awsConfig.region) {
     env.AWS_DEFAULT_REGION = awsConfig.region;
   }
@@ -327,13 +320,6 @@ const listS3Backups = async () => {
     PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
   };
 
-  if (awsConfig.hasExplicitCredentials) {
-    env.AWS_ACCESS_KEY_ID = awsConfig.credentials.accessKeyId;
-    env.AWS_SECRET_ACCESS_KEY = awsConfig.credentials.secretAccessKey;
-    if (awsConfig.credentials.sessionToken) {
-      env.AWS_SESSION_TOKEN = awsConfig.credentials.sessionToken;
-    }
-  }
   if (awsConfig.region) {
     env.AWS_DEFAULT_REGION = awsConfig.region;
   }
@@ -411,13 +397,6 @@ const deleteS3Backup = async (key: string) => {
     PATH: `/usr/local/bin:${process.env.PATH || '/usr/bin:/bin'}`,
   };
 
-  if (awsConfig.hasExplicitCredentials) {
-    env.AWS_ACCESS_KEY_ID = awsConfig.credentials.accessKeyId;
-    env.AWS_SECRET_ACCESS_KEY = awsConfig.credentials.secretAccessKey;
-    if (awsConfig.credentials.sessionToken) {
-      env.AWS_SESSION_TOKEN = awsConfig.credentials.sessionToken;
-    }
-  }
   if (awsConfig.region) {
     env.AWS_DEFAULT_REGION = awsConfig.region;
   }
