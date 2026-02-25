@@ -5,6 +5,8 @@
 
 const { query } = require('../config/database');
 const { CONFIG } = require('../config/database');
+const logger = require('../logging/logger');
+const SLOW_QUERY_THRESHOLD_MS = Math.max(0, Number(process.env.SLOW_QUERY_THRESHOLD_MS ?? 2000));
 
 // ── Shared types ───────────────────────────────────────────────────────────────
 
@@ -143,7 +145,21 @@ const SORT_MAP: Record<string, string> = {
  * which gets its SQL from UniversalFilterQueryBuilder).
  */
 export async function executeV2Query(sql: string, params?: any[]): Promise<any> {
-  return query(sql, params);
+  const start = Date.now();
+  try {
+    return await query(sql, params);
+  } finally {
+    const durationMs = Date.now() - start;
+    logger.logQuery(sql, params, durationMs);
+    if (durationMs >= SLOW_QUERY_THRESHOLD_MS) {
+      logger.warn({
+        message: 'Slow V2 query detected',
+        durationMs,
+        thresholdMs: SLOW_QUERY_THRESHOLD_MS,
+        paramCount: params?.length ?? 0,
+      });
+    }
+  }
 }
 
 /**
