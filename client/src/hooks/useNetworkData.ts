@@ -106,12 +106,20 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           return;
         }
 
+        // Only include filters that are explicitly enabled
+        const activeFilters = Object.fromEntries(
+          Object.entries(debouncedFilterState.filters).filter(
+            ([key]) =>
+              debouncedFilterState.enabled[key as keyof typeof debouncedFilterState.enabled]
+          )
+        );
+
         const params = new URLSearchParams({
           limit: String(NETWORK_PAGE_LIMIT),
           offset: String(pagination.offset),
           sort: sortKeys.join(','),
           order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
-          filters: JSON.stringify(debouncedFilterState.filters),
+          filters: JSON.stringify(activeFilters),
           enabled: JSON.stringify(debouncedFilterState.enabled),
           includeTotal: includeTotal ? '1' : '0',
         });
