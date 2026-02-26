@@ -12,96 +12,100 @@ CREATE INDEX IF NOT EXISTS idx_obs_lat_lon ON observations(lat, lon);
 CREATE INDEX IF NOT EXISTS idx_obs_quality_filtered ON observations(is_quality_filtered) WHERE is_quality_filtered = true;
 
 -- Update materialized view to exclude quality-filtered observations
+-- This ensures distances and threats are calculated on clean data only
 DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv CASCADE;
 
 CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
-SELECT 
-  n.bssid,
+SELECT n.bssid,
   n.ssid,
   n.type,
-  n.security,
   n.frequency,
-  n.capabilities,
-  n.is_5ghz,
-  n.is_6ghz,
-  n.is_hidden,
-  n.first_seen,
-  n.last_seen,
-  rm.manufacturer,
-  rm.address AS manufacturer_address,
-  n.min_altitude_m,
-  n.max_altitude_m,
-  n.altitude_span_m,
-  n.max_distance_meters,
-  n.last_altitude_m,
-  n.is_sentinel,
-  n.distance_from_home_km,
-  n.observations,
+  n.bestlevel AS signal,
+  (SELECT o.lat
+   FROM app.observations o
+   WHERE o.bssid = n.bssid 
+     AND o.lat IS NOT NULL 
+     AND o.lon IS NOT NULL
+     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+   ORDER BY public.st_distance(
+     public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+   ) DESC LIMIT 1) AS lat,
+  (SELECT o.lon
+   FROM app.observations o
+   WHERE o.bssid = n.bssid 
+     AND o.lat IS NOT NULL 
+     AND o.lon IS NOT NULL
+     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+   ORDER BY public.st_distance(
+     public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+   ) DESC LIMIT 1) AS lon,
+  to_timestamp((((n.lasttime_ms)::numeric / 1000.0))::double precision) AS observed_at,
+  n.capabilities AS capabilities,
+  n.capabilities AS security,
   n.wigle_v3_observation_count,
   n.wigle_v3_last_import_at,
-  n.first_observed_at,
-  n.last_observed_at,
-  n.unique_days,
-  n.unique_locations,
-  n.avg_signal,
-  n.min_signal,
-  n.max_signal,
-  latest.observed_at,
-  latest.signal,
-  latest.lat,
-  latest.lon,
-  latest.accuracy_meters,
-  latest.stationary_confidence,
-  nt.tag_type AS threat_tag,
-  nt.is_ignored,
-  nt.all_tags,
-  nt.notes_count,
-  COALESCE(
-    jsonb_build_object(
-      'level', COALESCE(ts.threat_level, 'NONE'),
-      'score', COALESCE(ts.threat_score::text, '0')
-    ),
-    jsonb_build_object('level', 'NONE', 'score', '0')
-  ) AS threat,
-  n.network_id
-FROM networks n
-LEFT JOIN radio_manufacturers rm ON n.manufacturer_oui = rm.oui
-LEFT JOIN LATERAL (
-  SELECT 
-    time AS observed_at,
-    level AS signal,
-    lat,
-    lon,
-    accuracy_meters,
-    stationary_confidence
-  FROM observations o
-  WHERE UPPER(o.bssid) = UPPER(n.bssid)
-    AND (is_quality_filtered = false OR is_quality_filtered IS NULL)
-  ORDER BY time DESC
-  LIMIT 1
-) latest ON true
-LEFT JOIN LATERAL (
-  SELECT 
-    tag_type,
-    is_ignored,
-    string_agg(DISTINCT tag_type::text, ',') AS all_tags,
-    COUNT(DISTINCT note_id) AS notes_count
-  FROM network_tags_v2
-  WHERE UPPER(bssid) = UPPER(n.bssid)
-  GROUP BY tag_type, is_ignored
-) nt ON true
-LEFT JOIN LATERAL (
-  SELECT 
-    threat_level,
-    threat_score
-  FROM threat_scores
-  WHERE UPPER(bssid) = UPPER(n.bssid)
-  ORDER BY scored_at DESC
-  LIMIT 1
-) ts ON true;
+  COALESCE(t.threat_tag, 'untagged'::character varying) AS tag_type,
+  count(o.id) AS observations,
+  count(DISTINCT date(o."time")) AS unique_days,
+  count(DISTINCT ((round((o.lat)::numeric, 3) || ','::text) || round((o.lon)::numeric, 3))) AS unique_locations,
+  max(o.accuracy) AS accuracy_meters,
+  min(o."time") AS first_seen,
+  max(o."time") AS last_seen,
+  COALESCE(ts.final_threat_score, (0)::numeric) AS threat_score,
+  COALESCE(ts.final_threat_level, 'NONE'::character varying) AS threat_level,
+  ts.model_version,
+  COALESCE((public.st_distance(
+    (SELECT public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography
+     FROM app.observations o
+     WHERE o.bssid = n.bssid 
+       AND o.lat IS NOT NULL 
+       AND o.lon IS NOT NULL
+       AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+     ORDER BY public.st_distance(
+       public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+       (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+        FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+     ) DESC LIMIT 1),
+    (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+     FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+  ) / (1000.0)::double precision), (0)::double precision) AS distance_from_home_km,
+  (SELECT MAX(public.st_distance(
+    public.st_setsrid(public.st_makepoint(o1.lon, o1.lat), 4326)::public.geography,
+    public.st_setsrid(public.st_makepoint(o2.lon, o2.lat), 4326)::public.geography
+  ))
+   FROM app.observations o1, app.observations o2
+   WHERE o1.bssid = n.bssid 
+     AND o2.bssid = n.bssid
+     AND o1.lat IS NOT NULL 
+     AND o1.lon IS NOT NULL
+     AND o2.lat IS NOT NULL 
+     AND o2.lon IS NOT NULL
+     AND (o1.is_quality_filtered = false OR o1.is_quality_filtered IS NULL)
+     AND (o2.is_quality_filtered = false OR o2.is_quality_filtered IS NULL)
+  ) AS max_distance_meters
+FROM (((app.networks n
+  LEFT JOIN app.network_tags t ON ((n.bssid = (t.bssid)::text)))
+  LEFT JOIN app.observations o ON ((n.bssid = o.bssid)))
+  LEFT JOIN app.network_threat_scores ts ON ((n.bssid = (ts.bssid)::text)))
+WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
+  AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel,
+  n.lasttime_ms, n.capabilities, n.wigle_v3_observation_count, n.wigle_v3_last_import_at,
+  t.threat_tag, ts.final_threat_score, ts.final_threat_level, ts.model_version;
 
-CREATE INDEX idx_api_network_explorer_mv_bssid ON app.api_network_explorer_mv(bssid);
-CREATE INDEX idx_api_network_explorer_mv_threat ON app.api_network_explorer_mv((threat->>'level'));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_api_network_explorer_mv_bssid ON app.api_network_explorer_mv USING btree (bssid);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_type ON app.api_network_explorer_mv USING btree (type);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_observed_at ON app.api_network_explorer_mv USING btree (observed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_threat ON app.api_network_explorer_mv USING btree (threat_score DESC);
 
 COMMENT ON MATERIALIZED VIEW app.api_network_explorer_mv IS 
 'Network explorer view - excludes quality-filtered observations for accurate distance/threat calculations';
+
+REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
+
+COMMIT;
+
