@@ -267,40 +267,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       })
     );
 
-    // Quality filters for anomalous data
-    if (e.qualityFilter && f.qualityFilter && f.qualityFilter !== 'none') {
-      if (process.env.DEBUG_FILTERS === 'true') {
-        logger.debug(`Quality filter applied: ${f.qualityFilter}`);
-      }
-      const { DATA_QUALITY_FILTERS } = require('../dataQualityFilters');
-      let qualityWhere = '';
-      if (f.qualityFilter === 'temporal') {
-        qualityWhere = DATA_QUALITY_FILTERS.temporal_clusters;
-      } else if (f.qualityFilter === 'extreme') {
-        qualityWhere = DATA_QUALITY_FILTERS.extreme_signals;
-      } else if (f.qualityFilter === 'duplicate') {
-        qualityWhere = DATA_QUALITY_FILTERS.duplicate_coords;
-      } else if (f.qualityFilter === 'all') {
-        qualityWhere = DATA_QUALITY_FILTERS.all();
-      }
-
-      if (qualityWhere) {
-        // Remove the leading "AND" from the filter
-        const cleanFilter = qualityWhere.replace(/^\s*AND\s+/, '');
-        where.push(`(${cleanFilter})`);
-        this.addApplied('quality', 'qualityFilter', f.qualityFilter);
-        if (process.env.DEBUG_FILTERS === 'true') {
-          logger.debug(`Quality where clause: ${cleanFilter}`);
-        }
-      }
-    } else {
-      if (process.env.DEBUG_FILTERS === 'true') {
-        logger.debug('Quality filter not applied', {
-          enabled: e.qualityFilter,
-          value: f.qualityFilter,
-        });
-      }
-    }
+    // Quality filters removed - now handled at database level before MV refresh
+    // See: server/src/services/admin/dataQualityAdminService.ts
+    // Materialized view automatically excludes quality-filtered observations
 
     // Handle security-related filters (encryption types)
     const securityClauses: string[] = [];
