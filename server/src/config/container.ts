@@ -13,6 +13,7 @@ const networkTagsAdminService = require('../services/admin/networkTagsAdminServi
 const settingsAdminService = require('../services/admin/settingsAdminService');
 const importExportAdminService = require('../services/admin/importExportAdminService');
 const networkNotesAdminService = require('../services/admin/networkNotesAdminService');
+const dataQualityAdminService = require('../services/admin/dataQualityAdminService');
 const agencyService = require('../services/agencyService');
 const aiInsightsService = require('../services/aiInsightsService');
 const bedrockService = require('../services/bedrockService');
@@ -50,6 +51,7 @@ const container = {
   settingsAdminService,
   importExportAdminService,
   networkNotesAdminService,
+  dataQualityAdminService,
   agencyService,
   aiInsightsService,
   bedrockService,

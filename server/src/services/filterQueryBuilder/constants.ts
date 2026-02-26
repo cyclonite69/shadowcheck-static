@@ -76,7 +76,7 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'wigle_v3_observation_count_min',
   'gpsAccuracyMax',
   'excludeInvalidCoords',
-  // NOTE: qualityFilter is NOT network-only because it requires observation-level subqueries
+  // NOTE: qualityFilter removed - now handled at database level before MV refresh
   'distanceFromHomeMin',
   'distanceFromHomeMax',
   'threatScoreMin',
