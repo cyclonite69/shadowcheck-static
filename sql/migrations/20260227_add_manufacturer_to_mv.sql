@@ -63,11 +63,11 @@ SELECT n.bssid,
      AND o1.lat IS NOT NULL AND o1.lon IS NOT NULL
      AND o2.lat IS NOT NULL AND o2.lon IS NOT NULL) AS max_distance_meters,
   rm.manufacturer_name AS manufacturer
-FROM (((app.networks n
-  LEFT JOIN app.network_tags t ON ((n.bssid = (t.bssid)::text)))
-  LEFT JOIN app.observations o ON ((n.bssid = o.bssid)))
-  LEFT JOIN app.network_threat_scores ts ON ((n.bssid = (ts.bssid)::text)))
-  LEFT JOIN app.radio_manufacturers rm ON (UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', '')) = rm.oui_prefix))
+FROM app.networks n
+  LEFT JOIN app.network_tags t ON (n.bssid = t.bssid::text)
+  LEFT JOIN app.observations o ON (n.bssid = o.bssid)
+  LEFT JOIN app.network_threat_scores ts ON (n.bssid = ts.bssid::text)
+  LEFT JOIN app.radio_manufacturers rm ON (UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', '')) = rm.oui_prefix)
 WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
 GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel,
   n.lasttime_ms, n.capabilities, n.wigle_v3_observation_count, n.wigle_v3_last_import_at,
