@@ -39,11 +39,14 @@ test_filter() {
 }
 
 echo "=== A. IDENTITY FILTERS ==="
-test_filter "SSID" '{"ssid":"test"}' '{"ssid":true}'
+test_filter "SSID (common)" '{"ssid":"guest"}' '{"ssid":true}'
+test_filter "SSID (xfinity)" '{"ssid":"xfinity"}' '{"ssid":true}'
 test_filter "BSSID (full)" '{"bssid":"AA:BB:CC:DD:EE:FF"}' '{"bssid":true}'
-test_filter "BSSID (prefix)" '{"bssid":"AA:BB"}' '{"bssid":true}'
-test_filter "Manufacturer (name)" '{"manufacturer":"Apple"}' '{"manufacturer":true}'
-test_filter "Manufacturer (OUI)" '{"manufacturer":"00:50:F2"}' '{"manufacturer":true}'
+test_filter "BSSID (prefix)" '{"bssid":"00:50"}' '{"bssid":true}'
+test_filter "Manufacturer (Apple)" '{"manufacturer":"Apple"}' '{"manufacturer":true}'
+test_filter "Manufacturer (Samsung)" '{"manufacturer":"Samsung"}' '{"manufacturer":true}'
+test_filter "Manufacturer (OUI Apple)" '{"manufacturer":"00:50:F2"}' '{"manufacturer":true}'
+test_filter "Manufacturer (OUI Samsung)" '{"manufacturer":"00:12:47"}' '{"manufacturer":true}'
 
 echo ""
 echo "=== B. RADIO FILTERS ==="
@@ -117,13 +120,11 @@ test_filter "Has notes=true" '{"has_notes":true}' '{"has_notes":true}'
 test_filter "Has notes=false" '{"has_notes":false}' '{"has_notes":true}'
 test_filter "Tag type [threat]" '{"tag_type":["threat"]}' '{"tag_type":true}'
 test_filter "Tag type [investigate]" '{"tag_type":["investigate"]}' '{"tag_type":true}'
-
-echo ""
-echo "=== H. ENGAGEMENT FILTERS ==="
-test_filter "Has notes=true" '{"has_notes":true}' '{"has_notes":true}'
-test_filter "Has notes=false" '{"has_notes":false}' '{"has_notes":true}'
-test_filter "Tag type [threat]" '{"tag_type":["threat"]}' '{"tag_type":true}'
-test_filter "Tag type [investigate]" '{"tag_type":["investigate"]}' '{"tag_type":true}'
+test_filter "Tag type [suspect]" '{"tag_type":["suspect"]}' '{"tag_type":true}'
+test_filter "Tag type [false_positive]" '{"tag_type":["false_positive"]}' '{"tag_type":true}'
+test_filter "Tag type [ignore]" '{"tag_type":["ignore"]}' '{"tag_type":true}'
+test_filter "Tag type [untagged]" '{"tag_type":["untagged"]}' '{"tag_type":true}'
+test_filter "Tag type [multiple]" '{"tag_type":["threat","investigate"]}' '{"tag_type":true}'
 
 echo ""
 echo "=== I. COMPLEX COMBINATIONS ==="
