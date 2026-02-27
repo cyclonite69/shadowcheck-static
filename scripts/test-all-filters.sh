@@ -88,14 +88,35 @@ test_filter "StationaryConfidenceMin=0.8" '{"stationaryConfidenceMin":0.8}' '{"s
 test_filter "StationaryConfidenceMax=0.3" '{"stationaryConfidenceMax":0.3}' '{"stationaryConfidenceMax":true}'
 
 echo ""
-echo "=== F. ENGAGEMENT FILTERS ==="
+echo "=== F. SPATIAL & PROXIMITY FILTERS ==="
+test_filter "DistanceFromHomeMin=1km" '{"distanceFromHomeMin":1}' '{"distanceFromHomeMin":true}'
+test_filter "DistanceFromHomeMax=5km" '{"distanceFromHomeMax":5}' '{"distanceFromHomeMax":true}'
+test_filter "Distance range 1-5km" '{"distanceFromHomeMin":1,"distanceFromHomeMax":5}' '{"distanceFromHomeMin":true,"distanceFromHomeMax":true}'
+test_filter "BoundingBox (NYC area)" '{"boundingBox":{"north":40.8,"south":40.7,"east":-73.9,"west":-74.0}}' '{"boundingBox":true}'
+
+echo ""
+echo "=== G. TEMPORAL FILTERS ==="
+test_filter "Last 24 hours" '{"timeframe":"last_24h"}' '{"timeframe":true}'
+test_filter "Last 7 days" '{"timeframe":"last_7d"}' '{"timeframe":true}'
+test_filter "Last 30 days" '{"timeframe":"last_30d"}' '{"timeframe":true}'
+test_filter "Custom date range" '{"startDate":"2026-02-01T00:00:00Z","endDate":"2026-02-27T23:59:59Z"}' '{"startDate":true,"endDate":true}'
+
+echo ""
+echo "=== H. ENGAGEMENT FILTERS ==="
 test_filter "Has notes=true" '{"has_notes":true}' '{"has_notes":true}'
 test_filter "Has notes=false" '{"has_notes":false}' '{"has_notes":true}'
 test_filter "Tag type [threat]" '{"tag_type":["threat"]}' '{"tag_type":true}'
 test_filter "Tag type [investigate]" '{"tag_type":["investigate"]}' '{"tag_type":true}'
 
 echo ""
-echo "=== G. COMPLEX COMBINATIONS ==="
+echo "=== H. ENGAGEMENT FILTERS ==="
+test_filter "Has notes=true" '{"has_notes":true}' '{"has_notes":true}'
+test_filter "Has notes=false" '{"has_notes":false}' '{"has_notes":true}'
+test_filter "Tag type [threat]" '{"tag_type":["threat"]}' '{"tag_type":true}'
+test_filter "Tag type [investigate]" '{"tag_type":["investigate"]}' '{"tag_type":true}'
+
+echo ""
+echo "=== I. COMPLEX COMBINATIONS ==="
 test_filter "WiFi + 2.4GHz + Ch6-11 + RSSI>-70" '{"radioTypes":["W"],"frequencyBands":["2.4GHz"],"channelMin":6,"channelMax":11,"rssiMin":-70}' '{"radioTypes":true,"frequencyBands":true,"channelMin":true,"channelMax":true,"rssiMin":true}'
 test_filter "OPEN + ObsCount>10 + ThreatScore>50" '{"encryptionTypes":["OPEN"],"observationCountMin":10,"threatScoreMin":50}' '{"encryptionTypes":true,"observationCountMin":true,"threatScoreMin":true}'
 test_filter "5GHz + WPA2 + High threat" '{"frequencyBands":["5GHz"],"encryptionTypes":["WPA2"],"threatCategories":["high"]}' '{"frequencyBands":true,"encryptionTypes":true,"threatCategories":true}'
