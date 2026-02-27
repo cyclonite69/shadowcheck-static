@@ -77,12 +77,6 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
     setPagination({ offset: 0, hasMore: true });
   }, []);
 
-  useEffect(() => {
-    if (pagination.offset === 0) {
-      setIncludeTotal(true);
-    }
-  }, [pagination.offset, JSON.stringify(debouncedFilterState), JSON.stringify(sort), planCheck]);
-
   // Derived state: loading more if pagination offset > 0 and loading
   const isLoadingMore = loading && pagination.offset > 0;
 
@@ -94,6 +88,11 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
       setLoading(true);
       setError(null);
       setExpensiveSort(false);
+
+      // Reset includeTotal when starting fresh (offset 0)
+      if (pagination.offset === 0) {
+        setIncludeTotal(true);
+      }
 
       try {
         const sortKeys = sort
