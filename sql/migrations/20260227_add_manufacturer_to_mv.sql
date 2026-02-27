@@ -29,7 +29,23 @@ SELECT n.bssid,
    ) DESC LIMIT 1) AS lon,
   to_timestamp((((n.lasttime_ms)::numeric / 1000.0))::double precision) AS observed_at,
   n.capabilities AS capabilities,
-  n.capabilities AS security,
+  CASE
+    WHEN COALESCE(n.capabilities, '') = '' THEN 'OPEN'
+    WHEN UPPER(n.capabilities) LIKE '%WEP%' THEN 'WEP'
+    WHEN UPPER(n.capabilities) ~ '^\\s*\\[ESS\\]\\s*$' THEN 'OPEN'
+    WHEN UPPER(n.capabilities) ~ '^\\s*\\[IBSS\\]\\s*$' THEN 'OPEN'
+    WHEN UPPER(n.capabilities) ~ 'RSN-OWE' THEN 'WPA3-OWE'
+    WHEN UPPER(n.capabilities) ~ 'RSN-SAE' THEN 'WPA3-P'
+    WHEN UPPER(n.capabilities) ~ '(WPA3|SAE)' AND UPPER(n.capabilities) ~ '(EAP|MGT)' THEN 'WPA3-E'
+    WHEN UPPER(n.capabilities) ~ '(WPA3|SAE)' THEN 'WPA3'
+    WHEN UPPER(n.capabilities) ~ '(WPA2|RSN)' AND UPPER(n.capabilities) ~ '(EAP|MGT)' THEN 'WPA2-E'
+    WHEN UPPER(n.capabilities) ~ '(WPA2|RSN)' THEN 'WPA2'
+    WHEN UPPER(n.capabilities) ~ 'WPA-' AND UPPER(n.capabilities) NOT LIKE '%WPA2%' THEN 'WPA'
+    WHEN UPPER(n.capabilities) LIKE '%WPA%' AND UPPER(n.capabilities) NOT LIKE '%WPA2%' AND UPPER(n.capabilities) NOT LIKE '%WPA3%' AND UPPER(n.capabilities) NOT LIKE '%RSN%' THEN 'WPA'
+    WHEN UPPER(n.capabilities) LIKE '%WPS%' AND UPPER(n.capabilities) NOT LIKE '%WPA%' AND UPPER(n.capabilities) NOT LIKE '%RSN%' THEN 'WPS'
+    WHEN UPPER(n.capabilities) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
+    ELSE 'UNKNOWN'
+  END AS security,
   n.wigle_v3_observation_count,
   n.wigle_v3_last_import_at,
   COALESCE(t.threat_tag, 'untagged'::character varying) AS tag_type,
