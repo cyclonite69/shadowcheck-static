@@ -30,8 +30,8 @@ Move quality filtering to **database level before materialized view refresh**:
 ## Workflow
 
 ```bash
-# 1. Run migration
-psql -f sql/migrations/20260226_add_quality_filter_columns.sql
+# 1. Run migrations
+./sql/run-migrations.sh
 
 # 2. Apply quality filters (marks bad observations)
 curl -X POST http://localhost:3001/api/admin/data-quality/apply
@@ -56,7 +56,8 @@ curl http://localhost:3001/api/admin/data-quality/stats
 
 - `server/src/services/admin/dataQualityAdminService.ts` - New service
 - `server/src/api/routes/v1/dataQuality.ts` - New API routes
-- `sql/migrations/20260226_add_quality_filter_columns.sql` - Database migration
+- `sql/migrations/20260216_consolidated_002_core_tables.sql` - Quality filter columns/indexes
+- `sql/migrations/20260216_consolidated_008_views_and_materialized_views.sql` - MV quality filtering
 - `server/src/services/filterQueryBuilder/universalFilterQueryBuilder.ts` - Removed query-time logic
 - `server/src/config/container.ts` - Added service to DI container
 - `docs/DATA_QUALITY_FILTERING.md` - Full documentation
