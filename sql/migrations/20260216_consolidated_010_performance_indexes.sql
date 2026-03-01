@@ -47,3 +47,36 @@ CREATE INDEX IF NOT EXISTS idx_observations_bssid_time_desc ON app.observations 
 CREATE INDEX IF NOT EXISTS obs_bssid_time_asc_idx ON app.observations USING btree (bssid, "time") WHERE (geom IS NOT NULL);
 CREATE INDEX IF NOT EXISTS obs_bssid_time_desc_idx ON app.observations USING btree (bssid, "time" DESC) WHERE (geom IS NOT NULL);
 CREATE INDEX IF NOT EXISTS obs_geom_gix ON app.observations USING gist (geom) WHERE (geom IS NOT NULL);
+
+-- --------------------------------------------------------------------------
+-- Post-consolidation updates (2026-02-27)
+-- --------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_manufacturer
+  ON app.api_network_explorer_mv USING btree (manufacturer);
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_geom
+  ON app.api_network_explorer_mv USING GIST (ST_SetSRID(ST_MakePoint(lon, lat), 4326));
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_frequency
+  ON app.api_network_explorer_mv (frequency);
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_signal
+  ON app.api_network_explorer_mv (signal);
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_first_seen
+  ON app.api_network_explorer_mv (first_seen DESC);
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_last_seen
+  ON app.api_network_explorer_mv (last_seen DESC);
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_observations
+  ON app.api_network_explorer_mv (observations);
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_type_freq
+  ON app.api_network_explorer_mv (type, frequency);
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_threat_type
+  ON app.api_network_explorer_mv (threat_score DESC, type);
+
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_security
+  ON app.api_network_explorer_mv (security);

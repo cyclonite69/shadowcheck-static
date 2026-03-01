@@ -448,3 +448,29 @@ CREATE INDEX IF NOT EXISTS idx_ai_insights_created ON app.ai_insights (created_a
 
 COMMENT ON TABLE app.ai_insights IS
   'Persisted Claude/Bedrock analyses of network observations, with optional user feedback.';
+
+-- --------------------------------------------------------------------------
+-- Post-consolidation updates (2026-02-22 through 2026-02-27)
+-- --------------------------------------------------------------------------
+
+-- WiGLE v3 denormalized fields on networks.
+ALTER TABLE app.networks
+  ADD COLUMN IF NOT EXISTS wigle_v3_observation_count integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS wigle_v3_last_import_at timestamptz DEFAULT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_networks_wigle_count
+  ON app.networks (wigle_v3_observation_count DESC)
+  WHERE wigle_v3_observation_count > 0;
+
+-- Data-quality filter fields on observations.
+ALTER TABLE app.observations
+  ADD COLUMN IF NOT EXISTS is_temporal_cluster boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS is_duplicate_coord boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS is_extreme_signal boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS is_quality_filtered boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS quality_filter_applied_at timestamp;
+
+CREATE INDEX IF NOT EXISTS idx_obs_time_lat_lon ON app.observations ("time", lat, lon);
+CREATE INDEX IF NOT EXISTS idx_obs_lat_lon ON app.observations (lat, lon);
+CREATE INDEX IF NOT EXISTS idx_obs_quality_filtered ON app.observations (is_quality_filtered)
+  WHERE is_quality_filtered = true;

@@ -75,7 +75,7 @@ cd /home/ssm-user/shadowcheck
 
 - **Instance Type**: t4g.large (ARM64, 2 vCPU, 8GB RAM)
 - **Pricing**: ~$22/month Spot + $4.80/month storage
-- **Database**: PostgreSQL 18 + PostGIS 3.6 (localhost-only)
+- **Database**: PostgreSQL 18 + PostGIS 3.6 (port 5432, IP-restricted via SG)
 - **API**: Node.js backend (port 3001, IP-restricted)
 - **Storage**: 30GB GP3 EBS (persistent, optimized XFS)
 - **Security**: Network isolation, container hardening, SCRAM-SHA-256, SSL/TLS
@@ -84,10 +84,10 @@ cd /home/ssm-user/shadowcheck
 
 ### Network Isolation
 
-- **PostgreSQL**: Bound to `127.0.0.1:5432` (localhost only, no external access)
+- **PostgreSQL**: Exposed on `0.0.0.0:5432` (secured by security group IP whitelist + SSL/SCRAM)
 - **API**: Exposed on port `3001` (IP-restricted via security group)
 - **Internal Network**: Docker bridge for container-to-container communication
-- **No Direct DB Access**: Database only accessible from API container
+- **External DB Access**: Allowed for pgAdmin/DBeaver via security group (your IP only)
 
 ### Container Security
 

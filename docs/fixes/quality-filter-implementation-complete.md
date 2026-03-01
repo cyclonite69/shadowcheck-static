@@ -70,7 +70,8 @@ REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
 
 ## Files
 
-- `sql/migrations/20260226_add_quality_filter_columns.sql` - Migration
+- `sql/migrations/20260216_consolidated_002_core_tables.sql` - Quality filter columns/indexes
+- `sql/migrations/20260216_consolidated_008_views_and_materialized_views.sql` - MV quality filtering
 - `deploy/aws/scripts/apply_quality_filters.sh` - Application script
 - `server/src/services/admin/dataQualityAdminService.ts` - Service (for future API)
 - `server/src/api/routes/v1/dataQuality.ts` - API routes (for future admin UI)

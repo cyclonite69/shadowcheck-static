@@ -1,22 +1,38 @@
+version: "3.8"
+
+# Local pgAdmin with AWS Secrets Manager integration
+# Connects to remote EC2 PostgreSQL instance
+
 services:
   pgadmin:
-    build: .
-    container_name: shadowcheck_pgadmin
-    network_mode: host
-    env_file: .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shadowcheck_pgadmin_local
+    restart: unless-stopped
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD
-      - PGADMIN_CONFIG_SERVER_MODE=True
-      - PGADMIN_LISTEN_PORT=8888
-      # Forces pgAdmin to load the file even if the DB already exists
-      - PGADMIN_SERVER_JSON_FILE=/pgadmin4/servers.json
-      # AWS configuration
-      - AWS_DEFAULT_REGION
+      PGADMIN_DEFAULT_EMAIL: admin@shadowcheck.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_LISTEN_PORT: 5050
+      AWS_DEFAULT_REGION: us-east-1
+      # Use SSO profile credentials
+      AWS_PROFILE: shadowcheck-sso
+    ports:
+      - "5050:5050"
     volumes:
+      # Mount AWS credentials from your home directory
+      - ~/.aws:/var/lib/pgadmin/.aws:ro
+      # Persistent pgAdmin config
       - pgadmin_data:/var/lib/pgadmin
-    # Note: ports mapping is ignored when using network_mode: host
-    # pgAdmin will be available directly on port 8888
+    networks:
+      - pgadmin_net
 
 volumes:
   pgadmin_data:
+    driver: local
+
+networks:
+  pgadmin_net:
+    driver: bridge
