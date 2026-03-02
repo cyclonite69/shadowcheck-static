@@ -693,44 +693,6 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         FROM filtered_obs
         ORDER BY bssid, time DESC
       )
-      ${
-        includeStationaryConfidence
-          ? `,
-      obs_centroids AS (
-        SELECT
-          bssid,
-          ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
-          MIN(time) AS first_time,
-          MAX(time) AS last_time,
-          COUNT(*) AS obs_count
-        FROM filtered_obs
-        WHERE geom IS NOT NULL
-        GROUP BY bssid
-      ),
-      -- Stationary confidence derives from spatial variance, temporal spread, and observation density.
-      obs_spatial AS (
-        SELECT
-          c.bssid,
-          CASE
-            WHEN c.obs_count < 2 THEN NULL
-            ELSE ROUND(
-              LEAST(1, GREATEST(0,
-                (
-                  (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
-                  (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
-                  LEAST(c.obs_count / 50.0, 1) * 0.2
-                )
-              ))::numeric,
-              3
-            )
-          END AS stationary_confidence
-        FROM filtered_obs o
-        JOIN obs_centroids c ON c.bssid = o.bssid
-        WHERE o.geom IS NOT NULL
-        GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
-      )`
-          : ''
-      }
       SELECT
         ne.bssid,
         COALESCE(l.ssid, ne.ssid) AS ssid,
@@ -782,9 +744,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         l.lat,
         l.lon,
         l.accuracy AS accuracy_meters,
-        ${
-          includeStationaryConfidence ? 's.stationary_confidence' : 'NULL::numeric'
-        } AS stationary_confidence,
+        ne.stationary_confidence,
         ${NT_SELECT_FIELDS},
         NULL::integer AS notes_count,
         JSONB_BUILD_OBJECT('score', ne.threat_score::text, 'level', ne.threat_level) AS threat,
@@ -795,7 +755,6 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(l.bssid)
         ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}
         ${SqlFragmentLibrary.joinRadioManufacturers('l', 'rm')}
-      ${includeStationaryConfidence ? 'LEFT JOIN obs_spatial s ON s.bssid = r.bssid' : ''}
       ${this.requiresHome ? 'CROSS JOIN home' : ''}
       ${whereClause}
       ORDER BY ${orderBy}
@@ -1205,47 +1164,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         FROM filtered_obs
         GROUP BY bssid
       )
-      ${
-        includeStationaryConfidence
-          ? `,
-      obs_centroids AS (
-        SELECT
-          bssid,
-          ST_Centroid(ST_Collect(geom::geometry)) AS centroid,
-          MIN(time) AS first_time,
-          MAX(time) AS last_time,
-          COUNT(*) AS obs_count
-        FROM filtered_obs
-        WHERE geom IS NOT NULL
-        GROUP BY bssid
-      ),
-      obs_spatial AS (
-        SELECT
-          c.bssid,
-          CASE
-            WHEN c.obs_count < 2 THEN NULL
-            ELSE ROUND(
-              LEAST(1, GREATEST(0,
-                (
-                  (1 - LEAST(MAX(ST_Distance(o.geom::geography, c.centroid::geography)) / 500.0, 1)) * 0.5 +
-                  (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
-                  LEAST(c.obs_count / 50.0, 1) * 0.2
-                )
-              ))::numeric,
-              3
-            )
-          END AS stationary_confidence
-        FROM filtered_obs o
-        JOIN obs_centroids c ON c.bssid = o.bssid
-        WHERE o.geom IS NOT NULL
-        GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
-      )`
-          : ''
-      }
       SELECT COUNT(DISTINCT r.bssid) AS total
       FROM obs_rollup r
       JOIN app.api_network_explorer_mv ne ON ne.bssid = r.bssid
-      ${includeStationaryConfidence ? 'LEFT JOIN obs_spatial s ON s.bssid = r.bssid' : ''}
       ${whereClause}
     `;
 
@@ -1510,11 +1431,11 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       }
     }
     if (e.stationaryConfidenceMin && f.stationaryConfidenceMin !== undefined) {
-      networkWhere.push(`s.stationary_confidence >= ${this.addParam(f.stationaryConfidenceMin)}`);
+      networkWhere.push(`ne.stationary_confidence >= ${this.addParam(f.stationaryConfidenceMin)}`);
       this.addApplied('threat', 'stationaryConfidenceMin', f.stationaryConfidenceMin);
     }
     if (e.stationaryConfidenceMax && f.stationaryConfidenceMax !== undefined) {
-      networkWhere.push(`s.stationary_confidence <= ${this.addParam(f.stationaryConfidenceMax)}`);
+      networkWhere.push(`ne.stationary_confidence <= ${this.addParam(f.stationaryConfidenceMax)}`);
       this.addApplied('threat', 'stationaryConfidenceMax', f.stationaryConfidenceMax);
     }
 
