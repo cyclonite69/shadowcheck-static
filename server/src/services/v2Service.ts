@@ -8,6 +8,7 @@ const { CONFIG } = require('../config/database');
 const logger = require('../logging/logger');
 const {
   OBS_TYPE_EXPR,
+  THREAT_LEVEL_EXPR,
   normalizeRadioTypes,
   isAllRadioTypesSelection,
 } = require('./filterQueryBuilder/sqlExpressions');
@@ -471,6 +472,7 @@ export async function getThreatSeverityCounts(
   // Always exclude networks explicitly marked as known/friendly (ignored).
   const conditions: string[] = ['nt.is_ignored IS NOT TRUE'];
   const params: unknown[] = [];
+  const dynamicThreatLevel = THREAT_LEVEL_EXPR('nts', 'nt');
 
   if (
     enabled.threatCategories &&
@@ -482,21 +484,7 @@ export async function getThreatSeverityCounts(
       .filter(Boolean);
     if (dbThreatLevels.length > 0) {
       const threatLevelsParamIndex = params.length + 1;
-      conditions.push(`(
-        CASE
-          WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
-          WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
-          ELSE (
-            CASE
-              WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 80 THEN 'CRITICAL'
-              WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 60 THEN 'HIGH'
-              WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= ${CONFIG.THREAT_THRESHOLD} THEN 'MED'
-              WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 20 THEN 'LOW'
-              ELSE 'NONE'
-            END
-          )
-        END
-      ) = ANY($${threatLevelsParamIndex})`);
+      conditions.push(`(${dynamicThreatLevel}) = ANY($${threatLevelsParamIndex})`);
       params.push(dbThreatLevels);
     }
   }
@@ -516,24 +504,12 @@ export async function getThreatSeverityCounts(
   const result = await query(
     `
     SELECT
-      CASE
-        WHEN nt.threat_tag = 'FALSE_POSITIVE' THEN 'NONE'
-        WHEN nt.threat_tag = 'INVESTIGATE' THEN COALESCE(nts.final_threat_level, 'NONE')
-        ELSE (
-          CASE
-            WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 80 THEN 'CRITICAL'
-            WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 60 THEN 'HIGH'
-            WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= ${CONFIG.THREAT_THRESHOLD} THEN 'MED'
-            WHEN (COALESCE(nts.final_threat_score, 0)::numeric * 0.7 + COALESCE(nt.threat_confidence, 0)::numeric * 100 * 0.3) >= 20 THEN 'LOW'
-            ELSE 'NONE'
-          END
-        )
-      END as severity,
+      (${dynamicThreatLevel}) as severity,
       COUNT(DISTINCT ne.bssid) as unique_networks,
       SUM(ne.observations)::bigint as total_observations
     FROM app.api_network_explorer_mv ne
-    LEFT JOIN app.network_threat_scores nts ON nts.bssid = ne.bssid
-    LEFT JOIN app.network_tags nt ON nt.bssid = ne.bssid
+    LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ne.bssid)
+    LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)
     ${whereClause}
     GROUP BY 1
   `,
