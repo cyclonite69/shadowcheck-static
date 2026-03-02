@@ -5,30 +5,44 @@
 DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv;
 
 CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
-WITH obs_spatial AS (
+WITH obs_centroids AS (
   SELECT
-    o.bssid,
+    bssid,
+    ST_Centroid(ST_Collect(ST_SetSRID(ST_MakePoint(lon, lat), 4326)))::geography AS centroid,
+    MIN(time) AS first_time,
+    MAX(time) AS last_time,
+    COUNT(*) AS obs_count
+  FROM app.observations
+  WHERE lat IS NOT NULL
+    AND lon IS NOT NULL
+    AND (is_quality_filtered = false OR is_quality_filtered IS NULL)
+  GROUP BY bssid
+),
+obs_spatial AS (
+  SELECT
+    c.bssid,
     CASE
-      WHEN COUNT(*) < 2 THEN NULL
+      WHEN c.obs_count < 2 THEN NULL
       ELSE ROUND(
         LEAST(1, GREATEST(0,
           (
             (1 - LEAST(MAX(ST_Distance(
               ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)::geography,
-              ST_Centroid(ST_Collect(ST_SetSRID(ST_MakePoint(o.lon, o.lat), 4326)))::geography
+              c.centroid
             )) / 500.0, 1)) * 0.5 +
-            (1 - LEAST(EXTRACT(EPOCH FROM (MAX(o.time) - MIN(o.time))) / 3600 / 168, 1)) * 0.3 +
-            LEAST(COUNT(*) / 50.0, 1) * 0.2
+            (1 - LEAST(EXTRACT(EPOCH FROM (c.last_time - c.first_time)) / 3600 / 168, 1)) * 0.3 +
+            LEAST(c.obs_count / 50.0, 1) * 0.2
           )
         ))::numeric,
         3
       )
     END AS stationary_confidence
   FROM app.observations o
+  JOIN obs_centroids c ON c.bssid = o.bssid
   WHERE o.lat IS NOT NULL
     AND o.lon IS NOT NULL
     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
-  GROUP BY o.bssid
+  GROUP BY c.bssid, c.centroid, c.first_time, c.last_time, c.obs_count
 )
 SELECT n.bssid,
   n.ssid,
