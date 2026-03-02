@@ -12,6 +12,17 @@ const {
 export {};
 
 class NetworkRepository {
+  private getEffectiveEnabledFilters(filters: any, enabled: any): any {
+    const effectiveEnabled: any = { ...(enabled || {}) };
+    if (effectiveEnabled.radioTypes && Array.isArray((filters as any).radioTypes)) {
+      const normalizedRadioTypes = normalizeRadioTypes((filters as any).radioTypes);
+      if (normalizedRadioTypes.length === 0 || isAllRadioTypesSelection(normalizedRadioTypes)) {
+        effectiveEnabled.radioTypes = false;
+      }
+    }
+    return effectiveEnabled;
+  }
+
   async getAllNetworks() {
     try {
       const result = await query(`
@@ -110,18 +121,7 @@ class NetworkRepository {
 
   async getDashboardMetrics(filters = {}, enabled = {}) {
     try {
-      // Debug logging
-      console.log('[NetworkRepo] getDashboardMetrics called with:');
-      console.log('[NetworkRepo] filters:', JSON.stringify(filters, null, 2));
-      console.log('[NetworkRepo] enabled:', JSON.stringify(enabled, null, 2));
-
-      const effectiveEnabled: any = { ...(enabled || {}) };
-      if (effectiveEnabled.radioTypes && Array.isArray((filters as any).radioTypes)) {
-        const normalizedRadioTypes = normalizeRadioTypes((filters as any).radioTypes);
-        if (normalizedRadioTypes.length === 0 || isAllRadioTypesSelection(normalizedRadioTypes)) {
-          effectiveEnabled.radioTypes = false;
-        }
-      }
+      const effectiveEnabled = this.getEffectiveEnabledFilters(filters, enabled);
 
       const noFiltersEnabled = Object.values(effectiveEnabled).every((value) => !value);
 
@@ -438,8 +438,8 @@ class NetworkRepository {
             COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'MED') as threats_medium,
             COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'LOW') as threats_low
           FROM network_set n
-          LEFT JOIN app.network_threat_scores nts ON nts.bssid = n.bssid
-          LEFT JOIN app.network_tags nt ON nt.bssid = n.bssid
+          LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(n.bssid)
+          LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(n.bssid)
           WHERE (${THREAT_SCORE_EXPR('nts', 'nt')}) >= 20
             AND (${THREAT_LEVEL_EXPR('nts', 'nt')}) != 'NONE'
         )
@@ -450,7 +450,7 @@ class NetworkRepository {
         FROM network_counts, obs_counts, threat_counts
       `;
 
-      const result = await query(sql, builder.params);
+      const result = await query(sql, builder.getParams());
       const row = result.rows[0] || {};
 
       return {
@@ -474,7 +474,7 @@ class NetworkRepository {
         threatsLow: parseInt(row.threats_low) || 0,
         activeSurveillance: parseInt(row.threats_high) || 0,
         enrichedCount: parseInt(row.enriched_count) || 0,
-        filtersApplied: builder.appliedFilters.length,
+        filtersApplied: builder.getAppliedFilters().length,
       };
     } catch (error) {
       logger.error(`Error fetching dashboard metrics: ${error.message}`, { error });
