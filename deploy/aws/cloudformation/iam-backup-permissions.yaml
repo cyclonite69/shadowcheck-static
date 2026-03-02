@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'ShadowCheck - S3 Backup Permissions for EC2 Instance'
+Description: 'ShadowCheck - IAM Permissions for EC2 Instance (S3 Backups + EC2 Management)'
 
 Parameters:
   RoleName:
@@ -34,11 +34,34 @@ Resources:
               - !Sub 'arn:aws:s3:::${BackupBucketName}/*'
               - !Sub 'arn:aws:s3:::${BackupBucketName}'
 
+  EC2ManagementPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ShadowCheck-EC2-Management
+      Roles:
+        - !Ref RoleName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: EC2InstanceManagement
+            Effect: Allow
+            Action:
+              - ec2:DescribeInstances
+              - ec2:DescribeInstanceStatus
+              - ec2:StartInstances
+              - ec2:StopInstances
+              - ec2:RebootInstances
+            Resource: '*'
+
 Outputs:
-  PolicyArn:
+  S3PolicyArn:
     Description: ARN of the S3 backup policy
     Value: !Ref S3BackupPolicy
 
+  EC2PolicyArn:
+    Description: ARN of the EC2 management policy
+    Value: !Ref EC2ManagementPolicy
+
   RoleName:
-    Description: IAM role with backup permissions
+    Description: IAM role with backup and EC2 management permissions
     Value: !Ref RoleName

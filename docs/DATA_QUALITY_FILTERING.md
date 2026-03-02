@@ -114,7 +114,7 @@ curl -X POST http://localhost:3001/api/admin/data-quality/clear
 
 ### Initial Setup
 
-1. Run migration: `sql/migrations/20260226_add_quality_filter_columns.sql`
+1. Run migrations via `./sql/run-migrations.sh` (quality columns are included in `20260216_consolidated_002_core_tables.sql`)
 2. Configure thresholds via API or database
 3. Apply quality filters: `POST /api/admin/data-quality/apply`
 4. Refresh materialized view
@@ -208,7 +208,8 @@ LIMIT 10;
 
 - `server/src/services/admin/dataQualityAdminService.ts` - Service implementation
 - `server/src/api/routes/v1/dataQuality.ts` - API routes
-- `sql/migrations/20260226_add_quality_filter_columns.sql` - Database migration
+- `sql/migrations/20260216_consolidated_002_core_tables.sql` - Quality filter columns/indexes
+- `sql/migrations/20260216_consolidated_008_views_and_materialized_views.sql` - MV quality filtering
 - `server/src/config/container.ts` - DI registration
 
 ## Benefits

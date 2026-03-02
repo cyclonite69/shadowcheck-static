@@ -27,7 +27,7 @@ describe('buildEngagementPredicates', () => {
 
     expect(result.where).toHaveLength(1);
     expect(result.where[0]).toContain('EXISTS');
-    expect(result.where[0]).toContain('app.network_notes nn');
+    expect(result.where[0]).toContain('FROM app.network_notes nn');
     expect(result.applied).toContainEqual({ field: 'has_notes', value: true });
   });
 

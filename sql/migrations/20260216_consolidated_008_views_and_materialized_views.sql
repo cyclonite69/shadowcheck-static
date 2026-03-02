@@ -256,3 +256,189 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_mv_network_timeline_bssid ON app.mv_network_timeline USING btree (bssid);
 CREATE INDEX IF NOT EXISTS idx_mv_network_timeline_hour ON app.mv_network_timeline USING btree (hour_bucket);
+
+-- --------------------------------------------------------------------------
+-- Post-consolidation updates (2026-02-22 through 2026-02-27)
+-- --------------------------------------------------------------------------
+
+-- Keep network_entries aligned with capabilities + WiGLE v3 fields.
+CREATE OR REPLACE VIEW app.network_entries AS
+SELECT n.bssid,
+    n.ssid,
+    n.type,
+    n.frequency,
+    n.capabilities AS security,
+    n.service,
+    n.rcois,
+    n.mfgrid,
+    n.lasttime_ms,
+    n.lastlat,
+    n.lastlon,
+    n.bestlevel AS signal,
+    n.bestlat AS lat,
+    n.bestlon AS lon,
+    count(o.id) AS observations,
+    min(o."time") AS first_seen,
+    max(o."time") AS last_seen,
+    max(o."time") AS observed_at,
+    max(o.accuracy) AS accuracy_meters,
+    avg(CASE WHEN ((o.altitude >= (-500)::double precision) AND (o.altitude <= (10000)::double precision)) THEN o.altitude ELSE NULL::double precision END) AS altitude_m,
+    min(CASE WHEN ((o.altitude >= (-500)::double precision) AND (o.altitude <= (10000)::double precision)) THEN o.altitude ELSE NULL::double precision END) AS min_altitude_m,
+    max(CASE WHEN ((o.altitude >= (-500)::double precision) AND (o.altitude <= (10000)::double precision)) THEN o.altitude ELSE NULL::double precision END) AS max_altitude_m,
+    NULL::double precision AS altitude_accuracy_m,
+    COALESCE((max(CASE WHEN ((o.altitude >= (-500)::double precision) AND (o.altitude <= (10000)::double precision)) THEN o.altitude ELSE NULL::double precision END)
+            - min(CASE WHEN ((o.altitude >= (-500)::double precision) AND (o.altitude <= (10000)::double precision)) THEN o.altitude ELSE NULL::double precision END)), (0)::double precision) AS altitude_span_m,
+    (0)::double precision AS max_distance_meters,
+    (SELECT observations.altitude FROM app.observations
+     WHERE ((observations.bssid = n.bssid) AND ((observations.altitude >= (-500)::double precision) AND (observations.altitude <= (10000)::double precision)))
+     ORDER BY observations."time" DESC LIMIT 1) AS last_altitude_m,
+    (SELECT observations.accuracy FROM app.observations
+     WHERE (observations.bssid = n.bssid)
+     ORDER BY observations."time" DESC LIMIT 1) AS last_accuracy_m,
+    NULL::integer AS channel,
+    NULL::text AS wps,
+    NULL::text AS battery,
+    NULL::text AS auth,
+    count(DISTINCT date(o."time")) AS unique_days,
+    count(DISTINCT ((round((o.lat)::numeric, 3) || ','::text) || round((o.lon)::numeric, 3))) AS unique_locations,
+    false AS is_sentinel,
+    "left"(replace(n.bssid, ':'::text, ''::text), 6) AS oui,
+    NULL::text[] AS insecure_flags,
+    NULL::text[] AS security_flags,
+    count(DISTINCT o.source_tag) AS unique_source_count,
+    avg(o.level) AS avg_signal,
+    min(o.level) AS min_signal,
+    max(o.level) AS max_signal,
+    n.capabilities AS capabilities,
+    n.wigle_v3_observation_count,
+    n.wigle_v3_last_import_at
+FROM (app.networks n
+    LEFT JOIN app.observations o ON ((o.bssid = n.bssid)))
+GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.capabilities,
+    n.wigle_v3_observation_count, n.wigle_v3_last_import_at,
+    n.service, n.rcois, n.mfgrid,
+    n.lasttime_ms, n.lastlat, n.lastlon, n.bestlevel, n.bestlat, n.bestlon;
+
+-- Recreate api_network_explorer_mv to include quality filtering, manufacturer,
+-- security parsing, and WiGLE v3 rollups.
+DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv;
+
+CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
+SELECT n.bssid,
+  n.ssid,
+  n.type,
+  n.frequency,
+  n.bestlevel AS signal,
+  (SELECT o.lat
+   FROM app.observations o
+   WHERE o.bssid = n.bssid
+     AND o.lat IS NOT NULL
+     AND o.lon IS NOT NULL
+     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+   ORDER BY public.st_distance(
+     public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+   ) DESC LIMIT 1) AS lat,
+  (SELECT o.lon
+   FROM app.observations o
+   WHERE o.bssid = n.bssid
+     AND o.lat IS NOT NULL
+     AND o.lon IS NOT NULL
+     AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+   ORDER BY public.st_distance(
+     public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+     (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+      FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+   ) DESC LIMIT 1) AS lon,
+  to_timestamp((((n.lasttime_ms)::numeric / 1000.0))::double precision) AS observed_at,
+  n.capabilities AS capabilities,
+  CASE
+    WHEN COALESCE(n.capabilities, '') = '' THEN 'OPEN'
+    WHEN UPPER(n.capabilities) LIKE '%WEP%' THEN 'WEP'
+    WHEN UPPER(n.capabilities) ~ '^\s*\[ESS\]\s*$' THEN 'OPEN'
+    WHEN UPPER(n.capabilities) ~ '^\s*\[IBSS\]\s*$' THEN 'OPEN'
+    WHEN UPPER(n.capabilities) ~ 'RSN-OWE' THEN 'WPA3-OWE'
+    WHEN UPPER(n.capabilities) ~ 'RSN-SAE' THEN 'WPA3-P'
+    WHEN UPPER(n.capabilities) ~ '(WPA3|SAE)' AND UPPER(n.capabilities) ~ '(EAP|MGT)' THEN 'WPA3-E'
+    WHEN UPPER(n.capabilities) ~ '(WPA3|SAE)' THEN 'WPA3'
+    WHEN UPPER(n.capabilities) ~ '(WPA2|RSN)' AND UPPER(n.capabilities) ~ '(EAP|MGT)' THEN 'WPA2-E'
+    WHEN UPPER(n.capabilities) ~ '(WPA2|RSN)' THEN 'WPA2'
+    WHEN UPPER(n.capabilities) ~ 'WPA-' AND UPPER(n.capabilities) NOT LIKE '%WPA2%' THEN 'WPA'
+    WHEN UPPER(n.capabilities) LIKE '%WPA%' AND UPPER(n.capabilities) NOT LIKE '%WPA2%' AND UPPER(n.capabilities) NOT LIKE '%WPA3%' AND UPPER(n.capabilities) NOT LIKE '%RSN%' THEN 'WPA'
+    WHEN UPPER(n.capabilities) LIKE '%WPS%' AND UPPER(n.capabilities) NOT LIKE '%WPA%' AND UPPER(n.capabilities) NOT LIKE '%RSN%' THEN 'WPS'
+    WHEN UPPER(n.capabilities) ~ '(CCMP|TKIP|AES)' THEN 'WPA2'
+    ELSE 'UNKNOWN'
+  END AS security,
+  COALESCE(w3.wigle_v3_observation_count, n.wigle_v3_observation_count, 0) AS wigle_v3_observation_count,
+  COALESCE(w3.wigle_v3_last_import_at, n.wigle_v3_last_import_at) AS wigle_v3_last_import_at,
+  COALESCE(t.threat_tag, 'untagged'::character varying) AS tag_type,
+  count(o.id) AS observations,
+  count(DISTINCT date(o."time")) AS unique_days,
+  count(DISTINCT ((round((o.lat)::numeric, 3) || ','::text) || round((o.lon)::numeric, 3))) AS unique_locations,
+  max(o.accuracy) AS accuracy_meters,
+  min(o."time") AS first_seen,
+  max(o."time") AS last_seen,
+  COALESCE(ts.final_threat_score, (0)::numeric) AS threat_score,
+  COALESCE(ts.final_threat_level, 'NONE'::character varying) AS threat_level,
+  ts.model_version,
+  COALESCE((public.st_distance(
+    (SELECT public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography
+     FROM app.observations o
+     WHERE o.bssid = n.bssid
+       AND o.lat IS NOT NULL
+       AND o.lon IS NOT NULL
+       AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+     ORDER BY public.st_distance(
+       public.st_setsrid(public.st_makepoint(o.lon, o.lat), 4326)::public.geography,
+       (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+        FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+     ) DESC LIMIT 1),
+    (SELECT public.st_setsrid(public.st_makepoint(lm.longitude, lm.latitude), 4326)::public.geography
+     FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+  ) / (1000.0)::double precision), (0)::double precision) AS distance_from_home_km,
+  (SELECT MAX(public.st_distance(
+    public.st_setsrid(public.st_makepoint(o1.lon, o1.lat), 4326)::public.geography,
+    public.st_setsrid(public.st_makepoint(o2.lon, o2.lat), 4326)::public.geography
+  ))
+   FROM app.observations o1, app.observations o2
+   WHERE o1.bssid = n.bssid
+     AND o2.bssid = n.bssid
+     AND o1.lat IS NOT NULL
+     AND o1.lon IS NOT NULL
+     AND o2.lat IS NOT NULL
+     AND o2.lon IS NOT NULL
+     AND (o1.is_quality_filtered = false OR o1.is_quality_filtered IS NULL)
+     AND (o2.is_quality_filtered = false OR o2.is_quality_filtered IS NULL)
+  ) AS max_distance_meters,
+  rm.manufacturer AS manufacturer
+FROM app.networks n
+  LEFT JOIN app.network_tags t ON (n.bssid = t.bssid::text)
+  LEFT JOIN app.observations o ON (n.bssid = o.bssid)
+  LEFT JOIN app.network_threat_scores ts ON (n.bssid = ts.bssid::text)
+  LEFT JOIN (
+    SELECT
+      netid,
+      COUNT(*)::integer AS wigle_v3_observation_count,
+      MAX(COALESCE(last_update, observed_at, imported_at)) AS wigle_v3_last_import_at
+    FROM app.wigle_v3_observations
+    GROUP BY netid
+  ) w3 ON (UPPER(n.bssid) = UPPER(w3.netid))
+  LEFT JOIN app.radio_manufacturers rm ON (UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', '')) = rm.prefix)
+WHERE (o.lat IS NOT NULL AND o.lon IS NOT NULL)
+  AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
+GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel,
+  n.lasttime_ms, n.capabilities, n.wigle_v3_observation_count, n.wigle_v3_last_import_at,
+  w3.wigle_v3_observation_count, w3.wigle_v3_last_import_at,
+  t.threat_tag, ts.final_threat_score, ts.final_threat_level, ts.model_version, rm.manufacturer
+WITH NO DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_api_network_explorer_mv_bssid ON app.api_network_explorer_mv USING btree (bssid);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_type ON app.api_network_explorer_mv USING btree (type);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_observed_at ON app.api_network_explorer_mv USING btree (observed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_threat ON app.api_network_explorer_mv USING btree (threat_score DESC);
+
+COMMENT ON MATERIALIZED VIEW app.api_network_explorer_mv IS
+  'Network explorer view - excludes quality-filtered observations for accurate distance/threat calculations';
+
+REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;
