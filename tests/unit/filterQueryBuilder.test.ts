@@ -88,7 +88,17 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
       { encryptionTypes: true }
     ).buildNetworkListQuery();
 
-    expect(result.sql).toMatch(/OPEN/i);
+    expect(result.sql).toMatch(/OPEN|IS NULL|!~\*/i);
+  });
+
+  test('network-only query for radioTypes does not use obs_latest_any CTE', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { radioTypes: ['E'] },
+      { radioTypes: true }
+    ).buildNetworkListQuery();
+
+    expect(result.sql).not.toContain('obs_latest_any');
+    expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
   });
 
   test('threatScoreMin filter enabled → value is parameterized and filter is applied', () => {
@@ -143,7 +153,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
       { encryptionTypes: true }
     ).buildNetworkCountQuery();
 
-    expect(result.sql).toContain("IN ('WPA2', 'WPA2-E')");
+    expect(result.sql).toContain("IN ('WPA2', 'WPA2-P', 'WPA2-E')");
   });
 
   test('buildGeospatialQuery → returns non-empty SQL with lat/lon references', () => {

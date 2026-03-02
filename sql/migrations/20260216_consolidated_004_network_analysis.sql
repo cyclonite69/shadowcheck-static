@@ -416,3 +416,15 @@ DO $$ BEGIN
         ALTER TABLE ONLY app.api_mv_refresh_state ADD CONSTRAINT api_mv_refresh_state_pkey PRIMARY KEY (id);
     END IF;
 END $$;
+
+-- --------------------------------------------------------------------------
+-- Post-consolidation updates (2026-02-22 through 2026-02-27)
+-- --------------------------------------------------------------------------
+
+-- Soft-delete support for network notes.
+ALTER TABLE app.network_notes
+  ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_network_notes_bssid_active
+  ON app.network_notes (bssid)
+  WHERE is_deleted = FALSE;
