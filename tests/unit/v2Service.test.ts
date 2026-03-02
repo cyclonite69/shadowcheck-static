@@ -355,6 +355,10 @@ describe('getThreatSeverityCounts', () => {
 
     expect(sql).toContain(') = ANY($1)');
     expect(sql).toContain('= ANY($2)');
+    expect(sql).toContain(
+      'LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(ne.bssid)'
+    );
+    expect(sql).toContain('LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(ne.bssid)');
     expect(params[0]).toEqual(['HIGH']);
     expect(params[1]).toEqual(['W']);
   });
