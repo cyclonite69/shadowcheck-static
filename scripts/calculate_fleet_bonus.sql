@@ -61,15 +61,23 @@ fleet_bonuses AS (
             END +
             -- SSID pattern bonus
             CASE WHEN COALESCE(fsc.pattern_count, 0) >= 3 THEN 3 ELSE 0 END +
-            -- Geographic overlap bonus (simplified - just check if any high-threat networks nearby)
+            -- Geographic overlap bonus (check if 2+ high-threat networks within 10km)
             CASE 
-                WHEN EXISTS (
-                    SELECT 1 
+                WHEN (
+                    SELECT COUNT(DISTINCT nts2.bssid)
                     FROM app.network_threat_scores nts2
+                    JOIN app.observations o1 ON o1.bssid = nm.bssid
+                    JOIN app.observations o2 ON o2.bssid = nts2.bssid
                     WHERE nts2.bssid != nm.bssid
                     AND COALESCE(nts2.final_threat_score, 0) > 50
-                    LIMIT 1
-                ) THEN 2 
+                    AND o1.lat IS NOT NULL AND o1.lon IS NOT NULL
+                    AND o2.lat IS NOT NULL AND o2.lon IS NOT NULL
+                    AND ST_Distance(
+                        ST_SetSRID(ST_MakePoint(o1.lon, o1.lat), 4326)::geography,
+                        ST_SetSRID(ST_MakePoint(o2.lon, o2.lat), 4326)::geography
+                    ) < 10000
+                    LIMIT 2
+                ) >= 2 THEN 2 
                 ELSE 0 
             END
         )::numeric AS fleet_bonus
