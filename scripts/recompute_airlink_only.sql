@@ -25,7 +25,7 @@ WITH targets AS (
 scored AS (
     SELECT
         t.bssid,
-        calculate_threat_score_v4(t.bssid) AS details
+        calculate_threat_score_v4_individual(t.bssid) AS details
     FROM targets t
 )
 INSERT INTO app.network_threat_scores
