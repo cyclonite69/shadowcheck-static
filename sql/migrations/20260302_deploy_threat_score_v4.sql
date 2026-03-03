@@ -58,7 +58,7 @@ BEGIN
             o.lat,
             o.lon,
             o.time,
-            o.signal
+            o.level AS signal
         FROM app.observations o
         WHERE o.bssid = p_bssid
             AND o.lat IS NOT NULL
