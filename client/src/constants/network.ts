@@ -63,19 +63,44 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
       const tooltip = tags.join(', ');
+      const getTagStyle = (tag: string) => {
+        const normalized = tag.toUpperCase();
+        if (normalized === 'THREAT') {
+          return { color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)' };
+        }
+        if (normalized === 'SUSPECT') {
+          return { color: '#f59e0b', background: 'rgba(245, 158, 11, 0.2)' };
+        }
+        if (normalized === 'FALSE_POSITIVE') {
+          return { color: '#22c55e', background: 'rgba(34, 197, 94, 0.2)' };
+        }
+        if (normalized === 'INVESTIGATE') {
+          return { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)' };
+        }
+        if (normalized === 'IGNORED') {
+          return { color: '#94a3b8', background: 'rgba(148, 163, 184, 0.2)' };
+        }
+        return { color: '#93c5fd', background: 'rgba(59, 130, 246, 0.2)' };
+      };
       return React.createElement(
         'span',
         { className: 'text-xs font-mono', title: tooltip },
-        tags.map((tag) =>
-          React.createElement(
+        tags.map((tag) => {
+          const style = getTagStyle(tag);
+          return React.createElement(
             'span',
             {
               key: tag,
-              className: 'inline-block mr-1 px-2 py-1 bg-blue-100 text-blue-700 rounded',
+              className: 'inline-block mr-1 px-2 py-1 rounded',
+              style: {
+                color: style.color,
+                background: style.background,
+                border: `1px solid ${style.color}4d`,
+              },
             },
             tag
-          )
-        )
+          );
+        })
       );
     },
   },
