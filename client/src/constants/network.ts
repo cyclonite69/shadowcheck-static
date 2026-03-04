@@ -58,10 +58,14 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     default: false,
     render: (value) => {
       if (!value) return '—';
-      const tags = String(value).split(',');
+      const tags = String(value)
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+      const tooltip = tags.join(', ');
       return React.createElement(
         'span',
-        { className: 'text-xs font-mono' },
+        { className: 'text-xs font-mono', title: tooltip },
         tags.map((tag) =>
           React.createElement(
             'span',
