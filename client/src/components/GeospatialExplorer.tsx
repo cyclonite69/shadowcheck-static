@@ -176,6 +176,7 @@ export default function GeospatialExplorer() {
     openContextMenu,
     closeContextMenu,
     handleTagAction,
+    handleGenerateThreatReportPdf,
     wigleLookupDialog,
     closeWigleLookupDialog,
     handleWigleLookup,
@@ -580,6 +581,7 @@ export default function GeospatialExplorer() {
               setSelectedBssid(contextMenu.network?.bssid || '');
               closeContextMenu();
             }}
+            onGenerateThreatReport={handleGenerateThreatReportPdf}
             onMapWigleObservations={() => {
               const n = contextMenu.network;
               if (n) {

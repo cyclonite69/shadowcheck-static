@@ -44,6 +44,7 @@ interface RouteModules {
   weatherRoutes: Router;
   miscRoutes: Router;
   claudeRoutes: Router;
+  threatReportRoutes: Router;
 }
 
 /**
@@ -91,6 +92,7 @@ function loadRouteModules(): RouteModules {
     weatherRoutes: require('../api/routes/v1/weather'),
     miscRoutes: require('../api/routes/v1/misc'),
     claudeRoutes: require('../api/routes/v1/claude'),
+    threatReportRoutes: require('../api/routes/v1/threat-report').default,
   };
 }
 

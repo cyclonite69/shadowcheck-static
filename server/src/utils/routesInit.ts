@@ -49,6 +49,7 @@ interface RouteModules {
   authRoutes: Router;
   miscRoutes: Router;
   claudeRoutes: Router;
+  threatReportRoutes: Router;
   weatherRoutes?: Router;
 }
 
@@ -97,6 +98,7 @@ function initializeRoutes(app: Express, options: InitializeRoutesOptions): void 
     authRoutes: routes.authRoutes,
     weatherRoutes: routes.weatherRoutes ?? (null as any),
     claudeRoutes: routes.claudeRoutes,
+    threatReportRoutes: routes.threatReportRoutes,
   });
 
   logger.info('All routes mounted successfully');

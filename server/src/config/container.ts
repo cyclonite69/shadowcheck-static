@@ -41,6 +41,7 @@ const ouiGroupingService = require('../services/ouiGroupingService');
 const pgadminService = require('../services/pgadminService');
 const secretsManager = require('../services/secretsManager').default;
 const threatScoringService = require('../services/threatScoringService');
+const threatReportService = require('../services/threatReportService');
 const v2Service = require('../services/v2Service');
 const wigleImportService = require('../services/wigleImportService');
 const wigleService = require('../services/wigleService');
@@ -79,6 +80,7 @@ const container = {
   pgadminService,
   secretsManager,
   threatScoringService,
+  threatReportService,
   v2Service,
   wigleImportService,
   wigleService,
