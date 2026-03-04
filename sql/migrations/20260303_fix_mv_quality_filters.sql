@@ -10,6 +10,34 @@ SELECT 'Fixing api_network_explorer_mv to exclude quality-filtered observations'
 DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv CASCADE;
 
 CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
+WITH stationary_analysis AS (
+    SELECT
+        bssid,
+        CASE
+            WHEN COUNT(*) < 5 THEN NULL
+            WHEN MAX(ST_Distance(
+                ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
+                (SELECT ST_SetSRID(ST_MakePoint(lm.longitude, lm.latitude), 4326)::geography
+                 FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+            )) < 100 THEN 0.95
+            WHEN MAX(ST_Distance(
+                ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
+                (SELECT ST_SetSRID(ST_MakePoint(lm.longitude, lm.latitude), 4326)::geography
+                 FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+            )) < 500 THEN 0.70
+            WHEN MAX(ST_Distance(
+                ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
+                (SELECT ST_SetSRID(ST_MakePoint(lm.longitude, lm.latitude), 4326)::geography
+                 FROM app.location_markers lm WHERE lm.marker_type = 'home' LIMIT 1)
+            )) < 1000 THEN 0.30
+            ELSE 0.05
+        END AS stationary_confidence
+    FROM app.observations
+    WHERE lat IS NOT NULL
+      AND lon IS NOT NULL
+      AND (is_quality_filtered = false OR is_quality_filtered IS NULL)
+    GROUP BY bssid
+)
 SELECT n.bssid, n.ssid, n.type, n.frequency,
     n.bestlevel AS signal,
     -- Lat/lon: furthest quality observation from home
@@ -70,26 +98,34 @@ SELECT n.bssid, n.ssid, n.type, n.frequency,
       AND (o1.is_quality_filtered = false OR o1.is_quality_filtered IS NULL)
       AND (o2.is_quality_filtered = false OR o2.is_quality_filtered IS NULL)) AS max_distance_meters,
     -- Manufacturer from radio_manufacturers
-    rm.manufacturer
+    rm.manufacturer,
+    s.stationary_confidence
 FROM app.networks n
 LEFT JOIN app.network_tags t ON n.bssid = t.bssid::text
 LEFT JOIN app.observations o ON n.bssid = o.bssid
 LEFT JOIN app.network_threat_scores ts ON n.bssid = ts.bssid::text
-LEFT JOIN app.radio_manufacturers rm ON rm.prefix = UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', ''))
+LEFT JOIN LATERAL (
+    SELECT r.manufacturer
+    FROM app.radio_manufacturers r
+    WHERE UPPER(REPLACE(SUBSTRING(n.bssid, 1, 8), ':', ''))
+          IN (r.oui, r.oui_assignment_hex, r.prefix_24bit)
+    LIMIT 1
+) rm ON true
+LEFT JOIN stationary_analysis s ON n.bssid = s.bssid
 WHERE o.lat IS NOT NULL 
 AND o.lon IS NOT NULL
 AND (o.is_quality_filtered = false OR o.is_quality_filtered IS NULL)
 GROUP BY n.bssid, n.ssid, n.type, n.frequency, n.bestlevel,
          n.lasttime_ms, n.capabilities, t.threat_tag, 
          ts.final_threat_score, ts.final_threat_level, ts.model_version,
-         rm.manufacturer;
+         rm.manufacturer, s.stationary_confidence;
 
 -- Recreate indexes
-CREATE UNIQUE INDEX idx_api_network_explorer_mv_bssid ON app.api_network_explorer_mv(bssid);
-CREATE INDEX idx_api_network_explorer_mv_type ON app.api_network_explorer_mv(type);
-CREATE INDEX idx_api_network_explorer_mv_observed_at ON app.api_network_explorer_mv(observed_at DESC);
-CREATE INDEX idx_api_network_explorer_mv_threat ON app.api_network_explorer_mv(threat_score DESC);
-CREATE INDEX idx_api_network_explorer_mv_manufacturer_gin ON app.api_network_explorer_mv USING gin(manufacturer gin_trgm_ops);
-CREATE INDEX idx_api_network_explorer_mv_stationary ON app.api_network_explorer_mv(stationary_confidence) WHERE stationary_confidence IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_api_network_explorer_mv_bssid ON app.api_network_explorer_mv(bssid);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_type ON app.api_network_explorer_mv(type);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_observed_at ON app.api_network_explorer_mv(observed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_threat ON app.api_network_explorer_mv(threat_score DESC);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_manufacturer_gin ON app.api_network_explorer_mv (manufacturer);
+CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_stationary ON app.api_network_explorer_mv(stationary_confidence) WHERE stationary_confidence IS NOT NULL;
 
 SELECT 'MV definition updated - now run: REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv;' AS next_step;

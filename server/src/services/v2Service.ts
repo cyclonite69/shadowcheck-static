@@ -286,6 +286,7 @@ export async function getNetworkDetail(bssid: string): Promise<NetworkDetail> {
         altitude
       FROM app.observations
       WHERE bssid = $1
+        AND COALESCE(is_quality_filtered, false) = false
       ORDER BY bssid, time DESC
       LIMIT 1`,
       [bssid]
@@ -299,6 +300,7 @@ export async function getNetworkDetail(bssid: string): Promise<NetworkDetail> {
         MAX(level) as max_signal
       FROM app.observations
       WHERE bssid = $1
+        AND COALESCE(is_quality_filtered, false) = false
       GROUP BY DATE_TRUNC('hour', time)
       ORDER BY bucket DESC
       LIMIT 168`,
@@ -319,14 +321,19 @@ export async function getNetworkDetail(bssid: string): Promise<NetworkDetail> {
     ),
   ]);
 
-  const obsCount = await query('SELECT COUNT(*) as count FROM app.observations WHERE bssid = $1', [
-    bssid,
-  ]);
+  const obsCount = await query(
+    `SELECT COUNT(*) as count
+     FROM app.observations
+     WHERE bssid = $1
+       AND COALESCE(is_quality_filtered, false) = false`,
+    [bssid]
+  );
 
   const firstLast = await query(
     `SELECT MIN(time) as first_seen, MAX(time) as last_seen
     FROM app.observations
-    WHERE bssid = $1`,
+    WHERE bssid = $1
+      AND COALESCE(is_quality_filtered, false) = false`,
     [bssid]
   );
 

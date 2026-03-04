@@ -1,125 +1,165 @@
 #!/usr/bin/env tsx
 /**
- * Enrich Observations with Geocoding
+ * Enrich observations geocoding cache.
  *
- * Adds reverse geocoding data to observations:
- * - Uses configured geocoding providers
- * - Rate-limited API calls
- * - Caches results
+ * Runs the same backend geocoding-cache workflow used by the Admin UI
+ * (`/api/admin/geocoding/run`) so ETL and UI behavior stay aligned.
  */
 
-import { Pool, QueryResult } from 'pg';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+type GeocodeProvider = 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
+type GeocodeMode = 'address-only' | 'poi-only' | 'both';
+
 interface EnrichOptions {
-  limit?: number;
-  dryRun?: boolean;
+  provider: GeocodeProvider;
+  mode: GeocodeMode;
+  limit: number;
+  precision: number;
+  perMinute: number;
+  permanent: boolean;
+  dryRun: boolean;
 }
 
-interface CountRow {
-  count: string;
+interface GeocodingStats {
+  observation_count: number | string;
+  unique_blocks: number | string;
+  cached_blocks: number | string;
+  cached_with_address: number | string;
+  cached_with_poi: number | string;
+  distinct_addresses: number | string;
+  missing_blocks: number | string;
 }
 
-interface LocationRow {
-  latitude: number;
-  longitude: number;
+interface GeocodeResult {
+  provider: string;
+  mode: GeocodeMode;
+  processed: number;
+  successful: number;
+  poiHits: number;
+  rateLimited: number;
+  durationMs: number;
 }
 
-const pool = new Pool({
-  user: process.env.DB_USER || 'shadowcheck_user',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'shadowcheck_db',
-  password: process.env.DB_PASSWORD,
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-});
+interface GeocodingService {
+  runGeocodeCacheUpdate: (options: {
+    provider: GeocodeProvider;
+    mode: GeocodeMode;
+    limit: number;
+    precision: number;
+    perMinute: number;
+    permanent?: boolean;
+  }) => Promise<GeocodeResult>;
+  getGeocodingCacheStats: (precision: number) => Promise<GeocodingStats>;
+}
 
-// Rate limiting
-const _RATE_LIMIT_MS = 1000; // 1 request per second
-const _BATCH_SIZE = 100;
+function parseNumberArg(args: string[], prefix: string, fallback: number): number {
+  const raw = args.find((arg) => arg.startsWith(prefix));
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw.split('=')[1], 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
-async function enrichGeocoding(options: EnrichOptions = {}): Promise<void> {
-  const { limit = 1000, dryRun = false } = options;
+function parseStringArg(args: string[], prefix: string): string | null {
+  const raw = args.find((arg) => arg.startsWith(prefix));
+  if (!raw) return null;
+  const value = raw.slice(prefix.length).trim();
+  return value || null;
+}
 
-  console.log('🌍 Enriching observations with geocoding...\n');
-  console.log(`  Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
-  console.log(`  Limit: ${limit}`);
+function parseArgs(args: string[]): EnrichOptions {
+  const provider = (parseStringArg(args, '--provider=') || 'mapbox') as GeocodeProvider;
+  const mode = (parseStringArg(args, '--mode=') || 'address-only') as GeocodeMode;
+  const dryRun = args.includes('--dry-run') || !args.includes('--live');
 
-  const startTime = Date.now();
+  return {
+    provider,
+    mode,
+    limit: parseNumberArg(args, '--limit=', 1000),
+    precision: parseNumberArg(args, '--precision=', 5),
+    perMinute: parseNumberArg(args, '--per-minute=', provider === 'mapbox' ? 200 : 60),
+    permanent: args.includes('--permanent'),
+    dryRun,
+  };
+}
 
-  try {
-    // Find observations needing geocoding
-    const needsGeocoding: QueryResult<CountRow> = await pool.query(`
-      SELECT COUNT(*) as count
-      FROM app.observations
-      WHERE geocoded_at IS NULL
-        AND latitude IS NOT NULL
-        AND longitude IS NOT NULL
-    `);
+function toNumber(value: string | number): number {
+  return typeof value === 'number' ? value : Number.parseInt(value, 10) || 0;
+}
 
-    console.log(
-      `\n  Observations needing geocoding: ${parseInt(needsGeocoding.rows[0].count, 10).toLocaleString()}`
+function printStats(label: string, stats: GeocodingStats): void {
+  console.log(`\n${label}`);
+  console.log(`  Observations: ${toNumber(stats.observation_count).toLocaleString()}`);
+  console.log(`  Unique blocks: ${toNumber(stats.unique_blocks).toLocaleString()}`);
+  console.log(`  Cached blocks: ${toNumber(stats.cached_blocks).toLocaleString()}`);
+  console.log(`  Cached with address: ${toNumber(stats.cached_with_address).toLocaleString()}`);
+  console.log(`  POI hits: ${toNumber(stats.cached_with_poi).toLocaleString()}`);
+  console.log(`  Distinct addresses: ${toNumber(stats.distinct_addresses).toLocaleString()}`);
+  console.log(`  Missing blocks: ${toNumber(stats.missing_blocks).toLocaleString()}`);
+}
+
+async function enrichGeocoding(options: EnrichOptions): Promise<void> {
+  const geocodingService =
+    require('../../server/src/services/geocodingCacheService') as GeocodingService;
+  const { runGeocodeCacheUpdate, getGeocodingCacheStats } = geocodingService;
+
+  if (typeof runGeocodeCacheUpdate !== 'function' || typeof getGeocodingCacheStats !== 'function') {
+    throw new Error(
+      'Failed to load geocoding cache service. Expected runGeocodeCacheUpdate/getGeocodingCacheStats.'
     );
-
-    if (dryRun) {
-      console.log('\n  [DRY RUN] Would geocode observations');
-      console.log('  To run for real, use: node enrich-geocoding.js --live');
-      return;
-    }
-
-    // Check for geocoding API key
-    const geocodingKey =
-      process.env.LOCATIONIQ_API_KEY ||
-      process.env.OPENCAGE_API_KEY ||
-      process.env.GOOGLE_MAPS_API_KEY;
-
-    if (!geocodingKey) {
-      console.log('\n⚠️  No geocoding API key configured');
-      console.log('   Set one of: LOCATIONIQ_API_KEY, OPENCAGE_API_KEY, GOOGLE_MAPS_API_KEY');
-      return;
-    }
-
-    // Get sample of unique locations to geocode
-    const locations: QueryResult<LocationRow> = await pool.query(
-      `
-      SELECT DISTINCT ON (ROUND(latitude::numeric, 4), ROUND(longitude::numeric, 4))
-        latitude, longitude
-      FROM app.observations
-      WHERE geocoded_at IS NULL
-        AND latitude IS NOT NULL
-        AND longitude IS NOT NULL
-      LIMIT $1
-    `,
-      [limit]
-    );
-
-    console.log(`\n  Unique locations to geocode: ${locations.rows.length}`);
-
-    // NOTE: Geocoding API integration is handled by address enrichment endpoints
-    // See server/src/api/routes/v1/enrichment.ts for multi-API venue identification
-    // (OpenCage, LocationIQ, Abstract, Overpass)
-    console.log('\n  [INFO] Geocoding handled by runtime enrichment APIs');
-
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`\n✅ Geocoding enrichment complete in ${duration}s`);
-  } catch (error) {
-    const err = error as Error;
-    console.error('❌ Geocoding enrichment failed:', err.message);
-    throw error;
-  } finally {
-    await pool.end();
   }
+
+  console.log('🌍 Geocoding cache ETL');
+  console.log(`  Mode: ${options.dryRun ? 'DRY RUN' : 'LIVE'}`);
+  console.log(`  Provider: ${options.provider}`);
+  console.log(`  Pass: ${options.mode}`);
+  console.log(`  Limit: ${options.limit}`);
+  console.log(`  Precision: ${options.precision}`);
+  console.log(`  Rate/min: ${options.perMinute}`);
+  if (options.provider === 'mapbox') {
+    console.log(`  Permanent: ${options.permanent ? 'true' : 'false'}`);
+  }
+
+  const before = await getGeocodingCacheStats(options.precision);
+  printStats('Before:', before);
+
+  if (options.dryRun) {
+    console.log('\n[DRY RUN] No updates executed. Use --live to run.');
+    return;
+  }
+
+  const result = await runGeocodeCacheUpdate({
+    provider: options.provider,
+    mode: options.mode,
+    limit: options.limit,
+    precision: options.precision,
+    perMinute: options.perMinute,
+    permanent: options.permanent,
+  });
+
+  const after = await getGeocodingCacheStats(options.precision);
+  printStats('After:', after);
+
+  console.log('\nRun result:');
+  console.log(`  Provider label: ${result.provider}`);
+  console.log(`  Processed: ${result.processed.toLocaleString()}`);
+  console.log(`  Successful: ${result.successful.toLocaleString()}`);
+  console.log(`  POI hits: ${result.poiHits.toLocaleString()}`);
+  console.log(`  Rate limited: ${result.rateLimited.toLocaleString()}`);
+  console.log(`  Duration: ${(result.durationMs / 1000).toFixed(1)}s`);
+  console.log(
+    `  Missing blocks delta: ${(toNumber(before.missing_blocks) - toNumber(after.missing_blocks)).toLocaleString()}`
+  );
 }
 
 if (require.main === module) {
-  const args = process.argv.slice(2);
-  const dryRun = !args.includes('--live');
-  const limitArg = args.find((a) => a.startsWith('--limit='));
-  const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : 1000;
+  const options = parseArgs(process.argv.slice(2));
 
-  enrichGeocoding({ limit, dryRun }).catch((error) => {
-    console.error(error);
+  enrichGeocoding(options).catch((error) => {
+    const err = error as Error;
+    console.error(`\n❌ Geocoding cache ETL failed: ${err.message}`);
     process.exit(1);
   });
 }
