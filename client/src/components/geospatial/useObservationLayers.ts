@@ -241,9 +241,10 @@ export const useObservationLayers = ({
         source: 'wigle-observations',
         filter: ['==', ['get', 'source'], 'wigle_unique'],
         paint: {
-          'circle-radius': 8,
+          // Match default network observation marker size.
+          'circle-radius': 7,
           'circle-color': '#f59e0b', // amber-500
-          'circle-stroke-width': 2,
+          'circle-stroke-width': 1,
           'circle-stroke-color': '#ffffff',
           'circle-opacity': 0.9,
         },
