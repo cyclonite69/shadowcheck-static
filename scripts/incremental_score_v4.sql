@@ -11,13 +11,18 @@ SELECT COUNT(*) AS networks_to_score
 FROM app.threat_scores_cache
 WHERE needs_recompute = true;
 
--- Score networks marked for rescoring (using movement filter)
+-- Score networks marked for rescoring (using movement filter, excluding ignored)
 WITH networks_to_score AS (
     SELECT tsc.bssid
     FROM app.threat_scores_cache tsc
     JOIN app.api_network_explorer_mv mv ON mv.bssid = tsc.bssid
     WHERE tsc.needs_recompute = true
     AND LENGTH(tsc.bssid) <= 17
+    AND NOT EXISTS (
+        SELECT 1 FROM app.network_tags nt
+        WHERE nt.bssid = tsc.bssid
+        AND nt.tag_name = 'ignored'
+    )
 ),
 mobile_networks AS (
     SELECT nts.bssid
