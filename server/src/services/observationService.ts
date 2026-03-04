@@ -40,7 +40,9 @@ export async function getObservationsByBSSID(
               ELSE NULL
             END as distance_from_home_km
      FROM app.observations o
-     WHERE o.bssid = $3 AND o.geom IS NOT NULL
+     WHERE o.bssid = $3
+       AND o.geom IS NOT NULL
+       AND COALESCE(o.is_quality_filtered, false) = false
      ORDER BY o.time ASC LIMIT 1000`,
     [homeLon, homeLat, bssid]
   );
@@ -63,7 +65,10 @@ export async function getWigleObservationsByBSSID(bssid: string): Promise<any[]>
        SELECT bssid, lat, lon, time, level, time::date as obs_date,
               ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography as geog
        FROM app.observations
-       WHERE UPPER(bssid) = $1 AND lat IS NOT NULL AND lon IS NOT NULL
+       WHERE UPPER(bssid) = $1
+         AND lat IS NOT NULL
+         AND lon IS NOT NULL
+         AND COALESCE(is_quality_filtered, false) = false
      ),
      wigle_enriched AS (
        SELECT w.netid as bssid, w.latitude as lat, w.longitude as lon, w.observed_at as time,
@@ -106,7 +111,10 @@ export async function getWigleObservationsByBSSID(bssid: string): Promise<any[]>
 
 export async function getOurObservationCount(bssid: string): Promise<number> {
   const ourCount = await query(
-    'SELECT COUNT(*) as count FROM app.observations WHERE UPPER(bssid) = $1',
+    `SELECT COUNT(*) as count
+     FROM app.observations
+     WHERE UPPER(bssid) = $1
+       AND COALESCE(is_quality_filtered, false) = false`,
     [bssid]
   );
   return parseInt(ourCount.rows[0]?.count || 0, 10);
@@ -118,7 +126,10 @@ export async function getWigleObservationsBatch(bssids: string[]): Promise<any[]
        SELECT bssid, lat, lon, time, level, time::date as obs_date,
               ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography as geog
        FROM app.observations
-       WHERE UPPER(bssid) = ANY($1) AND lat IS NOT NULL AND lon IS NOT NULL
+       WHERE UPPER(bssid) = ANY($1)
+         AND lat IS NOT NULL
+         AND lon IS NOT NULL
+         AND COALESCE(is_quality_filtered, false) = false
      ),
      wigle_enriched AS (
        SELECT w.netid as bssid, w.latitude as lat, w.longitude as lon, w.observed_at as time,

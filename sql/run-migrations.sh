@@ -78,7 +78,8 @@ for migration_file in $(ls "$MIGRATIONS_DIR"/*.sql | sort); do
         echo -e "${RED}FAILED${NC}"
         echo -e "${RED}    Error: $(cat /tmp/migration_error)${NC}"
         FAILED=$((FAILED + 1))
-        # Continue to next migration rather than aborting
+        echo -e "${RED}Aborting on first failure to avoid partial migration state.${NC}"
+        exit 1
     fi
 done
 

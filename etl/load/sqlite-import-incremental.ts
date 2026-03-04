@@ -712,11 +712,12 @@ class IncrementalImporter {
 // CLI
 // ============================================================================
 
-const args = process.argv.slice(2);
+if (require.main === module) {
+  const args = process.argv.slice(2);
 
-if (args.length < 2) {
-  const scriptName = path.basename(process.argv[1]);
-  console.log(`
+  if (args.length < 2) {
+    const scriptName = path.basename(process.argv[1]);
+    console.log(`
 Usage: npx tsx ${scriptName} <sqlite_file> <source_tag>
 
 Arguments:
@@ -735,20 +736,21 @@ Environment:
   DB_ADMIN_PASSWORD  Admin password
   DEBUG         Set to 'true' for verbose output
 `);
-  process.exit(1);
+    process.exit(1);
+  }
+
+  const [sqliteFile, sourceTag] = args;
+
+  if (!fs.existsSync(sqliteFile)) {
+    console.error(`❌ File not found: ${sqliteFile}`);
+    process.exit(1);
+  }
+
+  const importer = new IncrementalImporter(sqliteFile, sourceTag);
+  importer.start().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
 }
-
-const [sqliteFile, sourceTag] = args;
-
-if (!fs.existsSync(sqliteFile)) {
-  console.error(`❌ File not found: ${sqliteFile}`);
-  process.exit(1);
-}
-
-const importer = new IncrementalImporter(sqliteFile, sourceTag);
-importer.start().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
 
 export { IncrementalImporter };

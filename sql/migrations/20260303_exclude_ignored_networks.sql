@@ -15,7 +15,7 @@ SELECT
     NOW(),
     NOW()
 FROM app.network_tags nt
-WHERE nt.tag_name = 'ignored'
+WHERE COALESCE(nt.is_ignored, false) = true
 ON CONFLICT (bssid) DO UPDATE SET
     rule_based_score = 0,
     rule_based_flags = jsonb_build_object('ignored', true),
@@ -33,7 +33,7 @@ SELECT
     NOW(),
     false
 FROM app.network_tags nt
-WHERE nt.tag_name = 'ignored'
+WHERE COALESCE(nt.is_ignored, false) = true
 ON CONFLICT (bssid) DO UPDATE SET
     threat_score = 0,
     threat_level = 'NONE',
@@ -46,7 +46,7 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    IF NEW.tag_name = 'ignored' THEN
+    IF COALESCE(NEW.is_ignored, false) = true THEN
         -- Set score to NONE
         INSERT INTO app.network_threat_scores
             (bssid, rule_based_score, rule_based_flags, final_threat_score,
@@ -77,7 +77,7 @@ $$;
 
 DROP TRIGGER IF EXISTS trigger_auto_ignore ON app.network_tags;
 CREATE TRIGGER trigger_auto_ignore
-    AFTER INSERT ON app.network_tags
+    AFTER INSERT OR UPDATE OF is_ignored ON app.network_tags
     FOR EACH ROW
     EXECUTE FUNCTION app.auto_ignore_tagged_network();
 
@@ -88,4 +88,4 @@ COMMENT ON FUNCTION app.auto_ignore_tagged_network IS
 SELECT 'Ignore function installed' AS status;
 SELECT COUNT(*) AS ignored_networks
 FROM app.network_tags
-WHERE tag_name = 'ignored';
+WHERE COALESCE(is_ignored, false) = true;

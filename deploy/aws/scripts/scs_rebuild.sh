@@ -2,7 +2,7 @@
 # scs_rebuild - Pull, rebuild, and redeploy ShadowCheck on EC2
 #
 # Secrets are loaded from AWS Secrets Manager at startup.
-set -e
+set -euo pipefail
 
 # Self-install: create /usr/local/bin/scs_rebuild symlink on first run
 SCRIPT_PATH="$(realpath "$0")"
@@ -120,8 +120,17 @@ DB_USER_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json
 # Run bootstrap (idempotent — safe on existing DBs)
 docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_USER_PASSWORD' psql -U shadowcheck_user -d shadowcheck_db -v admin_password='$DB_ADMIN_PASSWORD' -f /sql/00_bootstrap.sql" 2>&1 | tail -5
 
-# Seed migration tracker (marks pre-existing migrations as applied)
-docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_USER_PASSWORD' psql -U shadowcheck_user -d shadowcheck_db -f /sql/seed-migrations-tracker.sql -q" 2>&1 | tail -3
+# Seed migration tracker only for legacy/pre-tracker databases.
+# Never seed on a fresh database, or baseline consolidated migrations will be skipped.
+TRACKED_COUNT=$(docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_USER_PASSWORD' psql -U shadowcheck_user -d shadowcheck_db -tAc \"SELECT COUNT(*) FROM app.schema_migrations\"")
+LEGACY_TABLES_PRESENT=$(docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_USER_PASSWORD' psql -U shadowcheck_user -d shadowcheck_db -tAc \"SELECT CASE WHEN EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='app' AND table_name='observations') OR EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='app' AND table_name='networks') THEN 1 ELSE 0 END\"")
+
+if [ "${TRACKED_COUNT//[[:space:]]/}" = "0" ] && [ "${LEGACY_TABLES_PRESENT//[[:space:]]/}" = "1" ]; then
+  echo "  Detected legacy DB without migration tracking; seeding schema_migrations..."
+  docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_USER_PASSWORD' psql -U shadowcheck_user -d shadowcheck_db -f /sql/seed-migrations-tracker.sql -q" 2>&1 | tail -3
+else
+  echo "  Skipping migration seeding (tracked=$TRACKED_COUNT, legacy_tables=$LEGACY_TABLES_PRESENT)"
+fi
 
 # Run migrations (only applies new/untracked ones)
 docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_USER_PASSWORD' DB_USER=shadowcheck_user DB_NAME=shadowcheck_db && bash /sql/run-migrations.sh" 2>&1 | tail -10
