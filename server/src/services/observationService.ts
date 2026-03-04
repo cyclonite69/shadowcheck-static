@@ -83,26 +83,21 @@ export async function getWigleObservationsByBSSID(bssid: string): Promise<any[]>
               ) as is_matched
        FROM app.wigle_v3_observations w
        WHERE UPPER(w.netid) = $1 AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
-     ),
-     our_bounds AS (
-       SELECT MIN(lat) as min_lat, MAX(lat) as max_lat, MIN(lon) as min_lon, MAX(lon) as max_lon
-       FROM our_obs
      )
      SELECT we.bssid, we.lat, we.lon, EXTRACT(EPOCH FROM we.time) * 1000 as time,
             we.level, we.ssid, we.frequency, we.channel, we.encryption, we.altitude, we.accuracy,
             we.is_matched,
             CASE
-              WHEN ob.min_lat IS NULL THEN NULL
-              ELSE ROUND(ST_Distance(
-                we.geog,
-                ST_SetSRID(ST_MakePoint(
-                  (ob.min_lon + ob.max_lon) / 2,
-                  (ob.min_lat + ob.max_lat) / 2
-                ), 4326)::geography
-              )::numeric, 2)
+              WHEN NOT EXISTS (SELECT 1 FROM our_obs) THEN NULL
+              ELSE ROUND(
+                (
+                  SELECT MIN(ST_Distance(we.geog, o.geog))
+                  FROM our_obs o
+                )::numeric,
+                2
+              )
             END as distance_from_our_center_m
      FROM wigle_enriched we
-     CROSS JOIN our_bounds ob
      ORDER BY we.time DESC`,
     [bssid]
   );
@@ -145,23 +140,24 @@ export async function getWigleObservationsBatch(bssids: string[]): Promise<any[]
               ) as is_matched
        FROM app.wigle_v3_observations w
        WHERE UPPER(w.netid) = ANY($1) AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
-     ),
-     our_centers AS (
-       SELECT UPPER(bssid) as bssid, AVG(lat) as center_lat, AVG(lon) as center_lon
-       FROM our_obs GROUP BY UPPER(bssid)
      )
      SELECT we.bssid, we.lat, we.lon, EXTRACT(EPOCH FROM we.time) * 1000 as time,
             we.level, we.ssid, we.frequency, we.channel, we.encryption, we.altitude, we.accuracy,
             we.is_matched,
             CASE
-              WHEN oc.center_lat IS NULL THEN NULL
-              ELSE ROUND(ST_Distance(
-                we.geog,
-                ST_SetSRID(ST_MakePoint(oc.center_lon, oc.center_lat), 4326)::geography
-              )::numeric, 2)
+              WHEN NOT EXISTS (
+                SELECT 1 FROM our_obs o WHERE UPPER(o.bssid) = UPPER(we.bssid)
+              ) THEN NULL
+              ELSE ROUND(
+                (
+                  SELECT MIN(ST_Distance(we.geog, o.geog))
+                  FROM our_obs o
+                  WHERE UPPER(o.bssid) = UPPER(we.bssid)
+                )::numeric,
+                2
+              )
             END as distance_from_our_center_m
      FROM wigle_enriched we
-     LEFT JOIN our_centers oc ON UPPER(we.bssid) = oc.bssid
      ORDER BY we.bssid, we.time DESC`,
     [bssids]
   );
