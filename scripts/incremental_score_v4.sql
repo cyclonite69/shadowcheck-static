@@ -52,11 +52,12 @@ stationary_scored AS (
             'location_correlation', 0,
             'equipment_profile', 5,
             'temporal_persistence', 0,
-            'fleet_correlation_bonus', 0
+            'fleet_correlation_bonus', 0,
+            'cooccurrence_bonus', 0
         ),
         5,
         'NONE',
-        '4.0-individual',
+        '4.1-individual',
         NOW(),
         NOW()
     FROM stationary_networks
@@ -70,11 +71,11 @@ stationary_scored AS (
         updated_at = NOW()
     RETURNING bssid
 ),
--- Score mobile networks with v4
+-- Score mobile networks with v4.1
 mobile_scored AS (
     SELECT
         m.bssid,
-        calculate_threat_score_v4_individual(m.bssid) AS details
+        calculate_threat_score_v4_1_individual(m.bssid) AS details
     FROM mobile_networks m
 ),
 mobile_inserted AS (
