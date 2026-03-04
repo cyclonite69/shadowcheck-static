@@ -240,6 +240,18 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
     }
   };
 
+  const handleGenerateThreatReportPdf = async () => {
+    if (!contextMenu.network) return;
+    try {
+      await networkApi.downloadThreatReportPdf(contextMenu.network.bssid);
+    } catch (err: any) {
+      logError('Failed to generate threat report PDF', err);
+      alert(`Report generation failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      closeContextMenu();
+    }
+  };
+
   // Close context menu on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -468,6 +480,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: NetworkContext
     openContextMenu,
     closeContextMenu,
     handleTagAction,
+    handleGenerateThreatReportPdf,
     // WiGLE lookup dialog
     wigleLookupDialog,
     closeWigleLookupDialog,

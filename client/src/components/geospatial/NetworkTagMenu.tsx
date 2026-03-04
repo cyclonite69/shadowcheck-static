@@ -17,6 +17,7 @@ interface NetworkTagMenuProps {
   ) => void;
   onTimeFrequency: () => void;
   onAddNote: () => void;
+  onGenerateThreatReport: () => void;
   onMapWigleObservations?: () => void;
   wigleObservationsLoading?: boolean;
 }
@@ -33,6 +34,7 @@ export const NetworkTagMenu = ({
   onTagAction,
   onTimeFrequency,
   onAddNote,
+  onGenerateThreatReport,
   onMapWigleObservations,
   wigleObservationsLoading,
 }: NetworkTagMenuProps) => {
@@ -262,6 +264,25 @@ export const NetworkTagMenu = ({
         )}
 
         {/* View Actions */}
+        <button
+          onClick={onGenerateThreatReport}
+          style={{
+            display: 'block',
+            width: '100%',
+            padding: '8px 12px',
+            background: 'transparent',
+            border: 'none',
+            color: '#22d3ee',
+            textAlign: 'left',
+            cursor: 'pointer',
+            fontSize: '12px',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#475569')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          Generate Threat Report (PDF)
+        </button>
+
         <button
           onClick={onTimeFrequency}
           style={{

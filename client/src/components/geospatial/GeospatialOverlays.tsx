@@ -21,6 +21,7 @@ interface GeospatialOverlaysProps {
   onCloseContextMenu: () => void;
   onOpenTimeFrequency: () => void;
   onOpenNote: () => void;
+  onGenerateThreatReport: () => void;
   onMapWigleObservations?: () => void;
   wigleObservationsLoading?: boolean;
   showNoteModal: boolean;
@@ -48,6 +49,7 @@ export const GeospatialOverlays = ({
   onTagAction,
   onOpenTimeFrequency,
   onOpenNote,
+  onGenerateThreatReport,
   onMapWigleObservations,
   wigleObservationsLoading,
   showNoteModal,
@@ -81,6 +83,7 @@ export const GeospatialOverlays = ({
         onTagAction={onTagAction}
         onTimeFrequency={onOpenTimeFrequency}
         onAddNote={onOpenNote}
+        onGenerateThreatReport={onGenerateThreatReport}
         onMapWigleObservations={onMapWigleObservations}
         wigleObservationsLoading={wigleObservationsLoading}
       />

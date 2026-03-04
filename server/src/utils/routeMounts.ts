@@ -36,6 +36,7 @@ interface ApiRouteDependencies {
   authRoutes: Router;
   weatherRoutes: Router;
   claudeRoutes: Router;
+  threatReportRoutes: Router;
 }
 
 /**
@@ -74,6 +75,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     authRoutes,
     weatherRoutes,
     claudeRoutes,
+    threatReportRoutes,
   } = deps;
 
   // Debug: Check for undefined routes
@@ -100,6 +102,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     authRoutes,
     weatherRoutes,
     claudeRoutes,
+    threatReportRoutes,
   };
 
   for (const [name, route] of Object.entries(routes)) {
@@ -153,6 +156,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
 
   // Claude / Bedrock routes
   app.use('/api', claudeRoutes);
+  app.use('/api', threatReportRoutes);
 
   // Admin routes (MUST BE LAST - has requireAdmin middleware on all routes)
   app.use('/api', adminRoutes);

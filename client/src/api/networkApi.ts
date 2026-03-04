@@ -74,4 +74,33 @@ export const networkApi = {
   async getNetworkObservations(bssid: string): Promise<any> {
     return apiClient.get(`/networks/observations/${encodeURIComponent(bssid)}`);
   },
+
+  async downloadThreatReportPdf(bssid: string): Promise<void> {
+    const encoded = encodeURIComponent(bssid);
+    const response = await fetch(`/api/reports/threat/${encoded}?format=pdf`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to generate threat report PDF';
+      try {
+        const data = await response.json();
+        errorMessage = data?.error || errorMessage;
+      } catch {
+        // Ignore JSON parse errors and use fallback message.
+      }
+      throw new Error(errorMessage);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `threat_report_${bssid.replace(/:/g, '_')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };
