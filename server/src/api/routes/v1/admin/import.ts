@@ -33,6 +33,19 @@ const upload = multer({
   limits: { fileSize: 500 * 1024 * 1024 },
 });
 
+const sqlUpload = multer({
+  dest: '/tmp/',
+  fileFilter: (req: any, file: any, cb: any) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.sql') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only .sql files are allowed'));
+    }
+  },
+  limits: { fileSize: 200 * 1024 * 1024 },
+});
+
 const PROJECT_ROOT = path.resolve(__dirname, '../../../../../../');
 
 function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string; args: string[] } {
@@ -46,6 +59,42 @@ function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string;
   const tsxBin = path.join(PROJECT_ROOT, 'node_modules/.bin/tsx');
   const tsScript = path.join(PROJECT_ROOT, 'etl/load/sqlite-import-incremental.ts');
   return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
+}
+
+function getSqlImportCommand(sqlFile: string): { cmd: string; args: string[]; env: any } {
+  const dbHost = process.env.DB_HOST || 'shadowcheck_postgres';
+  const dbPort = process.env.DB_PORT || '5432';
+  const dbName = process.env.DB_NAME || 'shadowcheck_db';
+  const dbUser = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
+  const dbPassword =
+    secretsManager.get('db_admin_password') ||
+    secretsManager.get('db_password') ||
+    process.env.DB_PASSWORD ||
+    '';
+
+  const args = [
+    '-h',
+    dbHost,
+    '-p',
+    dbPort,
+    '-U',
+    dbUser,
+    '-d',
+    dbName,
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-f',
+    sqlFile,
+  ];
+
+  return {
+    cmd: 'psql',
+    args,
+    env: {
+      ...process.env,
+      PGPASSWORD: dbPassword,
+    },
+  };
 }
 
 router.post(
@@ -204,6 +253,84 @@ router.post(
     });
   }
 );
+
+// POST /api/admin/import-sql
+router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, res: any) => {
+  if (!req.file) {
+    return res.status(400).json({ ok: false, error: 'No SQL file uploaded' });
+  }
+
+  const sqlFile = req.file.path;
+  const originalName = req.file.originalname;
+  const backupRequested = req.body?.backup === 'true' || req.body?.backup === true;
+  const startedAt = Date.now();
+
+  try {
+    logger.info(`Starting SQL import: ${originalName} (backup: ${backupRequested})`);
+
+    let backupTaken = false;
+    if (backupRequested) {
+      try {
+        await runPostgresBackup({ uploadToS3: true });
+        backupTaken = true;
+      } catch (e: any) {
+        logger.warn(`Pre-SQL-import backup failed (continuing): ${e.message}`);
+      }
+    }
+
+    const { cmd, args, env } = getSqlImportCommand(sqlFile);
+    const p = spawn(cmd, args, { cwd: PROJECT_ROOT, env });
+
+    let output = '';
+    let errorOutput = '';
+
+    p.stdout.on('data', (data: Buffer) => {
+      output += data.toString();
+    });
+
+    p.stderr.on('data', (data: Buffer) => {
+      errorOutput += data.toString();
+    });
+
+    p.on('close', async (code: number) => {
+      await fs.unlink(sqlFile).catch(() => {});
+
+      if (code === 0) {
+        return res.json({
+          ok: true,
+          message: `SQL import complete: ${originalName}`,
+          backupTaken,
+          durationSec: ((Date.now() - startedAt) / 1000).toFixed(2),
+          output: output.slice(-10000),
+        });
+      }
+
+      return res.status(500).json({
+        ok: false,
+        error: 'SQL import failed',
+        code,
+        durationSec: ((Date.now() - startedAt) / 1000).toFixed(2),
+        output: output.slice(-10000),
+        errorOutput: errorOutput.slice(-10000),
+      });
+    });
+
+    p.on('error', async (error: Error) => {
+      await fs.unlink(sqlFile).catch(() => {});
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to start SQL import process',
+        details: error.message,
+      });
+    });
+  } catch (e: any) {
+    await fs.unlink(sqlFile).catch(() => {});
+    return res.status(500).json({
+      ok: false,
+      error: e.message || 'SQL import failed',
+    });
+  }
+});
 
 // GET /api/admin/import-history
 router.get('/admin/import-history', async (req: any, res: any, next: any) => {

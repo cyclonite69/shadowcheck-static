@@ -4,6 +4,7 @@ import { adminApi } from '../../../api/adminApi';
 export const useDataImport = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [importStatus, setImportStatus] = useState('');
+  const [sqlImportStatus, setSqlImportStatus] = useState('');
   const [sourceTag, setSourceTag] = useState('');
   const [backupEnabled, setBackupEnabled] = useState(true);
   const [lastResult, setLastResult] = useState<any>(null);
@@ -43,14 +44,41 @@ export const useDataImport = () => {
     }
   };
 
+  const handleSqlFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('sql_file', file);
+    formData.append('backup', String(backupEnabled));
+
+    try {
+      setIsLoading(true);
+      setSqlImportStatus(
+        backupEnabled ? 'Running pre-import backup...' : 'Uploading and executing SQL...'
+      );
+      const result = await adminApi.importSQL(formData);
+      setSqlImportStatus(
+        result.ok ? result.message || 'SQL import complete' : `Failed: ${result.error}`
+      );
+    } catch {
+      setSqlImportStatus('SQL import failed: Network error');
+    } finally {
+      setIsLoading(false);
+      event.target.value = '';
+    }
+  };
+
   return {
     isLoading,
     importStatus,
+    sqlImportStatus,
     sourceTag,
     setSourceTag,
     backupEnabled,
     setBackupEnabled,
     lastResult,
     handleFileImport,
+    handleSqlFileImport,
   };
 };
