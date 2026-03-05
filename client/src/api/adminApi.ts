@@ -130,6 +130,33 @@ export const adminApi = {
     return data;
   },
 
+  async importSQL(formData: FormData): Promise<{
+    ok: boolean;
+    message?: string;
+    backupTaken?: boolean;
+    durationSec?: string;
+    error?: string;
+    output?: string;
+    errorOutput?: string;
+  }> {
+    const response = await fetch('/api/admin/import-sql', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return {
+        ok: false,
+        error:
+          typeof data.error === 'string' ? data.error : data.error?.message || 'SQL import failed',
+        output: data.output,
+        errorOutput: data.errorOutput,
+      };
+    }
+    return data;
+  },
+
   // PgAdmin
   async getPgAdminStatus(): Promise<any> {
     return apiClient.get('/admin/pgadmin/status');
