@@ -134,9 +134,9 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
           }));
         };
 
-        const requestNetworks = async (includeTotalFlag: boolean) => {
+        const requestNetworks = async (includeTotalFlag: boolean, limit = NETWORK_PAGE_LIMIT) => {
           const params = new URLSearchParams({
-            limit: String(NETWORK_PAGE_LIMIT),
+            limit: String(limit),
             offset: String(pagination.offset),
             sort: sortKeys.join(','),
             order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
@@ -168,7 +168,15 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
             primaryErr?.name !== 'AbortError' &&
             isCountTimeoutError(primaryErr)
           ) {
-            data = await requestNetworks(false);
+            try {
+              data = await requestNetworks(false);
+            } catch (secondaryErr: any) {
+              if (secondaryErr?.name !== 'AbortError' && isCountTimeoutError(secondaryErr)) {
+                data = await requestNetworks(false, 200);
+              } else {
+                throw secondaryErr;
+              }
+            }
           } else {
             throw primaryErr;
           }
