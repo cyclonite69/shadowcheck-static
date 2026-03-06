@@ -4,7 +4,7 @@
 import type { Express, Router } from 'express';
 import type { QueryResult } from 'pg';
 import type { RequestHandler } from 'express';
-import { requireAuth } from '../middleware/authMiddleware';
+import { requireAuth, requireAdmin } from '../middleware/authMiddleware';
 
 type QueryFunction = (text: string, params?: unknown[]) => Promise<QueryResult>;
 
@@ -80,8 +80,13 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     threatReportRoutes,
   } = deps;
   const apiGateEnabled = process.env.API_GATE_ENABLED === 'true';
-  const gate: RequestHandler = apiGateEnabled
+  const userGate: RequestHandler = apiGateEnabled
     ? requireAuth
+    : (_req, _res, next) => {
+        next();
+      };
+  const adminGate: RequestHandler = apiGateEnabled
+    ? requireAdmin
     : (_req, _res, next) => {
         next();
       };
@@ -126,7 +131,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/', geospatialRoutes);
 
   // Export routes (no auth required) - mount first
-  app.use('/api', gate, exportRoutes);
+  app.use('/api', userGate, exportRoutes);
 
   // Public analytics routes (no auth required) - mount outside /api
   app.use('/analytics-public', analyticsPublicRoutes);
@@ -141,30 +146,30 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
 
   // API routes
   app.use('/api', authRoutes);
-  app.use('/api', gate, networksRoutes);
-  app.use('/api', gate, threatsRoutes);
-  app.use('/api', gate, wigleRoutes);
-  app.use('/api', gate, explorerRoutes);
-  app.use('/api', gate, mlRoutes);
-  app.use('/api/analytics', gate, analyticsRoutes);
-  app.use('/api', gate, dashboardRoutes.router);
-  app.use('/api/v2/networks/filtered', gate, filteredRoutes);
-  app.use('/api', gate, networksV2Routes);
-  app.use('/api/v2', gate, threatsV2Routes);
-  app.use('/api', gate, locationMarkersRoutes);
-  app.use('/api', gate, homeLocationRoutes);
-  app.use('/api', gate, keplerRoutes);
-  app.use('/api', gate, backupRoutes);
-  app.use('/api', gate, settingsRoutes);
-  app.use('/api/network-tags', gate, networkTagsRoutes);
+  app.use('/api', userGate, networksRoutes);
+  app.use('/api', userGate, threatsRoutes);
+  app.use('/api', userGate, wigleRoutes);
+  app.use('/api', userGate, explorerRoutes);
+  app.use('/api/analytics', userGate, analyticsRoutes);
+  app.use('/api', userGate, dashboardRoutes.router);
+  app.use('/api/v2/networks/filtered', userGate, filteredRoutes);
+  app.use('/api', userGate, networksV2Routes);
+  app.use('/api/v2', userGate, threatsV2Routes);
+  app.use('/api', userGate, locationMarkersRoutes);
+  app.use('/api', userGate, homeLocationRoutes);
+  app.use('/api', userGate, keplerRoutes);
+  app.use('/api/network-tags', userGate, networkTagsRoutes);
+  app.use('/api', userGate, claudeRoutes);
+  app.use('/api', userGate, threatReportRoutes);
 
   // Network agencies (nearest agencies to network observations)
   const networkAgenciesRoutes = require('../api/routes/v1/network-agencies');
-  app.use('/api/networks', gate, networkAgenciesRoutes);
+  app.use('/api/networks', userGate, networkAgenciesRoutes);
 
-  // Claude / Bedrock routes
-  app.use('/api', gate, claudeRoutes);
-  app.use('/api', gate, threatReportRoutes);
+  // Admin-page/system routes
+  app.use('/api', adminGate, mlRoutes);
+  app.use('/api', adminGate, backupRoutes);
+  app.use('/api', adminGate, settingsRoutes);
 
   // Admin routes (MUST BE LAST - has requireAdmin middleware on all routes)
   app.use('/api', adminRoutes);
