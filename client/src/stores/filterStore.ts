@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { NetworkFilters, FilterState, TemporalScope } from '../types/filters';
 import { logWarn } from '../logging/clientLogger';
+import { buildFilterStateParams, parseFilterStateParams } from '../utils/filterUrlState';
 
 interface PageFilterState {
   filters: NetworkFilters;
@@ -297,36 +298,25 @@ export const useFilterStore = create<HardenedFilterStore>()(
       getURLParams: () => {
         const { currentPage, pageStates } = get();
         const pageState = getPageState(pageStates, currentPage);
-        const params = new URLSearchParams();
-        params.set('filters', JSON.stringify(pageState.filters));
-        params.set('enabled', JSON.stringify(pageState.enabled));
-        return params;
+        return buildFilterStateParams({
+          filters: pageState.filters,
+          enabled: pageState.enabled,
+        });
       },
 
       setFromURLParams: (params) => {
-        const rawFilters = params.get('filters');
-        const rawEnabled = params.get('enabled');
-
-        // Skip if missing or invalid
-        if (
-          !rawFilters ||
-          !rawEnabled ||
-          rawFilters === 'undefined' ||
-          rawEnabled === 'undefined'
-        ) {
+        const parsedState = parseFilterStateParams(params);
+        if (!parsedState) {
           return;
         }
-
         try {
-          const parsedFilters = JSON.parse(rawFilters);
-          const parsedEnabled = JSON.parse(rawEnabled);
           const { currentPage, pageStates } = get();
           set({
             pageStates: {
               ...pageStates,
               [currentPage]: {
-                filters: { ...defaultFilters, ...parsedFilters },
-                enabled: { ...defaultEnabled, ...parsedEnabled },
+                filters: { ...defaultFilters, ...parsedState.filters },
+                enabled: { ...defaultEnabled, ...parsedState.enabled },
               },
             },
           });
