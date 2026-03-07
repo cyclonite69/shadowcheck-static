@@ -212,24 +212,7 @@ router.patch('/:bssid/investigate', requireAdmin, async (req: any, res: any) => 
   try {
     const { bssid } = req.params;
     const normalizedBssid = bssid.toUpperCase();
-
-    const existing = await networkService.getNetworkTagByBssid(normalizedBssid);
-
-    let result;
-    if (!existing) {
-      result = await adminDbService.upsertNetworkTag(
-        normalizedBssid,
-        null,
-        null,
-        'INVESTIGATE',
-        null,
-        null
-      );
-      result = await adminDbService.requestWigleLookup(normalizedBssid);
-    } else {
-      result = await adminDbService.updateNetworkThreatTag(normalizedBssid, 'INVESTIGATE', null);
-      result = await adminDbService.requestWigleLookup(normalizedBssid);
-    }
+    const result = await adminDbService.markNetworkInvestigate(normalizedBssid);
 
     logger.info(`Network queued for investigation: ${normalizedBssid}`, { bssid: normalizedBssid });
 

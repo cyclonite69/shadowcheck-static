@@ -310,6 +310,35 @@ async function requestWigleLookup(bssid: string): Promise<any> {
 }
 
 /**
+ * Mark a network for investigate workflow without clobbering existing threat classification.
+ * - Preserves THREAT/SUSPECT/FALSE_POSITIVE if already set.
+ * - Adds "investigate" into JSONB tags set for multi-tag UI/filter semantics.
+ * - Queues WiGLE lookup.
+ */
+async function markNetworkInvestigate(bssid: string): Promise<any> {
+  const result = await adminQuery(
+    `INSERT INTO app.network_tags (bssid, threat_tag, tags, wigle_lookup_requested, updated_at)
+     VALUES ($1, 'INVESTIGATE', '["investigate"]'::jsonb, TRUE, NOW())
+     ON CONFLICT (bssid) DO UPDATE SET
+       threat_tag = CASE
+         WHEN app.network_tags.threat_tag IN ('THREAT', 'SUSPECT', 'FALSE_POSITIVE')
+           THEN app.network_tags.threat_tag
+         ELSE 'INVESTIGATE'
+       END,
+       tags = CASE
+         WHEN COALESCE(app.network_tags.tags, '[]'::jsonb) @> '["investigate"]'::jsonb
+           THEN COALESCE(app.network_tags.tags, '[]'::jsonb)
+         ELSE COALESCE(app.network_tags.tags, '[]'::jsonb) || '["investigate"]'::jsonb
+       END,
+       wigle_lookup_requested = TRUE,
+       updated_at = NOW()
+     RETURNING *`,
+    [bssid]
+  );
+  return result.rows[0];
+}
+
+/**
  * Get networks pending WiGLE lookup
  */
 async function getNetworksPendingWigleLookup(limit: number): Promise<any[]> {
@@ -952,6 +981,7 @@ module.exports.updateNetworkTagNotes = updateNetworkTagNotes;
 module.exports.insertNetworkTagNotes = insertNetworkTagNotes;
 module.exports.deleteNetworkTag = deleteNetworkTag;
 module.exports.requestWigleLookup = requestWigleLookup;
+module.exports.markNetworkInvestigate = markNetworkInvestigate;
 module.exports.getNetworksPendingWigleLookup = getNetworksPendingWigleLookup;
 module.exports.exportMLTrainingData = exportMLTrainingData;
 module.exports.getImportCounts = getImportCounts;
