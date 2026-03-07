@@ -58,9 +58,9 @@ export default function GeospatialExplorer() {
   // Set current page for filter scoping
   usePageFilters('geospatial');
 
-  // Location mode and plan check state (needed by useNetworkData)
+  // Location mode
   const [locationMode, setLocationMode] = useState('latest_observation');
-  const [planCheck, setPlanCheck] = useState(false);
+  const [quickSearch, setQuickSearch] = useState('');
 
   // Network data hook - handles fetching, pagination, sorting
   const {
@@ -77,7 +77,7 @@ export default function GeospatialExplorer() {
     setSort,
     loadMore,
     resetPagination,
-  } = useNetworkData({ locationMode, planCheck });
+  } = useNetworkData({ locationMode });
 
   // Server-side sorting - no client-side sorting needed
   const filteredNetworks = useMemo(() => networks, [networks]);
@@ -206,8 +206,49 @@ export default function GeospatialExplorer() {
   const { timeFreqModal, openTimeFrequency, closeTimeFrequency } = useTimeFrequencyModal();
 
   useFilterURLSync();
-  const { getCurrentEnabled, setFilter } = useFilterStore();
+  const { getCurrentEnabled, setFilter, enableFilter } = useFilterStore();
   const enabled = getCurrentEnabled();
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const raw = quickSearch.trim();
+      const prefixed = raw.match(/^([sbm]):\s*(.+)$/i);
+
+      let target: 'ssid' | 'bssid' | 'manufacturer' = 'ssid';
+      let value = raw;
+
+      if (prefixed) {
+        const prefix = prefixed[1].toLowerCase();
+        value = prefixed[2].trim();
+        if (prefix === 'b') target = 'bssid';
+        if (prefix === 'm') target = 'manufacturer';
+        if (prefix === 's') target = 'ssid';
+      } else {
+        const macLike = /^([0-9a-f]{2}([:-]?)){2,6}[0-9a-f]{0,2}$/i.test(raw);
+        const ouiLike = /^[0-9a-f]{6}$/i.test(raw);
+        if (macLike) {
+          target = 'bssid';
+        } else if (ouiLike) {
+          target = 'manufacturer';
+        } else {
+          target = 'ssid';
+        }
+      }
+
+      const hasValue = value.length > 0;
+      const nextValue = hasValue ? value : '';
+
+      setFilter('ssid', target === 'ssid' ? nextValue : '');
+      setFilter('bssid', target === 'bssid' ? nextValue : '');
+      setFilter('manufacturer', target === 'manufacturer' ? nextValue : '');
+
+      enableFilter('ssid', hasValue && target === 'ssid');
+      enableFilter('bssid', hasValue && target === 'bssid');
+      enableFilter('manufacturer', hasValue && target === 'manufacturer');
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [quickSearch, setFilter, enableFilter]);
 
   const debouncedFilterState = useDebouncedFilterState();
 
@@ -518,8 +559,8 @@ export default function GeospatialExplorer() {
 
           <NetworkExplorerSection
             expensiveSort={expensiveSort}
-            planCheck={planCheck}
-            onPlanCheckChange={setPlanCheck}
+            quickSearch={quickSearch}
+            onQuickSearchChange={setQuickSearch}
             locationMode={locationMode}
             onLocationModeChange={(mode) => setLocationMode(mode)}
             filtersOpen={filtersOpen}
