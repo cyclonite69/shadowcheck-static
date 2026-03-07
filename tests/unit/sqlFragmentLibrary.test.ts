@@ -18,6 +18,7 @@ describe('SqlFragmentLibrary', () => {
     const join = SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt');
     expect(join).toContain('LEFT JOIN LATERAL');
     expect(join).toContain('UPPER(ne.bssid)');
+    expect(join).toContain('to_jsonb(nt_source.tags)');
     expect(join).toContain('STRING_AGG');
     expect(join).toContain('BOOL_OR');
     expect(join).toContain(') nt ON TRUE');
@@ -26,7 +27,7 @@ describe('SqlFragmentLibrary', () => {
   test('radio manufacturer join composes expected OUI expression', () => {
     const join = SqlFragmentLibrary.joinRadioManufacturers('l', 'rm');
     expect(join).toContain('app.radio_manufacturers rm');
-    expect(join).toContain("SUBSTRING(l.bssid, 1, 8)");
+    expect(join).toContain('SUBSTRING(l.bssid, 1, 8)');
   });
 
   test('observation coordinate fields use geometry fallback', () => {
