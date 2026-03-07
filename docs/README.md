@@ -16,30 +16,35 @@ The wiki in `.github/wiki/` is the primary source for diagram-heavy documentatio
 - Wiki is the primary source for diagrams; docs are for concise current state.
 
 ## Start Here
+
 - [Architecture](ARCHITECTURE.md) - System overview and module organization.
 - [Development](DEVELOPMENT.md) - Local dev setup and workflow.
 - [Deployment](DEPLOYMENT.md) - Production deployment guidance.
 - [Configuration](CONFIG.md) - Environment variables and configuration.
 - [API Reference](API_REFERENCE.md) - REST endpoints.
- - [Wiki Home](../.github/wiki/Home.md) - Diagram-heavy documentation hub.
- - [Wiki Map](WIKI_MAP.md) - Docs ↔ wiki mapping.
+- [Wiki Home](../.github/wiki/Home.md) - Diagram-heavy documentation hub.
+- [Wiki Map](WIKI_MAP.md) - Docs ↔ wiki mapping.
 
 ## Development Guides
+
 - [Frontend](CLIENT.md) - React components and client patterns.
 - [Testing](TESTING.md) - Test strategy and commands.
-- [Scripts](SCRIPTS.md) - Utility scripts and maintenance.
+- [Scripts](../scripts/README.md) - Utility scripts and maintenance.
 
 ## Data & Infrastructure
+
 - [Database](DATABASE_RADIO_ARCHITECTURE.md) - Schema and data design.
-- [Redis](REDIS.md) - Caching and sessions.
+- [Configuration](CONFIG.md) - Redis and environment configuration.
 - [Secrets](SECRETS.md) - Secrets management.
-- [Auth](AUTH.md) - Authentication and authorization.
+- [API Reference](API_REFERENCE.md) - Auth endpoints and API contracts.
 
 ## Security
+
 - [Security Policy](SECURITY_POLICY.md) - Disclosure and security posture.
 - See `security/` for additional material.
 
 ## Optional/Internal
+
 - `kiro/` - Job manifest and execution guides for internal quality passes.
 - `bugfixes/` - Targeted fix plans and notes.
 
@@ -48,33 +53,25 @@ The wiki in `.github/wiki/` is the primary source for diagram-heavy documentatio
 ```
 docs/
 ├── README.md
-├── ARCHITECTURE.md
 ├── API_REFERENCE.md
-├── AUTH.md
+├── ARCHITECTURE.md
 ├── CLIENT.md
 ├── CONFIG.md
 ├── DATABASE_RADIO_ARCHITECTURE.md
+├── DATA_QUALITY_FILTERING.md
 ├── DEPLOYMENT.md
 ├── DEVELOPMENT.md
 ├── FEATURES.md
-├── MODULARITY.md
-├── PERFORMANCE_OPTIMIZATION_SUMMARY.md
-├── REDIS.md
-├── SCRIPTS.md
-├── SECURITY_POLICY.md
+├── PGADMIN_AWS_FIX.md
+├── QUERY_PERFORMANCE.md
 ├── SECRETS.md
+├── SECURITY_POLICY.md
+├── SESSION_STATE.md
 ├── TESTING.md
-├── architecture/
-├── bugfixes/
-├── deployment/
+├── WIKI_MAP.md
 ├── development/
-├── getting-started/
-├── guides/
-├── integrations/
-├── kiro/
-├── security/
-├── setup/
-└── testing/
+├── fixes/
+└── kiro/
 ```
 
 ### Features & UI
@@ -94,12 +91,7 @@ docs/
 
 ## Archive
 
-Historical documentation is stored in `docs/archive/`:
-
-- **sessions/** - Development session notes from 2025
-- **bugfixes/** - Historical bug fix documentation
-
-These files are kept for reference but are not actively maintained.
+Historical notes are kept in dated markdown files and the `fixes/` directory. Prefer the main top-level docs for current behavior.
 
 ---
 
@@ -111,4 +103,4 @@ These files are kept for reference but are not actively maintained.
 
 ---
 
-**Last Updated:** 2026-02-11
+**Last Updated:** 2026-03-07

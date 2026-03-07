@@ -177,8 +177,16 @@ aws ec2 stop-instances --instance-ids i-INSTANCE_ID --region us-east-1
 
 ```bash
 # Via SSM session
-cd /home/ssm-user
-docker exec shadowcheck_postgres pg_dump -U shadowcheck_user shadowcheck_db | gzip > backup-$(date +%Y%m%d).sql.gz
+cd /home/ssm-user/shadowcheck
+
+# Preferred: use the app backup path (uses admin creds and schema scoping)
+curl -sS -X POST http://localhost:3001/api/admin/backup \
+  -H 'Content-Type: application/json' \
+  -d '{"uploadToS3":false}' | jq
+
+# Manual fallback (schema-scoped)
+docker exec shadowcheck_postgres pg_dump -U shadowcheck_user -n app -n public shadowcheck_db \
+  | gzip > backup-$(date +%Y%m%d).sql.gz
 ```
 
 ## Monitoring

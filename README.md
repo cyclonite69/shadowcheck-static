@@ -181,6 +181,7 @@ git pull origin master
 - [WORKFLOW.md](deploy/aws/WORKFLOW.md) - Development workflow
 - [README.md](deploy/aws/README.md) - AWS infrastructure details
 - [DEPLOYMENT_CHECKLIST.md](deploy/aws/DEPLOYMENT_CHECKLIST.md) - Verification checklist
+- [ssm-embedded-session-policy.json](deploy/aws/iam/ssm-embedded-session-policy.json) - IAM policy required for Admin UI embedded SSM
 
 ---
 
@@ -196,20 +197,13 @@ npm install
 
 ### 2. Database & Redis Setup
 
-Create PostgreSQL database with PostGIS and secure users. Ensure Redis is running.
+Use Docker for local setup (recommended) so PostGIS, Redis, bootstrap grants, and migrations stay in sync:
 
-```sql
--- Standard application user (Read-only on production tables)
-CREATE ROLE shadowcheck_user WITH LOGIN PASSWORD 'your_password';
--- Administrative user (Full access for imports/tagging)
-CREATE ROLE shadowcheck_admin WITH LOGIN PASSWORD 'admin_password';
-
-CREATE DATABASE shadowcheck_db OWNER shadowcheck_admin;
-\c shadowcheck_db
-CREATE EXTENSION postgis;
+```bash
+docker compose up -d
 ```
 
-Apply security migration: `psql -U shadowcheck_admin -d shadowcheck_db -f sql/migrations/20260129_implement_db_security.sql`
+For AWS/EC2, use the deployment scripts in `deploy/aws/scripts/` (especially `scs_rebuild.sh`) rather than running legacy SQL manually.
 
 ### 3. Environment Configuration
 
@@ -232,12 +226,17 @@ See `.env.example` for non-secret options only.
 
 ### 4. Run Migrations
 
+Migrations are applied by the standard runners:
+
 ```bash
-psql -U shadowcheck_user -d shadowcheck_db -f sql/functions/create_scoring_function.sql
-psql -U shadowcheck_user -d shadowcheck_db -f sql/functions/fix_kismet_functions.sql
-psql -U shadowcheck_user -d shadowcheck_db -f sql/migrations/migrate_network_tags_v2.sql
-# Follow the order in sql/migrations/README.md for remaining migrations
+# Local/dev
+docker compose up -d
+
+# AWS/EC2
+./deploy/aws/scripts/scs_rebuild.sh
 ```
+
+If you must run manually, use `sql/run-migrations.sh` with the same credentials and schema/search_path settings used by deployment scripts.
 
 ### 5. Start Server
 
@@ -402,9 +401,9 @@ shadowcheck-static/
 └── docker-compose.yml     # 🐳 Docker configuration
 ```
 
-**📖 See [docs/architecture/PROJECT_STRUCTURE.md](docs/architecture/PROJECT_STRUCTURE.md) for detailed frontend/backend organization.**
+**📖 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed frontend/backend organization.**
 
-Also see [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md) for complete details.
+Also see [docs/README.md](docs/README.md) for the documentation index.
 
 ## Development
 
