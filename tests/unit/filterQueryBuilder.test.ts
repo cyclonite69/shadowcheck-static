@@ -280,6 +280,20 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql).toContain('ssid');
   });
 
+  test('count query for timeframe + temporalScope + threatCategories uses MV fast path', () => {
+    const result = new UniversalFilterQueryBuilder(
+      {
+        temporalScope: 'observation_time',
+        timeframe: { type: 'relative', relativeWindow: '90d' },
+        threatCategories: ['high'],
+      },
+      { timeframe: true, temporalScope: true, threatCategories: true }
+    ).buildNetworkCountQuery();
+
+    expect(result.sql).toContain('FROM app.api_network_explorer_mv ne');
+    expect(result.sql).not.toContain('WITH filtered_obs AS');
+  });
+
   test('distanceFromHome filters require home location', () => {
     const result = new UniversalFilterQueryBuilder(
       { distanceFromHomeMin: 1, distanceFromHomeMax: 10 },

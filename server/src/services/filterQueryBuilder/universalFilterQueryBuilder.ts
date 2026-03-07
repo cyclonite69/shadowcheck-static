@@ -1261,9 +1261,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
     const enabledKeys = Object.entries(this.enabled)
       .filter(([, value]) => value)
       .map(([key]) => key);
-    const networkOnly =
-      enabledKeys.length > 0 &&
-      enabledKeys.every((key) => NETWORK_ONLY_FILTERS.has(key as FilterKey));
+    const networkOnly = this.isFastPathEligible(enabledKeys);
     if (networkOnly) {
       return this.buildNetworkOnlyCountQuery();
     }
