@@ -5,6 +5,7 @@ import { apiClient } from '../api/client';
 import type { NetworkRow, SortState } from '../types/network';
 import { API_SORT_MAP, NETWORK_PAGE_LIMIT } from '../constants/network';
 import { mapApiRowToNetwork } from '../utils/networkDataTransformation';
+import { buildFilteredRequestParams } from '../utils/filteredRequestParams';
 
 interface UseNetworkDataOptions {
   locationMode?: string;
@@ -104,11 +105,6 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
         }
 
         // Send all filters and enabled flags - backend will handle which to apply
-        console.log('[useNetworkData] Fetching with filters:', {
-          filters: debouncedFilterState.filters,
-          enabled: debouncedFilterState.enabled,
-        });
-
         const applyResponse = (data: any) => {
           const rows = data.data || [];
           setExpensiveSort(Boolean(data.expensive_sort));
@@ -135,24 +131,19 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
         };
 
         const requestNetworks = async (includeTotalFlag: boolean, limit = NETWORK_PAGE_LIMIT) => {
-          const params = new URLSearchParams({
-            limit: String(limit),
-            offset: String(pagination.offset),
+          const params = buildFilteredRequestParams({
+            payload: debouncedFilterState,
+            limit,
+            offset: pagination.offset,
             sort: sortKeys.join(','),
             order: sort.map((entry) => entry.direction.toUpperCase()).join(','),
-            filters: JSON.stringify(debouncedFilterState.filters),
-            enabled: JSON.stringify(debouncedFilterState.enabled),
-            includeTotal: includeTotalFlag ? '1' : '0',
+            includeTotal: includeTotalFlag,
+            pageType:
+              currentPage === 'wigle' && debouncedFilterState.enabled.wigle_v3_observation_count_min
+                ? 'wigle'
+                : undefined,
+            planCheck,
           });
-          if (
-            currentPage === 'wigle' &&
-            debouncedFilterState.enabled.wigle_v3_observation_count_min
-          ) {
-            params.set('pageType', 'wigle');
-          }
-          if (planCheck) {
-            params.set('planCheck', '1');
-          }
           return apiClient.get<any>(`/v2/networks/filtered?${params.toString()}`, {
             signal: controller.signal,
           });

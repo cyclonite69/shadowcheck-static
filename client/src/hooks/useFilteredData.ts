@@ -8,6 +8,7 @@ import { useFilterStore, useDebouncedFilters } from '../stores/filterStore';
 import { NetworkFilters } from '../types/filters';
 import { logError } from '../logging/clientLogger';
 import { apiClient } from '../api/client';
+import { buildFilteredRequestParams } from '../utils/filteredRequestParams';
 
 interface UseFilteredDataOptions {
   endpoint: 'networks' | 'geospatial' | 'analytics' | 'observations';
@@ -62,21 +63,17 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
         const actualOffset = resetOffset ? 0 : currentOffset;
         const { filters, enabled } = payload;
 
-        console.log('[useFilteredData] Fetching with payload:', { filters, enabled });
-
-        const params = new URLSearchParams({
-          filters: JSON.stringify(filters),
-          enabled: JSON.stringify(enabled),
-          limit: limit.toString(),
-          offset: actualOffset.toString(),
+        const params = buildFilteredRequestParams({
+          payload: { filters, enabled },
+          limit,
+          offset: actualOffset,
+          sort,
+          order,
+          orderBy,
         });
-        if (sort) params.set('sort', sort);
-        if (order) params.set('order', order);
-        if (orderBy) params.set('orderBy', orderBy);
 
         const endpointPath = endpoint === 'networks' ? '' : `/${endpoint}`;
         const fullUrl = `/v2/networks/filtered${endpointPath}?${params}`;
-        console.log('[useFilteredData] Request URL:', fullUrl);
 
         const result = await apiClient.get<any>(fullUrl);
 
@@ -113,7 +110,6 @@ export function useFilteredData<T = any>(options: UseFilteredDataOptions): Filte
 
   // Debounced filter changes
   useDebouncedFilters((payload) => {
-    console.log('[useFilteredData] Debounced filter change detected:', payload);
     fetchData(payload, true);
   }, 500);
 
