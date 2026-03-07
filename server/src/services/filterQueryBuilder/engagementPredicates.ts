@@ -39,10 +39,18 @@ export const buildEngagementPredicates = ({
     const wantsIgnore = filters.tag_type.includes('ignore');
     const tagValues = filters.tag_type.filter((tag) => tag !== 'ignore');
     let tagClause = '';
+    const tagArrayClause = (paramRef: string) =>
+      `EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements_text(COALESCE(${tagAlias}.tags, '[]'::jsonb)) AS tag_item(tag)
+        WHERE LOWER(tag_item.tag) = ANY(${paramRef})
+      )`;
     if (tagValues.length > 0 && wantsIgnore) {
-      tagClause = `(${tagLowerExpr} = ANY(${addParam(tagValues)}) OR ${tagIgnoredExpr} IS TRUE)`;
+      const tagParam = addParam(tagValues);
+      tagClause = `((${tagLowerExpr} = ANY(${tagParam}) OR ${tagArrayClause(tagParam)}) OR ${tagIgnoredExpr} IS TRUE)`;
     } else if (tagValues.length > 0) {
-      tagClause = `${tagLowerExpr} = ANY(${addParam(tagValues)})`;
+      const tagParam = addParam(tagValues);
+      tagClause = `(${tagLowerExpr} = ANY(${tagParam}) OR ${tagArrayClause(tagParam)})`;
     } else if (wantsIgnore) {
       tagClause = `${tagIgnoredExpr} IS TRUE`;
     }

@@ -46,11 +46,17 @@ export class SqlFragmentLibrary {
             0
           ) AS threat_confidence,
           COALESCE(BOOL_OR(COALESCE((to_jsonb(nt_source)->>'is_ignored')::boolean, FALSE)), FALSE) AS is_ignored,
-          STRING_AGG(
-            DISTINCT LOWER(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type')),
-            ',' ORDER BY LOWER(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type'))
-          ) AS all_tags
+          STRING_AGG(DISTINCT tag_values.tag, ',' ORDER BY tag_values.tag) AS all_tags
         FROM app.network_tags nt_source
+        LEFT JOIN LATERAL (
+          SELECT LOWER(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type')) AS tag
+          UNION ALL
+          SELECT LOWER(tag_item.tag) AS tag
+          FROM jsonb_array_elements_text(COALESCE(nt_source.tags, '[]'::jsonb)) AS tag_item(tag)
+          UNION ALL
+          SELECT 'ignore' AS tag
+          WHERE COALESCE((to_jsonb(nt_source)->>'is_ignored')::boolean, FALSE)
+        ) tag_values ON TRUE
         WHERE UPPER(nt_source.bssid) = UPPER(${sourceBssidAlias}.bssid)
       ) ${lateralAlias} ON TRUE
     `.trim();

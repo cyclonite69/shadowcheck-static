@@ -47,6 +47,7 @@ describe('buildEngagementPredicates', () => {
     expect(result.where[0]).toContain('EXISTS');
     expect(result.where[0]).toContain('nt_filter');
     expect(result.where[0]).toContain('LOWER(nt_filter.tag) = ANY($1)');
+    expect(result.where[0]).toContain('jsonb_array_elements_text(COALESCE(nt_filter.tags');
     expect(result.where[0]).toContain('COALESCE(nt_filter.is_ignored, FALSE) IS TRUE');
     expect(params).toEqual([['threat']]);
     expect(result.applied).toContainEqual({ field: 'tag_type', value: ['threat', 'ignore'] });

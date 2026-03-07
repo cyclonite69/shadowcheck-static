@@ -61,7 +61,11 @@ export const NetworkTableBodyGrid = ({
   };
 
   // Show initial loading / empty / error states only when we have no rows yet.
-  if ((loadingNetworks && filteredNetworks.length === 0) || filteredNetworks.length === 0 || error) {
+  if (
+    (loadingNetworks && filteredNetworks.length === 0) ||
+    filteredNetworks.length === 0 ||
+    error
+  ) {
     return (
       <div
         ref={tableContainerRef}
@@ -188,8 +192,12 @@ export const NetworkTableBodyGrid = ({
 
                 // Threat badge with reasons and evidence
                 if (col === 'threat') {
+                  const allTagsTooltip =
+                    typeof net.all_tags === 'string' && net.all_tags.trim().length > 0
+                      ? `Manual tags: ${net.all_tags}`
+                      : undefined;
                   return (
-                    <div key={col} style={{ padding: '0 4px' }}>
+                    <div key={col} style={{ padding: '0 4px' }} title={allTagsTooltip}>
                       <ThreatBadge
                         threat={net.threat || undefined}
                         reasons={net.threatReasons as any}
