@@ -60,7 +60,23 @@ BEGIN
       ELSIF obj.relkind = 'm' THEN
         EXECUTE format('ALTER MATERIALIZED VIEW %I.%I OWNER TO shadowcheck_admin', obj.schemaname, obj.relname);
       ELSIF obj.relkind = 'S' THEN
-        EXECUTE format('ALTER SEQUENCE %I.%I OWNER TO shadowcheck_admin', obj.schemaname, obj.relname);
+        -- For SERIAL/IDENTITY-owned sequences, owner follows the parent table.
+        -- PostgreSQL rejects direct ALTER SEQUENCE OWNER on these objects.
+        IF EXISTS (
+          SELECT 1
+          FROM pg_depend d
+          WHERE d.classid = 'pg_class'::regclass
+            AND d.objid = format('%I.%I', obj.schemaname, obj.relname)::regclass
+            AND d.refclassid = 'pg_class'::regclass
+            AND d.refobjsubid > 0
+            AND d.deptype IN ('a', 'i')
+        ) THEN
+          RAISE NOTICE 'Skipping ownership transfer for linked sequence %.% (owner follows parent table)',
+            obj.schemaname,
+            obj.relname;
+        ELSE
+          EXECUTE format('ALTER SEQUENCE %I.%I OWNER TO shadowcheck_admin', obj.schemaname, obj.relname);
+        END IF;
       ELSIF obj.relkind = 'f' THEN
         EXECUTE format('ALTER FOREIGN TABLE %I.%I OWNER TO shadowcheck_admin', obj.schemaname, obj.relname);
       END IF;
@@ -134,6 +150,13 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO shadowcheck_user;
 -- Auth/session exceptions needed by runtime auth flows.
 GRANT INSERT, UPDATE, DELETE ON TABLE app.user_sessions TO shadowcheck_user;
 GRANT UPDATE (last_login) ON TABLE app.users TO shadowcheck_user;
+-- WiGLE import/runtime exceptions:
+-- - writes to WiGLE v3 tables
+-- - trigger app.update_networks_wigle_counts updates app.networks counters
+GRANT INSERT, UPDATE, DELETE ON TABLE app.wigle_v3_network_details TO shadowcheck_user;
+GRANT INSERT, UPDATE, DELETE ON TABLE app.wigle_v3_observations TO shadowcheck_user;
+GRANT USAGE, SELECT ON SEQUENCE app.wigle_v3_observations_id_seq TO shadowcheck_user;
+GRANT UPDATE (wigle_v3_observation_count, wigle_v3_last_import_at) ON TABLE app.networks TO shadowcheck_user;
 
 -- -----------------------------------------------------------------------------
 -- 3) Ensure shadowcheck_admin has full schema/object privileges
