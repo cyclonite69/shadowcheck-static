@@ -124,6 +124,13 @@ BEGIN
     -- These may fail on fresh DB (tables don't exist yet) — that's OK
     EXECUTE 'GRANT INSERT, UPDATE, DELETE ON TABLE app.user_sessions TO shadowcheck_user';
     EXECUTE 'GRANT UPDATE (last_login) ON TABLE app.users TO shadowcheck_user';
+    -- WiGLE import/runtime exceptions:
+    -- - writes to wigle_v3 tables
+    -- - trigger updates networks denormalized counters
+    EXECUTE 'GRANT INSERT, UPDATE, DELETE ON TABLE app.wigle_v3_network_details TO shadowcheck_user';
+    EXECUTE 'GRANT INSERT, UPDATE, DELETE ON TABLE app.wigle_v3_observations TO shadowcheck_user';
+    EXECUTE 'GRANT USAGE, SELECT ON SEQUENCE app.wigle_v3_observations_id_seq TO shadowcheck_user';
+    EXECUTE 'GRANT UPDATE (wigle_v3_observation_count, wigle_v3_last_import_at) ON TABLE app.networks TO shadowcheck_user';
 EXCEPTION WHEN undefined_table THEN
     RAISE NOTICE 'Auth tables do not exist yet — skipping session grants (migrations will handle)';
 END
