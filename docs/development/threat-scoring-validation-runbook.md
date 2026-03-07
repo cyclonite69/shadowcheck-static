@@ -72,8 +72,7 @@ In `psql`:
 SELECT filename, applied_at
 FROM app.schema_migrations
 WHERE filename IN (
-  '20260302_deploy_threat_score_v4.sql',
-  '20260306_harden_db_roles_and_ownership.sql'
+  '20260216_consolidated_010_performance_indexes.sql'
 )
 ORDER BY filename;
 
@@ -86,7 +85,7 @@ SELECT
 
 Expected:
 
-- both migrations present in `app.schema_migrations`
+- consolidated migration present in `app.schema_migrations`
 - current function state: `has_eps_001 = true`, `has_eps_0005 = true`
 
 ## 5) WiGLE import sanity (permission + persistence)
