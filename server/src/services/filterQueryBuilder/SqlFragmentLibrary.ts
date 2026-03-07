@@ -52,7 +52,7 @@ export class SqlFragmentLibrary {
           SELECT LOWER(COALESCE(to_jsonb(nt_source)->>'threat_tag', to_jsonb(nt_source)->>'tag_type')) AS tag
           UNION ALL
           SELECT LOWER(tag_item.tag) AS tag
-          FROM jsonb_array_elements_text(COALESCE(nt_source.tags, '[]'::jsonb)) AS tag_item(tag)
+          FROM jsonb_array_elements_text(COALESCE(to_jsonb(nt_source.tags), '[]'::jsonb)) AS tag_item(tag)
           UNION ALL
           SELECT 'ignore' AS tag
           WHERE COALESCE((to_jsonb(nt_source)->>'is_ignored')::boolean, FALSE)

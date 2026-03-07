@@ -49,8 +49,6 @@ import {
   SECURITY_EXPR,
   WIFI_CHANNEL_EXPR,
   NETWORK_CHANNEL_EXPR,
-  THREAT_SCORE_EXPR,
-  THREAT_LEVEL_EXPR,
 } from './sqlExpressions';
 import { isOui, coerceOui } from './normalizers';
 import { validateFilterPayload } from './validators';
@@ -1528,8 +1526,8 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       networkWhere.push(
         ...this.buildThreatScorePredicate({
           min: f.threatScoreMin,
-          expr: THREAT_SCORE_EXPR('nts', 'nt'),
-          wrapExpr: true,
+          expr: 'ne.threat_score',
+          wrapExpr: false,
         })
       );
       this.addApplied('threat', 'threatScoreMin', f.threatScoreMin);
@@ -1538,8 +1536,8 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
       networkWhere.push(
         ...this.buildThreatScorePredicate({
           max: f.threatScoreMax,
-          expr: THREAT_SCORE_EXPR('nts', 'nt'),
-          wrapExpr: true,
+          expr: 'ne.threat_score',
+          wrapExpr: false,
         })
       );
       this.addApplied('threat', 'threatScoreMax', f.threatScoreMax);
@@ -1563,9 +1561,7 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
             .filter(Boolean)
         )
       );
-      networkWhere.push(
-        `${THREAT_LEVEL_EXPR('nts', 'nt')} = ANY(${this.addParam(dbThreatLevels)})`
-      );
+      networkWhere.push(`ne.threat_level = ANY(${this.addParam(dbThreatLevels)})`);
       this.addApplied('threat', 'threatCategories', f.threatCategories);
     }
     if (e.observationCountMin && f.observationCountMin !== undefined) {

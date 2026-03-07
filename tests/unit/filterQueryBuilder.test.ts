@@ -181,6 +181,16 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
     expect(result.sql.toLowerCase()).toMatch(/lat|lon/);
   });
 
+  test('buildGeospatialQuery threatCategories uses MV threat_level semantics', () => {
+    const result = new UniversalFilterQueryBuilder(
+      { threatCategories: ['high'] },
+      { threatCategories: true }
+    ).buildGeospatialQuery();
+
+    expect(result.sql).toContain('ne.threat_level = ANY(');
+    expect(result.sql).not.toContain('app.get_threat_score(');
+  });
+
   test('all filters disabled → appliedFilters is empty', () => {
     const result = new UniversalFilterQueryBuilder(
       { rssiMin: -70, ssid: 'any', bssid: 'AA:BB' },
