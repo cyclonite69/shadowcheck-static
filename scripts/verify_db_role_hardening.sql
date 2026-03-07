@@ -1,5 +1,5 @@
--- Post-migration verification for:
---   sql/migrations/20260306_harden_db_roles_and_ownership.sql
+-- Post-migration verification for DB role hardening currently folded into:
+--   sql/migrations/20260216_consolidated_010_performance_indexes.sql
 --
 -- Usage:
 --   psql -U shadowcheck_admin -d shadowcheck_db -f scripts/verify_db_role_hardening.sql
