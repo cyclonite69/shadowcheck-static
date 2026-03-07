@@ -5,8 +5,8 @@ import { ColumnSelector } from './ColumnSelector';
 
 interface NetworkExplorerHeaderProps {
   expensiveSort: boolean;
-  planCheck: boolean;
-  onPlanCheckChange: (checked: boolean) => void;
+  quickSearch: string;
+  onQuickSearchChange: (value: string) => void;
   locationMode: string;
   onLocationModeChange: (mode: string) => void;
   filtersOpen: boolean;
@@ -21,8 +21,8 @@ interface NetworkExplorerHeaderProps {
 
 export const NetworkExplorerHeader = ({
   expensiveSort,
-  planCheck,
-  onPlanCheckChange,
+  quickSearch,
+  onQuickSearchChange,
   locationMode,
   onLocationModeChange,
   filtersOpen,
@@ -82,28 +82,23 @@ export const NetworkExplorerHeader = ({
             Expensive sort
           </span>
         )}
-        <label
+        <input
+          type="text"
+          value={quickSearch}
+          onChange={(e) => onQuickSearchChange(e.target.value)}
+          placeholder="Quick search (SSID/BSSID/OUI) e.g. b:AA:BB or m:apple"
+          title="Quick identity search. Prefix with s:, b:, or m: for SSID, BSSID, or manufacturer."
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
+            width: '320px',
+            maxWidth: '38vw',
+            padding: '4px 8px',
             fontSize: '11px',
-            color: '#cbd5e1',
-            padding: '4px 6px',
+            background: 'rgba(30, 41, 59, 0.7)',
+            border: '1px solid rgba(148, 163, 184, 0.3)',
+            color: '#e2e8f0',
             borderRadius: '6px',
-            border: '1px solid rgba(71, 85, 105, 0.4)',
-            background: 'rgba(15, 23, 42, 0.6)',
           }}
-          title="Adds planCheck=1 so the backend logs the query plan for debugging"
-        >
-          <input
-            type="checkbox"
-            checked={planCheck}
-            onChange={(e) => onPlanCheckChange(e.target.checked)}
-            style={{ cursor: 'pointer' }}
-          />
-          PlanCheck (debug)
-        </label>
+        />
         <select
           value={locationMode}
           onChange={(e) => onLocationModeChange(e.target.value)}

@@ -9,8 +9,8 @@ import { NetworkTableHeaderGrid } from './NetworkTableHeaderGrid';
 
 interface NetworkExplorerSectionProps {
   expensiveSort: boolean;
-  planCheck: boolean;
-  onPlanCheckChange: (checked: boolean) => void;
+  quickSearch: string;
+  onQuickSearchChange: (value: string) => void;
   locationMode: string;
   onLocationModeChange: (mode: string) => void;
   filtersOpen: boolean;
@@ -55,8 +55,8 @@ interface NetworkExplorerSectionProps {
 
 export const NetworkExplorerSection = ({
   expensiveSort,
-  planCheck,
-  onPlanCheckChange,
+  quickSearch,
+  onQuickSearchChange,
   locationMode,
   onLocationModeChange,
   filtersOpen,
@@ -101,8 +101,8 @@ export const NetworkExplorerSection = ({
     <NetworkExplorerCard>
       <NetworkExplorerHeader
         expensiveSort={expensiveSort}
-        planCheck={planCheck}
-        onPlanCheckChange={onPlanCheckChange}
+        quickSearch={quickSearch}
+        onQuickSearchChange={onQuickSearchChange}
         locationMode={locationMode}
         onLocationModeChange={onLocationModeChange}
         filtersOpen={filtersOpen}
