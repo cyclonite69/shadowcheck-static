@@ -232,6 +232,9 @@ router.post(
         responseSent = true;
         res.json({
           ok: true,
+          importType: 'sqlite',
+          sourceTag,
+          source_tag: sourceTag,
           message: `Incremental import complete (source: ${sourceTag})`,
           imported,
           failed,
@@ -251,6 +254,9 @@ router.post(
         responseSent = true;
         res.status(500).json({
           ok: false,
+          importType: 'sqlite',
+          sourceTag,
+          source_tag: sourceTag,
           error: 'Import script failed',
           code,
           output,
@@ -273,6 +279,9 @@ router.post(
       responseSent = true;
       res.status(500).json({
         ok: false,
+        importType: 'sqlite',
+        sourceTag,
+        source_tag: sourceTag,
         error: 'Failed to start import process',
         details: error.message,
       });
@@ -354,8 +363,10 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
 
         return res.json({
           ok: true,
+          importType: 'sql',
           message: `SQL import complete: ${originalName}`,
           sourceTag,
+          source_tag: sourceTag,
           backupTaken,
           historyId,
           durationSec: durationS,
@@ -393,8 +404,10 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req: any, 
       }
       return res.status(500).json({
         ok: false,
-        error: 'Failed to start SQL import process',
+        importType: 'sql',
         sourceTag,
+        source_tag: sourceTag,
+        error: 'Failed to start SQL import process',
         historyId,
         durationSec: durationS,
         details: error.message,

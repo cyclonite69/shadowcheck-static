@@ -176,13 +176,16 @@ class IncrementalImporter {
       // 8. Import new observations
       await this.importNewObservations();
 
-      // 9. Remove orphan networks (no access_points entry — no coords, no SSID)
+      // 9. Backfill any missing network rows from newly imported observations.
+      await this.backfillMissingNetworksFromObservations();
+
+      // 10. Remove orphan networks (no access_points entry — no coords, no SSID)
       await this.pruneOrphanNetworks();
 
-      // 10. Refresh materialized views
+      // 11. Refresh materialized views
       await this.refreshMaterializedViews();
 
-      // 11. Print summary
+      // 12. Print summary
       this.printSummary();
     } catch (error) {
       const err = error as Error;
@@ -648,6 +651,82 @@ class IncrementalImporter {
     console.log(
       `   Upserted ${upserted.toLocaleString()} networks (${skipped} skipped - no metadata)`
     );
+  }
+
+  /**
+   * Ensure every newly imported BSSID has a row in app.networks.
+   * SQLite backups can contain location rows without a matching network row.
+   */
+  private async backfillMissingNetworksFromObservations(): Promise<void> {
+    console.log('\n🩹 Backfilling missing networks from imported observations...');
+
+    const result = await this.pool.query(
+      `
+      WITH new_obs AS (
+        SELECT *
+        FROM app.observations
+        WHERE source_tag = $1
+          AND time_ms > $2
+      ),
+      latest AS (
+        SELECT DISTINCT ON (UPPER(bssid))
+          UPPER(bssid) AS bssid,
+          COALESCE(ssid, '') AS ssid,
+          COALESCE(radio_type, 'W') AS type,
+          COALESCE(radio_frequency, 0) AS frequency,
+          COALESCE(radio_capabilities, '') AS capabilities,
+          COALESCE(radio_service, '') AS service,
+          COALESCE(radio_rcois, '') AS rcois,
+          COALESCE(mfgrid, 0) AS mfgrid,
+          COALESCE(time_ms, observed_at_ms, (EXTRACT(EPOCH FROM time) * 1000)::bigint) AS lasttime_ms,
+          COALESCE(lat, 0) AS lastlat,
+          COALESCE(lon, 0) AS lastlon
+        FROM new_obs
+        ORDER BY
+          UPPER(bssid),
+          COALESCE(time_ms, observed_at_ms, (EXTRACT(EPOCH FROM time) * 1000)::bigint) DESC NULLS LAST
+      ),
+      best AS (
+        SELECT DISTINCT ON (UPPER(bssid))
+          UPPER(bssid) AS bssid,
+          COALESCE(level, 0) AS bestlevel,
+          COALESCE(lat, 0) AS bestlat,
+          COALESCE(lon, 0) AS bestlon
+        FROM new_obs
+        ORDER BY
+          UPPER(bssid),
+          COALESCE(level, 0) DESC,
+          COALESCE(time_ms, observed_at_ms, (EXTRACT(EPOCH FROM time) * 1000)::bigint) DESC NULLS LAST
+      )
+      INSERT INTO app.networks (
+        bssid, ssid, type, frequency, capabilities, service, rcois, mfgrid,
+        lasttime_ms, lastlat, lastlon, bestlevel, bestlat, bestlon
+      )
+      SELECT
+        l.bssid,
+        l.ssid,
+        l.type,
+        l.frequency,
+        l.capabilities,
+        l.service,
+        l.rcois,
+        l.mfgrid,
+        l.lasttime_ms,
+        l.lastlat,
+        l.lastlon,
+        COALESCE(b.bestlevel, 0),
+        COALESCE(b.bestlat, l.lastlat),
+        COALESCE(b.bestlon, l.lastlon)
+      FROM latest l
+      LEFT JOIN best b ON b.bssid = l.bssid
+      LEFT JOIN app.networks n ON UPPER(n.bssid) = l.bssid
+      WHERE n.bssid IS NULL
+      ON CONFLICT (bssid) DO NOTHING
+      `,
+      [this.sourceTag, this.latestTimeMs]
+    );
+
+    console.log(`   Backfilled ${result.rowCount?.toLocaleString() || 0} missing network(s)`);
   }
 
   private async pruneOrphanNetworks(): Promise<void> {

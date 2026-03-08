@@ -361,10 +361,18 @@ export const DataImportTab: React.FC = () => {
 
       {lastResult?.metricsBefore && lastResult?.metricsAfter && (
         <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-slate-300 mb-1">Last SQL Import Audit</h3>
+          <h3 className="text-sm font-semibold text-slate-300 mb-1">Last Import Audit</h3>
           <p className="text-xs text-slate-500 mb-3">
             Source:{' '}
-            <span className="font-mono">{lastResult.sourceTag || sourceTag || 'sql_upload'}</span>
+            <span className="font-mono">
+              {lastResult.sourceTag || lastResult.source_tag || sourceTag || 'sql_upload'}
+            </span>
+            {lastResult.importType ? (
+              <>
+                {' '}
+                · Type: <span className="font-mono">{String(lastResult.importType)}</span>
+              </>
+            ) : null}
             {lastResult.durationSec ? (
               <>
                 {' '}
