@@ -5,6 +5,7 @@ import LazyMapComponent from './components/LazyMapComponent';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LoginForm } from './components/auth/LoginForm';
 import { ChangePasswordForm } from './components/auth/ChangePasswordForm';
+import StartPage from './components/StartPage';
 
 // Eager load: lightweight pages that are commonly accessed first
 import DashboardPage from './components/DashboardPage';
@@ -77,7 +78,7 @@ function AppContent() {
       <main id="main-content" className="flex h-screen">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/" element={<StartPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/geospatial-explorer" element={<LazyMapComponent />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
