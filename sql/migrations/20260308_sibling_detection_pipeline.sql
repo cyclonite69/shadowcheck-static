@@ -29,6 +29,69 @@ CREATE TABLE IF NOT EXISTS app.network_sibling_pairs (
   CONSTRAINT network_sibling_pairs_conf_chk CHECK (confidence >= 0 AND confidence <= 2)
 );
 
+-- Legacy upgrade path:
+-- If an older shape of app.network_sibling_pairs already exists, backfill
+-- columns needed by the sibling pipeline before creating dependent indexes.
+ALTER TABLE IF EXISTS app.network_sibling_pairs
+  ADD COLUMN IF NOT EXISTS pair_strength text,
+  ADD COLUMN IF NOT EXISTS quality_scope text,
+  ADD COLUMN IF NOT EXISTS source text,
+  ADD COLUMN IF NOT EXISTS computed_at timestamptz,
+  ADD COLUMN IF NOT EXISTS is_active boolean;
+
+UPDATE app.network_sibling_pairs
+SET
+  pair_strength = COALESCE(pair_strength, 'candidate'),
+  quality_scope = COALESCE(quality_scope, 'default'),
+  source = COALESCE(source, 'heuristic'),
+  computed_at = COALESCE(computed_at, now()),
+  is_active = COALESCE(is_active, true)
+WHERE pair_strength IS NULL
+   OR quality_scope IS NULL
+   OR source IS NULL
+   OR computed_at IS NULL
+   OR is_active IS NULL;
+
+ALTER TABLE IF EXISTS app.network_sibling_pairs
+  ALTER COLUMN pair_strength SET DEFAULT 'candidate',
+  ALTER COLUMN quality_scope SET DEFAULT 'default',
+  ALTER COLUMN source SET DEFAULT 'heuristic',
+  ALTER COLUMN computed_at SET DEFAULT now(),
+  ALTER COLUMN is_active SET DEFAULT true;
+
+ALTER TABLE IF EXISTS app.network_sibling_pairs
+  ALTER COLUMN pair_strength SET NOT NULL,
+  ALTER COLUMN quality_scope SET NOT NULL,
+  ALTER COLUMN source SET NOT NULL,
+  ALTER COLUMN computed_at SET NOT NULL,
+  ALTER COLUMN is_active SET NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'network_sibling_pairs_strength_chk'
+      AND conrelid = 'app.network_sibling_pairs'::regclass
+  ) THEN
+    ALTER TABLE app.network_sibling_pairs
+      ADD CONSTRAINT network_sibling_pairs_strength_chk
+      CHECK (pair_strength IN ('candidate', 'strong', 'verified'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'network_sibling_pairs_conf_chk'
+      AND conrelid = 'app.network_sibling_pairs'::regclass
+  ) THEN
+    ALTER TABLE app.network_sibling_pairs
+      ADD CONSTRAINT network_sibling_pairs_conf_chk
+      CHECK (confidence >= 0 AND confidence <= 2);
+  END IF;
+END
+$$;
+
 DO $$
 BEGIN
   IF EXISTS (
