@@ -134,7 +134,8 @@ else
 fi
 
 # Run migrations (only applies new/untracked ones)
-docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_USER_PASSWORD' DB_USER=shadowcheck_user DB_NAME=shadowcheck_db && bash /sql/run-migrations.sh" 2>&1 | tail -10
+# Keep migration user/password aligned to avoid auth mismatches.
+docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_USER_PASSWORD' MIGRATION_DB_USER=shadowcheck_user DB_NAME=shadowcheck_db && bash /sql/run-migrations.sh" 2>&1 | tail -10
 
 # Clear passwords from shell
 unset DB_ADMIN_PASSWORD DB_USER_PASSWORD SECRET_JSON
