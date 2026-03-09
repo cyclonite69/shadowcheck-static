@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, BarChart3, Bluetooth, Radio, Shield, Wifi } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 type DashboardMetrics = {
@@ -40,6 +39,62 @@ type DashboardSummary = {
   };
   timestamp?: string;
 };
+
+type IconProps = {
+  className?: string;
+};
+
+const ActivityIcon = ({ className = '' }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
+
+const AlertTriangleIcon = ({ className = '' }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m10.29 3.86-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.71-3.14l-8-14a2 2 0 0 0-3.42 0Z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const ChartIcon = ({ className = '' }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 3v18h18" />
+    <path d="m19 9-5 5-4-4-3 3" />
+  </svg>
+);
+
+const RadioIcon = ({ className = '' }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="2" />
+    <path d="M16.24 7.76a6 6 0 0 1 0 8.48" />
+    <path d="M7.76 16.24a6 6 0 0 1 0-8.48" />
+    <path d="M18.95 5.05a10 10 0 0 1 0 13.9" />
+    <path d="M5.05 18.95a10 10 0 0 1 0-13.9" />
+  </svg>
+);
+
+const ShieldIcon = ({ className = '' }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 2 4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" />
+  </svg>
+);
+
+const WifiIcon = ({ className = '' }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+    <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+    <line x1="12" y1="20" x2="12.01" y2="20" />
+  </svg>
+);
+
+const BluetoothIcon = ({ className = '' }: IconProps) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="m7 7 10 10-5 5V2l5 5L7 17" />
+  </svg>
+);
 
 function formatInt(value: number | undefined): string {
   return (value ?? 0).toLocaleString();
@@ -95,37 +150,37 @@ export default function StartPage() {
       {
         label: 'Total Networks',
         value: summary?.summary?.totalNetworks ?? metrics?.networks.total ?? 0,
-        icon: Wifi,
+        icon: WifiIcon,
         color: 'text-cyan-300',
       },
       {
         label: 'Total Observations',
         value: metrics?.observations.total ?? 0,
-        icon: Activity,
+        icon: ActivityIcon,
         color: 'text-blue-300',
       },
       {
         label: 'Critical Threats',
         value: summary?.summary?.criticalThreats ?? metrics?.threats.critical ?? 0,
-        icon: AlertTriangle,
+        icon: AlertTriangleIcon,
         color: 'text-red-300',
       },
       {
         label: 'All Threats',
         value: totalThreats,
-        icon: Shield,
+        icon: ShieldIcon,
         color: 'text-amber-300',
       },
       {
         label: 'Active Surveillance',
         value: summary?.summary?.activeSurveillance ?? metrics?.activeSurveillance ?? 0,
-        icon: Radio,
+        icon: RadioIcon,
         color: 'text-violet-300',
       },
       {
         label: 'WiFi Networks',
         value: metrics?.networks.wifi ?? 0,
-        icon: BarChart3,
+        icon: ChartIcon,
         color: 'text-emerald-300',
       },
     ];
@@ -278,7 +333,7 @@ export default function StartPage() {
                   </div>
                 </div>
                 <div className="mt-6 pt-4 border-t border-slate-800 text-xs text-slate-400 flex items-center gap-2">
-                  <Bluetooth className="w-4 h-4" />
+                  <BluetoothIcon className="w-4 h-4" />
                   Last updated:{' '}
                   {summary?.timestamp || metrics?.timestamp
                     ? new Date(summary?.timestamp || metrics?.timestamp || '').toLocaleString()
