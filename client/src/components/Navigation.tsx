@@ -109,6 +109,14 @@ const Navigation: React.FC = () => {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
+          Start
+        </a>
+        <a
+          href="/dashboard"
+          style={linkStyle('/dashboard')}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
           Dashboard
         </a>
         <a
