@@ -52,8 +52,15 @@ class AuthService {
         [user.id, tokenHash, expiresAt, userAgent, ipAddress]
       );
 
-      // Update last login
-      await query('UPDATE app.users SET last_login = NOW() WHERE id = $1', [user.id]);
+      // Keep login usable on older deployments that missed the narrow last_login grant.
+      try {
+        await query('UPDATE app.users SET last_login = NOW() WHERE id = $1', [user.id]);
+      } catch (lastLoginError) {
+        logger.warn(`Failed to update last_login for user ${username}`, {
+          userId: user.id,
+          error: lastLoginError,
+        });
+      }
 
       logger.info(`User ${username} logged in successfully`, { userId: user.id, ipAddress });
 
@@ -70,7 +77,7 @@ class AuthService {
     } catch (error) {
       logger.error('Login error:', error);
       console.error('[AUTH SERVICE ERROR]', error);
-      return { success: false, error: `Authentication failed: ${error.message}` };
+      return { success: false, error: 'Authentication backend failure', status: 500 };
     }
   }
 
