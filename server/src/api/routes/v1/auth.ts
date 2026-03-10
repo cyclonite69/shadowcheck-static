@@ -25,7 +25,7 @@ router.post('/auth/login', async (req, res) => {
     const result = await authService.login(username, password, userAgent, ipAddress);
 
     if (!result.success) {
-      return res.status(401).json({ error: result.error });
+      return res.status(result.status || 401).json({ error: result.error });
     }
 
     // Set HTTP-only cookie (most secure)
