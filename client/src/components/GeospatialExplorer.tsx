@@ -718,6 +718,7 @@ export default function GeospatialExplorer() {
             selectedNetworks={selectedNetworks}
             linkedSiblingBssids={linkedSiblingBssids}
             selectedAnchorBssid={selectedAnchorBssid}
+            selectedAnchorHasLinkedSiblings={linkedSiblingBssids.size > 0}
             onSelectExclusive={selectNetworkExclusive}
             onOpenContextMenu={openContextMenu}
             onToggleSelectNetwork={toggleSelectNetwork}
