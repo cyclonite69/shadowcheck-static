@@ -24,6 +24,7 @@ interface NetworkTableBodyGridProps {
   selectedNetworks: Set<string>;
   linkedSiblingBssids?: Set<string>;
   selectedAnchorBssid?: string | null;
+  selectedAnchorHasLinkedSiblings?: boolean;
   onSelectExclusive: (bssid: string) => void;
   onOpenContextMenu: (event: React.MouseEvent<HTMLDivElement>, net: NetworkRow) => void;
   onToggleSelectNetwork: (bssid: string) => void;
@@ -42,6 +43,7 @@ export const NetworkTableBodyGrid = ({
   selectedNetworks,
   linkedSiblingBssids = new Set<string>(),
   selectedAnchorBssid = null,
+  selectedAnchorHasLinkedSiblings = false,
   onSelectExclusive,
   onOpenContextMenu,
   onToggleSelectNetwork,
@@ -130,6 +132,7 @@ export const NetworkTableBodyGrid = ({
           const isSelected = selectedNetworks.has(net.bssid);
           const isLinkedSibling = linkedSiblingBssids.has(net.bssid);
           const isSelectedAnchor = selectedAnchorBssid === net.bssid;
+          const showSelectedAnchorLink = isSelectedAnchor && selectedAnchorHasLinkedSiblings;
           const rowBackground = isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.45)';
 
           return (
@@ -402,9 +405,11 @@ export const NetworkTableBodyGrid = ({
                         gap: '6px',
                       }}
                     >
-                      {(isSelectedAnchor || isLinkedSibling) && (
+                      {(showSelectedAnchorLink || isLinkedSibling) && (
                         <span
-                          title={isSelectedAnchor ? 'Selected sibling anchor' : 'Linked sibling'}
+                          title={
+                            showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'
+                          }
                           style={{
                             color: '#38bdf8',
                             flex: '0 0 auto',
@@ -456,7 +461,7 @@ export const NetworkTableBodyGrid = ({
                       >
                         {(value as any) || '(hidden)'}
                       </span>
-                      {(isSelectedAnchor || isLinkedSibling) && (
+                      {(showSelectedAnchorLink || isLinkedSibling) && (
                         <span
                           style={{
                             flex: '0 0 auto',
@@ -467,7 +472,9 @@ export const NetworkTableBodyGrid = ({
                             borderRadius: '999px',
                             padding: '1px 5px',
                           }}
-                          title={isSelectedAnchor ? 'Selected sibling anchor' : 'Linked sibling'}
+                          title={
+                            showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'
+                          }
                         >
                           link
                         </span>

@@ -34,6 +34,7 @@ interface NetworkExplorerSectionProps {
   selectedNetworks: Set<string>;
   linkedSiblingBssids?: Set<string>;
   selectedAnchorBssid?: string | null;
+  selectedAnchorHasLinkedSiblings?: boolean;
   onSelectExclusive: (bssid: string) => void;
   onOpenContextMenu: (
     event: React.MouseEvent<HTMLDivElement | HTMLTableRowElement>,
@@ -82,6 +83,7 @@ export const NetworkExplorerSection = ({
   selectedNetworks,
   linkedSiblingBssids,
   selectedAnchorBssid,
+  selectedAnchorHasLinkedSiblings,
   onSelectExclusive,
   onOpenContextMenu,
   onToggleSelectNetwork,
@@ -138,6 +140,7 @@ export const NetworkExplorerSection = ({
         selectedNetworks={selectedNetworks}
         linkedSiblingBssids={linkedSiblingBssids}
         selectedAnchorBssid={selectedAnchorBssid}
+        selectedAnchorHasLinkedSiblings={selectedAnchorHasLinkedSiblings}
         onSelectExclusive={onSelectExclusive}
         onOpenContextMenu={onOpenContextMenu}
         onToggleSelectNetwork={onToggleSelectNetwork}
