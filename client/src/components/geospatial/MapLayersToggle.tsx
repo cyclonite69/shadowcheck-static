@@ -15,8 +15,16 @@ export const useMapLayersToggle = ({
 
   const resolve3DBuildingSource = useCallback((): string | null => {
     if (!mapRef.current) return null;
+    if (typeof mapRef.current.isStyleLoaded === 'function' && !mapRef.current.isStyleLoaded()) {
+      return null;
+    }
 
-    const style = mapRef.current.getStyle();
+    let style;
+    try {
+      style = mapRef.current.getStyle();
+    } catch {
+      return null;
+    }
     if (!style) return null;
 
     const sources = style.sources as Record<string, unknown> | undefined;
@@ -81,6 +89,9 @@ export const useMapLayersToggle = ({
 
   const add3DBuildings = (): boolean => {
     if (!mapRef.current || mapRef.current.getLayer('3d-buildings')) return true;
+    if (typeof mapRef.current.isStyleLoaded === 'function' && !mapRef.current.isStyleLoaded()) {
+      return false;
+    }
 
     const sourceId = resolve3DBuildingSource();
     if (!sourceId) return false;
@@ -149,6 +160,9 @@ export const useMapLayersToggle = ({
 
   const addTerrain = () => {
     if (!mapRef.current || mapRef.current.getSource('mapbox-dem')) return;
+    if (typeof mapRef.current.isStyleLoaded === 'function' && !mapRef.current.isStyleLoaded()) {
+      return;
+    }
 
     mapRef.current.addSource('mapbox-dem', {
       type: 'raster-dem',
