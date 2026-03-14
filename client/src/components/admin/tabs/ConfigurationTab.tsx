@@ -56,6 +56,14 @@ export const ConfigurationTab: React.FC = () => {
     setSmartyAuthId,
     smartyAuthToken,
     setSmartyAuthToken,
+    mapboxConfigured,
+    mapboxUnlimitedConfigured,
+    googleMapsConfigured,
+    wigleConfigured,
+    awsConfigured,
+    opencageConfigured,
+    locationIqConfigured,
+    smartyConfigured,
     wigleApiName,
     setWigleApiName,
     wigleApiToken,
@@ -63,6 +71,7 @@ export const ConfigurationTab: React.FC = () => {
     homeLocation,
     setHomeLocation,
     savedValues,
+    homeLocationConfigured,
     saveMapboxToken,
     saveMapboxUnlimitedApiKey,
     saveWigleCredentials,
@@ -77,6 +86,23 @@ export const ConfigurationTab: React.FC = () => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto p-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Home Location - Top Left Priority */}
+        <HomeLocationConfig
+          lat={homeLocation.lat}
+          lng={homeLocation.lng}
+          radius={homeLocation.radius}
+          setHomeLocation={setHomeLocation}
+          isSaving={isLoading}
+          onSave={saveHomeLocation}
+          hasChanges={
+            homeLocation.lat !== savedValues.homeLocation.lat ||
+            homeLocation.lng !== savedValues.homeLocation.lng ||
+            homeLocation.radius !== savedValues.homeLocation.radius
+          }
+          isLoading={isLoading}
+          isConfigured={homeLocationConfigured}
+        />
+
         {/* Mapbox */}
         <MapboxConfig
           mapboxToken={mapboxToken}
@@ -91,71 +117,16 @@ export const ConfigurationTab: React.FC = () => {
             mapboxToken !== savedValues.mapboxToken ||
             mapboxUnlimitedApiKey !== savedValues.mapboxUnlimitedApiKey
           }
-        />
-
-        {/* Home Location */}
-        <HomeLocationConfig
-          lat={homeLocation.lat}
-          lng={homeLocation.lng}
-          radius={homeLocation.radius}
-          setHomeLocation={setHomeLocation}
-          isSaving={isLoading}
-          onSave={saveHomeLocation}
-          hasChanges={
-            homeLocation.lat !== savedValues.homeLocation.lat ||
-            homeLocation.lng !== savedValues.homeLocation.lng ||
-            homeLocation.radius !== savedValues.homeLocation.radius
-          }
-          isLoading={isLoading}
-        />
-
-        {/* AWS */}
-        <AWSConfig
-          awsRegion={awsRegion}
-          setAwsRegion={setAwsRegion}
-          savedAwsRegion={savedValues.awsRegion}
-          awsAccessKeyId=""
-          setAwsAccessKeyId={() => {}}
-          savedAwsAccessKeyId=""
-          awsSecretAccessKey=""
-          setAwsSecretAccessKey={() => {}}
-          savedAwsSecretAccessKey=""
-          isSaving={isLoading}
-          onSave={saveAwsRegion}
-          hasChanges={awsRegion !== savedValues.awsRegion}
-        />
-
-        {/* Geocoding */}
-        <GeocodingConfig
-          opencageApiKey={opencageApiKey}
-          setOpencageApiKey={setOpencageApiKey}
-          savedOpencageApiKey={savedValues.opencageApiKey}
-          locationIqApiKey={locationIqApiKey}
-          setLocationIqApiKey={setLocationIqApiKey}
-          savedLocationIqApiKey={savedValues.locationIqApiKey}
-          isSaving={isLoading}
-          onSave={() => {
-            if (opencageApiKey !== savedValues.opencageApiKey) saveOpencageApiKey();
-            if (locationIqApiKey !== savedValues.locationIqApiKey) saveLocationIqApiKey();
-          }}
-          hasChanges={
-            opencageApiKey !== savedValues.opencageApiKey ||
-            locationIqApiKey !== savedValues.locationIqApiKey
-          }
-        />
-
-        {/* Google Maps */}
-        <GoogleMapsConfig
-          googleMapsApiKey={googleMapsApiKey}
-          setGoogleMapsApiKey={setGoogleMapsApiKey}
-          savedGoogleMapsApiKey={savedValues.googleMapsApiKey}
-          isSaving={isLoading}
-          onSave={saveGoogleMapsApiKey}
-          hasChanges={googleMapsApiKey !== savedValues.googleMapsApiKey}
+          isConfigured={mapboxConfigured || mapboxUnlimitedConfigured}
         />
 
         {/* WiGLE */}
-        <AdminCard title="WiGLE Configuration" icon={RadioIcon} color="from-cyan-600 to-blue-600">
+        <AdminCard
+          title="WiGLE Configuration"
+          icon={RadioIcon}
+          color="from-cyan-600 to-blue-600"
+          isConfigured={wigleConfigured}
+        >
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">API Name</label>
@@ -197,11 +168,60 @@ export const ConfigurationTab: React.FC = () => {
           </div>
         </AdminCard>
 
+        {/* AWS */}
+        <AWSConfig
+          awsRegion={awsRegion}
+          setAwsRegion={setAwsRegion}
+          savedAwsRegion={savedValues.awsRegion}
+          awsAccessKeyId=""
+          setAwsAccessKeyId={() => {}}
+          savedAwsAccessKeyId=""
+          awsSecretAccessKey=""
+          setAwsSecretAccessKey={() => {}}
+          savedAwsSecretAccessKey=""
+          isSaving={isLoading}
+          onSave={saveAwsRegion}
+          hasChanges={awsRegion !== savedValues.awsRegion}
+          isConfigured={awsConfigured}
+        />
+
+        {/* Geocoding */}
+        <GeocodingConfig
+          opencageApiKey={opencageApiKey}
+          setOpencageApiKey={setOpencageApiKey}
+          savedOpencageApiKey={savedValues.opencageApiKey}
+          locationIqApiKey={locationIqApiKey}
+          setLocationIqApiKey={setLocationIqApiKey}
+          savedLocationIqApiKey={savedValues.locationIqApiKey}
+          isSaving={isLoading}
+          onSave={() => {
+            if (opencageApiKey !== savedValues.opencageApiKey) saveOpencageApiKey();
+            if (locationIqApiKey !== savedValues.locationIqApiKey) saveLocationIqApiKey();
+          }}
+          hasChanges={
+            opencageApiKey !== savedValues.opencageApiKey ||
+            locationIqApiKey !== savedValues.locationIqApiKey
+          }
+          isConfigured={opencageConfigured || locationIqConfigured}
+        />
+
+        {/* Google Maps */}
+        <GoogleMapsConfig
+          googleMapsApiKey={googleMapsApiKey}
+          setGoogleMapsApiKey={setGoogleMapsApiKey}
+          savedGoogleMapsApiKey={savedValues.googleMapsApiKey}
+          isSaving={isLoading}
+          onSave={saveGoogleMapsApiKey}
+          hasChanges={googleMapsApiKey !== savedValues.googleMapsApiKey}
+          isConfigured={googleMapsConfigured}
+        />
+
         {/* Smarty */}
         <AdminCard
           title="Smarty Configuration"
           icon={ShieldIcon}
           color="from-indigo-600 to-violet-600"
+          isConfigured={smartyConfigured}
         >
           <div className="space-y-4">
             <div className="space-y-2">

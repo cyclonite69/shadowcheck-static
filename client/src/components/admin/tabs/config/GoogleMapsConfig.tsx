@@ -24,6 +24,7 @@ interface GoogleMapsConfigProps {
   isSaving: boolean;
   onSave: () => void;
   hasChanges: boolean;
+  isConfigured?: boolean;
 }
 
 export const GoogleMapsConfig: React.FC<GoogleMapsConfigProps> = ({
@@ -33,8 +34,14 @@ export const GoogleMapsConfig: React.FC<GoogleMapsConfigProps> = ({
   isSaving,
   onSave,
   hasChanges,
+  isConfigured,
 }) => (
-  <AdminCard title="Google Maps" icon={MapIcon} color="from-red-600 to-rose-600">
+  <AdminCard
+    title="Google Maps"
+    icon={MapIcon}
+    color="from-red-600 to-rose-600"
+    isConfigured={isConfigured}
+  >
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-300">API Key</label>

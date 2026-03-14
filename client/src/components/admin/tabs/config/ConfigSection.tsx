@@ -7,6 +7,7 @@ interface ConfigSectionProps {
   isSaving?: boolean;
   onSave?: () => void;
   hasChanges?: boolean;
+  isConfigured?: boolean;
 }
 
 export const ConfigSection: React.FC<ConfigSectionProps> = ({
@@ -16,12 +17,22 @@ export const ConfigSection: React.FC<ConfigSectionProps> = ({
   isSaving,
   onSave,
   hasChanges,
+  isConfigured,
 }) => (
   <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
     <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/80">
       <div className="flex items-center gap-3">
         <div className="text-blue-400">{icon}</div>
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-white">{title}</h3>
+            {isConfigured && (
+              <span className="px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-400 text-[10px] font-bold uppercase tracking-wider border border-green-500/20">
+                Configured
+              </span>
+            )}
+          </div>
+        </div>
       </div>
       {onSave && (
         <button

@@ -6,6 +6,7 @@ interface AdminCardProps {
   color: string;
   children: React.ReactNode;
   compact?: boolean;
+  isConfigured?: boolean;
 }
 
 export const AdminCard: React.FC<AdminCardProps> = ({
@@ -14,6 +15,7 @@ export const AdminCard: React.FC<AdminCardProps> = ({
   color,
   children,
   compact = false,
+  isConfigured = false,
 }) => (
   <div className="group relative overflow-hidden rounded-xl border border-slate-700/40 bg-slate-900/50 backdrop-blur-sm shadow-lg hover:shadow-xl hover:border-slate-600/60 transition-all duration-300">
     {/* Ambient gradient effect on hover */}
@@ -24,7 +26,14 @@ export const AdminCard: React.FC<AdminCardProps> = ({
       <div className={`p-2.5 rounded-lg bg-gradient-to-br ${color} shadow-lg flex-shrink-0`}>
         <Icon size={18} className="text-white" />
       </div>
-      <h2 className="text-sm font-semibold text-slate-100 tracking-wide">{title}</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-100 tracking-wide">{title}</h2>
+        {isConfigured && (
+          <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 text-[9px] font-bold uppercase tracking-widest border border-green-500/20">
+            Configured
+          </span>
+        )}
+      </div>
     </div>
 
     {/* Content section - flexible padding */}

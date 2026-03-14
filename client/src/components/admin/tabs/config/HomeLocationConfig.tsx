@@ -26,6 +26,7 @@ interface HomeLocationConfigProps {
   onSave: () => void;
   hasChanges: boolean;
   isLoading: boolean;
+  isConfigured?: boolean;
 }
 
 export const HomeLocationConfig: React.FC<HomeLocationConfigProps> = ({
@@ -37,8 +38,14 @@ export const HomeLocationConfig: React.FC<HomeLocationConfigProps> = ({
   onSave,
   hasChanges,
   isLoading,
+  isConfigured,
 }) => (
-  <AdminCard title="Home Location" icon={HomeIcon} color="from-purple-600 to-fuchsia-600">
+  <AdminCard
+    title="Home Location"
+    icon={HomeIcon}
+    color="from-purple-600 to-fuchsia-600"
+    isConfigured={isConfigured}
+  >
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
