@@ -46,6 +46,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
   --instance-type "$INSTANCE_TYPE" \
   --placement "AvailabilityZone=$VOLUME_AZ" \
   --instance-market-options 'MarketType=spot,SpotOptions={MaxPrice=0.067,SpotInstanceType=persistent,InstanceInterruptionBehavior=stop}' \
+  --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=scs-ssm}]" \
   --region $REGION \
   --query 'Instances[0].InstanceId' \
   --output text)
