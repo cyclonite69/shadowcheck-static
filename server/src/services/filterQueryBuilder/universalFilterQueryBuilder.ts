@@ -1092,8 +1092,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         new Set(
           f.threatCategories
             .flatMap((cat) => {
-              if (cat === 'medium') return ['MEDIUM', 'MED'];
-              return [threatLevelMap[cat] || cat.toUpperCase()];
+              const mapped = threatLevelMap[cat] || cat.toUpperCase();
+              if (mapped === 'MEDIUM' || mapped === 'MED') return ['MEDIUM', 'MED'];
+              return [mapped];
             })
             .filter(Boolean)
         )
@@ -1536,8 +1537,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         new Set(
           f.threatCategories
             .flatMap((cat) => {
-              if (cat === 'medium') return ['MEDIUM', 'MED'];
-              return [threatLevelMap[cat] || cat.toUpperCase()];
+              const mapped = threatLevelMap[cat] || cat.toUpperCase();
+              if (mapped === 'MEDIUM' || mapped === 'MED') return ['MEDIUM', 'MED'];
+              return [mapped];
             })
             .filter(Boolean)
         )
@@ -1606,8 +1608,9 @@ class UniversalFilterQueryBuilder extends FilterPredicateBuilder {
         new Set(
           f.threatCategories
             .flatMap((cat) => {
-              if (cat === 'medium') return ['MEDIUM', 'MED'];
-              return [threatLevelMap[cat] || cat.toUpperCase()];
+              const mapped = threatLevelMap[cat] || cat.toUpperCase();
+              if (mapped === 'MEDIUM' || mapped === 'MED') return ['MEDIUM', 'MED'];
+              return [mapped];
             })
             .filter(Boolean)
         )

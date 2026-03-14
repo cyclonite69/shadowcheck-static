@@ -1,88 +1,67 @@
-export {};
+import { UniversalFilterQueryBuilder } from '../../server/src/services/filterQueryBuilder/universalFilterQueryBuilder';
 
-import express from 'express';
-import net from 'net';
-import request from 'supertest';
-import { UniversalFilterQueryBuilder } from '../../server/src/services/filterQueryBuilder';
+describe('Systematic Filter Logic Audit', () => {
+  const testFilter = (name: string, filters: any, enabled: any) => {
+    const builder = new UniversalFilterQueryBuilder(filters, enabled);
 
-const isSocketPermissionError = (error: unknown): boolean => {
-  const message = String(error ?? '');
-  return message.includes('EPERM') || message.includes('operation not permitted');
-};
+    // 1. Check Dashboard path (NetworkRepository logic uses buildNetworkListQuery or buildGeospatialQuery)
+    const listQuery = builder.buildNetworkListQuery();
+    const geospatialQuery = builder.buildGeospatialQuery();
 
-const canBindLoopback = async (): Promise<boolean> =>
-  await new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.once('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EPERM' || err.code === 'EACCES') {
-        resolve(false);
-        return;
-      }
-      reject(err);
-    });
-    server.listen(0, '127.0.0.1', () => {
-      server.close(() => resolve(true));
-    });
-  });
+    // 2. Check Analytics path
+    const analyticsQueries = builder.buildAnalyticsQueries({ useLatestPerBssid: true });
 
-describe('Radio filter parity checks', () => {
-  test('v1 /networks preserves mixed radioTypes (W + others) via parameterized ANY', async () => {
-    if (!(await canBindLoopback())) {
-      return;
-    }
+    return {
+      listSql: listQuery.sql,
+      geoSql: geospatialQuery.sql,
+      analyticsSql: analyticsQueries.networkTypes.sql,
+      applied: listQuery.appliedFilters.map((f: any) => f.field),
+    };
+  };
 
-    const mockGetNetworkCount = jest.fn().mockResolvedValue(0);
-    const mockGetFilteredNetworks = jest.fn().mockImplementation(async (opts) => {
-      await mockGetNetworkCount(['ne.type = ANY($1::text[])'], [['W', 'L']], []);
-      return { networks: [], total: 0 };
-    });
-
-    jest.resetModules();
-    jest.doMock('../../server/src/middleware/cacheMiddleware', () => ({
-      cacheMiddleware: () => (_req: unknown, _res: unknown, next: () => void) => next(),
-    }));
-    jest.doMock('../../server/src/config/container', () => ({
-      networkService: {
-        getHomeLocation: jest.fn().mockResolvedValue(null),
-        getNetworkCount: mockGetNetworkCount,
-        listNetworks: jest.fn().mockResolvedValue([]),
-        getFilteredNetworks: mockGetFilteredNetworks,
-        explainQuery: jest.fn(),
-      },
-      filterQueryBuilder: {
-        NETWORK_CHANNEL_EXPR: jest.fn(() => 'ne.channel'),
-      },
-    }));
-
-    const listRoutes = require('../../server/src/api/routes/v1/networks/list');
-    const app = express();
-    app.use('/api', listRoutes);
-
-    const response = await request(app)
-      .get('/api/networks')
-      .query({ limit: 50, offset: 0, radioTypes: 'W,L' });
-
-    expect(response.status).toBe(200);
-    expect(mockGetFilteredNetworks).toHaveBeenCalledTimes(1);
-    expect(mockGetNetworkCount).toHaveBeenCalledTimes(1);
-
-    const [conditions, params] = mockGetNetworkCount.mock.calls[0];
-    expect(conditions.some((c: string) => c.includes('= ANY('))).toBe(true);
-    expect(params.some((p: unknown) => Array.isArray(p) && p.join(',') === 'W,L')).toBe(true);
-  });
-
-  test('v2 builder uses the same mixed radioTypes semantics', () => {
-    const result = new UniversalFilterQueryBuilder(
+  test('radioTypes filter is applied to all paths', () => {
+    const { listSql, geoSql, analyticsSql, applied } = testFilter(
+      'radioTypes',
       { radioTypes: ['W', 'L'] },
       { radioTypes: true }
-    ).buildNetworkListQuery();
+    );
 
-    expect(result.appliedFilters.some((f: { field: string }) => f.field === 'radioTypes')).toBe(
-      true
+    expect(listSql).toContain('ne.type = ANY(');
+    // In complex paths, it uses the OBS_TYPE_EXPR which is a long CASE statement
+    expect(geoSql).toContain('CASE');
+    expect(geoSql).toContain("IN ('W', 'WIFI', 'WI-FI')");
+    expect(geoSql).toContain('= ANY(');
+
+    expect(analyticsSql).toContain('CASE');
+    expect(analyticsSql).toContain('= ANY(');
+    expect(applied).toContain('radioTypes');
+  });
+
+  test('threatCategories filter is applied to all paths', () => {
+    const { listSql, geoSql, analyticsSql, applied } = testFilter(
+      'threatCategories',
+      { threatCategories: ['critical', 'medium'] },
+      { threatCategories: true }
     );
-    expect(result.sql).toContain('= ANY(');
-    expect(result.params.some((p: unknown) => Array.isArray(p) && p.join(',') === 'W,L')).toBe(
-      true
+
+    // Fast path uses ne.threat_level directly
+    expect(listSql).toContain('ne.threat_level = ANY(');
+    // Geospatial also joins against MV for speed
+    expect(geoSql).toContain('ne.threat_level = ANY(');
+    expect(analyticsSql).toContain('ne.threat_level = ANY(');
+    expect(applied).toContain('threatCategories');
+  });
+
+  test('timeframe filter is applied to all paths', () => {
+    const { listSql, geoSql, analyticsSql, applied } = testFilter(
+      'timeframe',
+      { timeframe: { type: 'relative', relativeWindow: '7d' } },
+      { timeframe: true }
     );
+
+    expect(listSql).toContain('ne.last_seen >= NOW() -');
+    expect(geoSql).toContain('o.time >= NOW() -');
+    expect(analyticsSql).toContain('o.time >= NOW() -');
+    expect(applied).toContain('timeframe');
   });
 });

@@ -113,8 +113,37 @@ const KeplerPage: React.FC = () => {
             radiusPixels: pointSize * 100,
           })
         );
+      } else if (layerType === 'hexagon') {
+        layers.push(
+          new window.deck.HexagonLayer({
+            id: 'hexagon',
+            data,
+            getPosition: (d: NetworkData) => d.position,
+            radius: pointSize * 500,
+            elevationScale: height3d * 10,
+            extruded: pitch > 0,
+            pickable: true,
+          })
+        );
+      } else if (layerType === 'icon') {
+        layers.push(
+          new window.deck.IconLayer({
+            id: 'icon',
+            data,
+            // Simple built-in icon sprite approach
+            iconAtlas:
+              'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png',
+            iconMapping: {
+              marker: { x: 0, y: 0, width: 128, height: 128, mask: true },
+            },
+            getIcon: () => 'marker',
+            getPosition: (d: NetworkData) => d.position,
+            getSize: pointSize * 100,
+            getColor: (d: NetworkData) => d.color || [0, 128, 255, 200],
+            pickable: true,
+          })
+        );
       }
-
       if (deckRef.current) {
         deckRef.current.setProps({ layers, initialViewState: INITIAL_VIEW_STATE });
       } else {
@@ -151,6 +180,8 @@ const KeplerPage: React.FC = () => {
         await Promise.all([
           loadCss('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css'),
           loadScript('https://unpkg.com/deck.gl@latest/dist.min.js'),
+          loadScript('https://unpkg.com/@deck.gl/aggregation-layers@latest/dist.min.js'),
+          loadScript('https://unpkg.com/@deck.gl/layers@latest/dist.min.js'),
           loadScript('https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'),
         ]);
         scriptsLoadedRef.current = true;

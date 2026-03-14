@@ -157,7 +157,7 @@ class NetworkRepository {
           SELECT
             COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'CRITICAL') as threats_critical,
             COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'HIGH') as threats_high,
-            COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'MED') as threats_medium,
+            COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) IN ('MED', 'MEDIUM')) as threats_medium,
             COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'LOW') as threats_low
           FROM app.network_threat_scores nts
           LEFT JOIN app.network_tags nt ON nt.bssid = nts.bssid
@@ -285,7 +285,7 @@ class NetworkRepository {
             SELECT
               COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'CRITICAL') AS threats_critical,
               COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'HIGH') AS threats_high,
-              COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'MED') AS threats_medium,
+              COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) IN ('MED', 'MEDIUM')) AS threats_medium,
               COUNT(*) FILTER (WHERE (${dynamicThreatLevel}) = 'LOW') AS threats_low
             FROM app.network_threat_scores nts
             LEFT JOIN app.network_tags nt ON nt.bssid = nts.bssid
@@ -432,10 +432,10 @@ class NetworkRepository {
         ),
         threat_counts AS (
           SELECT
-            COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'CRITICAL') as threats_critical,
-            COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'HIGH') as threats_high,
-            COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'MED') as threats_medium,
-            COUNT(*) FILTER (WHERE ${THREAT_LEVEL_EXPR('nts', 'nt')} = 'LOW') as threats_low
+            COUNT(*) FILTER (WHERE (${THREAT_LEVEL_EXPR('nts', 'nt')}) = 'CRITICAL') as threats_critical,
+            COUNT(*) FILTER (WHERE (${THREAT_LEVEL_EXPR('nts', 'nt')}) = 'HIGH') as threats_high,
+            COUNT(*) FILTER (WHERE (${THREAT_LEVEL_EXPR('nts', 'nt')}) IN ('MED', 'MEDIUM')) as threats_medium,
+            COUNT(*) FILTER (WHERE (${THREAT_LEVEL_EXPR('nts', 'nt')}) = 'LOW') as threats_low
           FROM network_set n
           LEFT JOIN app.network_threat_scores nts ON UPPER(nts.bssid) = UPPER(n.bssid)
           LEFT JOIN app.network_tags nt ON UPPER(nt.bssid) = UPPER(n.bssid)

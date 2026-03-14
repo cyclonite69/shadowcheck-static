@@ -61,7 +61,7 @@ export async function getFilteredAnalytics(
 ): Promise<FilteredAnalyticsResult> {
   const start = Date.now();
   const builder = new UniversalFilterQueryBuilder(filters, enabled, { pageType });
-  const queries = builder.buildAnalyticsQueries();
+  const queries = builder.buildAnalyticsQueries({ useLatestPerBssid: true });
 
   const [
     networkTypesRows,

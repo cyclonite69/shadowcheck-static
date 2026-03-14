@@ -198,8 +198,15 @@ router.get('/kepler/data', async (req, res) => {
 
     const result = await keplerService.executeKeplerQuery(sql, params);
 
+    const bssids = new Set((result.rows || []).map((r) => r.bssid).filter(Boolean));
+    const actualCounts = {
+      observations: result.rowCount || 0,
+      networks: bssids.size,
+    };
+
     const geojson = {
       type: 'FeatureCollection',
+      actualCounts,
       features: (result.rows || [])
         .filter((row) => row.lon !== null && row.lat !== null)
         .map((row) => ({
@@ -275,8 +282,15 @@ router.get('/kepler/observations', async (req, res) => {
 
     const result = await keplerService.executeKeplerQuery(sql, params);
 
+    const bssids = new Set((result.rows || []).map((r) => r.bssid).filter(Boolean));
+    const actualCounts = {
+      observations: result.rowCount || 0,
+      networks: bssids.size,
+    };
+
     const geojson = {
       type: 'FeatureCollection',
+      actualCounts,
       features: (result.rows || [])
         .filter((row) => row.lon !== null && row.lat !== null)
         .map((row) => ({
@@ -356,8 +370,15 @@ router.get('/kepler/networks', async (req, res) => {
 
     const result = await keplerService.executeKeplerQuery(sql, params);
 
+    const bssids = new Set((result.rows || []).map((r) => r.bssid).filter(Boolean));
+    const actualCounts = {
+      observations: result.rowCount || 0,
+      networks: bssids.size,
+    };
+
     const geojson = {
       type: 'FeatureCollection',
+      actualCounts,
       features: (result.rows || [])
         .filter((row) => row.lon !== null && row.lat !== null)
         .map((row) => ({
