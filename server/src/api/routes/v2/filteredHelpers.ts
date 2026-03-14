@@ -264,7 +264,14 @@ export const buildOrderBy = (sort: string | undefined, order: string | undefined
     return `${mapped} ${dir} NULLS LAST`;
   });
 
-  return clauses.length > 0 ? clauses.join(', ') : `${map.last_seen} DESC`;
+  const resolvedClauses = clauses.length > 0 ? clauses : [`${map.last_seen} DESC NULLS LAST`];
+  const hasBssidTiebreaker = resolvedClauses.some((clause) => clause.includes('ne.bssid'));
+
+  if (!hasBssidTiebreaker) {
+    resolvedClauses.push('ne.bssid ASC');
+  }
+
+  return resolvedClauses.join(', ');
 };
 
 export const assertHomeExistsIfNeeded = async (
