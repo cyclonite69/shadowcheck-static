@@ -470,7 +470,35 @@ export default function GeospatialExplorer() {
 
   const debouncedFilterState = useDebouncedFilterState();
 
-  const filteredNetworks = networks;
+  const filteredNetworks = useMemo(() => {
+    if (visibleSiblingGroupMap.size === 0) {
+      return networks;
+    }
+
+    const grouped: NetworkRow[] = [];
+    const emittedGroups = new Set<string>();
+
+    for (const network of networks) {
+      const groupId = visibleSiblingGroupMap.get(network.bssid);
+      if (!groupId) {
+        grouped.push(network);
+        continue;
+      }
+
+      if (emittedGroups.has(groupId)) {
+        continue;
+      }
+
+      emittedGroups.add(groupId);
+      for (const candidate of networks) {
+        if (visibleSiblingGroupMap.get(candidate.bssid) === groupId) {
+          grouped.push(candidate);
+        }
+      }
+    }
+
+    return grouped;
+  }, [networks, visibleSiblingGroupMap]);
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);

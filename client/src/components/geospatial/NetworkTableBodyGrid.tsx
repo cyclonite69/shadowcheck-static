@@ -135,17 +135,35 @@ export const NetworkTableBodyGrid = ({
           const isSelected = selectedNetworks.has(net.bssid);
           const isLinkedSibling = linkedSiblingBssids.has(net.bssid);
           const siblingGroupId = siblingGroupMap.get(net.bssid) || null;
+          const prevSiblingGroupId =
+            virtualRow.index > 0
+              ? siblingGroupMap.get(filteredNetworks[virtualRow.index - 1]?.bssid) || null
+              : null;
+          const nextSiblingGroupId =
+            virtualRow.index < filteredNetworks.length - 1
+              ? siblingGroupMap.get(filteredNetworks[virtualRow.index + 1]?.bssid) || null
+              : null;
           const isSelectedAnchor = selectedAnchorBssid === net.bssid;
           const showSelectedAnchorLink = isSelectedAnchor && selectedAnchorHasLinkedSiblings;
           const isSiblingLinkedRow =
             Boolean(siblingGroupId) || showSelectedAnchorLink || isLinkedSibling;
+          const isSiblingGroupStart =
+            Boolean(siblingGroupId) && prevSiblingGroupId !== siblingGroupId;
+          const isSiblingGroupEnd =
+            Boolean(siblingGroupId) && nextSiblingGroupId !== siblingGroupId;
           const rowBackground = isSelected
             ? 'rgba(59, 130, 246, 0.1)'
             : isSiblingLinkedRow
               ? 'rgba(8, 47, 73, 0.55)'
               : 'rgba(15, 23, 42, 0.45)';
           const rowAccent = isSiblingLinkedRow
-            ? 'inset 3px 0 0 rgba(56, 189, 248, 0.95)'
+            ? [
+                'inset 5px 0 0 rgba(56, 189, 248, 0.98)',
+                isSiblingGroupStart ? 'inset 0 1px 0 rgba(103, 232, 249, 0.55)' : '',
+                isSiblingGroupEnd ? 'inset 0 -1px 0 rgba(103, 232, 249, 0.55)' : '',
+              ]
+                .filter(Boolean)
+                .join(', ')
             : undefined;
 
           return (
@@ -162,11 +180,14 @@ export const NetworkTableBodyGrid = ({
                 minWidth: 0,
                 alignItems: 'center',
                 overflow: 'hidden',
-                borderBottom: '1px solid rgba(71, 85, 105, 0.2)',
                 background: rowBackground,
                 boxShadow: rowAccent,
                 cursor: 'pointer',
                 padding: '0',
+                borderTop: isSiblingGroupStart ? '1px solid rgba(103, 232, 249, 0.35)' : undefined,
+                borderBottom: isSiblingGroupEnd
+                  ? '1px solid rgba(103, 232, 249, 0.35)'
+                  : '1px solid rgba(71, 85, 105, 0.2)',
               }}
               onClick={() => onSelectExclusive(net.bssid)}
               onContextMenu={(e) => {
@@ -495,23 +516,6 @@ export const NetworkTableBodyGrid = ({
                           }
                         >
                           link
-                        </span>
-                      )}
-                      {siblingGroupId && (
-                        <span
-                          style={{
-                            flex: '0 0 auto',
-                            fontSize: '10px',
-                            color: '#cffafe',
-                            background: 'rgba(6, 182, 212, 0.18)',
-                            border: '1px solid rgba(34, 211, 238, 0.35)',
-                            borderRadius: '999px',
-                            padding: '1px 5px',
-                            fontWeight: 700,
-                          }}
-                          title={`Sibling group ${siblingGroupId}`}
-                        >
-                          {siblingGroupId}
                         </span>
                       )}
                     </div>
