@@ -199,7 +199,7 @@ export const useObservationLayers = ({
         (bounds, coord) => bounds.extend(coord),
         new mapboxgl.LngLatBounds(coords[0], coords[0])
       );
-      fitBoundsWithZoomInset(map, bounds, { padding: 50, duration: 1000, maxZoom: 15 });
+      fitBoundsWithZoomInset(map, bounds, { padding: 80, duration: 1000, maxZoom: 15 });
     }
   }, [activeObservationSets, mapReady, mapRef, mapboxRef, networkLookup]);
 

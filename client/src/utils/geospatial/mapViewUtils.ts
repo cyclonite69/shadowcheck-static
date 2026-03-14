@@ -1,6 +1,6 @@
 import type { FitBoundsOptions, LngLatBoundsLike, Map } from 'mapbox-gl';
 
-const DEFAULT_ZOOM_INSET = 0.35;
+const DEFAULT_ZOOM_INSET = 0;
 const MAX_AUTO_ZOOM = 22;
 
 /**
