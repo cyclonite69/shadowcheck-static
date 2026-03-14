@@ -23,6 +23,7 @@ import { useMapStyleControls } from './useMapStyleControls';
 import { useResetPaginationOnFilters } from './useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './useDebouncedFilterState';
 import { logError, logDebug } from '../../logging/clientLogger';
+import { WigleObservationsState } from './useNetworkContextMenu';
 import {
   NETWORK_COLUMNS,
   API_SORT_MAP,
@@ -40,6 +41,7 @@ interface UseGeospatialExplorerStateProps {
   setError: (err: any) => void;
   locationMode: string;
   sort: any;
+  wigleObservations?: WigleObservationsState;
 }
 
 export const useGeospatialExplorerState = ({
@@ -51,6 +53,7 @@ export const useGeospatialExplorerState = ({
   setError,
   locationMode,
   sort,
+  wigleObservations,
 }: UseGeospatialExplorerStateProps) => {
   // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
@@ -218,7 +221,7 @@ export const useGeospatialExplorerState = ({
     mapboxRef,
     activeObservationSets,
     networkLookup,
-    wigleObservations: null, // Passed from context menu hook in component
+    wigleObservations,
   });
 
   const { toggle3DBuildings, toggleTerrain, add3DBuildings, is3DBuildingsAvailable } =

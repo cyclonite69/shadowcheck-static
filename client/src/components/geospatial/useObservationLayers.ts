@@ -4,7 +4,7 @@ import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox
 import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
 import { macColor, frequencyToChannel } from '../../utils/mapHelpers';
-import type { WigleObservation } from './useNetworkContextMenu';
+import type { WigleObservation, WigleObservationsState } from './useNetworkContextMenu';
 import { renderWigleObservationPopupCard } from '../../utils/geospatial/renderMapPopupCards';
 import { fitBoundsWithZoomInset } from '../../utils/geospatial/mapViewUtils';
 
@@ -26,20 +26,6 @@ const formatTimeSince = (ms: number): string => {
 type ObservationSet = {
   bssid: string;
   observations: Observation[];
-};
-
-type WigleObservationsState = {
-  bssid: string | null;
-  observations: WigleObservation[];
-  stats: {
-    wigle_total: number;
-    matched: number;
-    unique: number;
-    our_observations: number;
-    max_distance_from_our_sightings_m: number;
-  } | null;
-  loading: boolean;
-  error: string | null;
 };
 
 type ObservationLayerProps = {

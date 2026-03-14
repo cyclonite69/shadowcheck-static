@@ -76,23 +76,6 @@ export default function GeospatialExplorer() {
     renderBudget,
   } = useObservations(selectedNetworks, { useFilters: true });
 
-  const state = useGeospatialExplorerState({
-    selectedNetworks,
-    networks,
-    observationsByBssid,
-    resetPagination,
-    setSort,
-    setError,
-    locationMode,
-    sort,
-  });
-
-  const { linkedSiblingBssids, visibleSiblingGroupMap, setLinkedSiblingBssids } = useSiblingLinks({
-    isAdmin,
-    selectedAnchorBssid: selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null,
-    networks,
-  });
-
   const {
     contextMenu,
     tagLoading,
@@ -109,6 +92,24 @@ export default function GeospatialExplorer() {
     loadBatchWigleObservations,
     clearWigleObservations,
   } = useNetworkContextMenu({ logError, onTagUpdated: resetPagination });
+
+  const state = useGeospatialExplorerState({
+    selectedNetworks,
+    networks,
+    observationsByBssid,
+    resetPagination,
+    setSort,
+    setError,
+    locationMode,
+    sort,
+    wigleObservations,
+  });
+
+  const { linkedSiblingBssids, visibleSiblingGroupMap, setLinkedSiblingBssids } = useSiblingLinks({
+    isAdmin,
+    selectedAnchorBssid: selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null,
+    networks,
+  });
 
   const {
     showNoteModal,
@@ -306,6 +307,7 @@ export default function GeospatialExplorer() {
                     : loadBatchWigleObservations(Array.from(selectedNetworks))
                 }
                 onToggleAgenciesPanel={state.toggleAgenciesPanel}
+                canWigle={selectedNetworks.size > 0}
                 wigleLoading={wigleObservations.loading}
                 wigleActive={wigleObservations.observations.length > 0}
                 selectedCount={selectedNetworks.size}
