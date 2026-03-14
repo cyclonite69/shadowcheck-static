@@ -23,6 +23,7 @@ interface KeplerControlsProps {
   loading: boolean;
   error: string;
   actualCounts: { observations: number; networks: number } | null;
+  onFitBounds: () => void;
 }
 
 export const KeplerControls: React.FC<KeplerControlsProps> = ({
@@ -46,10 +47,42 @@ export const KeplerControls: React.FC<KeplerControlsProps> = ({
   loading,
   error,
   actualCounts,
+  onFitBounds,
 }) => {
+  const {
+    mode: searchMode,
+    setMode: setSearchMode,
+    loading: directionsLoading,
+    fetchRoute,
+    clearRoute,
+  } = useDirectionsMode(mapRef);
+
   return (
     <ControlPanel isOpen={showMenu} onShowFilters={onShowFilters} showFilters={showFilters}>
       <div className="space-y-6">
+        {/* Map Actions */}
+        <div className="space-y-3">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Map Actions
+          </label>
+          <button
+            onClick={onFitBounds}
+            className="w-full px-3 py-2.5 rounded-lg text-xs font-bold bg-blue-600/20 border border-blue-500/50 text-blue-300 hover:bg-blue-600/30 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <path d="M15 3h6v6M9 21H3v-6M21 9V3h-6M3 15v6h6" />
+            </svg>
+            Fit All to View
+          </button>
+        </div>
+
         {/* Layer Type */}
         <div className="space-y-3">
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
