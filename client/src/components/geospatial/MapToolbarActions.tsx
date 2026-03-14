@@ -128,7 +128,7 @@ export const MapToolbarActions = ({
           (bounds, coord) => bounds.extend(coord),
           new (mapboxgl as any).LngLatBounds(allCoords[0], allCoords[0])
         );
-        fitBoundsWithZoomInset(mapRef.current, bounds, { padding: 50 });
+        fitBoundsWithZoomInset(mapRef.current, bounds, { padding: 80 });
         setTimeout(() => setFitButtonActive(false), 2000); // Light up for 2 seconds
       }}
       homeButtonActive={homeButtonActive}
