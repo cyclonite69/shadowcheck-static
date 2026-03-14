@@ -37,7 +37,7 @@ export type WigleObservation = {
   bssid?: string; // For batch mode - to color by network
 };
 
-type WigleObservationsState = {
+export type WigleObservationsState = {
   bssid: string | null;
   bssids: string[]; // For batch mode
   observations: WigleObservation[];
