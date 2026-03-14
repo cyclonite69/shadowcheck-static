@@ -122,7 +122,8 @@
     "node": ">=20.0.0"
   },
   "overrides": {
-    "tar": ">=7.5.10",
+    "tar": ">=7.5.11",
+    "flatted": ">=3.4.0",
     "fast-xml-parser": ">=5.3.6",
     "serialize-javascript": ">=7.0.3",
     "svgo": "4.0.1",
