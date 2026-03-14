@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
-import { useFilterStore } from '../stores/filterStore';
+import { useFilterStore } from '../../stores/filterStore';
 import { useMapPreferences } from './useMapPreferences';
 import { useColumnVisibility } from './useColumnVisibility';
 import { useExplorerPanels } from './useExplorerPanels';
@@ -13,8 +13,8 @@ import { useHomeLocationLayer } from './useHomeLocationLayer';
 import { useObservationSummary } from './useObservationSummary';
 import { useMapResizeHandle } from './useMapResizeHandle';
 import { useGeospatialMap } from './useGeospatialMap';
-import { useWeatherFx } from '../weather/useWeatherFx';
-import { useDirectionsMode } from '../directions/useDirectionsMode';
+import { useWeatherFx } from '../../weather/useWeatherFx';
+import { useDirectionsMode } from '../../directions/useDirectionsMode';
 import { useNetworkSort } from './useNetworkSort';
 import { useObservationLayers } from './useObservationLayers';
 import { useMapLayersToggle } from './useMapLayersToggle';
@@ -22,14 +22,14 @@ import { useApplyMapLayerDefaults } from './useApplyMapLayerDefaults';
 import { useMapStyleControls } from './useMapStyleControls';
 import { useResetPaginationOnFilters } from './useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './useDebouncedFilterState';
-import { logError, logDebug } from '../logging/clientLogger';
+import { logError, logDebug } from '../../logging/clientLogger';
 import {
   NETWORK_COLUMNS,
   API_SORT_MAP,
   DEFAULT_CENTER,
   DEFAULT_HOME_RADIUS,
-} from '../constants/network';
-import { NetworkData } from '../types/network';
+} from '../../constants/network';
+import { NetworkData } from '../../types/network';
 
 interface UseGeospatialExplorerStateProps {
   selectedNetworks: Set<string>;

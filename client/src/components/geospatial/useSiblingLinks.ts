@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { networkApi } from '../api/networkApi';
-import { logError } from '../logging/clientLogger';
-import { NetworkData } from '../types/network';
+import { networkApi } from '../../api/networkApi';
+import { logError } from '../../logging/clientLogger';
+import { NetworkData } from '../../types/network';
 
 interface UseSiblingLinksProps {
   isAdmin: boolean;
