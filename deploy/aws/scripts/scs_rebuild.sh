@@ -83,8 +83,8 @@ docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 # Use persistent certs directory on the EBS volume
 # This ensures browsers don't trigger new security warnings on every move
 CERTS_DIR=/var/lib/postgresql/certs/web
-mkdir -p "$CERTS_DIR"
-chmod 755 "$CERTS_DIR"
+sudo mkdir -p "$CERTS_DIR"
+sudo chmod 755 "$CERTS_DIR"
 
 docker run -d --name shadowcheck_backend \
   --network host \
