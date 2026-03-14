@@ -1,10 +1,52 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const { Pool } = require('pg');
 const { query } = require('../config/database');
 const adminDbService = require('./adminDbService');
+const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
 
 export {};
+
+const AUTH_DB_USER = process.env.DB_USER || 'shadowcheck_user';
+const AUTH_DB_NAME = process.env.DB_NAME || 'shadowcheck_db';
+const AUTH_DB_HOST = process.env.DB_HOST || 'shadowcheck_postgres';
+const AUTH_DB_PORT = parseInt(process.env.DB_PORT || '5432', 10);
+const AUTH_DB_APP_NAME = `${process.env.DB_APP_NAME || 'shadowcheck-static'}-auth`;
+const AUTH_DB_SEARCH_PATH = process.env.DB_SEARCH_PATH || 'app,public';
+
+let authPool = null;
+
+function getAuthPool() {
+  if (authPool) {
+    return authPool;
+  }
+
+  authPool = new Pool({
+    user: AUTH_DB_USER,
+    password: process.env.DB_PASSWORD || secretsManager.getOrThrow('db_password'),
+    host: AUTH_DB_HOST,
+    port: AUTH_DB_PORT,
+    database: AUTH_DB_NAME,
+    max: 3,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+    statement_timeout: 10000,
+    application_name: AUTH_DB_APP_NAME,
+    options: `-c search_path=${AUTH_DB_SEARCH_PATH}`,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  });
+
+  authPool.on('error', (error) => {
+    logger.error(`Unexpected error on auth pool idle client: ${error.message}`, { error });
+  });
+
+  return authPool;
+}
+
+async function authQuery(text, params = []) {
+  return getAuthPool().query(text, params);
+}
 
 class AuthService {
   saltRounds: number;
@@ -44,7 +86,7 @@ class AuthService {
       const tokenHash = crypto.createHash('sha256').update(sessionToken).digest('hex');
       const expiresAt = new Date(Date.now() + this.sessionDuration);
 
-      await query(
+      await authQuery(
         `INSERT INTO app.user_sessions (user_id, token_hash, expires_at, user_agent, ip_address)
          VALUES ($1, $2, $3, $4, $5)`,
         [user.id, tokenHash, expiresAt, userAgent, ipAddress]
@@ -130,7 +172,7 @@ class AuthService {
 
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-      await query('DELETE FROM app.user_sessions WHERE token_hash = $1', [tokenHash]);
+      await authQuery('DELETE FROM app.user_sessions WHERE token_hash = $1', [tokenHash]);
 
       return { success: true };
     } catch (error) {
@@ -204,7 +246,7 @@ class AuthService {
    */
   async cleanupExpiredSessions() {
     try {
-      const result = await query('DELETE FROM app.user_sessions WHERE expires_at < NOW()');
+      const result = await authQuery('DELETE FROM app.user_sessions WHERE expires_at < NOW()');
 
       if (result.rowCount > 0) {
         logger.info(`Cleaned up ${result.rowCount} expired sessions`);
@@ -258,7 +300,7 @@ class AuthService {
 
   async getSessionUser(tokenHash) {
     try {
-      return await query(
+      return await authQuery(
         `SELECT u.id, u.username, u.email, u.role, u.is_active, u.force_password_change, s.expires_at
          FROM app.user_sessions s
          JOIN app.users u ON s.user_id = u.id
@@ -269,7 +311,7 @@ class AuthService {
       if (error?.code !== '42703') {
         throw error;
       }
-      return query(
+      return authQuery(
         `SELECT u.id, u.username, u.email, u.role, u.is_active, false AS force_password_change, s.expires_at
          FROM app.user_sessions s
          JOIN app.users u ON s.user_id = u.id
