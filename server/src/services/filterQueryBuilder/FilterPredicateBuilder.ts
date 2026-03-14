@@ -34,7 +34,7 @@ type ThreatScorePredicateOptions = {
 export abstract class FilterPredicateBuilder {
   protected abstract addParam(value: unknown): string;
 
-  protected buildRssiPredicate(options: RssiPredicateOptions): WhereClause {
+  public buildRssiPredicate(options: RssiPredicateOptions): WhereClause {
     const {
       value,
       comparator,
@@ -59,7 +59,7 @@ export abstract class FilterPredicateBuilder {
     return conditions;
   }
 
-  protected buildRangePredicate(options: RangePredicateOptions): WhereClause {
+  public buildRangePredicate(options: RangePredicateOptions): WhereClause {
     const { min, max, expr, wrapComparisons = false } = options;
     const conditions: string[] = [];
     const wrap = (value: string) => (wrapComparisons ? `(${value})` : value);
@@ -74,7 +74,7 @@ export abstract class FilterPredicateBuilder {
     return conditions;
   }
 
-  protected buildThreatScorePredicate(options: ThreatScorePredicateOptions): WhereClause {
+  public buildThreatScorePredicate(options: ThreatScorePredicateOptions): WhereClause {
     const { min, max, expr, wrapExpr = false } = options;
     const conditions: string[] = [];
     const formattedExpr = wrapExpr ? `(${expr})` : expr;

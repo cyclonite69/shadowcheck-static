@@ -53,6 +53,44 @@ const KeplerPage: React.FC = () => {
     datasetType
   );
 
+  const handleFitBounds = useCallback(() => {
+    if (!deckRef.current || !networkData.length) return;
+
+    const validData = networkData.filter((d) => d.position && !isNaN(d.position[0]));
+    if (validData.length === 0) return;
+
+    let minLon = Infinity,
+      maxLon = -Infinity,
+      minLat = Infinity,
+      maxLat = -Infinity;
+    for (const d of validData) {
+      const [lon, lat] = d.position;
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+
+    const centerLon = (minLon + maxLon) / 2;
+    const centerLat = (minLat + maxLat) / 2;
+    const lonDiff = maxLon - minLon;
+    const latDiff = maxLat - minLat;
+    const maxDiff = Math.max(lonDiff, latDiff, 0.01);
+    const zoom = Math.max(1, Math.min(15, 10 - Math.log2(maxDiff)));
+
+    deckRef.current.setProps({
+      initialViewState: {
+        longitude: centerLon,
+        latitude: centerLat,
+        zoom,
+        pitch,
+        bearing: 0,
+        transitionDuration: 1000,
+        transitionInterpolator: new window.deck.FlyToInterpolator(),
+      },
+    });
+  }, [networkData, pitch]);
+
   const initDeck = useCallback(
     (token: string, data: NetworkData[]) => {
       if (!window.deck || !mapRef.current) return;
@@ -251,6 +289,7 @@ const KeplerPage: React.FC = () => {
         loading={loading}
         error={error}
         actualCounts={actualCounts}
+        onFitBounds={handleFitBounds}
       />
 
       <KeplerFilters showFilters={showFilters} />

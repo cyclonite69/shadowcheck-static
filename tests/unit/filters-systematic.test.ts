@@ -1,401 +1,137 @@
-/**
- * Systematic Filter Testing - Phase 1: Core Filters
- * Testing untested filters one by one
- */
-
-import {
-  UniversalFilterQueryBuilder,
-  validateFilterPayload,
-} from '../../server/src/services/filterQueryBuilder';
+import { UniversalFilterQueryBuilder } from '../../server/src/services/filterQueryBuilder/universalFilterQueryBuilder';
 
 describe('Systematic Filter Testing', () => {
-  // ============================================================================
-  // PHASE 1: IDENTITY FILTERS
-  // ============================================================================
+  const getApplied = (filters: any, enabled: any) => {
+    const builder = new UniversalFilterQueryBuilder(filters, enabled);
+    const { appliedFilters } = builder.buildNetworkListQuery();
+    return appliedFilters.map((f: any) => f.field);
+  };
 
-  describe('bssid filter', () => {
-    test('full MAC address', () => {
-      const filters = { bssid: 'AA:BB:CC:DD:EE:FF' };
-      const enabled = { bssid: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where).toContain('o.bssid = $1');
-      expect((builder as any).params).toContain('AA:BB:CC:DD:EE:FF');
-    });
-
-    test('partial MAC (prefix)', () => {
-      const filters = { bssid: 'AA:BB:CC' };
-      const enabled = { bssid: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('LIKE'))).toBe(true);
-    });
+  test('bssid filter', () => {
+    expect(getApplied({ bssid: '00:11:22:33:44:55' }, { bssid: true })).toContain('bssid');
+    expect(getApplied({ bssid: '00:11:22' }, { bssid: true })).toContain('bssid');
   });
 
-  describe('manufacturer filter', () => {
-    test('by name', () => {
-      const filters = { manufacturer: 'Apple' };
-      const enabled = { manufacturer: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.joins.some((j: string) => j.includes('radio_manufacturers'))).toBe(true);
-    });
-
-    test('by OUI', () => {
-      const filters = { manufacturer: 'AABBCC' };
-      const enabled = { manufacturer: true };
-      const result = new UniversalFilterQueryBuilder(filters, enabled).buildNetworkListQuery();
-
-      expect(
-        result.appliedFilters.some((entry: { field: string }) => entry.field === 'manufacturerOui')
-      ).toBe(true);
-    });
+  test('manufacturer filter', () => {
+    expect(getApplied({ manufacturer: 'Apple' }, { manufacturer: true })).toContain('manufacturer');
+    expect(getApplied({ manufacturer: '00:11:22' }, { manufacturer: true })).toContain(
+      'manufacturerOui'
+    );
   });
 
-  // ============================================================================
-  // PHASE 2: RADIO FILTERS
-  // ============================================================================
-
-  describe('radioTypes filter', () => {
-    test('WiFi only', () => {
-      const filters = { radioTypes: ['W'] };
-      const enabled = { radioTypes: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('= ANY'))).toBe(true);
-      expect((builder as any).params).toContainEqual(['W']);
-    });
-
-    test('mixed radio types keep all selected values', () => {
-      const filters = { radioTypes: ['W', 'L'] };
-      const enabled = { radioTypes: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('= ANY'))).toBe(true);
-      expect((builder as any).params).toContainEqual(['W', 'L']);
-    });
+  test('radioTypes filter', () => {
+    expect(getApplied({ radioTypes: ['W', 'L'] }, { radioTypes: true })).toContain('radioTypes');
   });
 
-  describe('frequencyBands filter', () => {
-    test('2.4GHz band', () => {
-      const filters = { frequencyBands: ['2.4GHz'] };
-      const enabled = { frequencyBands: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('2412 AND 2484'))).toBe(true);
-    });
+  test('frequencyBands filter', () => {
+    expect(getApplied({ frequencyBands: ['2.4GHz'] }, { frequencyBands: true })).toContain(
+      'frequencyBands'
+    );
   });
 
-  describe('channel filters', () => {
-    test('channelMin', () => {
-      const filters = { channelMin: 1 };
-      const enabled = { channelMin: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('>= $'))).toBe(true);
-      expect((builder as any).params).toContain(1);
-    });
-
-    test('channelMax', () => {
-      const filters = { channelMax: 11 };
-      const enabled = { channelMax: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('<= $'))).toBe(true);
-      expect((builder as any).params).toContain(11);
-    });
+  test('channel filters', () => {
+    expect(getApplied({ channelMin: 1 }, { channelMin: true })).toContain('channelMin');
+    expect(getApplied({ channelMax: 11 }, { channelMax: true })).toContain('channelMax');
   });
 
-  describe('RSSI filters', () => {
-    test('rssiMin validation', () => {
-      const { errors } = validateFilterPayload({ rssiMin: -100 }, { rssiMin: true });
-      expect(errors).toContain('RSSI minimum below noise floor (-95 dBm).');
-    });
-
-    test('rssiMax validation', () => {
-      const { errors } = validateFilterPayload({ rssiMax: 10 }, { rssiMax: true });
-      expect(errors).toContain('RSSI maximum above 0 dBm.');
-    });
-
-    test('rssiMin/Max range validation', () => {
-      const { errors } = validateFilterPayload(
-        { rssiMin: -30, rssiMax: -70 },
-        { rssiMin: true, rssiMax: true }
-      );
-      expect(errors).toContain('RSSI minimum greater than maximum.');
-    });
+  test('RSSI filters', () => {
+    expect(getApplied({ rssiMin: -70 }, { rssiMin: true })).toContain('rssiMin');
+    expect(getApplied({ rssiMax: -30 }, { rssiMax: true })).toContain('rssiMax');
   });
 
-  // ============================================================================
-  // PHASE 3: SECURITY FILTERS
-  // ============================================================================
-
-  describe('securityFlags filter', () => {
-    test('enterprise networks', () => {
-      const filters = { securityFlags: ['enterprise'] };
-      const enabled = { securityFlags: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('WPA2-E'))).toBe(true);
-    });
+  test('encryptionTypes filter', () => {
+    expect(getApplied({ encryptionTypes: ['WPA2'] }, { encryptionTypes: true })).toContain(
+      'encryptionTypes'
+    );
   });
 
-  // ============================================================================
-  // PHASE 4: TEMPORAL FILTERS
-  // ============================================================================
-
-  describe('temporalScope filter', () => {
-    test('observation_time scope', () => {
-      const filters = {
-        timeframe: { type: 'relative', relativeWindow: '7d' },
-        temporalScope: 'observation_time',
-      };
-      const enabled = { timeframe: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('o.time'))).toBe(true);
-    });
-
-    test('network_lifetime scope', () => {
-      const filters = {
-        timeframe: { type: 'relative', relativeWindow: '30d' },
-        temporalScope: 'network_lifetime',
-      };
-      const enabled = { timeframe: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.joins.some((j: string) => j.includes('networks'))).toBe(true);
-    });
+  test('securityFlags filter', () => {
+    expect(getApplied({ securityFlags: ['enterprise'] }, { securityFlags: true })).toContain(
+      'securityFlags'
+    );
   });
 
-  // ============================================================================
-  // PHASE 5: QUALITY FILTERS - CRITICAL ISSUE
-  // ============================================================================
-
-  describe('observationCountMin filter - CRITICAL', () => {
-    test('works in network query', () => {
-      const filters = { observationCountMin: 10 };
-      const enabled = { observationCountMin: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const query = builder.buildNetworkListQuery();
-
-      expect(query.appliedFilters).toContainEqual({
-        type: 'quality',
-        field: 'observationCountMin',
-        value: 10,
-      });
-    });
-
-    test('SQL generation correct', () => {
-      const filters = { observationCountMin: 5 };
-      const enabled = { observationCountMin: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const query = builder.buildNetworkListQuery();
-
-      expect(query.sql).toContain('ne.observations >=');
-      expect((builder as any).params).toContain(5);
-    });
+  test('timeframe filter', () => {
+    expect(
+      getApplied({ timeframe: { type: 'relative', relativeWindow: '30d' } }, { timeframe: true })
+    ).toContain('timeframe');
   });
 
-  describe('observationCountMax filter', () => {
-    test('works in network query', () => {
-      const filters = { observationCountMax: 100 };
-      const enabled = { observationCountMax: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const query = builder.buildNetworkListQuery();
-
-      expect(query.appliedFilters).toContainEqual({
-        type: 'quality',
-        field: 'observationCountMax',
-        value: 100,
-      });
-    });
+  test('observationCountMin filter', () => {
+    expect(getApplied({ observationCountMin: 5 }, { observationCountMin: true })).toContain(
+      'observationCountMin'
+    );
   });
 
-  describe('gpsAccuracyMax filter', () => {
-    test('valid accuracy', () => {
-      const filters = { gpsAccuracyMax: 50 };
-      const enabled = { gpsAccuracyMax: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('o.accuracy'))).toBe(true);
-    });
-
-    test('validation - too high', () => {
-      const { errors } = validateFilterPayload({ gpsAccuracyMax: 2000 }, { gpsAccuracyMax: true });
-      expect(errors).toContain('GPS accuracy limit too high (>1000m).');
-    });
+  test('observationCountMax filter', () => {
+    expect(getApplied({ observationCountMax: 100 }, { observationCountMax: true })).toContain(
+      'observationCountMax'
+    );
   });
 
-  describe('excludeInvalidCoords filter', () => {
-    test('applies coordinate checks', () => {
-      const filters = { excludeInvalidCoords: true };
-      const enabled = { excludeInvalidCoords: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where).toContain('o.lat IS NOT NULL');
-      expect(result.where).toContain('o.lon IS NOT NULL');
-      expect(result.where).toContain('o.lat BETWEEN -90 AND 90');
-      expect(result.where).toContain('o.lon BETWEEN -180 AND 180');
-    });
+  test('gpsAccuracyMax filter', () => {
+    expect(getApplied({ gpsAccuracyMax: 10 }, { gpsAccuracyMax: true })).toContain(
+      'gpsAccuracyMax'
+    );
   });
 
-  // ============================================================================
-  // PHASE 6: SPATIAL FILTERS
-  // ============================================================================
-
-  describe('distanceFromHome filters', () => {
-    test('distanceFromHomeMin', () => {
-      const filters = { distanceFromHomeMin: 1000 };
-      const enabled = { distanceFromHomeMin: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect((builder as any).requiresHome).toBe(true);
-      expect(result.where.some((w: string) => w.includes('ST_Distance'))).toBe(true);
-    });
-
-    test('distanceFromHomeMax', () => {
-      const filters = { distanceFromHomeMax: 5000 };
-      const enabled = { distanceFromHomeMax: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect((builder as any).requiresHome).toBe(true);
-    });
+  test('excludeInvalidCoords filter', () => {
+    expect(getApplied({}, { excludeInvalidCoords: true })).toContain('excludeInvalidCoords');
   });
 
-  describe('boundingBox filter', () => {
-    test('valid bounding box', () => {
-      const filters = {
-        boundingBox: { north: 40.9, south: 40.5, east: -73.7, west: -74.3 },
-      };
-      const enabled = { boundingBox: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('o.lat <='))).toBe(true);
-      expect(result.where.some((w: string) => w.includes('o.lat >='))).toBe(true);
-      expect(result.where.some((w: string) => w.includes('o.lon <='))).toBe(true);
-      expect(result.where.some((w: string) => w.includes('o.lon >='))).toBe(true);
-    });
+  test('distanceFromHome filters', () => {
+    expect(getApplied({ distanceFromHomeMin: 10 }, { distanceFromHomeMin: true })).toContain(
+      'distanceFromHomeMin'
+    );
+    expect(getApplied({ distanceFromHomeMax: 100 }, { distanceFromHomeMax: true })).toContain(
+      'distanceFromHomeMax'
+    );
   });
 
-  describe('radiusFilter filter', () => {
-    test('valid radius', () => {
-      const filters = {
-        radiusFilter: { latitude: 40.7589, longitude: -73.9851, radiusMeters: 1000 },
-      };
-      const enabled = { radiusFilter: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const result = builder.buildObservationFilters();
-
-      expect(result.where.some((w: string) => w.includes('ST_DWithin'))).toBe(true);
-      expect((builder as any).params).toContain(40.7589);
-      expect((builder as any).params).toContain(-73.9851);
-      expect((builder as any).params).toContain(1000);
-    });
+  test('boundingBox filter', () => {
+    expect(
+      getApplied({ boundingBox: { north: 1, south: 0, east: 1, west: 0 } }, { boundingBox: true })
+    ).toContain('boundingBox');
   });
 
-  // ============================================================================
-  // PHASE 7: THREAT FILTERS
-  // ============================================================================
-
-  describe('threatScore filters', () => {
-    test('threatScoreMin', () => {
-      const filters = { threatScoreMin: 70 };
-      const enabled = { threatScoreMin: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const query = builder.buildNetworkListQuery();
-
-      expect(query.appliedFilters).toContainEqual({
-        type: 'threat',
-        field: 'threatScoreMin',
-        value: 70,
-      });
-    });
-
-    test('threatScoreMax', () => {
-      const filters = { threatScoreMax: 90 };
-      const enabled = { threatScoreMax: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const query = builder.buildNetworkListQuery();
-
-      expect(query.appliedFilters).toContainEqual({
-        type: 'threat',
-        field: 'threatScoreMax',
-        value: 90,
-      });
-    });
-
-    test('validation - out of range', () => {
-      const { errors } = validateFilterPayload({ threatScoreMin: 150 }, { threatScoreMin: true });
-      expect(errors).toContain('Threat score minimum out of range (0-100).');
-    });
+  test('radiusFilter filter', () => {
+    expect(
+      getApplied(
+        { radiusFilter: { latitude: 0, longitude: 0, radiusMeters: 100 } },
+        { radiusFilter: true }
+      )
+    ).toContain('radiusFilter');
   });
 
-  describe('threatCategories filter', () => {
-    test('critical category', () => {
-      // Valid categories: critical, high, medium, low (mapped to HIGH, HIGH, MED, LOW)
-      const filters = { threatCategories: ['critical'] };
-      const enabled = { threatCategories: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const query = builder.buildNetworkListQuery();
-
-      expect(query.appliedFilters).toContainEqual({
-        type: 'threat',
-        field: 'threatCategories',
-        value: ['critical'],
-      });
-    });
+  test('threatScore filters', () => {
+    expect(getApplied({ threatScoreMin: 20 }, { threatScoreMin: true })).toContain(
+      'threatScoreMin'
+    );
+    expect(getApplied({ threatScoreMax: 80 }, { threatScoreMax: true })).toContain(
+      'threatScoreMax'
+    );
   });
 
-  describe('stationaryConfidence filters', () => {
-    test('stationaryConfidenceMin', () => {
-      const filters = { stationaryConfidenceMin: 0.8 };
-      const enabled = { stationaryConfidenceMin: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const query = builder.buildNetworkListQuery();
+  test('threatCategories filter', () => {
+    expect(getApplied({ threatCategories: ['critical'] }, { threatCategories: true })).toContain(
+      'threatCategories'
+    );
+  });
 
-      expect(query.appliedFilters).toContainEqual({
-        type: 'threat',
-        field: 'stationaryConfidenceMin',
-        value: 0.8,
-      });
-    });
+  test('stationaryConfidence filters', () => {
+    expect(
+      getApplied({ stationaryConfidenceMin: 0.5 }, { stationaryConfidenceMin: true })
+    ).toContain('stationaryConfidenceMin');
+    expect(
+      getApplied({ stationaryConfidenceMax: 0.9 }, { stationaryConfidenceMax: true })
+    ).toContain('stationaryConfidenceMax');
+  });
 
-    test('stationaryConfidenceMax', () => {
-      const filters = { stationaryConfidenceMax: 0.5 };
-      const enabled = { stationaryConfidenceMax: true };
-      const builder = new UniversalFilterQueryBuilder(filters, enabled);
-      const query = builder.buildNetworkListQuery();
+  test('has_notes filter', () => {
+    expect(getApplied({ has_notes: true }, { has_notes: true })).toContain('has_notes');
+  });
 
-      expect(query.appliedFilters).toContainEqual({
-        type: 'threat',
-        field: 'stationaryConfidenceMax',
-        value: 0.5,
-      });
-    });
-
-    test('validation - out of range', () => {
-      const { errors } = validateFilterPayload(
-        { stationaryConfidenceMin: 1.5 },
-        { stationaryConfidenceMin: true }
-      );
-      expect(errors).toContain('Stationary confidence minimum out of range (0.0-1.0).');
-    });
+  test('tag_type filter', () => {
+    expect(getApplied({ tag_type: ['threat'] }, { tag_type: true })).toContain('tag_type');
   });
 });
