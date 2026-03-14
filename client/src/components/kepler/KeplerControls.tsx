@@ -49,14 +49,6 @@ export const KeplerControls: React.FC<KeplerControlsProps> = ({
   actualCounts,
   onFitBounds,
 }) => {
-  const {
-    mode: searchMode,
-    setMode: setSearchMode,
-    loading: directionsLoading,
-    fetchRoute,
-    clearRoute,
-  } = useDirectionsMode(mapRef);
-
   return (
     <ControlPanel isOpen={showMenu} onShowFilters={onShowFilters} showFilters={showFilters}>
       <div className="space-y-6">
