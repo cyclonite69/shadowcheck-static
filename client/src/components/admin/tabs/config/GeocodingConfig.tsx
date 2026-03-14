@@ -27,6 +27,7 @@ interface GeocodingConfigProps {
   isSaving: boolean;
   onSave: () => void;
   hasChanges: boolean;
+  isConfigured?: boolean;
 }
 
 export const GeocodingConfig: React.FC<GeocodingConfigProps> = ({
@@ -39,8 +40,14 @@ export const GeocodingConfig: React.FC<GeocodingConfigProps> = ({
   isSaving,
   onSave,
   hasChanges,
+  isConfigured,
 }) => (
-  <AdminCard title="Geocoding Providers" icon={SearchIcon} color="from-green-600 to-emerald-600">
+  <AdminCard
+    title="Geocoding Providers"
+    icon={SearchIcon}
+    color="from-green-600 to-emerald-600"
+    isConfigured={isConfigured}
+  >
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-300">OpenCage API Key</label>

@@ -29,6 +29,7 @@ interface AWSConfigProps {
   isSaving: boolean;
   onSave: () => void;
   hasChanges: boolean;
+  isConfigured?: boolean;
 }
 
 export const AWSConfig: React.FC<AWSConfigProps> = ({
@@ -44,8 +45,14 @@ export const AWSConfig: React.FC<AWSConfigProps> = ({
   isSaving,
   onSave,
   hasChanges,
+  isConfigured,
 }) => (
-  <AdminCard title="AWS Configuration" icon={CloudIcon} color="from-orange-500 to-amber-500">
+  <AdminCard
+    title="AWS Configuration"
+    icon={CloudIcon}
+    color="from-orange-500 to-amber-500"
+    isConfigured={isConfigured}
+  >
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-300">Region</label>

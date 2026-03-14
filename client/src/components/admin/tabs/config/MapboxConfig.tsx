@@ -28,6 +28,7 @@ interface MapboxConfigProps {
   isSaving: boolean;
   onSave: () => void;
   hasChanges: boolean;
+  isConfigured?: boolean;
 }
 
 export const MapboxConfig: React.FC<MapboxConfigProps> = ({
@@ -40,8 +41,14 @@ export const MapboxConfig: React.FC<MapboxConfigProps> = ({
   isSaving,
   onSave,
   hasChanges,
+  isConfigured,
 }) => (
-  <AdminCard title="Mapbox Configuration" icon={MapIcon} color="from-blue-600 to-indigo-600">
+  <AdminCard
+    title="Mapbox Configuration"
+    icon={MapIcon}
+    color="from-blue-600 to-indigo-600"
+    isConfigured={isConfigured}
+  >
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-300">Public Token</label>
