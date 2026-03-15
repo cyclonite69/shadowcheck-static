@@ -121,6 +121,59 @@ export const useWigleSearch = () => {
     }
   };
 
+  const importAllResults = async () => {
+    setSearchError('');
+    setSearchLoading(true);
+    setAllResults([]);
+    setSearchAfter(null);
+    setTotalResults(0);
+    setCurrentPage(1);
+    setSearchResults(null);
+
+    try {
+      const payload: Record<string, string> = {};
+      if (searchParams.ssid) payload.ssid = searchParams.ssid;
+      if (searchParams.bssid) payload.bssid = searchParams.bssid;
+      if (searchParams.latrange1) payload.latrange1 = searchParams.latrange1;
+      if (searchParams.latrange2) payload.latrange2 = searchParams.latrange2;
+      if (searchParams.longrange1) payload.longrange1 = searchParams.longrange1;
+      if (searchParams.longrange2) payload.longrange2 = searchParams.longrange2;
+      if (searchParams.country) payload.country = searchParams.country;
+      if (searchParams.region) payload.region = searchParams.region;
+      if (searchParams.city) payload.city = searchParams.city;
+      if (searchParams.version) payload.version = searchParams.version;
+
+      const data = await wigleApi.importAllWigle(payload);
+      const results = data.results || [];
+      const importedCount = typeof data.importedCount === 'number' ? data.importedCount : 0;
+      const importErrors = Array.isArray(data.importErrors) ? data.importErrors : [];
+
+      setAllResults(results);
+      setSearchAfter(null);
+      setTotalResults(data.totalResults || results.length);
+      setCurrentPage(Math.max(1, data.pagesProcessed || Math.ceil(results.length / 100) || 1));
+      setSearchResults({
+        ...data,
+        searchAfter: null,
+        hasMore: false,
+        results,
+        resultCount: results.length,
+        loadedCount: data.loadedCount || results.length,
+        pagesProcessed: data.pagesProcessed || 1,
+        imported: {
+          count: importedCount,
+          errors: importErrors,
+        },
+        importedCount,
+        importErrors,
+      });
+    } catch (err: any) {
+      setSearchError(err?.message || 'Import all failed');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const hasMorePages = searchAfter !== null;
   const totalPages = Math.ceil(totalResults / 100);
 
@@ -133,6 +186,7 @@ export const useWigleSearch = () => {
     setSearchParams,
     loadApiStatus,
     runSearch,
+    importAllResults,
     // Pagination
     loadMoreResults,
     hasMorePages,
