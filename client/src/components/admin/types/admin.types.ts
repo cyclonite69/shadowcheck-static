@@ -45,6 +45,8 @@ export interface WigleSearchResults {
   searchAfter: string | null;
   hasMore: boolean;
   results?: WigleNetworkResult[];
+  importedCount?: number;
+  importErrors?: Array<{ bssid: string; error: string }>;
   imported?: { count: number; errors: Array<{ bssid: string; error: string }> } | null;
   error?: string;
 }
