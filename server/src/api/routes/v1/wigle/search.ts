@@ -12,10 +12,15 @@ import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { withRetry } from '../../../../services/externalServiceHandler';
 
 /**
- * POST /search-api - Search WiGLE API with optional import
+ * POST/GET /search-api - Search WiGLE API with optional import
  */
-router.post('/search-api', requireAdmin, async (req, res, next) => {
+router.all('/search-api', requireAdmin, async (req, res, next) => {
   try {
+    // Only allow GET and POST
+    if (req.method !== 'GET' && req.method !== 'POST') {
+      return res.status(405).json({ ok: false, error: 'Method not allowed' });
+    }
+
     const wigleApiName = secretsManager.get('wigle_api_name');
     const wigleApiToken = secretsManager.get('wigle_api_token');
 
@@ -41,7 +46,8 @@ router.post('/search-api', requireAdmin, async (req, res, next) => {
       searchAfter,
     } = req.query;
 
-    const shouldImport = req.body?.import === true;
+    // Support 'import' from body (POST) or query (GET)
+    const shouldImport = req.body?.import === true || req.query?.import === 'true';
 
     const params = new URLSearchParams();
     if (ssid) params.append('ssidlike', ssid as string);
@@ -68,9 +74,10 @@ router.post('/search-api', requireAdmin, async (req, res, next) => {
     }
 
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-    const apiUrl = `https://api.wigle.net/api/v2/network/search?${params.toString()}`;
+    // Use v3 API as requested
+    const apiUrl = `https://api.wigle.net/api/v3/network/search?${params.toString()}`;
 
-    logger.info(`[WiGLE] Searching API: ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`);
+    logger.info(`[WiGLE] Searching API (v3): ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`);
 
     const response = await withRetry(
       () =>
@@ -113,8 +120,10 @@ router.post('/search-api', requireAdmin, async (req, res, next) => {
             importedCount++;
           }
         } catch (err: any) {
-          logger.error(`[WiGLE] Import error for ${network.netid}: ${err.message}`);
-          importErrors.push({ bssid: network.netid, error: err.message });
+          logger.error(
+            `[WiGLE] Import error for ${network.netid || network.bssid}: ${err.message}`
+          );
+          importErrors.push({ bssid: network.netid || network.bssid, error: err.message });
         }
       }
 
