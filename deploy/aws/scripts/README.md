@@ -1,11 +1,11 @@
 # ShadowCheck AWS Deployment Scripts
 
 **Last Updated:** 2026-02-17  
-**Total Scripts:** 19 (down from 25)
+**Total Scripts:** 20 (down from 25)
 
 ---
 
-## Core Deployment Scripts (The Essential 5)
+## Core Deployment Scripts (The Essential 6)
 
 ### 🚀 launch-shadowcheck-spot.sh
 
@@ -59,7 +59,7 @@ sudo ./deploy/aws/scripts/setup-instance.sh
 
 1. Runs setup-instance.sh (if needed)
 2. Clones/updates repository
-3. Runs deploy-postgres.sh
+3. Runs deploy-postgres.sh and deploy-redis.sh
 4. Configures environment (.env.aws)
 5. Runs scs_rebuild.sh
 6. Optionally initializes admin user
@@ -103,7 +103,7 @@ scs_rebuild  # (symlinked to /usr/local/bin)
 ### 🗄️ deploy-postgres.sh
 
 **Run from:** EC2 instance (requires sudo)  
-**Purpose:** Complete PostgreSQL + Redis infrastructure setup  
+**Purpose:** Complete PostgreSQL infrastructure setup  
 **Does:**
 
 - Formats and mounts XFS volume (/var/lib/postgresql)
@@ -112,7 +112,6 @@ scs_rebuild  # (symlinked to /usr/local/bin)
 - Creates pg_hba.conf (security rules)
 - Pulls postgis/postgis:18-3.6 image
 - Starts PostgreSQL container with PostGIS
-- Starts Redis container
 - Enables PostGIS extensions
 - Creates database users (shadowcheck_user, shadowcheck_admin)
 
@@ -120,6 +119,28 @@ scs_rebuild  # (symlinked to /usr/local/bin)
 
 ```bash
 sudo ./deploy/aws/scripts/deploy-postgres.sh
+```
+
+**Called automatically by deploy-complete.sh and scs_rebuild.sh.**
+
+---
+
+### 🧠 deploy-redis.sh
+
+**Run from:** EC2 instance (requires sudo)  
+**Purpose:** Restore Redis 7 cache for the AWS host-network stack  
+**Does:**
+
+- Creates persistent Redis data at `/var/lib/redis`
+- Starts `shadowcheck_redis` from `redis:7-alpine`
+- Binds Redis to `127.0.0.1:6379`
+- Enables AOF persistence and the existing LRU cache policy
+- Verifies startup with `redis-cli ping`
+
+**Usage:**
+
+```bash
+sudo ./deploy/aws/scripts/deploy-redis.sh
 ```
 
 **Called automatically by deploy-complete.sh and scs_rebuild.sh.**
