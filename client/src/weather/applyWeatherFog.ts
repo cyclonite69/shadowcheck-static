@@ -69,19 +69,13 @@ export function applyFog(map: Map, classification: WeatherClassification): void 
 
   if (isStandardStyle) {
     try {
-      // Standard styles use environment configurations
-      // mapbox-standard often has 'lightPreset' and 'showPointOfInterestLabels'
-      // We can modulate the environment to match weather
       const configId = style?.imports?.some((i: any) => i.id === 'basemap')
         ? 'basemap'
         : 'mapbox-standard';
 
-      // Map weather modes to light presets if appropriate, or just use fog
-      // Standard style also supports setFog
-      map.setFog({
-        ...preset,
-        range: [rangeMin, rangeMax],
-      } as FogSpecification);
+      // Standard styles use different config property names for environment
+      map.setConfigProperty(configId, 'fogColor', preset.color);
+      map.setConfigProperty(configId, 'fogRange', [rangeMin, rangeMax]);
       return;
     } catch (e) {
       // Fallback to traditional setFog
@@ -95,6 +89,22 @@ export function applyFog(map: Map, classification: WeatherClassification): void 
 }
 
 export function clearFog(map: Map): void {
+  const style = map.getStyle();
+  const isStandardStyle =
+    style?.schema?.hasOwnProperty('basemap') ||
+    style?.imports?.some((i: any) => i.id === 'basemap' || i.id === 'mapbox-standard');
+
+  if (isStandardStyle) {
+    try {
+      const configId = style?.imports?.some((i: any) => i.id === 'basemap')
+        ? 'basemap'
+        : 'mapbox-standard';
+      map.setConfigProperty(configId, 'fogRange', [1000, 1001]); // Effectively invisible
+    } catch (e) {
+      // Fallback
+    }
+  }
+
   try {
     map.setFog(null as any);
   } catch (e) {

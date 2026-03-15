@@ -203,8 +203,7 @@ export const useMapLayersToggle = ({
       }
     } else if (enabled) {
       if (!add3DBuildings()) {
-        setShow3DBuildings(false);
-        localStorage.setItem('shadowcheck_show_3d_buildings', 'false');
+        // Just return if not ready yet, don't clear the preference
         return;
       }
     } else if (mapRef.current.getLayer('3d-buildings')) {
