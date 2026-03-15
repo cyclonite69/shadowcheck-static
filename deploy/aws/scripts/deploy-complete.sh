@@ -56,14 +56,15 @@ else
 fi
 echo ""
 
-# Step 3: Deploy PostgreSQL
-echo "Step 3/5: PostgreSQL Deployment"
-echo "==============================="
-if ! docker ps | grep -q shadowcheck_postgres; then
-  echo "Deploying PostgreSQL (requires sudo)..."
+# Step 3: Deploy PostgreSQL + Redis
+echo "Step 3/5: PostgreSQL + Redis Deployment"
+echo "======================================="
+if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowcheck_redis; then
+  echo "Deploying PostgreSQL and Redis (requires sudo)..."
   sudo "$PROJECT_ROOT/deploy/aws/scripts/deploy-postgres.sh"
+  sudo "$PROJECT_ROOT/deploy/aws/scripts/deploy-redis.sh"
 else
-  echo "✅ PostgreSQL already running"
+  echo "✅ PostgreSQL and Redis already running"
 fi
 echo ""
 

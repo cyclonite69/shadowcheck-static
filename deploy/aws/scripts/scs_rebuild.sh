@@ -39,9 +39,10 @@ docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/
 
 # 3. Ensure infrastructure is running
 echo "[3/7] Ensuring infrastructure is running..."
-if ! docker ps | grep -q shadowcheck_postgres; then
+if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowcheck_redis; then
   echo "  Starting PostgreSQL and Redis..."
   sudo "$APP_DIR/deploy/aws/scripts/deploy-postgres.sh"
+  sudo "$APP_DIR/deploy/aws/scripts/deploy-redis.sh"
 else
   echo "  ✅ Infrastructure already running"
 fi
@@ -65,6 +66,8 @@ DB_HOST=shadowcheck_postgres
 DB_PORT=5432
 DB_USER=shadowcheck_user
 DB_NAME=shadowcheck_db
+REDIS_HOST=localhost
+REDIS_PORT=6379
 CORS_ORIGINS=http://${PUBLIC_IP},https://${PUBLIC_IP},http://localhost,https://localhost
 ENVEOF
 echo "  Built env (passwords loaded from AWS SM at startup)"
