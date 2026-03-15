@@ -48,6 +48,17 @@ export const adminApi = {
     return apiClient.post('/admin/geocoding/run', options);
   },
 
+  async testGeocodingProvider(options: {
+    provider: 'mapbox' | 'nominatim' | 'overpass' | 'opencage' | 'locationiq';
+    mode: 'address-only' | 'poi-only' | 'both';
+    precision: number;
+    permanent?: boolean;
+    lat?: number;
+    lon?: number;
+  }): Promise<any> {
+    return apiClient.post('/admin/geocoding/test', options);
+  },
+
   // ML Training
   async getMLStatus(): Promise<any> {
     return apiClient.get('/ml/status');

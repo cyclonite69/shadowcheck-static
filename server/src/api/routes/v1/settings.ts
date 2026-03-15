@@ -187,7 +187,7 @@ router.get('/settings/mapbox', requireAuth, async (req, res) => {
 });
 
 // Set Mapbox token
-router.post('/settings/mapbox', async (req, res) => {
+router.post('/settings/mapbox', requireAuth, async (req, res) => {
   try {
     const { token, value, label = 'default' } = req.body;
     const incomingToken = value ?? token;
@@ -220,7 +220,7 @@ router.get('/settings/mapbox-unlimited', requireAuth, async (req, res) => {
 });
 
 // Set Mapbox unlimited (geocoding) key
-router.post('/settings/mapbox-unlimited', async (req, res) => {
+router.post('/settings/mapbox-unlimited', requireAuth, async (req, res) => {
   try {
     const { apiKey, value } = req.body;
     const incomingValue = apiKey ?? value;
@@ -274,7 +274,7 @@ router.get('/settings/opencage', requireAuth, async (req, res) => {
 });
 
 // Set OpenCage API key
-router.post('/settings/opencage', async (req, res) => {
+router.post('/settings/opencage', requireAuth, async (req, res) => {
   try {
     const { apiKey, value } = req.body;
     const incomingValue = apiKey ?? value;
@@ -301,7 +301,7 @@ router.get('/settings/locationiq', requireAuth, async (req, res) => {
 });
 
 // Set LocationIQ API key
-router.post('/settings/locationiq', async (req, res) => {
+router.post('/settings/locationiq', requireAuth, async (req, res) => {
   try {
     const { apiKey, value } = req.body;
     const incomingValue = apiKey ?? value;

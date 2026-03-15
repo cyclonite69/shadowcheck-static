@@ -114,11 +114,19 @@ export interface GeocodingStats {
   observation_count: number;
   unique_blocks: number;
   cached_blocks: number;
+  resolved_address_rows: number;
   cached_with_address: number;
   cached_with_poi: number;
   distinct_addresses: number;
   missing_blocks: number;
+  pending_address_queue: number;
+  attempted_without_address: number;
+  recent_activity: number;
+  last_activity_at?: string | null;
   providers: Record<string, number>;
+  current_run?: GeocodingRunSnapshot | null;
+  last_run?: GeocodingRunSnapshot | null;
+  recent_runs?: GeocodingRunSnapshot[];
 }
 
 export interface GeocodingRunResult {
@@ -130,6 +138,44 @@ export interface GeocodingRunResult {
   poiHits: number;
   rateLimited: number;
   durationMs: number;
+}
+
+export interface GeocodingRunSnapshot {
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  finishedAt?: string;
+  provider: string;
+  mode: 'address-only' | 'poi-only' | 'both';
+  precision: number;
+  limit: number;
+  perMinute: number;
+  permanent?: boolean;
+  result?: GeocodingRunResult;
+  error?: string;
+}
+
+export interface GeocodingProviderProbeResult {
+  sample: {
+    lat: number;
+    lon: number;
+  };
+  provider: string;
+  mode: 'address-only' | 'poi-only' | 'both';
+  permanent: boolean;
+  result: {
+    ok: boolean;
+    address?: string | null;
+    poiName?: string | null;
+    poiCategory?: string | null;
+    featureType?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postal?: string | null;
+    country?: string | null;
+    confidence?: number | null;
+    error?: string | null;
+    raw?: unknown;
+  };
 }
 
 export interface AwsInstanceSummary {
