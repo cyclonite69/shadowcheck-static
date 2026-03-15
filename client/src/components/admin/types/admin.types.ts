@@ -44,6 +44,8 @@ export interface WigleSearchResults {
   resultCount: number;
   searchAfter: string | null;
   hasMore: boolean;
+  loadedCount?: number;
+  pagesProcessed?: number;
   results?: WigleNetworkResult[];
   importedCount?: number;
   importErrors?: Array<{ bssid: string; error: string }>;

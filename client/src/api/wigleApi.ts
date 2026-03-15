@@ -15,6 +15,10 @@ export const wigleApi = {
     return apiClient.get(`/wigle/search-api?${params.toString()}`);
   },
 
+  async importAllWigle(params: Record<string, string>): Promise<any> {
+    return apiClient.post('/wigle/search-api/import-all', params);
+  },
+
   // WiGLE Detail
   async getWigleObservations(netid: string): Promise<any> {
     return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}`);

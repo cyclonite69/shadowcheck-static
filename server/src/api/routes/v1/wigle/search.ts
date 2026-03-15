@@ -11,6 +11,112 @@ import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { withRetry } from '../../../../services/externalServiceHandler';
 
+const DEFAULT_RESULTS_PER_PAGE = 100;
+const MAX_RESULTS_PER_PAGE = 1000;
+const IMPORT_ALL_PAGE_DELAY_MS = 1500;
+const IMPORT_ALL_MAX_RETRIES = 4;
+
+function buildSearchParams(query: any): URLSearchParams {
+  const {
+    ssid,
+    bssid,
+    latrange1,
+    latrange2,
+    longrange1,
+    longrange2,
+    country,
+    region,
+    city,
+    resultsPerPage = DEFAULT_RESULTS_PER_PAGE,
+    searchAfter,
+  } = query;
+
+  const params = new URLSearchParams();
+  if (ssid) params.append('ssidlike', ssid as string);
+  if (bssid) params.append('netid', bssid as string);
+  if (latrange1) params.append('latrange1', latrange1 as string);
+  if (latrange2) params.append('latrange2', latrange2 as string);
+  if (longrange1) params.append('longrange1', longrange1 as string);
+  if (longrange2) params.append('longrange2', longrange2 as string);
+  if (country) params.append('country', country as string);
+  if (region) params.append('region', region as string);
+  if (city) params.append('city', city as string);
+  params.append(
+    'resultsPerPage',
+    Math.min(
+      parseInt(resultsPerPage as string) || DEFAULT_RESULTS_PER_PAGE,
+      MAX_RESULTS_PER_PAGE
+    ).toString()
+  );
+  if (searchAfter) params.append('searchAfter', searchAfter as string);
+
+  return params;
+}
+
+function validateSearchQuery(query: any): string | null {
+  const { ssid, bssid, latrange1, country, region, city } = query;
+  if (!ssid && !bssid && !latrange1 && !country && !region && !city) {
+    return 'At least one search parameter required (ssid, bssid, latrange, country, region, or city)';
+  }
+  return null;
+}
+
+async function fetchWiglePage(
+  encodedAuth: string,
+  apiVer: 'v2' | 'v3',
+  params: URLSearchParams
+): Promise<any> {
+  const apiUrl = `https://api.wigle.net/api/${apiVer}/network/search?${params.toString()}`;
+
+  logger.info(`[WiGLE] Searching API (${apiVer}): ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`);
+
+  const response = await withRetry(
+    () =>
+      fetch(apiUrl, {
+        headers: {
+          Authorization: `Basic ${encodedAuth}`,
+          Accept: 'application/json',
+        },
+      }),
+    { serviceName: 'WiGLE Search API', timeoutMs: 30000, maxRetries: 2 }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    const error: any = new Error(`WiGLE API request failed with status ${response.status}`);
+    error.status = response.status;
+    error.details = errorText;
+    throw error;
+  }
+
+  return response.json();
+}
+
+async function importSearchResults(results: any[]): Promise<{
+  importedCount: number;
+  importErrors: Array<{ bssid: string; error: string }>;
+}> {
+  let importedCount = 0;
+  const importErrors: Array<{ bssid: string; error: string }> = [];
+
+  for (const network of results) {
+    try {
+      const rowCount = await wigleService.importWigleV2SearchResult(network);
+      if (rowCount > 0) importedCount++;
+    } catch (err: any) {
+      const bssid = network.netid || network.bssid;
+      logger.error(`[WiGLE] Import error for ${bssid}: ${err.message}`);
+      importErrors.push({ bssid, error: err.message });
+    }
+  }
+
+  return { importedCount, importErrors };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * POST/GET /search-api - Search WiGLE API with optional import
  */
@@ -32,103 +138,51 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
       });
     }
 
-    const {
-      ssid,
-      bssid,
-      latrange1,
-      latrange2,
-      longrange1,
-      longrange2,
-      country,
-      region,
-      city,
-      resultsPerPage = 100,
-      searchAfter,
-      version = 'v2', // Default to v2
-    } = req.query;
+    const { version = 'v2' } = req.query;
 
     // Support 'import' from body (POST) or query (GET)
     const shouldImport = req.body?.import === true || req.query?.import === 'true';
 
-    const params = new URLSearchParams();
-    if (ssid) params.append('ssidlike', ssid as string);
-    if (bssid) params.append('netid', bssid as string);
-    if (latrange1) params.append('latrange1', latrange1 as string);
-    if (latrange2) params.append('latrange2', latrange2 as string);
-    if (longrange1) params.append('longrange1', longrange1 as string);
-    if (longrange2) params.append('longrange2', longrange2 as string);
-    if (country) params.append('country', country as string);
-    if (region) params.append('region', region as string);
-    if (city) params.append('city', city as string);
-    params.append(
-      'resultsPerPage',
-      Math.min(parseInt(resultsPerPage as string) || 100, 1000).toString()
-    );
-    if (searchAfter) params.append('searchAfter', searchAfter as string);
-
-    if (!ssid && !bssid && !latrange1 && !country && !region && !city) {
+    const validationError = validateSearchQuery(req.query);
+    if (validationError) {
       return res.status(400).json({
         ok: false,
-        error:
-          'At least one search parameter required (ssid, bssid, latrange, country, region, or city)',
+        error: validationError,
       });
     }
 
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+    const params = buildSearchParams(req.query);
 
     // Select API version
     const apiVer = version === 'v3' ? 'v3' : 'v2';
-    const apiUrl = `https://api.wigle.net/api/${apiVer}/network/search?${params.toString()}`;
-
-    logger.info(`[WiGLE] Searching API (${apiVer}): ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`);
-
-    const response = await withRetry(
-      () =>
-        fetch(apiUrl, {
-          headers: {
-            Authorization: `Basic ${encodedAuth}`,
-            Accept: 'application/json',
-          },
-        }),
-      { serviceName: 'WiGLE Search API', timeoutMs: 30000, maxRetries: 2 }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error(`[WiGLE] Search API error ${response.status}: ${errorText}`);
-      return res.status(response.status).json({
+    let data;
+    try {
+      data = await fetchWiglePage(encodedAuth, apiVer, params);
+    } catch (error: any) {
+      logger.error(
+        `[WiGLE] Search API error ${error.status || 500}: ${error.details || error.message}`
+      );
+      return res.status(error.status || 500).json({
         ok: false,
         error: 'WiGLE API request failed',
-        status: response.status,
-        details: errorText,
+        status: error.status,
+        details: error.details || error.message,
       });
     }
-
-    const data = await response.json();
     const results = data.results || [];
     logger.info(
       `[WiGLE] Search returned ${results.length} results (total: ${data.totalResults || 'unknown'})`
     );
 
     let importedCount = 0;
-    const importErrors: any[] = [];
+    let importErrors: Array<{ bssid: string; error: string }> = [];
 
     if (shouldImport && results.length > 0) {
       logger.info(`[WiGLE] Importing ${results.length} results to database...`);
-
-      for (const network of results) {
-        try {
-          const rowCount = await wigleService.importWigleV2SearchResult(network);
-          if (rowCount > 0) {
-            importedCount++;
-          }
-        } catch (err: any) {
-          logger.error(
-            `[WiGLE] Import error for ${network.netid || network.bssid}: ${err.message}`
-          );
-          importErrors.push({ bssid: network.netid || network.bssid, error: err.message });
-        }
-      }
+      const importResult = await importSearchResults(results);
+      importedCount = importResult.importedCount;
+      importErrors = importResult.importErrors;
 
       logger.info(`[WiGLE] Import complete: ${importedCount}/${results.length} networks imported`);
     }
@@ -146,6 +200,97 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
     });
   } catch (err: any) {
     logger.error(`[WiGLE] Search error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+router.post('/search-api/import-all', requireAdmin, async (req, res, next) => {
+  try {
+    const wigleApiName = secretsManager.get('wigle_api_name');
+    const wigleApiToken = secretsManager.get('wigle_api_token');
+
+    if (!wigleApiName || !wigleApiToken) {
+      return res.status(503).json({
+        ok: false,
+        error:
+          'WiGLE API credentials not configured. Set wigle_api_name and wigle_api_token secrets.',
+      });
+    }
+
+    const query = { ...req.query, ...req.body };
+    const validationError = validateSearchQuery(query);
+    if (validationError) {
+      return res.status(400).json({ ok: false, error: validationError });
+    }
+
+    const version = query.version === 'v3' ? 'v3' : 'v2';
+    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+
+    let searchAfter: string | null = null;
+    let pagesProcessed = 0;
+    let loadedCount = 0;
+    let importedCount = 0;
+    const importErrors: Array<{ bssid: string; error: string }> = [];
+    const allResults: any[] = [];
+    let totalResults = 0;
+
+    do {
+      const params = buildSearchParams({
+        ...query,
+        searchAfter,
+      });
+
+      let data;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          data = await fetchWiglePage(encodedAuth, version, params);
+          break;
+        } catch (error: any) {
+          const retriable = error.status === 429 || (error.status >= 500 && error.status < 600);
+          if (!retriable || attempt >= IMPORT_ALL_MAX_RETRIES) {
+            throw error;
+          }
+
+          const backoffMs = IMPORT_ALL_PAGE_DELAY_MS * Math.pow(2, attempt + 1);
+          logger.warn(
+            `[WiGLE] import-all page retry ${attempt + 1}/${IMPORT_ALL_MAX_RETRIES} after ${error.status}; waiting ${backoffMs}ms`
+          );
+          await sleep(backoffMs);
+        }
+      }
+
+      const results = data.results || [];
+      totalResults = data.totalResults || totalResults;
+      loadedCount += results.length;
+      pagesProcessed++;
+      if (results.length > 0) {
+        allResults.push(...results);
+        const importResult = await importSearchResults(results);
+        importedCount += importResult.importedCount;
+        importErrors.push(...importResult.importErrors);
+      }
+
+      searchAfter = data.search_after || null;
+      if (searchAfter) {
+        await sleep(IMPORT_ALL_PAGE_DELAY_MS);
+      }
+    } while (searchAfter);
+
+    return res.json({
+      ok: true,
+      imported: true,
+      totalResults,
+      loadedCount,
+      resultCount: allResults.length,
+      importedCount,
+      importErrors: importErrors.length > 0 ? importErrors : undefined,
+      pagesProcessed,
+      hasMore: false,
+      searchAfter: null,
+      results: allResults,
+    });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Import-all error: ${err.message}`, { error: err });
     next(err);
   }
 });

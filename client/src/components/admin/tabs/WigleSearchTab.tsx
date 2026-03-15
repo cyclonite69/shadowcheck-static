@@ -60,6 +60,7 @@ export const WigleSearchTab: React.FC = () => {
     setSearchParams,
     loadApiStatus,
     runSearch,
+    importAllResults,
     loadMoreResults,
     hasMorePages,
     currentPage,
@@ -287,6 +288,16 @@ export const WigleSearchTab: React.FC = () => {
                 {searchLoading ? 'Searching...' : 'Search & Import'}
               </button>
             </div>
+            <button
+              onClick={importAllResults}
+              disabled={searchLoading || !apiStatus?.configured}
+              className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 text-sm transition-all"
+            >
+              {searchLoading ? 'Running Import...' : 'Import All Pages'}
+            </button>
+            <p className="text-xs text-slate-400">
+              Server walks all pages with paced requests and retry backoff on WiGLE rate limits.
+            </p>
             {searchError && (
               <div className="text-red-400 text-sm p-2 bg-red-900/20 rounded border border-red-700/50">
                 {searchError}
@@ -329,6 +340,14 @@ export const WigleSearchTab: React.FC = () => {
                         {currentPage} of {totalPages}
                       </span>
                     </div>
+                    {searchResults.pagesProcessed && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Pages Processed:</span>
+                        <span className="font-semibold text-slate-300">
+                          {searchResults.pagesProcessed}
+                        </span>
+                      </div>
+                    )}
                     {searchResults.imported && (
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">Imported:</span>
