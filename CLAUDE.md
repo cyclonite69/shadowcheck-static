@@ -193,10 +193,8 @@ node etl/run-pipeline.js              # Run full ETL pipeline
 # Individual stages
 node etl/load/json-import.js          # Import WiGLE JSON
 node etl/load/sqlite-import.js        # Import from Kismet SQLite
-node etl/transform/deduplicate.js     # Deduplicate observations
-node etl/transform/normalize-observations.js  # Normalize data
-node etl/promote/refresh-mviews.js    # Refresh materialized views
-node etl/promote/run-scoring.js       # Run threat scoring
+tsx etl/transform/process-observations.ts  # Normalize + deduplicate observations
+tsx etl/promote/process-promotion.ts       # Validate, refresh MVs, and run scoring
 ```
 
 Staging tables are UNLOGGED for ingestion speed.

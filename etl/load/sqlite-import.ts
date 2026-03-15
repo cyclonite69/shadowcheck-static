@@ -1,15 +1,15 @@
 #!/usr/bin/env tsx
 /**
- * INCREMENTAL IMPORT - WiGLE SQLite → PostgreSQL
+ * WiGLE SQLite → PostgreSQL importer
  *
  * Only imports observations newer than the latest timestamp already in the database.
  * Matches the actual app.observations schema.
  *
  * Usage:
- *   npx tsx etl/load/sqlite-import-incremental.ts <sqlite_file> <source_tag>
+ *   npx tsx etl/load/sqlite-import.ts <sqlite_file> [source_tag]
  *
  * Example:
- *   npx tsx etl/load/sqlite-import-incremental.ts ~/Downloads/backup.sqlite s22_new
+ *   npx tsx etl/load/sqlite-import.ts ~/Downloads/backup.sqlite s22_new
  */
 
 import * as fs from 'fs';
