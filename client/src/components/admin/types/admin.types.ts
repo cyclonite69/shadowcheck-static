@@ -8,6 +8,7 @@ export interface WigleSearchParams {
   country: string;
   region: string;
   city: string;
+  version?: 'v2' | 'v3';
 }
 
 export interface WigleApiStatus {

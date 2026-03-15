@@ -22,6 +22,7 @@ export const useWigleSearch = () => {
     country: 'US',
     region: '',
     city: '',
+    version: 'v2',
   });
   // Pagination state
   const [allResults, setAllResults] = useState<WigleNetworkResult[]>([]);
@@ -62,6 +63,7 @@ export const useWigleSearch = () => {
       if (searchParams.country) params.append('country', searchParams.country);
       if (searchParams.region) params.append('region', searchParams.region);
       if (searchParams.city) params.append('city', searchParams.city);
+      if (searchParams.version) params.append('version', searchParams.version);
 
       // Add searchAfter for pagination
       if (loadMore && searchAfter) {

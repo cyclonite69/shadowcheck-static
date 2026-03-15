@@ -136,6 +136,25 @@ export const WigleSearchTab: React.FC = () => {
             </div>
             <div className="grid grid-cols-3 gap-2 text-sm mt-2">
               <div>
+                <label className="block text-xs text-slate-400 mb-1">API Version</label>
+                <div className="flex rounded border border-slate-600/60 overflow-hidden">
+                  {(['v2', 'v3'] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setSearchParams({ ...searchParams, version: v })}
+                      className={`flex-1 py-1.5 text-[10px] font-bold uppercase transition-colors ${
+                        (searchParams.version || 'v2') === v
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
                 <label className="block text-xs text-slate-400 mb-1">Country</label>
                 <input
                   type="text"
