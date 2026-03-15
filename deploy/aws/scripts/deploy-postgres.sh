@@ -110,15 +110,18 @@ if [ ! -f "$CERT_DIR/server.crt" ]; then
   openssl req -new -x509 -days 3650 -nodes -text \
     -out "$CERT_DIR/server.crt" -keyout "$CERT_DIR/server.key" \
     -subj "/CN=shadowcheck-postgres"
-  chmod 600 "$CERT_DIR/server.key"
-  chmod 644 "$CERT_DIR/server.crt"
   echo "  Created"
 else
   echo "  Already exist"
 fi
 
-# Ensure postgres user (uid 999) owns certs
-chown 999:999 "$CERT_DIR/server.key" "$CERT_DIR/server.crt"
+# Mandatory permissions: PostgreSQL will NOT start if server.key is group/world readable
+echo "  Enforcing strict certificate permissions..."
+chown 999:999 "$CERT_DIR/server.key" "$CERT_DIR/server.crt" 2>/dev/null || true
+chmod 700 "$CERT_DIR"
+chmod 600 "$CERT_DIR/server.key"
+chmod 644 "$CERT_DIR/server.crt"
+echo "  ✅ Permissions set (0600 for server.key)"
 
 # ============================================================================
 # 4. PostgreSQL configuration (tuned for m6g.large: 2 vCPU, 8 GB RAM)
