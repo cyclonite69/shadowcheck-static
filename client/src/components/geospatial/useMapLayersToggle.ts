@@ -15,6 +15,13 @@ export const useMapLayersToggle = ({
 }: MapLayersToggleProps) => {
   const [is3DBuildingsAvailable, setIs3DBuildingsAvailable] = useState(false);
 
+  const styleLikelySupports3D = useCallback((): boolean => {
+    if (!mapStyle) return false;
+    if (mapStyle.startsWith('google-')) return false;
+    if (mapStyle.startsWith('mapbox://styles/mapbox/standard')) return true;
+    return mapStyle.startsWith('mapbox://styles/');
+  }, [mapStyle]);
+
   const ensure3DView = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -85,7 +92,7 @@ export const useMapLayersToggle = ({
 
   const refresh3DBuildingAvailability = useCallback(() => {
     const sourceId = resolve3DBuildingSource();
-    const supported = Boolean(sourceId);
+    const supported = Boolean(sourceId) || styleLikelySupports3D();
     setIs3DBuildingsAvailable(supported);
 
     if (!mapRef.current) return;
@@ -96,7 +103,7 @@ export const useMapLayersToggle = ({
       setShow3DBuildings(false);
       localStorage.setItem('shadowcheck_show_3d_buildings', 'false');
     }
-  }, [mapRef, resolve3DBuildingSource, setShow3DBuildings]);
+  }, [mapRef, resolve3DBuildingSource, setShow3DBuildings, styleLikelySupports3D]);
 
   useEffect(() => {
     let cancelled = false;

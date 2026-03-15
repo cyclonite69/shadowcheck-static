@@ -311,6 +311,7 @@ export default function GeospatialExplorer() {
                 wigleLoading={wigleObservations.loading}
                 wigleActive={wigleObservations.observations.length > 0}
                 selectedCount={selectedNetworks.size}
+                onWeatherFxModeChange={state.setWeatherFxMode}
               />
             }
             mapError={state.mapError}
