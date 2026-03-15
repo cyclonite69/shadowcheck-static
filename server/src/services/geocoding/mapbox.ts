@@ -4,6 +4,23 @@
 
 import type { GeocodeMode, GeocodeResult } from './types';
 
+const readFailurePayload = async (response: Response): Promise<unknown> => {
+  const text = await response.text();
+  if (!text) {
+    return { status: response.status, statusText: response.statusText };
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      body: text,
+    };
+  }
+};
+
 const parseMapboxContext = (
   context?: Array<{ id?: string; text?: string; short_code?: string }>
 ) => {
@@ -48,7 +65,11 @@ export const mapboxReverse = async (
     throw new Error('rate_limit');
   }
   if (!response.ok) {
-    return { ok: false };
+    return {
+      ok: false,
+      error: `HTTP ${response.status}`,
+      raw: await readFailurePayload(response),
+    };
   }
   const json = (await response.json()) as {
     features?: Array<{

@@ -47,9 +47,12 @@ const MetricLabel: React.FC<{ label: string; tooltip: string }> = ({ label, tool
 
 export const GeocodingTab: React.FC = () => {
   const [limit, setLimit] = useState(1000);
-  const [precision, setPrecision] = useState(5);
-  const [perMinute, setPerMinute] = useState(200);
-  const [permanent, setPermanent] = useState(true);
+  const [precision, setPrecision] = useState(4);
+  const [perMinute, setPerMinute] = useState(60);
+  const [permanent, setPermanent] = useState(false);
+  const [addressProvider, setAddressProvider] = useState<
+    'mapbox' | 'nominatim' | 'opencage' | 'locationiq'
+  >('locationiq');
 
   const {
     stats,
@@ -58,18 +61,21 @@ export const GeocodingTab: React.FC = () => {
     error,
     actionMessage,
     lastResult,
+    probeLoading,
+    probeResult,
     refreshStats,
     runGeocoding,
+    testProvider,
   } = useGeocodingCache(precision);
 
   const runAddressPass = async () => {
     await runGeocoding({
-      provider: 'mapbox',
+      provider: addressProvider,
       mode: 'address-only',
       limit,
       precision,
       perMinute,
-      permanent,
+      permanent: addressProvider === 'mapbox' ? permanent : false,
     });
   };
 
@@ -117,6 +123,17 @@ export const GeocodingTab: React.FC = () => {
     });
   };
 
+  const testSelectedProvider = async () => {
+    await testProvider({
+      provider: addressProvider,
+      mode: 'address-only',
+      limit,
+      precision,
+      perMinute,
+      permanent: addressProvider === 'mapbox' ? permanent : false,
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <AdminCard icon={MapIcon} title="Geocoding Cache" color="from-indigo-500 to-indigo-600">
@@ -160,11 +177,11 @@ export const GeocodingTab: React.FC = () => {
             </div>
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
               <MetricLabel
-                label="Addresses"
-                tooltip="Distinct non-null address strings currently stored in cache."
+                label="Resolved Rows"
+                tooltip="Cache rows with a non-null resolved address."
               />
               <div className="text-lg font-semibold text-white">
-                {stats?.distinct_addresses?.toLocaleString() || '—'}
+                {stats?.resolved_address_rows?.toLocaleString() || '—'}
               </div>
             </div>
             <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
@@ -174,6 +191,42 @@ export const GeocodingTab: React.FC = () => {
               />
               <div className="text-lg font-semibold text-white">
                 {stats?.cached_with_poi?.toLocaleString() || '—'}
+              </div>
+            </div>
+            <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
+              <MetricLabel
+                label="Pending Queue"
+                tooltip="Unresolved cache rows that have not yet been attempted for address enrichment."
+              />
+              <div className="text-lg font-semibold text-white">
+                {stats?.pending_address_queue?.toLocaleString() || '—'}
+              </div>
+            </div>
+            <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
+              <MetricLabel
+                label="Attempted No Hit"
+                tooltip="Unresolved cache rows that have already been attempted at least once."
+              />
+              <div className="text-lg font-semibold text-white">
+                {stats?.attempted_without_address?.toLocaleString() || '—'}
+              </div>
+            </div>
+            <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
+              <MetricLabel
+                label="Recent Activity"
+                tooltip="Cache rows touched in the last 10 minutes."
+              />
+              <div className="text-lg font-semibold text-white">
+                {stats?.recent_activity?.toLocaleString() || '—'}
+              </div>
+            </div>
+            <div className="rounded-lg bg-slate-800/50 border border-slate-700/50 p-3">
+              <MetricLabel
+                label="Distinct Addresses"
+                tooltip="Distinct non-null address strings currently stored in cache."
+              />
+              <div className="text-lg font-semibold text-white">
+                {stats?.distinct_addresses?.toLocaleString() || '—'}
               </div>
             </div>
           </div>
@@ -221,6 +274,25 @@ export const GeocodingTab: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
+                Address Provider
+              </label>
+              <select
+                value={addressProvider}
+                onChange={(e) =>
+                  setAddressProvider(
+                    e.target.value as 'mapbox' | 'nominatim' | 'opencage' | 'locationiq'
+                  )
+                }
+                className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all"
+              >
+                <option value="locationiq">LocationIQ</option>
+                <option value="opencage">OpenCage</option>
+                <option value="nominatim">Nominatim</option>
+                <option value="mapbox">Mapbox</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">
                 Rate / Minute
               </label>
               <input
@@ -231,15 +303,21 @@ export const GeocodingTab: React.FC = () => {
                 className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-600/60 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-all"
               />
             </div>
-            <div className="flex items-center space-x-2 mt-7">
-              <input
-                type="checkbox"
-                checked={permanent}
-                onChange={(e) => setPermanent(e.target.checked)}
-                className="h-4 w-4 text-teal-500 bg-slate-800 border-slate-600 rounded"
-              />
-              <span className="text-sm text-slate-300">Permanent (Mapbox)</span>
-            </div>
+            {addressProvider === 'mapbox' ? (
+              <div className="flex items-center space-x-2 mt-7">
+                <input
+                  type="checkbox"
+                  checked={permanent}
+                  onChange={(e) => setPermanent(e.target.checked)}
+                  className="h-4 w-4 text-teal-500 bg-slate-800 border-slate-600 rounded"
+                />
+                <span className="text-sm text-slate-300">Permanent (Mapbox)</span>
+              </div>
+            ) : (
+              <div className="flex items-center text-xs text-slate-400 mt-7">
+                Permanent mode only applies to Mapbox.
+              </div>
+            )}
           </div>
 
           <div className="text-xs text-slate-400 border border-slate-700/50 bg-slate-900/40 rounded-lg p-3">
@@ -248,11 +326,18 @@ export const GeocodingTab: React.FC = () => {
 
           <div className="grid grid-cols-1 gap-2">
             <button
+              onClick={testSelectedProvider}
+              disabled={probeLoading}
+              className="w-full px-4 py-2.5 bg-gradient-to-r from-violet-600 to-violet-700 text-white rounded-lg font-medium hover:from-violet-500 hover:to-violet-600 transition-all disabled:opacity-50 text-sm"
+            >
+              {probeLoading ? 'Testing...' : `Test ${addressProvider}`}
+            </button>
+            <button
               onClick={runAddressPass}
               disabled={actionLoading}
               className="w-full px-4 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg font-medium hover:from-teal-500 hover:to-teal-600 transition-all disabled:opacity-50 text-sm"
             >
-              {actionLoading ? 'Running...' : 'Update Addresses (Mapbox)'}
+              {actionLoading ? 'Running...' : `Update Addresses (${addressProvider})`}
             </button>
             <button
               onClick={runPoiPass}
@@ -298,6 +383,60 @@ export const GeocodingTab: React.FC = () => {
             <div className="p-3 rounded-lg text-xs text-slate-300 border border-slate-700/50 bg-slate-900/40">
               Last run: {lastResult.provider} • {lastResult.mode} • {lastResult.successful}/
               {lastResult.processed} • {Math.round(lastResult.durationMs / 1000)}s
+            </div>
+          )}
+          {stats?.current_run && (
+            <div className="p-3 rounded-lg text-xs text-cyan-300 border border-cyan-700/50 bg-cyan-950/20">
+              Running now: {stats.current_run.provider} • {stats.current_run.mode} • precision{' '}
+              {stats.current_run.precision} • limit {stats.current_run.limit}
+            </div>
+          )}
+          {probeResult && (
+            <div className="p-3 rounded-lg text-xs text-slate-300 border border-slate-700/50 bg-slate-900/40 space-y-1">
+              <div>
+                Probe: {probeResult.provider} • {probeResult.mode} • sample {probeResult.sample.lat}
+                , {probeResult.sample.lon}
+              </div>
+              <div>
+                Result: {probeResult.result.ok ? 'ok' : probeResult.result.error || 'no hit'}
+              </div>
+              {probeResult.result.address && <div>Address: {probeResult.result.address}</div>}
+              {probeResult.result.poiName && <div>POI: {probeResult.result.poiName}</div>}
+            </div>
+          )}
+          {stats?.last_run?.error && (
+            <div className="p-3 rounded-lg text-xs text-amber-300 border border-amber-700/50 bg-amber-950/20">
+              Last failure: {stats.last_run.provider} • {stats.last_run.error}
+            </div>
+          )}
+        </div>
+      </AdminCard>
+      <AdminCard icon={SparkIcon} title="Recent Geocoding Jobs" color="from-slate-600 to-slate-700">
+        <div className="space-y-2">
+          {stats?.recent_runs?.length ? (
+            stats.recent_runs.map((run) => (
+              <div
+                key={`${run.id ?? run.startedAt}-${run.provider}`}
+                className="p-3 rounded-lg text-xs text-slate-300 border border-slate-700/50 bg-slate-900/40"
+              >
+                <div>
+                  #{run.id ?? '—'} • {run.status} • {run.provider} • {run.mode}
+                </div>
+                <div>
+                  precision {run.precision} • limit {run.limit} • rate {run.perMinute}/min
+                </div>
+                {run.result && (
+                  <div>
+                    {run.result.successful}/{run.result.processed} successful • rate limited{' '}
+                    {run.result.rateLimited} • {Math.round(run.result.durationMs / 1000)}s
+                  </div>
+                )}
+                {run.error && <div>Error: {run.error}</div>}
+              </div>
+            ))
+          ) : (
+            <div className="p-3 rounded-lg text-sm text-slate-400 border border-slate-700/50 bg-slate-900/40">
+              No persisted geocoding job history yet.
             </div>
           )}
         </div>

@@ -31,7 +31,43 @@ export type GeocodeResult = {
   postal?: string | null;
   country?: string | null;
   confidence?: number | null;
+  error?: string | null;
   raw?: unknown;
+};
+
+export type GeocodeRunSummary = {
+  precision: number;
+  mode: GeocodeMode;
+  provider: string;
+  processed: number;
+  successful: number;
+  poiHits: number;
+  rateLimited: number;
+  durationMs: number;
+};
+
+export type GeocodingRunSnapshot = {
+  id?: number;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  finishedAt?: string;
+  provider: GeocodeProvider;
+  mode: GeocodeMode;
+  precision: number;
+  limit: number;
+  perMinute: number;
+  permanent?: boolean;
+  result?: GeocodeRunSummary;
+  error?: string;
+};
+
+export type GeocodingProviderProbe = {
+  provider: GeocodeProvider;
+  mode: GeocodeMode;
+  permanent?: boolean;
+  lat?: number;
+  lon?: number;
+  precision?: number;
 };
 
 export type GeocodeRow = {

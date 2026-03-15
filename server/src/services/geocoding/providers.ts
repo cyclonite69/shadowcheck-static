@@ -5,6 +5,23 @@
 
 import type { GeocodeResult } from './types';
 
+const readFailurePayload = async (response: Response): Promise<unknown> => {
+  const text = await response.text();
+  if (!text) {
+    return { status: response.status, statusText: response.statusText };
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      body: text,
+    };
+  }
+};
+
 export const nominatimReverse = async (lat: number, lon: number): Promise<GeocodeResult> => {
   const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
   const response = await fetch(url, { headers: { 'User-Agent': 'ShadowCheck/1.0' } });
@@ -12,7 +29,11 @@ export const nominatimReverse = async (lat: number, lon: number): Promise<Geocod
     throw new Error('rate_limit');
   }
   if (!response.ok) {
-    return { ok: false };
+    return {
+      ok: false,
+      error: `HTTP ${response.status}`,
+      raw: await readFailurePayload(response),
+    };
   }
 
   const json = (await response.json()) as {
@@ -46,7 +67,11 @@ export const overpassPoi = async (lat: number, lon: number): Promise<GeocodeResu
     throw new Error('rate_limit');
   }
   if (!response.ok) {
-    return { ok: false };
+    return {
+      ok: false,
+      error: `HTTP ${response.status}`,
+      raw: await readFailurePayload(response),
+    };
   }
   const json = (await response.json()) as {
     elements?: Array<{
@@ -89,7 +114,11 @@ export const opencageReverse = async (
     throw new Error('rate_limit');
   }
   if (!response.ok) {
-    return { ok: false };
+    return {
+      ok: false,
+      error: `HTTP ${response.status}`,
+      raw: await readFailurePayload(response),
+    };
   }
   const json = (await response.json()) as {
     results?: Array<{
@@ -135,7 +164,11 @@ export const locationIqReverse = async (
     throw new Error('rate_limit');
   }
   if (!response.ok) {
-    return { ok: false };
+    return {
+      ok: false,
+      error: `HTTP ${response.status}`,
+      raw: await readFailurePayload(response),
+    };
   }
   const json = (await response.json()) as {
     display_name?: string;
