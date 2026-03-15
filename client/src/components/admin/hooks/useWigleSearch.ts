@@ -80,9 +80,12 @@ export const useWigleSearch = () => {
       // Update pagination state
       const newResults = data.results || [];
       const combinedResults = loadMore ? [...allResults, ...newResults] : newResults;
+      const nextSearchAfter = data.searchAfter ?? data.search_after ?? null;
+      const importedCount = typeof data.importedCount === 'number' ? data.importedCount : 0;
+      const importErrors = Array.isArray(data.importErrors) ? data.importErrors : [];
 
       setAllResults(combinedResults);
-      setSearchAfter(data.searchAfter || null);
+      setSearchAfter(nextSearchAfter);
       setTotalResults(data.totalResults || combinedResults.length);
       if (loadMore) {
         setCurrentPage((prev) => prev + 1);
@@ -91,8 +94,19 @@ export const useWigleSearch = () => {
       // Update search results with combined data
       setSearchResults({
         ...data,
+        searchAfter: nextSearchAfter,
+        hasMore: nextSearchAfter !== null,
         results: combinedResults,
         resultCount: combinedResults.length,
+        imported:
+          data.imported || importResults
+            ? {
+                count: importedCount,
+                errors: importErrors,
+              }
+            : null,
+        importedCount,
+        importErrors,
       });
     } catch (err: any) {
       setSearchError(err?.message || 'Search failed');
