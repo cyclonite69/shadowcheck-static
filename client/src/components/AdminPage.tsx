@@ -226,7 +226,7 @@ const AdminPage: React.FC = () => {
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
     { id: 'api', label: 'API Testing', icon: ApiIcon },
     { id: 'ml', label: 'ML Training', icon: BrainIcon },
-    { id: 'wigle', label: 'WiGLE Search', icon: SearchIcon },
+    { id: 'wigle', label: 'WiGLE Search (v2)', icon: SearchIcon },
     { id: 'wigle-detail', label: 'WiGLE Detail (v3)', icon: DetailIcon },
     { id: 'imports', label: 'Data Import', icon: UploadIcon },
     { id: 'backups', label: 'Backups', icon: DatabaseIcon },

@@ -44,6 +44,7 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
       city,
       resultsPerPage = 100,
       searchAfter,
+      version = 'v2', // Default to v2
     } = req.query;
 
     // Support 'import' from body (POST) or query (GET)
@@ -74,10 +75,12 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
     }
 
     const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-    // Use v3 API as requested
-    const apiUrl = `https://api.wigle.net/api/v3/network/search?${params.toString()}`;
 
-    logger.info(`[WiGLE] Searching API (v3): ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`);
+    // Select API version
+    const apiVer = version === 'v3' ? 'v3' : 'v2';
+    const apiUrl = `https://api.wigle.net/api/${apiVer}/network/search?${params.toString()}`;
+
+    logger.info(`[WiGLE] Searching API (${apiVer}): ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`);
 
     const response = await withRetry(
       () =>
