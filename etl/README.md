@@ -34,16 +34,13 @@ Source Data (SQLite/JSON)
 
 ```bash
 # Import from WiGLE SQLite database
-node etl/load/sqlite-import.js /path/to/wigle.sqlite
+tsx etl/load/sqlite-import.ts /path/to/wigle.sqlite [source_tag]
 
 # Import from WiGLE API JSON responses
-node etl/load/json-import.js
+tsx etl/load/json-import.ts
 
-# Refresh materialized views
-node etl/promote/refresh-mviews.js
-
-# Run ML scoring
-node etl/promote/run-scoring.js
+# Run the consolidated promotion stage
+tsx etl/promote/process-promotion.ts
 ```
 
 ## Configuration
@@ -65,8 +62,8 @@ DEBUG=false
 
 | Source              | Script                  | Target Table                      |
 | ------------------- | ----------------------- | --------------------------------- |
-| WiGLE SQLite        | `load/sqlite-import.js` | `app.observations`                |
-| WiGLE API v2 JSON   | `load/json-import.js`   | `public.wigle_v2_networks_search` |
+| WiGLE SQLite        | `load/sqlite-import.ts` | `app.observations`                |
+| WiGLE API v2 JSON   | `load/json-import.ts`   | `app.wigle_v2_networks_search`    |
 | WiGLE API v3 Detail | API endpoint            | `public.wigle_v3_network_details` |
 
 ## Monitoring

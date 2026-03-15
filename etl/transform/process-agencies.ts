@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Enrich app.agency_offices with ZIP+4 using Smarty US Street API.
+ * Process agency offices with Smarty US Street ZIP+4 enrichment.
  *
  * Goals:
  * - Fill ZIP+4 (postal_code) for rows that currently have only a 5-digit ZIP (or blank).
@@ -9,13 +9,13 @@
  *
  * Usage:
  *   # Dry run (no API calls, no DB updates)
- *   npx tsx etl/transform/enrich-agency-offices-zip4-smarty.ts --dry-run --limit=50
+ *   npx tsx etl/transform/process-agencies.ts --dry-run --limit=50
  *
  *   # Live run (calls Smarty, writes postal_code)
- *   npx tsx etl/transform/enrich-agency-offices-zip4-smarty.ts --live --limit=500
+ *   npx tsx etl/transform/process-agencies.ts --live --limit=500
  *
  *   # Limit to a state (recommended for state-by-state backfills)
- *   npx tsx etl/transform/enrich-agency-offices-zip4-smarty.ts --live --state=KY --with-coordinates --limit=500
+ *   npx tsx etl/transform/process-agencies.ts --live --state=KY --with-coordinates --limit=500
  *
  * Notes:
  * - By default, connects to Postgres using DB_* env vars, but will fall back to localhost

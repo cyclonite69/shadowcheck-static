@@ -607,7 +607,7 @@ async function upsertOffice(
   ]);
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const refresh = process.argv.includes('--refresh');
   const limitArg = process.argv.find((arg) => arg.startsWith('--limit='));
   const limit = limitArg ? Number(limitArg.split('=')[1]) : null;

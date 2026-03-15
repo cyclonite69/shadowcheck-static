@@ -2,7 +2,7 @@
  * Admin SQLite Import Route
  *
  * Accepts a WiGLE SQLite backup file and a source_tag, then runs the
- * incremental importer (only new observations since last import for that tag).
+ * consolidated SQLite importer (which still imports incrementally by source_tag).
  * Optionally takes a DB backup before importing.
  * Every run is recorded in app.import_history with before/after metrics.
  */
@@ -51,17 +51,17 @@ const PROJECT_ROOT = process.cwd();
 
 function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string; args: string[] } {
   const compiledCandidates = [
-    path.join(PROJECT_ROOT, 'dist/server/etl/load/sqlite-import-incremental.js'),
-    path.join(PROJECT_ROOT, 'etl/load/sqlite-import-incremental.js'),
-    path.join('/app/dist/server/etl/load/sqlite-import-incremental.js'),
+    path.join(PROJECT_ROOT, 'dist/server/etl/load/sqlite-import.js'),
+    path.join(PROJECT_ROOT, 'etl/load/sqlite-import.js'),
+    path.join('/app/dist/server/etl/load/sqlite-import.js'),
   ];
   const tsxCandidates = [
     path.join(PROJECT_ROOT, 'node_modules/.bin/tsx'),
     path.join('/app/node_modules/.bin/tsx'),
   ];
   const tsScriptCandidates = [
-    path.join(PROJECT_ROOT, 'etl/load/sqlite-import-incremental.ts'),
-    path.join('/app/etl/load/sqlite-import-incremental.ts'),
+    path.join(PROJECT_ROOT, 'etl/load/sqlite-import.ts'),
+    path.join('/app/etl/load/sqlite-import.ts'),
   ];
 
   const compiledScript = compiledCandidates.find((p) => fsNative.existsSync(p));
@@ -78,7 +78,7 @@ function getImportCommand(sqliteFile: string, sourceTag: string): { cmd: string;
     return { cmd: tsxBin, args: [tsScript, sqliteFile, sourceTag] };
   }
 
-  throw new Error('SQLite importer script not found (checked tsx and compiled paths)');
+  throw new Error('SQLite importer script not found (checked consolidated tsx and compiled paths)');
 }
 
 function getSqlImportCommand(sqlFile: string): { cmd: string; args: string[]; env: any } {
@@ -146,7 +146,7 @@ router.post(
     const startedAt = new Date();
 
     logger.info(
-      `Starting incremental SQLite import: ${originalName} (source_tag: ${sourceTag}, backup: ${backupRequested})`
+      `Starting SQLite import: ${originalName} (source_tag: ${sourceTag}, backup: ${backupRequested})`
     );
 
     const metricsBefore = await adminDbService.captureImportMetrics();
