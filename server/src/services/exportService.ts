@@ -52,13 +52,13 @@ export async function getObservationsAndNetworksForJSON(): Promise<{
         bssid,
         ssid,
         type,
-        firsttime_ms,
         lasttime_ms,
         bestlat,
         bestlon,
         frequency,
         capabilities,
-        security
+        threat_score_v2 as threat_score,
+        threat_level
       FROM app.networks
       ORDER BY lasttime_ms DESC NULLS LAST
       LIMIT 10000
