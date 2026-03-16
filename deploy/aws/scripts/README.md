@@ -189,6 +189,32 @@ sudo ./deploy/aws/scripts/deploy-redis.sh
 **Purpose:** Configure git credentials via SSM  
 **Usage:** `./deploy/aws/scripts/setup-git-on-ec2.sh <username> <token>`
 
+### 🔐 scs-ssm.sh
+
+**Run from:** Local machine  
+**Purpose:** Start an EC2 SSM session with automatic AWS SSO recovery  
+**Does:**
+
+- Verifies the AWS CLI and Session Manager plugin are installed
+- Checks whether the `shadowcheck-sso` profile is still valid
+- Runs `aws sso login` if the session is expired, which opens the browser login flow
+- Resolves the latest EC2 instance tagged `Name=scs-ssm` if no instance id is passed
+- Starts the SSM session and retries once after re-login if needed
+
+**Usage:**
+
+```bash
+./deploy/aws/scripts/scs-ssm.sh
+# or
+./deploy/aws/scripts/scs-ssm.sh i-0123456789abcdef0
+```
+
+**Suggested alias:**
+
+```bash
+alias scs-ssm='$PWD/deploy/aws/scripts/scs-ssm.sh'
+```
+
 ---
 
 ## Specialized Scripts
