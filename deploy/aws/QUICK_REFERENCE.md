@@ -7,7 +7,7 @@
 ./deploy/aws/scripts/launch-shadowcheck-spot.sh
 
 # 2. Connect (local machine)
-aws ssm start-session --target i-XXXXX --region us-east-1
+./deploy/aws/scripts/scs-ssm.sh
 
 # 3. Setup (EC2 instance)
 bash
@@ -56,12 +56,19 @@ cd /home/ssm-user/shadowcheck
 ## 🛠️ Useful Aliases
 
 ```bash
+scs-ssm   # Auto-login via AWS SSO if needed, then open SSM session
 sc        # cd /home/ssm-user/shadowcheck
 sclogs    # docker logs -f shadowcheck_backend
 scps      # docker ps (formatted)
 scdb      # pgcli postgresql://shadowcheck_user@localhost:5432/shadowcheck_db
 scdeploy  # Deploy latest from GitHub
 scstatus  # Show containers and disk usage
+```
+
+Recommended local alias:
+
+```bash
+alias scs-ssm='$PWD/deploy/aws/scripts/scs-ssm.sh'
 ```
 
 ## 🔍 Troubleshooting Commands
