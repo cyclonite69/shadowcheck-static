@@ -9,6 +9,7 @@ import { useLocationSearch } from './useLocationSearch';
 import { useHomeLocation } from './useHomeLocation';
 import { useMapDimensions } from './useMapDimensions';
 import { useBoundingBoxFilter } from './useBoundingBoxFilter';
+import { useMapInteractionLock } from './useMapInteractionLock';
 import { useHomeLocationLayer } from './useHomeLocationLayer';
 import { useObservationSummary } from './useObservationSummary';
 import { useMapResizeHandle } from './useMapResizeHandle';
@@ -172,6 +173,12 @@ export const useGeospatialExplorerState = ({
     enabled: enabled.boundingBox,
     syncToViewport: lockBoundingBoxToViewport,
     setFilter,
+  });
+
+  useMapInteractionLock({
+    mapReady,
+    mapRef,
+    isLocked: lockBoundingBoxToViewport,
   });
 
   useHomeLocationLayer({ mapReady, mapRef, homeLocation });
