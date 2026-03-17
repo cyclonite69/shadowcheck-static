@@ -53,8 +53,243 @@ interface JobConfig {
   [key: string]: any;
 }
 
+type JobKey = 'backup' | 'mlScoring' | 'mvRefresh';
+type ScheduleMode = 'hourly' | 'daily' | 'weekly';
+
+interface ScheduleFormState {
+  mode: ScheduleMode;
+  time: string;
+  intervalHours: string;
+  dayOfWeek: string;
+}
+
+const JOB_SETTING_KEYS: Record<JobKey, string> = {
+  backup: 'backup_job_config',
+  mlScoring: 'ml_scoring_job_config',
+  mvRefresh: 'mv_refresh_job_config',
+};
+
+const DEFAULT_CONFIGS: Record<JobKey, JobConfig> = {
+  backup: { enabled: false, cron: '0 3 * * *', uploadToS3: true },
+  mlScoring: { enabled: true, cron: '0 */4 * * *', limit: 10000 },
+  mvRefresh: { enabled: true, cron: '30 4 * * *' },
+};
+
+const DEFAULT_SCHEDULES: Record<JobKey, ScheduleFormState> = {
+  backup: { mode: 'daily', time: '03:00', intervalHours: '4', dayOfWeek: '1' },
+  mlScoring: { mode: 'hourly', time: '00:00', intervalHours: '4', dayOfWeek: '1' },
+  mvRefresh: { mode: 'daily', time: '04:30', intervalHours: '4', dayOfWeek: '1' },
+};
+
+const WEEKDAY_OPTIONS = [
+  { value: '0', label: 'Sunday' },
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' },
+];
+
+const INTERVAL_OPTIONS = ['1', '2', '3', '4', '6', '8', '12'];
+
+function normalizeJobConfig(rawValue: unknown, fallback: JobConfig): JobConfig {
+  let parsedValue = rawValue;
+  if (typeof parsedValue === 'string') {
+    try {
+      parsedValue = JSON.parse(parsedValue);
+    } catch {
+      return { ...fallback };
+    }
+  }
+
+  if (!parsedValue || typeof parsedValue !== 'object') {
+    return { ...fallback };
+  }
+
+  const candidate = parsedValue as Record<string, unknown>;
+  return {
+    ...fallback,
+    ...candidate,
+    enabled: typeof candidate.enabled === 'boolean' ? candidate.enabled : fallback.enabled,
+    cron:
+      typeof candidate.cron === 'string' && candidate.cron.trim() ? candidate.cron : fallback.cron,
+  };
+}
+
+function parseCronToSchedule(cron: string, fallback: ScheduleFormState): ScheduleFormState {
+  const normalized = cron.trim().replace(/\s+/g, ' ');
+  const parts = normalized.split(' ');
+  if (parts.length !== 5) {
+    return fallback;
+  }
+
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+
+  if (dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+    if (/^\*\/\d+$/.test(hour) && /^\d+$/.test(minute)) {
+      const intervalHours = hour.slice(2);
+      if (INTERVAL_OPTIONS.includes(intervalHours)) {
+        return {
+          mode: 'hourly',
+          time: `${minute.padStart(2, '0')}:00`,
+          intervalHours,
+          dayOfWeek: fallback.dayOfWeek,
+        };
+      }
+    }
+
+    if (/^\d+$/.test(hour) && /^\d+$/.test(minute)) {
+      return {
+        mode: 'daily',
+        time: `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`,
+        intervalHours: fallback.intervalHours,
+        dayOfWeek: fallback.dayOfWeek,
+      };
+    }
+  }
+
+  if (dayOfMonth === '*' && month === '*' && /^\d+$/.test(dayOfWeek)) {
+    if (/^\d+$/.test(hour) && /^\d+$/.test(minute)) {
+      return {
+        mode: 'weekly',
+        time: `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`,
+        intervalHours: fallback.intervalHours,
+        dayOfWeek,
+      };
+    }
+  }
+
+  return fallback;
+}
+
+function buildCronFromSchedule(schedule: ScheduleFormState): string {
+  const [hours, minutes] = schedule.time.split(':');
+  const minute = /^\d{2}$/.test(minutes || '') ? minutes : '00';
+  const hour = /^\d{2}$/.test(hours || '') ? hours : '00';
+
+  if (schedule.mode === 'hourly') {
+    return `${Number.parseInt(minute, 10)} */${schedule.intervalHours} * * *`;
+  }
+
+  if (schedule.mode === 'weekly') {
+    return `${Number.parseInt(minute, 10)} ${Number.parseInt(hour, 10)} * * ${schedule.dayOfWeek}`;
+  }
+
+  return `${Number.parseInt(minute, 10)} ${Number.parseInt(hour, 10)} * * *`;
+}
+
+function describeSchedule(schedule: ScheduleFormState): string {
+  if (schedule.mode === 'hourly') {
+    return `Runs every ${schedule.intervalHours} hour${schedule.intervalHours === '1' ? '' : 's'}`;
+  }
+
+  if (schedule.mode === 'weekly') {
+    const day =
+      WEEKDAY_OPTIONS.find((option) => option.value === schedule.dayOfWeek)?.label || 'day';
+    return `Runs every ${day} at ${schedule.time}`;
+  }
+
+  return `Runs daily at ${schedule.time}`;
+}
+
+function JobScheduleEditor({
+  accentClass,
+  config,
+  jobKey,
+  onUpdate,
+}: {
+  accentClass: string;
+  config: JobConfig;
+  jobKey: JobKey;
+  onUpdate: (field: string, value: any) => void;
+}) {
+  const schedule = parseCronToSchedule(config.cron, DEFAULT_SCHEDULES[jobKey]);
+
+  const updateSchedule = (patch: Partial<ScheduleFormState>) => {
+    const nextSchedule = { ...schedule, ...patch };
+    onUpdate('cron', buildCronFromSchedule(nextSchedule));
+  };
+
+  return (
+    <div className="space-y-3 rounded-lg border border-slate-700/50 bg-slate-900/40 p-3">
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          Schedule Type
+        </label>
+        <select
+          value={schedule.mode}
+          onChange={(e) => updateSchedule({ mode: e.target.value as ScheduleMode })}
+          className={`w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 ${accentClass}`}
+        >
+          <option value="hourly">Every few hours</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+
+      {schedule.mode === 'hourly' ? (
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Repeat Every
+          </label>
+          <select
+            value={schedule.intervalHours}
+            onChange={(e) => updateSchedule({ intervalHours: e.target.value })}
+            className={`w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 ${accentClass}`}
+          >
+            {INTERVAL_OPTIONS.map((hours) => (
+              <option key={hours} value={hours}>
+                {hours} hour{hours === '1' ? '' : 's'}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {schedule.mode === 'weekly' ? (
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Day of Week
+          </label>
+          <select
+            value={schedule.dayOfWeek}
+            onChange={(e) => updateSchedule({ dayOfWeek: e.target.value })}
+            className={`w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 ${accentClass}`}
+          >
+            {WEEKDAY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {schedule.mode !== 'hourly' ? (
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Run Time
+          </label>
+          <input
+            type="time"
+            value={schedule.time}
+            onChange={(e) => updateSchedule({ time: e.target.value })}
+            className={`w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 ${accentClass}`}
+          />
+        </div>
+      ) : null}
+
+      <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-400">
+        <div>{describeSchedule(schedule)}</div>
+        <div className="mt-1 font-mono text-[11px] text-slate-500">{config.cron}</div>
+      </div>
+    </div>
+  );
+}
+
 export const JobsTab: React.FC = () => {
-  const [configs, setConfigs] = useState<Record<string, JobConfig>>({});
+  const [configs, setConfigs] = useState<Record<JobKey, JobConfig>>(DEFAULT_CONFIGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -73,9 +308,15 @@ export const JobsTab: React.FC = () => {
         };
 
         setConfigs({
-          backup: findValue('backup_job_config') || { enabled: false, cron: '0 3 * * *' },
-          mlScoring: findValue('ml_scoring_job_config') || { enabled: true, cron: '0 */4 * * *' },
-          mvRefresh: findValue('mv_refresh_job_config') || { enabled: true, cron: '30 4 * * *' },
+          backup: normalizeJobConfig(findValue('backup_job_config'), DEFAULT_CONFIGS.backup),
+          mlScoring: normalizeJobConfig(
+            findValue('ml_scoring_job_config'),
+            DEFAULT_CONFIGS.mlScoring
+          ),
+          mvRefresh: normalizeJobConfig(
+            findValue('mv_refresh_job_config'),
+            DEFAULT_CONFIGS.mvRefresh
+          ),
         });
       }
     } catch (err) {
@@ -89,10 +330,10 @@ export const JobsTab: React.FC = () => {
     fetchConfigs();
   }, []);
 
-  const handleUpdate = async (key: string) => {
+  const handleUpdate = async (key: JobKey) => {
     setSaving(key);
     try {
-      const settingKey = `${key}_job_config`;
+      const settingKey = JOB_SETTING_KEYS[key];
       const configToSave = configs[key];
       if (!configToSave) throw new Error('Configuration not found');
 
@@ -105,9 +346,9 @@ export const JobsTab: React.FC = () => {
     }
   };
 
-  const updateLocalConfig = (key: string, field: string, value: any) => {
+  const updateLocalConfig = (key: JobKey, field: string, value: any) => {
     setConfigs((prev) => {
-      const current = prev[key] || { enabled: false, cron: '' };
+      const current = prev[key] || DEFAULT_CONFIGS[key];
       return {
         ...prev,
         [key]: { ...current, [field]: value },
@@ -124,9 +365,9 @@ export const JobsTab: React.FC = () => {
   }
 
   // Final defensive check to ensure we have the objects before rendering
-  const backup = configs.backup || { enabled: false, cron: '0 3 * * *' };
-  const mlScoring = configs.mlScoring || { enabled: true, cron: '0 */4 * * *' };
-  const mvRefresh = configs.mvRefresh || { enabled: true, cron: '30 4 * * *' };
+  const backup = configs.backup || DEFAULT_CONFIGS.backup;
+  const mlScoring = configs.mlScoring || DEFAULT_CONFIGS.mlScoring;
+  const mvRefresh = configs.mvRefresh || DEFAULT_CONFIGS.mvRefresh;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -145,19 +386,12 @@ export const JobsTab: React.FC = () => {
             </button>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Cron Schedule
-            </label>
-            <input
-              type="text"
-              value={backup.cron}
-              onChange={(e) => updateLocalConfig('backup', 'cron', e.target.value)}
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-              placeholder="0 3 * * *"
-            />
-            <p className="text-[10px] text-slate-500 italic">Default: 3:00 AM daily (0 3 * * *)</p>
-          </div>
+          <JobScheduleEditor
+            accentClass="focus:ring-emerald-500/40"
+            config={backup}
+            jobKey="backup"
+            onUpdate={(field, value) => updateLocalConfig('backup', field, value)}
+          />
 
           <button
             onClick={() => handleUpdate('backup')}
@@ -184,21 +418,12 @@ export const JobsTab: React.FC = () => {
             </button>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Cron Schedule
-            </label>
-            <input
-              type="text"
-              value={mlScoring.cron}
-              onChange={(e) => updateLocalConfig('mlScoring', 'cron', e.target.value)}
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              placeholder="0 */4 * * *"
-            />
-            <p className="text-[10px] text-slate-500 italic">
-              Default: Every 4 hours (0 */4 * * *)
-            </p>
-          </div>
+          <JobScheduleEditor
+            accentClass="focus:ring-blue-500/40"
+            config={mlScoring}
+            jobKey="mlScoring"
+            onUpdate={(field, value) => updateLocalConfig('mlScoring', field, value)}
+          />
 
           <button
             onClick={() => handleUpdate('mlScoring')}
@@ -225,19 +450,12 @@ export const JobsTab: React.FC = () => {
             </button>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Cron Schedule
-            </label>
-            <input
-              type="text"
-              value={mvRefresh.cron}
-              onChange={(e) => updateLocalConfig('mvRefresh', 'cron', e.target.value)}
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
-              placeholder="30 4 * * *"
-            />
-            <p className="text-[10px] text-slate-500 italic">Default: 4:30 AM daily (30 4 * * *)</p>
-          </div>
+          <JobScheduleEditor
+            accentClass="focus:ring-purple-500/40"
+            config={mvRefresh}
+            jobKey="mvRefresh"
+            onUpdate={(field, value) => updateLocalConfig('mvRefresh', field, value)}
+          />
 
           <button
             onClick={() => handleUpdate('mvRefresh')}
