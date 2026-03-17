@@ -63,13 +63,19 @@ export const JobsTab: React.FC = () => {
       const response = await apiClient.get('/admin/settings');
       if (response.data?.success) {
         const settings = response.data.settings;
+        // The API returns settings as an array or object depending on implementation
+        // Let's handle both and find the keys we need
+        const findValue = (key: string) => {
+          if (Array.isArray(settings)) {
+            return settings.find((s) => s.key === key)?.value;
+          }
+          return settings[key]?.value || settings[key];
+        };
+
         setConfigs({
-          backup: settings.backup_job_config?.value || { enabled: false, cron: '0 3 * * *' },
-          mlScoring: settings.ml_scoring_job_config?.value || {
-            enabled: true,
-            cron: '0 */4 * * *',
-          },
-          mvRefresh: settings.mv_refresh_job_config?.value || { enabled: true, cron: '30 4 * * *' },
+          backup: findValue('backup_job_config') || { enabled: false, cron: '0 3 * * *' },
+          mlScoring: findValue('ml_scoring_job_config') || { enabled: true, cron: '0 */4 * * *' },
+          mvRefresh: findValue('mv_refresh_job_config') || { enabled: true, cron: '30 4 * * *' },
         });
       }
     } catch (err) {
@@ -83,11 +89,14 @@ export const JobsTab: React.FC = () => {
     fetchConfigs();
   }, []);
 
-  const handleUpdate = async (key: string, jobKey: string) => {
+  const handleUpdate = async (key: string) => {
     setSaving(key);
     try {
       const settingKey = `${key}_job_config`;
-      await apiClient.put(`/admin/settings/${settingKey}`, { value: configs[key] });
+      const configToSave = configs[key];
+      if (!configToSave) throw new Error('Configuration not found');
+
+      await apiClient.put(`/admin/settings/${settingKey}`, { value: configToSave });
       alert(`${key.charAt(0).toUpperCase() + key.slice(1)} job updated successfully.`);
     } catch (err: any) {
       alert(`Failed to update job: ${err.message}`);
@@ -97,15 +106,27 @@ export const JobsTab: React.FC = () => {
   };
 
   const updateLocalConfig = (key: string, field: string, value: any) => {
-    setConfigs((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], [field]: value },
-    }));
+    setConfigs((prev) => {
+      const current = prev[key] || { enabled: false, cron: '' };
+      return {
+        ...prev,
+        [key]: { ...current, [field]: value },
+      };
+    });
   };
 
   if (loading) {
-    return <div className="text-slate-400 p-8 text-center">Loading job configurations...</div>;
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
+
+  // Final defensive check to ensure we have the objects before rendering
+  const backup = configs.backup || { enabled: false, cron: '0 3 * * *' };
+  const mlScoring = configs.mlScoring || { enabled: true, cron: '0 */4 * * *' };
+  const mvRefresh = configs.mvRefresh || { enabled: true, cron: '30 4 * * *' };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -115,11 +136,11 @@ export const JobsTab: React.FC = () => {
           <div className="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
             <span className="text-sm font-medium text-slate-200">Enable Schedule</span>
             <button
-              onClick={() => updateLocalConfig('backup', 'enabled', !configs.backup.enabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${configs.backup.enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+              onClick={() => updateLocalConfig('backup', 'enabled', !backup.enabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${backup.enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${configs.backup.enabled ? 'translate-x-6' : 'translate-x-1'}`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${backup.enabled ? 'translate-x-6' : 'translate-x-1'}`}
               />
             </button>
           </div>
@@ -130,7 +151,7 @@ export const JobsTab: React.FC = () => {
             </label>
             <input
               type="text"
-              value={configs.backup.cron}
+              value={backup.cron}
               onChange={(e) => updateLocalConfig('backup', 'cron', e.target.value)}
               className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               placeholder="0 3 * * *"
@@ -139,7 +160,7 @@ export const JobsTab: React.FC = () => {
           </div>
 
           <button
-            onClick={() => handleUpdate('backup', 'backup_job_config')}
+            onClick={() => handleUpdate('backup')}
             disabled={saving === 'backup'}
             className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
@@ -154,11 +175,11 @@ export const JobsTab: React.FC = () => {
           <div className="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
             <span className="text-sm font-medium text-slate-200">Enable ML Scoring</span>
             <button
-              onClick={() => updateLocalConfig('mlScoring', 'enabled', !configs.mlScoring.enabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${configs.mlScoring.enabled ? 'bg-blue-500' : 'bg-slate-700'}`}
+              onClick={() => updateLocalConfig('mlScoring', 'enabled', !mlScoring.enabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mlScoring.enabled ? 'bg-blue-500' : 'bg-slate-700'}`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${configs.mlScoring.enabled ? 'translate-x-6' : 'translate-x-1'}`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mlScoring.enabled ? 'translate-x-6' : 'translate-x-1'}`}
               />
             </button>
           </div>
@@ -169,7 +190,7 @@ export const JobsTab: React.FC = () => {
             </label>
             <input
               type="text"
-              value={configs.mlScoring.cron}
+              value={mlScoring.cron}
               onChange={(e) => updateLocalConfig('mlScoring', 'cron', e.target.value)}
               className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
               placeholder="0 */4 * * *"
@@ -180,7 +201,7 @@ export const JobsTab: React.FC = () => {
           </div>
 
           <button
-            onClick={() => handleUpdate('mlScoring', 'ml_scoring_job_config')}
+            onClick={() => handleUpdate('mlScoring')}
             disabled={saving === 'mlScoring'}
             className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
@@ -195,11 +216,11 @@ export const JobsTab: React.FC = () => {
           <div className="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg border border-slate-700/50">
             <span className="text-sm font-medium text-slate-200">Enable Refresh</span>
             <button
-              onClick={() => updateLocalConfig('mvRefresh', 'enabled', !configs.mvRefresh.enabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${configs.mvRefresh.enabled ? 'bg-purple-500' : 'bg-slate-700'}`}
+              onClick={() => updateLocalConfig('mvRefresh', 'enabled', !mvRefresh.enabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mvRefresh.enabled ? 'bg-purple-500' : 'bg-slate-700'}`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${configs.mvRefresh.enabled ? 'translate-x-6' : 'translate-x-1'}`}
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mvRefresh.enabled ? 'translate-x-6' : 'translate-x-1'}`}
               />
             </button>
           </div>
@@ -210,7 +231,7 @@ export const JobsTab: React.FC = () => {
             </label>
             <input
               type="text"
-              value={configs.mvRefresh.cron}
+              value={mvRefresh.cron}
               onChange={(e) => updateLocalConfig('mvRefresh', 'cron', e.target.value)}
               className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
               placeholder="30 4 * * *"
@@ -219,7 +240,7 @@ export const JobsTab: React.FC = () => {
           </div>
 
           <button
-            onClick={() => handleUpdate('mvRefresh', 'mv_refresh_job_config')}
+            onClick={() => handleUpdate('mvRefresh')}
             disabled={saving === 'mvRefresh'}
             className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
