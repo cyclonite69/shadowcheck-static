@@ -442,7 +442,7 @@ export async function getUserStats(): Promise<any> {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData: any = await response.json().catch(() => ({}));
     throw new Error(errorData.message || `WiGLE API error: ${response.status}`);
   }
 
