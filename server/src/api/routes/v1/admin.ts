@@ -32,6 +32,7 @@ const adminImportRoutes = require('./admin/import');
 const adminMaintenanceRoutes = require('./admin/maintenance');
 const adminSiblingsRoutes = require('./admin/siblings');
 const adminDataQualityRoutes = require('./dataQuality').default;
+const adminDbStatsRoutes = require('./admin/dbStats').default;
 
 // Protect all admin routes
 router.use(requireAdmin);
@@ -70,6 +71,7 @@ router.use(adminImportRoutes);
 router.use(adminMaintenanceRoutes);
 router.use(adminSiblingsRoutes);
 router.use('/admin/data-quality', adminDataQualityRoutes);
+router.use('/admin/db-stats', adminDbStatsRoutes);
 
 // GET /api/observations/check-duplicates/:bssid - Check for duplicate observations
 router.get('/observations/check-duplicates/:bssid', async (req, res, next) => {
