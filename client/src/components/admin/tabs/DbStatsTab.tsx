@@ -60,7 +60,8 @@ export const DbStatsTab: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/admin/db-stats');
-      setStats(response.data);
+      setStats(response);
+      setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch DB stats');
     } finally {

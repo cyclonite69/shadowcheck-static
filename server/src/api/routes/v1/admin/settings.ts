@@ -2,6 +2,7 @@ export {};
 const express = require('express');
 const router = express.Router();
 const { adminDbService } = require('../../../../config/container');
+const { backgroundJobsService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
 /**
@@ -22,6 +23,20 @@ router.get('/', async (req, res) => {
     res.json({ success: true, settings });
   } catch (error) {
     logger.error('Failed to get settings', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/settings/jobs/status
+ * Get background job runtime status and recent history
+ */
+router.get('/jobs/status', async (req, res) => {
+  try {
+    const status = await backgroundJobsService.getJobStatus();
+    res.json({ success: true, ...status });
+  } catch (error) {
+    logger.error('Failed to get background job status', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

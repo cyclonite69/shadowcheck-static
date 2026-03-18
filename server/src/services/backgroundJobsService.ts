@@ -37,9 +37,24 @@ const FEEDBACK_MULTIPLIERS = {
   SUSPECT_BOOST: 0.15,
 };
 
+const JOB_SETTING_KEYS = {
+  backup: 'backup_job_config',
+  mlScoring: 'ml_scoring_job_config',
+  mvRefresh: 'mv_refresh_job_config',
+} as const;
+
+const DEFAULT_JOB_CONFIGS = {
+  backup: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: BACKUP_CRON },
+  mlScoring: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: ML_SCORING_CRON },
+  mvRefresh: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: MV_REFRESH_CRON },
+};
+
+type BackgroundJobName = keyof typeof JOB_SETTING_KEYS;
+
 class BackgroundJobsService {
   static jobs: Record<string, any> = {};
   static lastConfig: Record<string, any> = {};
+  static runningJobIds: Partial<Record<BackgroundJobName, number>> = {};
 
   /**
    * Initialize background jobs
@@ -88,28 +103,19 @@ class BackgroundJobsService {
       });
 
       // 1. Backup Job
-      const backupConfig = configs.backup_job_config || {
-        enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true',
-        cron: BACKUP_CRON,
-      };
+      const backupConfig = configs.backup_job_config || DEFAULT_JOB_CONFIGS.backup;
       if (this.hasConfigChanged('backup', backupConfig)) {
         this.updateJob('backup', backupConfig, () => this.runScheduledBackup());
       }
 
       // 2. ML Scoring Job
-      const mlConfig = configs.ml_scoring_job_config || {
-        enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true',
-        cron: ML_SCORING_CRON,
-      };
+      const mlConfig = configs.ml_scoring_job_config || DEFAULT_JOB_CONFIGS.mlScoring;
       if (this.hasConfigChanged('mlScoring', mlConfig)) {
         this.updateJob('mlScoring', mlConfig, () => this.runMLScoring());
       }
 
       // 3. MV Refresh Job
-      const mvConfig = configs.mv_refresh_job_config || {
-        enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true',
-        cron: MV_REFRESH_CRON,
-      };
+      const mvConfig = configs.mv_refresh_job_config || DEFAULT_JOB_CONFIGS.mvRefresh;
       if (this.hasConfigChanged('mvRefresh', mvConfig)) {
         this.updateJob('mvRefresh', mvConfig, () => this.runMVRefresh());
       }
@@ -180,53 +186,63 @@ class BackgroundJobsService {
    * Run automated backup with S3 upload
    */
   static async runScheduledBackup() {
-    const startTime = Date.now();
-    logger.info('[Backup Job] Starting scheduled backup...');
-
-    try {
+    await this.trackJobRun('backup', async () => {
+      logger.info('[Backup Job] Starting scheduled backup...');
       const result = await runPostgresBackup({ uploadToS3: true });
-      const duration = Date.now() - startTime;
 
       if (result.s3) {
         logger.info(
-          `[Backup Job] Complete: ${result.fileName} (${result.bytes} bytes) uploaded to ${result.s3.url} in ${duration}ms`
+          `[Backup Job] Complete: ${result.fileName} (${result.bytes} bytes) uploaded to ${result.s3.url}`
         );
       } else if (result.s3Error) {
         logger.warn(
           `[Backup Job] Backup created locally (${result.fileName}) but S3 upload failed: ${result.s3Error}`
         );
       }
-    } catch (error) {
-      logger.error(`[Backup Job] Failed: ${error.message}`);
-    }
+
+      return {
+        fileName: result.fileName,
+        bytes: result.bytes,
+        s3Url: result.s3?.url || null,
+        s3Error: result.s3Error || null,
+      };
+    });
   }
 
   /**
    * Refresh all materialized views
    */
   static async runMVRefresh() {
-    const startTime = Date.now();
-    logger.info('[MV Refresh Job] Starting materialized view refresh...');
+    await this.trackJobRun('mvRefresh', async () => {
+      logger.info('[MV Refresh Job] Starting materialized view refresh...');
 
-    const views = [
-      { name: 'app.api_network_explorer_mv', concurrent: true },
-      { name: 'app.api_network_latest_mv', concurrent: false },
-      { name: 'app.analytics_summary_mv', concurrent: false },
-      { name: 'app.mv_network_timeline', concurrent: false },
-    ];
+      const views = [
+        { name: 'app.api_network_explorer_mv', concurrent: true },
+        { name: 'app.api_network_latest_mv', concurrent: false },
+        { name: 'app.analytics_summary_mv', concurrent: false },
+        { name: 'app.mv_network_timeline', concurrent: false },
+      ];
 
-    for (const view of views) {
-      try {
-        const sql = `REFRESH MATERIALIZED VIEW ${view.concurrent ? 'CONCURRENTLY ' : ''}${view.name}`;
-        logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
-        await query(sql);
-      } catch (error) {
-        logger.error(`[MV Refresh Job] Failed to refresh ${view.name}: ${error.message}`);
+      const failures: Array<{ view: string; error: string }> = [];
+
+      for (const view of views) {
+        try {
+          const sql = `REFRESH MATERIALIZED VIEW ${view.concurrent ? 'CONCURRENTLY ' : ''}${view.name}`;
+          logger.info(`[MV Refresh Job] Refreshing ${view.name}...`);
+          await query(sql);
+        } catch (error) {
+          failures.push({ view: view.name, error: error.message });
+          logger.error(`[MV Refresh Job] Failed to refresh ${view.name}: ${error.message}`);
+        }
       }
-    }
 
-    const duration = Date.now() - startTime;
-    logger.info(`[MV Refresh Job] Complete in ${duration}ms`);
+      if (failures.length > 0) {
+        const summary = failures.map((failure) => `${failure.view}: ${failure.error}`).join('; ');
+        throw new Error(summary);
+      }
+
+      return { refreshedViews: views.map((view) => view.name) };
+    });
   }
 
   /**
@@ -234,10 +250,8 @@ class BackgroundJobsService {
    * Based on mobility patterns, not user tags
    */
   static async runMLScoring() {
-    const startTime = Date.now();
-    logger.info('[ML Scoring Job] Starting behavioral threat scoring v2.0 (simple)...');
-
-    try {
+    await this.trackJobRun('mlScoring', async () => {
+      logger.info('[ML Scoring Job] Starting behavioral threat scoring v2.0 (simple)...');
       // Simple behavioral query - avoid complex PostGIS calculations
       const networks = await mlScoringService.getNetworksForBehavioralScoring(
         ML_SCORING_LIMIT,
@@ -341,10 +355,8 @@ class BackgroundJobsService {
 
       // Bulk insert scores
       const inserted = await mlScoringService.bulkUpsertThreatScores(scores);
-
-      const duration = Date.now() - startTime;
       logger.info(
-        `[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0 in ${duration}ms`
+        `[ML Scoring Job] Complete: ${inserted} networks scored with behavioral model v2.0`
       );
 
       // Step 2: Run OUI grouping and MAC randomization detection
@@ -353,9 +365,161 @@ class BackgroundJobsService {
       await OUIGroupingService.generateOUIGroups();
       await OUIGroupingService.detectMACRandomization();
       logger.info('[ML Scoring Job] OUI grouping complete');
+
+      return {
+        analyzedNetworks: networks.length,
+        insertedScores: inserted,
+        feedbackTaggedNetworks: tagMap.size,
+      };
+    });
+  }
+
+  static async createJobRun(jobName: BackgroundJobName, cron: string): Promise<number> {
+    const result = await query(
+      `
+      INSERT INTO app.background_job_runs (
+        job_name,
+        cron,
+        status
+      )
+      VALUES ($1, $2, 'running')
+      RETURNING id;
+    `,
+      [jobName, cron]
+    );
+
+    return Number(result.rows[0]?.id);
+  }
+
+  static async completeJobRun(jobId: number, details: Record<string, unknown>, durationMs: number) {
+    await query(
+      `
+      UPDATE app.background_job_runs
+      SET
+        status = 'completed',
+        details = $2::jsonb,
+        duration_ms = $3,
+        finished_at = NOW()
+      WHERE id = $1
+    `,
+      [jobId, JSON.stringify(details || {}), durationMs]
+    );
+  }
+
+  static async failJobRun(jobId: number, error: string, durationMs: number) {
+    await query(
+      `
+      UPDATE app.background_job_runs
+      SET
+        status = 'failed',
+        error = $2,
+        duration_ms = $3,
+        finished_at = NOW()
+      WHERE id = $1
+    `,
+      [jobId, error, durationMs]
+    );
+  }
+
+  static async trackJobRun(
+    jobName: BackgroundJobName,
+    task: () => Promise<Record<string, unknown> | void>
+  ): Promise<void> {
+    const cron =
+      this.lastConfig[JOB_SETTING_KEYS[jobName]]?.cron || DEFAULT_JOB_CONFIGS[jobName].cron;
+    const startTime = Date.now();
+    const jobId = await this.createJobRun(jobName, cron);
+    this.runningJobIds[jobName] = jobId;
+
+    try {
+      const details = (await task()) || {};
+      const durationMs = Date.now() - startTime;
+      await this.completeJobRun(jobId, details, durationMs);
     } catch (error) {
-      logger.error(`[ML Scoring Job] Failed: ${error.message}`);
+      const durationMs = Date.now() - startTime;
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error(`[Background Jobs] ${jobName} failed: ${message}`);
+      await this.failJobRun(jobId, message, durationMs);
+    } finally {
+      delete this.runningJobIds[jobName];
     }
+  }
+
+  static async getJobStatus() {
+    const { rows } = await query(
+      `
+      WITH recent_runs AS (
+        SELECT
+          id,
+          job_name,
+          status,
+          cron,
+          started_at,
+          finished_at,
+          duration_ms,
+          error,
+          details,
+          ROW_NUMBER() OVER (PARTITION BY job_name ORDER BY started_at DESC) AS row_num
+        FROM app.background_job_runs
+      )
+      SELECT
+        id,
+        job_name,
+        status,
+        cron,
+        started_at,
+        finished_at,
+        duration_ms,
+        error,
+        details,
+        row_num
+      FROM recent_runs
+      WHERE row_num <= 5
+      ORDER BY job_name, started_at DESC
+    `
+    );
+
+    const dbRuns: Record<string, any[]> = { backup: [], mlScoring: [], mvRefresh: [] };
+    rows.forEach((row: any) => {
+      dbRuns[row.job_name]?.push({
+        id: Number(row.id),
+        status: row.status,
+        cron: row.cron,
+        startedAt: row.started_at,
+        finishedAt: row.finished_at,
+        durationMs: row.duration_ms ? Number(row.duration_ms) : null,
+        error: row.error || null,
+        details: row.details || {},
+      });
+    });
+
+    const settingsRows = await query(
+      "SELECT key, value FROM app.settings WHERE key IN ('backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config')"
+    );
+
+    const configs: Record<string, any> = {};
+    settingsRows.rows.forEach((row: any) => {
+      configs[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+    });
+
+    const jobs = (Object.keys(JOB_SETTING_KEYS) as BackgroundJobName[]).reduce(
+      (acc, jobName) => {
+        const config = configs[JOB_SETTING_KEYS[jobName]] || DEFAULT_JOB_CONFIGS[jobName];
+        const scheduledJob = this.jobs[jobName];
+        const nextInvocation = scheduledJob?.nextInvocation?.();
+        acc[jobName] = {
+          config,
+          nextRun: nextInvocation ? new Date(nextInvocation).toISOString() : null,
+          recentRuns: dbRuns[jobName] || [],
+          currentRun: (dbRuns[jobName] || []).find((run) => run.status === 'running') || null,
+          lastRun: (dbRuns[jobName] || []).find((run) => run.status !== 'running') || null,
+        };
+        return acc;
+      },
+      {} as Record<BackgroundJobName, any>
+    );
+
+    return { jobs };
   }
 
   /**
