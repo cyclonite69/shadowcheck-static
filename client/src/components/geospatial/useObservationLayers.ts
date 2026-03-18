@@ -35,6 +35,7 @@ type ObservationLayerProps = {
   activeObservationSets: ObservationSet[];
   networkLookup: Map<string, NetworkRow>;
   wigleObservations?: WigleObservationsState;
+  isViewportLocked?: boolean;
 };
 
 export const useObservationLayers = ({
@@ -44,6 +45,7 @@ export const useObservationLayers = ({
   activeObservationSets,
   networkLookup,
   wigleObservations,
+  isViewportLocked = false,
 }: ObservationLayerProps) => {
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -192,8 +194,8 @@ export const useObservationLayers = ({
       });
     }
 
-    // Auto-zoom to fit bounds of all observations
-    if (features.length > 0) {
+    // Auto-zoom to fit bounds of all observations (skip if locked)
+    if (features.length > 0 && !isViewportLocked) {
       const coords = features.map((f: any) => f.geometry.coordinates as [number, number]);
       const bounds = coords.reduce(
         (bounds, coord) => bounds.extend(coord),
@@ -201,7 +203,7 @@ export const useObservationLayers = ({
       );
       fitBoundsWithZoomInset(map, bounds, { padding: 80, duration: 1000, maxZoom: 15 });
     }
-  }, [activeObservationSets, mapReady, mapRef, mapboxRef, networkLookup]);
+  }, [activeObservationSets, mapReady, mapRef, mapboxRef, networkLookup, isViewportLocked]);
 
   // WiGLE observations layer effect
   useEffect(() => {
@@ -340,9 +342,9 @@ export const useObservationLayers = ({
           features: features as any,
         });
 
-        // Auto-zoom to fit all WiGLE observations
+        // Auto-zoom to fit all WiGLE observations (skip if locked)
         const coords = features.map((f) => f.geometry.coordinates as [number, number]);
-        if (coords.length > 0) {
+        if (coords.length > 0 && !isViewportLocked) {
           const bounds = coords.reduce(
             (bounds, coord) => bounds.extend(coord),
             new mapboxgl.LngLatBounds(coords[0], coords[0])
@@ -357,5 +359,5 @@ export const useObservationLayers = ({
         });
       }
     }
-  }, [mapReady, mapRef, mapboxRef, wigleObservations]);
+  }, [mapReady, mapRef, mapboxRef, wigleObservations, isViewportLocked]);
 };

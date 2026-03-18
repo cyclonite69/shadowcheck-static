@@ -234,6 +234,7 @@ export const useGeospatialExplorerState = ({
     activeObservationSets,
     networkLookup,
     wigleObservations,
+    isViewportLocked: lockBoundingBoxToViewport,
   });
 
   const { toggle3DBuildings, toggleTerrain, add3DBuildings, is3DBuildingsAvailable } =
