@@ -14,6 +14,7 @@ import { AwsTab } from './admin/tabs/AwsTab';
 import { UsersTab } from './admin/tabs/UsersTab';
 import { JobsTab } from './admin/tabs/JobsTab';
 import { WigleStatsTab } from './admin/tabs/WigleStatsTab';
+import { DbStatsTab } from './admin/tabs/DbStatsTab';
 
 // SVG Icons
 const ClockIcon = ({ size = 24, className = '' }) => (
@@ -261,6 +262,7 @@ const AdminPage: React.FC = () => {
   const tabs = [
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
     { id: 'jobs', label: 'Automation', icon: ClockIcon },
+    { id: 'db-stats', label: 'DB Stats', icon: DatabaseIcon },
     { id: 'wigle-stats', label: 'WiGLE Stats', icon: TrophyIcon },
     { id: 'api', label: 'API Testing', icon: ApiIcon },
     { id: 'ml', label: 'ML Training', icon: BrainIcon },
@@ -338,6 +340,7 @@ const AdminPage: React.FC = () => {
         <div className="pb-8">
           {activeTab === 'config' && <ConfigurationTab />}
           {activeTab === 'jobs' && <JobsTab />}
+          {activeTab === 'db-stats' && <DbStatsTab />}
           {activeTab === 'wigle-stats' && <WigleStatsTab />}
           {activeTab === 'api' && <ApiTestingTab />}
           {activeTab === 'ml' && <MLTrainingTab />}
