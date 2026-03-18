@@ -276,11 +276,8 @@ const AdminPage: React.FC = () => {
     { id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon },
     { id: 'users', label: 'Users', icon: UsersIcon },
   ];
-  const row1Tabs = tabs.slice(0, 6);
-  const row2Tabs = tabs.slice(6);
-
   const tabButtonClass = (tabId: string) =>
-    `flex items-center justify-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all text-sm whitespace-nowrap ${
+    `flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-center font-medium transition-all text-sm ${
       activeTab === tabId
         ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 text-white shadow-[0_8px_16px_rgba(59,130,246,0.4),0_4px_8px_rgba(147,51,234,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-blue-400/50 translate-y-[-2px] scale-[1.03]'
         : 'text-slate-300 bg-slate-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)] hover:text-white hover:bg-slate-700/60 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] hover:translate-y-[-1px]'
@@ -308,31 +305,16 @@ const AdminPage: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="mb-6 bg-slate-900/60 p-4 rounded-xl border border-slate-700/40 backdrop-blur-sm flex flex-col">
-          {/* Row 1: System & Intelligence */}
-          <div className="flex flex-wrap justify-center gap-2 mb-3">
-            {row1Tabs.map((tab) => (
+        <div className="mb-6 rounded-xl border border-slate-700/40 bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={tabButtonClass(tab.id)}
               >
                 <tab.icon size={16} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Row 2: Data & Operations */}
-          <div className="flex flex-wrap justify-center gap-2 pt-3 border-t border-slate-800/50">
-            {row2Tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={tabButtonClass(tab.id)}
-              >
-                <tab.icon size={16} />
-                <span>{tab.label}</span>
+                <span className="leading-tight">{tab.label}</span>
               </button>
             ))}
           </div>

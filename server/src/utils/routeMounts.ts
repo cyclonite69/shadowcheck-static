@@ -152,7 +152,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/api', authRoutes);
   app.use('/api', userGate, networksRoutes);
   app.use('/api', userGate, threatsRoutes);
-  app.use('/api', userGate, wigleRoutes);
+  app.use('/api/wigle', userGate, wigleRoutes);
   app.use('/api', userGate, explorerRoutes);
   app.use('/api/analytics', userGate, analyticsRoutes);
   app.use('/api', userGate, dashboardRoutes.router);

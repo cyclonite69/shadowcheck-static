@@ -60,10 +60,11 @@ export const WigleStatsTab: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/wigle/user-stats');
-      if (response.data?.success) {
-        setStats(response.data.stats);
+      if (response?.success) {
+        setStats(response.stats);
+        setError(null);
       } else {
-        setError(response.data?.error || 'Failed to fetch stats');
+        setError(response?.error || 'Failed to fetch stats');
       }
     } catch (err: any) {
       setError(err.message || 'API request failed');

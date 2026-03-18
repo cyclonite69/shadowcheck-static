@@ -63,6 +63,25 @@ interface ScheduleFormState {
   dayOfWeek: string;
 }
 
+interface JobRunHistoryEntry {
+  id: number;
+  status: 'running' | 'completed' | 'failed';
+  cron: string;
+  startedAt: string;
+  finishedAt?: string | null;
+  durationMs?: number | null;
+  error?: string | null;
+  details?: Record<string, unknown>;
+}
+
+interface JobRuntimeStatus {
+  config: JobConfig;
+  nextRun: string | null;
+  recentRuns: JobRunHistoryEntry[];
+  currentRun: JobRunHistoryEntry | null;
+  lastRun: JobRunHistoryEntry | null;
+}
+
 const JOB_SETTING_KEYS: Record<JobKey, string> = {
   backup: 'backup_job_config',
   mlScoring: 'ml_scoring_job_config',
@@ -193,6 +212,25 @@ function describeSchedule(schedule: ScheduleFormState): string {
   return `Runs daily at ${schedule.time}`;
 }
 
+function formatTimestamp(value?: string | null): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDuration(durationMs?: number | null): string {
+  if (!durationMs || durationMs < 1000) return 'under 1s';
+  const seconds = Math.round(durationMs / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remSeconds = seconds % 60;
+  return remSeconds > 0 ? `${minutes}m ${remSeconds}s` : `${minutes}m`;
+}
+
 function JobScheduleEditor({
   accentClass,
   config,
@@ -290,14 +328,26 @@ function JobScheduleEditor({
 
 export const JobsTab: React.FC = () => {
   const [configs, setConfigs] = useState<Record<JobKey, JobConfig>>(DEFAULT_CONFIGS);
+  const [jobStatus, setJobStatus] = useState<Partial<Record<JobKey, JobRuntimeStatus>>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+
+  const fetchJobStatus = async () => {
+    try {
+      const response = await apiClient.get('/admin/settings/jobs/status');
+      if (response?.success) {
+        setJobStatus(response.jobs || {});
+      }
+    } catch (err) {
+      console.error('Failed to fetch job status', err);
+    }
+  };
 
   const fetchConfigs = async () => {
     try {
       const response = await apiClient.get('/admin/settings');
-      if (response.data?.success) {
-        const settings = response.data.settings;
+      if (response?.success) {
+        const settings = response.settings;
         // The API returns settings as an array or object depending on implementation
         // Let's handle both and find the keys we need
         const findValue = (key: string) => {
@@ -328,6 +378,7 @@ export const JobsTab: React.FC = () => {
 
   useEffect(() => {
     fetchConfigs();
+    fetchJobStatus();
   }, []);
 
   const handleUpdate = async (key: JobKey) => {
@@ -338,6 +389,7 @@ export const JobsTab: React.FC = () => {
       if (!configToSave) throw new Error('Configuration not found');
 
       await apiClient.put(`/admin/settings/${settingKey}`, { value: configToSave });
+      await fetchJobStatus();
       alert(`${key.charAt(0).toUpperCase() + key.slice(1)} job updated successfully.`);
     } catch (err: any) {
       alert(`Failed to update job: ${err.message}`);
@@ -368,6 +420,105 @@ export const JobsTab: React.FC = () => {
   const backup = configs.backup || DEFAULT_CONFIGS.backup;
   const mlScoring = configs.mlScoring || DEFAULT_CONFIGS.mlScoring;
   const mvRefresh = configs.mvRefresh || DEFAULT_CONFIGS.mvRefresh;
+  const backupStatus = jobStatus.backup;
+  const mlScoringStatus = jobStatus.mlScoring;
+  const mvRefreshStatus = jobStatus.mvRefresh;
+
+  const renderJobHistory = (status?: JobRuntimeStatus) => {
+    const lastRun = status?.lastRun;
+    const currentRun = status?.currentRun;
+
+    return (
+      <div className="space-y-3 rounded-lg border border-slate-700/50 bg-slate-950/40 p-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Runtime Status
+          </span>
+          <button
+            type="button"
+            onClick={fetchJobStatus}
+            className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 hover:text-white"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <div className="text-slate-500">Next Run</div>
+            <div className="mt-1 text-slate-200">{formatTimestamp(status?.nextRun)}</div>
+          </div>
+          <div>
+            <div className="text-slate-500">Last Result</div>
+            <div className="mt-1 text-slate-200">
+              {lastRun ? (
+                <span
+                  className={
+                    lastRun.status === 'failed'
+                      ? 'text-red-400'
+                      : lastRun.status === 'completed'
+                        ? 'text-emerald-400'
+                        : 'text-blue-400'
+                  }
+                >
+                  {lastRun.status}
+                </span>
+              ) : (
+                'No runs yet'
+              )}
+            </div>
+          </div>
+        </div>
+
+        {currentRun ? (
+          <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-xs text-blue-200">
+            Running now since {formatTimestamp(currentRun.startedAt)}
+          </div>
+        ) : null}
+
+        {lastRun ? (
+          <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-300">
+            <div>Started: {formatTimestamp(lastRun.startedAt)}</div>
+            <div>Finished: {formatTimestamp(lastRun.finishedAt)}</div>
+            <div>Duration: {formatDuration(lastRun.durationMs)}</div>
+            {lastRun.error ? <div className="mt-1 text-red-400">Error: {lastRun.error}</div> : null}
+          </div>
+        ) : null}
+
+        {(status?.recentRuns?.length || 0) > 0 ? (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Recent Runs
+            </div>
+            <div className="space-y-2">
+              {status?.recentRuns.slice(0, 3).map((run) => (
+                <div
+                  key={run.id}
+                  className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-300"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{formatTimestamp(run.startedAt)}</span>
+                    <span
+                      className={
+                        run.status === 'failed'
+                          ? 'text-red-400'
+                          : run.status === 'completed'
+                            ? 'text-emerald-400'
+                            : 'text-blue-400'
+                      }
+                    >
+                      {run.status}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-slate-500">{run.cron}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -392,6 +543,8 @@ export const JobsTab: React.FC = () => {
             jobKey="backup"
             onUpdate={(field, value) => updateLocalConfig('backup', field, value)}
           />
+
+          {renderJobHistory(backupStatus)}
 
           <button
             onClick={() => handleUpdate('backup')}
@@ -425,6 +578,8 @@ export const JobsTab: React.FC = () => {
             onUpdate={(field, value) => updateLocalConfig('mlScoring', field, value)}
           />
 
+          {renderJobHistory(mlScoringStatus)}
+
           <button
             onClick={() => handleUpdate('mlScoring')}
             disabled={saving === 'mlScoring'}
@@ -456,6 +611,8 @@ export const JobsTab: React.FC = () => {
             jobKey="mvRefresh"
             onUpdate={(field, value) => updateLocalConfig('mvRefresh', field, value)}
           />
+
+          {renderJobHistory(mvRefreshStatus)}
 
           <button
             onClick={() => handleUpdate('mvRefresh')}

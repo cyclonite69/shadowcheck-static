@@ -22,6 +22,7 @@ const analyticsService = require('../services/analyticsService');
 const authService = require('../services/authService');
 const awsService = require('../services/awsService');
 const backupService = require('../services/backupService');
+const backgroundJobsService = require('../services/backgroundJobsService');
 const cacheService = require('../services/cacheService');
 const dashboardService = require('../services/dashboardService');
 const dataQualityFilters = require('../services/dataQualityFilters');
@@ -63,6 +64,7 @@ const container = {
   authService,
   awsService,
   backupService,
+  backgroundJobsService,
   cacheService,
   dashboardService,
   dataQualityFilters,
