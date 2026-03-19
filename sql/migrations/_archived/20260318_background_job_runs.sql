@@ -1,5 +1,6 @@
 -- 20260318_background_job_runs.sql
 -- Persist background job execution history for the admin Jobs tab.
+-- Archived after folding into 20260216_consolidated_004_network_analysis.sql
 
 CREATE TABLE IF NOT EXISTS app.background_job_runs (
   id BIGSERIAL PRIMARY KEY,
