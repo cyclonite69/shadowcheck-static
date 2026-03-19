@@ -1,8 +1,8 @@
 -- Migration: Add background job settings
 -- Date: 2026-03-16
 -- Purpose: Store background job configuration in app.settings for frontend control
+-- Archived after folding into 20260216_consolidated_003_auth_and_users.sql
 
--- Backup Job Config
 INSERT INTO app.settings (key, value, description)
 VALUES (
     'backup_job_config',
@@ -10,7 +10,6 @@ VALUES (
     'Configuration for automated database backups'
 ) ON CONFLICT (key) DO NOTHING;
 
--- ML Scoring Job Config
 INSERT INTO app.settings (key, value, description)
 VALUES (
     'ml_scoring_job_config',
@@ -18,7 +17,6 @@ VALUES (
     'Configuration for behavioral threat scoring'
 ) ON CONFLICT (key) DO NOTHING;
 
--- Materialized View Refresh Job Config
 INSERT INTO app.settings (key, value, description)
 VALUES (
     'mv_refresh_job_config',

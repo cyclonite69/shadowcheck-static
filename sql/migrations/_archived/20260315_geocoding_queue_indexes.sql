@@ -3,6 +3,7 @@
 -- Date: 2026-03-15
 -- Purpose: Speed pending geocoding queue scans now that geocoding_cache acts
 --          as the durable work queue for address and POI enrichment.
+-- Archived after folding into 20260216_consolidated_010_performance_indexes.sql
 -- ============================================================================
 
 CREATE INDEX IF NOT EXISTS idx_geocoding_cache_pending_address

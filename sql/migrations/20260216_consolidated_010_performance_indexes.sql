@@ -1176,6 +1176,10 @@ GRANT INSERT, UPDATE, DELETE ON TABLE app.user_sessions TO shadowcheck_user;
 GRANT UPDATE (last_login) ON TABLE app.users TO shadowcheck_user;
 GRANT SELECT, INSERT, UPDATE ON TABLE app.geocoding_cache TO shadowcheck_user;
 GRANT USAGE, SELECT ON SEQUENCE app.geocoding_cache_id_seq TO shadowcheck_user;
+GRANT SELECT, INSERT, UPDATE ON TABLE app.geocoding_job_runs TO shadowcheck_user;
+GRANT USAGE, SELECT ON SEQUENCE app.geocoding_job_runs_id_seq TO shadowcheck_user;
+GRANT SELECT, INSERT, UPDATE ON TABLE app.background_job_runs TO shadowcheck_user;
+GRANT USAGE, SELECT ON SEQUENCE app.background_job_runs_id_seq TO shadowcheck_user;
 -- WiGLE import/runtime exceptions:
 -- - writes to WiGLE v3 tables
 -- - trigger app.update_networks_wigle_counts updates app.networks counters
@@ -1214,6 +1218,16 @@ ALTER DEFAULT PRIVILEGES FOR ROLE shadowcheck_admin IN SCHEMA public
   GRANT EXECUTE ON FUNCTIONS TO shadowcheck_user;
 
 SELECT 'db_role_hardening_complete' AS status;
+
+CREATE INDEX IF NOT EXISTS idx_geocoding_cache_pending_address
+  ON app.geocoding_cache (precision, address_attempts, geocoded_at, id)
+  WHERE address IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_geocoding_cache_pending_poi
+  ON app.geocoding_cache (precision, poi_attempts, geocoded_at, id)
+  WHERE address IS NOT NULL
+    AND poi_name IS NULL
+    AND poi_skip IS FALSE;
 
 
 -- ============================================================================

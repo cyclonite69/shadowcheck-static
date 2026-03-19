@@ -80,6 +80,25 @@ DO $$ BEGIN
     END IF;
 END $$;
 
+INSERT INTO app.settings (key, value, description)
+VALUES
+    (
+        'backup_job_config',
+        '{"enabled": false, "cron": "0 3 * * *", "uploadToS3": true}'::jsonb,
+        'Configuration for automated database backups'
+    ),
+    (
+        'ml_scoring_job_config',
+        '{"enabled": true, "cron": "0 */4 * * *", "limit": 10000}'::jsonb,
+        'Configuration for behavioral threat scoring'
+    ),
+    (
+        'mv_refresh_job_config',
+        '{"enabled": true, "cron": "30 4 * * *"}'::jsonb,
+        'Configuration for daily materialized view refreshes'
+    )
+ON CONFLICT (key) DO NOTHING;
+
 -- --------------------------------------------------------------------------
 -- schema_migrations tracking
 -- --------------------------------------------------------------------------

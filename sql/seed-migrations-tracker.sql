@@ -103,6 +103,11 @@ INSERT INTO app.schema_migrations (filename) VALUES
   ('20260308_tune_sibling_scoring_common_ssids.sql'),
   ('20260309_repair_sibling_pipeline_legacy_schema.sql'),
   ('20260310_folded_note_media_and_sibling_backfill.sql'),
+  ('20260315_geocoding_cache_runtime_grants.sql'),
+  ('20260315_geocoding_job_runs.sql'),
+  ('20260315_geocoding_queue_indexes.sql'),
+  ('20260316_add_background_job_settings.sql'),
+  ('20260318_background_job_runs.sql'),
   -- === 10 consolidated baseline migrations ===
   ('20260216_consolidated_001_extensions_and_schemas.sql'),
   ('20260216_consolidated_002_core_tables.sql'),
