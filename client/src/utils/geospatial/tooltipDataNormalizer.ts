@@ -73,7 +73,9 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     pickFirst(raw.radio_capabilities, raw.capabilities, raw.security, raw.encryption) || ''
   );
   const caps = parseCapabilities(rawCaps);
-  const freq = toNumberOrNull(pickFirst(raw.radio_frequency, raw.frequency)) || 0;
+  const freq = toNumberOrNull(pickFirst(raw.frequency, raw.radio_frequency)) || 0;
+  const rawChan = toNumberOrNull(pickFirst(raw.channel, raw.chan));
+  const chan = rawChan || (freq > 0 ? freqToChannel(freq) : 0);
   const canonicalSecurity = formatSecurity(rawCaps, 'Unknown');
 
   // Calculate quality score if not provided
@@ -126,7 +128,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     wps: caps.wps,
     mfpc: caps.mfpc,
     frequency: freq,
-    channel: toNumberOrNull(pickFirst(raw.channel, raw.chan)) || freqToChannel(freq),
+    channel: chan,
     band: pickFirst(raw.frequency_band, raw.band) || freqToBand(freq),
     lat,
     lon,

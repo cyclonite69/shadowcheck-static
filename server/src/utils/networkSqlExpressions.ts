@@ -22,7 +22,8 @@ export {};
  * encryption keywords.  ESS / IBSS are infrastructure-mode flags, not
  * encryption markers, and are intentionally absent from the exclusion list.
  */
-export const OPEN_PREDICATE = `(ne.security IS NULL OR ne.security = '' OR ne.security !~* '(WPA|WEP|RSN|CCMP|TKIP|OWE|SAE)')`;
+export const OPEN_PREDICATE =
+  "(ne.security IS NULL OR ne.security = '' OR ne.security !~* '(WPA|WEP|RSN|CCMP|TKIP|OWE|SAE)')";
 
 /**
  * Map a single canonical encryption type value to its SQL WHERE clause.
@@ -37,35 +38,35 @@ export function encryptionTypePredicate(enc: string): string {
       return OPEN_PREDICATE;
 
     case 'WEP':
-      return `ne.security ILIKE '%WEP%'`;
+      return "ne.security ILIKE '%WEP%'";
 
     case 'WPA':
       // WPA v1 only — explicitly exclude WPA2/WPA3 and RSN/SAE rows
       return (
-        `(ne.security ILIKE '%WPA%'` +
-        ` AND ne.security NOT ILIKE '%WPA2%'` +
-        ` AND ne.security NOT ILIKE '%WPA3%'` +
-        ` AND ne.security !~* '(RSN|SAE)')`
+        "(ne.security ILIKE '%WPA%'" +
+        " AND ne.security NOT ILIKE '%WPA2%'" +
+        " AND ne.security NOT ILIKE '%WPA3%'" +
+        " AND ne.security !~* '(RSN|SAE)')"
       );
 
     case 'WPA2':
       // WPA2 or RSN-tagged rows, excluding WPA3
-      return `((ne.security ILIKE '%WPA2%' OR ne.security ~* 'RSN') AND ne.security NOT ILIKE '%WPA3%')`;
+      return "((ne.security ILIKE '%WPA2%' OR ne.security ~* 'RSN') AND ne.security NOT ILIKE '%WPA3%')";
 
     case 'WPA3':
       // WPA3 or SAE (WPA3-Personal)
-      return `(ne.security ILIKE '%WPA3%' OR ne.security ~* 'SAE')`;
+      return "(ne.security ILIKE '%WPA3%' OR ne.security ~* 'SAE')";
 
     case 'OWE':
-      return `ne.security ~* 'OWE'`;
+      return "ne.security ~* 'OWE'";
 
     case 'SAE':
-      return `ne.security ~* 'SAE'`;
+      return "ne.security ~* 'SAE'";
 
     default:
       // Generic ILIKE fallback — safe because enc has been parsed from a
       // comma-separated list and is not directly from user input.
-      return `ne.security ILIKE '%${enc.replace(/'/g, "''")}%'`;
+      return "ne.security ILIKE '%" + enc.replace(/'/g, "''") + "%'";
   }
 }
 
@@ -75,7 +76,9 @@ export function encryptionTypePredicate(enc: string): string {
  * Returns null when the list is empty (caller should skip the clause).
  */
 export function buildEncryptionTypeCondition(types: string[]): string | null {
-  if (!types || types.length === 0) return null;
+  if (!types || types.length === 0) {
+    return null;
+  }
   const clauses = types.map(encryptionTypePredicate);
   return `(${clauses.join(' OR ')})`;
 }
@@ -190,15 +193,22 @@ export function buildDistanceExpr(
   netAlias = 'ne',
   obsAlias = 'o'
 ): string {
+  // Sanity check: if home location is effectively (0,0), distance is meaningless
+  if (Math.abs(lat) < 0.0001 && Math.abs(lon) < 0.0001) {
+    return 'NULL';
+  }
+
   return `
         (
           SELECT MAX(ST_Distance(
-            ST_MakePoint(${lon}, ${lat})::geography,
-            ST_MakePoint(${obsAlias}.lon, ${obsAlias}.lat)::geography
-          )) / 1000
+            ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)::geography,
+            ST_SetSRID(ST_MakePoint(${obsAlias}.lon, ${obsAlias}.lat), 4326)::geography
+          )) / 1000.0
           FROM app.observations ${obsAlias}
           WHERE ${obsAlias}.bssid = ${netAlias}.bssid
             AND ${obsAlias}.lat IS NOT NULL AND ${obsAlias}.lon IS NOT NULL
             AND ${obsAlias}.lat != 0 AND ${obsAlias}.lon != 0
+            -- Exclude observations that are essentially at 0,0 (common error)
+            AND ABS(${obsAlias}.lat) > 0.0001 AND ABS(${obsAlias}.lon) > 0.0001
         )`;
 }

@@ -104,11 +104,19 @@ export const renderNetworkTooltip = (props: any): string => {
   const randomized = isRandomizedMAC(props.bssid);
 
   // Format distance from home logic
-  const distHomeRaw = Number(props.distance_from_home_km || 0);
-  const distHomeDisplay =
-    distHomeRaw > 10
+  const distHomeRaw = Number(props.distance_from_home_km);
+  const distHomeDisplay = (() => {
+    if (props.distance_from_home_km === null || props.distance_from_home_km === undefined) {
+      return '<span style="color:#475569;font-style:italic;">(no marker)</span>';
+    }
+    // Sanity check: > 10,000km is usually a missing-coordinate or cross-hemisphere calculation error
+    if (distHomeRaw > 10000) {
+      return '<span style="color:#475569;font-style:italic;">(out of range)</span>';
+    }
+    return distHomeRaw > 10
       ? `${distHomeRaw.toLocaleString(undefined, { maximumFractionDigits: 1 })}km`
       : `${Math.round(distHomeRaw * 1000)}m`;
+  })();
 
   // Helper: Format timespan
   const timespanText = (() => {
@@ -175,8 +183,8 @@ export const renderNetworkTooltip = (props: any): string => {
   <div style="padding:10px 14px;border-bottom:1px solid rgba(148,163,184,0.08);">
     <table style="width:100%;border-collapse:collapse;">
       ${row('Encryption', props.encryption || props.security || '—')}
-      ${row('Channel', `${props.channel || '—'} <span style="color:#334155;">${props.band || ''}</span>`)}
-      ${row('Frequency', `${props.frequency ? props.frequency + ' MHz' : '—'}`)}
+      ${row('Channel', `${props.channel || '<span style="color:#475569;font-style:italic;">Unknown</span>'} <span style="color:#334155;">${props.band || ''}</span>`)}
+      ${row('Frequency', `${props.frequency ? props.frequency + ' MHz' : '<span style="color:#475569;font-style:italic;">Unknown</span>'}`)}
       ${row('Manufacturer', props.manufacturer || '—')}
       ${row('Observations', `${props.observation_count ?? '0'} ${props.timespan_days ? `<span style="color:#475569;font-size:9px;">(${timespanText})</span>` : ''}`)}
       ${props.sibling_count > 0 ? row('Siblings', `<span style="color:#f97316;">${props.sibling_count} related</span>`) : ''}
@@ -198,7 +206,7 @@ export const renderNetworkTooltip = (props: any): string => {
       props.distance_from_last_point_m != null
         ? `
     <div style="margin-top:6px;display:flex;gap:10px;color:#475569;font-size:9px;">
-      ${props.distance_from_home_km != null ? `<span>HOME: <b style="color:#64748b;">${distHomeDisplay}</b></span>` : ''}
+      <span>HOME: <b style="color:#64748b;">${distHomeDisplay}</b></span>
       ${props.max_distance_km != null ? `<span>MAX: <b style="color:#64748b;">${(props.max_distance_km * 1000).toFixed(0)}m</b></span>` : ''}
       ${props.distance_from_last_point_m != null ? `<span>DELTA: <b style="color:#64748b;">${props.distance_from_last_point_m.toFixed(0)}m</b></span>` : ''}
     </div>
