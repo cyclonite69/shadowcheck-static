@@ -1,0 +1,81 @@
+import type { FilterBuildContext } from '../FilterBuildContext';
+
+export function buildObservationSpatialQualityPredicates(ctx: FilterBuildContext): string[] {
+  const where: string[] = [];
+  const f = ctx.filters;
+  const e = ctx.enabled;
+
+  if (e.excludeInvalidCoords) {
+    where.push(
+      'o.lat IS NOT NULL',
+      'o.lon IS NOT NULL',
+      'o.lat BETWEEN -90 AND 90',
+      'o.lon BETWEEN -180 AND 180'
+    );
+    ctx.addApplied('quality', 'excludeInvalidCoords', true);
+  }
+
+  if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
+    where.push(
+      `o.accuracy IS NOT NULL AND o.accuracy > 0 AND o.accuracy <= ${ctx.addParam(
+        f.gpsAccuracyMax
+      )}`
+    );
+    ctx.addApplied('quality', 'gpsAccuracyMax', f.gpsAccuracyMax);
+  }
+
+  if (e.observationCountMin && f.observationCountMin !== undefined) {
+    ctx.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
+    where.push(`ap.observations >= ${ctx.addParam(f.observationCountMin)}`);
+    ctx.addApplied('quality', 'observationCountMin', f.observationCountMin);
+  }
+
+  if (e.observationCountMax && f.observationCountMax !== undefined) {
+    ctx.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
+    where.push(`ap.observations <= ${ctx.addParam(f.observationCountMax)}`);
+    ctx.addApplied('quality', 'observationCountMax', f.observationCountMax);
+  }
+
+  if (e.boundingBox && f.boundingBox) {
+    const west = f.boundingBox.west;
+    const south = f.boundingBox.south;
+    const east = f.boundingBox.east;
+    const north = f.boundingBox.north;
+
+    if (west <= east) {
+      where.push(
+        `o.geom && ST_MakeEnvelope(${ctx.addParam(west)}, ${ctx.addParam(south)}, ${ctx.addParam(east)}, ${ctx.addParam(north)}, 4326)`
+      );
+    } else {
+      where.push(
+        `(o.geom && ST_MakeEnvelope(${ctx.addParam(west)}, ${ctx.addParam(south)}, 180, ${ctx.addParam(north)}, 4326) OR o.geom && ST_MakeEnvelope(-180, ${ctx.addParam(south)}, ${ctx.addParam(east)}, ${ctx.addParam(north)}, 4326))`
+      );
+    }
+    ctx.addApplied('spatial', 'boundingBox', f.boundingBox);
+  }
+
+  if (e.radiusFilter && f.radiusFilter) {
+    where.push(
+      `ST_DWithin(o.geom::geography, ST_SetSRID(ST_MakePoint(${ctx.addParam(f.radiusFilter.longitude)}, ${ctx.addParam(f.radiusFilter.latitude)}), 4326)::geography, ${ctx.addParam(f.radiusFilter.radiusMeters)})`
+    );
+    ctx.addApplied('spatial', 'radiusFilter', f.radiusFilter);
+  }
+
+  if (e.distanceFromHomeMin || e.distanceFromHomeMax) {
+    ctx.requiresHome = true;
+    if (e.distanceFromHomeMin && f.distanceFromHomeMin !== undefined) {
+      where.push(
+        `ST_Distance(o.geom::geography, home.home_point) >= ${ctx.addParam(f.distanceFromHomeMin * 1000)}`
+      );
+      ctx.addApplied('spatial', 'distanceFromHomeMin', f.distanceFromHomeMin);
+    }
+    if (e.distanceFromHomeMax && f.distanceFromHomeMax !== undefined) {
+      where.push(
+        `ST_Distance(o.geom::geography, home.home_point) <= ${ctx.addParam(f.distanceFromHomeMax * 1000)}`
+      );
+      ctx.addApplied('spatial', 'distanceFromHomeMax', f.distanceFromHomeMax);
+    }
+  }
+
+  return where;
+}
