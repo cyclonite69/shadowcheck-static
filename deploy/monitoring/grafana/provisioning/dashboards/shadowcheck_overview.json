@@ -23,7 +23,7 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -62,7 +62,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -74,7 +74,7 @@
       "type": "stat"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -113,7 +113,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -125,7 +125,7 @@
       "type": "stat"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -168,7 +168,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -180,7 +180,7 @@
       "type": "stat"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -223,7 +223,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -235,7 +235,7 @@
       "type": "stat"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -270,7 +270,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -282,7 +282,7 @@
       "type": "piechart"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -314,7 +314,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -326,7 +326,7 @@
       "type": "barchart"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -358,7 +358,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -370,7 +370,7 @@
       "type": "barchart"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -399,7 +399,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
@@ -411,7 +411,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -440,7 +440,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
@@ -452,7 +452,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -477,7 +477,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
@@ -489,7 +489,7 @@
       "type": "table"
     },
     {
-      "datasource": "ShadowCheck-Postgres",
+      "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
       "fieldConfig": {
         "defaults": {},
         "overrides": []
@@ -514,7 +514,7 @@
       },
       "targets": [
         {
-          "datasource": "ShadowCheck-Postgres",
+          "datasource": { "type": "postgres", "uid": "shadowcheck-postgres" },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
