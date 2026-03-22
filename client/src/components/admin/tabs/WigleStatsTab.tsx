@@ -78,7 +78,7 @@ export const WigleStatsTab: React.FC = () => {
 
   // Helper to access stats that might be at root or under statistics sub-object
   const getStat = (key: string) => {
-    // Map common aliases
+    // Map common aliases to raw WiGLE API field names
     const aliases: Record<string, string> = {
       discoveredBluetoothGPS: 'discoveredBtGPS',
       discoveredBluetooth: 'discoveredBt',
@@ -88,6 +88,8 @@ export const WigleStatsTab: React.FC = () => {
       totalBluetooth: 'discoveredBt',
       totalCell: 'discoveredCell',
       totalObservations: 'totalWiFiLocations',
+      totalDiscovered: 'discoveredWiFiGPS', // Using WiFi GPS as proxy for total GPS if not aggregate
+      eventDiscoveries: 'eventMonthCount',
     };
 
     const targetKey = aliases[key] || key;
