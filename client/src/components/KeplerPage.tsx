@@ -225,6 +225,7 @@ const KeplerPage: React.FC = () => {
                 color: '#f8fafc',
                 padding: '12px',
                 borderRadius: '8px',
+                maxWidth: 'min(340px, 90vw)',
               },
             };
           },

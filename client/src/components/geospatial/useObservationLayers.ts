@@ -263,7 +263,12 @@ export const useObservationLayers = ({
 
         const coords = (feature.geometry as any).coordinates;
 
-        new (mapboxgl as any).Popup({ maxWidth: '360px', className: 'sc-popup', offset: 14 })
+        new (mapboxgl as any).Popup({
+          maxWidth: 'min(360px, 90vw)',
+          className: 'sc-popup',
+          offset: 14,
+          focusAfterOpen: false,
+        })
           .setLngLat(coords)
           .setHTML(
             renderWigleObservationPopupCard({
@@ -286,7 +291,12 @@ export const useObservationLayers = ({
 
         const coords = (feature.geometry as any).coordinates;
 
-        new (mapboxgl as any).Popup({ maxWidth: '360px', className: 'sc-popup', offset: 14 })
+        new (mapboxgl as any).Popup({
+          maxWidth: 'min(360px, 90vw)',
+          className: 'sc-popup',
+          offset: 14,
+          focusAfterOpen: false,
+        })
           .setLngLat(coords)
           .setHTML(
             renderWigleObservationPopupCard({

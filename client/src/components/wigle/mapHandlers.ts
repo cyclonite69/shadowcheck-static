@@ -26,7 +26,12 @@ export const attachClickHandlers = (
       )
     );
 
-    new mapboxgl.Popup({ offset: 12, className: 'sc-popup', maxWidth: '340px' })
+    new mapboxgl.Popup({
+      offset: 15,
+      className: 'sc-popup',
+      maxWidth: 'min(340px, 90vw)',
+      focusAfterOpen: false,
+    })
       .setLngLat(e.lngLat)
       .setHTML(tooltipHTML)
       .addTo(map);
