@@ -116,6 +116,7 @@ fi
 
 echo "Creating admin user..."
 
+run_admin_upsert_with_db_user() {
 docker exec \
   -e PGPASSWORD="$DB_USER_PASSWORD" \
   -e DB_USER="$DB_USER" \
@@ -128,8 +129,29 @@ VALUES ('admin', :'APP_ADMIN_HASH', 'admin@shadowcheck.local', 'admin', NOW())
 ON CONFLICT (username) DO UPDATE
 SET password_hash = EXCLUDED.password_hash;
 SQL'
+}
+
+run_admin_upsert_with_postgres_superuser() {
+docker exec \
+  -e DB_NAME="$DB_NAME" \
+  -e APP_ADMIN_HASH="$HASH" \
+  -u postgres \
+  "$CONTAINER" \
+  bash -lc 'psql -v ON_ERROR_STOP=1 -d "$DB_NAME" <<'"'"'SQL'"'"'
+INSERT INTO app.users (username, password_hash, email, role, created_at)
+VALUES ('admin', :'APP_ADMIN_HASH', 'admin@shadowcheck.local', 'admin', NOW())
+ON CONFLICT (username) DO UPDATE
+SET password_hash = EXCLUDED.password_hash;
+SQL'
+}
+
+if ! run_admin_upsert_with_db_user; then
+    echo "WARN: password auth for $DB_USER failed; falling back to postgres superuser inside container."
+    run_admin_upsert_with_postgres_superuser
+fi
 
 # Compatibility updates for newer schemas (run only if columns exist)
+run_compat_updates_with_db_user() {
 docker exec -e PGPASSWORD="$DB_USER_PASSWORD" "$CONTAINER" bash -lc "psql -U '$DB_USER' -d '$DB_NAME' -c \"
 DO \\\$\\\$
 BEGIN
@@ -151,6 +173,35 @@ BEGIN
 END
 \\\$\\\$;
 \""
+}
+
+run_compat_updates_with_postgres_superuser() {
+docker exec -u postgres "$CONTAINER" bash -lc "psql -d '$DB_NAME' -c \"
+DO \\\$\\\$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema='app' AND table_name='users' AND column_name='force_password_change'
+  ) THEN
+    EXECUTE 'UPDATE app.users SET force_password_change = true WHERE username = ''admin''';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema='app' AND table_name='users' AND column_name='updated_at'
+  ) THEN
+    EXECUTE 'UPDATE app.users SET updated_at = NOW() WHERE username = ''admin''';
+  END IF;
+END
+\\\$\\\$;
+\""
+}
+
+if ! run_compat_updates_with_db_user; then
+    run_compat_updates_with_postgres_superuser
+fi
 
 echo ""
 echo "Admin user created successfully"
