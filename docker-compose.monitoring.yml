@@ -9,11 +9,10 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://34.204.161.164:3002
+      - DB_PASSWORD=${DB_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning
-    env_file:
-      - .env
     networks:
       - shadowcheck_net
 
