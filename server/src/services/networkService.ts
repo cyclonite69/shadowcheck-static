@@ -174,12 +174,16 @@ export async function getFilteredNetworks(opts: {
   if (Array.isArray(parsedSortJson) || (parsedSortJson && typeof parsedSortJson === 'object')) {
     const entries = Array.isArray(parsedSortJson) ? parsedSortJson : [parsedSortJson];
     entries.forEach((entry: any) => {
-      if (!entry || typeof entry !== 'object') return;
+      if (!entry || typeof entry !== 'object') {
+        return;
+      }
       const column = String(entry.column || '')
         .trim()
         .toLowerCase();
       if (!sortColumnMap[column]) {
-        if (column) ignoredSorts.push(column);
+        if (column) {
+          ignoredSorts.push(column);
+        }
         return;
       }
       const dir = String(entry.direction || 'ASC')
@@ -262,9 +266,9 @@ export async function getFilteredNetworks(opts: {
     'ne.wigle_v3_observation_count',
     'ne.wigle_v3_last_import_at',
     'ne.accuracy_meters',
-    'ne.capabilities',
+    'ne.capabilities AS capabilities',
     'ne.security',
-    'ne.channel',
+    `(${NETWORK_CHANNEL_EXPR}) AS channel`,
     'ne.wps',
     'ne.battery',
     'ne.altitude_m',
@@ -332,8 +336,12 @@ export async function getFilteredNetworks(opts: {
     addCondition(`(${threatLevelExpr}) = ANY($${paramIndex}::text[])`, threatCategories);
     appliedFiltersArray.push({ column: 'threatCategories', value: threatCategories });
   }
-  if (threatScoreMin !== null) addCondition(`${threatScoreExpr} >= $${paramIndex}`, threatScoreMin);
-  if (threatScoreMax !== null) addCondition(`${threatScoreExpr} <= $${paramIndex}`, threatScoreMax);
+  if (threatScoreMin !== null) {
+    addCondition(`${threatScoreExpr} >= $${paramIndex}`, threatScoreMin);
+  }
+  if (threatScoreMax !== null) {
+    addCondition(`${threatScoreExpr} <= $${paramIndex}`, threatScoreMax);
+  }
   if (threatScoreMin !== null || threatScoreMax !== null) {
     appliedFiltersArray.push({
       column: 'threatScore',
@@ -344,12 +352,15 @@ export async function getFilteredNetworks(opts: {
     addCondition(`ne.last_seen >= $${paramIndex}`, lastSeen);
     appliedFiltersArray.push({ column: 'lastSeen', value: lastSeen });
   }
-  if (distanceFromHomeKm !== null)
+  if (distanceFromHomeKm !== null) {
     addCondition(`(${distanceExpr}) <= $${paramIndex}`, distanceFromHomeKm);
-  if (distanceFromHomeMinKm !== null)
+  }
+  if (distanceFromHomeMinKm !== null) {
     addCondition(`(${distanceExpr}) >= $${paramIndex}`, distanceFromHomeMinKm);
-  if (distanceFromHomeMaxKm !== null)
+  }
+  if (distanceFromHomeMaxKm !== null) {
     addCondition(`(${distanceExpr}) <= $${paramIndex}`, distanceFromHomeMaxKm);
+  }
   if (
     distanceFromHomeMinKm !== null ||
     distanceFromHomeMaxKm !== null ||
@@ -360,13 +371,21 @@ export async function getFilteredNetworks(opts: {
       range: [distanceFromHomeMinKm ?? 0, distanceFromHomeMaxKm ?? distanceFromHomeKm ?? 10000],
     });
   }
-  if (minSignal !== null) addCondition(`ne.signal >= $${paramIndex}`, minSignal);
-  if (maxSignal !== null) addCondition(`ne.signal <= $${paramIndex}`, maxSignal);
+  if (minSignal !== null) {
+    addCondition(`ne.signal >= $${paramIndex}`, minSignal);
+  }
+  if (maxSignal !== null) {
+    addCondition(`ne.signal <= $${paramIndex}`, maxSignal);
+  }
   if (minSignal !== null || maxSignal !== null) {
     appliedFiltersArray.push({ column: 'rssi', range: [minSignal ?? -100, maxSignal ?? 0] });
   }
-  if (minObsCount !== null) addCondition(`ne.observations >= $${paramIndex}`, minObsCount);
-  if (maxObsCount !== null) addCondition(`ne.observations <= $${paramIndex}`, maxObsCount);
+  if (minObsCount !== null) {
+    addCondition(`ne.observations >= $${paramIndex}`, minObsCount);
+  }
+  if (maxObsCount !== null) {
+    addCondition(`ne.observations <= $${paramIndex}`, maxObsCount);
+  }
   if (minObsCount !== null || maxObsCount !== null) {
     appliedFiltersArray.push({
       column: 'obsCount',
@@ -381,7 +400,9 @@ export async function getFilteredNetworks(opts: {
   }
   if (encryptionTypes && encryptionTypes.length > 0) {
     const encCondition = buildEncryptionTypeCondition(encryptionTypes);
-    if (encCondition) conditions.push(encCondition);
+    if (encCondition) {
+      conditions.push(encCondition);
+    }
     appliedFiltersArray.push({ column: 'encryptionTypes', value: encryptionTypes });
   }
   if (authMethods && authMethods.length > 0) {

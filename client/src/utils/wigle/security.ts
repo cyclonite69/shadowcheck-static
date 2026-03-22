@@ -67,8 +67,7 @@ export const normalizeSecurityLabel = (raw: string | null | undefined): Canonica
 
   // WPA2 variants
   if (hasWpa2 && hasEap) return 'WPA2-E';
-  if (hasWpa2 && hasPsk) return 'WPA2-P';
-  if (hasWpa2) return 'WPA2';
+  if (hasWpa2) return 'WPA2-P'; // Default to Personal for standard WPA2 marker
 
   // WPA (original / v1)
   if (hasWpa) return 'WPA';
@@ -87,10 +86,10 @@ export const normalizeSecurityLabel = (raw: string | null | undefined): Canonica
   }
 
   // CCMP/TKIP without version tag — infer variant from PSK/EAP
+  // For standard residential/WPA2 networks, absence of EAP usually means PSK
   if (value.includes('CCMP') || value.includes('TKIP')) {
     if (hasEap) return 'WPA2-E';
-    if (hasPsk) return 'WPA2-P';
-    return 'WPA2';
+    return 'WPA2-P';
   }
 
   // Only infrastructure flags remain ([ESS], [IBSS]) → OPEN
