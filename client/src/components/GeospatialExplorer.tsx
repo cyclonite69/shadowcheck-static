@@ -88,7 +88,6 @@ export default function GeospatialExplorer() {
     closeWigleLookupDialog,
     handleWigleLookup,
     wigleObservations,
-    loadWigleObservations,
     loadBatchWigleObservations,
     clearWigleObservations,
   } = useNetworkContextMenu({ logError, onTagUpdated: resetPagination });
@@ -198,6 +197,25 @@ export default function GeospatialExplorer() {
     return grouped;
   }, [networks, visibleSiblingGroupMap]);
 
+  const toggleWigleForBssids = (bssids: string[]) => {
+    const normalized = Array.from(new Set(bssids.filter(Boolean)));
+    if (normalized.length === 0) return;
+
+    const active = wigleObservations.observations.length > 0;
+    const activeBssids = Array.from(new Set(wigleObservations.bssids || []));
+    const sameSelection =
+      active &&
+      activeBssids.length === normalized.length &&
+      normalized.every((bssid) => activeBssids.includes(bssid));
+
+    if (sameSelection) {
+      clearWigleObservations();
+      return;
+    }
+
+    loadBatchWigleObservations(normalized);
+  };
+
   useEffect(() => {
     if (!state.mapReady || !state.mapRef.current || !state.mapboxRef.current) return;
     const map = state.mapRef.current;
@@ -301,11 +319,7 @@ export default function GeospatialExplorer() {
                 onMapStyleChange={state.changeMapStyle}
                 mapStyles={MAP_STYLES}
                 canFit={selectedNetworks.size > 0}
-                onWigle={() =>
-                  wigleObservations.observations.length > 0
-                    ? clearWigleObservations()
-                    : loadBatchWigleObservations(Array.from(selectedNetworks))
-                }
+                onWigle={() => toggleWigleForBssids(Array.from(selectedNetworks))}
                 onToggleAgenciesPanel={state.toggleAgenciesPanel}
                 canWigle={selectedNetworks.size > 0}
                 wigleLoading={wigleObservations.loading}
@@ -392,7 +406,15 @@ export default function GeospatialExplorer() {
             hasExistingNote={contextMenu.hasExistingNote}
             onGenerateThreatReport={handleGenerateThreatReportPdf}
             onMapWigleObservations={() => {
-              if (contextMenu.network) loadWigleObservations(contextMenu.network);
+              const selectedBssids = Array.from(selectedNetworks);
+              const contextBssid = contextMenu.network?.bssid;
+              const targetBssids =
+                contextBssid && selectedBssids.includes(contextBssid)
+                  ? selectedBssids
+                  : contextBssid
+                    ? [contextBssid]
+                    : selectedBssids;
+              toggleWigleForBssids(targetBssids);
               closeContextMenu();
             }}
             wigleObservationsLoading={wigleObservations.loading}
