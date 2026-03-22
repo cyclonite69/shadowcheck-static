@@ -4,6 +4,7 @@ import type { Map, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
+import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
 import { DEFAULT_ZOOM, MAP_STYLES } from '../../constants/network';
 import { mapboxApi } from '../../api/mapboxApi';
 import {
@@ -191,8 +192,10 @@ export const useGeospatialMap = ({
                 [(feature.geometry as any).coordinates[0], latitude]
               )
             );
+            const anchor = getPopupAnchor(map, e.lngLat, popupHTML);
 
             new (mapboxgl as any).Popup({
+              anchor,
               offset: 15,
               className: 'sc-popup',
               maxWidth: 'min(340px, 90vw)',
