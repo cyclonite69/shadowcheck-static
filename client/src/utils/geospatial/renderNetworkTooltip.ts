@@ -1,4 +1,3 @@
-import { macColor } from '../mapHelpers';
 import { isRandomizedMAC } from '../macUtils';
 
 /**
@@ -7,65 +6,85 @@ import { isRandomizedMAC } from '../macUtils';
  * High-fidelity forensic design with data density and visual alerts.
  */
 
+const EM_DASH = '&mdash;';
+
 const THREAT_COLOR: Record<string, string> = {
-  CRITICAL: '#ef4444',
-  HIGH: '#f97316',
-  MED: '#eab308',
-  MEDIUM: '#eab308',
-  LOW: '#22c55e',
-  NONE: '#94a3b8',
+  CRITICAL: '#f87171',
+  HIGH: '#f87171',
+  MED: '#facc15',
+  MEDIUM: '#facc15',
+  LOW: '#4ade80',
+  NONE: '#60a5fa',
 };
 
-const BORDER_COLOR: Record<string, string> = {
-  CRITICAL: 'rgba(239, 68, 68, 0.45)',
-  HIGH: 'rgba(249, 115, 22, 0.45)',
-  MED: 'rgba(234, 179, 8, 0.45)',
-  MEDIUM: 'rgba(234, 179, 8, 0.45)',
-  LOW: 'rgba(34, 197, 94, 0.35)',
-  NONE: 'rgba(148, 163, 184, 0.25)',
-};
-
-function signalBars(rssi: number): string {
-  const filled = Math.round(Math.max(0, Math.min(100, ((rssi + 100) / 60) * 100)) / 25);
-  const color = rssi >= -65 ? '#22c55e' : rssi >= -80 ? '#eab308' : '#ef4444';
-  return [1, 2, 3, 4]
-    .map(
-      (i) =>
-        `<div style="width:3px;height:${5 + i * 3}px;border-radius:1px;align-self:flex-end;background:${i <= filled ? color : 'rgba(148,163,184,0.2)'};"></div>`
-    )
-    .join('');
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
-function progressBar(pct: number, color: string): string {
-  return `<div style="height:3px;border-radius:2px;background:rgba(148,163,184,0.15);margin-top:4px;overflow:hidden;">
-    <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;"></div></div>`;
+function isMissingValue(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed === '' || trimmed.toLowerCase() === 'unknown';
+  }
+  return false;
 }
 
-function fmtDate(s?: string): string {
-  if (!s) return '—';
+function normalizeDisplay(value: unknown): string {
+  return isMissingValue(value) ? EM_DASH : String(value);
+}
+
+function formatDate(value?: string | Date): string {
+  if (!value) return EM_DASH;
   try {
-    return new Date(s).toLocaleString('en-US', {
+    return new Date(value).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
+      hour: 'numeric',
       minute: '2-digit',
     });
   } catch {
-    return s;
+    return EM_DASH;
   }
 }
 
-function buildLocation(p: any): string {
-  const street = [p.housenumber, p.road].filter(Boolean).join(' ');
-  const city = [p.city, p.region].filter(Boolean).join(', ');
-  return street && city ? `${street}, ${city}` : city || '—';
+function buildLocation(props: any): string {
+  const street = [props.housenumber, props.road].filter(Boolean).join(' ');
+  const city = [props.city, props.region].filter(Boolean).join(', ');
+  return street && city ? `${street}, ${city}` : street || city || '';
 }
 
-function row(label: string, val: string): string {
-  return `<tr>
-    <td style="color:#475569;padding:2px 0;padding-right:10px;white-space:nowrap;">${label}</td>
-    <td style="color:#94a3b8;text-align:right;padding:2px 0;">${val}</td>
-  </tr>`;
+function formatDistance(km: number): string {
+  if (!Number.isFinite(km)) return EM_DASH;
+  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
+}
+
+function formatObservationText(countValue: unknown, daysValue: unknown): string {
+  if (isMissingValue(countValue)) return '';
+  const count = Number(countValue);
+  if (!Number.isFinite(count)) return '';
+  const base = `${count} obs`;
+  const days = Number(daysValue);
+  return Number.isFinite(days) ? `${base} · ${Math.round(days)} days` : base;
+}
+
+function statBar(fillPct: number, color: string): string {
+  return `<div style="width:100%;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);overflow:hidden;"><div style="height:100%;width:${clamp(fillPct, 0, 100)}%;border-radius:2px;background:${color};"></div></div>`;
+}
+
+function statsCell(label: string, valueText: string, fillPct: number, color: string, borders = '') {
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:8px 6px 6px;min-width:0;${borders}">
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:3px;white-space:nowrap;">${label}</div>
+    <div style="font-size:15px;font-weight:600;color:#fff;line-height:1;margin-bottom:4px;white-space:nowrap;">${valueText}</div>
+    ${statBar(fillPct, color)}
+  </div>`;
+}
+
+function fieldRow(label: string, value: string): string {
+  return `<div style="display:grid;grid-template-columns:130px 1fr;align-items:center;min-height:26px;padding:3px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);white-space:nowrap;">${label}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.85);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${value}</div>
+  </div>`;
 }
 
 // Helper: Get radio type SVG icon with custom color
@@ -81,157 +100,176 @@ const getRadioSVG = (type: string, color: string) => {
 
 export const renderNetworkTooltip = (props: any): string => {
   const threat = String(props.threat_level || props.threat || 'NONE').toUpperCase();
-  const tc = THREAT_COLOR[threat] || '#94a3b8';
-  const bc = BORDER_COLOR[threat] || 'rgba(148,163,184,0.25)';
-  const bssidCol = macColor(props.bssid);
-  const rssi = props.signal ?? props.rssi ?? props.level ?? -90;
-  const score = Number(props.threat_score || 0);
-  const quality = Math.round((props.quality_score || 0) * 100);
-  const qualColor = quality >= 80 ? '#22c55e' : quality >= 60 ? '#eab308' : '#ef4444';
-  const scoreColor = score >= 70 ? '#ef4444' : score >= 40 ? '#eab308' : '#22c55e';
+  const tc = THREAT_COLOR[threat] || '#60a5fa';
+  const rssiValue = props.signal ?? props.rssi ?? props.level;
+  const rssi = typeof rssiValue === 'number' ? rssiValue : Number(rssiValue);
+  const scoreValue = props.threat_score;
+  const score = typeof scoreValue === 'number' ? scoreValue : Number(scoreValue);
+  const qualitySource = props.quality_score;
+  const qualityRaw = typeof qualitySource === 'number' ? qualitySource : Number(qualitySource);
+  const quality = Number.isFinite(qualityRaw)
+    ? Math.round(qualityRaw <= 1 ? qualityRaw * 100 : qualityRaw)
+    : NaN;
   const lat = props.lat ?? props.latitude ?? props.trilat;
   const lon = props.lon ?? props.longitude ?? props.trilong;
   const randomized = isRandomizedMAC(props.bssid);
+  const ssid = normalizeDisplay(props.ssid);
+  const bssid = normalizeDisplay(props.bssid || props.netid);
+  const randomBadge = randomized ? 'RAND MAC' : 'OUI';
 
-  // Format distance from home logic
-  const distHomeRaw = Number(props.distance_from_home_km);
-  const distHomeDisplay = (() => {
-    if (props.distance_from_home_km === null || props.distance_from_home_km === undefined) {
-      return '<span style="color:#475569;font-style:italic;">(no marker)</span>';
-    }
-    // Sanity check: > 10,000km is usually a missing-coordinate or cross-hemisphere calculation error
-    if (distHomeRaw > 10000) {
-      return '<span style="color:#475569;font-style:italic;">(out of range)</span>';
-    }
-    return distHomeRaw > 10
-      ? `${distHomeRaw.toLocaleString(undefined, { maximumFractionDigits: 1 })}km`
-      : `${Math.round(distHomeRaw * 1000)}m`;
-  })();
+  const signalFill = Number.isFinite(rssi) ? clamp(((rssi - -90) / 60) * 100, 0, 100) : 0;
+  const signalColor = !Number.isFinite(rssi)
+    ? '#4ade80'
+    : rssi > -50
+      ? '#4ade80'
+      : rssi > -70
+        ? '#facc15'
+        : '#f87171';
+  const signalValue = Number.isFinite(rssi) ? `${Math.round(rssi)} dBm` : EM_DASH;
 
-  const distMaxRaw = Number(props.max_distance_km);
-  const distMaxDisplay = (() => {
-    if (props.max_distance_km === null || props.max_distance_km === undefined) return null;
-    return distMaxRaw > 10
-      ? `${distMaxRaw.toLocaleString(undefined, { maximumFractionDigits: 1 })}km`
-      : `${Math.round(distMaxRaw * 1000)}m`;
-  })();
+  const scoreFill = Number.isFinite(score) ? clamp(score, 0, 100) : 0;
+  const scoreColor = !Number.isFinite(score)
+    ? '#4ade80'
+    : score < 30
+      ? '#4ade80'
+      : score < 60
+        ? '#facc15'
+        : '#f87171';
+  const scoreText = Number.isFinite(score) ? score.toFixed(1) : EM_DASH;
 
-  const distDeltaRaw = Number(props.distance_from_last_point_m);
-  const distDeltaDisplay = (() => {
-    if (props.distance_from_last_point_m === null || props.distance_from_last_point_m === undefined)
-      return null;
-    return distDeltaRaw > 10000
-      ? `${(distDeltaRaw / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}km`
-      : `${Math.round(distDeltaRaw)}m`;
-  })();
+  const qualityFill = Number.isFinite(quality) ? clamp(quality, 0, 100) : 0;
+  const qualityText = Number.isFinite(quality) ? `${quality}%` : EM_DASH;
 
-  // Helper: Format timespan
-  const timespanText = (() => {
-    if (!props.timespan_days) return '';
-    const d = props.timespan_days;
-    if (d >= 365) return `${(d / 365).toFixed(1)}yr`;
-    if (d >= 30) return `${(d / 30).toFixed(1)}mo`;
-    return `${d}d`;
-  })();
+  const hasBand = !isMissingValue(props.band);
+  const channelValue = isMissingValue(props.channel)
+    ? ''
+    : `${normalizeDisplay(props.channel)}${hasBand ? ` (${normalizeDisplay(props.band)})` : ''}`;
+  const frequencyNumber = Number(props.frequency);
+  const frequencyValue = isMissingValue(props.frequency)
+    ? ''
+    : Number.isFinite(frequencyNumber)
+      ? `${frequencyNumber} MHz`
+      : normalizeDisplay(props.frequency);
+  const observationsValue = formatObservationText(props.observation_count, props.timespan_days);
+  const siblingValue =
+    Number(props.sibling_count) > 0 ? `${Number(props.sibling_count)} radios` : '';
+  const wigleValue = props.wigle_match ? 'Yes' : '';
+  const accuracyNumber = Number(props.accuracy);
+  const accuracyValue = Number.isFinite(accuracyNumber) ? `${accuracyNumber} m` : '';
+  const altitudeNumber = Number(props.altitude);
+  const altitudeValue = Number.isFinite(altitudeNumber) ? `${Math.round(altitudeNumber)} m` : '';
+
+  const fieldRows = [
+    !isMissingValue(props.encryption || props.security)
+      ? fieldRow('Encryption', normalizeDisplay(props.encryption || props.security))
+      : '',
+    channelValue ? fieldRow('Channel', channelValue) : '',
+    frequencyValue ? fieldRow('Frequency', frequencyValue) : '',
+    !isMissingValue(props.manufacturer)
+      ? fieldRow('Manufacturer', normalizeDisplay(props.manufacturer))
+      : '',
+    observationsValue ? fieldRow('Observations', observationsValue) : '',
+    siblingValue ? fieldRow('Sibling Radios', siblingValue) : '',
+    wigleValue ? fieldRow('WiGLE Match', wigleValue) : '',
+    accuracyValue ? fieldRow('GPS Accuracy', accuracyValue) : '',
+    altitudeValue ? fieldRow('Altitude', altitudeValue) : '',
+  ]
+    .filter(Boolean)
+    .join('');
+
+  const locationText = buildLocation(props);
+  const hasCoords = lat != null && lon != null;
+  const homeKm = Number(props.distance_from_home_km);
+  const maxKm = Number(props.max_distance_km);
+  const lastPointMeters = Number(props.distance_from_last_point_m);
+  const homeColor = !Number.isFinite(homeKm)
+    ? '#4ade80'
+    : homeKm < 1
+      ? '#4ade80'
+      : homeKm < 5
+        ? '#facc15'
+        : '#f87171';
+  const temporalPresent =
+    !isMissingValue(props.first_seen) ||
+    !isMissingValue(props.last_seen) ||
+    !isMissingValue(props.time);
 
   return `
-<div style="background:linear-gradient(160deg,rgba(9,13,26,0.98) 0%,rgba(6,10,20,0.98) 100%);color:#f1f5f9;padding:0;border-radius:10px;width:min(315px, 85vw);max-height:min(450px, 80vh);overflow-y:auto;border:1px solid ${bc};font-family:'JetBrains Mono','Fira Code',monospace;font-size:10.5px;box-sizing:border-box;box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); scrollbar-width: thin; scrollbar-color: rgba(148,163,184,0.3) transparent;">
-
-  <div style="padding:10px 14px 8px;border-bottom:1px solid rgba(148,163,184,0.1);position:sticky;top:0;background:rgba(9,13,26,0.95);backdrop-filter:blur(4px);z-index:10;">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="flex-shrink:0;">${getRadioSVG(props.radio_type || 'WiFi', tc)}</div>
-          <div style="font-size:13px;font-weight:700;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${props.ssid || '<span style="color:#475569;font-style:italic;">Hidden SSID</span>'}</div>
-        </div>
-        
-        <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-          <div style="color:${bssidCol};font-size:9.5px;letter-spacing:0.1em;">${props.bssid || props.netid || '—'}</div>
-          ${
-            randomized
-              ? `<div style="background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.4);color:#a78bfa;font-size:8px;padding:1px 5px;border-radius:3px;letter-spacing:0.08em;">RAND MAC</div>`
-              : `<div style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.25);color:#60a5fa;font-size:8px;padding:1px 5px;border-radius:3px;letter-spacing:0.08em;">OUI</div>`
-          }
-        </div>
-
-        ${
-          randomized
-            ? `<div style="margin-top:7px;padding:5px 8px;background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.2);border-radius:5px;font-size:9px;color:#7c6db5;line-height:1.4;">
-                 Locally administered MAC — device is using a randomized hardware address. Real identity unknown.
-               </div>`
-            : ''
-        }
-      </div>
-      <div style="flex-shrink:0;text-align:right;">
-        <div style="background:${tc}18;border:1px solid ${tc}55;color:${tc};padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:0.12em;">${threat}</div>
-        ${props.is_mobile ? `<div style="margin-top:3px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:8px;padding:1px 6px;border-radius:3px;letter-spacing:0.08em;">MOBILE</div>` : ''}
-      </div>
+<div style="width:288px;max-width:min(340px, 90vw);background:#1a1d23;border:1px solid rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;">
+    <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;display:flex;align-items:center;gap:6px;">
+      <div style="flex-shrink:0;">${getRadioSVG(props.radio_type || 'WiFi', tc)}</div>
+      <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
     </div>
+    <div style="flex-shrink:0;padding:2px 7px;border-radius:9999px;font-size:10px;font-weight:500;font-family:monospace;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;background:${tc}22;border:1px solid ${tc};color:${tc};">${threat}</div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 8px;">
+    <div style="font-size:11px;font-family:monospace;color:rgba(255,255,255,0.55);letter-spacing:0.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${bssid}</div>
+    <div style="flex-shrink:0;padding:2px 7px;border-radius:9999px;font-size:9px;font-weight:500;font-family:monospace;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.4);color:${randomized ? '#facc15' : '#60a5fa'};">${randomBadge}</div>
+  </div>
+  ${
+    randomized
+      ? `<div style="margin:0 12px 8px;padding:6px 8px;border-radius:6px;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.25);font-size:10px;color:rgba(255,255,255,0.6);line-height:1.4;">Locally administered MAC; randomized hardware address in use.</div>`
+      : ''
+  }
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:8px;">
+    ${statsCell('Signal', signalValue, signalFill, signalColor)}
+    ${statsCell(
+      'Threat Score',
+      scoreText,
+      scoreFill,
+      scoreColor,
+      'border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);'
+    )}
+    ${statsCell('Data Quality', qualityText, qualityFill, '#60a5fa')}
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid rgba(148,163,184,0.08);">
-    <div style="padding:8px 10px;border-right:1px solid rgba(148,163,184,0.08);">
-      <div style="color:#475569;font-size:8.5px;letter-spacing:0.08em;margin-bottom:4px;">SIGNAL</div>
-      <div style="display:flex;align-items:flex-end;gap:3px;height:18px;">${signalBars(rssi)}</div>
-      <div style="color:#94a3b8;font-size:10px;margin-top:2px;">${rssi} dBm</div>
-    </div>
-    <div style="padding:8px 10px;border-right:1px solid rgba(148,163,184,0.08);">
-      <div style="color:#475569;font-size:8.5px;letter-spacing:0.08em;margin-bottom:4px;">THREAT SCORE</div>
-      <div style="color:${tc};font-size:15px;font-weight:700;line-height:1;">${score.toFixed(1)}</div>
-      ${progressBar(score, scoreColor)}
-    </div>
-    <div style="padding:8px 10px;">
-      <div style="color:#475569;font-size:8.5px;letter-spacing:0.08em;margin-bottom:4px;">DATA QUALITY</div>
-      <div style="color:#94a3b8;font-size:15px;font-weight:700;line-height:1;">${quality}%</div>
-      ${progressBar(quality, qualColor)}
-    </div>
-  </div>
+  ${fieldRows}
 
-  <div style="padding:10px 14px;border-bottom:1px solid rgba(148,163,184,0.08);">
-    <table style="width:100%;border-collapse:collapse;">
-      ${row('Encryption', props.encryption || props.security || '—')}
-      ${row('Channel', `${props.channel || '<span style="color:#475569;font-style:italic;">Unknown</span>'} <span style="color:#334155;">${props.band || ''}</span>`)}
-      ${row('Frequency', `${props.frequency ? props.frequency + ' MHz' : '<span style="color:#475569;font-style:italic;">Unknown</span>'}`)}
-      ${row('Manufacturer', props.manufacturer || '—')}
-      ${row('Observations', `${props.observation_count ?? '0'} ${props.timespan_days ? `<span style="color:#475569;font-size:9px;">(${timespanText})</span>` : ''}`)}
-      ${props.sibling_count > 0 ? row('Siblings', `<span style="color:#f97316;">${props.sibling_count} related</span>`) : ''}
-      ${props.wigle_match ? row('WiGLE', '<span style="color:#60a5fa;">matched</span>') : ''}
-      ${props.accuracy ? row('GPS Accuracy', `${props.accuracy}m` || '—') : ''}
-      ${props.altitude ? row('Altitude', `${props.altitude.toFixed(0)}m` || '—') : ''}
-    </table>
-  </div>
+  <div style="padding:6px 12px 2px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.08);margin-top:2px;">Location</div>
+  ${locationText ? `<div style="padding:1px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}
+  ${hasCoords ? `<div style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);">${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}</div>` : ''}
+  ${
+    Number.isFinite(homeKm)
+      ? `<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;">
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);white-space:nowrap;">HOME</div>
+    <div style="flex:1;">${statBar((homeKm / 25) * 100, homeColor)}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.85);text-align:right;white-space:nowrap;">${formatDistance(homeKm)}${Number.isFinite(maxKm) ? `<span style="color:rgba(255,255,255,0.45);"> · max ${formatDistance(maxKm)}</span>` : ''}</div>
+  </div>`
+      : ''
+  }
+  ${Number.isFinite(lastPointMeters) ? fieldRow('Last Pt', `${Math.round(lastPointMeters)}m`) : ''}
 
-  <div style="padding:8px 14px;border-bottom:1px solid rgba(148,163,184,0.08);">
-    <div style="color:#475569;font-size:8.5px;letter-spacing:0.08em;margin-bottom:5px;">LOCATION</div>
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-      <div style="color:#64748b;font-size:10px;flex:1;">${buildLocation(props)}</div>
-      ${lat != null ? `<div style="color:#334155;font-size:9px;white-space:nowrap;">${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}</div>` : ''}
-    </div>
+  ${
+    temporalPresent
+      ? `<div style="border-top:1px solid rgba(255,255,255,0.08);padding:5px 12px 8px;display:flex;flex-direction:column;gap:2px;">
     ${
-      props.distance_from_home_km != null ||
-      props.max_distance_km != null ||
-      props.distance_from_last_point_m != null
-        ? `
-    <div style="margin-top:6px;display:flex;gap:10px;color:#475569;font-size:9px;">
-      <span>HOME: <b style="color:#64748b;">${distHomeDisplay}</b></span>
-      ${distMaxDisplay ? `<span>MAX: <b style="color:#64748b;">${distMaxDisplay}</b></span>` : ''}
-      ${distDeltaDisplay ? `<span>DELTA: <b style="color:#64748b;">${distDeltaDisplay}</b></span>` : ''}
-    </div>
-    `
+      !isMissingValue(props.number)
+        ? `<div style="font-size:10px;color:rgba(255,255,255,0.5);">OBS #${normalizeDisplay(props.number)}</div>`
         : ''
     }
-  </div>
-
-  <div style="padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">
-    <div style="font-size:9px;">
-      ${props.number ? `<div style="color:#3b82f6;font-weight:700;margin-bottom:2px;font-size:10px;">OBS # ${props.number} of ${props.observation_count}</div>` : ''}
-      <div style="color:#334155;margin-bottom:1px;">FIRST <span style="color:#475569;">${fmtDate(props.first_seen)}</span></div>
-      <div style="color:#334155;margin-bottom:1px;">LAST <span style="color:#64748b;">${fmtDate(props.last_seen)}</span></div>
-      ${props.time ? `<div style="color:#f8fafc;margin-top:2px;padding-top:2px;border-top:1px solid rgba(148,163,184,0.1);">THIS OBS <span style="color:#60a5fa;font-weight:700;">${fmtDate(props.time)}</span></div>` : ''}
-      ${props.time_since_prior ? `<div style="color:#f97316;margin-top:1px;">+${props.time_since_prior} since prev</div>` : ''}
+    <div style="display:flex;justify-content:space-between;font-size:10px;">
+      <div><span style="color:rgba(255,255,255,0.45);">FIRST</span> <span style="color:rgba(255,255,255,0.85);">${formatDate(props.first_seen)}</span></div>
+      <div><span style="color:rgba(255,255,255,0.45);">LAST</span> <span style="color:rgba(255,255,255,0.85);">${formatDate(props.last_seen)}</span></div>
     </div>
-    ${props.notes ? `<div style="background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);color:#eab308;font-size:8.5px;padding:3px 7px;border-radius:4px;max-width:130px;text-align:right;line-height:1.3;">${props.notes}</div>` : ''}
-  </div>
+    ${
+      !isMissingValue(props.time)
+        ? `<div style="font-size:10px;color:rgba(255,255,255,0.5);">THIS OBS ${formatDate(props.time)}${
+            !isMissingValue(props.time_since_prior)
+              ? `<span style="font-style:italic;"> · ${normalizeDisplay(props.time_since_prior)} prior</span>`
+              : ''
+          }</div>`
+        : ''
+    }
+  </div>`
+      : ''
+  }
+  ${
+    !isMissingValue(props.notes)
+      ? `<div style="padding:4px 12px 6px;font-size:10px;color:rgba(255,255,255,0.45);font-style:italic;border-top:1px solid rgba(255,255,255,0.05);">${normalizeDisplay(props.notes)}</div>`
+      : ''
+  }
 
 </div>`;
 };
