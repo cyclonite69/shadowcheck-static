@@ -6,6 +6,11 @@ Standalone Grafana stack. Runs independently of the main app.
 
 ```bash
 git pull --rebase origin master
+export DB_PASSWORD="$(aws secretsmanager get-secret-value \
+  --secret-id shadowcheck/config \
+  --region us-east-1 \
+  --query SecretString \
+  --output text | jq -r '.db_password')"
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d shadowcheck_grafana
 ```
 
@@ -23,15 +28,21 @@ docker compose -f docker-compose.monitoring.yml down
 ## Datasource
 
 Pre-wired to shadowcheck_postgres via provisioning.
-DB_PASSWORD injected from .env — no manual Grafana configuration needed.
+DB_PASSWORD is injected from the shell environment.
+In AWS deployments, source it from Secrets Manager before starting Grafana.
 
 ## Enable Slow Query Panel (optional)
 
 Run once:
 
 ```bash
+export DB_PASSWORD="$(aws secretsmanager get-secret-value \
+  --secret-id shadowcheck/config \
+  --region us-east-1 \
+  --query SecretString \
+  --output text | jq -r '.db_password')"
 docker exec \
-  -e PGPASSWORD="$(grep DB_PASSWORD .env | cut -d= -f2)" \
+  -e PGPASSWORD="$DB_PASSWORD" \
   shadowcheck_postgres \
   psql -h 127.0.0.1 -U shadowcheck_user -d shadowcheck_db \
   -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
