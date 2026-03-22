@@ -113,10 +113,11 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     )
   );
   const accuracy = toNumberOrNull(pickFirst(raw.accuracy, raw.acc));
+  const explicitQuality = toNumberOrNull(pickFirst(raw.quality_score, raw.data_quality));
 
   const calculatedQuality = (() => {
-    if (raw.quality_score !== undefined && raw.quality_score !== null) {
-      return toNumberOrNull(raw.quality_score) || 0;
+    if (explicitQuality !== null) {
+      return explicitQuality;
     }
 
     let score = 0;
@@ -159,8 +160,14 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     observation_count: obsCount,
     timespan_days: toNumberOrNull(raw.timespan_days),
     time: pickFirst(raw.time, raw.timestamp, raw.last_seen, raw.lasttime, raw.observed_at),
-    first_seen: pickFirst(raw.first_seen, raw.firsttime, raw.first_observed_at, raw.observed_at),
-    last_seen: pickFirst(raw.last_seen, raw.lasttime, raw.lastupdt, raw.observed_at),
+    first_seen: pickFirst(
+      raw.first_seen,
+      raw.firsttime,
+      raw.first,
+      raw.first_observed_at,
+      raw.observed_at
+    ),
+    last_seen: pickFirst(raw.last_seen, raw.lasttime, raw.last, raw.lastupdt, raw.observed_at),
     distance_from_home_km: normalizeDistanceFromHomeKm(raw),
     max_distance_km:
       toNumberOrNull(raw.max_distance_km) ??
