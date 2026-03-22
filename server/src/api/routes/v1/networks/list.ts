@@ -59,6 +59,7 @@ router.get(
     const authMethodsRaw = req.query.authMethods;
     const insecureFlagsRaw = req.query.insecureFlags;
     const securityFlagsRaw = req.query.securityFlags;
+    const manufacturerRaw = req.query.manufacturer;
     const quickSearchRaw = req.query.q;
     const sortRaw = req.query.sort || 'last_seen';
     const orderRaw = req.query.order || 'DESC';
@@ -356,6 +357,16 @@ router.get(
       }
       quickSearchPattern = validation.value;
     }
+
+    let manufacturer = null;
+    if (manufacturerRaw !== undefined) {
+      const validation = validateString(manufacturerRaw, 100, 'manufacturer');
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid manufacturer parameter.' });
+      }
+      manufacturer = validation.value;
+    }
+
     const result = await networkService.getFilteredNetworks({
       limit,
       offset,
@@ -383,6 +394,7 @@ router.get(
       insecureFlags,
       securityFlags,
       quickSearchPattern,
+      manufacturer,
       bboxMinLat,
       bboxMaxLat,
       bboxMinLng,

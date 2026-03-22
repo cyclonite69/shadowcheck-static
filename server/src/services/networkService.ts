@@ -62,6 +62,7 @@ export async function getFilteredNetworks(opts: {
   insecureFlags: string[] | null;
   securityFlags: string[] | null;
   quickSearchPattern: string | null;
+  manufacturer: string | null;
   bboxMinLat: number | null;
   bboxMaxLat: number | null;
   bboxMinLng: number | null;
@@ -97,6 +98,7 @@ export async function getFilteredNetworks(opts: {
     insecureFlags,
     securityFlags,
     quickSearchPattern,
+    manufacturer,
     bboxMinLat,
     bboxMaxLat,
     bboxMinLng,
@@ -301,7 +303,7 @@ export async function getFilteredNetworks(opts: {
     : selectColumns;
 
   const joins = [
-    'LEFT JOIN app.radio_manufacturers rm ON ne.oui = rm.oui',
+    'LEFT JOIN app.radio_manufacturers rm ON ne.oui = rm.prefix',
     'LEFT JOIN app.network_tags nt ON ne.bssid = nt.bssid',
     'LEFT JOIN app.network_threat_scores nts ON ne.bssid = nts.bssid',
     'LEFT JOIN app.api_network_explorer_mv mv ON ne.bssid = mv.bssid',
@@ -433,6 +435,11 @@ export async function getFilteredNetworks(opts: {
     );
     params.push(`%${escapeLikePattern(quickSearchPattern)}%`);
     paramIndex++;
+  }
+
+  if (manufacturer !== null) {
+    addCondition(`rm.manufacturer ILIKE $${paramIndex}`, `%${escapeLikePattern(manufacturer)}%`);
+    appliedFiltersArray.push({ column: 'manufacturer', value: manufacturer });
   }
 
   if (
