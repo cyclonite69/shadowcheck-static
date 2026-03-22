@@ -72,6 +72,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
   const rawCaps = String(pickFirst(raw.security, raw.encryption, raw.capabilities) || '');
   const caps = parseCapabilities(rawCaps);
   const freq = toNumberOrNull(raw.frequency) || 0;
+  const canonicalSecurity = formatSecurity(rawCaps, 'Unknown');
 
   return {
     ssid: pickFirst(raw.ssid, raw.name, 'Hidden'),
@@ -88,8 +89,8 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     threat_level: pickFirst(raw.threat_level, raw.threat, 'NONE'),
     threat_score: Number(pickFirst(raw.threat_score, 0)),
     signal: toNumberOrNull(pickFirst(raw.signal, raw.level, raw.bestlevel, raw.rssi)),
-    security: caps.encryption || formatSecurity(rawCaps, 'Unknown'),
-    encryption: caps.encryption,
+    security: canonicalSecurity,
+    encryption: canonicalSecurity,
     wps: caps.wps,
     mfpc: caps.mfpc,
     frequency: freq,
