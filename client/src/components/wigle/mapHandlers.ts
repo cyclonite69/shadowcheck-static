@@ -1,5 +1,6 @@
 import type { Map, GeoJSONSource } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
+import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
 
@@ -25,8 +26,10 @@ export const attachClickHandlers = (
         [e.lngLat.lng, e.lngLat.lat]
       )
     );
+    const anchor = getPopupAnchor(map, e.lngLat, tooltipHTML);
 
     new mapboxgl.Popup({
+      anchor,
       offset: 15,
       className: 'sc-popup',
       maxWidth: 'min(340px, 90vw)',
