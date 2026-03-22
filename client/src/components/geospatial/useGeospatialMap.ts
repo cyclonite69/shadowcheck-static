@@ -192,58 +192,13 @@ export const useGeospatialMap = ({
               )
             );
 
-            // Smart positioning - keep popup within map bounds
-            const popupWidth = 340;
-            const popupHeight = 480;
-            const padding = 20;
-
-            // Get map container dimensions
-            const mapContainer = map.getContainer();
-            const mapRect = mapContainer.getBoundingClientRect();
-            const mapWidth = mapRect.width;
-            const mapHeight = mapRect.height;
-
-            // Get click position relative to map container
-            const point = map.project(e.lngLat);
-            const clickX = point.x;
-            const clickY = point.y;
-
-            // Determine best anchor based on click position within the map
-            // Use center-relative positioning for better centering
-            const halfWidth = popupWidth / 2;
-            const spaceAbove = clickY;
-            const spaceBelow = mapHeight - clickY;
-            const spaceLeft = clickX;
-            const spaceRight = mapWidth - clickX;
-
-            let anchor: string = 'bottom';
-            let offsetX = 0;
-            let offsetY = -15;
-
-            // Vertical: prefer showing below point, flip if not enough space
-            if (spaceBelow < popupHeight + padding && spaceAbove > spaceBelow) {
-              anchor = 'top';
-              offsetY = 15;
-            }
-
-            // Horizontal: try to center, but shift if near edges
-            if (spaceRight < halfWidth + padding) {
-              // Near right edge - anchor to right
-              anchor = anchor === 'top' ? 'top-right' : 'bottom-right';
-              offsetX = -10;
-            } else if (spaceLeft < halfWidth + padding) {
-              // Near left edge - anchor to left
-              anchor = anchor === 'top' ? 'top-left' : 'bottom-left';
-              offsetX = 10;
-            }
-
-            new mapboxgl.Popup({
-              offset: [offsetX, offsetY],
+            new (mapboxgl as any).Popup({
+              offset: 15,
               className: 'sc-popup',
-              anchor: anchor as any,
-              maxWidth: '340px',
+              maxWidth: 'min(340px, 90vw)',
               closeOnClick: true,
               closeButton: true,
+              focusAfterOpen: false,
             })
               .setLngLat(e.lngLat)
               .setHTML(popupHTML)
