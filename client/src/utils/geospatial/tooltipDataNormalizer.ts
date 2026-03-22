@@ -57,6 +57,20 @@ function freqToBand(freq: number): string {
   return '6 GHz';
 }
 
+function normalizeDistanceFromHomeKm(raw: AnyRecord): number | null {
+  const explicitKm = toNumberOrNull(raw.distance_from_home_km);
+  if (explicitKm !== null) return explicitKm;
+
+  const meters = toNumberOrNull(raw.distance_from_home_meters ?? raw.distance_from_home_m);
+  if (meters !== null) return meters / 1000.0;
+
+  const ambiguous = toNumberOrNull(raw.distance_from_home);
+  if (ambiguous === null) return null;
+
+  // Older payloads sometimes expose this field in meters despite the generic name.
+  return ambiguous > 1000 ? ambiguous / 1000.0 : ambiguous;
+}
+
 /**
  * Normalize mixed network/observation payloads from Geospatial, Kepler, and WiGLE
  * into canonical tooltip fields consumed by renderNetworkTooltip.
@@ -147,9 +161,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     time: pickFirst(raw.time, raw.timestamp, raw.last_seen, raw.lasttime, raw.observed_at),
     first_seen: pickFirst(raw.first_seen, raw.firsttime, raw.first_observed_at, raw.observed_at),
     last_seen: pickFirst(raw.last_seen, raw.lasttime, raw.lastupdt, raw.observed_at),
-    distance_from_home_km: toNumberOrNull(
-      pickFirst(raw.distance_from_home_km, raw.distance_from_home)
-    ),
+    distance_from_home_km: normalizeDistanceFromHomeKm(raw),
     max_distance_km:
       toNumberOrNull(raw.max_distance_km) ??
       (toNumberOrNull(raw.max_distance_meters) !== null

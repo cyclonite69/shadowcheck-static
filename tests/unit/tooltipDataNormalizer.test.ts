@@ -37,4 +37,19 @@ describe('normalizeTooltipData', () => {
     expect(normalized.lon).toBe(-83.75);
     expect(normalized.lat).toBe(43.02);
   });
+
+  it('converts large ambiguous distance_from_home values from meters to kilometers', () => {
+    const normalized = normalizeTooltipData({
+      bssid: 'C4:49:BB:2A:B4:84',
+      frequency: '2412 MHz',
+      channel: '1',
+      distance_from_home: 10953.51892936,
+      max_distance_meters: 10739.7370788,
+    });
+
+    expect(normalized.frequency).toBe(2412);
+    expect(normalized.channel).toBe(1);
+    expect(normalized.distance_from_home_km).toBeCloseTo(10.9535, 4);
+    expect(normalized.max_distance_km).toBeCloseTo(10.7397, 4);
+  });
 });
