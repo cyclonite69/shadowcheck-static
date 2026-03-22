@@ -6,6 +6,7 @@ IP="${1:-34.204.161.164:3001}"
 LIMIT=5
 WARN_SLOW_MS="${WARN_SLOW_MS:-10000}"
 FAIL_SLOW_MS="${FAIL_SLOW_MS:-30000}"
+COOKIE_JAR="${COOKIE_JAR:-}"
 PASS_COUNT=0
 WARN_COUNT=0
 FAIL_COUNT=0
@@ -14,6 +15,9 @@ KNOWN_ENABLED_KEYS='["ssid","bssid","manufacturer","radioTypes","frequencyBands"
 echo "=== SHADOWCHECK FILTER TEST SUITE ==="
 echo "Target: $IP"
 echo "Timestamp: $(date -Iseconds)"
+if [ -n "$COOKIE_JAR" ]; then
+    echo "Cookie jar: $COOKIE_JAR"
+fi
 echo ""
 
 test_filter() {
@@ -22,7 +26,11 @@ test_filter() {
     local enabled="$3"
     
     local start=$(date +%s%N)
-    local response=$(curl -s -w "\n%{http_code}" "http://$IP/api/v2/networks/filtered?limit=$LIMIT&offset=0&filters=$(echo "$filters" | jq -sRr @uri)&enabled=$(echo "$enabled" | jq -sRr @uri)")
+    local curl_args=(-s -w "\n%{http_code}")
+    if [ -n "$COOKIE_JAR" ]; then
+        curl_args+=(-b "$COOKIE_JAR")
+    fi
+    local response=$(curl "${curl_args[@]}" "http://$IP/api/v2/networks/filtered?limit=$LIMIT&offset=0&filters=$(echo "$filters" | jq -sRr @uri)&enabled=$(echo "$enabled" | jq -sRr @uri)")
     local end=$(date +%s%N)
     local duration=$(( (end - start) / 1000000 ))
     

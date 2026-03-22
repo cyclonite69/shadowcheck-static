@@ -2,6 +2,7 @@
 set -u
 
 BASE="${1:-http://localhost:3001}"
+COOKIE_JAR="${COOKIE_JAR:-}"
 PASS_COUNT=0
 WARN_COUNT=0
 FAIL_COUNT=0
@@ -9,6 +10,9 @@ FAIL_COUNT=0
 echo "=== SHADOWCHECK DASHBOARD FILTER SMOKE ==="
 echo "Base URL: $BASE"
 echo "Timestamp: $(date -Iseconds)"
+if [ -n "$COOKIE_JAR" ]; then
+  echo "Cookie jar: $COOKIE_JAR"
+fi
 echo ""
 
 urlencode_json() {
@@ -22,7 +26,11 @@ fetch_dashboard() {
   local e_enc
   f_enc=$(urlencode_json "$filters")
   e_enc=$(urlencode_json "$enabled")
-  curl -s -w "\n%{http_code}" \
+  local curl_args=(-s -w "\n%{http_code}")
+  if [ -n "$COOKIE_JAR" ]; then
+    curl_args+=(-b "$COOKIE_JAR")
+  fi
+  curl "${curl_args[@]}" \
     "$BASE/api/dashboard-metrics?filters=${f_enc}&enabled=${e_enc}"
 }
 
@@ -146,7 +154,11 @@ fi
 
 echo ""
 echo "[5/5] Severity counts endpoint should be healthy"
-severity_code=$(curl -s -o /tmp/sc_dashboard_severity.json -w "%{http_code}" "$BASE/api/v2/threats/severity-counts")
+severity_args=(-s -o /tmp/sc_dashboard_severity.json -w "%{http_code}")
+if [ -n "$COOKIE_JAR" ]; then
+  severity_args+=(-b "$COOKIE_JAR")
+fi
+severity_code=$(curl "${severity_args[@]}" "$BASE/api/v2/threats/severity-counts")
 if [ "$severity_code" = "200" ]; then
   severity_type=$(jq -r '.counts | type' /tmp/sc_dashboard_severity.json 2>/dev/null)
   if [ "$severity_type" = "object" ]; then
@@ -164,4 +176,3 @@ echo "Summary: PASS=$PASS_COUNT WARN=$WARN_COUNT FAIL=$FAIL_COUNT"
 if [ "$FAIL_COUNT" -gt 0 ]; then
   exit 1
 fi
-
