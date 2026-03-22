@@ -509,7 +509,11 @@ BEGIN
                 CASE
                     WHEN ml.manufacturer ILIKE '%AirLink%' 
                       OR ml.manufacturer ILIKE '%Cradlepoint%'
-                      OR ml.manufacturer ILIKE '%Sierra Wireless%' THEN 5
+                      OR ml.manufacturer ILIKE '%Sierra Wireless%'
+                      OR ml.manufacturer ILIKE '%Mitsumi%'
+                      OR ml.manufacturer ILIKE '%Alps Alpine%'
+                      OR ml.manufacturer ILIKE '%AlpsAlpine%'
+                      OR ml.manufacturer ILIKE '%Magneti Marelli Sistemas%' THEN 5
                     ELSE 0
                 END +
                 -- SSID pattern scoring (3 points max)
@@ -1448,7 +1452,11 @@ BEGIN
                 CASE
                     WHEN ml.manufacturer ILIKE '%AirLink%' 
                       OR ml.manufacturer ILIKE '%Cradlepoint%'
-                      OR ml.manufacturer ILIKE '%Sierra Wireless%' THEN 5
+                      OR ml.manufacturer ILIKE '%Sierra Wireless%'
+                      OR ml.manufacturer ILIKE '%Mitsumi%'
+                      OR ml.manufacturer ILIKE '%Alps Alpine%'
+                      OR ml.manufacturer ILIKE '%AlpsAlpine%'
+                      OR ml.manufacturer ILIKE '%Magneti Marelli Sistemas%' THEN 5
                     ELSE 0
                 END +
                 -- SSID pattern scoring (3 points max)
