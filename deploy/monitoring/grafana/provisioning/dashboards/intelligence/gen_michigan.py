@@ -25,7 +25,7 @@ classified AS (
   SELECT b.*,
     p.min_dist_m, p.nearest_office, os.oui_state_count,
     {HW_CASE} AS hw_class,
-    CASE {HW_CASE.replace("THEN 'fleet_vehicle'","THEN 1").replace("THEN 'mobile_command'","THEN 2").replace("THEN 'enterprise'","THEN 3").replace("THEN 'residential_agent'","THEN 4").replace("THEN 'consumer'","THEN 5").replace("THEN 'other_isp_gateway'","THEN 6").replace("THEN 'unknown_oui'","THEN 7")} END AS hw_class_num,
+    {HW_CLASS_NUM_CASE} AS hw_class_num,
     {HW_PTS} AS hw_pts,
     {PROX_PTS} AS prox_pts,
     {SPREAD_PTS} AS spread_pts
