@@ -9,6 +9,7 @@ datasources:
     secureJsonData:
       password: "${GRAFANA_READER_PASSWORD}"
     jsonData:
+      database: shadowcheck_db
       sslmode: disable
       maxOpenConns: 5
       maxIdleConns: 2
