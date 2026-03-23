@@ -22,11 +22,12 @@
   "schemaVersion": 39,
   "version": 1,
   "time": {
-    "from": "now-30d",
+    "from": "now-1y",
     "to": "now"
   },
   "timepicker": {},
-  "refresh": "5m",
+  "refresh": "",
+  "liveNow": false,
   "tags": ["shadowcheck", "intelligence"],
   "templating": {
     "list": [
@@ -35,6 +36,8 @@
         "type": "textbox",
         "label": "SSID contains",
         "current": {
+          "selected": true,
+          "text": "FBI",
           "value": "FBI"
         },
         "query": "FBI",
@@ -52,8 +55,13 @@
         "multi": true,
         "includeAll": true,
         "allValue": ".*",
-        "hide": 0,
-        "refresh": 2
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "refresh": 2,
+        "hide": 0
       },
       {
         "name": "confidence_threshold",
@@ -62,34 +70,34 @@
         "query": "40,50,60,70,80",
         "current": {
           "selected": true,
-          "value": "60",
-          "text": "60"
+          "text": "60",
+          "value": "60"
         },
         "options": [
           {
             "selected": false,
-            "value": "40",
-            "text": "40"
+            "text": "40",
+            "value": "40"
           },
           {
             "selected": false,
-            "value": "50",
-            "text": "50"
+            "text": "50",
+            "value": "50"
           },
           {
             "selected": true,
-            "value": "60",
-            "text": "60"
+            "text": "60",
+            "value": "60"
           },
           {
             "selected": false,
-            "value": "70",
-            "text": "70"
+            "text": "70",
+            "value": "70"
           },
           {
             "selected": false,
-            "value": "80",
-            "text": "80"
+            "text": "80",
+            "value": "80"
           }
         ],
         "hide": 0
@@ -101,34 +109,34 @@
         "query": "90,180,365,730,1095",
         "current": {
           "selected": true,
-          "value": "365",
-          "text": "365"
+          "text": "365",
+          "value": "365"
         },
         "options": [
           {
             "selected": false,
-            "value": "90",
-            "text": "90"
+            "text": "90",
+            "value": "90"
           },
           {
             "selected": false,
-            "value": "180",
-            "text": "180"
+            "text": "180",
+            "value": "180"
           },
           {
             "selected": true,
-            "value": "365",
-            "text": "365"
+            "text": "365",
+            "value": "365"
           },
           {
             "selected": false,
-            "value": "730",
-            "text": "730"
+            "text": "730",
+            "value": "730"
           },
           {
             "selected": false,
-            "value": "1095",
-            "text": "1095"
+            "text": "1095",
+            "value": "1095"
           }
         ],
         "hide": 0
@@ -148,9 +156,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## The residential agent hypothesis\n\nAgents live near field offices. When an agent names their home WiFi network \"FBI\" \u2014 whether as a joke, a deterrent, or genuine carelessness \u2014 that network becomes a persistent signal in wardrive databases. The key insight is that **ISP gateway hardware** (Commscope, PEGATRON, Vantiva, Sagemcom) is what distinguishes a genuine home network from a mobile or enterprise deployment.\n\n**Paired BSSID pattern**: Sequential MAC addresses with identical observation spans indicate a dual-band router \u2014 two radios, one household. The Tacoma pair (`B2:00:73:5F:D5:E5` / `B2:00:73:5F:D5:E6`) is the anchor example: still active as of March 2026, 1,305-day observation span, 580m from the Seattle Field Office. The sequential MACs and identical span confirm this is a single dual-band router, not two separate devices.\n\n**eero mesh cluster pattern**: Three nodes with sequential MACs (`30:57:8E:11:9B:46/47/48`), same SSID, same observation span \u2014 this is a mesh network in a single household. The Grand Rapids cluster was active 2024\u20132026. eero is an Amazon product; the OUI maps to Amazon Technologies. This is a residential agent home network, not a consumer coincidence \u2014 the proximity (sub-2km from the Grand Rapids RA) and span (multi-year) are the corroborating signals."
+        "content": "## The residential agent hypothesis\n\nAgents live near field offices. When an agent names their home WiFi network \"FBI\" \u2014 whether as a joke, a deterrent, or genuine carelessness \u2014 that network becomes a persistent signal in wardrive databases. The key insight is that **ISP gateway hardware** (Commscope, PEGATRON, Vantiva, Sagemcom) is what distinguishes a genuine home network from a mobile or enterprise deployment.\n\n**Paired BSSID pattern**: Sequential MAC addresses with identical observation spans indicate a dual-band router \u2014 two radios, one household. The Tacoma pair (`B2:00:73:5F:D5:E5` / `B2:00:73:5F:D5:E6`) is the anchor example: still active as of March 2026, 1,305-day observation span, 580m from the Seattle Field Office.\n\n**eero mesh cluster pattern**: Three nodes with sequential MACs (`30:57:8E:11:9B:46/47/48`), same SSID, same observation span \u2014 one household. The Grand Rapids cluster was active 2024\u20132026, sub-2km from the Grand Rapids RA."
       },
-      "datasource": null
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
     },
     {
       "id": 2,
@@ -172,14 +183,16 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n)\nSELECT COUNT(*) AS \"MI Records\" FROM base",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n)\nSELECT COUNT(*) AS \"MI Records\" FROM base",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": ["last"]
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
         },
         "orientation": "auto",
         "textMode": "auto",
@@ -222,14 +235,16 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n),\nproximity AS (\n  SELECT b.bssid,\n    MIN(ST_Distance(v2.location::geography, ao.location)) AS min_dist_m,\n    (SELECT ao2.name FROM app.agency_offices ao2\n     ORDER BY v2.location::geography <-> ao2.location LIMIT 1) AS nearest_office\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN app.agency_offices ao\n  GROUP BY b.bssid, v2.location\n)\nSELECT COUNT(*) AS \"Residential agents\"\nFROM base b JOIN proximity p ON p.bssid = b.bssid\nWHERE lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n  AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n),\nproximity AS (\n  SELECT b.bssid,\n    ao.name AS nearest_office,\n    ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN LATERAL (\n    SELECT name, location FROM app.agency_offices\n    ORDER BY v2.location::geography <-> location LIMIT 1\n  ) ao\n)\nSELECT COUNT(*) AS \"Residential agents\"\nFROM base b JOIN proximity p ON p.bssid = b.bssid\nWHERE lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n  AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": ["last"]
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
         },
         "orientation": "auto",
         "textMode": "auto",
@@ -276,14 +291,16 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n),\nproximity AS (\n  SELECT b.bssid,\n    MIN(ST_Distance(v2.location::geography, ao.location)) AS min_dist_m,\n    (SELECT ao2.name FROM app.agency_offices ao2\n     ORDER BY v2.location::geography <-> ao2.location LIMIT 1) AS nearest_office\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN app.agency_offices ao\n  GROUP BY b.bssid, v2.location\n)\nSELECT ROUND(AVG(b.span_days)) AS \"Avg span (days)\"\nFROM base b JOIN proximity p ON p.bssid = b.bssid\nWHERE lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n  AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n),\nproximity AS (\n  SELECT b.bssid,\n    ao.name AS nearest_office,\n    ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN LATERAL (\n    SELECT name, location FROM app.agency_offices\n    ORDER BY v2.location::geography <-> location LIMIT 1\n  ) ao\n)\nSELECT ROUND(AVG(b.span_days)) AS \"Avg span (days)\"\nFROM base b JOIN proximity p ON p.bssid = b.bssid\nWHERE lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n  AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": ["last"]
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
         },
         "orientation": "auto",
         "textMode": "auto",
@@ -326,14 +343,16 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n)\nSELECT COUNT(*) AS \"Active (90d)\"\nFROM base WHERE lasttime >= NOW() - INTERVAL '90 days'",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n)\nSELECT COUNT(*) AS \"Active (90d)\" FROM base\nWHERE lasttime >= NOW() - INTERVAL '90 days'",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": ["last"]
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
         },
         "orientation": "auto",
         "textMode": "auto",
@@ -376,7 +395,7 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    MIN(ST_Distance(v2.location::geography, ao.location)) AS min_dist_m,\n    (SELECT ao2.name FROM app.agency_offices ao2\n     ORDER BY v2.location::geography <-> ao2.location LIMIT 1) AS nearest_office\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN app.agency_offices ao\n  GROUP BY b.bssid, v2.location\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, p.nearest_office, os.oui_state_count,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 'fleet_vehicle'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 'mobile_command'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 'enterprise'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 1\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 2\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 3\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 4\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 5\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 6\n      ELSE 7\n    END AS hw_class_num,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 28\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN rm.manufacturer IS NULL THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n)\nSELECT\n  c.trilat, c.trilong,\n  c.hw_class_num,\n  COALESCE(c.manufacturer, 'Unknown') AS manufacturer,\n  c.city,\n  c.nearest_office,\n  ROUND(c.min_dist_m) AS dist_m,\n  ROUND(c.span_days) AS span_days\nFROM classified c\nWHERE c.trilat BETWEEN 41.5 AND 48.3\n  AND c.trilong BETWEEN -90.5 AND -82.1",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    ao.name AS nearest_office,\n    ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN LATERAL (\n    SELECT name, location FROM app.agency_offices\n    ORDER BY v2.location::geography <-> location LIMIT 1\n  ) ao\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, p.nearest_office, os.oui_state_count,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 'fleet_vehicle'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 'mobile_command'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 'enterprise'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])      THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 1\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 2\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 3\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 4\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 5\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])      THEN 6\n      ELSE 7\n    END AS hw_class_num,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 45\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 45\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 28\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN b.manufacturer IS NULL                         THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n)\nSELECT c.trilat, c.trilong, c.hw_class_num,\n  COALESCE(c.manufacturer, 'Unknown') AS manufacturer,\n  COALESCE(NULLIF(c.city,''), '(unknown)') AS city,\n  c.nearest_office, c.min_dist_m AS dist_m,\n  ROUND(c.span_days) AS span_days\nFROM classified c\nWHERE c.trilat BETWEEN 41.5 AND 48.3\n  AND c.trilong BETWEEN -90.5 AND -82.1",
           "format": "table",
           "refId": "A"
         }
@@ -392,6 +411,7 @@
           {
             "type": "markers",
             "name": "Networks",
+            "tooltip": true,
             "config": {
               "size": {
                 "fixed": 6
@@ -404,10 +424,17 @@
               "mode": "coords",
               "latitude": "trilat",
               "longitude": "trilong"
-            },
-            "tooltip": true
+            }
           }
-        ]
+        ],
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "tooltip": {
+          "mode": "details"
+        }
       },
       "fieldConfig": {
         "defaults": {},
@@ -434,12 +461,14 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    MIN(ST_Distance(v2.location::geography, ao.location)) AS min_dist_m,\n    (SELECT ao2.name FROM app.agency_offices ao2\n     ORDER BY v2.location::geography <-> ao2.location LIMIT 1) AS nearest_office\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN app.agency_offices ao\n  GROUP BY b.bssid, v2.location\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, p.nearest_office, os.oui_state_count,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 'fleet_vehicle'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 'mobile_command'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 'enterprise'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 1\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 2\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 3\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 4\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 5\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 6\n      ELSE 7\n    END AS hw_class_num,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 28\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN rm.manufacturer IS NULL THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n)\nSELECT\n  COALESCE(NULLIF(city,''), '(unknown)') AS \"City\",\n  COUNT(*) AS \"Total\",\n  COUNT(DISTINCT oui_24) AS \"Distinct OUIs\",\n  ROUND(AVG(min_dist_m)) AS \"Avg dist (m)\",\n  ROUND(MIN(min_dist_m)) AS \"Closest (m)\",\n  COUNT(*) FILTER (WHERE min_dist_m <= 2000) AS \"Within 2km\",\n  COUNT(*) FILTER (WHERE span_days >= 365) AS \"Multi-year\",\n  ROUND(AVG(span_days)) AS \"Avg span (d)\",\n  COUNT(*) FILTER (WHERE hw_class = 'fleet_vehicle') AS \"Fleet veh\",\n  COUNT(*) FILTER (WHERE hw_class = 'mobile_command') AS \"Mobile cmd\",\n  COUNT(*) FILTER (WHERE hw_class = 'enterprise') AS \"Enterprise\",\n  COUNT(*) FILTER (WHERE hw_class = 'residential_agent') AS \"Res. agent\",\n  MAX(lasttime) AS \"Last seen\"\nFROM classified\nGROUP BY COALESCE(NULLIF(city,''), '(unknown)')\nHAVING COUNT(*) >= 2\nORDER BY COUNT(*) DESC",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    ao.name AS nearest_office,\n    ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN LATERAL (\n    SELECT name, location FROM app.agency_offices\n    ORDER BY v2.location::geography <-> location LIMIT 1\n  ) ao\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, p.nearest_office, os.oui_state_count,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 'fleet_vehicle'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 'mobile_command'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 'enterprise'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])      THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 45\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 45\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 28\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN b.manufacturer IS NULL                         THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n)\nSELECT\n  COALESCE(NULLIF(city,''), '(unknown)') AS \"City\",\n  COUNT(*) AS \"Total\",\n  COUNT(DISTINCT oui_24) AS \"Distinct OUIs\",\n  ROUND(AVG(min_dist_m)) AS \"Avg dist (m)\",\n  ROUND(MIN(min_dist_m)) AS \"Closest (m)\",\n  COUNT(*) FILTER (WHERE min_dist_m <= 2000) AS \"Within 2km\",\n  COUNT(*) FILTER (WHERE span_days >= 365) AS \"Multi-year\",\n  ROUND(AVG(span_days)) AS \"Avg span (d)\",\n  COUNT(*) FILTER (WHERE hw_class = 'fleet_vehicle') AS \"Fleet veh\",\n  COUNT(*) FILTER (WHERE hw_class = 'mobile_command') AS \"Mobile cmd\",\n  COUNT(*) FILTER (WHERE hw_class = 'enterprise') AS \"Enterprise\",\n  COUNT(*) FILTER (WHERE hw_class = 'residential_agent') AS \"Res. agent\",\n  MAX(lasttime) AS \"Last seen\"\nFROM classified\nGROUP BY COALESCE(NULLIF(city,''), '(unknown)')\nHAVING COUNT(*) >= 2\nORDER BY COUNT(*) DESC",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
         "sortBy": []
       },
       "fieldConfig": {
@@ -588,9 +617,12 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## Michigan findings\n\n**Flint** has the highest proximity hit rate of any named Michigan city: 42.6% of Flint records fall within 2km of the Flint RA. Key records:\n\n- `B2:00:73:xx:xx:xx` (OUI B20073, \u26a0 Unregistered): appears **twice** in Flint at 267m and 719m. 33-state national spread. This is the highest-priority unregistered OUI in the dataset \u2014 no IEEE manufacturer record, consistent office proximity, national procurement pattern.\n- `C4:49:BB:xx:xx:xx` (Mitsumi Electric): Flint, 646m from office, 2,328-day span. Mitsumi manufactures automotive WiFi modules. This record should be reclassified as `fleet_vehicle` \u2014 the 2,328-day span and 646m proximity are consistent with a fleet vehicle regularly parked near the Flint RA.\n\n**PEGATRON pair** (Flint): Two sequential MACs at 2,664m and 2,751m \u2014 just outside the 2km residential agent threshold. However, the 2,709-day observation span (7.4 years) is the longest in the Michigan dataset. The proximity miss is marginal; the span is definitive. These should be treated as residential agent candidates despite the distance.\n\n**eero mesh cluster** (`30:57:8E:11:9B:46/47/48`): Three nodes, one household, Grand Rapids. Active 2024\u20132026. The sequential MAC triplet and identical observation windows confirm a single mesh network. Sub-2km from Grand Rapids RA."
+        "content": "## Michigan findings\n\n**Flint** has the highest proximity hit rate of any named Michigan city: 42.6% of Flint records fall within 2km of the Flint RA.\n\n- `B2:00:73:xx:xx:xx` (OUI B20073, \u26a0 Unregistered): appears **twice** in Flint at 267m and 719m. 33-state national spread. Highest-priority unregistered OUI in the dataset.\n- `C4:49:BB:xx:xx:xx` (Mitsumi Electric): Flint, 646m, 2,328-day span. Should be reclassified as `fleet_vehicle`.\n\n**PEGATRON pair** (Flint): Two sequential MACs at 2,664m and 2,751m \u2014 just outside the 2km threshold. 2,709-day span (7.4 years). Residential agent candidates despite the distance miss.\n\n**eero mesh cluster** (`30:57:8E:11:9B:46/47/48`): Three nodes, one household, Grand Rapids. Active 2024\u20132026. Sub-2km from Grand Rapids RA."
       },
-      "datasource": null
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
     },
     {
       "id": 9,
@@ -612,7 +644,7 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    MIN(ST_Distance(v2.location::geography, ao.location)) AS min_dist_m,\n    (SELECT ao2.name FROM app.agency_offices ao2\n     ORDER BY v2.location::geography <-> ao2.location LIMIT 1) AS nearest_office\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN app.agency_offices ao\n  GROUP BY b.bssid, v2.location\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, p.nearest_office, os.oui_state_count,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 'fleet_vehicle'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 'mobile_command'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 'enterprise'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 1\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 2\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 3\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 4\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 5\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 6\n      ELSE 7\n    END AS hw_class_num,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 28\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN rm.manufacturer IS NULL THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n)\nSELECT\n  CASE\n    WHEN min_dist_m <= 500   THEN '1 \u2014 0\u2013500m'\n    WHEN min_dist_m <= 1000  THEN '2 \u2014 500m\u20131km'\n    WHEN min_dist_m <= 2000  THEN '3 \u2014 1\u20132km'\n    WHEN min_dist_m <= 5000  THEN '4 \u2014 2\u20135km'\n    WHEN min_dist_m <= 25000 THEN '5 \u2014 5\u201325km'\n    ELSE                          '6 \u2014 >25km'\n  END AS \"Distance band\",\n  COUNT(*) AS \"All records\",\n  COUNT(*) FILTER (WHERE span_days >= 365) AS \"Multi-year span\",\n  COUNT(*) FILTER (WHERE hw_pts+prox_pts+spread_pts >= $confidence_threshold) AS \"High-conf agency\",\n  COUNT(*) FILTER (WHERE hw_class = 'enterprise') AS \"Enterprise\",\n  COUNT(*) FILTER (WHERE hw_class IN ('residential_agent','other_isp_gateway')) AS \"ISP gateway\"\nFROM classified\nGROUP BY 1 ORDER BY 1",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    ao.name AS nearest_office,\n    ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN LATERAL (\n    SELECT name, location FROM app.agency_offices\n    ORDER BY v2.location::geography <-> location LIMIT 1\n  ) ao\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, p.nearest_office, os.oui_state_count,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 'fleet_vehicle'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 'mobile_command'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 'enterprise'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])      THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 45\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 45\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 28\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN b.manufacturer IS NULL                         THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n)\nSELECT\n  CASE\n    WHEN min_dist_m <= 500   THEN '1 \u2014 0\u2013500m'\n    WHEN min_dist_m <= 1000  THEN '2 \u2014 500m\u20131km'\n    WHEN min_dist_m <= 2000  THEN '3 \u2014 1\u20132km'\n    WHEN min_dist_m <= 5000  THEN '4 \u2014 2\u20135km'\n    WHEN min_dist_m <= 25000 THEN '5 \u2014 5\u201325km'\n    ELSE                          '6 \u2014 >25km'\n  END AS \"Distance band\",\n  COUNT(*) AS \"All records\",\n  COUNT(*) FILTER (WHERE span_days >= 365) AS \"Multi-year span\",\n  COUNT(*) FILTER (WHERE hw_pts+prox_pts+spread_pts >= $confidence_threshold) AS \"High-conf agency\",\n  COUNT(*) FILTER (WHERE hw_class = 'enterprise') AS \"Enterprise\",\n  COUNT(*) FILTER (WHERE hw_class IN ('residential_agent','other_isp_gateway')) AS \"ISP gateway\"\nFROM classified GROUP BY 1 ORDER BY 1",
           "format": "table",
           "refId": "A"
         }
@@ -621,7 +653,12 @@
         "stacking": "none",
         "legend": {
           "displayMode": "list",
-          "placement": "bottom"
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
         }
       },
       "fieldConfig": {
@@ -649,18 +686,20 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    MIN(ST_Distance(v2.location::geography, ao.location)) AS min_dist_m,\n    (SELECT ao2.name FROM app.agency_offices ao2\n     ORDER BY v2.location::geography <-> ao2.location LIMIT 1) AS nearest_office\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN app.agency_offices ao\n  GROUP BY b.bssid, v2.location\n),\nclassified AS (\n  SELECT b.firsttime,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 'fleet_vehicle'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 'mobile_command'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 'enterprise'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n  LEFT JOIN app.radio_manufacturers rm ON rm.prefix = b.oui_24 AND rm.bit_length = 24\n  WHERE b.firsttime > '2001-01-02'\n)\nSELECT\n  date_trunc('year', firsttime) AS \"time\",\n  COUNT(*) FILTER (WHERE hw_class = 'fleet_vehicle')     AS \"fleet_vehicle\",\n  COUNT(*) FILTER (WHERE hw_class = 'mobile_command')    AS \"mobile_command\",\n  COUNT(*) FILTER (WHERE hw_class = 'enterprise')        AS \"enterprise\",\n  COUNT(*) FILTER (WHERE hw_class = 'residential_agent') AS \"residential_agent\",\n  COUNT(*) FILTER (WHERE hw_class = 'consumer')          AS \"consumer\",\n  COUNT(*) FILTER (WHERE hw_class = 'other_isp_gateway') AS \"other_isp_gateway\",\n  COUNT(*) FILTER (WHERE hw_class = 'unknown_oui')       AS \"unknown_oui\"\nFROM classified\nGROUP BY 1 ORDER BY 1",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    ao.name AS nearest_office,\n    ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN LATERAL (\n    SELECT name, location FROM app.agency_offices\n    ORDER BY v2.location::geography <-> location LIMIT 1\n  ) ao\n),\nclassified AS (\n  SELECT b.firsttime, CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 'fleet_vehicle'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 'mobile_command'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 'enterprise'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])      THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class\n  FROM base b JOIN proximity p ON p.bssid = b.bssid JOIN oui_states os ON os.oui_24 = b.oui_24\n  WHERE b.firsttime >= '2002-01-01'\n)\nSELECT date_trunc('year', firsttime) AS \"time\",\n  COUNT(*) FILTER (WHERE hw_class='fleet_vehicle')     AS \"fleet_vehicle\",\n  COUNT(*) FILTER (WHERE hw_class='mobile_command')    AS \"mobile_command\",\n  COUNT(*) FILTER (WHERE hw_class='enterprise')        AS \"enterprise\",\n  COUNT(*) FILTER (WHERE hw_class='residential_agent') AS \"residential_agent\",\n  COUNT(*) FILTER (WHERE hw_class='consumer')          AS \"consumer\",\n  COUNT(*) FILTER (WHERE hw_class='other_isp_gateway') AS \"other_isp_gateway\",\n  COUNT(*) FILTER (WHERE hw_class='unknown_oui')       AS \"unknown_oui\"\nFROM classified GROUP BY 1 ORDER BY 1",
           "format": "time_series",
           "refId": "A"
         }
       ],
       "options": {
         "tooltip": {
-          "mode": "multi"
+          "mode": "multi",
+          "sort": "none"
         },
         "legend": {
           "displayMode": "list",
-          "placement": "bottom"
+          "placement": "bottom",
+          "showLegend": true
         }
       },
       "fieldConfig": {
@@ -800,12 +839,14 @@
             "type": "postgres",
             "uid": "${DS_SHADOWCHECK_DB}"
           },
-          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US' AND v2.region = 'MI'\n    AND v2.trilat IS NOT NULL\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    MIN(ST_Distance(v2.location::geography, ao.location)) AS min_dist_m,\n    (SELECT ao2.name FROM app.agency_offices ao2\n     ORDER BY v2.location::geography <-> ao2.location LIMIT 1) AS nearest_office\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN app.agency_offices ao\n  GROUP BY b.bssid, v2.location\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, p.nearest_office, os.oui_state_count,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 'fleet_vehicle'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 'mobile_command'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 'enterprise'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 1\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 2\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 3\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 4\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 5\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 6\n      ELSE 7\n    END AS hw_class_num,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 28\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN rm.manufacturer IS NULL THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n)\nSELECT\n  c.bssid AS \"BSSID\",\n  COALESCE(c.manufacturer, '\u26a0 Unknown') AS \"Manufacturer\",\n  COALESCE(NULLIF(c.city,''), '\u2014') AS \"City\",\n  ROUND(c.min_dist_m) AS \"Dist (m)\",\n  c.nearest_office AS \"Nearest office\",\n  ROUND(c.span_days) AS \"Span (days)\",\n  c.firsttime AS \"First seen\",\n  c.lasttime AS \"Last seen\",\n  c.oui_state_count AS \"OUI states\",\n  c.encryption AS \"Enc\",\n  CASE WHEN v3.netid IS NOT NULL THEN 'YES' ELSE 'no' END AS \"v3?\"\nFROM classified c\nLEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = c.bssid\nWHERE c.min_dist_m <= 2000\n   OR lower(c.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])\n   OR lower(c.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])\n   OR (c.span_days >= 365 AND c.min_dist_m <= 5000)\nORDER BY\n  CASE c.hw_class\n    WHEN 'mobile_command'    THEN 1\n    WHEN 'fleet_vehicle'     THEN 2\n    WHEN 'residential_agent' THEN 3\n    WHEN 'enterprise'        THEN 4\n    ELSE 5\n  END,\n  c.min_dist_m ASC,\n  c.span_days DESC",
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.region = 'MI'\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    ao.name AS nearest_office,\n    ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN LATERAL (\n    SELECT name, location FROM app.agency_offices\n    ORDER BY v2.location::geography <-> location LIMIT 1\n  ) ao\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, p.nearest_office, os.oui_state_count,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 'fleet_vehicle'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 'mobile_command'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 'enterprise'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])      THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])    THEN 45\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])   THEN 45\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%'])    THEN 28\n      WHEN lower(b.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN b.manufacturer IS NULL                         THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n)\nSELECT\n  c.bssid AS \"BSSID\",\n  COALESCE(c.manufacturer, '\u26a0 Unknown') AS \"Manufacturer\",\n  COALESCE(NULLIF(c.city,''), '\u2014') AS \"City\",\n  c.min_dist_m AS \"Dist (m)\",\n  c.nearest_office AS \"Nearest office\",\n  ROUND(c.span_days) AS \"Span (days)\",\n  c.firsttime AS \"First seen\",\n  c.lasttime AS \"Last seen\",\n  c.oui_state_count AS \"OUI states\",\n  c.encryption AS \"Enc\",\n  CASE WHEN v3.netid IS NOT NULL THEN 'YES' ELSE 'no' END AS \"v3?\"\nFROM classified c\nLEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = c.bssid\nWHERE c.min_dist_m <= 2000\n   OR lower(c.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%'])\n   OR lower(c.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%'])\n   OR (c.span_days >= 365 AND c.min_dist_m <= 5000)\nORDER BY\n  CASE c.hw_class\n    WHEN 'mobile_command'    THEN 1\n    WHEN 'fleet_vehicle'     THEN 2\n    WHEN 'residential_agent' THEN 3\n    WHEN 'enterprise'        THEN 4\n    ELSE 5\n  END, c.min_dist_m ASC, c.span_days DESC",
           "format": "table",
           "refId": "A"
         }
       ],
       "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
         "sortBy": []
       },
       "fieldConfig": {
@@ -888,14 +929,18 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## v3 import recommendations\n\n### Tier 1 \u2014 Mobile command (immediate priority)\n- **Indiana Inseego quad**: 4 sequential MACs, all within 200m of each other, WPA3 encryption, last active Feb\u2013Dec 2025. Inseego manufactures cellular-to-WiFi bridges for mobile command posts. Import all 4 BSSIDs.\n\n### Tier 2 \u2014 Fleet vehicle\n- **Phoenix Magneti Marelli** (`4C:D9:C4:xx:xx:xx`): 8,807-day observation span (24 years). Longest span in the dataset. Magneti Marelli OEM automotive infotainment. Import.\n- **El Paso CradlePoint**: Active January 2026, within 500m of El Paso FO. Mobile command hardware. Import.\n\n### Tier 3 \u2014 Residential agent\n- **Tacoma pair** (`B2:00:73:5F:D5:E5` / `B2:00:73:5F:D5:E6`): Still active March 2026. 1,305-day span. 580m from Seattle FO. Dual-band router, same household. Import both.\n- **Omaha pair**: Active March 2026. 235m and 258m from Omaha FO. Import both.\n- **Paducah** (`xx:xx:xx:xx:xx:xx`): Active January 2026. 477m from Paducah RA. ISP gateway OUI. Import.\n\n**Total targeted imports: approximately 25\u201330 BSSIDs**, prioritized above the bulk enterprise backlog. The mobile command and fleet vehicle tiers have the highest analytical value per import."
+        "content": "## v3 import recommendations\n\n### Tier 1 \u2014 Mobile command (immediate priority)\n- **Indiana Inseego quad**: 4 sequential MACs, all within 200m, WPA3, last active Feb\u2013Dec 2025.\n\n### Tier 2 \u2014 Fleet vehicle\n- **Phoenix Magneti Marelli** (`4C:D9:C4:xx:xx:xx`): 8,807-day span (24 years). Longest in dataset.\n- **El Paso CradlePoint**: Active January 2026, within 500m of El Paso FO.\n\n### Tier 3 \u2014 Residential agent\n- **Tacoma pair** (`B2:00:73:5F:D5:E5` / `B2:00:73:5F:D5:E6`): Active March 2026. 1,305-day span. 580m from Seattle FO.\n- **Omaha pair**: Active March 2026. 235m and 258m from Omaha FO.\n- **Paducah**: Active January 2026. 477m from Paducah RA.\n\n**Total targeted imports: approximately 25\u201330 BSSIDs**, prioritized above the bulk enterprise backlog."
       },
-      "datasource": null
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
     }
   ],
   "editable": true,
-  "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "links": [],
-  "liveNow": false
+  "annotations": {
+    "list": []
+  }
 }
