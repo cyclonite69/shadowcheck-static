@@ -101,10 +101,11 @@ PROXIMITY_CTE = """proximity AS (
     ROUND(ST_Distance(v2.location::geography, ao.location)::numeric) AS min_dist_m
   FROM base b
   JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid
-  CROSS JOIN LATERAL (
+  LEFT JOIN LATERAL (
     SELECT name, location FROM app.agency_offices
+    WHERE location IS NOT NULL
     ORDER BY v2.location::geography <-> location LIMIT 1
-  ) ao
+  ) ao ON TRUE
 )"""
 
 def classified_cte(include_num=False):
