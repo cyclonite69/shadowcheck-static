@@ -82,8 +82,8 @@ def base_cte(extra_where=""):
 # Grafana sends "$__all" when "All" is selected, so we guard against that too.
 # An empty string or the literal "$__all" means no state restriction.
 STATE_FILTER = (
-    "AND ('${{state:csv}}' IN ('', '$__all') OR "
-    "v2.region = ANY(string_to_array('${{state:csv}}', ',')))"
+    "AND ('${state:csv}' IN ('', '$__all') OR "
+    "v2.region = ANY(string_to_array('${state:csv}', ',')))"
 )
 
 OUI_STATES_CTE = """oui_states AS (
