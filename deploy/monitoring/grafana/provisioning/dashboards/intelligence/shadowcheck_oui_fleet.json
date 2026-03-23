@@ -1,0 +1,421 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_SHADOWCHECK_DB",
+      "label": "shadowcheck_db",
+      "type": "datasource",
+      "pluginId": "postgres",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "uid": "shadowcheck-oui-fleet",
+  "title": "ShadowCheck \u2014 OUI Fleet Intelligence",
+  "description": "OUI procurement fingerprinting: national fleet spread, intra-state concentration, and v3 import gap analysis.",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "5m",
+  "tags": ["shadowcheck", "intelligence"],
+  "templating": {
+    "list": [
+      {
+        "name": "ssid_pattern",
+        "type": "textbox",
+        "label": "SSID contains",
+        "current": {
+          "value": "FBI"
+        },
+        "query": "FBI",
+        "hide": 0
+      },
+      {
+        "name": "state",
+        "type": "query",
+        "label": "State",
+        "datasource": {
+          "type": "postgres",
+          "uid": "${DS_SHADOWCHECK_DB}"
+        },
+        "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%' || '${ssid_pattern}' || '%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "hide": 0,
+        "refresh": 2
+      },
+      {
+        "name": "confidence_threshold",
+        "type": "custom",
+        "label": "Min confidence score",
+        "query": "40,50,60,70,80",
+        "current": {
+          "value": "60",
+          "text": "60"
+        },
+        "options": [
+          {
+            "value": "40",
+            "text": "40"
+          },
+          {
+            "value": "50",
+            "text": "50"
+          },
+          {
+            "value": "60",
+            "text": "60"
+          },
+          {
+            "value": "70",
+            "text": "70"
+          },
+          {
+            "value": "80",
+            "text": "80"
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "name": "span_days_min",
+        "type": "custom",
+        "label": "Min span (days)",
+        "query": "90,180,365,730,1095",
+        "current": {
+          "value": "365",
+          "text": "365"
+        },
+        "options": [
+          {
+            "value": "90",
+            "text": "90"
+          },
+          {
+            "value": "180",
+            "text": "180"
+          },
+          {
+            "value": "365",
+            "text": "365"
+          },
+          {
+            "value": "730",
+            "text": "730"
+          },
+          {
+            "value": "1095",
+            "text": "1095"
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "National fleet OUI fingerprint",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_SHADOWCHECK_DB}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_SHADOWCHECK_DB}"
+          },
+          "rawSql": "WITH oui_agg AS (\n  SELECT\n    left(upper(replace(v2.bssid,':','')),6) AS oui_prefix,\n    rm.manufacturer,\n    COUNT(DISTINCT v2.region) AS state_count,\n    string_agg(DISTINCT v2.region, ', ' ORDER BY v2.region) AS states,\n    COUNT(*) AS record_count,\n    ROUND(GREATEST(0, AVG(EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400))) AS avg_span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%' AND v2.country = 'US'\n  GROUP BY left(upper(replace(v2.bssid,':','')),6), rm.manufacturer\n  HAVING COUNT(DISTINCT v2.region) >= 3\n)\nSELECT\n  oui_prefix AS \"OUI\",\n  COALESCE(manufacturer, '\u26a0 Unregistered') AS \"Manufacturer\",\n  state_count AS \"States\",\n  states AS \"State List\",\n  CASE WHEN state_count >= 30 THEN 'National fleet'\n       WHEN state_count >= 15 THEN 'Regional fleet'\n       WHEN state_count >= 5  THEN 'Multi-state'\n       ELSE 'Local' END AS \"Fleet Scope\",\n  record_count AS \"Records\",\n  avg_span_days AS \"Avg Span (d)\"\nFROM oui_agg\nORDER BY state_count DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "States"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "white",
+                      "value": null
+                    },
+                    {
+                      "color": "light-green",
+                      "value": 3
+                    },
+                    {
+                      "color": "green",
+                      "value": 15
+                    },
+                    {
+                      "color": "dark-green",
+                      "value": 30
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Manufacturer"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State List"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 400
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "title": "OUI fleet fingerprint analysis",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 8
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## OUI fleet fingerprint analysis\n\n**4CD9C4 \u2014 Magneti Marelli (43 states)** is the single strongest genuine-agency OUI in the dataset. Magneti Marelli manufactures automotive infotainment systems \u2014 specifically the WiFi chipsets embedded in government fleet vehicles. A 43-state spread is not a coincidence; it is a procurement fingerprint. Every federal agency that purchased vehicles with Magneti Marelli infotainment in the same contract cycle will show this OUI.\n\n**The automotive OUI tier** (Magneti Marelli, Mitsumi Electric, Alps Alpine, Panasonic Automotive, Visteon) represents OEM WiFi chipsets in fleet vehicle infotainment systems. These are not aftermarket devices. They appear in vehicles, not buildings. Their presence near field offices indicates fleet vehicles parked in the vicinity \u2014 either at the office or at agent residences.\n\n**B20073 \u2014 \u26a0 Unregistered (33 states)**: No IEEE manufacturer registration exists for this OUI prefix. A 33-state spread with consistent proximity to field offices and no manufacturer record is the highest-priority investigation target in the dataset. Possible explanations: (1) custom-manufactured device for government use, (2) recently registered OUI not yet in the public database, (3) MAC address spoofing with a non-registered prefix. The Tacoma pair (`B2:00:73:5F:D5:E5/E6`) is the anchor record.\n\n**`oui_state_spread >= 30` as a procurement signal**: When an OUI appears in 30+ states, it indicates a national procurement contract \u2014 the same hardware purchased across all field offices simultaneously. This is qualitatively different from a local concentration (one city, many records) which could indicate a single large deployment or a wardrive artifact.\n\n**v3 import gap**: Automotive OUIs have the highest national spread but the lowest v3 coverage. The bulk of existing v3 imports are enterprise-class hardware. The mobile command and fleet vehicle tiers are systematically under-imported."
+      },
+      "datasource": null
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Intra-state OUI concentration \u2014 fleet procurement signal",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_SHADOWCHECK_DB}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_SHADOWCHECK_DB}"
+          },
+          "rawSql": "WITH state_oui AS (\n  SELECT\n    v2.region AS state,\n    COUNT(*) AS total_records,\n    COUNT(DISTINCT left(upper(replace(v2.bssid,':','')),6)) AS distinct_ouis,\n    ROUND(COUNT(DISTINCT left(upper(replace(v2.bssid,':','')),6))::numeric / NULLIF(COUNT(*),0), 4) AS diversity_ratio,\n    (SELECT left(upper(replace(v2.bssid,':','')),6)\n     FROM app.wigle_v2_networks_search v2b\n     WHERE v2b.ssid ILIKE '%' || '$ssid_pattern' || '%'\n       AND v2b.country = 'US' AND v2b.region = v2.region\n     GROUP BY left(upper(replace(v2.bssid,':','')),6)\n     ORDER BY COUNT(*) DESC LIMIT 1) AS dominant_oui\n  FROM app.wigle_v2_networks_search v2\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND ('$state' = 'All' OR v2.region = ANY(string_to_array('$state', ',')))\n  GROUP BY v2.region\n  HAVING COUNT(*) >= 5\n)\nSELECT\n  state AS \"State\",\n  total_records AS \"Total records\",\n  distinct_ouis AS \"Distinct OUIs\",\n  diversity_ratio AS \"Diversity ratio\",\n  dominant_oui AS \"Dominant OUI\",\n  CASE WHEN diversity_ratio < 0.10 THEN 'Fleet signal'\n       WHEN diversity_ratio < 0.30 THEN 'Moderate concentration'\n       ELSE 'High diversity' END AS \"Concentration class\"\nFROM state_oui\nORDER BY diversity_ratio ASC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Concentration class"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Fleet signal": {
+                        "color": "#E85D24",
+                        "index": 0
+                      },
+                      "Moderate concentration": {
+                        "color": "#FFA500",
+                        "index": 1
+                      },
+                      "High diversity": {
+                        "color": "gray",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Diversity ratio"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#E85D24",
+                      "value": null
+                    },
+                    {
+                      "color": "#FFA500",
+                      "value": 0.1
+                    },
+                    {
+                      "color": "gray",
+                      "value": 0.3
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Missing v3 imports \u2014 by priority tier",
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_SHADOWCHECK_DB}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_SHADOWCHECK_DB}"
+          },
+          "rawSql": "WITH base AS (\n  SELECT\n    v2.bssid, v2.ssid, v2.region, v2.city,\n    v2.trilat, v2.trilong, v2.firsttime, v2.lasttime, v2.encryption,\n    left(upper(replace(v2.bssid,':','')),6) AS oui_24,\n    rm.manufacturer,\n    GREATEST(0, EXTRACT(EPOCH FROM (v2.lasttime - v2.firsttime))/86400) AS span_days\n  FROM app.wigle_v2_networks_search v2\n  LEFT JOIN app.radio_manufacturers rm\n    ON rm.prefix = left(upper(replace(v2.bssid,':','')),6) AND rm.bit_length = 24\n  WHERE v2.ssid ILIKE '%' || '$ssid_pattern' || '%'\n    AND v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n),\noui_states AS (\n  SELECT left(upper(replace(bssid,':','')),6) AS oui_24,\n    COUNT(DISTINCT region) AS oui_state_count\n  FROM app.wigle_v2_networks_search\n  WHERE ssid ILIKE '%' || '$ssid_pattern' || '%' AND country = 'US'\n  GROUP BY 1\n),\nproximity AS (\n  SELECT b.bssid,\n    MIN(ST_Distance(v2.location::geography, ao.location)) AS min_dist_m,\n    (SELECT ao2.name FROM app.agency_offices ao2\n     ORDER BY v2.location::geography <-> ao2.location LIMIT 1) AS nearest_office\n  FROM base b\n  JOIN app.wigle_v2_networks_search v2 ON v2.bssid = b.bssid\n  CROSS JOIN app.agency_offices ao\n  GROUP BY b.bssid, v2.location\n),\nclassified AS (\n  SELECT b.*,\n    p.min_dist_m, os.oui_state_count,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 'fleet_vehicle'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 'mobile_command'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 'enterprise'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%'])\n           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 'residential_agent'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 'consumer'\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%arcadyan%','%pegatron%','%commscope%','%vantiva%','%sagemcom%','%askey%','%sercomm%','%gemtek%','%calix%']) THEN 'other_isp_gateway'\n      ELSE 'unknown_oui'\n    END AS hw_class,\n    CASE\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%magneti marelli%','%panasonic automotive%','%visteon%','%harman/becker%','%mitsumi%','%alps alpine%','%alpsalpine%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cradlepoint%','%sierra wireless%','%airlink%','%inseego%','%novatel%','%samsara%']) THEN 45\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%cisco%','%aruba%','%ruckus%','%ubiquiti%','%meraki%','%fortinet%','%aerohive%','%juniper%']) THEN 28\n      WHEN lower(rm.manufacturer) LIKE ANY(ARRAY['%netgear%','%tp-link%','%asus%','%linksys%','%belkin%','%d-link%','%zyxel%','%tenda%','%eero%','%google%','%amazon%']) THEN 4\n      WHEN rm.manufacturer IS NULL THEN 8\n      ELSE 7\n    END AS hw_pts,\n    CASE WHEN p.min_dist_m <= 1000 THEN 30 WHEN p.min_dist_m <= 5000 THEN 22 WHEN p.min_dist_m <= 25000 THEN 10 ELSE 0 END AS prox_pts,\n    CASE WHEN os.oui_state_count >= 30 THEN 25 WHEN os.oui_state_count >= 15 THEN 15 WHEN os.oui_state_count >= 5 THEN 7 ELSE 2 END AS spread_pts\n  FROM base b\n  JOIN proximity p ON p.bssid = b.bssid\n  JOIN oui_states os ON os.oui_24 = b.oui_24\n  WHERE NOT EXISTS (\n    SELECT 1 FROM app.wigle_v3_network_details v3 WHERE v3.netid = b.bssid\n  )\n),\ntiers AS (\n  SELECT\n    CASE hw_class\n      WHEN 'mobile_command'    THEN '1-Mobile command'\n      WHEN 'fleet_vehicle'     THEN '2-Fleet vehicle'\n      WHEN 'residential_agent' THEN '3-Residential agent'\n      WHEN 'enterprise'        THEN '4-Enterprise'\n    END AS priority_tier,\n    COUNT(*) AS count_missing,\n    ROUND(AVG(min_dist_m)) AS avg_dist_m,\n    ROUND(AVG(span_days)) AS avg_span_days,\n    MIN(lasttime) AS oldest_last_seen,\n    MAX(lasttime) AS newest_last_seen\n  FROM classified\n  WHERE hw_class IN ('mobile_command','fleet_vehicle','residential_agent','enterprise')\n  GROUP BY hw_class\n)\nSELECT * FROM tiers\nUNION ALL\nSELECT 'TOTAL', SUM(count_missing), ROUND(AVG(avg_dist_m)), ROUND(AVG(avg_span_days)),\n  MIN(oldest_last_seen), MAX(newest_last_seen)\nFROM tiers\nORDER BY priority_tier",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "priority_tier"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "count_missing"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "#FFA500",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "liveNow": false
+}
