@@ -34,6 +34,17 @@ HW_CASE = f"""CASE
       ELSE 'unknown_oui'
     END"""
 
+HW_CLASS_NUM_CASE = f"""CASE
+      WHEN lower(rm.manufacturer) LIKE ANY({FLEET_LIKE}) THEN 1
+      WHEN lower(rm.manufacturer) LIKE ANY({MOBILE_LIKE}) THEN 2
+      WHEN lower(rm.manufacturer) LIKE ANY({ENTERPRISE_LIKE}) THEN 3
+      WHEN lower(rm.manufacturer) LIKE ANY({ISP_LIKE})
+           AND p.min_dist_m <= 2000 AND b.span_days >= $span_days_min THEN 4
+      WHEN lower(rm.manufacturer) LIKE ANY({CONSUMER_LIKE}) THEN 5
+      WHEN lower(rm.manufacturer) LIKE ANY({ISP_LIKE}) THEN 6
+      ELSE 7
+    END"""
+
 HW_PTS = f"""CASE
       WHEN lower(rm.manufacturer) LIKE ANY({FLEET_LIKE}) THEN 45
       WHEN lower(rm.manufacturer) LIKE ANY({MOBILE_LIKE}) THEN 45
@@ -191,14 +202,16 @@ def variables():
         },
         {
             "name": "confidence_threshold", "type": "custom", "label": "Min confidence score",
-            "query": "40,50,60,70,80", "current": {"value": "60", "text": "60"},
-            "options": [{"value": str(v), "text": str(v)} for v in [40,50,60,70,80]],
+            "query": "40,50,60,70,80",
+            "current": {"selected": True, "value": "60", "text": "60"},
+            "options": [{"selected": v == 60, "value": str(v), "text": str(v)} for v in [40,50,60,70,80]],
             "hide": 0,
         },
         {
             "name": "span_days_min", "type": "custom", "label": "Min span (days)",
-            "query": "90,180,365,730,1095", "current": {"value": "365", "text": "365"},
-            "options": [{"value": str(v), "text": str(v)} for v in [90,180,365,730,1095]],
+            "query": "90,180,365,730,1095",
+            "current": {"selected": True, "value": "365", "text": "365"},
+            "options": [{"selected": v == 365, "value": str(v), "text": str(v)} for v in [90,180,365,730,1095]],
             "hide": 0,
         },
     ]

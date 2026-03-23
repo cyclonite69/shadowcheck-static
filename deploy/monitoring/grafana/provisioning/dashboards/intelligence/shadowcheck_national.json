@@ -61,27 +61,33 @@
         "label": "Min confidence score",
         "query": "40,50,60,70,80",
         "current": {
+          "selected": true,
           "value": "60",
           "text": "60"
         },
         "options": [
           {
+            "selected": false,
             "value": "40",
             "text": "40"
           },
           {
+            "selected": false,
             "value": "50",
             "text": "50"
           },
           {
+            "selected": true,
             "value": "60",
             "text": "60"
           },
           {
+            "selected": false,
             "value": "70",
             "text": "70"
           },
           {
+            "selected": false,
             "value": "80",
             "text": "80"
           }
@@ -94,27 +100,33 @@
         "label": "Min span (days)",
         "query": "90,180,365,730,1095",
         "current": {
+          "selected": true,
           "value": "365",
           "text": "365"
         },
         "options": [
           {
+            "selected": false,
             "value": "90",
             "text": "90"
           },
           {
+            "selected": false,
             "value": "180",
             "text": "180"
           },
           {
+            "selected": true,
             "value": "365",
             "text": "365"
           },
           {
+            "selected": false,
             "value": "730",
             "text": "730"
           },
           {
+            "selected": false,
             "value": "1095",
             "text": "1095"
           }
