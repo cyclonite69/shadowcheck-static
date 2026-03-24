@@ -48,6 +48,9 @@ interface MapToolbarProps {
   // Agencies panel
   showAgenciesPanel?: boolean;
   onToggleAgenciesPanel?: () => void;
+  // Courthouses panel
+  showCourthousesPanel?: boolean;
+  onToggleCourthousesPanel?: () => void;
 }
 
 export const MapToolbar = ({
@@ -86,6 +89,8 @@ export const MapToolbar = ({
   directionsLoading,
   showAgenciesPanel,
   onToggleAgenciesPanel,
+  showCourthousesPanel,
+  onToggleCourthousesPanel,
 }: MapToolbarProps) => {
   return (
     <div
@@ -392,6 +397,25 @@ export const MapToolbar = ({
           }}
         >
           🏢 Agencies
+        </button>
+      )}
+      {onToggleCourthousesPanel && (
+        <button
+          onClick={onToggleCourthousesPanel}
+          style={{
+            padding: '6px 10px',
+            fontSize: '11px',
+            background: showCourthousesPanel ? 'rgba(245, 158, 11, 0.2)' : 'rgba(30, 41, 59, 0.9)',
+            border: showCourthousesPanel
+              ? '1px solid rgba(245, 158, 11, 0.5)'
+              : '1px solid rgba(148, 163, 184, 0.2)',
+            color: showCourthousesPanel ? '#f59e0b' : '#94a3b8',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          ⚖️ Federal Courthouses
         </button>
       )}
     </div>

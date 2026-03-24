@@ -1,0 +1,365 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "geometry": { "type": "Point", "coordinates": [-77.0147, 38.8951] },
+      "properties": {
+        "name": "E. Barrett Prettyman Courthouse",
+        "short_name": "Prettyman Courthouse",
+        "city": "Washington",
+        "state": "DC",
+        "district": "D.D.C.",
+        "circuit": "D.C. Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 2,
+      "geometry": { "type": "Point", "coordinates": [-74.0059, 40.7143] },
+      "properties": {
+        "name": "Thurgood Marshall Courthouse",
+        "short_name": "Marshall Courthouse",
+        "city": "New York",
+        "state": "NY",
+        "district": "S.D.N.Y.",
+        "circuit": "Second Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 3,
+      "geometry": { "type": "Point", "coordinates": [-87.6298, 41.8804] },
+      "properties": {
+        "name": "Dirksen Federal Building",
+        "short_name": "Dirksen Building",
+        "city": "Chicago",
+        "state": "IL",
+        "district": "N.D. Ill.",
+        "circuit": "Seventh Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 4,
+      "geometry": { "type": "Point", "coordinates": [-122.4193, 37.7793] },
+      "properties": {
+        "name": "James R. Browning Courthouse",
+        "short_name": "Browning Courthouse",
+        "city": "San Francisco",
+        "state": "CA",
+        "district": "N.D. Cal.",
+        "circuit": "Ninth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 5,
+      "geometry": { "type": "Point", "coordinates": [-86.8025, 33.5207] },
+      "properties": {
+        "name": "Hugo L. Black Courthouse",
+        "short_name": "Black Courthouse",
+        "city": "Birmingham",
+        "state": "AL",
+        "district": "N.D. Ala.",
+        "circuit": "Eleventh Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 6,
+      "geometry": { "type": "Point", "coordinates": [-81.6944, 41.4993] },
+      "properties": {
+        "name": "Carl B. Stokes Courthouse",
+        "short_name": "Stokes Courthouse",
+        "city": "Cleveland",
+        "state": "OH",
+        "district": "N.D. Ohio",
+        "circuit": "Sixth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 7,
+      "geometry": { "type": "Point", "coordinates": [-80.1947, 25.7751] },
+      "properties": {
+        "name": "C. Clyde Atkins Courthouse",
+        "short_name": "Atkins Courthouse",
+        "city": "Miami",
+        "state": "FL",
+        "district": "S.D. Fla.",
+        "circuit": "Eleventh Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 8,
+      "geometry": { "type": "Point", "coordinates": [-104.9903, 39.7392] },
+      "properties": {
+        "name": "Byron White Courthouse",
+        "short_name": "White Courthouse",
+        "city": "Denver",
+        "state": "CO",
+        "district": "D. Colo.",
+        "circuit": "Tenth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 9,
+      "geometry": { "type": "Point", "coordinates": [-122.6765, 45.5231] },
+      "properties": {
+        "name": "Mark O. Hatfield Courthouse",
+        "short_name": "Hatfield Courthouse",
+        "city": "Portland",
+        "state": "OR",
+        "district": "D. Or.",
+        "circuit": "Ninth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 10,
+      "geometry": { "type": "Point", "coordinates": [-86.2999, 32.3669] },
+      "properties": {
+        "name": "Frank M. Johnson Jr. Courthouse",
+        "short_name": "Johnson Courthouse",
+        "city": "Montgomery",
+        "state": "AL",
+        "district": "M.D. Ala.",
+        "circuit": "Eleventh Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 11,
+      "geometry": { "type": "Point", "coordinates": [-71.0465, 42.3519] },
+      "properties": {
+        "name": "John Joseph Moakley Courthouse",
+        "short_name": "Moakley Courthouse",
+        "city": "Boston",
+        "state": "MA",
+        "district": "D. Mass.",
+        "circuit": "First Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 12,
+      "geometry": { "type": "Point", "coordinates": [-75.1652, 39.9526] },
+      "properties": {
+        "name": "Edward R. Becker Courthouse",
+        "short_name": "Becker Courthouse",
+        "city": "Philadelphia",
+        "state": "PA",
+        "district": "E.D. Pa.",
+        "circuit": "Third Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 13,
+      "geometry": { "type": "Point", "coordinates": [-112.074, 33.4484] },
+      "properties": {
+        "name": "Sandra Day O'Connor Courthouse",
+        "short_name": "O'Connor Courthouse",
+        "city": "Phoenix",
+        "state": "AZ",
+        "district": "D. Ariz.",
+        "circuit": "Ninth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 14,
+      "geometry": { "type": "Point", "coordinates": [-86.1581, 39.7684] },
+      "properties": {
+        "name": "Birch Bayh Federal Building",
+        "short_name": "Bayh Federal Building",
+        "city": "Indianapolis",
+        "state": "IN",
+        "district": "S.D. Ind.",
+        "circuit": "Seventh Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 15,
+      "geometry": { "type": "Point", "coordinates": [-95.3698, 29.7604] },
+      "properties": {
+        "name": "Bob Casey Courthouse",
+        "short_name": "Casey Courthouse",
+        "city": "Houston",
+        "state": "TX",
+        "district": "S.D. Tex.",
+        "circuit": "Fifth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 16,
+      "geometry": { "type": "Point", "coordinates": [-96.797, 32.7767] },
+      "properties": {
+        "name": "Earle Cabell Federal Building",
+        "short_name": "Cabell Federal Building",
+        "city": "Dallas",
+        "state": "TX",
+        "district": "N.D. Tex.",
+        "circuit": "Fifth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 17,
+      "geometry": { "type": "Point", "coordinates": [-122.3321, 47.6062] },
+      "properties": {
+        "name": "William K. Nakamura Courthouse",
+        "short_name": "Nakamura Courthouse",
+        "city": "Seattle",
+        "state": "WA",
+        "district": "W.D. Wash.",
+        "circuit": "Ninth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 18,
+      "geometry": { "type": "Point", "coordinates": [-115.1398, 36.1699] },
+      "properties": {
+        "name": "Lloyd D. George Courthouse",
+        "short_name": "George Courthouse",
+        "city": "Las Vegas",
+        "state": "NV",
+        "district": "D. Nev.",
+        "circuit": "Ninth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 19,
+      "geometry": { "type": "Point", "coordinates": [-79.9414, 37.271] },
+      "properties": {
+        "name": "Richard H. Poff Federal Building",
+        "short_name": "Poff Federal Building",
+        "city": "Roanoke",
+        "state": "VA",
+        "district": "W.D. Va.",
+        "circuit": "Fourth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 20,
+      "geometry": { "type": "Point", "coordinates": [-77.0469, 38.8048] },
+      "properties": {
+        "name": "Albert V. Bryan Courthouse",
+        "short_name": "Bryan Courthouse",
+        "city": "Alexandria",
+        "state": "VA",
+        "district": "E.D. Va.",
+        "circuit": "Fourth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 21,
+      "geometry": { "type": "Point", "coordinates": [-118.2437, 34.0522] },
+      "properties": {
+        "name": "United States Courthouse, Los Angeles",
+        "short_name": "First St Courthouse",
+        "city": "Los Angeles",
+        "state": "CA",
+        "district": "C.D. Cal.",
+        "circuit": "Ninth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 22,
+      "geometry": { "type": "Point", "coordinates": [-84.388, 33.749] },
+      "properties": {
+        "name": "Richard B. Russell Federal Building",
+        "short_name": "Russell Building",
+        "city": "Atlanta",
+        "state": "GA",
+        "district": "N.D. Ga.",
+        "circuit": "Eleventh Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 23,
+      "geometry": { "type": "Point", "coordinates": [-90.0715, 29.9511] },
+      "properties": {
+        "name": "John Minor Wisdom Courthouse",
+        "short_name": "Wisdom Courthouse",
+        "city": "New Orleans",
+        "state": "LA",
+        "district": "E.D. La.",
+        "circuit": "Fifth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 24,
+      "geometry": { "type": "Point", "coordinates": [-83.0458, 42.3314] },
+      "properties": {
+        "name": "Theodore Levin United States Courthouse",
+        "short_name": "Levin Courthouse",
+        "city": "Detroit",
+        "state": "MI",
+        "district": "E.D. Mich.",
+        "circuit": "Sixth Circuit",
+        "courthouse_type": "district_court",
+        "active": true
+      }
+    }
+  ]
+}
