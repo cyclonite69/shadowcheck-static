@@ -38,7 +38,7 @@ flowchart TD
     E --> E1[Launch EC2]
     E1 --> E2[Setup script]
     E2 --> E3[Docker deployment]
-    E3 --> E4[CloudWatch monitoring]
+    E3 --> E4[Grafana monitoring]
 
     style C4 fill:#48bb78,stroke:#2f855a,color:#fff
     style D4 fill:#48bb78,stroke:#2f855a,color:#fff
@@ -115,16 +115,19 @@ graph TB
     subgraph "Docker Network: shadowcheck-network"
         A[shadowcheck-app<br/>Node.js App<br/>Port 3001]
         B[shadowcheck-postgres<br/>PostgreSQL 18<br/>Port 5432]
-        C[shadowcheck-redis<br/>Redis 4<br/>Port 6379]
+        C[shadowcheck-redis<br/>Redis 7<br/>Port 6379]
         D[pgadmin<br/>pgAdmin 4<br/>Port 5050]
+        I[shadowcheck-grafana<br/>Grafana<br/>Port 3002]
     end
 
     E[Host Machine] --> A
     E --> D
+    E --> I
 
     A --> B
     A --> C
     D --> B
+    I --> B
 
     F[Volume: postgres-data] -.-> B
     G[Volume: redis-data] -.-> C
@@ -418,18 +421,16 @@ graph TB
     A[Application] --> B[Winston Logger]
     B --> C[CloudWatch Logs]
 
-    A --> D[Metrics Collector]
-    D --> E[CloudWatch Metrics]
+    A --> D[PostgreSQL]
+    D --> E[Grafana Dashboards]
 
-    E --> F[Alarms]
-    F --> G[SNS Topic]
-    G --> H[Email/SMS]
+    E --> F[Tactical Overview]
+    E --> G[Network Analytics]
 
     C --> I[Log Insights]
-    I --> J[Dashboards]
 
-    style F fill:#f56565,stroke:#c53030,color:#fff
-    style J fill:#4299e1,stroke:#2b6cb0,color:#fff
+    style E fill:#4299e1,stroke:#2b6cb0,color:#fff
+    style F fill:#48bb78,stroke:#2f855a,color:#fff
 ```
 
 ---

@@ -99,6 +99,9 @@ Comprehensive datasets of federal law enforcement and judicial locations for geo
 
 ## Platform & Operations
 
+- **Monitoring & Observability**: Standalone Grafana stack with pre-configured "Tactical Overview" dashboards.
+- **Automated Provisioning**: Pre-wired PostgreSQL datasources and automated dashboard discovery.
+- **Least-Privilege Access**: Dedicated `grafana_reader` database role for secure, read-only dashboard access.
 - **API versioning**: v1 and v2 endpoints with filtered network support.
 - **Modular backend**: Services and repositories with validation middleware.
 - **ETL pipeline**: Load/transform/promote steps feeding materialized views.
