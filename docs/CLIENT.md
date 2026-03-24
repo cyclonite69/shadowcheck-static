@@ -52,13 +52,13 @@ client/
 
 ### Geospatial Components
 
-| Component                                                                     | Path                                            | Description                           |
-| ----------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------- |
-| [`GeospatialExplorer`](src/components/GeospatialExplorer.tsx)                 | `src/components/GeospatialExplorer.tsx`         | Main geospatial exploration interface |
-| [`GeospatialIntelligencePage`](src/components/GeospatialIntelligencePage.tsx) | `src/components/GeospatialIntelligencePage.tsx` | Intelligence analysis page            |
-| [`KeplerPage`](src/components/KeplerPage.tsx)                                 | `src/components/KeplerPage.tsx`                 | Kepler.gl visualization page          |
-| [`WigleMap`](src/components/WigleMap.tsx)                                     | `src/components/WigleMap.tsx`                   | Wigle.net integration map             |
-| [`LazyMapComponent`](src/components/LazyMapComponent.tsx)                     | `src/components/LazyMapComponent.tsx`           | Lazy-loaded map component             |
+| Component                                                                     | Path                                            | Description                              |
+| ----------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------- |
+| [`GeospatialExplorer`](src/components/GeospatialExplorer.tsx)                 | `src/components/GeospatialExplorer.tsx`         | Main geospatial exploration interface    |
+| [`GeospatialIntelligencePage`](src/components/GeospatialIntelligencePage.tsx) | `src/components/GeospatialIntelligencePage.tsx` | Intelligence analysis page               |
+| [`KeplerPage`](src/components/KeplerPage.tsx)                                 | `src/components/KeplerPage.tsx`                 | Kepler.gl visualization page (207 lines) |
+| [`WigleMap`](src/components/WigleMap.tsx)                                     | `src/components/WigleMap.tsx`                   | Wigle.net integration map                |
+| [`LazyMapComponent`](src/components/LazyMapComponent.tsx)                     | `src/components/LazyMapComponent.tsx`           | Lazy-loaded map component                |
 
 ### Network Exploration Components
 
@@ -271,12 +271,12 @@ client/
 
 The following components have been modularized to reduce complexity and improve maintainability:
 
-### GeospatialExplorer.tsx (~240 lines) → Sub-component extraction
+### GeospatialExplorer.tsx (~471 lines) → Sub-component extraction
 
 - **Status:** Completed (March 2026)
 - **Outcome:** Orchestration logic moved to `useGeospatialExplorerState.ts` and `useSiblingLinks.ts`.
 
-### KeplerPage.tsx (~180 lines) → 4 modules
+### KeplerPage.tsx (~207 lines) → 4 modules
 
 - **Status:** Completed (March 2026)
 - **Extracted:**
@@ -285,10 +285,20 @@ The following components have been modularized to reduce complexity and improve 
   - `KeplerControls.tsx` - User interaction controls
   - `KeplerFilters.tsx` - Data filtering interface
 
-### ConfigurationTab.tsx (~160 lines) → Domain-specific modules
+### ConfigurationTab.tsx (~178 lines) → Domain-specific modules
 
 - **Status:** Completed (March 2026)
-- **Extracted:** `useConfiguration.ts` hook and split into domain components (`MapboxConfig`, `AWSConfig`, `GeocodingConfig`, etc.).
+- **Extracted:** `useConfiguration.ts` hook and split into domain components (`MapboxConfig`, `AWSConfig`, `WigleConfig`, `SmartyConfig`, `GeocodingConfig`, etc.).
+
+### MLTrainingTab.tsx (~28 lines) → Domain-specific sub-cards
+
+- **Status:** Completed (March 2026)
+- **Extracted:** Split three inline admin cards into `ModelOperationsCard`, `TrainingDataCard`, and `ModelStatusCard` inside `client/src/components/admin/tabs/ml/`.
+
+### KeplerPage.tsx DeckGL Initialization (~207 lines) → Hook abstraction
+
+- **Status:** Completed (March 2026)
+- **Extracted:** `useKeplerDeck.ts` (219 lines) to manage Deck.gl mapping initialization, state (zoom, point sizing), and fly-to-bounds behavior.
 
 **Refactoring Timeline:** To be completed based on priority and team capacity.
 

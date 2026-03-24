@@ -22,6 +22,7 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 | **Universal Filters**   | 20+ filter types supporting complex temporal, spatial, and behavioral queries |
 | **ML Training**         | Multi-algorithm threat detection with hyperparameter optimization             |
 | **Address Enrichment**  | Multi-API venue identification (OpenCage, LocationIQ, Abstract, Overpass)     |
+| **Monitoring**          | Standalone Grafana stack with "Tactical Overview" dashboards                  |
 
 ### 🛠️ Technology Stack
 
@@ -76,6 +77,7 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 
 - [Troubleshooting](Troubleshooting) - Common issues and solutions
 - [Deployment](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/DEPLOYMENT.md) - Production deployment guide
+- [Monitoring](https://github.com/cyclonite69/shadowcheck-web/blob/main/deploy/monitoring/README.md) - Monitoring stack and Grafana dashboards
 
 ---
 
