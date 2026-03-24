@@ -25,13 +25,14 @@ import { useResetPaginationOnFilters } from './useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './useDebouncedFilterState';
 import { logError, logDebug } from '../../logging/clientLogger';
 import { WigleObservationsState } from './useNetworkContextMenu';
+import { networkApi } from '../../api/networkApi';
 import {
   NETWORK_COLUMNS,
   API_SORT_MAP,
   DEFAULT_CENTER,
   DEFAULT_HOME_RADIUS,
 } from '../../constants/network';
-import { NetworkData } from '../../types/network';
+import { NetworkData, NetworkRow } from '../../types/network';
 
 interface UseGeospatialExplorerStateProps {
   selectedNetworks: Set<string>;
@@ -40,9 +41,15 @@ interface UseGeospatialExplorerStateProps {
   resetPagination: () => void;
   setSort: (sort: any) => void;
   setError: (err: any) => void;
-  locationMode: string;
   sort: any;
-  wigleObservations?: WigleObservationsState;
+  wigleObservations: WigleObservationsState;
+  clearWigleObservations: () => void;
+  loadBatchWigleObservations: (bssids: string[]) => void;
+  closeContextMenu: () => void;
+  linkedSiblingBssids: Set<string>;
+  setLinkedSiblingBssids: React.Dispatch<React.SetStateAction<Set<string>>>;
+  visibleSiblingGroupMap: Map<string, string>;
+  contextMenuNetwork?: NetworkRow | null;
 }
 
 export const useGeospatialExplorerState = ({
@@ -52,9 +59,15 @@ export const useGeospatialExplorerState = ({
   resetPagination,
   setSort,
   setError,
-  locationMode,
   sort,
   wigleObservations,
+  clearWigleObservations,
+  loadBatchWigleObservations,
+  closeContextMenu,
+  linkedSiblingBssids,
+  setLinkedSiblingBssids,
+  visibleSiblingGroupMap,
+  contextMenuNetwork,
 }: UseGeospatialExplorerStateProps) => {
   // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
@@ -69,6 +82,8 @@ export const useGeospatialExplorerState = ({
     center: DEFAULT_CENTER,
     radius: DEFAULT_HOME_RADIUS,
   });
+  const [locationMode, setLocationMode] = useState('latest_observation');
+  const [siblingPairLoading, setSiblingPairLoading] = useState(false);
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -273,6 +288,78 @@ export const useGeospatialExplorerState = ({
     logError,
   });
 
+  const toggleWigleForBssids = (bssids: string[]) => {
+    const normalized = Array.from(new Set(bssids.filter(Boolean)));
+    if (normalized.length === 0) return;
+
+    const active = wigleObservations.observations.length > 0;
+    const activeBssids = Array.from(new Set(wigleObservations.bssids || []));
+    const sameSelection =
+      active &&
+      activeBssids.length === normalized.length &&
+      normalized.every((bssid) => activeBssids.includes(bssid));
+
+    if (sameSelection) {
+      clearWigleObservations();
+      return;
+    }
+
+    loadBatchWigleObservations(normalized);
+  };
+
+  const manualSiblingTarget = useMemo(() => {
+    if (selectedNetworks.size !== 1) return null;
+    const sBssid = Array.from(selectedNetworks)[0];
+    const cBssid = contextMenuNetwork?.bssid || null;
+    if (!sBssid || !cBssid || sBssid === cBssid) return null;
+    return {
+      bssid: sBssid,
+      ssid: networks.find((n) => n.bssid === sBssid)?.ssid || null,
+      isLinked: linkedSiblingBssids.has(cBssid),
+    };
+  }, [contextMenuNetwork, linkedSiblingBssids, networks, selectedNetworks]);
+
+  const handleMarkSiblingPair = async () => {
+    const anchor = manualSiblingTarget?.bssid;
+    const context = contextMenuNetwork?.bssid;
+    if (!anchor || !context) return;
+    const relation = manualSiblingTarget?.isLinked ? 'not_sibling' : 'sibling';
+    setSiblingPairLoading(true);
+    try {
+      const res = await networkApi.setNetworkSiblingOverride(anchor, context, relation);
+      if (!res?.ok) throw new Error(res?.error || 'Failed');
+      setLinkedSiblingBssids((prev) => {
+        const next = new Set(prev);
+        relation === 'sibling' ? next.add(context) : next.delete(context);
+        return next;
+      });
+      closeContextMenu();
+    } catch (err) {
+      logError('Sibling error', err);
+    } finally {
+      setSiblingPairLoading(false);
+    }
+  };
+
+  const filteredNetworks = useMemo(() => {
+    if (visibleSiblingGroupMap.size === 0) return networks;
+    const grouped: NetworkRow[] = [];
+    const emitted = new Set<string>();
+    for (const net of networks) {
+      const gid = visibleSiblingGroupMap.get(net.bssid);
+      if (!gid) {
+        grouped.push(net);
+        continue;
+      }
+      if (emitted.has(gid)) continue;
+      emitted.add(gid);
+      networks
+        .filter((n) => visibleSiblingGroupMap.get(n.bssid) === gid)
+        .forEach((n) => grouped.push(n));
+    }
+    return grouped;
+  }, [networks, visibleSiblingGroupMap]);
+
   return {
     mapHeight,
     containerHeight,
@@ -328,5 +415,12 @@ export const useGeospatialExplorerState = ({
     is3DBuildingsAvailable,
     changeMapStyle,
     isViewportLocked: effectiveViewportLock,
+    locationMode,
+    setLocationMode,
+    siblingPairLoading,
+    toggleWigleForBssids,
+    manualSiblingTarget,
+    handleMarkSiblingPair,
+    filteredNetworks,
   };
 };
