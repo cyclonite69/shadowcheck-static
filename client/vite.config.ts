@@ -64,6 +64,9 @@ export default defineConfig({
           if (id.includes('/components/GeospatialExplorer')) {
             return 'page-geospatial';
           }
+          if (id.includes('/components/KeplerPage') || id.includes('/components/kepler/')) {
+            return 'page-kepler';
+          }
           if (id.includes('/components/Analytics')) {
             return 'page-analytics';
           }

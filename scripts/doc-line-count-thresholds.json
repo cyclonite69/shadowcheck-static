@@ -1,0 +1,8 @@
+{
+  "client/src/components/GeospatialExplorer.tsx": 300,
+  "client/src/components/KeplerPage.tsx": 250,
+  "client/src/components/admin/tabs/MLTrainingTab.tsx": 40,
+  "client/src/components/admin/tabs/ConfigurationTab.tsx": 220,
+  "client/src/hooks/useKeplerDeck.ts": 270,
+  "server/src/utils/routeMounts.ts": 230
+}
