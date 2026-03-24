@@ -145,8 +145,12 @@ $COMPOSE_BIN -f docker-compose.monitoring.yml up -d --force-recreate "$GRAFANA_C
 # force-sync the password into the SQLite DB via the CLI after startup.
 echo "Waiting for Grafana to become healthy..."
 for i in $(seq 1 30); do
-  if docker exec "$GRAFANA_CONTAINER" wget -q -O- http://127.0.0.1:3002/api/health >/dev/null 2>&1; then
-    break
+  HEALTH_STATUS=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$GRAFANA_CONTAINER" 2>/dev/null || echo "missing")
+  if [ "$HEALTH_STATUS" = "healthy" ] || [ "$HEALTH_STATUS" = "running" ]; then
+    # Double check API is actually responding if we only got "running"
+    if docker exec "$GRAFANA_CONTAINER" wget -q -O- http://127.0.0.1:3002/api/health >/dev/null 2>&1; then
+      break
+    fi
   fi
   sleep 2
 done
