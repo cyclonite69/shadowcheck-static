@@ -50,6 +50,9 @@ interface MapToolbarActionsProps {
   // Agencies panel
   showAgenciesPanel?: boolean;
   onToggleAgenciesPanel?: () => void;
+  // Courthouses panel
+  showCourthousesPanel?: boolean;
+  onToggleCourthousesPanel?: () => void;
 }
 
 export const MapToolbarActions = ({
@@ -91,6 +94,8 @@ export const MapToolbarActions = ({
   directionsLoading,
   showAgenciesPanel,
   onToggleAgenciesPanel,
+  showCourthousesPanel,
+  onToggleCourthousesPanel,
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
@@ -165,6 +170,8 @@ export const MapToolbarActions = ({
       directionsLoading={directionsLoading}
       showAgenciesPanel={showAgenciesPanel}
       onToggleAgenciesPanel={onToggleAgenciesPanel}
+      showCourthousesPanel={showCourthousesPanel}
+      onToggleCourthousesPanel={onToggleCourthousesPanel}
     />
   );
 };

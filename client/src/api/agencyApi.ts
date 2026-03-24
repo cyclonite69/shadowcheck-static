@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import federalCourthouses from '../data/federal-courthouses.json';
 
 interface AgencyOffice {
   name: string;
@@ -57,7 +58,7 @@ export const agencyApi = {
   },
 
   async getFederalCourthouses(): Promise<any> {
-    const response = await fetch('/federal-courthouses', { credentials: 'include' });
-    return response.json();
+    // Return static data directly as per the "Static data only" requirement
+    return federalCourthouses;
   },
 };

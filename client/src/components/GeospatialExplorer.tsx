@@ -13,6 +13,7 @@ import { useTimeFrequencyModal } from './geospatial/useTimeFrequencyModal';
 import { useSiblingLinks } from './geospatial/useSiblingLinks';
 import { useGeospatialExplorerState } from './geospatial/useGeospatialExplorerState';
 import { useAgencyLayer } from '../hooks/useAgencyLayer';
+import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { GeospatialMapContent } from './geospatial/GeospatialMapContent';
 import { GeospatialTableContent } from './geospatial/GeospatialTableContent';
 import { GeospatialOverlayContent } from './geospatial/GeospatialOverlayContent';
@@ -154,6 +155,8 @@ export default function GeospatialExplorer() {
     agencies,
     showAgenciesPanel: state.showAgenciesPanel,
   });
+
+  useFederalCourthouses(state.mapRef, state.mapReady, state.showCourthousesPanel);
 
   return (
     <GeospatialLayout

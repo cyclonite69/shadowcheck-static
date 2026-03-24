@@ -56,6 +56,8 @@ export const GeospatialMapContent: React.FC<GeospatialMapContentProps> = ({
         canFit={selectedNetworks.size > 0}
         onWigle={() => toggleWigleForBssids(Array.from(selectedNetworks))}
         onToggleAgenciesPanel={state.toggleAgenciesPanel}
+        onToggleCourthousesPanel={state.toggleCourthousesPanel}
+        showCourthousesPanel={state.showCourthousesPanel}
         canWigle={selectedNetworks.size > 0}
         wigleLoading={wigleObservations.loading}
         wigleActive={wigleObservations.observations.length > 0}
