@@ -25,7 +25,7 @@ BEGIN
         WHERE schemaname = 'app'
     LOOP
         EXECUTE format(
-            'GRANT SELECT ON MATERIALIZED VIEW %I.%I TO shadowcheck_user',
+            'GRANT SELECT ON %I.%I TO shadowcheck_user',
             mv.schemaname,
             mv.matviewname
         );
@@ -50,7 +50,7 @@ BEGIN
             WHERE schemaname = 'app'
         LOOP
             EXECUTE format(
-                'GRANT SELECT ON MATERIALIZED VIEW %I.%I TO grafana_reader',
+                'GRANT SELECT ON %I.%I TO grafana_reader',
                 mv.schemaname,
                 mv.matviewname
             );
