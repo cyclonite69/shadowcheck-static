@@ -22,7 +22,7 @@ interface GeospatialTableContentProps {
   linkedSiblingBssids: Set<string>;
   visibleSiblingGroupMap: Map<string, string>;
   selectNetworkExclusive: (bssid: string) => void;
-  openContextMenu: (e: React.MouseEvent, network: any) => void;
+  onOpenContextMenu: (e: React.MouseEvent, network: any) => void;
   toggleSelectNetwork: (bssid: string) => void;
   loadMore: () => void;
   filteredNetworks: any[];
@@ -53,7 +53,7 @@ export const GeospatialTableContent: React.FC<GeospatialTableContentProps> = ({
   linkedSiblingBssids,
   visibleSiblingGroupMap,
   selectNetworkExclusive,
-  openContextMenu,
+  onOpenContextMenu,
   toggleSelectNetwork,
   loadMore,
   filteredNetworks,
@@ -93,7 +93,7 @@ export const GeospatialTableContent: React.FC<GeospatialTableContentProps> = ({
     selectedAnchorBssid={selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null}
     selectedAnchorHasLinkedSiblings={linkedSiblingBssids.size > 0}
     onSelectExclusive={selectNetworkExclusive}
-    onOpenContextMenu={openContextMenu}
+    onOpenContextMenu={onOpenContextMenu}
     onToggleSelectNetwork={toggleSelectNetwork}
     isLoadingMore={isLoadingMore}
     hasMore={pagination.hasMore}
