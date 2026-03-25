@@ -12,19 +12,49 @@
 -- shadowcheck_user
 GRANT USAGE ON SCHEMA app TO shadowcheck_user;
 GRANT SELECT ON ALL TABLES IN SCHEMA app TO shadowcheck_user;
-GRANT SELECT ON ALL MATERIALIZED VIEWS IN SCHEMA app TO shadowcheck_user;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO shadowcheck_user;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO shadowcheck_user;
 
+DO $$
+DECLARE
+    mv RECORD;
+BEGIN
+    FOR mv IN
+        SELECT schemaname, matviewname
+        FROM pg_matviews
+        WHERE schemaname = 'app'
+    LOOP
+        EXECUTE format(
+            'GRANT SELECT ON MATERIALIZED VIEW %I.%I TO shadowcheck_user',
+            mv.schemaname,
+            mv.matviewname
+        );
+    END LOOP;
+END
+$$;
+
 -- grafana_reader (conditional — role may not exist on all installs)
 DO $$
+DECLARE
+    mv RECORD;
 BEGIN
     IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'grafana_reader') THEN
         EXECUTE 'GRANT USAGE ON SCHEMA app TO grafana_reader';
         EXECUTE 'GRANT SELECT ON ALL TABLES IN SCHEMA app TO grafana_reader';
-        EXECUTE 'GRANT SELECT ON ALL MATERIALIZED VIEWS IN SCHEMA app TO grafana_reader';
         EXECUTE 'GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO grafana_reader';
         EXECUTE 'GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app TO grafana_reader';
+
+        FOR mv IN
+            SELECT schemaname, matviewname
+            FROM pg_matviews
+            WHERE schemaname = 'app'
+        LOOP
+            EXECUTE format(
+                'GRANT SELECT ON MATERIALIZED VIEW %I.%I TO grafana_reader',
+                mv.schemaname,
+                mv.matviewname
+            );
+        END LOOP;
     END IF;
 END
 $$;
