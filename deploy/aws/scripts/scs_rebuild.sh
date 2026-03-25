@@ -164,25 +164,31 @@ CERTS_DIR_WEB=$CERTS_DIR_BASE/web_certs
 
 echo "  Preparing persistent directories on EBS volume..."
 sudo mkdir -p "$CERTS_DIR_WEB" /var/lib/pgadmin /var/lib/redis
+sudo chmod 711 "$CERTS_DIR_BASE" 2>/dev/null || true
 
 # Migration: Move certs from old location if they exist and new location is empty
-if [ ! -f "$CERTS_DIR_WEB/server.crt" ] && [ -d "$CERTS_DIR_BASE/certs/web" ]; then
-  echo "  🚚 Migrating certificates from old location..."
-  sudo mv "$CERTS_DIR_BASE/certs/web/"* "$CERTS_DIR_WEB/" 2>/dev/null || true
-fi
+# Aggressively check multiple old paths where they might have landed due to previous regressions
+OLD_PATHS="/var/lib/postgresql/certs/web /var/lib/postgresql/web /var/lib/postgresql/certs"
+for OLD_PATH in $OLD_PATHS; do
+  if sudo [ -f "$OLD_PATH/server.crt" ] && ! sudo [ -f "$CERTS_DIR_WEB/server.crt" ]; then
+    echo "  🚚 Migrating certificates from $OLD_PATH..."
+    sudo mv "$OLD_PATH/"* "$CERTS_DIR_WEB/" 2>/dev/null || true
+    break
+  fi
+done
 
 # Ensure pgAdmin compatible symlink exists (it expects .cert, we generate .crt)
-if [ -f "$CERTS_DIR_WEB/server.crt" ] && [ ! -L "$CERTS_DIR_WEB/server.cert" ]; then
+if sudo [ -f "$CERTS_DIR_WEB/server.crt" ] && ! sudo [ -L "$CERTS_DIR_WEB/server.cert" ]; then
   sudo ln -sf server.crt "$CERTS_DIR_WEB/server.cert"
   sudo ln -sf server.key "$CERTS_DIR_WEB/server.key" # for consistency
 fi
 
 # Verify creation before chmod to avoid "No such file or directory" errors
-if [ -d "$CERTS_DIR_WEB" ]; then
+if sudo [ -d "$CERTS_DIR_WEB" ]; then
   sudo chmod 755 "$CERTS_DIR_WEB"
   sudo chown -R 101:101 "$CERTS_DIR_WEB" # 101 is nginx user in alpine
 else
-  echo "  ⚠️ Warning: Failed to create $CERTS_DIR_WEB"
+  echo "  ⚠️ Warning: Failed to create or access $CERTS_DIR_WEB"
 fi
 
 sudo chown -R 5050:5050 /var/lib/pgadmin # 5050 is pgadmin user
