@@ -185,7 +185,7 @@ PUBLIC_IP=$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $IMDS_TOKE
 cat > "$ENV_FILE" <<ENVEOF
 NODE_ENV=development
 PORT=3001
-DB_HOST=shadowcheck_postgres
+DB_HOST=localhost
 DB_USER=shadowcheck_user
 DB_NAME=shadowcheck_db
 REDIS_HOST=localhost
