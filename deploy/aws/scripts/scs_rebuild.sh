@@ -17,7 +17,6 @@ cd "$APP_DIR"
 
 # Config file for persistent settings (custom env overrides, etc.)
 SCS_ENV="$HOME/.shadowcheck-env"
-PGADMIN_READY=0
 ENABLE_GRAFANA_MONITORING="${ENABLE_GRAFANA_MONITORING:-true}"
 SCS_SKIP_CLEANUP="${SCS_SKIP_CLEANUP:-false}"
 
@@ -47,8 +46,6 @@ wait_for_container_health() {
   done
 
   echo "  ❌ Timed out waiting for $container health"
-  docker inspect --format 'status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || true
-  docker logs --tail 50 "$container" 2>/dev/null || true
   return 1
 }
 
@@ -100,7 +97,7 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo "  Detected branch: $CURRENT_BRANCH"
 git pull origin "$CURRENT_BRANCH"
 
-# 2. Prepare certificates and persistent volumes (CRITICAL: must happen before infra/containers start)
+# 2. Prepare certificates and persistent volumes
 echo "[2/8] Preparing persistent volumes and certificates..."
 CERTS_DIR_BASE=/var/lib/postgresql
 CERTS_DIR_WEB=$CERTS_DIR_BASE/web_certs
@@ -108,9 +105,12 @@ CERTS_DIR_WEB=$CERTS_DIR_BASE/web_certs
 sudo mkdir -p "$CERTS_DIR_WEB" /var/lib/pgadmin /var/lib/redis
 sudo chmod 711 "$CERTS_DIR_BASE" 2>/dev/null || true
 
-# Repair/Migrate
+# Audit and Search for "Original" Cert
 echo "  Auditing certificate state..."
 log_cert_state "$CERTS_DIR_WEB"
+
+echo "  Searching EBS volume for any other certificates..."
+sudo find "$CERTS_DIR_BASE" -name "server.crt" -not -path "$CERTS_DIR_WEB/*" -ls || true
 
 # Migration: Move certs from old location if they exist and new location is empty
 OLD_PATHS="/var/lib/postgresql/certs/web /var/lib/postgresql/web /var/lib/postgresql/certs"
@@ -142,9 +142,6 @@ sudo chown -R 101:101 "$CERTS_DIR_WEB" # nginx user
 sudo chown -R 5050:5050 /var/lib/pgadmin # pgadmin user
 sudo chown -R 999:999 /var/lib/redis    # redis user
 
-echo "  Final cert state for this run:"
-log_cert_state "$CERTS_DIR_WEB"
-
 # 3. Clean up old Docker artifacts
 echo "[3/8] Cleaning up old Docker artifacts..."
 cleanup_docker_artifacts
@@ -155,42 +152,21 @@ echo "[4/8] Building images..."
 docker build --no-cache -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
 docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
 
-# 5. Ensure infrastructure is running
-echo "[5/8] Ensuring infrastructure is running..."
-if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowcheck_redis || ! docker ps | grep -q shadowcheck_pgadmin; then
-  echo "  Starting/Updating Infrastructure (PostgreSQL, Redis, PgAdmin)..."
+# 5. Ensure core infrastructure is running (Postgres/Redis)
+echo "[5/8] Ensuring core infrastructure is running..."
+if ! docker ps | grep -q shadowcheck_postgres || ! docker ps | grep -q shadowcheck_redis; then
+  echo "  Starting/Updating Core Infrastructure..."
   sudo "$APP_DIR/deploy/aws/scripts/deploy-postgres.sh"
   sudo "$APP_DIR/deploy/aws/scripts/deploy-redis.sh"
-  
-  PGADMIN_COMPOSE="$APP_DIR/docker/infrastructure/docker-compose.postgres.yml"
-  if [ -f "$PGADMIN_COMPOSE" ]; then
-    echo "  Applying pgAdmin configuration from $PGADMIN_COMPOSE"
-    SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config --region us-east-1 --query 'SecretString' --output text 2>/dev/null || echo "{}")
-    DB_PASSWORD=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('db_password',''))" 2>/dev/null || echo "")
-    
-    export DB_PASSWORD REPO_ROOT="$APP_DIR"
-    if docker-compose -f "$PGADMIN_COMPOSE" up -d --no-deps pgadmin; then
-      PGADMIN_READY=1
-    else
-      echo "  ⚠️ pgAdmin update failed"
-    fi
-    unset DB_PASSWORD
-  fi
 else
-  echo "  ✅ Infrastructure already running"
-  if docker ps | grep -q shadowcheck_pgadmin; then
-    PGADMIN_READY=1
-  fi
+  echo "  ✅ Core infrastructure already running"
 fi
 
 wait_for_container_health shadowcheck_postgres 90
 wait_for_container_health shadowcheck_redis 30
-if [ "$PGADMIN_READY" -eq 1 ]; then
-  wait_for_container_health shadowcheck_pgadmin 60 || true
-fi
 
-# 6. Prepare environment and restart application
-echo "[6/8] Restarting application containers..."
+# 6. Restart application AND pgAdmin (Force recreate to pick up cert repairs)
+echo "[6/8] Restarting application containers and pgAdmin..."
 ENV_FILE=$(mktemp)
 IMDS_TOKEN=$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || echo "")
 if [ -n "$IMDS_TOKEN" ]; then
@@ -222,8 +198,18 @@ if [ -f "$SCS_ENV" ]; then
   cat "$SCS_ENV" >> "$ENV_FILE"
 fi
 
+# Stop/Remove app containers
 docker stop shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
 docker rm shadowcheck_backend shadowcheck_frontend 2>/dev/null || true
+
+# FORCE RECREATE pgAdmin to pick up cert fixes
+PGADMIN_COMPOSE="$APP_DIR/docker/infrastructure/docker-compose.postgres.yml"
+if [ -f "$PGADMIN_COMPOSE" ]; then
+  echo "  Force-recreating pgAdmin..."
+  export DB_PASSWORD="$DB_USER_PASSWORD" REPO_ROOT="$APP_DIR"
+  docker-compose -f "$PGADMIN_COMPOSE" up -d --force-recreate --no-deps pgadmin
+  unset DB_PASSWORD
+fi
 
 # Detect socket
 PODMAN_SOCK=""
@@ -259,6 +245,7 @@ docker run -d --name shadowcheck_frontend \
 rm -f "$ENV_FILE"
 wait_for_container_health shadowcheck_backend 90
 wait_for_container_health shadowcheck_frontend 60
+wait_for_container_health shadowcheck_pgadmin 60 || true
 
 # 7. Database migrations
 echo "[7/8] Running database bootstrap & migrations..."
