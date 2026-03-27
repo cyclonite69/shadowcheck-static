@@ -9,19 +9,19 @@ export {};
  */
 
 const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
-const secretsManager = require('./secretsManager').default;
+const { getAwsRegion } = require('./awsService');
 const logger = require('../logging/logger');
 
 const DEFAULT_REGION = 'us-east-1';
 const MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 const MAX_TOKENS = 2048;
 
-function getRegion(): string {
-  return secretsManager.get('aws_region') || process.env.AWS_REGION || DEFAULT_REGION;
+async function getRegion(): Promise<string> {
+  return (await getAwsRegion()) || DEFAULT_REGION;
 }
 
-function buildClient(): InstanceType<typeof BedrockRuntimeClient> {
-  return new BedrockRuntimeClient({ region: getRegion() });
+async function buildClient(): Promise<InstanceType<typeof BedrockRuntimeClient>> {
+  return new BedrockRuntimeClient({ region: await getRegion() });
 }
 
 interface NetworkSummary {
@@ -93,7 +93,7 @@ async function analyzeNetworks(
   networks: NetworkSummary[],
   userQuestion: string
 ): Promise<AnalysisResult> {
-  const client = buildClient();
+  const client = await buildClient();
 
   const networkSummary = summarizeNetworks(networks);
   const totalCount = networks.length;
@@ -159,7 +159,7 @@ Suggestions:
  */
 async function testConnection(): Promise<boolean> {
   try {
-    const client = buildClient();
+    const client = await buildClient();
 
     const requestBody = {
       anthropic_version: 'bedrock-2023-05-31',
