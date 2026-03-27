@@ -4,6 +4,62 @@
 # will simply report "Docker CLI not available".
 
 SOCKET=/var/run/docker.sock
+AWS_SECRET_NAME="${SHADOWCHECK_AWS_SECRET:-shadowcheck/config}"
+
+load_runtime_secrets() {
+  if [ -n "${MAPBOX_TOKEN:-}" ] && [ -n "${DB_PASSWORD:-}" ] && [ -n "${DB_ADMIN_PASSWORD:-}" ]; then
+    return 0
+  fi
+
+  if [ -z "${AWS_REGION:-${AWS_DEFAULT_REGION:-}}" ]; then
+    return 0
+  fi
+
+  if ! command -v aws >/dev/null 2>&1; then
+    return 0
+  fi
+
+  SECRET_JSON=$(aws secretsmanager get-secret-value \
+    --region "${AWS_REGION:-${AWS_DEFAULT_REGION}}" \
+    --secret-id "$AWS_SECRET_NAME" \
+    --query SecretString \
+    --output text 2>/dev/null || true)
+
+  if [ -z "$SECRET_JSON" ] || [ "$SECRET_JSON" = "None" ]; then
+    return 0
+  fi
+
+  EXPORTS=$(SECRET_JSON="$SECRET_JSON" node -e '
+    const obj = JSON.parse(process.env.SECRET_JSON || "{}");
+    const mapping = {
+      db_password: "DB_PASSWORD",
+      db_admin_password: "DB_ADMIN_PASSWORD",
+      mapbox_token: "MAPBOX_TOKEN",
+      wigle_api_name: "WIGLE_API_NAME",
+      wigle_api_token: "WIGLE_API_TOKEN",
+      wigle_api_encoded: "WIGLE_API_ENCODED",
+      google_maps_api_key: "GOOGLE_MAPS_API_KEY",
+      mapbox_unlimited_api_key: "MAPBOX_UNLIMITED_API_KEY",
+      opencage_api_key: "OPENCAGE_API_KEY",
+      locationiq_api_key: "LOCATIONIQ_API_KEY",
+      smarty_auth_id: "SMARTY_AUTH_ID",
+      smarty_auth_token: "SMARTY_AUTH_TOKEN",
+    };
+
+    for (const [secretKey, envKey] of Object.entries(mapping)) {
+      const value = obj[secretKey];
+      if (typeof value === "string" && value.length > 0 && !process.env[envKey]) {
+        console.log(`export ${envKey}=${JSON.stringify(value)}`);
+      }
+    }
+  ')
+
+  if [ -n "$EXPORTS" ]; then
+    eval "$EXPORTS"
+  fi
+}
+
+load_runtime_secrets
 
 if [ -S "$SOCKET" ]; then
   SOCK_GID=$(stat -c '%g' "$SOCKET" 2>/dev/null)

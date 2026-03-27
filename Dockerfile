@@ -58,7 +58,9 @@ RUN ARCH=$(uname -m) && \
 
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+    adduser -S nodejs -u 1001 -h /home/nodejs && \
+    mkdir -p /home/nodejs/.aws && \
+    chown -R nodejs:nodejs /home/nodejs
 
 # Set working directory
 WORKDIR /app
@@ -84,7 +86,8 @@ RUN mkdir -p data/logs data/csv && \
 # USER nodejs will be handled by entrypoint via su-exec after setting up Docker socket permissions
 
 # Set production environment
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    HOME=/home/nodejs
 
 # Expose port
 EXPOSE 3001
