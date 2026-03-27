@@ -3,6 +3,8 @@ import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
 const { secretsManager } = require('../../../config/container');
+const { query } = require('../../../config/database');
+const { adminQuery } = require('../../../services/adminDbService');
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const { validateString } = require('../../../validation/schemas');
 
@@ -76,6 +78,15 @@ function validateAwsRegion(value: unknown) {
     return validation;
   }
   return { valid: true, value: String(value).trim() };
+}
+
+async function getConfiguredAwsRegion(): Promise<string | null> {
+  const result = await query('SELECT value FROM app.settings WHERE key = $1 LIMIT 1', [
+    'aws_region',
+  ]);
+  const raw = result.rows[0]?.value;
+  if (!raw) return null;
+  return typeof raw === 'string' ? raw : String(raw);
 }
 
 // Get WiGLE credentials (masked)
@@ -362,7 +373,8 @@ router.post('/settings/locationiq', requireAuth, async (req: Request, res: Respo
 // Get AWS runtime configuration (region only; credentials use provider chain)
 router.get('/settings/aws', requireAuth, async (req: Request, res: Response) => {
   try {
-    const region = await secretsManager.getSecret('aws_region');
+    const region =
+      (await getConfiguredAwsRegion()) || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
 
     res.json({
       configured: Boolean(region),
@@ -376,7 +388,7 @@ router.get('/settings/aws', requireAuth, async (req: Request, res: Response) => 
 });
 
 // Set AWS region only (credentials must come from runtime provider chain)
-router.post('/settings/aws', async (req: Request, res: Response) => {
+router.post('/settings/aws', requireAuth, async (req: Request, res: Response) => {
   try {
     const { region } = req.body;
     const regionValidation = validateAwsRegion(region);
@@ -384,7 +396,21 @@ router.post('/settings/aws', async (req: Request, res: Response) => {
       return res.status(400).json({ error: regionValidation.error });
     }
 
-    await secretsManager.putSecret('aws_region', regionValidation.value);
+    await adminQuery(
+      `
+      INSERT INTO app.settings (key, value, description)
+      VALUES ($1, $2::jsonb, $3)
+      ON CONFLICT (key) DO UPDATE
+        SET value = EXCLUDED.value,
+            description = EXCLUDED.description,
+            updated_at = NOW()
+    `,
+      [
+        'aws_region',
+        JSON.stringify(regionValidation.value),
+        'AWS region for runtime provider chain integrations',
+      ]
+    );
 
     res.json({ success: true, mode: 'runtime_provider_chain' });
   } catch (error) {

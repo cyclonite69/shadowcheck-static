@@ -64,7 +64,8 @@ export const AwsTab: React.FC = () => {
 
           {!displayError && overview && !overview.region && (
             <div className="text-sm text-amber-300">
-              AWS region not configured. Add credentials in Configuration.
+              AWS region not configured. Set the AWS region in Configuration. Credentials come from
+              the runtime provider chain.
             </div>
           )}
 
