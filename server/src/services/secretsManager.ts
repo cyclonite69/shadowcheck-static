@@ -280,13 +280,10 @@ class SecretsManager {
 
   async getSecret(name: string): Promise<string | null> {
     const normalized = name.toLowerCase();
-    if (!this.secrets.size) {
+    if (!this.secrets.size || !this.secrets.has(normalized)) {
       await this.load();
     }
-    if (this.secrets.has(normalized)) {
-      return this.get(normalized);
-    }
-    return null;
+    return this.get(normalized);
   }
 }
 

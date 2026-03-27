@@ -96,7 +96,7 @@ const validateMapboxProxyQuery = validateQuery({
  */
 router.get('/api/mapbox-token', async (req: Request, res: Response) => {
   try {
-    const tokenRaw = secretsManager.get('mapbox_token');
+    const tokenRaw = await secretsManager.getSecret('mapbox_token');
     const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
 
     if (!token) {
@@ -123,7 +123,7 @@ router.get('/api/mapbox-token', async (req: Request, res: Response) => {
  */
 router.get('/api/mapbox-style', validateMapboxStyleQuery, async (req: Request, res: Response) => {
   try {
-    const tokenRaw = secretsManager.get('mapbox_token');
+    const tokenRaw = await secretsManager.getSecret('mapbox_token');
     const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
     if (!token) {
       return res
@@ -183,7 +183,7 @@ router.get('/api/mapbox-proxy', validateMapboxProxyQuery, async (req: Request, r
       return res.status(400).json({ error: 'Only api.mapbox.com is allowed' });
     }
 
-    const tokenRaw = secretsManager.get('mapbox_token');
+    const tokenRaw = await secretsManager.getSecret('mapbox_token');
     const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
     if (!token) {
       return res.status(500).json({ error: 'Mapbox token not configured' });
