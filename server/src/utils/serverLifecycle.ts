@@ -21,6 +21,9 @@ interface LifecycleOptions {
 async function initializeLifecycle(options: LifecycleOptions): Promise<void> {
   const { logger, pool } = options;
 
+  const featureFlagService = require('../services/featureFlagService');
+  await featureFlagService.refreshCache();
+
   const { initializeBackgroundJobs } = require('./backgroundJobsInit');
   await initializeBackgroundJobs();
 

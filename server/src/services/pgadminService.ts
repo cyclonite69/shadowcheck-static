@@ -3,6 +3,7 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const logger = require('../logging/logger');
+const featureFlagService = require('./featureFlagService');
 
 type RunCommandOptions = {
   cwd?: string;
@@ -30,8 +31,7 @@ const port = Number.parseInt(process.env.PGADMIN_PORT || '5050', 10) || 5050;
 const url = process.env.PGADMIN_URL || `https://localhost:${port}`;
 const dockerHost = process.env.PGADMIN_DOCKER_HOST_LABEL || os.hostname();
 
-const isDockerControlEnabled = () =>
-  String(process.env.ADMIN_ALLOW_DOCKER || '').toLowerCase() === 'true';
+const isDockerControlEnabled = () => featureFlagService.getFlag('admin_allow_docker');
 
 const runCommand = (
   command: string,

@@ -3,7 +3,7 @@
  * Encapsulates database queries for network operations
  */
 
-const { CONFIG } = require('../config/database');
+const featureFlagService = require('./featureFlagService');
 const logger = require('../logging/logger');
 const { getHomeLocation } = require('./networking/homeLocation');
 const { buildNetworkQueryParts } = require('./networking/queryParts');
@@ -32,7 +32,7 @@ export async function getFilteredNetworks(opts: NetworkFilterOptions): Promise<a
   const { queryParts, channelExpr, threatLevelExpr } = buildNetworkQueryParts(
     opts,
     homeLocation,
-    CONFIG.SIMPLE_RULE_SCORING_ENABLED
+    featureFlagService.getFlag('simple_rule_scoring_enabled')
   );
   const { sortEntries, sortClauses, ignoredSorts, expensiveSort } = parseNetworkSort(
     sort,

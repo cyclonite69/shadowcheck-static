@@ -78,6 +78,7 @@ export const ConfigurationTab: React.FC = () => {
     setHomeLocation,
     savedValues,
     runtimeConfig,
+    updateFeatureFlag,
     homeLocationConfigured,
     saveMapboxToken,
     saveWigleCredentials,
@@ -102,61 +103,62 @@ export const ConfigurationTab: React.FC = () => {
     {
       label: 'Docker Controls',
       enabled: featureFlags?.adminAllowDocker ?? false,
-      detail: 'ADMIN_ALLOW_DOCKER',
-      source: 'Restart required',
+      detail: 'admin_allow_docker',
+      source: 'Database setting',
+      editable: true,
     },
     {
       label: 'ML Training',
       enabled: featureFlags?.adminAllowMlTraining ?? true,
-      detail: 'ADMIN_ALLOW_ML_TRAINING',
-      source: 'Restart required',
+      detail: 'admin_allow_ml_training',
+      source: 'Database setting',
+      editable: true,
     },
     {
       label: 'ML Scoring',
       enabled: featureFlags?.adminAllowMlScoring ?? true,
-      detail: 'ADMIN_ALLOW_ML_SCORING',
-      source: 'Restart required',
+      detail: 'admin_allow_ml_scoring',
+      source: 'Database setting',
+      editable: true,
     },
     {
       label: 'Background Jobs',
       enabled: featureFlags?.enableBackgroundJobs ?? false,
-      detail: 'ENABLE_BACKGROUND_JOBS',
-      source: 'Restart required',
+      detail: 'enable_background_jobs',
+      source: 'Database setting',
+      editable: true,
     },
     {
       label: 'API Gate',
       enabled: featureFlags?.apiGateEnabled ?? true,
       detail: 'API_GATE_ENABLED',
-      source: 'Restart required',
+      source: 'Environment-backed',
     },
     {
       label: 'Force HTTPS',
       enabled: featureFlags?.forceHttps ?? false,
       detail: 'FORCE_HTTPS',
-      source: 'Restart required',
+      source: 'Environment-backed',
     },
     {
       label: 'Cookie Secure',
       enabled: featureFlags?.cookieSecure ?? false,
       detail: 'COOKIE_SECURE',
-      source: 'Restart required',
+      source: 'Environment-backed',
     },
     {
       label: 'Simple Rule Scoring',
       enabled: featureFlags?.simpleRuleScoringEnabled ?? false,
-      detail: 'SIMPLE_RULE_SCORING_ENABLED',
-      source: 'Restart required',
+      detail: 'simple_rule_scoring_enabled',
+      source: 'Database setting',
+      editable: true,
     },
   ];
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto p-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AdminCard
-          icon={ToggleIcon}
-          title="Feature Flags (Read-Only)"
-          color="from-cyan-500 to-blue-600"
-        >
+        <AdminCard icon={ToggleIcon} title="Feature Flags" color="from-cyan-500 to-blue-600">
           <div className="space-y-3">
             {featureItems.map((item) => (
               <div
@@ -178,12 +180,22 @@ export const ConfigurationTab: React.FC = () => {
                     {item.enabled ? 'Enabled' : 'Disabled'}
                   </div>
                   <div className="mt-1 text-[11px] text-slate-500">{item.source}</div>
+                  {item.editable ? (
+                    <button
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => updateFeatureFlag(item.detail, !item.enabled)}
+                      className="mt-2 rounded-md border border-blue-600/50 bg-blue-600/10 px-2 py-1 text-[11px] text-blue-200 transition hover:bg-blue-600/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {item.enabled ? 'Disable' : 'Enable'}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             ))}
             <div className="rounded-lg border border-slate-700/50 bg-slate-950/50 px-3 py-2 text-xs text-slate-400">
-              These are status indicators only. They reflect frontend build flags and API runtime
-              environment flags. They are not editable from the admin UI.
+              Database-backed flags update live from the admin UI. Build-time and environment-backed
+              flags remain read-only here.
             </div>
           </div>
         </AdminCard>
@@ -211,8 +223,8 @@ export const ConfigurationTab: React.FC = () => {
               <span className="text-slate-200">{runtime?.mlAutoScoreLimit ?? 'n/a'}</span>
             </div>
             <div className="rounded-lg border border-amber-700/50 bg-amber-900/20 px-3 py-2 text-xs text-amber-200">
-              Environment-backed flags shown here are read-only and usually require an API restart
-              after changes.
+              Read-only items shown here still come from frontend build-time config or API
+              environment variables.
             </div>
           </div>
         </AdminCard>

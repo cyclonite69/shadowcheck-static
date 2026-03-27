@@ -69,6 +69,32 @@ export const useConfiguration = () => {
   const [homeLocationLastUpdated, setHomeLocationLastUpdated] = useState<string | null>(null);
   const [runtimeConfig, setRuntimeConfig] = useState<AdminRuntimeConfig | null>(null);
 
+  const refreshRuntimeConfig = async () => {
+    const runtimeRes = await adminApi.getRuntimeConfig();
+    if (runtimeRes?.featureFlags) {
+      setRuntimeConfig(runtimeRes);
+    } else {
+      setRuntimeConfig(null);
+    }
+    return runtimeRes;
+  };
+
+  const updateFeatureFlag = async (key: string, enabled: boolean) => {
+    try {
+      setIsLoading(true);
+      await adminApi.updateAdminSetting(key, enabled);
+      const nextRuntimeConfig = await refreshRuntimeConfig();
+      window.dispatchEvent(
+        new CustomEvent('admin-runtime-config-changed', { detail: nextRuntimeConfig })
+      );
+      alert(`Updated ${key}.`);
+    } catch (error) {
+      alert(`Error updating ${key}: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const saveMapboxToken = async () => {
     try {
       setIsLoading(true);
@@ -250,7 +276,7 @@ export const useConfiguration = () => {
     const loadMaskedConfig = async () => {
       try {
         const [
-          runtimeRes,
+          ,
           mapboxRes,
           mapboxUnlimitedRes,
           googleRes,
@@ -261,7 +287,7 @@ export const useConfiguration = () => {
           locationIqRes,
           smartyRes,
         ] = await Promise.all([
-          adminApi.getRuntimeConfig(),
+          refreshRuntimeConfig(),
           adminApi.getMapboxToken(),
           adminApi.getMapboxUnlimited(),
           adminApi.getGoogleMapsKey(),
@@ -272,10 +298,6 @@ export const useConfiguration = () => {
           adminApi.getLocationIQKey(),
           adminApi.getSmartyKey(),
         ]);
-
-        if (runtimeRes?.featureFlags) {
-          setRuntimeConfig(runtimeRes);
-        }
 
         if (mapboxRes) {
           if (typeof mapboxRes.configured === 'boolean') {
@@ -446,6 +468,8 @@ export const useConfiguration = () => {
     homeLocationConfigured,
     homeLocationLastUpdated,
     runtimeConfig,
+    refreshRuntimeConfig,
+    updateFeatureFlag,
     saveMapboxToken,
     saveMapboxUnlimitedApiKey,
     saveGoogleMapsApiKey,

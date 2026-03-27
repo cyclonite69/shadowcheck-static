@@ -37,13 +37,13 @@ export const ModelOperationsCard: React.FC<ModelOperationsCardProps> = ({
 
       {mlStatus?.trainingEnabled === false && (
         <div className="rounded-lg border border-amber-700/50 bg-amber-900/20 p-3 text-sm text-amber-200">
-          ML training is disabled. Set `ADMIN_ALLOW_ML_TRAINING=true` and restart the API server.
+          ML training is disabled. Enable `admin_allow_ml_training` in Configuration.
         </div>
       )}
 
       {mlStatus?.scoringEnabled === false && (
         <div className="rounded-lg border border-amber-700/50 bg-amber-900/20 p-3 text-sm text-amber-200">
-          ML scoring is disabled. Set `ADMIN_ALLOW_ML_SCORING=true` and restart the API server.
+          ML scoring is disabled. Enable `admin_allow_ml_scoring` in Configuration.
         </div>
       )}
 

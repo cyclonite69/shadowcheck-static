@@ -58,17 +58,24 @@ export type { BackgroundJobName };
 class BackgroundJobsService {
   static jobs: Record<string, any> = {};
   static lastConfig: Record<string, any> = {};
+  static lastSchedulerEnabled: boolean | null = null;
   static runningJobIds: Partial<Record<BackgroundJobName, number>> = {};
   static initialized = false;
 
   static isSchedulerEnabled() {
-    return process.env.ENABLE_BACKGROUND_JOBS === 'true';
+    const featureFlagService = require('./featureFlagService');
+    return featureFlagService.getFlag('enable_background_jobs');
   }
 
   /**
    * Initialize background jobs
    */
   static async initialize() {
+    if (this.initialized) {
+      await this.rescheduleJobs();
+      return;
+    }
+
     logger.info('[Background Jobs] Initializing background jobs service...');
 
     try {
@@ -116,23 +123,33 @@ class BackgroundJobsService {
 
       // 1. Backup Job
       const backupConfig = configs.backup_job_config || DEFAULT_JOB_CONFIGS.backup;
-      if (this.hasConfigChanged('backup', backupConfig)) {
+      if (
+        this.hasConfigChanged('backup', backupConfig) ||
+        this.lastSchedulerEnabled !== schedulerEnabled
+      ) {
         this.updateJob('backup', backupConfig, () => this.runScheduledBackup(), schedulerEnabled);
       }
 
       // 2. ML Scoring Job
       const mlConfig = configs.ml_scoring_job_config || DEFAULT_JOB_CONFIGS.mlScoring;
-      if (this.hasConfigChanged('mlScoring', mlConfig)) {
+      if (
+        this.hasConfigChanged('mlScoring', mlConfig) ||
+        this.lastSchedulerEnabled !== schedulerEnabled
+      ) {
         this.updateJob('mlScoring', mlConfig, () => this.runMLScoring(), schedulerEnabled);
       }
 
       // 3. MV Refresh Job
       const mvConfig = configs.mv_refresh_job_config || DEFAULT_JOB_CONFIGS.mvRefresh;
-      if (this.hasConfigChanged('mvRefresh', mvConfig)) {
+      if (
+        this.hasConfigChanged('mvRefresh', mvConfig) ||
+        this.lastSchedulerEnabled !== schedulerEnabled
+      ) {
         this.updateJob('mvRefresh', mvConfig, () => this.runMVRefresh(), schedulerEnabled);
       }
 
       this.lastConfig = configs;
+      this.lastSchedulerEnabled = schedulerEnabled;
     } catch (error) {
       logger.error(
         '[Background Jobs] Failed to reschedule jobs from database:',
@@ -181,6 +198,15 @@ class BackgroundJobsService {
     } else {
       logger.info(`[Background Jobs] Job '${name}' disabled`);
     }
+  }
+
+  static async applySchedulerFlagChange() {
+    if (this.isSchedulerEnabled()) {
+      await this.initialize();
+      return;
+    }
+
+    await this.rescheduleJobs();
   }
 
   /**

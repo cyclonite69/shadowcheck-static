@@ -187,6 +187,10 @@ export const adminApi = {
     return apiClient.get('/admin/settings/runtime');
   },
 
+  async updateAdminSetting(key: string, value: unknown): Promise<any> {
+    return apiClient.put(`/admin/settings/${key}`, { value });
+  },
+
   async getImportHistory(limit = 20): Promise<any> {
     return apiClient.get(`/admin/import-history?limit=${limit}`);
   },

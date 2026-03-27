@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { settingsAdminService } = require('../../../../config/container');
 const { backgroundJobsService } = require('../../../../config/container');
+const featureFlagService = require('../../../../services/featureFlagService');
 const logger = require('../../../../logging/logger');
 
 const envFlag = (value: unknown, defaultValue = false) => {
@@ -68,17 +69,19 @@ router.post('/jobs/:jobName/run', async (req: any, res: any) => {
 
 router.get('/runtime', async (req: any, res: any) => {
   try {
+    await featureFlagService.refreshCache();
+    const dbBackedFlags = featureFlagService.getAllFlags();
     res.json({
       success: true,
       featureFlags: {
-        adminAllowDocker: envFlag(process.env.ADMIN_ALLOW_DOCKER, false),
-        adminAllowMlTraining: envFlag(process.env.ADMIN_ALLOW_ML_TRAINING, true),
-        adminAllowMlScoring: envFlag(process.env.ADMIN_ALLOW_ML_SCORING, true),
-        enableBackgroundJobs: envFlag(process.env.ENABLE_BACKGROUND_JOBS, false),
+        adminAllowDocker: dbBackedFlags.admin_allow_docker,
+        adminAllowMlTraining: dbBackedFlags.admin_allow_ml_training,
+        adminAllowMlScoring: dbBackedFlags.admin_allow_ml_scoring,
+        enableBackgroundJobs: dbBackedFlags.enable_background_jobs,
         apiGateEnabled: envFlag(process.env.API_GATE_ENABLED ?? 'true', true),
         forceHttps: envFlag(process.env.FORCE_HTTPS, false),
         cookieSecure: envFlag(process.env.COOKIE_SECURE, false),
-        simpleRuleScoringEnabled: envFlag(process.env.SIMPLE_RULE_SCORING_ENABLED, false),
+        simpleRuleScoringEnabled: dbBackedFlags.simple_rule_scoring_enabled,
         trackQueryPerformance: envFlag(process.env.TRACK_QUERY_PERFORMANCE, false),
         debugQueryPerformance: envFlag(process.env.DEBUG_QUERY_PERFORMANCE, false),
         debugGeospatial: envFlag(process.env.DEBUG_GEOSPATIAL, false),
@@ -122,16 +125,28 @@ router.get('/:key', async (req: any, res: any) => {
 router.put('/:key', async (req: any, res: any) => {
   try {
     const { key } = req.params;
-    const { value } = req.body;
+    let { value } = req.body;
 
     if (value === undefined) {
       return res.status(400).json({ success: false, error: 'Value is required' });
+    }
+
+    if (featureFlagService.isDbBackedFlagKey(key)) {
+      value = envFlag(value, false);
     }
 
     const setting = await settingsAdminService.updateSetting(key, value);
 
     if (!setting) {
       return res.status(404).json({ success: false, error: 'Setting not found' });
+    }
+
+    if (featureFlagService.isDbBackedFlagKey(key)) {
+      await featureFlagService.refreshCache();
+    }
+
+    if (key === 'enable_background_jobs') {
+      await backgroundJobsService.applySchedulerFlagChange();
     }
 
     if (['backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config'].includes(key)) {
