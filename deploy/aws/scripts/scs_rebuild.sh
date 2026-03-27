@@ -254,12 +254,34 @@ wait_for_container_health shadowcheck_redis 30
 
 if sudo [ -f "$POSTGRES_CONFIG" ]; then
   echo "  Ensuring PostgreSQL uses the canonical SSL certificate paths..."
+  POSTGRES_SSL_CERT_BEFORE="$(sudo grep -E "^ssl_cert_file = " "$POSTGRES_CONFIG" | sed "s/^ssl_cert_file = //")"
+  POSTGRES_SSL_KEY_BEFORE="$(sudo grep -E "^ssl_key_file = " "$POSTGRES_CONFIG" | sed "s/^ssl_key_file = //")"
+
   sudo sed -i \
     -e "s#^ssl_cert_file = '.*'#ssl_cert_file = '/var/lib/postgresql/certs/shadowcheck.crt'#" \
     -e "s#^ssl_key_file = '.*'#ssl_key_file = '/var/lib/postgresql/certs/shadowcheck.key'#" \
     "$POSTGRES_CONFIG"
-  sudo chown 999:999 "$POSTGRES_CONFIG" 2>/dev/null || true
-  sudo chmod 600 "$POSTGRES_CONFIG"
+
+  POSTGRES_SSL_CERT_AFTER="$(sudo grep -E "^ssl_cert_file = " "$POSTGRES_CONFIG" | sed "s/^ssl_cert_file = //")"
+  POSTGRES_SSL_KEY_AFTER="$(sudo grep -E "^ssl_key_file = " "$POSTGRES_CONFIG" | sed "s/^ssl_key_file = //")"
+  POSTGRES_RESTART_REQUIRED=false
+
+  if [ "$POSTGRES_SSL_CERT_BEFORE" != "$POSTGRES_SSL_CERT_AFTER" ] || [ "$POSTGRES_SSL_KEY_BEFORE" != "$POSTGRES_SSL_KEY_AFTER" ]; then
+    POSTGRES_RESTART_REQUIRED=true
+  fi
+else
+  echo "  Ensuring PostgreSQL uses the canonical SSL certificate paths..."
+  sudo sed -i \
+    -e "s#^ssl_cert_file = '.*'#ssl_cert_file = '/var/lib/postgresql/certs/shadowcheck.crt'#" \
+    -e "s#^ssl_key_file = '.*'#ssl_key_file = '/var/lib/postgresql/certs/shadowcheck.key'#" \
+    "$POSTGRES_CONFIG"
+  POSTGRES_RESTART_REQUIRED=true
+fi
+
+sudo chown 999:999 "$POSTGRES_CONFIG" 2>/dev/null || true
+sudo chmod 600 "$POSTGRES_CONFIG"
+
+if [ "$POSTGRES_RESTART_REQUIRED" = true ]; then
   docker restart shadowcheck_postgres >/dev/null
   wait_for_container_health shadowcheck_postgres 90
 fi
