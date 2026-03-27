@@ -90,10 +90,16 @@ router.get('/admin/geocoding/daemon', async (req: any, res: any) => {
     const daemon = await getGeocodingDaemonStatus();
     res.json({ ok: true, daemon });
   } catch (err: any) {
-    logger.error('[Geocoding] Failed to read daemon status', { error: err?.message });
-    res.status(500).json({
-      ok: false,
-      error: err?.message || 'Failed to read daemon status',
+    const errorMessage = err?.message || 'Failed to read daemon status';
+    logger.error('[Geocoding] Failed to read daemon status', { error: errorMessage });
+    res.json({
+      ok: true,
+      daemon: {
+        running: false,
+        stopRequested: false,
+        config: null,
+        lastError: errorMessage,
+      },
     });
   }
 });
