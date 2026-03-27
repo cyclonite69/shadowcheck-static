@@ -226,9 +226,15 @@ Local Docker behavior:
 - `docker compose up -d` also starts the backend API on `127.0.0.1:3001` and the frontend on `http://127.0.0.1:8080`
 - No `.env` file is required for container-to-container DB connectivity
 - PostgreSQL data is stored in the local `postgres_data` volume
-- Secrets are still loaded from AWS Secrets Manager; for local Docker, pass through
-  real AWS credentials or export `DB_PASSWORD`, `DB_ADMIN_PASSWORD`, and any optional
-  API keys like `MAPBOX_TOKEN` in your shell
+- Secrets are still loaded from AWS Secrets Manager; local Docker mounts `${HOME}/.aws`
+  into the API container and enables AWS shared-config loading
+- For AWS SSO-backed local Docker, export `AWS_PROFILE=shadowcheck-sso`,
+  `AWS_REGION=us-east-1`, and optionally `SHADOWCHECK_AWS_SECRET` if you do not use the
+  default `shadowcheck/config` secret name
+- The local API container needs writable access to the mounted AWS config/cache so SSO
+  token refresh can succeed
+- If you do not want to use AWS Secrets Manager locally, export `DB_PASSWORD`,
+  `DB_ADMIN_PASSWORD`, and any optional API keys like `MAPBOX_TOKEN` in your shell
   before `docker compose up`
 - Optional shell helpers can be loaded with `source ./scripts/local-dev-aliases.sh`
 - `sclocal` runs `docker compose up -d --build`
@@ -283,9 +289,19 @@ it into the local Docker PostgreSQL container:
 
 ```bash
 docker compose up -d postgres redis api
+export AWS_PROFILE=shadowcheck-sso
+export AWS_REGION=us-east-1
 export S3_BACKUP_BUCKET=dbcoopers-briefcase-161020170158
 ./scripts/fetch-latest-s3-backup.sh
 ./scripts/restore-local-backup.sh ./backups/s3/<latest-backup>.dump
+```
+
+If explorer/network list endpoints still fail after restoring a snapshot, refresh the
+materialized view that powers them:
+
+```bash
+docker exec shadowcheck_postgres_local psql -U shadowcheck_user -d shadowcheck_db -c \
+  "REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;"
 ```
 
 ### 4. Run Migrations
