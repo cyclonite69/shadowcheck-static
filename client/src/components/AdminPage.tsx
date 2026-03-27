@@ -283,9 +283,9 @@ const AdminPage: React.FC = () => {
   }, []);
 
   const showMlTab =
-    runtimeConfig?.featureFlags.adminAllowMlTraining !== false ||
-    runtimeConfig?.featureFlags.adminAllowMlScoring !== false;
-  const showPgAdminTab = runtimeConfig?.featureFlags.adminAllowDocker !== false;
+    runtimeConfig?.featureFlags.adminAllowMlTraining === true ||
+    runtimeConfig?.featureFlags.adminAllowMlScoring === true;
+  const showPgAdminTab = runtimeConfig?.featureFlags.adminAllowDocker === true;
 
   const tabs = [
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
