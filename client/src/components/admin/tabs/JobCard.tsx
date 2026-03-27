@@ -16,6 +16,12 @@ const SAVE_LABELS: Record<JobKey, string> = {
   mvRefresh: 'Save Refresh Config',
 };
 
+const RUN_LABELS: Record<JobKey, string> = {
+  backup: 'Run Backup Now',
+  mlScoring: 'Run Scoring Now',
+  mvRefresh: 'Run Refresh Now',
+};
+
 const TOGGLE_CLASSES: Record<JobKey, string> = {
   backup: 'bg-emerald-500',
   mlScoring: 'bg-blue-500',
@@ -37,9 +43,12 @@ export function JobCard({
   color,
   accentClass,
   saving,
+  running,
+  schedulerEnabled,
   onToggle,
   onUpdate,
   onSave,
+  onRunNow,
   onRefresh,
 }: {
   jobKey: JobKey;
@@ -50,14 +59,25 @@ export function JobCard({
   color: string;
   accentClass: string;
   saving: string | null;
+  running: string | null;
+  schedulerEnabled: boolean;
   onToggle: () => void;
   onUpdate: (field: string, value: any) => void;
   onSave: () => void;
+  onRunNow: () => void;
   onRefresh: () => void;
 }) {
   return (
     <AdminCard icon={icon} title={title} color={color}>
       <div className="space-y-4">
+        {!schedulerEnabled ? (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            Scheduler is disabled by <code>ENABLE_BACKGROUND_JOBS=false</code>. Saved schedules will
+            not run automatically until the API restarts with that flag enabled. Use Run Now to test
+            this job manually.
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-800/40 p-3">
           <span className="text-sm font-medium text-slate-200">{TOGGLE_LABELS[jobKey]}</span>
           <button
@@ -85,6 +105,14 @@ export function JobCard({
           className={`w-full rounded-lg py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${SAVE_CLASSES[jobKey]}`}
         >
           {saving === jobKey ? 'Saving...' : SAVE_LABELS[jobKey]}
+        </button>
+
+        <button
+          onClick={onRunNow}
+          disabled={running === jobKey || status?.currentRun?.status === 'running'}
+          className="w-full rounded-lg border border-slate-700 bg-slate-900 py-2 text-sm font-medium text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {running === jobKey ? 'Running...' : RUN_LABELS[jobKey]}
         </button>
       </div>
     </AdminCard>

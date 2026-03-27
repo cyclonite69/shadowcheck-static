@@ -59,6 +59,11 @@ class BackgroundJobsService {
   static jobs: Record<string, any> = {};
   static lastConfig: Record<string, any> = {};
   static runningJobIds: Partial<Record<BackgroundJobName, number>> = {};
+  static initialized = false;
+
+  static isSchedulerEnabled() {
+    return process.env.ENABLE_BACKGROUND_JOBS === 'true';
+  }
 
   /**
    * Initialize background jobs
@@ -72,6 +77,7 @@ class BackgroundJobsService {
 
       // Start configuration poller (every 5 minutes)
       this.startConfigPoller();
+      this.initialized = true;
 
       logger.info('[Background Jobs] Initialization complete');
     } catch (error) {
@@ -106,22 +112,24 @@ class BackgroundJobsService {
         configs[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
       });
 
+      const schedulerEnabled = this.isSchedulerEnabled();
+
       // 1. Backup Job
       const backupConfig = configs.backup_job_config || DEFAULT_JOB_CONFIGS.backup;
       if (this.hasConfigChanged('backup', backupConfig)) {
-        this.updateJob('backup', backupConfig, () => this.runScheduledBackup());
+        this.updateJob('backup', backupConfig, () => this.runScheduledBackup(), schedulerEnabled);
       }
 
       // 2. ML Scoring Job
       const mlConfig = configs.ml_scoring_job_config || DEFAULT_JOB_CONFIGS.mlScoring;
       if (this.hasConfigChanged('mlScoring', mlConfig)) {
-        this.updateJob('mlScoring', mlConfig, () => this.runMLScoring());
+        this.updateJob('mlScoring', mlConfig, () => this.runMLScoring(), schedulerEnabled);
       }
 
       // 3. MV Refresh Job
       const mvConfig = configs.mv_refresh_job_config || DEFAULT_JOB_CONFIGS.mvRefresh;
       if (this.hasConfigChanged('mvRefresh', mvConfig)) {
-        this.updateJob('mvRefresh', mvConfig, () => this.runMVRefresh());
+        this.updateJob('mvRefresh', mvConfig, () => this.runMVRefresh(), schedulerEnabled);
       }
 
       this.lastConfig = configs;
@@ -137,7 +145,9 @@ class BackgroundJobsService {
    * Check if a job configuration has changed
    */
   static hasConfigChanged(jobName: string, newConfig: any): boolean {
-    const oldConfig = this.lastConfig[`${jobName}_job_config`];
+    const oldConfig =
+      this.lastConfig[JOB_SETTING_KEYS[jobName as BackgroundJobName]] ||
+      this.lastConfig[`${jobName}_job_config`];
     if (!oldConfig) return true;
     return oldConfig.enabled !== newConfig.enabled || oldConfig.cron !== newConfig.cron;
   }
@@ -145,10 +155,22 @@ class BackgroundJobsService {
   /**
    * Update a specific job (cancel and reschedule if needed)
    */
-  static updateJob(name: string, config: any, task: () => Promise<void>) {
+  static updateJob(
+    name: string,
+    config: any,
+    task: () => Promise<void>,
+    schedulerEnabled = this.isSchedulerEnabled()
+  ) {
     if (this.jobs[name]) {
       this.jobs[name].cancel();
       delete this.jobs[name];
+    }
+
+    if (!schedulerEnabled) {
+      logger.info(
+        `[Background Jobs] Scheduler disabled by ENABLE_BACKGROUND_JOBS=false; '${name}' remains manual-only`
+      );
+      return;
     }
 
     if (config.enabled) {
@@ -193,6 +215,9 @@ class BackgroundJobsService {
    * Run automated backup with S3 upload
    */
   static async runScheduledBackup() {
+    if (this.runningJobIds.backup) {
+      throw new Error('backup job already running');
+    }
     await trackJobRun(
       'backup',
       async () => {
@@ -227,6 +252,9 @@ class BackgroundJobsService {
    * Refresh all materialized views
    */
   static async runMVRefresh() {
+    if (this.runningJobIds.mvRefresh) {
+      throw new Error('materialized view refresh job already running');
+    }
     await trackJobRun(
       'mvRefresh',
       async () => {
@@ -285,6 +313,9 @@ class BackgroundJobsService {
    * Based on mobility patterns, not user tags
    */
   static async runMLScoring() {
+    if (this.runningJobIds.mlScoring) {
+      throw new Error('ML scoring job already running');
+    }
     await trackJobRun(
       'mlScoring',
       async () => {
@@ -419,7 +450,12 @@ class BackgroundJobsService {
   }
 
   static async getJobStatus() {
-    return getJobStatus(this.jobs);
+    const status = await getJobStatus(this.jobs);
+    return {
+      ...status,
+      schedulerEnabled: this.isSchedulerEnabled(),
+      schedulerInitialized: this.initialized,
+    };
   }
 
   /**
@@ -428,6 +464,27 @@ class BackgroundJobsService {
   static async scoreNow() {
     logger.info('[Background Jobs] Manual trigger: ML scoring');
     return this.runMLScoring();
+  }
+
+  static async runJobNow(jobName: BackgroundJobName) {
+    logger.info('[Background Jobs] Manual trigger requested', { jobName });
+
+    if (jobName === 'backup') {
+      await this.runScheduledBackup();
+      return { jobName, status: 'completed' };
+    }
+
+    if (jobName === 'mlScoring') {
+      await this.runMLScoring();
+      return { jobName, status: 'completed' };
+    }
+
+    if (jobName === 'mvRefresh') {
+      await this.runMVRefresh();
+      return { jobName, status: 'completed' };
+    }
+
+    throw new Error(`Unsupported background job: ${jobName}`);
   }
 
   /**
@@ -440,6 +497,7 @@ class BackgroundJobsService {
         job.cancel();
       }
     });
+    this.initialized = false;
     logger.info('[Background Jobs] All jobs cancelled');
   }
 }

@@ -33,6 +33,13 @@ export interface JobRuntimeStatus {
   lastRun: JobRunHistoryEntry | null;
 }
 
+export interface JobsStatusResponse {
+  success: boolean;
+  schedulerEnabled: boolean;
+  schedulerInitialized: boolean;
+  jobs: Partial<Record<JobKey, JobRuntimeStatus>>;
+}
+
 export const JOB_SETTING_KEYS: Record<JobKey, string> = {
   backup: 'backup_job_config',
   mlScoring: 'ml_scoring_job_config',
