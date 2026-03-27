@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { WigleSearchTab } from './admin/tabs/WigleSearchTab';
 import { WigleDetailTab } from './admin/tabs/WigleDetailTab';
@@ -15,6 +15,8 @@ import { UsersTab } from './admin/tabs/UsersTab';
 import { JobsTab } from './admin/tabs/JobsTab';
 import { WigleStatsTab } from './admin/tabs/WigleStatsTab';
 import { DbStatsTab } from './admin/tabs/DbStatsTab';
+import { adminApi } from '../api/adminApi';
+import type { AdminRuntimeConfig } from './admin/types/admin.types';
 
 // SVG Icons
 const ClockIcon = ({ size = 24, className = '' }) => (
@@ -241,6 +243,7 @@ const DetailIcon = ({ size = 24, className = '' }) => (
 const AdminPage: React.FC = () => {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('config');
+  const [runtimeConfig, setRuntimeConfig] = useState<AdminRuntimeConfig | null>(null);
 
   if (!isAdmin) {
     return (
@@ -259,13 +262,38 @@ const AdminPage: React.FC = () => {
     );
   }
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadRuntimeConfig = async () => {
+      try {
+        const data = await adminApi.getRuntimeConfig();
+        if (!cancelled) {
+          setRuntimeConfig(data);
+        }
+      } catch {
+        if (!cancelled) {
+          setRuntimeConfig(null);
+        }
+      }
+    };
+    void loadRuntimeConfig();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const showMlTab =
+    runtimeConfig?.featureFlags.adminAllowMlTraining !== false ||
+    runtimeConfig?.featureFlags.adminAllowMlScoring !== false;
+  const showPgAdminTab = runtimeConfig?.featureFlags.adminAllowDocker !== false;
+
   const tabs = [
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
     { id: 'jobs', label: 'Automation', icon: ClockIcon },
     { id: 'db-stats', label: 'DB Stats', icon: DatabaseIcon },
     { id: 'wigle-stats', label: 'WiGLE Stats', icon: TrophyIcon },
     { id: 'api', label: 'API Testing', icon: ApiIcon },
-    { id: 'ml', label: 'ML Training', icon: BrainIcon },
+    ...(showMlTab ? [{ id: 'ml', label: 'ML Training', icon: BrainIcon }] : []),
     { id: 'wigle', label: 'WiGLE Search (v2)', icon: SearchIcon },
     { id: 'wigle-detail', label: 'WiGLE Detail (v3)', icon: DetailIcon },
     { id: 'imports', label: 'Data Import', icon: UploadIcon },
@@ -273,9 +301,15 @@ const AdminPage: React.FC = () => {
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
     { id: 'geocoding', label: 'Geocoding', icon: MapIcon },
     { id: 'aws', label: 'AWS', icon: CloudIcon },
-    { id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon },
+    ...(showPgAdminTab ? [{ id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon }] : []),
     { id: 'users', label: 'Users', icon: UsersIcon },
   ];
+
+  useEffect(() => {
+    if (!tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab('config');
+    }
+  }, [activeTab, tabs]);
   const tabButtonClass = (tabId: string) =>
     `flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-center font-medium transition-all text-sm ${
       activeTab === tabId

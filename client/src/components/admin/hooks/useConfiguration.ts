@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
+import type { AdminRuntimeConfig } from '../types/admin.types';
 
 type HomeLocationState = { lat: string; lng: string; radius: string };
 type SavedConfigurationValues = {
@@ -66,6 +67,7 @@ export const useConfiguration = () => {
   const [homeLocationError, setHomeLocationError] = useState<string | null>(null);
   const [homeLocationConfigured, setHomeLocationConfigured] = useState(false);
   const [homeLocationLastUpdated, setHomeLocationLastUpdated] = useState<string | null>(null);
+  const [runtimeConfig, setRuntimeConfig] = useState<AdminRuntimeConfig | null>(null);
 
   const saveMapboxToken = async () => {
     try {
@@ -248,6 +250,7 @@ export const useConfiguration = () => {
     const loadMaskedConfig = async () => {
       try {
         const [
+          runtimeRes,
           mapboxRes,
           mapboxUnlimitedRes,
           googleRes,
@@ -258,6 +261,7 @@ export const useConfiguration = () => {
           locationIqRes,
           smartyRes,
         ] = await Promise.all([
+          adminApi.getRuntimeConfig(),
           adminApi.getMapboxToken(),
           adminApi.getMapboxUnlimited(),
           adminApi.getGoogleMapsKey(),
@@ -268,6 +272,10 @@ export const useConfiguration = () => {
           adminApi.getLocationIQKey(),
           adminApi.getSmartyKey(),
         ]);
+
+        if (runtimeRes?.featureFlags) {
+          setRuntimeConfig(runtimeRes);
+        }
 
         if (mapboxRes) {
           if (typeof mapboxRes.configured === 'boolean') {
@@ -341,6 +349,7 @@ export const useConfiguration = () => {
           }));
         }
       } catch {
+        setRuntimeConfig(null);
         setMapboxConfigured(false);
         setMapboxUnlimitedConfigured(false);
         setGoogleMapsConfigured(false);
@@ -436,6 +445,7 @@ export const useConfiguration = () => {
     homeLocationError,
     homeLocationConfigured,
     homeLocationLastUpdated,
+    runtimeConfig,
     saveMapboxToken,
     saveMapboxUnlimitedApiKey,
     saveGoogleMapsApiKey,
