@@ -214,6 +214,13 @@ Use the example env files to keep local dev separate from AWS/deployed settings:
 - `.env.local.example`
   For local-machine overrides when your backend runs on the host instead of inside Docker.
 
+Local development behavior:
+
+- If `DB_HOST` is unset, the server defaults to `127.0.0.1`
+- If your backend runs inside Docker, set `DB_HOST=shadowcheck_postgres`
+- If your backend runs on the host, local Postgres published on `127.0.0.1:5432` works with no
+  explicit `DB_HOST`
+
 Typical local dev values when PostgreSQL and Redis are published on localhost:
 
 ```bash
@@ -237,6 +244,13 @@ Credentials needed for local dev:
 
 If the backend runs inside Docker instead of on the host, `DB_HOST=shadowcheck_postgres` is the
 expected local value.
+
+Production/deployed environments can keep an explicit `.env` with the deployed database host, for
+example:
+
+```bash
+DB_HOST=34.204.161.164
+```
 
 Do not point local `.env` at the deployed EC2 database unless you intentionally want your local app
 to use the remote environment.
