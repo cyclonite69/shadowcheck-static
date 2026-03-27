@@ -31,11 +31,21 @@ export AWS_REGION=us-east-1
 docker compose up -d --force-recreate api
 ```
 
+The default AWS Secrets Manager secret name is:
+
+```bash
+shadowcheck/config
+```
+
 If you use a non-default secret name, also export:
 
 ```bash
 export SHADOWCHECK_AWS_SECRET=your/real/secret-name
 ```
+
+The `${HOME}/.aws` mount is writable on purpose so AWS SSO can refresh its local cache.
+If that mount is read-only, Secrets Manager access from the API container will fail even
+though the profile and cache files are present.
 
 If you do not want to use AWS Secrets Manager locally, export `DB_PASSWORD`,
 `DB_ADMIN_PASSWORD`, `MAPBOX_TOKEN`, and any other required secrets explicitly in
@@ -57,9 +67,19 @@ Typical local restore flow:
 
 ```bash
 docker compose up -d postgres redis api
+export AWS_PROFILE=shadowcheck-sso
+export AWS_REGION=us-east-1
 export S3_BACKUP_BUCKET=dbcoopers-briefcase-161020170158
 ./scripts/fetch-latest-s3-backup.sh
 ./scripts/restore-local-backup.sh ./backups/s3/<latest-backup>.dump
+```
+
+If `api/v2/networks/filtered` or explorer pages fail after restore, refresh the
+materialized view used by those endpoints:
+
+```bash
+docker exec shadowcheck_postgres_local psql -U shadowcheck_user -d shadowcheck_db -c \
+  "REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;"
 ```
 
 Local shell helpers are also available:

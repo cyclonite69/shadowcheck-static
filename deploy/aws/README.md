@@ -65,6 +65,9 @@ over.
 - Passwords remain sourced from AWS Secrets Manager in both cases; local Docker can
   pass through real AWS credentials or provide `DB_PASSWORD` / `DB_ADMIN_PASSWORD`
   as shell environment overrides
+- The AWS region is no longer read from Secrets Manager; on EC2 it resolves from
+  `app.settings.aws_region`, then `AWS_REGION`, then `AWS_DEFAULT_REGION`, and finally
+  EC2 instance metadata (IMDS)
 - `S3_BACKUP_BUCKET` is runtime configuration, not a secret; the EC2 rebuild flow can
   source it from `.env` or AWS SSM Parameter Store
 
