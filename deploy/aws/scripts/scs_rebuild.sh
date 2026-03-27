@@ -271,9 +271,12 @@ CERTS_DIR_BASE=/var/lib/postgresql
 CANONICAL_CERT_DIR=$CERTS_DIR_BASE/certs
 CANONICAL_CERT=$CANONICAL_CERT_DIR/shadowcheck.crt
 CANONICAL_KEY=$CANONICAL_CERT_DIR/shadowcheck.key
+PGADMIN_CERT_DIR=/var/lib/pgadmin/certs
+PGADMIN_CERT=$PGADMIN_CERT_DIR/server.cert
+PGADMIN_KEY=$PGADMIN_CERT_DIR/server.key
 POSTGRES_CONFIG=/var/lib/postgresql/postgresql.conf
 
-sudo mkdir -p "$CANONICAL_CERT_DIR" /var/lib/pgadmin /var/lib/redis
+sudo mkdir -p "$CANONICAL_CERT_DIR" /var/lib/pgadmin /var/lib/redis "$PGADMIN_CERT_DIR"
 sudo chmod 711 "$CERTS_DIR_BASE" 2>/dev/null || true
 
 echo "  Auditing canonical certificate path..."
@@ -320,6 +323,11 @@ sudo chmod 644 "$CANONICAL_CERT" 2>/dev/null || true
 
 sudo chown -R 5050:5050 /var/lib/pgadmin 2>/dev/null || true
 sudo chown -R 999:999 /var/lib/redis 2>/dev/null || true
+
+# pgAdmin needs its own readable TLS copy. Keep PostgreSQL's canonical key
+# locked down, then install a pgAdmin-local pair owned by the pgAdmin runtime.
+sudo install -o 5050 -g 5050 -m 644 "$CANONICAL_CERT" "$PGADMIN_CERT"
+sudo install -o 5050 -g 5050 -m 600 "$CANONICAL_KEY" "$PGADMIN_KEY"
 
 # 3. Clean up
 echo "[3/8] Cleaning up old Docker artifacts..."
@@ -423,8 +431,8 @@ docker run -d \
   -e PGADMIN_DEFAULT_SERVER_HOST=127.0.0.1 \
   -v /var/lib/pgadmin:/var/lib/pgadmin \
   -v "$APP_DIR/docker/infrastructure/pgadmin-config/servers.json:/pgadmin4/servers.json:ro" \
-  -v "$CANONICAL_CERT:/certs/server.cert:ro" \
-  -v "$CANONICAL_KEY:/certs/server.key:ro" \
+  -v "$PGADMIN_CERT:/certs/server.cert:ro" \
+  -v "$PGADMIN_KEY:/certs/server.key:ro" \
   --log-driver json-file \
   --log-opt max-size=10m \
   --log-opt max-file=3 \
