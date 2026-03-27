@@ -46,6 +46,26 @@ router.get('/jobs/status', async (req: any, res: any) => {
   }
 });
 
+router.post('/jobs/:jobName/run', async (req: any, res: any) => {
+  try {
+    const { jobName } = req.params;
+
+    if (!['backup', 'mlScoring', 'mvRefresh'].includes(jobName)) {
+      return res.status(400).json({ success: false, error: 'Unsupported background job' });
+    }
+
+    const result = await backgroundJobsService.runJobNow(jobName);
+    const status = await backgroundJobsService.getJobStatus();
+    res.json({ success: true, result, ...status });
+  } catch (error: any) {
+    logger.error('Failed to run background job manually', {
+      error: error.message,
+      jobName: req.params.jobName,
+    });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.get('/runtime', async (req: any, res: any) => {
   try {
     res.json({
@@ -112,6 +132,14 @@ router.put('/:key', async (req: any, res: any) => {
 
     if (!setting) {
       return res.status(404).json({ success: false, error: 'Setting not found' });
+    }
+
+    if (['backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config'].includes(key)) {
+      if (backgroundJobsService.isSchedulerEnabled()) {
+        await backgroundJobsService.rescheduleJobs();
+      } else {
+        logger.info('Background job config updated while scheduler is disabled', { key });
+      }
     }
 
     logger.info('Setting updated', { key, value });

@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../../api/client';
-import { DEFAULT_CONFIGS, JOB_SETTING_KEYS, JobConfig, JobKey, JobRuntimeStatus } from './jobTypes';
+import {
+  DEFAULT_CONFIGS,
+  JOB_SETTING_KEYS,
+  JobConfig,
+  JobKey,
+  JobRuntimeStatus,
+  JobsStatusResponse,
+} from './jobTypes';
 import { normalizeJobConfig } from './jobUtils';
 import { JobCard } from './JobCard';
 import { ClockIcon, ActivityIcon, RefreshIcon } from './JobIcons';
@@ -32,14 +39,18 @@ const JOB_CARDS = [
 export const JobsTab: React.FC = () => {
   const [configs, setConfigs] = useState<Record<JobKey, JobConfig>>(DEFAULT_CONFIGS);
   const [jobStatus, setJobStatus] = useState<Partial<Record<JobKey, JobRuntimeStatus>>>({});
+  const [schedulerEnabled, setSchedulerEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [running, setRunning] = useState<string | null>(null);
 
   const fetchJobStatus = async () => {
     try {
       const response = await apiClient.get('/admin/settings/jobs/status');
+      const typedResponse = response as JobsStatusResponse;
       if (response?.success) {
-        setJobStatus(response.jobs || {});
+        setJobStatus(typedResponse.jobs || {});
+        setSchedulerEnabled(Boolean(typedResponse.schedulerEnabled));
       }
     } catch (err) {
       console.error('Failed to fetch job status', err);
@@ -95,6 +106,22 @@ export const JobsTab: React.FC = () => {
     }
   };
 
+  const handleRunNow = async (key: JobKey) => {
+    setRunning(key);
+    try {
+      const response = await apiClient.post(`/admin/settings/jobs/${key}/run`);
+      if (!response?.success) {
+        throw new Error(response?.error || 'Manual job run failed');
+      }
+      await fetchJobStatus();
+      alert(`${key} job completed.`);
+    } catch (err: any) {
+      alert(`Failed to run job: ${err.message}`);
+    } finally {
+      setRunning(null);
+    }
+  };
+
   const updateLocalConfig = (key: JobKey, field: string, value: any) => {
     setConfigs((prev) => {
       const current = prev[key] || DEFAULT_CONFIGS[key];
@@ -120,24 +147,50 @@ export const JobsTab: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {JOB_CARDS.map(({ jobKey, icon, title, color, accentClass }) => (
-        <JobCard
-          key={jobKey}
-          jobKey={jobKey}
-          config={resolvedConfigs[jobKey]}
-          status={jobStatus[jobKey]}
-          icon={icon}
-          title={title}
-          color={color}
-          accentClass={accentClass}
-          saving={saving}
-          onToggle={() => updateLocalConfig(jobKey, 'enabled', !resolvedConfigs[jobKey].enabled)}
-          onUpdate={(field, value) => updateLocalConfig(jobKey, field, value)}
-          onSave={() => handleUpdate(jobKey)}
-          onRefresh={fetchJobStatus}
-        />
-      ))}
+    <div className="space-y-6">
+      <div
+        className={`rounded-xl border px-4 py-3 text-sm ${
+          schedulerEnabled
+            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200'
+            : 'border-amber-500/20 bg-amber-500/10 text-amber-200'
+        }`}
+      >
+        {schedulerEnabled ? (
+          <span>
+            Background scheduler is enabled. Saved cron changes are applied immediately and jobs
+            should run automatically on schedule.
+          </span>
+        ) : (
+          <span>
+            Background scheduler is disabled by <code>ENABLE_BACKGROUND_JOBS=false</code>. The
+            schedule editor stores config only. Use the manual Run Now buttons below to verify each
+            job works.
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {JOB_CARDS.map(({ jobKey, icon, title, color, accentClass }) => (
+          <JobCard
+            key={jobKey}
+            jobKey={jobKey}
+            config={resolvedConfigs[jobKey]}
+            status={jobStatus[jobKey]}
+            icon={icon}
+            title={title}
+            color={color}
+            accentClass={accentClass}
+            saving={saving}
+            running={running}
+            schedulerEnabled={schedulerEnabled}
+            onToggle={() => updateLocalConfig(jobKey, 'enabled', !resolvedConfigs[jobKey].enabled)}
+            onUpdate={(field, value) => updateLocalConfig(jobKey, field, value)}
+            onSave={() => handleUpdate(jobKey)}
+            onRunNow={() => handleRunNow(jobKey)}
+            onRefresh={fetchJobStatus}
+          />
+        ))}
+      </div>
     </div>
   );
 };
