@@ -174,6 +174,7 @@ resolve_s3_bucket() {
 backup_file_to_s3_if_missing() {
   local local_path="$1"
   local s3_uri="$2"
+  local temp_copy
 
   if [ -z "${S3_BUCKET:-}" ]; then
     echo "  ℹ️ S3_BUCKET is not set; skipping certificate backup"
@@ -185,11 +186,17 @@ backup_file_to_s3_if_missing() {
     return 0
   fi
 
-  if aws s3 cp "$local_path" "$s3_uri" >/dev/null 2>&1; then
+  temp_copy="$(mktemp)"
+  sudo cp "$local_path" "$temp_copy"
+  chmod 600 "$temp_copy"
+
+  if aws s3 cp "$temp_copy" "$s3_uri" >/dev/null 2>&1; then
     echo "  ☁️ Backed up: $s3_uri"
   else
     echo "  ⚠️ Failed to back up $local_path to $s3_uri"
   fi
+
+  rm -f "$temp_copy"
 }
 
 ensure_canonical_cert_pair() {
