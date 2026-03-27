@@ -68,7 +68,7 @@ cd shadowcheck
 The script will:
 
 1. ✅ Install system utilities (ripgrep, ncdu, htop, jq, etc.)
-2. ✅ Install Docker, Docker Compose, Node.js 20
+2. ✅ Install Docker, Docker Compose, Node.js 22+
 3. ✅ Deploy PostgreSQL with PostGIS
 4. ✅ Create .env.aws with auto-populated values
 5. ✅ Build and start application containers

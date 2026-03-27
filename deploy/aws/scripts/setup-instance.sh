@@ -94,15 +94,15 @@ else
 fi
 echo ""
 
-# 7. Install Node.js 20 if not present
+# 7. Install Node.js 22 if not present
 echo "📦 Checking Node.js installation..."
-if ! command -v node &>/dev/null || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 20 ]]; then
-  echo "Installing Node.js 20..."
-  curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+if ! command -v node &>/dev/null || [[ $(node -v | cut -d'v' -f2 | cut -d'.' -f1) -lt 22 ]]; then
+  echo "Installing Node.js 22..."
+  curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
   dnf install -y nodejs
   echo "✅ Node.js installed"
 else
-  echo "✅ Node.js 20+ already installed"
+  echo "✅ Node.js 22+ already installed"
 fi
 echo ""
 

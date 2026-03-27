@@ -187,5 +187,5 @@ psycopg2.OperationalError: could not connect to server
 
 ## Related Documentation
 
-- [ML Iteration Guide](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/ML_ITERATION_GUIDE.md) - Detailed ML guide
+- [ML Iteration Script](../../scripts/ml/ml-iterate.py) - Script for model iteration
 - [API Reference](API-Reference) - ML API endpoints
