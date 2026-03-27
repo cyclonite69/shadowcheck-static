@@ -51,6 +51,15 @@ If you do not want to use AWS Secrets Manager locally, export `DB_PASSWORD`,
 `DB_ADMIN_PASSWORD`, `MAPBOX_TOKEN`, and any other required secrets explicitly in
 your shell before starting the compose stack.
 
+The local API container also defaults to:
+
+```bash
+NODE_OPTIONS=--max-old-space-size=2048
+```
+
+to avoid V8 heap pressure during heavier local admin/geospatial usage. Override it
+in your shell if you want a different local heap size.
+
 Production EC2 keeps its explicit deployed database host in `.env`, for example:
 
 ```bash
