@@ -461,92 +461,58 @@ erDiagram
 
 ## Threat Detection Algorithm
 
-### Scoring Criteria (Multi-Factor Analysis)
+### Scoring Criteria (v4.0 - Multi-Factor Behavioral Analysis)
 
-```javascript
-const threatScore = (network) => {
-  let score = 0;
+The system utilizes a sophisticated SQL-based scoring engine (`calculate_threat_score_v4`) that analyzes behavioral patterns and fleet correlation.
 
-  // CRITICAL: Seen both at home AND away from home
-  if (network.seenAtHome && network.seenAwayFromHome) {
-    score += 40; // Strongest indicator of tracking
-  }
+| Category                 | Weight | Description                                                         |
+| :----------------------- | :----- | :------------------------------------------------------------------ |
+| **Following Pattern**    | 35%    | Multiple distinct away locations and geographic spread.             |
+| **Parked Surveillance**  | 20%    | Multiple detections at the same location within short time windows. |
+| **Location Correlation** | 15%    | Home staging and routine location clustering patterns.              |
+| **Equipment Profile**    | 10%    | Industrial/Operational gear identification and SSID patterns.       |
+| **Temporal Persistence** | 5%     | Long-term monitoring over multiple distinct days.                   |
+| **Fleet Bonus**          | 15%    | Coordinated multi-vehicle operations (shared manufacturers/SSIDs).  |
 
-  // HIGH: Distance range exceeds WiFi range (200m)
-  if (network.distanceRange > 0.2) {
-    // km
-    score += 25;
-  }
+**Maximum Individual Score:** 85 points  
+**Maximum Fleet Bonus:** 15 points  
+**Total Potential Score:** 100 points
 
-  // MEDIUM: Temporal persistence (multiple days)
-  if (network.uniqueDays >= 7) {
-    score += 15;
-  } else if (network.uniqueDays >= 3) {
-    score += 10;
-  } else if (network.uniqueDays >= 2) {
-    score += 5;
-  }
+### Detection Thresholds
 
-  // LOW: High observation count
-  if (network.observationCount >= 50) {
-    score += 10;
-  } else if (network.observationCount >= 20) {
-    score += 5;
-  }
-
-  // ADVANCED: Movement speed analysis
-  if (network.maxSpeed > 100) {
-    // km/h
-    score += 20; // Vehicular tracking device
-  } else if (network.maxSpeed > 50) {
-    score += 15;
-  } else if (network.maxSpeed > 20) {
-    score += 10;
-  }
-
-  return score;
-};
-```
+- **CRITICAL (81-100)**: Definite surveillance threat with confirmed tracking behavior.
+- **HIGH (61-80)**: Strong indicators of surveillance; requires immediate investigation.
+- **MEDIUM (41-60)**: Suspicious activity; monitor for further patterns.
+- **LOW (21-40)**: Anomalous behavior; likely benign but exceeds baseline.
+- **NONE (0-20)**: Normal consumer or background network activity.
 
 ### Detection Modes
 
 **1. Quick Detection (Paginated)**
 
-- Location: `server/server.ts`
+- Location: `server/src/api/routes/v1/threats.ts`
 - Endpoint: `GET /api/threats/quick`
 - Features:
-  - Fast aggregation queries
-  - Pagination support (default: 100 results)
-  - User-defined severity threshold
-  - Basic distance calculations
-- Use Case: Dashboard overview, initial screening
+  - Fast aggregation queries using materialized views.
+  - Pagination support for rapid triage.
+  - User-defined severity threshold filtering.
+- Use Case: Real-time dashboard overview and initial screening.
 
 **2. Advanced Detection (Full Analysis)**
 
-- Location: `server/server.ts`
+- Location: `server/src/api/routes/v1/threats.ts`
 - Endpoint: `GET /api/threats/detect`
 - Features:
-  - Speed calculations between observations
-  - Temporal sequencing (order by time)
-  - Detailed movement patterns
-  - All observations included
-- Use Case: Deep investigation, forensic analysis
+  - Full movement pattern analysis.
+  - Temporal sequencing and sequencing calculations.
+  - Behavioral flag extraction (following vs. parked).
+- Use Case: Deep forensic investigation and case building.
 
 ### False Positive Filtering
 
-```sql
--- Cellular networks excluded unless exceptional range
-WHERE NOT (
-  type IN ('G', 'L', 'N')
-  AND distance_range_km < 5.0
-)
-
--- Minimum valid timestamp (Jan 1, 2000)
-WHERE time >= 946684800000
-
--- Minimum observations for statistical significance
-HAVING COUNT(DISTINCT location_id) >= 2
-```
+- **Cellular Exclusion**: Cellular networks (G/L/N) are ignored unless they exhibit extreme ranges (>50km).
+- **Temporal Gating**: Observations older than the system's baseline (Jan 1, 2000) are purged.
+- **Statistical Significance**: Requires at least 2 distinct location sightings to calculate a score.
 
 ## Security Architecture
 
@@ -752,6 +718,6 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
 ---
 
-For detailed API documentation, see [API.md](API.md).
+For detailed API documentation, see [API_REFERENCE.md](API_REFERENCE.md).
 For deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 For development setup, see [DEVELOPMENT.md](DEVELOPMENT.md).

@@ -1034,15 +1034,28 @@ Export observations as GeoJSON (full dataset).
 - `N`: 5G NR
 - `G`: GSM
 
-## Threat Scoring
+## Threat Scoring (v4.0)
 
-- **50**: Seen at home AND away
-- **30**: Distance > 1km
-- **20**: 10+ days
-- **15**: 100+ observations
-- **-20**: Strong signal (stationary)
+ShadowCheck v4.0 uses a behavioral scoring engine with the following weighted components:
 
-Default threshold: **40**
+| Component                | Weight | Criteria                                                             |
+| :----------------------- | :----- | :------------------------------------------------------------------- |
+| **Following Pattern**    | 35%    | Multiple clusters >2km from home; max distance spread.               |
+| **Parked Surveillance**  | 20%    | Repeated detections within 100m and 10-minute windows.               |
+| **Location Correlation** | 15%    | Percentage of observations near home vs. distinct clusters.          |
+| **Equipment Profile**    | 10%    | Manufacturer OUI matching (industrial/vehicular) and SSID patterns.  |
+| **Temporal Persistence** | 5%     | Number of distinct days observed.                                    |
+| **Fleet Bonus**          | 15%    | Correlation with other high-score networks (same manufacturer/SSID). |
+
+**Thresholds:**
+
+- **CRITICAL**: 81+
+- **HIGH**: 61-80
+- **MEDIUM**: 41-60
+- **LOW**: 21-40
+- **NONE**: <21
+
+Default display threshold: **40**
 
 ## Services & Query Builders
 

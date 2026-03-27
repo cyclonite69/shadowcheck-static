@@ -211,6 +211,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-For detailed API changes, see [API.md](docs/API.md).
+For detailed API changes, see [API_REFERENCE.md](docs/API_REFERENCE.md).
 For migration guides, see [docs/MIGRATION.md](docs/MIGRATION.md).
 For security advisories, see [SECURITY.md](SECURITY.md).

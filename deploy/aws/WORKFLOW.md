@@ -85,7 +85,7 @@ This installs:
 
 - System utilities (htop, jq, ripgrep, ncdu, tmux, etc.)
 - Docker and Docker Compose
-- Node.js 20+
+- Node.js 22+
 - PostgreSQL client tools (pgcli)
 - Helpful shell aliases
 

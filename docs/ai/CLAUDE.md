@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ShadowCheck is a SIGINT forensics platform for wireless network threat detection. It analyzes WiFi, Bluetooth, and cellular observations to detect potential surveillance devices using **Dockerized PostgreSQL 18 + PostGIS 3.6** for geospatial analysis.
 
-**Tech Stack**: Node.js 20+, Express, PostgreSQL 18 + PostGIS, React 18, Vite, Tailwind CSS v4, Mapbox GL JS, Recharts
+**Tech Stack**: Node.js 22+, Express, PostgreSQL 18 + PostGIS, React 18, Vite, Tailwind CSS v4, Mapbox GL JS, Recharts
 
 **CRITICAL**: PostgreSQL runs in Docker container `shadowcheck_postgres` on the `shadowcheck_net` network. **DO NOT use local system PostgreSQL** - if running API locally, STOP local PostgreSQL: `sudo systemctl stop postgresql`
 

@@ -747,7 +747,7 @@ app.get('/api/your-endpoint', async (req, res) => {
 ```
 
 2. Add tests in `tests/api/your-endpoint.test.js`
-3. Update `API.md` documentation
+3. Update `API_REFERENCE.md` documentation
 4. Test endpoint manually
 
 ### Add Database Migration
@@ -943,6 +943,6 @@ CREATE INDEX idx_locations_bssid ON app.locations_legacy(bssid);
 
 ---
 
-For API documentation, see [API.md](API.md).
+For API documentation, see [API_REFERENCE.md](API_REFERENCE.md).
 For deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 For architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md).

@@ -4,7 +4,7 @@
 
 **ShadowCheckWeb** is a production-grade SIGINT (Signals Intelligence) forensics and wireless network analysis platform. It provides real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
 
-- **Primary Technologies:** React 19, Vite 7, TypeScript, Node.js 20+, Express, PostgreSQL 18 + PostGIS, Redis 7.0.
+- **Primary Technologies:** React 19, Vite 7, TypeScript, Node.js 22+, Express, PostgreSQL 18 + PostGIS, Redis 7.0.
 - **Architecture:** Modern modular architecture with clear separation of concerns:
   - **Frontend:** Component-based UI with Zustand for state management, Mapbox GL JS and Deck.gl for spatial visualization.
   - **Backend:** Express-based REST API with a Service-Query pattern.
@@ -28,7 +28,7 @@
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - PostgreSQL 18+ with PostGIS
 - Redis 7.0+
 - Docker (optional, for infrastructure)

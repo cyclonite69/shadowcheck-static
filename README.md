@@ -289,7 +289,9 @@ Server runs on `http://localhost:3001`
 - `POST /api/network-tags/:bssid` - Manually classify a network (admin)
 - `POST /api/admin/import-sqlite` - Turbo SQLite database import (admin)
 - `POST /api/admin/cleanup-duplicates` - Remove redundant observation data (admin)
-- `GET /api/export/networks` - Export filtered networks to CSV/JSON
+- `GET /api/csv` - Export observations as CSV (full dataset)
+- `GET /api/json` - Export observations + networks as JSON (full dataset)
+- `GET /api/geojson` - Export observations as GeoJSON (full dataset)
 - `POST /api/admin/aws/instances/:id/start` - Start EC2 instance (admin)
 - `POST /api/admin/aws/instances/:id/stop` - Stop EC2 instance (admin)
 
