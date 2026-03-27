@@ -5,6 +5,10 @@
 
 const { query } = require('../config/database');
 
+type QueryExecutor = {
+  query: (text: string, params?: any[]) => Promise<any>;
+};
+
 export async function getWigleNetworkByBSSID(bssid: string): Promise<any | null> {
   const { rows } = await query(
     `SELECT bssid, ssid, encryption, country, region, city, trilat, trilon, first_seen, last_seen
@@ -216,8 +220,8 @@ export async function getWigleV3Observations(netid: string): Promise<any[]> {
   return rows;
 }
 
-export async function importWigleV2SearchResult(network: any): Promise<number> {
-  const result = await query(
+async function insertWigleV2SearchResult(executor: QueryExecutor, network: any): Promise<number> {
+  const result = await executor.query(
     `INSERT INTO app.wigle_v2_networks_search (
       bssid, ssid, trilat, trilong, location, firsttime, lasttime, lastupdt,
       type, encryption, channel, frequency, qos, wep, bcninterval, freenet,
@@ -262,6 +266,13 @@ export async function importWigleV2SearchResult(network: any): Promise<number> {
     ]
   );
   return result.rowCount || 0;
+}
+
+export async function importWigleV2SearchResult(
+  network: any,
+  executor: QueryExecutor = { query }
+): Promise<number> {
+  return insertWigleV2SearchResult(executor, network);
 }
 
 // ── Unified higher-level helpers ──────────────────────────────────────────

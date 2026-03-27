@@ -56,6 +56,7 @@ const threatScoringService = require('../services/threatScoringService');
 const threatReportService = require('../services/threatReportService');
 const v2Service = require('../services/v2Service');
 const wigleImportService = require('../services/wigleImportService');
+const wigleImportRunService = require('../services/wigleImportRunService');
 const wigleService = require('../services/wigleService');
 
 const container = {
@@ -107,6 +108,7 @@ const container = {
   threatReportService,
   v2Service,
   wigleImportService,
+  wigleImportRunService,
   wigleService,
 };
 
