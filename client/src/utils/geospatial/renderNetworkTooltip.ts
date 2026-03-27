@@ -101,7 +101,14 @@ const getRadioSVG = (type: string, color: string) => {
 export const renderNetworkTooltip = (props: any): string => {
   const threat = String(props.threat_level || props.threat || 'NONE').toUpperCase();
   const tc = THREAT_COLOR[threat] || '#60a5fa';
-  const rssiValue = props.signal ?? props.rssi ?? props.level;
+  const rssiValue =
+    props.signal ??
+    props.rssi ??
+    props.level ??
+    props.bestlevel ??
+    props.signalDbm ??
+    props.maxSignal ??
+    props.max_signal;
   const rssi = typeof rssiValue === 'number' ? rssiValue : Number(rssiValue);
   const scoreValue = props.threat_score;
   const score = typeof scoreValue === 'number' ? scoreValue : Number(scoreValue);

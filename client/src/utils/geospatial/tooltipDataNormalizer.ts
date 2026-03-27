@@ -145,7 +145,17 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
             : raw.radio_type || 'WiFi',
     threat_level: pickFirst(raw.threat_level, raw.threat, 'NONE'),
     threat_score: Number(pickFirst(raw.threat_score, 0)),
-    signal: toNumberOrNull(pickFirst(raw.signal, raw.level, raw.bestlevel, raw.rssi)),
+    signal: toNumberOrNull(
+      pickFirst(
+        raw.signal,
+        raw.level,
+        raw.bestlevel,
+        raw.rssi,
+        raw.signalDbm,
+        raw.maxSignal,
+        raw.max_signal
+      )
+    ),
     security: canonicalSecurity,
     encryption: canonicalSecurity,
     wps: caps.wps,
