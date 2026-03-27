@@ -35,17 +35,29 @@ export const ModelOperationsCard: React.FC<ModelOperationsCardProps> = ({
     <div className="space-y-4">
       <p className="text-sm text-slate-400">Manage machine learning model for threat detection.</p>
 
+      {mlStatus?.trainingEnabled === false && (
+        <div className="rounded-lg border border-amber-700/50 bg-amber-900/20 p-3 text-sm text-amber-200">
+          ML training is disabled. Set `ADMIN_ALLOW_ML_TRAINING=true` and restart the API server.
+        </div>
+      )}
+
+      {mlStatus?.scoringEnabled === false && (
+        <div className="rounded-lg border border-amber-700/50 bg-amber-900/20 p-3 text-sm text-amber-200">
+          ML scoring is disabled. Set `ADMIN_ALLOW_ML_SCORING=true` and restart the API server.
+        </div>
+      )}
+
       <div className="space-y-2">
         <button
           onClick={trainModel}
-          disabled={mlLoading}
+          disabled={mlLoading || mlStatus?.trainingEnabled === false}
           className="w-full p-3 rounded-lg bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-500 hover:to-pink-600 disabled:opacity-50 text-white font-medium text-sm transition-all"
         >
           {mlLoading ? 'Training...' : 'Train Model'}
         </button>
         <button
           onClick={() => recalculateScores(5000)}
-          disabled={mlLoading || !mlStatus?.modelTrained}
+          disabled={mlLoading || !mlStatus?.modelTrained || mlStatus?.scoringEnabled === false}
           className="w-full p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 disabled:opacity-50 text-white font-medium text-sm border border-slate-700/60 transition-all"
         >
           {mlLoading ? 'Calculating...' : 'Recalculate Scores'}

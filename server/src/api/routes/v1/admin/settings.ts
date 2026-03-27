@@ -5,6 +5,11 @@ const { settingsAdminService } = require('../../../../config/container');
 const { backgroundJobsService } = require('../../../../config/container');
 const logger = require('../../../../logging/logger');
 
+const envFlag = (value: unknown, defaultValue = false) => {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  return String(value).toLowerCase() === 'true';
+};
+
 /**
  * GET /api/admin/settings
  * Get all settings
@@ -37,6 +42,37 @@ router.get('/jobs/status', async (req: any, res: any) => {
     res.json({ success: true, ...status });
   } catch (error: any) {
     logger.error('Failed to get background job status', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/runtime', async (req: any, res: any) => {
+  try {
+    res.json({
+      success: true,
+      featureFlags: {
+        adminAllowDocker: envFlag(process.env.ADMIN_ALLOW_DOCKER, false),
+        adminAllowMlTraining: envFlag(process.env.ADMIN_ALLOW_ML_TRAINING, true),
+        adminAllowMlScoring: envFlag(process.env.ADMIN_ALLOW_ML_SCORING, true),
+        enableBackgroundJobs: envFlag(process.env.ENABLE_BACKGROUND_JOBS, false),
+        apiGateEnabled: envFlag(process.env.API_GATE_ENABLED ?? 'true', true),
+        forceHttps: envFlag(process.env.FORCE_HTTPS, false),
+        cookieSecure: envFlag(process.env.COOKIE_SECURE, false),
+        simpleRuleScoringEnabled: envFlag(process.env.SIMPLE_RULE_SCORING_ENABLED, false),
+        trackQueryPerformance: envFlag(process.env.TRACK_QUERY_PERFORMANCE, false),
+        debugQueryPerformance: envFlag(process.env.DEBUG_QUERY_PERFORMANCE, false),
+        debugGeospatial: envFlag(process.env.DEBUG_GEOSPATIAL, false),
+      },
+      runtime: {
+        nodeEnv: process.env.NODE_ENV || 'development',
+        logLevel: process.env.LOG_LEVEL || 'info',
+        mlModelVersion: process.env.ML_MODEL_VERSION || '1.0.0',
+        mlScoreLimit: parseInt(process.env.ML_SCORE_LIMIT ?? '0', 10) || 100,
+        mlAutoScoreLimit: parseInt(process.env.ML_AUTO_SCORE_LIMIT ?? '0', 10) || 1000,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to get runtime settings', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });

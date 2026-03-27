@@ -20,6 +20,10 @@ const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT ?? '0', 10) || 1
 const DEFAULT_AUTO_SCORE_LIMIT = parseInt(process.env.ML_AUTO_SCORE_LIMIT ?? '0', 10) || 1000;
 const DEFAULT_MODEL_VERSION = process.env.ML_MODEL_VERSION || '1.0.0';
 const MAX_SCORE_LIMIT = 200000;
+const ML_TRAINING_ENABLED =
+  String(process.env.ADMIN_ALLOW_ML_TRAINING ?? 'true').toLowerCase() === 'true';
+const ML_SCORING_ENABLED =
+  String(process.env.ADMIN_ALLOW_ML_SCORING ?? 'true').toLowerCase() === 'true';
 
 const parseBoolean = (value: any, defaultValue = false) => {
   if (value === undefined || value === null || value === '') {
@@ -65,6 +69,9 @@ router.get('/ml/status', async (req: Request, res: Response, next: NextFunction)
     const status = await mlScoringService.getMLModelStatus();
     res.json({
       ok: true,
+      trainingEnabled: ML_TRAINING_ENABLED,
+      scoringEnabled: ML_SCORING_ENABLED,
+      modelVersion: DEFAULT_MODEL_VERSION,
       ...status,
     });
   } catch (err) {
@@ -85,6 +92,14 @@ router.get('/ml/status', async (req: Request, res: Response, next: NextFunction)
 router.post('/ml/train', async (req: Request, res: Response, next: NextFunction) => {
   let lockAcquired = false;
   try {
+    if (!ML_TRAINING_ENABLED) {
+      return res.status(403).json({
+        ok: false,
+        error:
+          'ML training is disabled. Set ADMIN_ALLOW_ML_TRAINING=true and restart the API server.',
+      });
+    }
+
     if (!mlModel) {
       return res.status(503).json({
         ok: false,
@@ -163,6 +178,14 @@ router.post('/ml/train', async (req: Request, res: Response, next: NextFunction)
 // ============================================
 router.post('/ml/score-all', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!ML_SCORING_ENABLED) {
+      return res.status(403).json({
+        ok: false,
+        error:
+          'ML scoring is disabled. Set ADMIN_ALLOW_ML_SCORING=true and restart the API server.',
+      });
+    }
+
     logger.info('[ML] Starting ML scoring of all networks...');
 
     const overwriteFinal = parseBoolean(req.body?.overwrite_final, true);

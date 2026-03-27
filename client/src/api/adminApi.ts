@@ -3,7 +3,7 @@
  */
 
 import { apiClient } from './client';
-import type { AdminUser } from '../components/admin/types/admin.types';
+import type { AdminRuntimeConfig, AdminUser } from '../components/admin/types/admin.types';
 
 export const adminApi = {
   // User management
@@ -181,6 +181,10 @@ export const adminApi = {
 
   async getSmartyKey(): Promise<any> {
     return apiClient.get('/settings/smarty');
+  },
+
+  async getRuntimeConfig(): Promise<AdminRuntimeConfig> {
+    return apiClient.get('/admin/settings/runtime');
   },
 
   async getImportHistory(limit = 20): Promise<any> {

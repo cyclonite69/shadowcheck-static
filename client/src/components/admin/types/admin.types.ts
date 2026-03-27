@@ -98,6 +98,9 @@ export interface WigleImportRun {
 
 export interface MLStatus {
   modelTrained: boolean;
+  trainingEnabled?: boolean;
+  scoringEnabled?: boolean;
+  modelVersion?: string;
   taggedNetworks: Array<{
     tag_type: string;
     count: number;
@@ -105,6 +108,34 @@ export interface MLStatus {
   modelInfo?: {
     updated_at: string;
   };
+}
+
+export interface AdminRuntimeFeatureFlags {
+  adminAllowDocker: boolean;
+  adminAllowMlTraining: boolean;
+  adminAllowMlScoring: boolean;
+  enableBackgroundJobs: boolean;
+  apiGateEnabled: boolean;
+  forceHttps: boolean;
+  cookieSecure: boolean;
+  simpleRuleScoringEnabled: boolean;
+  trackQueryPerformance: boolean;
+  debugQueryPerformance: boolean;
+  debugGeospatial: boolean;
+}
+
+export interface AdminRuntimeSettings {
+  nodeEnv: string;
+  logLevel: string;
+  mlModelVersion: string;
+  mlScoreLimit: number;
+  mlAutoScoreLimit: number;
+}
+
+export interface AdminRuntimeConfig {
+  success: boolean;
+  featureFlags: AdminRuntimeFeatureFlags;
+  runtime: AdminRuntimeSettings;
 }
 
 export interface ApiHealth {

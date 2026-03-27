@@ -183,7 +183,8 @@ export const PgAdminTab: React.FC = () => {
 
           {!enabled && (
             <div className="p-3 rounded-lg text-xs bg-amber-900/30 text-amber-300 border border-amber-700/50">
-              Docker controls are disabled. Set ADMIN_ALLOW_DOCKER=true and restart the API server.
+              Docker controls are disabled. Set ADMIN_ALLOW_DOCKER=true, restart the API server,
+              then manage the flag from Configuration.
             </div>
           )}
 
