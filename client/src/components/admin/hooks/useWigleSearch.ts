@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { wigleApi } from '../../../api/wigleApi';
 import {
+  WigleImportRun,
   WigleSearchParams,
   WigleApiStatus,
   WigleSearchResults,
@@ -29,6 +30,7 @@ export const useWigleSearch = () => {
   const [searchAfter, setSearchAfter] = useState<string | null>(null);
   const [totalResults, setTotalResults] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [lastImportRun, setLastImportRun] = useState<WigleImportRun | null>(null);
 
   const loadApiStatus = async () => {
     try {
@@ -107,6 +109,7 @@ export const useWigleSearch = () => {
             : null,
         importedCount,
         importErrors,
+        run: data.run || null,
       });
     } catch (err: any) {
       setSearchError(err?.message || 'Search failed');
@@ -147,25 +150,37 @@ export const useWigleSearch = () => {
       const results = data.results || [];
       const importedCount = typeof data.importedCount === 'number' ? data.importedCount : 0;
       const importErrors = Array.isArray(data.importErrors) ? data.importErrors : [];
+      const run = data.run || null;
 
       setAllResults(results);
       setSearchAfter(null);
-      setTotalResults(data.totalResults || results.length);
-      setCurrentPage(Math.max(1, data.pagesProcessed || Math.ceil(results.length / 100) || 1));
+      setTotalResults(data.totalResults || run?.apiTotalResults || results.length);
+      setCurrentPage(
+        Math.max(
+          1,
+          data.pagesProcessed ||
+            run?.pagesFetched ||
+            Math.ceil((data.loadedCount || results.length) / 100) ||
+            1
+        )
+      );
+      setLastImportRun(run);
       setSearchResults({
         ...data,
         searchAfter: null,
         hasMore: false,
         results,
         resultCount: results.length,
-        loadedCount: data.loadedCount || results.length,
-        pagesProcessed: data.pagesProcessed || 1,
+        loadedCount: data.loadedCount || run?.rowsReturned || results.length,
+        pagesProcessed: data.pagesProcessed || run?.pagesFetched || 1,
+        totalPages: data.totalPages || run?.totalPages || null,
         imported: {
           count: importedCount,
           errors: importErrors,
         },
         importedCount,
         importErrors,
+        run,
       });
     } catch (err: any) {
       setSearchError(err?.message || 'Import all failed');
@@ -194,5 +209,6 @@ export const useWigleSearch = () => {
     totalPages,
     totalResults,
     loadedCount: allResults.length,
+    lastImportRun,
   };
 };

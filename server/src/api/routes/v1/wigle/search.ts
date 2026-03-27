@@ -6,6 +6,7 @@
 import express from 'express';
 const router = express.Router();
 const { wigleService } = require('../../../../config/container');
+const { wigleImportRunService } = require('../../../../config/container');
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
@@ -113,8 +114,21 @@ async function importSearchResults(results: any[]): Promise<{
   return { importedCount, importErrors };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function buildRunImportResponse(run: any) {
+  return {
+    ok: true,
+    imported: true,
+    totalResults: run.apiTotalResults,
+    loadedCount: run.rowsReturned,
+    resultCount: run.rowsReturned,
+    importedCount: run.rowsInserted,
+    pagesProcessed: run.pagesFetched,
+    totalPages: run.totalPages,
+    hasMore: run.status === 'running' || run.status === 'paused' || run.status === 'failed',
+    searchAfter: run.apiCursor,
+    results: [],
+    run,
+  };
 }
 
 /**
@@ -206,91 +220,129 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
 
 router.post('/search-api/import-all', requireAdmin, async (req, res, next) => {
   try {
-    const wigleApiName = secretsManager.get('wigle_api_name');
-    const wigleApiToken = secretsManager.get('wigle_api_token');
-
-    if (!wigleApiName || !wigleApiToken) {
-      return res.status(503).json({
-        ok: false,
-        error:
-          'WiGLE API credentials not configured. Set wigle_api_name and wigle_api_token secrets.',
-      });
-    }
-
     const query = { ...req.query, ...req.body };
-    const validationError = validateSearchQuery(query);
+    const validationError = wigleImportRunService.validateImportQuery(query);
     if (validationError) {
       return res.status(400).json({ ok: false, error: validationError });
     }
 
-    const version = query.version === 'v3' ? 'v3' : 'v2';
-    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+    const runId =
+      query.runId !== undefined && query.runId !== null
+        ? Number.parseInt(String(query.runId), 10)
+        : null;
+    const resumeLatest = query.resumeLatest === true || query.resumeLatest === 'true';
 
-    let searchAfter: string | null = null;
-    let pagesProcessed = 0;
-    let loadedCount = 0;
-    let importedCount = 0;
-    const importErrors: Array<{ bssid: string; error: string }> = [];
-    const allResults: any[] = [];
-    let totalResults = 0;
+    const run = runId
+      ? await wigleImportRunService.resumeImportRun(runId)
+      : resumeLatest
+        ? await wigleImportRunService.resumeLatestImportRun(query)
+        : await wigleImportRunService.startImportRun(query);
 
-    do {
-      const params = buildSearchParams({
-        ...query,
-        searchAfter,
-      });
-
-      let data;
-      for (let attempt = 0; ; attempt++) {
-        try {
-          data = await fetchWiglePage(encodedAuth, version, params);
-          break;
-        } catch (error: any) {
-          const retriable = error.status === 429 || (error.status >= 500 && error.status < 600);
-          if (!retriable || attempt >= IMPORT_ALL_MAX_RETRIES) {
-            throw error;
-          }
-
-          const backoffMs = IMPORT_ALL_PAGE_DELAY_MS * Math.pow(2, attempt + 1);
-          logger.warn(
-            `[WiGLE] import-all page retry ${attempt + 1}/${IMPORT_ALL_MAX_RETRIES} after ${error.status}; waiting ${backoffMs}ms`
-          );
-          await sleep(backoffMs);
-        }
-      }
-
-      const results = data.results || [];
-      totalResults = data.totalResults || totalResults;
-      loadedCount += results.length;
-      pagesProcessed++;
-      if (results.length > 0) {
-        allResults.push(...results);
-        const importResult = await importSearchResults(results);
-        importedCount += importResult.importedCount;
-        importErrors.push(...importResult.importErrors);
-      }
-
-      searchAfter = data.search_after || null;
-      if (searchAfter) {
-        await sleep(IMPORT_ALL_PAGE_DELAY_MS);
-      }
-    } while (searchAfter);
-
-    return res.json({
-      ok: true,
-      imported: true,
-      totalResults,
-      loadedCount,
-      resultCount: allResults.length,
-      importedCount,
-      importErrors: importErrors.length > 0 ? importErrors : undefined,
-      pagesProcessed,
-      hasMore: false,
-      searchAfter: null,
-      results: allResults,
-    });
+    return res.json(buildRunImportResponse(run));
   } catch (err: any) {
     logger.error(`[WiGLE] Import-all error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+router.get('/search-api/import-runs', requireAdmin, async (req, res, next) => {
+  try {
+    const runs = await wigleImportRunService.listImportRuns({
+      limit: req.query.limit ? Number.parseInt(String(req.query.limit), 10) : 20,
+      status: req.query.status ? String(req.query.status) : undefined,
+      state: req.query.state ? String(req.query.state) : undefined,
+      searchTerm: req.query.searchTerm ? String(req.query.searchTerm) : undefined,
+      incompleteOnly: req.query.incompleteOnly === 'true',
+    });
+    return res.json({ ok: true, runs });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Import-runs list error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+router.get('/search-api/import-runs/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const runId = Number.parseInt(String(req.params.id), 10);
+    if (!Number.isFinite(runId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid run id' });
+    }
+    const run = await wigleImportRunService.getImportRun(runId);
+    return res.json({ ok: true, run });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Import-run status error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+router.post('/search-api/import-runs/resume-latest', requireAdmin, async (req, res, next) => {
+  try {
+    const query = { ...req.query, ...req.body };
+    const validationError = wigleImportRunService.validateImportQuery(query);
+    if (validationError) {
+      return res.status(400).json({ ok: false, error: validationError });
+    }
+    const run = await wigleImportRunService.resumeLatestImportRun(query);
+    return res.json(buildRunImportResponse(run));
+  } catch (err: any) {
+    logger.error(`[WiGLE] Resume-latest error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+router.get('/search-api/import-runs/resumable/latest', requireAdmin, async (req, res, next) => {
+  try {
+    const query = { ...req.query, ...req.body };
+    const validationError = wigleImportRunService.validateImportQuery(query);
+    if (validationError) {
+      return res.status(400).json({ ok: false, error: validationError });
+    }
+    const run = await wigleImportRunService.getLatestResumableImportRun(query);
+    return res.json({ ok: true, run });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Latest resumable error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+router.post('/search-api/import-runs/:id/resume', requireAdmin, async (req, res, next) => {
+  try {
+    const runId = Number.parseInt(String(req.params.id), 10);
+    if (!Number.isFinite(runId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid run id' });
+    }
+    const run = await wigleImportRunService.resumeImportRun(runId);
+    return res.json(buildRunImportResponse(run));
+  } catch (err: any) {
+    logger.error(`[WiGLE] Resume run error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+router.post('/search-api/import-runs/:id/pause', requireAdmin, async (req, res, next) => {
+  try {
+    const runId = Number.parseInt(String(req.params.id), 10);
+    if (!Number.isFinite(runId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid run id' });
+    }
+    const run = await wigleImportRunService.pauseImportRun(runId);
+    return res.json({ ok: true, run });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Pause run error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
+router.post('/search-api/import-runs/:id/cancel', requireAdmin, async (req, res, next) => {
+  try {
+    const runId = Number.parseInt(String(req.params.id), 10);
+    if (!Number.isFinite(runId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid run id' });
+    }
+    const run = await wigleImportRunService.cancelImportRun(runId);
+    return res.json({ ok: true, run });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Cancel run error: ${err.message}`, { error: err });
     next(err);
   }
 });

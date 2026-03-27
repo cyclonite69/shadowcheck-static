@@ -108,6 +108,7 @@ INSERT INTO app.schema_migrations (filename) VALUES
   ('20260315_geocoding_queue_indexes.sql'),
   ('20260316_add_background_job_settings.sql'),
   ('20260318_background_job_runs.sql'),
+  ('20260327_add_wigle_import_runs.sql'),
   -- === 10 consolidated baseline migrations ===
   ('20260216_consolidated_001_extensions_and_schemas.sql'),
   ('20260216_consolidated_002_core_tables.sql'),

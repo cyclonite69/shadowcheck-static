@@ -46,11 +46,54 @@ export interface WigleSearchResults {
   hasMore: boolean;
   loadedCount?: number;
   pagesProcessed?: number;
+  totalPages?: number | null;
   results?: WigleNetworkResult[];
   importedCount?: number;
   importErrors?: Array<{ bssid: string; error: string }>;
   imported?: { count: number; errors: Array<{ bssid: string; error: string }> } | null;
+  run?: WigleImportRun | null;
   error?: string;
+}
+
+export interface WigleImportRunPage {
+  id: number;
+  pageNumber: number;
+  requestCursor?: string | null;
+  nextCursor?: string | null;
+  fetchedAt: string;
+  rowsReturned: number;
+  rowsInserted: number;
+  success: boolean;
+  errorMessage?: string | null;
+}
+
+export interface WigleImportRun {
+  id: number;
+  source: string;
+  apiVersion: 'v2';
+  searchTerm: string;
+  state?: string | null;
+  requestFingerprint: string;
+  requestParams: Record<string, unknown>;
+  status: 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
+  apiCursor?: string | null;
+  lastError?: string | null;
+  startedAt: string;
+  lastAttemptedAt?: string | null;
+  completedAt?: string | null;
+  pageSize: number;
+  apiTotalResults?: number | null;
+  totalPages?: number | null;
+  lastSuccessfulPage: number;
+  nextPage: number;
+  pagesFetched: number;
+  rowsReturned: number;
+  rowsInserted: number;
+  rowCompletenessPct?: number | null;
+  insertedRowCompletenessPct?: number | null;
+  pageCompletenessPct?: number | null;
+  rowCompletenessNote?: string;
+  pages?: WigleImportRunPage[];
 }
 
 export interface MLStatus {

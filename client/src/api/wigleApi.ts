@@ -19,6 +19,31 @@ export const wigleApi = {
     return apiClient.post('/wigle/search-api/import-all', params);
   },
 
+  async listImportRuns(params: URLSearchParams = new URLSearchParams()): Promise<any> {
+    const suffix = params.toString();
+    return apiClient.get(`/wigle/search-api/import-runs${suffix ? `?${suffix}` : ''}`);
+  },
+
+  async getImportRun(runId: number): Promise<any> {
+    return apiClient.get(`/wigle/search-api/import-runs/${runId}`);
+  },
+
+  async resumeImportRun(runId: number): Promise<any> {
+    return apiClient.post(`/wigle/search-api/import-runs/${runId}/resume`, {});
+  },
+
+  async resumeLatestImportRun(params: Record<string, string>): Promise<any> {
+    return apiClient.post('/wigle/search-api/import-runs/resume-latest', params);
+  },
+
+  async pauseImportRun(runId: number): Promise<any> {
+    return apiClient.post(`/wigle/search-api/import-runs/${runId}/pause`, {});
+  },
+
+  async cancelImportRun(runId: number): Promise<any> {
+    return apiClient.post(`/wigle/search-api/import-runs/${runId}/cancel`, {});
+  },
+
   // WiGLE Detail
   async getWigleObservations(netid: string): Promise<any> {
     return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}`);
