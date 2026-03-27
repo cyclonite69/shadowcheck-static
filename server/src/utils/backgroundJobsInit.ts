@@ -6,7 +6,8 @@
  * Initialize background jobs.
  */
 async function initializeBackgroundJobs(): Promise<void> {
-  if (process.env.ENABLE_BACKGROUND_JOBS !== 'true') {
+  const featureFlagService = require('../services/featureFlagService');
+  if (!featureFlagService.getFlag('enable_background_jobs')) {
     console.log('[Background Jobs] Skipped (manual-only mode)');
     return;
   }

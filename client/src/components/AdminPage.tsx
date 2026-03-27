@@ -277,8 +277,18 @@ const AdminPage: React.FC = () => {
       }
     };
     void loadRuntimeConfig();
+
+    const handleRuntimeConfigChange = (event: Event) => {
+      const customEvent = event as CustomEvent<AdminRuntimeConfig>;
+      if (!cancelled && customEvent.detail) {
+        setRuntimeConfig(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('admin-runtime-config-changed', handleRuntimeConfigChange);
     return () => {
       cancelled = true;
+      window.removeEventListener('admin-runtime-config-changed', handleRuntimeConfigChange);
     };
   }, []);
 

@@ -9,6 +9,7 @@ import ThreatMLModel from '../../../services/ml/trainer';
 const express = require('express');
 const router = express.Router();
 const { adminDbService, mlScoringService, mlTrainingLock } = require('../../../config/container');
+const featureFlagService = require('../../../services/featureFlagService');
 const logger = require('../../../logging/logger');
 const {
   validateBSSID,
@@ -21,10 +22,6 @@ const DEFAULT_SCORE_LIMIT = parseInt(process.env.ML_SCORE_LIMIT ?? '0', 10) || 1
 const DEFAULT_AUTO_SCORE_LIMIT = parseInt(process.env.ML_AUTO_SCORE_LIMIT ?? '0', 10) || 1000;
 const DEFAULT_MODEL_VERSION = process.env.ML_MODEL_VERSION || '1.0.0';
 const MAX_SCORE_LIMIT = 200000;
-const ML_TRAINING_ENABLED =
-  String(process.env.ADMIN_ALLOW_ML_TRAINING ?? 'true').toLowerCase() === 'true';
-const ML_SCORING_ENABLED =
-  String(process.env.ADMIN_ALLOW_ML_SCORING ?? 'true').toLowerCase() === 'true';
 const parseBoolean = (value: any, defaultValue = false) => {
   if (value === undefined || value === null || value === '') {
     return defaultValue;
@@ -68,8 +65,8 @@ router.get('/ml/status', async (req: Request, res: Response, next: NextFunction)
     const status = await mlScoringService.getMLModelStatus();
     res.json({
       ok: true,
-      trainingEnabled: ML_TRAINING_ENABLED,
-      scoringEnabled: ML_SCORING_ENABLED,
+      trainingEnabled: featureFlagService.getFlag('admin_allow_ml_training'),
+      scoringEnabled: featureFlagService.getFlag('admin_allow_ml_scoring'),
       modelVersion: DEFAULT_MODEL_VERSION,
       ...status,
     });
@@ -91,11 +88,10 @@ router.get('/ml/status', async (req: Request, res: Response, next: NextFunction)
 router.post('/ml/train', async (req: Request, res: Response, next: NextFunction) => {
   let lockAcquired = false;
   try {
-    if (!ML_TRAINING_ENABLED) {
+    if (!featureFlagService.getFlag('admin_allow_ml_training')) {
       return res.status(403).json({
         ok: false,
-        error:
-          'ML training is disabled. Set ADMIN_ALLOW_ML_TRAINING=true and restart the API server.',
+        error: 'ML training is disabled. Enable admin_allow_ml_training in Configuration.',
       });
     }
 
@@ -177,11 +173,10 @@ router.post('/ml/train', async (req: Request, res: Response, next: NextFunction)
 // ============================================
 router.post('/ml/score-all', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!ML_SCORING_ENABLED) {
+    if (!featureFlagService.getFlag('admin_allow_ml_scoring')) {
       return res.status(403).json({
         ok: false,
-        error:
-          'ML scoring is disabled. Set ADMIN_ALLOW_ML_SCORING=true and restart the API server.',
+        error: 'ML scoring is disabled. Enable admin_allow_ml_scoring in Configuration.',
       });
     }
 
