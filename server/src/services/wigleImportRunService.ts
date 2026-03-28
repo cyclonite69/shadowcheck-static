@@ -1,16 +1,27 @@
 const logger = require('../logging/logger');
-const { pool, query } = require('../config/database');
 const secretsManager = require('./secretsManager').default;
-const wigleService = require('./wigleService');
 import {
   buildSearchParams,
   DEFAULT_RESULTS_PER_PAGE,
-  getRequestFingerprint,
-  getSearchTerm,
   normalizeImportParams,
   type WigleImportParams,
   validateImportQuery,
 } from './wigleImport/params';
+import { processSuccessfulPage } from './wigleImport/pageProcessor';
+import {
+  completeRun,
+  createImportRun,
+  findLatestResumableRun,
+  getImportRun,
+  getLatestResumableImportRun,
+  getRunOrThrow,
+  listImportRuns,
+  markRunControlStatus,
+  markRunFailure,
+  persistPageFailure,
+  reconcileRunProgress,
+  resumeRunState,
+} from './wigleImport/runRepository';
 
 export {};
 
@@ -72,359 +83,6 @@ const fetchWiglePage = async (
     throw new Error('WiGLE API returned a malformed response');
   }
   return data;
-};
-
-const computeProgress = (row: any) => {
-  const apiTotalResults = row.api_total_results === null ? null : Number(row.api_total_results);
-  const totalPages = row.total_pages === null ? null : Number(row.total_pages);
-  const rowsReturned = Number(row.rows_returned || 0);
-  const rowsInserted = Number(row.rows_inserted || 0);
-  const pagesFetched = Number(row.pages_fetched || 0);
-  const rowCompletenessPct =
-    apiTotalResults && apiTotalResults > 0
-      ? Number(((rowsReturned / apiTotalResults) * 100).toFixed(2))
-      : null;
-  const insertedRowCompletenessPct =
-    apiTotalResults && apiTotalResults > 0
-      ? Number(((rowsInserted / apiTotalResults) * 100).toFixed(2))
-      : null;
-  const pageCompletenessPct =
-    totalPages && totalPages > 0 ? Number(((pagesFetched / totalPages) * 100).toFixed(2)) : null;
-
-  return {
-    apiTotalResults,
-    totalPages,
-    pageSize: Number(row.page_size || DEFAULT_RESULTS_PER_PAGE),
-    pagesFetched,
-    rowsReturned,
-    rowsInserted,
-    rowCompletenessPct,
-    insertedRowCompletenessPct,
-    pageCompletenessPct,
-    rowCompletenessNote:
-      'rowsReturned tracks API rows successfully paged; rowsInserted can be lower because duplicate-safe upserts skip already imported rows.',
-  };
-};
-
-const serializeRun = (row: any, pages: any[] = []) => ({
-  id: Number(row.id),
-  source: row.source,
-  apiVersion: row.api_version,
-  searchTerm: row.search_term,
-  state: row.state,
-  requestFingerprint: row.request_fingerprint,
-  requestParams: row.request_params || {},
-  status: row.status,
-  apiCursor: row.api_cursor,
-  lastError: row.last_error,
-  startedAt: row.started_at,
-  lastAttemptedAt: row.last_attempted_at,
-  completedAt: row.completed_at,
-  lastSuccessfulPage: Number(row.last_successful_page || 0),
-  nextPage: Number(row.next_page || 1),
-  ...computeProgress(row),
-  pages: pages.map((page) => ({
-    id: Number(page.id),
-    pageNumber: Number(page.page_number),
-    requestCursor: page.request_cursor,
-    nextCursor: page.next_cursor,
-    fetchedAt: page.fetched_at,
-    rowsReturned: Number(page.rows_returned || 0),
-    rowsInserted: Number(page.rows_inserted || 0),
-    success: Boolean(page.success),
-    errorMessage: page.error_message || null,
-  })),
-});
-
-const getRunRow = async (runId: number) => {
-  const result = await query('SELECT * FROM app.wigle_import_runs WHERE id = $1', [runId]);
-  return result.rows[0] || null;
-};
-
-const getRunPages = async (runId: number, limit = 50) => {
-  const result = await query(
-    `SELECT *
-       FROM app.wigle_import_run_pages
-      WHERE run_id = $1
-      ORDER BY page_number DESC
-      LIMIT $2`,
-    [runId, limit]
-  );
-  return result.rows;
-};
-
-const reconcileRunProgress = async (runId: number): Promise<any> => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const pageSummary = await client.query(
-      `SELECT
-          COUNT(*) FILTER (WHERE success) AS pages_fetched,
-          COALESCE(SUM(rows_returned) FILTER (WHERE success), 0) AS rows_returned,
-          COALESCE(SUM(rows_inserted) FILTER (WHERE success), 0) AS rows_inserted,
-          COALESCE(MAX(page_number) FILTER (WHERE success), 0) AS last_successful_page
-       FROM app.wigle_import_run_pages
-       WHERE run_id = $1`,
-      [runId]
-    );
-    const summary = pageSummary.rows[0];
-    const lastSuccessfulPage = Number(summary?.last_successful_page || 0);
-    const latestCursorResult = await client.query(
-      `SELECT next_cursor
-         FROM app.wigle_import_run_pages
-        WHERE run_id = $1
-          AND success = TRUE
-          AND page_number = $2
-        LIMIT 1`,
-      [runId, lastSuccessfulPage]
-    );
-    const latestCursor = latestCursorResult.rows[0]?.next_cursor || null;
-    const runResult = await client.query(
-      `UPDATE app.wigle_import_runs
-          SET pages_fetched = $2,
-              rows_returned = $3,
-              rows_inserted = $4,
-              last_successful_page = $5,
-              next_page = CASE WHEN status = 'completed' THEN GREATEST(next_page, $5 + 1) ELSE GREATEST($5 + 1, next_page) END,
-              api_cursor = CASE WHEN $5 > 0 THEN $6 ELSE api_cursor END,
-              updated_at = NOW()
-        WHERE id = $1
-        RETURNING *`,
-      [
-        runId,
-        Number(summary?.pages_fetched || 0),
-        Number(summary?.rows_returned || 0),
-        Number(summary?.rows_inserted || 0),
-        lastSuccessfulPage,
-        latestCursor,
-      ]
-    );
-    await client.query('COMMIT');
-    return runResult.rows[0];
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
-const createImportRun = async (rawQuery: Record<string, unknown>) => {
-  const normalized = normalizeImportParams(rawQuery);
-  const result = await query(
-    `INSERT INTO app.wigle_import_runs (
-        source,
-        api_version,
-        search_term,
-        state,
-        request_fingerprint,
-        request_params,
-        status,
-        page_size
-      ) VALUES ('wigle', $1, $2, $3, $4, $5::jsonb, 'running', $6)
-      RETURNING *`,
-    [
-      normalized.version || 'v2',
-      getSearchTerm(normalized),
-      normalized.region || null,
-      getRequestFingerprint(normalized),
-      JSON.stringify(normalized),
-      normalized.resultsPerPage || DEFAULT_RESULTS_PER_PAGE,
-    ]
-  );
-  logger.info('[WiGLE Import] Created run', {
-    runId: result.rows[0]?.id,
-    state: normalized.region || null,
-    searchTerm: getSearchTerm(normalized),
-  });
-  return result.rows[0];
-};
-
-const findLatestResumableRun = async (rawQuery: Record<string, unknown>) => {
-  const normalized = normalizeImportParams(rawQuery);
-  const result = await query(
-    `SELECT *
-       FROM app.wigle_import_runs
-      WHERE request_fingerprint = $1
-        AND status = ANY($2::text[])
-      ORDER BY started_at DESC
-      LIMIT 1`,
-    [getRequestFingerprint(normalized), RESUMABLE_STATUSES]
-  );
-  return result.rows[0] || null;
-};
-
-const markRunFailure = async (runId: number, message: string) => {
-  const result = await query(
-    `UPDATE app.wigle_import_runs
-        SET status = 'failed',
-            last_error = $2,
-            last_attempted_at = NOW(),
-            updated_at = NOW()
-      WHERE id = $1
-      RETURNING *`,
-    [runId, message]
-  );
-  logger.warn('[WiGLE Import] Run failed', { runId, error: message });
-  return result.rows[0];
-};
-
-const markRunControlStatus = async (runId: number, status: 'paused' | 'cancelled') => {
-  const result = await query(
-    `UPDATE app.wigle_import_runs
-        SET status = $2,
-            last_attempted_at = NOW(),
-            updated_at = NOW(),
-            completed_at = CASE WHEN $2 = 'cancelled' THEN NOW() ELSE completed_at END
-      WHERE id = $1
-        AND status IN ('running', 'failed', 'paused')
-      RETURNING *`,
-    [runId, status]
-  );
-  return result.rows[0] || null;
-};
-
-const resumeRunState = async (runId: number) => {
-  const result = await query(
-    `UPDATE app.wigle_import_runs
-        SET status = 'running',
-            last_error = NULL,
-            updated_at = NOW()
-      WHERE id = $1
-        AND status IN ('running', 'paused', 'failed')
-      RETURNING *`,
-    [runId]
-  );
-  return result.rows[0] || null;
-};
-
-const completeRun = async (runId: number) => {
-  const result = await query(
-    `UPDATE app.wigle_import_runs
-        SET status = 'completed',
-            completed_at = NOW(),
-            updated_at = NOW(),
-            last_error = NULL
-      WHERE id = $1
-      RETURNING *`,
-    [runId]
-  );
-  logger.info('[WiGLE Import] Run completed', { runId });
-  return result.rows[0];
-};
-
-const persistPageFailure = async (
-  runId: number,
-  pageNumber: number,
-  requestCursor: string | null,
-  errorMessage: string
-) => {
-  await query(
-    `INSERT INTO app.wigle_import_run_pages (
-        run_id, page_number, request_cursor, success, error_message, fetched_at, updated_at
-      ) VALUES ($1, $2, $3, FALSE, $4, NOW(), NOW())
-      ON CONFLICT (run_id, page_number) DO UPDATE
-        SET request_cursor = EXCLUDED.request_cursor,
-            success = FALSE,
-            error_message = EXCLUDED.error_message,
-            fetched_at = NOW(),
-            updated_at = NOW()`,
-    [runId, pageNumber, requestCursor, errorMessage]
-  );
-};
-
-const processSuccessfulPage = async (
-  runId: number,
-  pageNumber: number,
-  requestCursor: string | null,
-  nextCursor: string | null,
-  results: any[],
-  apiTotalResults: number | null,
-  pageSize: number
-) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    let rowsInserted = 0;
-    for (const network of results) {
-      rowsInserted += await wigleService.importWigleV2SearchResult(network, client);
-    }
-
-    const totalPages =
-      apiTotalResults !== null && apiTotalResults >= 0
-        ? Math.max(1, Math.ceil(apiTotalResults / pageSize))
-        : null;
-
-    await client.query(
-      `INSERT INTO app.wigle_import_run_pages (
-          run_id, page_number, request_cursor, next_cursor, rows_returned, rows_inserted, success, error_message, fetched_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, TRUE, NULL, NOW(), NOW())
-        ON CONFLICT (run_id, page_number) DO UPDATE
-          SET request_cursor = EXCLUDED.request_cursor,
-              next_cursor = EXCLUDED.next_cursor,
-              rows_returned = EXCLUDED.rows_returned,
-              rows_inserted = EXCLUDED.rows_inserted,
-              success = TRUE,
-              error_message = NULL,
-              fetched_at = NOW(),
-              updated_at = NOW()`,
-      [runId, pageNumber, requestCursor, nextCursor, results.length, rowsInserted]
-    );
-
-    const runResult = await client.query(
-      `UPDATE app.wigle_import_runs
-          SET api_total_results = COALESCE($2, api_total_results),
-              page_size = $3,
-              total_pages = COALESCE($4, total_pages),
-              last_successful_page = GREATEST(last_successful_page, $5),
-              next_page = GREATEST(next_page, $5 + 1),
-              pages_fetched = (
-                SELECT COUNT(*)
-                FROM app.wigle_import_run_pages
-                WHERE run_id = $1 AND success = TRUE
-              ),
-              rows_returned = (
-                SELECT COALESCE(SUM(rows_returned), 0)
-                FROM app.wigle_import_run_pages
-                WHERE run_id = $1 AND success = TRUE
-              ),
-              rows_inserted = (
-                SELECT COALESCE(SUM(rows_inserted), 0)
-                FROM app.wigle_import_run_pages
-                WHERE run_id = $1 AND success = TRUE
-              ),
-              api_cursor = $6,
-              last_attempted_at = NOW(),
-              last_error = NULL,
-              updated_at = NOW()
-        WHERE id = $1
-        RETURNING *`,
-      [runId, apiTotalResults, pageSize, totalPages, pageNumber, nextCursor]
-    );
-
-    await client.query('COMMIT');
-    logger.info('[WiGLE Import] Page committed', {
-      runId,
-      pageNumber,
-      rowsReturned: results.length,
-      rowsInserted,
-      nextCursor,
-    });
-    return runResult.rows[0];
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
-const getRunOrThrow = async (runId: number) => {
-  const run = await getRunRow(runId);
-  if (!run) {
-    throw new Error(`WiGLE import run ${runId} not found`);
-  }
-  return run;
 };
 
 const executeImportLoop = async (runId: number) => {
@@ -560,6 +218,11 @@ const startImportRun = async (rawQuery: Record<string, unknown>) => {
     throw new Error(validationError);
   }
   const run = await createImportRun(rawQuery);
+  logger.info('[WiGLE Import] Created run', {
+    runId: run?.id,
+    state: run?.state,
+    searchTerm: run?.search_term,
+  });
   const finalRun = await executeImportLoop(Number(run.id));
   return getImportRun(Number(finalRun.id));
 };
@@ -583,68 +246,19 @@ const resumeLatestImportRun = async (rawQuery: Record<string, unknown>) => {
   if (validationError) {
     throw new Error(validationError);
   }
-  const latest = await findLatestResumableRun(rawQuery);
+  const latest = await findLatestResumableRun(rawQuery, RESUMABLE_STATUSES);
   if (!latest) {
     throw new Error('No resumable WiGLE import run found for that query');
   }
   return resumeImportRun(Number(latest.id));
 };
 
-const listImportRuns = async (
-  options: {
-    limit?: number;
-    status?: string;
-    state?: string;
-    searchTerm?: string;
-    incompleteOnly?: boolean;
-  } = {}
-) => {
-  const { limit = 20, status, state, searchTerm, incompleteOnly = false } = options;
-  const params: any[] = [];
-  const where: string[] = [];
-
-  if (status) {
-    params.push(status);
-    where.push(`status = $${params.length}`);
-  }
-  if (state) {
-    params.push(state);
-    where.push(`state = $${params.length}`);
-  }
-  if (searchTerm) {
-    params.push(`%${searchTerm}%`);
-    where.push(`search_term ILIKE $${params.length}`);
-  }
-  if (incompleteOnly) {
-    where.push(`status IN ('running', 'paused', 'failed')`);
-  }
-
-  params.push(limit);
-  const result = await query(
-    `SELECT *
-       FROM app.wigle_import_runs
-       ${where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''}
-      ORDER BY started_at DESC
-      LIMIT $${params.length}`,
-    params
-  );
-  return result.rows.map((row: any) => serializeRun(row));
-};
-
-const getImportRun = async (runId: number) => {
-  const run = await getRunOrThrow(runId);
-  const pages = await getRunPages(runId);
-  return serializeRun(run, pages);
-};
-
-const getLatestResumableImportRun = async (rawQuery: Record<string, unknown>) => {
+const getLatestResumableImportRunForQuery = async (rawQuery: Record<string, unknown>) => {
   const validationError = validateImportQuery(rawQuery);
   if (validationError) {
     throw new Error(validationError);
   }
-  const run = await findLatestResumableRun(rawQuery);
-  if (!run) return null;
-  return getImportRun(Number(run.id));
+  return getLatestResumableImportRun(rawQuery, RESUMABLE_STATUSES);
 };
 
 const pauseImportRun = async (runId: number) => {
@@ -668,7 +282,7 @@ const cancelImportRun = async (runId: number) => {
 module.exports = {
   cancelImportRun,
   getImportRun,
-  getLatestResumableImportRun,
+  getLatestResumableImportRun: getLatestResumableImportRunForQuery,
   listImportRuns,
   pauseImportRun,
   resumeImportRun,

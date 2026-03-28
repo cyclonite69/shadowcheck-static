@@ -1,9 +1,15 @@
 // @ts-ignore
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { query } from '../config/database';
-import { createAppUser, resetAppUserPassword } from './adminUsersService';
-import secretsManager from './secretsManager';
+import { createAppUser } from './adminUsersService';
+import { getSessionUser, getUserForLogin, getUserForPasswordChange } from './authQueries';
+import {
+  createUserSession,
+  deleteExpiredSessions,
+  deleteUserSession,
+  updateLastLogin,
+  updateUserPassword,
+} from './authWrites';
 import logger from '../logging/logger';
 
 interface AuthUser {
@@ -31,7 +37,7 @@ class AuthService {
   async login(username: string, password: string, userAgent = '', ipAddress = '') {
     try {
       // Find user
-      const userResult = await this.getUserForLogin(username);
+      const userResult = await getUserForLogin(username);
 
       if (userResult.rows.length === 0) {
         return { success: false, error: 'Invalid credentials' };
@@ -54,15 +60,11 @@ class AuthService {
       const tokenHash = crypto.createHash('sha256').update(sessionToken).digest('hex');
       const expiresAt = new Date(Date.now() + this.sessionDuration);
 
-      await query(
-        `INSERT INTO app.user_sessions (user_id, token_hash, expires_at, user_agent, ip_address)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [user.id, tokenHash, expiresAt, userAgent, ipAddress]
-      );
+      await createUserSession(user.id, tokenHash, expiresAt, userAgent, ipAddress);
 
       // Keep login usable on older deployments that missed the narrow last_login grant.
       try {
-        await query('UPDATE app.users SET last_login = NOW() WHERE id = $1', [user.id]);
+        await updateLastLogin(user.id);
       } catch (lastLoginError) {
         logger.warn(`Failed to update last_login for user ${username}`, {
           userId: user.id,
@@ -101,7 +103,7 @@ class AuthService {
 
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-      const result = await this.getSessionUser(tokenHash);
+      const result = await getSessionUser(tokenHash);
 
       if (result.rows.length === 0) {
         return { valid: false, error: 'Invalid or expired session' };
@@ -140,7 +142,7 @@ class AuthService {
 
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-      await query('DELETE FROM app.user_sessions WHERE token_hash = $1', [tokenHash]);
+      await deleteUserSession(tokenHash);
 
       return { success: true };
     } catch (error) {
@@ -172,7 +174,7 @@ class AuthService {
    */
   async changePassword(username: string, currentPassword: string, newPassword: string) {
     try {
-      const userResult = await this.getUserForPasswordChange(username);
+      const userResult = await getUserForPasswordChange(username);
 
       if (userResult.rows.length === 0) {
         return { success: false, error: 'Invalid credentials' };
@@ -192,7 +194,7 @@ class AuthService {
 
       // Hash and update new password
       const newHash = await bcrypt.hash(newPassword, this.saltRounds);
-      await this.updateUserPassword(user.id, newHash, newPassword);
+      await updateUserPassword(user.id, newHash, newPassword);
 
       logger.info(`Password changed for user ${username}`, { userId: user.id });
 
@@ -208,7 +210,7 @@ class AuthService {
    */
   async cleanupExpiredSessions() {
     try {
-      const result = await query('DELETE FROM app.user_sessions WHERE expires_at < NOW()');
+      const result = await deleteExpiredSessions();
 
       if (result.rowCount && result.rowCount > 0) {
         logger.info(`Cleaned up ${result.rowCount} expired sessions`);
@@ -216,117 +218,6 @@ class AuthService {
     } catch (error) {
       logger.error('Session cleanup error:', error);
     }
-  }
-
-  async getUserForLogin(username: string) {
-    try {
-      return await query(
-        `SELECT id, username, email, password_hash, role, is_active, force_password_change
-         FROM app.users
-         WHERE username = $1`,
-        [username]
-      );
-    } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err.code !== '42703') {
-        throw error;
-      }
-      return query(
-        `SELECT id, username, email, password_hash, role, is_active, false AS force_password_change
-         FROM app.users
-         WHERE username = $1`,
-        [username]
-      );
-    }
-  }
-
-  async getUserForPasswordChange(username: string) {
-    try {
-      return await query(
-        `SELECT id, username, password_hash, is_active, force_password_change
-         FROM app.users
-         WHERE username = $1`,
-        [username]
-      );
-    } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err.code !== '42703') {
-        throw error;
-      }
-      return query(
-        `SELECT id, username, password_hash, is_active, false AS force_password_change
-         FROM app.users
-         WHERE username = $1`,
-        [username]
-      );
-    }
-  }
-
-  async getSessionUser(tokenHash: string) {
-    try {
-      return await query(
-        `SELECT u.id, u.username, u.email, u.role, u.is_active, u.force_password_change, s.expires_at
-         FROM app.user_sessions s
-         JOIN app.users u ON s.user_id = u.id
-         WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
-        [tokenHash]
-      );
-    } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err.code !== '42703') {
-        throw error;
-      }
-      return query(
-        `SELECT u.id, u.username, u.email, u.role, u.is_active, false AS force_password_change, s.expires_at
-         FROM app.user_sessions s
-         JOIN app.users u ON s.user_id = u.id
-         WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
-        [tokenHash]
-      );
-    }
-  }
-
-  async updateUserPassword(
-    userId: number,
-    passwordHash: string,
-    plainTextPassword?: string
-  ): Promise<void> {
-    const runUpdate = async (sql: string) => {
-      try {
-        await query(sql, [passwordHash, userId]);
-        return true;
-      } catch (error: unknown) {
-        const err = error as { code?: string };
-        if (err.code === '42501' && plainTextPassword) {
-          await resetAppUserPassword(userId, plainTextPassword, false);
-          return true;
-        }
-
-        if (err.code === '42703') {
-          return false;
-        }
-
-        throw error;
-      }
-    };
-
-    const updatedWithForceFlag = await runUpdate(
-      'UPDATE app.users SET password_hash = $1, force_password_change = false WHERE id = $2'
-    );
-
-    if (updatedWithForceFlag) {
-      return;
-    }
-
-    const updatedWithoutForceFlag = await runUpdate(
-      'UPDATE app.users SET password_hash = $1 WHERE id = $2'
-    );
-
-    if (updatedWithoutForceFlag) {
-      return;
-    }
-
-    throw new Error('Password update failed');
   }
 }
 
