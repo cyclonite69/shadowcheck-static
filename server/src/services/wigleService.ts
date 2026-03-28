@@ -11,14 +11,14 @@ import {
   buildWigleV2NetworksQuery,
   buildWigleV3CountQuery,
   buildWigleV3NetworksQuery,
-} from './wigleQueries';
+} from '../repositories/wigleQueriesRepository';
 import {
   getWigleDetail as getStoredWigleDetail,
   getWigleV3Observations as getStoredWigleV3Observations,
   importWigleV3NetworkDetail as persistWigleV3NetworkDetail,
   importWigleV3Observation as persistWigleV3Observation,
   insertWigleV2SearchResult,
-} from './wiglePersistence';
+} from '../repositories/wiglePersistenceRepository';
 
 type QueryExecutor = {
   query: (text: string, params?: any[]) => Promise<any>;
