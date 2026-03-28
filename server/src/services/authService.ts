@@ -1,10 +1,15 @@
 // @ts-ignore
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { query } from '../config/database';
-import { createAppUser, resetAppUserPassword } from './adminUsersService';
+import { createAppUser } from './adminUsersService';
 import { getSessionUser, getUserForLogin, getUserForPasswordChange } from './authQueries';
-import secretsManager from './secretsManager';
+import {
+  createUserSession,
+  deleteExpiredSessions,
+  deleteUserSession,
+  updateLastLogin,
+  updateUserPassword,
+} from './authWrites';
 import logger from '../logging/logger';
 
 interface AuthUser {
@@ -55,15 +60,11 @@ class AuthService {
       const tokenHash = crypto.createHash('sha256').update(sessionToken).digest('hex');
       const expiresAt = new Date(Date.now() + this.sessionDuration);
 
-      await query(
-        `INSERT INTO app.user_sessions (user_id, token_hash, expires_at, user_agent, ip_address)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [user.id, tokenHash, expiresAt, userAgent, ipAddress]
-      );
+      await createUserSession(user.id, tokenHash, expiresAt, userAgent, ipAddress);
 
       // Keep login usable on older deployments that missed the narrow last_login grant.
       try {
-        await query('UPDATE app.users SET last_login = NOW() WHERE id = $1', [user.id]);
+        await updateLastLogin(user.id);
       } catch (lastLoginError) {
         logger.warn(`Failed to update last_login for user ${username}`, {
           userId: user.id,
@@ -141,7 +142,7 @@ class AuthService {
 
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-      await query('DELETE FROM app.user_sessions WHERE token_hash = $1', [tokenHash]);
+      await deleteUserSession(tokenHash);
 
       return { success: true };
     } catch (error) {
@@ -193,7 +194,7 @@ class AuthService {
 
       // Hash and update new password
       const newHash = await bcrypt.hash(newPassword, this.saltRounds);
-      await this.updateUserPassword(user.id, newHash, newPassword);
+      await updateUserPassword(user.id, newHash, newPassword);
 
       logger.info(`Password changed for user ${username}`, { userId: user.id });
 
@@ -209,7 +210,7 @@ class AuthService {
    */
   async cleanupExpiredSessions() {
     try {
-      const result = await query('DELETE FROM app.user_sessions WHERE expires_at < NOW()');
+      const result = await deleteExpiredSessions();
 
       if (result.rowCount && result.rowCount > 0) {
         logger.info(`Cleaned up ${result.rowCount} expired sessions`);
@@ -217,49 +218,6 @@ class AuthService {
     } catch (error) {
       logger.error('Session cleanup error:', error);
     }
-  }
-
-  async updateUserPassword(
-    userId: number,
-    passwordHash: string,
-    plainTextPassword?: string
-  ): Promise<void> {
-    const runUpdate = async (sql: string) => {
-      try {
-        await query(sql, [passwordHash, userId]);
-        return true;
-      } catch (error: unknown) {
-        const err = error as { code?: string };
-        if (err.code === '42501' && plainTextPassword) {
-          await resetAppUserPassword(userId, plainTextPassword, false);
-          return true;
-        }
-
-        if (err.code === '42703') {
-          return false;
-        }
-
-        throw error;
-      }
-    };
-
-    const updatedWithForceFlag = await runUpdate(
-      'UPDATE app.users SET password_hash = $1, force_password_change = false WHERE id = $2'
-    );
-
-    if (updatedWithForceFlag) {
-      return;
-    }
-
-    const updatedWithoutForceFlag = await runUpdate(
-      'UPDATE app.users SET password_hash = $1 WHERE id = $2'
-    );
-
-    if (updatedWithoutForceFlag) {
-      return;
-    }
-
-    throw new Error('Password update failed');
   }
 }
 
