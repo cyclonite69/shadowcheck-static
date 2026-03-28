@@ -691,6 +691,29 @@ const logger = winston.createLogger({
 });
 ```
 
+### Monitoring (Grafana Stack)
+
+ShadowCheck provides a complete monitoring stack via Grafana, accessible locally or in production.
+
+1.  **Deployment**:
+    Use `docker-compose.monitoring.yml` to launch the Grafana instance.
+
+    ```bash
+    docker compose -f docker-compose.monitoring.yml up -d
+    ```
+
+2.  **Environment Configuration**:
+    The monitoring stack requires the following variables (usually from AWS Secrets Manager):
+    - `GRAFANA_ADMIN_PASSWORD`: Admin login password.
+    - `GRAFANA_READER_PASSWORD`: Password for the provisioned read-only viewer role.
+    - `GF_SERVER_ROOT_URL`: The external URL where Grafana is accessible (e.g., `https://shadowcheck.io/grafana`).
+
+3.  **Dashboards**:
+    Grafana comes pre-provisioned with tactical and system dashboards located in `./grafana/dashboards/`.
+
+4.  **Database Integration**:
+    Grafana is configured to use the ShadowCheck PostgreSQL instance as its primary datasource (provisioned via `postgres.yml` in `deploy/monitoring/grafana/provisioning`).
+
 ### Health Monitoring
 
 **Create health endpoint:**

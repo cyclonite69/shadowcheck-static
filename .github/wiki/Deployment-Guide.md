@@ -426,12 +426,22 @@ graph TB
 
     E --> F[Tactical Overview]
     E --> G[Network Analytics]
+    E --> H[System Performance]
 
     C --> I[Log Insights]
 
     style E fill:#4299e1,stroke:#2b6cb0,color:#fff
     style F fill:#48bb78,stroke:#2f855a,color:#fff
 ```
+
+**Grafana Deployment:**
+
+1.  **Launch Instance**: Use `docker compose -f docker-compose.monitoring.yml up -d` to start the monitoring stack.
+2.  **Access**: Default port is `3002`.
+3.  **Dashboards**: Tactical and system dashboards are pre-provisioned in `/grafana/dashboards/`.
+4.  **Secrets**: Ensure `GRAFANA_ADMIN_PASSWORD` and `GRAFANA_READER_PASSWORD` are set in the environment.
+
+---
 
 ---
 

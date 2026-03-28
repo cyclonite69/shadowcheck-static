@@ -145,6 +145,24 @@ docker compose up -d
 frontend stack. Local Docker uses `DB_HOST=postgres` by default. No `.env` file
 is required unless you want to override ports, AWS settings, or other defaults.
 
+### Local Shell Helpers
+
+For frequent local development tasks, source the included helper aliases:
+
+```bash
+source ./scripts/local-dev-aliases.sh
+```
+
+Available helpers:
+
+- `scroot` - `cd` to the repository root.
+- `sclocal` - Wrapper for `docker compose up -d --build`.
+- `scapi` - Recreate the API container with standard AWS development defaults.
+- `scgrafana` - Start local Grafana with AWS-backed secrets and reader-role sync.
+- `scps` - Formatted `docker ps` view for ShadowCheck services.
+- `scdb` - Open `psql` as `shadowcheck_user` on the local database.
+- `scdba` - Open `psql` as `shadowcheck_admin` on the local database.
+
 ### Home Lab Deployment
 
 ```bash

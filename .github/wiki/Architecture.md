@@ -716,6 +716,7 @@ graph TB
 | PostgreSQL | 18+     | Database         |
 | PostGIS    | 3.5+    | Geospatial       |
 | Redis      | 7+      | Cache & sessions |
+| Grafana    | Latest  | Observability    |
 | Winston    | 3.x     | Logging          |
 | Jest       | 29.x    | Testing          |
 
@@ -781,6 +782,24 @@ graph TB
 
 - **Stateless API**: Session data in Redis allows multiple instances
 - **Load Balancer**: Distribute traffic across instances
+- **Database Read Replicas**: Separate read/write workloads
+
+### Vertical Scaling
+
+- **Connection Pooling**: Optimize database connections
+- **Redis Clustering**: Distribute cache across nodes
+- **CDN Integration**: Serve static assets from edge locations
+
+---
+
+_Last Updated: 2026-03-14_
+Integration\*\*: Serve static assets from edge locations
+
+---
+
+_Last Updated: 2026-03-14_
+ces
+
 - **Database Read Replicas**: Separate read/write workloads
 
 ### Vertical Scaling

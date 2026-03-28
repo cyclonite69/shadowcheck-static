@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Grafana & Monitoring Stack**: Full integration of a pre-configured monitoring stack (`docker-compose.monitoring.yml`)
+  - Automated user/role and password synchronization from AWS Secrets Manager
+  - Tactical forensics and system observability dashboards (PostgreSQL, API performance)
+  - Support for embedded Grafana views in the Admin UI
+- **Local Shell Helpers**: Introduced `scripts/local-dev-aliases.sh` with helper functions (`sclocal`, `scapi`, `scgrafana`, `scdb`, etc.) to streamline local Docker development
+- **Geocoding Job Progress**: Incremental progress tracking for large geocoding jobs with persistent daemon support
+- **Documentation Refresh**: Comprehensive updates to `README.md`, `ARCHITECTURE.md`, `DEVELOPMENT.md`, `DEPLOYMENT.md`, and `API_REFERENCE.md` reflecting the March 2026 platform state
 - **Deployment Separation**: Organized AWS and home lab deployments into `deploy/` directory
   - AWS production configs in `deploy/aws/` with launch scripts and documentation
   - Home lab deployment guide in `deploy/homelab/` with automated setup script

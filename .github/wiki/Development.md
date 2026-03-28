@@ -68,6 +68,23 @@ npm run dev:frontend
 
 ## Development Workflow
 
+### Local Shell Helpers
+
+To streamline local development, source the included helper aliases:
+
+```bash
+source ./scripts/local-dev-aliases.sh
+```
+
+**Common Tasks:**
+
+- `scroot` - Repository root navigation.
+- `sclocal` - Generic `docker compose` wrapper.
+- `scapi` - Reset/rebuild API with AWS development defaults.
+- `scgrafana` - Launch local monitoring stack.
+- `scdb` - Connect to `shadowcheck_user` database.
+- `scdba` - Connect to `shadowcheck_admin` database.
+
 ### Available Scripts
 
 ```bash

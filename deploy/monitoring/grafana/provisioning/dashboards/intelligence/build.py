@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Run all three dashboard generators and validate output."""
+"""Run all intelligence dashboard generators and validate output."""
 import subprocess, sys, json, os
 
 here = os.path.dirname(os.path.abspath(__file__))
-generators = ["gen_national.py", "gen_michigan.py", "gen_oui_fleet.py"]
-expected = ["shadowcheck_national.json", "shadowcheck_michigan.json", "shadowcheck_oui_fleet.json"]
+generators = ["gen_national.py", "gen_michigan.py", "gen_oui_fleet.py", "gen_critical_infra.py"]
+expected = [
+    "shadowcheck_national.json",
+    "shadowcheck_michigan.json",
+    "shadowcheck_oui_fleet.json",
+    "shadowcheck_critical_infra.json",
+]
 
 for gen in generators:
     result = subprocess.run([sys.executable, os.path.join(here, gen)], capture_output=True, text=True)
