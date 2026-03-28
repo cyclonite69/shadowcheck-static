@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { query } from '../config/database';
 import { createAppUser, resetAppUserPassword } from './adminUsersService';
+import { getSessionUser, getUserForLogin, getUserForPasswordChange } from './authQueries';
 import secretsManager from './secretsManager';
 import logger from '../logging/logger';
 
@@ -31,7 +32,7 @@ class AuthService {
   async login(username: string, password: string, userAgent = '', ipAddress = '') {
     try {
       // Find user
-      const userResult = await this.getUserForLogin(username);
+      const userResult = await getUserForLogin(username);
 
       if (userResult.rows.length === 0) {
         return { success: false, error: 'Invalid credentials' };
@@ -101,7 +102,7 @@ class AuthService {
 
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-      const result = await this.getSessionUser(tokenHash);
+      const result = await getSessionUser(tokenHash);
 
       if (result.rows.length === 0) {
         return { valid: false, error: 'Invalid or expired session' };
@@ -172,7 +173,7 @@ class AuthService {
    */
   async changePassword(username: string, currentPassword: string, newPassword: string) {
     try {
-      const userResult = await this.getUserForPasswordChange(username);
+      const userResult = await getUserForPasswordChange(username);
 
       if (userResult.rows.length === 0) {
         return { success: false, error: 'Invalid credentials' };
@@ -215,74 +216,6 @@ class AuthService {
       }
     } catch (error) {
       logger.error('Session cleanup error:', error);
-    }
-  }
-
-  async getUserForLogin(username: string) {
-    try {
-      return await query(
-        `SELECT id, username, email, password_hash, role, is_active, force_password_change
-         FROM app.users
-         WHERE username = $1`,
-        [username]
-      );
-    } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err.code !== '42703') {
-        throw error;
-      }
-      return query(
-        `SELECT id, username, email, password_hash, role, is_active, false AS force_password_change
-         FROM app.users
-         WHERE username = $1`,
-        [username]
-      );
-    }
-  }
-
-  async getUserForPasswordChange(username: string) {
-    try {
-      return await query(
-        `SELECT id, username, password_hash, is_active, force_password_change
-         FROM app.users
-         WHERE username = $1`,
-        [username]
-      );
-    } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err.code !== '42703') {
-        throw error;
-      }
-      return query(
-        `SELECT id, username, password_hash, is_active, false AS force_password_change
-         FROM app.users
-         WHERE username = $1`,
-        [username]
-      );
-    }
-  }
-
-  async getSessionUser(tokenHash: string) {
-    try {
-      return await query(
-        `SELECT u.id, u.username, u.email, u.role, u.is_active, u.force_password_change, s.expires_at
-         FROM app.user_sessions s
-         JOIN app.users u ON s.user_id = u.id
-         WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
-        [tokenHash]
-      );
-    } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err.code !== '42703') {
-        throw error;
-      }
-      return query(
-        `SELECT u.id, u.username, u.email, u.role, u.is_active, false AS force_password_change, s.expires_at
-         FROM app.user_sessions s
-         JOIN app.users u ON s.user_id = u.id
-         WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
-        [tokenHash]
-      );
     }
   }
 
