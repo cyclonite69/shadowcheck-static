@@ -1,0 +1,623 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_SHADOWCHECK_DB",
+      "label": "shadowcheck_db",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "uid": "shadowcheck-critical-infra",
+  "title": "ShadowCheck \u2014 Critical Infrastructure Fleet Detection",
+  "description": "Airlink and Sierra Wireless fleet detection near government/institutional facilities. Focused on state density, proximity, persistence, and new-near-facility sightings.",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {},
+  "refresh": "",
+  "liveNow": false,
+  "tags": ["shadowcheck", "intelligence"],
+  "templating": {
+    "list": [
+      {
+        "name": "ssid_pattern",
+        "type": "textbox",
+        "label": "SSID contains",
+        "current": {
+          "selected": true,
+          "text": "FBI",
+          "value": "FBI"
+        },
+        "query": "FBI",
+        "hide": 0
+      },
+      {
+        "name": "state",
+        "type": "query",
+        "label": "State",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "shadowcheck-postgres"
+        },
+        "query": "SELECT DISTINCT region FROM app.wigle_v2_networks_search WHERE ssid ILIKE '%${ssid_pattern}%' AND country = 'US' AND region IS NOT NULL ORDER BY region",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "refresh": 2,
+        "hide": 0
+      },
+      {
+        "name": "confidence_threshold",
+        "type": "custom",
+        "label": "Min confidence score",
+        "query": "40,50,60,70,80",
+        "current": {
+          "selected": true,
+          "text": "60",
+          "value": "60"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "40",
+            "value": "40"
+          },
+          {
+            "selected": false,
+            "text": "50",
+            "value": "50"
+          },
+          {
+            "selected": true,
+            "text": "60",
+            "value": "60"
+          },
+          {
+            "selected": false,
+            "text": "70",
+            "value": "70"
+          },
+          {
+            "selected": false,
+            "text": "80",
+            "value": "80"
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "name": "span_days_min",
+        "type": "custom",
+        "label": "Min span (days)",
+        "query": "90,180,365,730,1095",
+        "current": {
+          "selected": true,
+          "text": "365",
+          "value": "365"
+        },
+        "options": [
+          {
+            "selected": false,
+            "text": "90",
+            "value": "90"
+          },
+          {
+            "selected": false,
+            "text": "180",
+            "value": "180"
+          },
+          {
+            "selected": true,
+            "text": "365",
+            "value": "365"
+          },
+          {
+            "selected": false,
+            "text": "730",
+            "value": "730"
+          },
+          {
+            "selected": false,
+            "text": "1095",
+            "value": "1095"
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Tracked fleet networks",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT COUNT(*)::bigint AS value\nFROM network_proximity;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#E85D24"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "States covered",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT COUNT(DISTINCT state)::bigint AS value\nFROM network_proximity;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#378ADD"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Within 5 km of facility",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT COUNT(*) FILTER (WHERE dist_m <= 5000)::bigint AS value\nFROM network_proximity;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#1D9E75"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "New near-facility (30d)",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT COUNT(*) FILTER (\n  WHERE first_seen >= NOW() - INTERVAL '30 days'\n    AND dist_m <= 5000\n)::bigint AS value\nFROM network_proximity;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#D4537E"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "text",
+      "title": "Why this matters",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 8
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Critical infrastructure fleet logic\n\n**Intel value:** Airlink and Sierra Wireless hardware often appears as cellular gateways, remote-access modems, and industrial/mobile infrastructure. A dense cluster near government facilities, courthouses, airports, or similar institutional anchors is more meaningful than the same OUI family scattered across consumer neighborhoods.\n\n**How this dashboard scores value**\n- State density isolates fleet concentration rather than individual sightings.\n- Proximity to a government/institutional anchor highlights likely facility-support or contractor activity.\n- First/last seen and span days distinguish one-off drive-bys from persistent infrastructure.\n- New-near-facility detections are the closest thing to an operational alert panel in dashboard form.\n\n**Current dataset note:** this database currently shows Sierra Wireless coverage across multiple states. No Airlink-labeled OUI rows are present in `app.radio_manufacturers` yet, so Airlink panels are expected to remain zero until the OUI reference data expands or observations appear."
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "State density by fleet signal",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT\n  state AS \"State\",\n  COUNT(*) FILTER (WHERE fleet_signal = 'Airlink') AS \"Airlink\",\n  COUNT(*) FILTER (WHERE fleet_signal = 'Sierra Wireless') AS \"Sierra Wireless\",\n  COUNT(*) AS \"Total fleets\",\n  ROUND(AVG(dist_m)) AS \"Avg nearest facility (m)\",\n  COUNT(*) FILTER (WHERE dist_m <= 1000) AS \"Within 1 km\",\n  COUNT(*) FILTER (WHERE dist_m <= 5000) AS \"Within 5 km\"\nFROM network_proximity\nGROUP BY state\nORDER BY \"Total fleets\" DESC, \"Within 1 km\" DESC, state;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "stacking": "normal",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "geomap",
+      "title": "Geographic fleet density heatmap",
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT\n  ROUND((trilat)::numeric, 2)::float8 AS trilat,\n  ROUND((trilong)::numeric, 2)::float8 AS trilong,\n  fleet_signal,\n  CASE WHEN fleet_signal = 'Airlink' THEN 1 ELSE 2 END AS hw_class_num,\n  COUNT(*) AS network_count,\n  COUNT(*) FILTER (WHERE dist_m <= 5000) AS critical_zone_hits,\n  MIN(dist_m) AS min_dist_m,\n  STRING_AGG(DISTINCT state, ', ' ORDER BY state) AS states\nFROM network_proximity\nGROUP BY 1, 2, 3, 4\nORDER BY critical_zone_hits DESC, network_count DESC;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "coords",
+          "lat": 39.5,
+          "lon": -98.35,
+          "zoom": 4
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Fleet density",
+            "tooltip": true,
+            "location": {
+              "mode": "coords",
+              "latitude": "trilat",
+              "longitude": "trilong"
+            },
+            "config": {
+              "size": {
+                "field": "network_count",
+                "min": 5,
+                "max": 18
+              },
+              "color": {
+                "field": "hw_class_num"
+              }
+            }
+          }
+        ],
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": true,
+          "showAttribution": true
+        },
+        "tooltip": {
+          "mode": "details"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Fleet appearance timeline",
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT\n  DATE_TRUNC('year', first_seen) AS \"time\",\n  COUNT(*) FILTER (WHERE fleet_signal = 'Airlink') AS \"Airlink\",\n  COUNT(*) FILTER (WHERE fleet_signal = 'Sierra Wireless') AS \"Sierra Wireless\"\nFROM network_proximity\nGROUP BY 1\nORDER BY 1;",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "New fleets near institutional anchors (alert watchlist)",
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT\n  fleet_signal AS \"Fleet Signal\",\n  manufacturer AS \"Manufacturer\",\n  state AS \"State\",\n  city AS \"City\",\n  ssid AS \"SSID\",\n  dist_m AS \"Nearest facility (m)\",\n  nearest_facility AS \"Nearest facility\",\n  first_seen AS \"First seen\",\n  last_seen AS \"Last seen\"\nFROM network_proximity\nWHERE last_seen >= NOW() - INTERVAL '365 days'\n  AND dist_m <= 5000\nORDER BY last_seen DESC, dist_m ASC\nLIMIT 50;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Critical infrastructure fleet table",
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "shadowcheck-postgres"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "shadowcheck-postgres"
+          },
+          "rawSql": "WITH infra AS (\n  /* Intel value: these are the government/institutional anchor points used\n     to score likely contractor or facility-support fleets. */\n  SELECT name, state, location, 'agency_office'::text AS facility_type\n  FROM app.agency_offices\n  WHERE location IS NOT NULL\n\n  UNION ALL\n\n  SELECT name, state, location, 'federal_courthouse'::text AS facility_type\n  FROM app.federal_courthouses\n  WHERE active = TRUE\n    AND location IS NOT NULL\n),\nfleet_base AS (\n  /* Intel value: Airlink and Sierra Wireless are common cellular gateway /\n     remote-access vendors in government, utility, and mobile-infrastructure fleets. */\n  SELECT\n    v2.bssid,\n    NULLIF(BTRIM(v2.ssid), '') AS ssid,\n    v2.region AS state,\n    v2.city,\n    UPPER(COALESCE(v2.encryption, 'UNKNOWN')) AS encryption,\n    v2.firsttime,\n    v2.lasttime,\n    v2.trilat,\n    v2.trilong,\n    rm.manufacturer,\n    CASE\n      WHEN rm.manufacturer ILIKE '%Airlink%' THEN 'Airlink'\n      WHEN rm.manufacturer ILIKE '%Sierra Wireless%' THEN 'Sierra Wireless'\n    END AS fleet_signal\n  FROM app.wigle_v2_networks_search v2\n  JOIN app.radio_manufacturers rm\n    ON rm.prefix = LEFT(UPPER(REPLACE(v2.bssid, ':', '')), 6)\n   AND rm.bit_length = 24\n  WHERE v2.country = 'US'\n    AND v2.trilat IS NOT NULL\n    AND v2.trilong IS NOT NULL\n    AND (\n      rm.manufacturer ILIKE '%Airlink%'\n      OR rm.manufacturer ILIKE '%Sierra Wireless%'\n    )\n    \n  AND (\n    '${state:csv}' = '$__all'\n    OR v2.region = ANY(string_to_array('${state:csv}', ','))\n  )\n\n),\nnetwork_rollup AS (\n  /* Entity-level aggregation, not raw rows: one row per observed network fleet device. */\n  SELECT\n    bssid,\n    COALESCE(MIN(ssid), '[hidden]') AS ssid,\n    state,\n    MIN(city) AS city,\n    MIN(encryption) AS encryption,\n    MIN(firsttime) AS first_seen,\n    MAX(lasttime) AS last_seen,\n    MIN(manufacturer) AS manufacturer,\n    MIN(fleet_signal) AS fleet_signal,\n    AVG(trilat::numeric)::float8 AS trilat,\n    AVG(trilong::numeric)::float8 AS trilong,\n    ROUND(EXTRACT(EPOCH FROM (MAX(lasttime) - MIN(firsttime))) / 86400.0, 1) AS span_days,\n    COUNT(*) AS observation_rows\n  FROM fleet_base\n  GROUP BY bssid, state\n),\nnetwork_proximity AS (\n  /* Intel value: nearest government/institutional facility distance turns a\n     fleet observation into a more actionable infrastructure-support signal. */\n  SELECT\n    n.*,\n    i.name AS nearest_facility,\n    i.state AS facility_state,\n    i.facility_type,\n    ROUND(\n      ST_Distance(\n        ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography,\n        i.location\n      )::numeric\n    ) AS dist_m\n  FROM network_rollup n\n  LEFT JOIN LATERAL (\n    SELECT name, state, facility_type, location\n    FROM infra\n    ORDER BY ST_SetSRID(ST_MakePoint(n.trilong, n.trilat), 4326)::geography <-> location\n    LIMIT 1\n  ) i ON TRUE\n)\nSELECT\n  manufacturer AS \"Manufacturer\",\n  fleet_signal AS \"Fleet Signal\",\n  state AS \"State\",\n  city AS \"City\",\n  ssid AS \"SSID\",\n  encryption AS \"Encryption\",\n  observation_rows AS \"Obs\",\n  span_days AS \"Span (d)\",\n  dist_m AS \"Nearest facility (m)\",\n  nearest_facility AS \"Nearest facility\",\n  first_seen AS \"First seen\",\n  last_seen AS \"Last seen\"\nFROM network_proximity\nORDER BY dist_m NULLS LAST, span_days DESC, last_seen DESC\nLIMIT 100;",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": []
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": {
+    "list": []
+  }
+}

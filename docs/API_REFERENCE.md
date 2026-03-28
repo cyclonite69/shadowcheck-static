@@ -903,11 +903,66 @@ Toggle ML blending.
 
 ### GET /api/admin/geocoding/stats 🔒
 
-Geocoding statistics.
+Retrieve geocoding cache statistics and coverage.
+
+**Parameters:**
+
+- `precision` (int, default: 5) - S2/Geohash precision level for clustering.
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "stats": {
+    "total": 125430,
+    "cached": 85420,
+    "coverage": 68.1,
+    "pending": 40010,
+    "lastUpdated": "2026-03-27T14:30:00.000Z"
+  }
+}
+```
 
 ### POST /api/admin/geocoding/run 🔒
 
-Run geocoding.
+Start a background job to update the geocoding cache.
+
+**Request:**
+
+```json
+{
+  "provider": "mapbox",
+  "mode": "address-only",
+  "limit": 1000,
+  "precision": 5,
+  "perMinute": 200,
+  "permanent": true
+}
+```
+
+**Options:**
+
+- `provider`: `mapbox`, `nominatim`, `overpass`, `opencage`, `geocodio`, `locationiq`.
+- `mode`: `address-only`, `poi-only`, `full`.
+- `limit`: Maximum records to process.
+- `perMinute`: Rate limit for the provider.
+
+### GET /api/admin/geocoding/daemon 🔒
+
+Get status of the persistent geocoding daemon.
+
+### POST /api/admin/geocoding/daemon 🔒
+
+Start the geocoding daemon for continuous background enrichment.
+
+### DELETE /api/admin/geocoding/daemon 🔒
+
+Stop the geocoding daemon.
+
+### POST /api/admin/geocoding/test 🔒
+
+Test a geocoding provider with a sample coordinate.
 
 ---
 

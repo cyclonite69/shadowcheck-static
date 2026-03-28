@@ -199,6 +199,24 @@ npm test
 
 ## Development Workflow
 
+### Local Shell Helpers
+
+For frequent local development tasks, source the included helper aliases:
+
+```bash
+source ./scripts/local-dev-aliases.sh
+```
+
+Available helpers:
+
+- `scroot` - `cd` to the repository root.
+- `sclocal` - Wrapper for `docker compose up -d --build`.
+- `scapi` - Recreate the API container with standard AWS development defaults (`AWS_PROFILE=shadowcheck-sso`).
+- `scgrafana` - Start local Grafana with AWS-backed secrets and reader-role sync.
+- `scps` - Formatted `docker ps` view for ShadowCheck services.
+- `scdb` - Open `psql` as `shadowcheck_user` on the local database.
+- `scdba` - Open `psql` as `shadowcheck_admin` on the local database.
+
 ### Start Development Servers
 
 ```bash
@@ -215,6 +233,27 @@ npm run dev
 # Terminal 2:
 npm run dev:frontend
 ```
+
+### Monitoring (Grafana)
+
+ShadowCheck includes a pre-configured Grafana monitoring stack for tactical views and system metrics.
+
+1.  **Start Monitoring Stack**:
+
+    ```bash
+    scgrafana
+    ```
+
+    This uses `docker-compose.monitoring.yml` and pulls credentials from AWS Secrets Manager (`shadowcheck/config`).
+
+2.  **Access Grafana**:
+    - URL: `http://localhost:3002` (local)
+    - Default Home: `shadowcheck_overview.json`
+
+3.  **Dashboards**:
+    - **ShadowCheck Tactical**: Detailed network and threat monitoring.
+    - **PostgreSQL Overview**: System metrics.
+    - **API Performance**: Request/latency tracking.
 
 ### Build and Preview
 

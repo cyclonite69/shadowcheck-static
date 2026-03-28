@@ -668,11 +668,17 @@ res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 ### Phase 5: Observability (Completed)
 
 - [x] Structured logging (JSON format)
-- [x] Grafana dashboards
+- [x] Grafana dashboards (Tactical & System)
+- [x] Automated Grafana user/role sync via secrets
+- [x] Embedded Grafana tactical views in Admin UI
+- [x] Database performance tracking (pg_stat_statements)
 - [ ] Correlation IDs for request tracing
 - [ ] Prometheus metrics export
 - [ ] OpenTelemetry integration
 - [ ] Error tracking (Sentry)
+
+**Grafana Integration Detail:**
+The monitoring stack runs as a separate container (`shadowcheck_grafana`) using `docker-compose.monitoring.yml`. It supports automated password and role synchronization from AWS Secrets Manager, allowing secure, out-of-the-box observability for both system metrics (PostgreSQL, Redis) and tactical forensics data.
 
 ## Technology Stack
 

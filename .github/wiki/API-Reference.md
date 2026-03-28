@@ -520,12 +520,32 @@ graph TB
     A --> G["GET pgadmin/status"]
     A --> H["POST pgadmin/start"]
     A --> I["POST pgadmin/stop"]
+    A --> J["Geocoding Admin"]
 
     style B fill:#ed8936,stroke:#c05621,color:#fff
     style D fill:#4299e1,stroke:#2b6cb0,color:#fff
 ```
 
 All admin endpoints require authentication and admin role.
+
+#### Geocoding Admin
+
+**GET /api/admin/geocoding/stats 🔒**
+Retrieve geocoding cache statistics and coverage.
+
+**POST /api/admin/geocoding/run 🔒**
+Start a background job to update the geocoding cache.
+
+**GET /api/admin/geocoding/daemon 🔒**
+Get status of the persistent geocoding daemon.
+
+**POST /api/admin/geocoding/daemon 🔒**
+Start the geocoding daemon.
+
+**DELETE /api/admin/geocoding/daemon 🔒**
+Stop the geocoding daemon.
+
+---
 
 ---
 
