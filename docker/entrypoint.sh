@@ -80,5 +80,27 @@ if [ -S "$SOCKET" ]; then
   fi
 fi
 
+run_migrations() {
+  if [ ! -f /app/sql/run-migrations.sh ]; then
+    return 0
+  fi
+  if [ -z "${DB_HOST:-}" ] || [ -z "${DB_NAME:-}" ]; then
+    return 0
+  fi
+  echo "[entrypoint] Running database migrations..."
+  MIGRATIONS_DIR=/app/sql/migrations \
+  MIGRATION_DB_USER="${DB_ADMIN_USER:-shadowcheck_admin}" \
+  DB_NAME="${DB_NAME:-shadowcheck_db}" \
+  PGPASSWORD="${DB_ADMIN_PASSWORD:-${DB_PASSWORD:-}}" \
+  PGHOST="${DB_HOST:-postgres}" \
+  PGPORT="${DB_PORT:-5432}" \
+    sh /app/sql/run-migrations.sh || {
+      echo "[entrypoint] Migration failed — aborting startup"
+      exit 1
+    }
+}
+
+run_migrations
+
 # Use su-exec without setting supplementary groups
 exec dumb-init -- su-exec nodejs "$@"
