@@ -10,6 +10,7 @@ export const buildObservationTooltipProps = ({
   timeSincePriorMs,
   number,
   color,
+  coChannelNeighbors = 0,
 }: {
   obs: Observation;
   network: NetworkRow | undefined;
@@ -19,6 +20,7 @@ export const buildObservationTooltipProps = ({
   timeSincePriorMs: number | null;
   number: number;
   color: string;
+  coChannelNeighbors?: number;
 }) => {
   const frequency = obs.frequency ?? network?.frequency ?? null;
   const channel = frequencyToChannel(frequency) ?? network?.channel ?? null;
@@ -55,5 +57,6 @@ export const buildObservationTooltipProps = ({
     type: network?.type || null,
     number,
     color,
+    co_channel_neighbors: coChannelNeighbors,
   };
 };

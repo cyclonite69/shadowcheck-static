@@ -3,7 +3,7 @@ import type { MutableRefObject } from 'react';
 import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../types/network';
-import { macColor } from '../../utils/mapHelpers';
+import { macColor, frequencyToChannel } from '../../utils/mapHelpers';
 import { buildObservationTooltipProps } from '../../utils/geospatial/observationTooltipProps';
 import type { WigleObservation, WigleObservationsState } from './useNetworkContextMenu';
 import { renderWigleObservationPopupCard } from '../../utils/geospatial/renderMapPopupCards';
@@ -70,6 +70,28 @@ export const useObservationLayers = ({
     const bssidColors: Record<string, string> = {};
     activeObservationSets.forEach((set) => {
       bssidColors[set.bssid] = macColor(set.bssid);
+    });
+
+    // Build per-BSSID co-channel neighbor count.
+    // For each network, count how many OTHER loaded networks share the same channel.
+    // Used by the hover signal-radius circle to model congestion-driven range reduction.
+    const bssidChannel: Map<string, number | null> = new Map();
+    activeObservationSets.forEach((set) => {
+      const freq = set.observations[0]?.frequency ?? null;
+      bssidChannel.set(set.bssid, frequencyToChannel(freq));
+    });
+    const channelNeighborCount: Map<string, number> = new Map();
+    activeObservationSets.forEach((set) => {
+      const ch = bssidChannel.get(set.bssid);
+      if (ch === null || ch === undefined) {
+        channelNeighborCount.set(set.bssid, 0);
+        return;
+      }
+      let count = 0;
+      bssidChannel.forEach((otherCh, otherBssid) => {
+        if (otherBssid !== set.bssid && otherCh === ch) count++;
+      });
+      channelNeighborCount.set(set.bssid, count);
     });
 
     // Create numbered point features for each observation (numbered per network)
@@ -150,6 +172,7 @@ export const useObservationLayers = ({
             timeSincePriorMs,
             number: index + 1,
             color: bssidColors[obs.bssid],
+            coChannelNeighbors: channelNeighborCount.get(obs.bssid) ?? 0,
           }),
         });
       });
