@@ -234,33 +234,59 @@ export const useGeospatialMap = ({
             },
           });
 
-          // Insert hover circle layer BEFORE observation-lines so it appears below the points
-          map.addLayer(
-            {
+          const isStandardStyle = mapStyle.startsWith('mapbox://styles/mapbox/standard');
+
+          if (isStandardStyle) {
+            map.addLayer({
               id: 'hover-circle-fill',
               type: 'fill',
               source: 'hover-circle',
+              slot: 'middle',
               paint: {
                 'fill-color': ['get', 'color'],
-                'fill-opacity': 0.18,
+                'fill-opacity': 0.25,
               },
-            },
-            'observation-lines'
-          );
+            } as any);
 
-          map.addLayer(
-            {
+            map.addLayer({
               id: 'hover-circle-outline',
               type: 'line',
               source: 'hover-circle',
+              slot: 'middle',
               paint: {
                 'line-color': ['get', 'strokeColor'],
                 'line-width': 2,
-                'line-opacity': 0.85,
+                'line-opacity': 0.9,
               },
-            },
-            'observation-lines'
-          );
+            } as any);
+          } else {
+            map.addLayer(
+              {
+                id: 'hover-circle-fill',
+                type: 'fill',
+                source: 'hover-circle',
+                paint: {
+                  'fill-color': ['get', 'color'],
+                  'fill-opacity': 0.25,
+                },
+              },
+              'observation-lines'
+            );
+
+            map.addLayer(
+              {
+                id: 'hover-circle-outline',
+                type: 'line',
+                source: 'hover-circle',
+                paint: {
+                  'line-color': ['get', 'strokeColor'],
+                  'line-width': 2,
+                  'line-opacity': 0.9,
+                },
+              },
+              'observation-lines'
+            );
+          }
 
           // Show signal circle and lightweight tooltip on hover.
           map.on('mouseenter', 'observation-points', (e: MapLayerMouseEvent) => {
