@@ -240,6 +240,7 @@ export const useGeospatialMap = ({
               id: 'hover-circle-fill',
               type: 'fill',
               source: 'hover-circle',
+              filter: ['==', ['geometry-type'], 'Polygon'],
               slot: 'middle',
               paint: {
                 'fill-color': ['get', 'color'],
@@ -251,11 +252,32 @@ export const useGeospatialMap = ({
               id: 'hover-circle-outline',
               type: 'line',
               source: 'hover-circle',
+              filter: ['==', ['geometry-type'], 'Polygon'],
               slot: 'middle',
               paint: {
                 'line-color': ['get', 'strokeColor'],
                 'line-width': 2,
                 'line-opacity': 0.9,
+              },
+            } as any);
+
+            map.addLayer({
+              id: 'hover-circle-label',
+              type: 'symbol',
+              source: 'hover-circle',
+              filter: ['==', ['geometry-type'], 'Point'],
+              slot: 'top',
+              layout: {
+                'text-field': ['get', 'label'],
+                'text-size': 13,
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'text-allow-overlap': true,
+                'text-ignore-placement': true,
+              },
+              paint: {
+                'text-color': ['get', 'color'],
+                'text-halo-color': 'rgba(0,0,0,0.75)',
+                'text-halo-width': 1.5,
               },
             } as any);
           } else {
@@ -264,6 +286,7 @@ export const useGeospatialMap = ({
                 id: 'hover-circle-fill',
                 type: 'fill',
                 source: 'hover-circle',
+                filter: ['==', ['geometry-type'], 'Polygon'],
                 paint: {
                   'fill-color': ['get', 'color'],
                   'fill-opacity': 0.25,
@@ -277,6 +300,7 @@ export const useGeospatialMap = ({
                 id: 'hover-circle-outline',
                 type: 'line',
                 source: 'hover-circle',
+                filter: ['==', ['geometry-type'], 'Polygon'],
                 paint: {
                   'line-color': ['get', 'strokeColor'],
                   'line-width': 2,
@@ -285,6 +309,25 @@ export const useGeospatialMap = ({
               },
               'observation-lines'
             );
+
+            map.addLayer({
+              id: 'hover-circle-label',
+              type: 'symbol',
+              source: 'hover-circle',
+              filter: ['==', ['geometry-type'], 'Point'],
+              layout: {
+                'text-field': ['get', 'label'],
+                'text-size': 13,
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'text-allow-overlap': true,
+                'text-ignore-placement': true,
+              },
+              paint: {
+                'text-color': ['get', 'color'],
+                'text-halo-color': 'rgba(0,0,0,0.75)',
+                'text-halo-width': 1.5,
+              },
+            });
           }
 
           // Hover: draw signal-range circle only (tooltip is on click)
@@ -316,6 +359,14 @@ export const useGeospatialMap = ({
               coChannelNeighbors
             );
             const bssidColor = macColor(String(props.bssid ?? ''));
+            const center: [number, number] = [
+              (feature.geometry as any).coordinates[0],
+              (feature.geometry as any).coordinates[1],
+            ];
+            const radiusLabel =
+              signalRadius >= 1000
+                ? `~${(signalRadius / 1000).toFixed(1)} km`
+                : `~${Math.round(signalRadius)} m`;
 
             const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
             if (hoverCircleSource) {
@@ -323,14 +374,13 @@ export const useGeospatialMap = ({
                 type: 'FeatureCollection',
                 features: [
                   {
-                    ...createCirclePolygon(
-                      [
-                        (feature.geometry as any).coordinates[0],
-                        (feature.geometry as any).coordinates[1],
-                      ],
-                      signalRadius
-                    ),
+                    ...createCirclePolygon(center, signalRadius),
                     properties: { color: bssidColor, strokeColor: bssidColor },
+                  },
+                  {
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: center },
+                    properties: { label: radiusLabel, color: bssidColor },
                   },
                 ],
               });
