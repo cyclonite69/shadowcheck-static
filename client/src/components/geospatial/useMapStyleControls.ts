@@ -233,33 +233,59 @@ export const useMapStyleControls = ({
         },
       });
 
-      // Insert hover circle layer BEFORE observation-lines so it appears below the points
-      mapRef.current.addLayer(
-        {
+      const isStandardStyle = styleUrl.startsWith('mapbox://styles/mapbox/standard');
+
+      if (isStandardStyle) {
+        mapRef.current.addLayer({
           id: 'hover-circle-fill',
           type: 'fill',
           source: 'hover-circle',
+          slot: 'middle',
           paint: {
             'fill-color': ['get', 'color'],
-            'fill-opacity': 0.18,
+            'fill-opacity': 0.25,
           },
-        },
-        'observation-lines'
-      );
+        } as any);
 
-      mapRef.current.addLayer(
-        {
+        mapRef.current.addLayer({
           id: 'hover-circle-outline',
           type: 'line',
           source: 'hover-circle',
+          slot: 'middle',
           paint: {
             'line-color': ['get', 'strokeColor'],
             'line-width': 2,
-            'line-opacity': 0.85,
+            'line-opacity': 0.9,
           },
-        },
-        'observation-lines'
-      );
+        } as any);
+      } else {
+        mapRef.current.addLayer(
+          {
+            id: 'hover-circle-fill',
+            type: 'fill',
+            source: 'hover-circle',
+            paint: {
+              'fill-color': ['get', 'color'],
+              'fill-opacity': 0.25,
+            },
+          },
+          'observation-lines'
+        );
+
+        mapRef.current.addLayer(
+          {
+            id: 'hover-circle-outline',
+            type: 'line',
+            source: 'hover-circle',
+            paint: {
+              'line-color': ['get', 'strokeColor'],
+              'line-width': 2,
+              'line-opacity': 0.9,
+            },
+          },
+          'observation-lines'
+        );
+      }
 
       // Re-add home location sources and layers
       mapRef.current.addSource('home-location-point', {
