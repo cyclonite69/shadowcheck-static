@@ -240,6 +240,7 @@ export const useMapStyleControls = ({
           id: 'hover-circle-fill',
           type: 'fill',
           source: 'hover-circle',
+          filter: ['==', ['geometry-type'], 'Polygon'],
           slot: 'middle',
           paint: {
             'fill-color': ['get', 'color'],
@@ -251,11 +252,32 @@ export const useMapStyleControls = ({
           id: 'hover-circle-outline',
           type: 'line',
           source: 'hover-circle',
+          filter: ['==', ['geometry-type'], 'Polygon'],
           slot: 'middle',
           paint: {
             'line-color': ['get', 'strokeColor'],
             'line-width': 2,
             'line-opacity': 0.9,
+          },
+        } as any);
+
+        mapRef.current.addLayer({
+          id: 'hover-circle-label',
+          type: 'symbol',
+          source: 'hover-circle',
+          filter: ['==', ['geometry-type'], 'Point'],
+          slot: 'top',
+          layout: {
+            'text-field': ['get', 'label'],
+            'text-size': 13,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          },
+          paint: {
+            'text-color': ['get', 'color'],
+            'text-halo-color': 'rgba(0,0,0,0.75)',
+            'text-halo-width': 1.5,
           },
         } as any);
       } else {
@@ -264,6 +286,7 @@ export const useMapStyleControls = ({
             id: 'hover-circle-fill',
             type: 'fill',
             source: 'hover-circle',
+            filter: ['==', ['geometry-type'], 'Polygon'],
             paint: {
               'fill-color': ['get', 'color'],
               'fill-opacity': 0.25,
@@ -277,6 +300,7 @@ export const useMapStyleControls = ({
             id: 'hover-circle-outline',
             type: 'line',
             source: 'hover-circle',
+            filter: ['==', ['geometry-type'], 'Polygon'],
             paint: {
               'line-color': ['get', 'strokeColor'],
               'line-width': 2,
@@ -285,6 +309,25 @@ export const useMapStyleControls = ({
           },
           'observation-lines'
         );
+
+        mapRef.current.addLayer({
+          id: 'hover-circle-label',
+          type: 'symbol',
+          source: 'hover-circle',
+          filter: ['==', ['geometry-type'], 'Point'],
+          layout: {
+            'text-field': ['get', 'label'],
+            'text-size': 13,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          },
+          paint: {
+            'text-color': ['get', 'color'],
+            'text-halo-color': 'rgba(0,0,0,0.75)',
+            'text-halo-width': 1.5,
+          },
+        });
       }
 
       // Re-add home location sources and layers
