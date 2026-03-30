@@ -312,13 +312,15 @@ export const useGeospatialMap = ({
               'max_signal'
             );
             const frequency = getNumericProperty(props, 'frequency', 'radio_frequency');
+            const coChannelNeighbors = getNumericProperty(props, 'co_channel_neighbors') ?? 0;
             const signalRadius = calculateSignalRange(
               signal,
               frequency,
               map.getZoom(),
-              e.lngLat.lat
+              e.lngLat.lat,
+              coChannelNeighbors
             );
-            const bssidColor = macColor(props.bssid);
+            const bssidColor = macColor(String(props.bssid ?? ''));
 
             // Add signal range circle to map
             const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
@@ -398,13 +400,15 @@ export const useGeospatialMap = ({
               'max_signal'
             );
             const frequency = getNumericProperty(props, 'frequency', 'radio_frequency');
+            const coChannelNeighbors = getNumericProperty(props, 'co_channel_neighbors') ?? 0;
             const signalRadius = calculateSignalRange(
               signal,
               frequency,
               map.getZoom(),
-              e.lngLat.lat
+              e.lngLat.lat,
+              coChannelNeighbors
             );
-            const bssidColor = macColor(props.bssid);
+            const bssidColor = macColor(String(props.bssid ?? ''));
 
             const hoverCircleSource = map.getSource('hover-circle') as GeoJSONSource;
             if (hoverCircleSource) {
