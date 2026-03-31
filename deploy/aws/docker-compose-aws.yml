@@ -47,8 +47,9 @@ services:
       DB_HOST: shadowcheck_postgres
       DB_PORT: 5432
       DB_USER: shadowcheck_user
+      DB_ADMIN_USER: shadowcheck_admin
       DB_NAME: shadowcheck_db
-      # DB_PASSWORD: always fetched from AWS Secrets Manager at runtime by entrypoint.sh
+      # DB_PASSWORD and DB_ADMIN_PASSWORD: always fetched from AWS Secrets Manager at runtime by entrypoint.sh
       DB_SSL: "false"
       REDIS_HOST: redis
       REDIS_PORT: 6379
