@@ -15,7 +15,7 @@ export function buildGeospatialListQuery(
   ctx: FilterBuildContext,
   context: GeospatialQueryContext
 ): FilteredQueryResult {
-  const { cte, networkWhere, selectClause, limitClause, networkLocationsJoin } = context;
+  const { cte, networkWhere, selectClause, limitClause } = context;
 
   if (networkWhere.length === 0) {
     return {
