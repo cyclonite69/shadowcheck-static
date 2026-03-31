@@ -40,7 +40,7 @@ export const NetworkExplorerHeader = ({
         height: '40px',
         padding: '0 14px',
         gap: 0,
-        background: '#1a2a3a',
+        background: '#0d1f2d',
         borderBottom: '0.5px solid rgba(59,130,246,0.08)',
       }}
     >
