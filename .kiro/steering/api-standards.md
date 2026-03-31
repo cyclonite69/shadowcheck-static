@@ -76,6 +76,11 @@ All database queries must use parameterized queries (`$1`, `$2`, etc.). String i
 of user input into SQL is forbidden. The `BaseRepository` enforces column/table whitelists.
 Sort columns and directions are validated against allowlists before use.
 
+Important: the `r` alias in filter query builder SQL means different things in different
+query paths (`obs_rollup` in network slow path vs simple `rollup` in geospatial path).
+Observation count filtering uses `ne.observations` from the materialized view, which is
+available in all query paths. Never reference `r.observation_count` in shared WHERE builders.
+
 ## Slow Query Tracking
 
 Configurable thresholds via env vars:
