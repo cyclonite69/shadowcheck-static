@@ -138,6 +138,14 @@ const describeIfIntegration = runIntegration ? describe : describe.skip;
 - Excluded: `node_modules`, `tests`, `__tests__`, `coverage`
 - Output: `coverage/` directory; reporters: text, text-summary, HTML, LCOV, JSON
 
+## Immutable Rule: Secrets Never Touch Disk
+
+Test environment credentials (`DB_PASSWORD=test_password` in `tests/setup.ts`) are env var
+fallbacks that only activate because AWS Secrets Manager is unreachable in the test runner.
+This is the ONLY acceptable context for credential env vars. Never create `.env` files,
+fixtures, or config files containing real secrets. The policy check `npm run policy:secrets`
+enforces this and runs on every commit via Husky pre-commit hook.
+
 ## Policy Checks (non-Jest)
 
 ```bash
