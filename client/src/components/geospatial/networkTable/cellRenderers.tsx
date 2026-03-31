@@ -10,6 +10,11 @@ import {
   getTimespanBadgeStyle,
   getTimespanDisplay,
 } from '../../../utils/networkFormatting';
+import {
+  formatCoordOverview,
+  formatAltitude,
+  formatAccuracy,
+} from '../../../utils/geospatial/fieldFormatting';
 
 export interface NetworkTableCellRendererContext {
   column: keyof NetworkRow | 'select';
@@ -236,6 +241,42 @@ const renderStationaryConfidence = ({ value }: NetworkTableCellRendererContext) 
   };
 };
 
+const renderLatitude = ({ value }: NetworkTableCellRendererContext) => {
+  const raw = typeof value === 'number' ? value : null;
+  return {
+    content: (
+      <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{formatCoordOverview(raw)}</span>
+    ),
+    title: raw != null ? raw.toFixed(6) : undefined,
+  };
+};
+
+const renderLongitude = ({ value }: NetworkTableCellRendererContext) => {
+  const raw = typeof value === 'number' ? value : null;
+  return {
+    content: (
+      <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{formatCoordOverview(raw)}</span>
+    ),
+    title: raw != null ? raw.toFixed(6) : undefined,
+  };
+};
+
+const renderAltitudeCell = ({ value }: NetworkTableCellRendererContext) => {
+  const raw = typeof value === 'number' ? value : null;
+  return {
+    content: <span>{formatAltitude(raw)}</span>,
+    title: raw != null ? `${raw.toFixed(2)} m` : undefined,
+  };
+};
+
+const renderAccuracyCell = ({ value }: NetworkTableCellRendererContext) => {
+  const raw = typeof value === 'number' ? value : null;
+  return {
+    content: <span>{formatAccuracy(raw)}</span>,
+    title: raw != null ? `${raw.toFixed(4)} m` : undefined,
+  };
+};
+
 const renderBssid = ({
   value,
   row,
@@ -365,6 +406,15 @@ const columnRenderers: Partial<
   ssid: renderSsid,
   distanceFromHome: renderDistanceFromHome,
   stationaryConfidence: renderStationaryConfidence,
+  accuracy: renderAccuracyCell,
+  latitude: renderLatitude,
+  longitude: renderLongitude,
+  rawLatitude: renderLatitude,
+  rawLongitude: renderLongitude,
+  min_altitude_m: renderAltitudeCell,
+  max_altitude_m: renderAltitudeCell,
+  altitude_span_m: renderAltitudeCell,
+  last_altitude_m: renderAltitudeCell,
 };
 
 export const renderNetworkTableCell = (

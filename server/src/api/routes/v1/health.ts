@@ -29,29 +29,37 @@ router.get('/health', async (req, res) => {
   const totalRequired = criticalSecrets.length + importantSecrets.length;
   const totalLoaded = criticalLoaded + importantLoaded;
 
+  const secretsCheck: Record<string, unknown> = {
+    required_count: totalRequired,
+    loaded_count: totalLoaded,
+    sm_reachable: secretsManager.smReachable,
+  };
+
+  if (secretsManager.smLastError) {
+    secretsCheck.sm_error = secretsManager.smLastError;
+    // Actionable hint for common failures
+    if (
+      secretsManager.smLastError.includes('Token is expired') ||
+      secretsManager.smLastError.includes('CredentialsProviderError')
+    ) {
+      secretsCheck.hint =
+        "Run 'aws sso login --profile shadowcheck-sso' on the host, then restart the container";
+    }
+  }
+
   if (criticalLoaded < criticalSecrets.length) {
-    (checks as any).secrets = {
-      status: 'error',
-      required_count: totalRequired,
-      loaded_count: totalLoaded,
-    };
+    secretsCheck.status = 'error';
     overallStatus = 'unhealthy';
   } else if (importantLoaded < importantSecrets.length) {
-    (checks as any).secrets = {
-      status: 'degraded',
-      required_count: totalRequired,
-      loaded_count: totalLoaded,
-    };
+    secretsCheck.status = 'degraded';
     if (overallStatus === 'healthy') {
       overallStatus = 'degraded';
     }
   } else {
-    (checks as any).secrets = {
-      status: 'ok',
-      required_count: totalRequired,
-      loaded_count: totalLoaded,
-    };
+    secretsCheck.status = 'ok';
   }
+
+  (checks as any).secrets = secretsCheck;
 
   // 3. Memory check
   const mem = process.memoryUsage();

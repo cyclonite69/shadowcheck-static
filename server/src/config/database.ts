@@ -39,9 +39,10 @@ const CONFIG: DatabaseConfig = {
 };
 
 // Create connection pool
+// DB_PASSWORD always comes from AWS Secrets Manager — never from env vars on disk.
 const pool = new Pool({
   user: DB_USER,
-  password: process.env.DB_PASSWORD || secretsManager.getOrThrow('db_password'),
+  password: secretsManager.getOrThrow('db_password'),
   host: DB_HOST,
   port: DB_PORT,
   database: DB_NAME,

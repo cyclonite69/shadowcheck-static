@@ -31,6 +31,10 @@ const OPTIONAL_SECRETS = [
   'db_admin_password',
 ];
 
+// Credential keys: AWS Secrets Manager is the sole source of truth.
+// Environment variables must NEVER override these — secrets are never written to disk.
+const CREDENTIAL_SECRETS = new Set(['db_password', 'db_admin_password']);
+
 // Secrets that should be auto-generated if missing from AWS SM.
 // DO NOT add db_admin_password here — it must always match the PostgreSQL
 // shadowcheck_admin user's actual password (set during bootstrap). Auto-generating
@@ -44,6 +48,11 @@ class SecretsManager {
   private awsLoaded = false;
   private deferredRetryScheduled = false;
 
+  /** Exposed to health check — describes why SM is unreachable (if it is). */
+  smLastError: string | null = null;
+  /** True once SM has been successfully contacted at least once. */
+  smReachable = false;
+
   private generatePassword(): string {
     return randomBytes(32).toString('base64').replace(/[=+/]/g, '').slice(0, 32);
   }
@@ -56,6 +65,8 @@ class SecretsManager {
       const response = await client.send(new GetSecretValueCommand({ SecretId: AWS_SECRET_NAME }));
       if (response.SecretString) {
         this.awsCache = JSON.parse(response.SecretString);
+        this.smReachable = true;
+        this.smLastError = null;
         console.log(
           `[SecretsManager] Loaded secrets from AWS Secrets Manager (${AWS_SECRET_NAME})`
         );
@@ -64,6 +75,8 @@ class SecretsManager {
     } catch (err: any) {
       // Reset flag so next call retries (handles cold-start where IMDS isn't ready yet)
       this.awsLoaded = false;
+      this.smReachable = false;
+      this.smLastError = err.name || err.message || 'Unknown error';
       if (err.name !== 'ResourceNotFoundException') {
         console.log(`[SecretsManager] AWS Secrets Manager unavailable: ${err.name || err.message}`);
       }
@@ -96,16 +109,28 @@ class SecretsManager {
     const generated: Record<string, string> = {};
 
     for (const secret of allSecrets) {
-      const envOverride = this.getEnvOverride(secret);
-      if (envOverride) {
-        this.secrets.set(secret, envOverride);
-        continue;
-      }
+      // For credential keys, AWS SM is the sole source of truth — env vars
+      // must never override them (secrets are never written to disk).
+      if (CREDENTIAL_SECRETS.has(secret)) {
+        const smValue = blob[secret];
+        if (smValue) {
+          this.secrets.set(secret, smValue);
+          continue;
+        }
+        // SM didn't have it — fall through to auto-gen or error below
+      } else {
+        // Non-credential keys: env override is fine
+        const envOverride = this.getEnvOverride(secret);
+        if (envOverride) {
+          this.secrets.set(secret, envOverride);
+          continue;
+        }
 
-      const value = blob[secret];
-      if (value) {
-        this.secrets.set(secret, value);
-        continue;
+        const value = blob[secret];
+        if (value) {
+          this.secrets.set(secret, value);
+          continue;
+        }
       }
 
       // Auto-generate missing secrets that support it
@@ -145,17 +170,32 @@ class SecretsManager {
       console.warn('[SecretsManager] MAPBOX_TOKEN should start with "pk."');
     }
 
-    // If AWS SM wasn't reachable (cold-start), schedule a deferred retry to refresh secrets
+    // If AWS SM wasn't reachable (cold-start or expired creds), schedule periodic
+    // retries so the app self-heals when credentials are refreshed (e.g. aws sso login).
     if (!this.awsLoaded && !this.deferredRetryScheduled) {
       this.deferredRetryScheduled = true;
-      setTimeout(() => this.retryAwsLoad(), 10_000);
+      this.scheduleRetry();
     }
   }
 
-  private async retryAwsLoad(): Promise<void> {
+  private scheduleRetry(delayMs = 10_000): void {
+    const MAX_RETRY_INTERVAL = 5 * 60_000; // cap at 5 minutes
+    setTimeout(async () => {
+      const success = await this.retryAwsLoad();
+      if (!success) {
+        // Exponential backoff, capped
+        const nextDelay = Math.min(delayMs * 2, MAX_RETRY_INTERVAL);
+        this.scheduleRetry(nextDelay);
+      } else {
+        this.deferredRetryScheduled = false; // allow future retry cycles if SM goes away again
+      }
+    }, delayMs);
+  }
+
+  private async retryAwsLoad(): Promise<boolean> {
     try {
       const blob = await this.loadAwsSecretBlob();
-      if (!blob || Object.keys(blob).length === 0) return;
+      if (!blob || Object.keys(blob).length === 0) return false;
 
       let updated = 0;
       for (const [key, value] of Object.entries(blob)) {
@@ -168,14 +208,19 @@ class SecretsManager {
       if (updated > 0) {
         console.log(`[SecretsManager] Deferred AWS retry: refreshed ${updated} secret(s)`);
       }
+      return true;
     } catch (err: any) {
       console.log(`[SecretsManager] Deferred AWS retry failed: ${err.message}`);
+      return false;
     }
   }
 
   get(secret: string): string | null {
     const key = secret.toLowerCase();
-    const value = this.getEnvOverride(key) ?? this.secrets.get(key) ?? null;
+    // Credential keys: never fall back to env vars — SM is the sole source of truth.
+    const value = CREDENTIAL_SECRETS.has(key)
+      ? (this.secrets.get(key) ?? null)
+      : (this.getEnvOverride(key) ?? this.secrets.get(key) ?? null);
     this.logAccess(key, Boolean(value));
     return value;
   }
@@ -189,7 +234,11 @@ class SecretsManager {
   }
 
   has(secret: string): boolean {
-    return Boolean(this.getEnvOverride(secret.toLowerCase()) || this.secrets.has(secret));
+    const key = secret.toLowerCase();
+    if (CREDENTIAL_SECRETS.has(key)) {
+      return this.secrets.has(key);
+    }
+    return Boolean(this.getEnvOverride(key) || this.secrets.has(key));
   }
 
   getAccessLog(): AccessLogEntry[] {

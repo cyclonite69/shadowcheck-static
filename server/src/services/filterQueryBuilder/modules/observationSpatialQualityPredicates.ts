@@ -25,15 +25,13 @@ export function buildObservationSpatialQualityPredicates(ctx: FilterBuildContext
   }
 
   if (e.observationCountMin && f.observationCountMin !== undefined) {
-    ctx.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
-    where.push(`ap.observations >= ${ctx.addParam(f.observationCountMin)}`);
-    ctx.addApplied('quality', 'observationCountMin', f.observationCountMin);
+    // Observation count filtering is handled at the network level (networkWhereBuilder)
+    // via ne.observations from the materialized view. Do not duplicate here.
   }
 
   if (e.observationCountMax && f.observationCountMax !== undefined) {
-    ctx.obsJoins.add('JOIN app.networks ap ON UPPER(ap.bssid) = UPPER(o.bssid)');
-    where.push(`ap.observations <= ${ctx.addParam(f.observationCountMax)}`);
-    ctx.addApplied('quality', 'observationCountMax', f.observationCountMax);
+    // Observation count filtering is handled at the network level (networkWhereBuilder)
+    // via ne.observations from the materialized view. Do not duplicate here.
   }
 
   if (e.boundingBox && f.boundingBox) {
