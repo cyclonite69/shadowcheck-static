@@ -38,7 +38,7 @@ body {
   --amber-400: #fbbf24;
   --blue-500-rgb: 59, 130, 246;
   /* Navbar tokens */
-  --nav-bg: #0e1117;
+  --nav-bg: #1a2a3a;
   --nav-border: rgba(59,130,246,0.10);
   --nav-sep: rgba(255,255,255,0.08);
   --nav-accent: #60a5fa;

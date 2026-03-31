@@ -301,14 +301,6 @@ const renderBssid = ({
           gap: '6px',
         }}
       >
-        {(showSelectedAnchorLink || isLinkedSibling) && (
-          <span
-            title={showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
-            style={{ color: '#38bdf8', flex: '0 0 auto' }}
-          >
-            🔗
-          </span>
-        )}
         <span
           style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}
         >
@@ -319,7 +311,12 @@ const renderBssid = ({
   };
 };
 
-const renderSsid = ({ value }: NetworkTableCellRendererContext) => {
+const renderSsid = ({
+  value,
+  row,
+  showSelectedAnchorLink,
+  isLinkedSibling,
+}: NetworkTableCellRendererContext) => {
   const textContent =
     value == null || String(value).trim().length === 0 ? '(hidden)' : String(value);
   const title = typeof value === 'string' && value.length > 0 ? value : undefined;
@@ -327,16 +324,32 @@ const renderSsid = ({ value }: NetworkTableCellRendererContext) => {
     content: (
       <div
         style={{
-          color: '#f1f5f9',
-          fontWeight: 500,
-          minWidth: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
         }}
-        title={title}
       >
-        {textContent}
+        <div
+          style={{
+            color: '#f1f5f9',
+            fontWeight: 500,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={title}
+        >
+          {textContent}
+        </div>
+        {(showSelectedAnchorLink || isLinkedSibling) && (
+          <span
+            title={showSelectedAnchorLink ? 'Selected sibling anchor' : 'Linked sibling'}
+            style={{ color: '#38bdf8', flex: '0 0 auto' }}
+          >
+            🔗
+          </span>
+        )}
       </div>
     ),
   };
