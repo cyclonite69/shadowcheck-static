@@ -69,7 +69,7 @@ export const NetworkTableHeaderGrid = ({
           fontSize: '11px',
           fontWeight: 600,
           color: '#cbd5e1',
-          background: 'rgba(26, 42, 58, 0.5)',
+          background: 'rgba(13, 31, 45, 0.5)',
           position: 'sticky',
           top: 0,
           zIndex: 10,

@@ -528,7 +528,15 @@ export const MapToolbar = ({
       <Separator />
 
       {/* Zone 4 — Overlay toggles */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '2px',
+          flexShrink: 0,
+          marginLeft: 'auto',
+        }}
+      >
         <button
           onClick={() => onToggleNetworkSummaries?.(!showNetworkSummaries)}
           title="Toggle network summaries"

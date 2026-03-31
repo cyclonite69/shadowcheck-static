@@ -35,7 +35,7 @@ export const MapStatusBar = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'rgba(26, 42, 58, 0.6)',
+        background: 'rgba(13, 31, 45, 0.6)',
         borderRadius: '0 0 12px 12px',
       }}
     >
