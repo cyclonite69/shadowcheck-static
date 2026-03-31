@@ -74,7 +74,7 @@ services:
       # Region is safe to default locally; credentials still must come from the shell or mounted ~/.aws.
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
-      AWS_PROFILE: ${AWS_PROFILE:-shadowcheck-sso}
+      AWS_PROFILE: ${AWS_PROFILE:-dbcooper}
       AWS_SDK_LOAD_CONFIG: "1"
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
