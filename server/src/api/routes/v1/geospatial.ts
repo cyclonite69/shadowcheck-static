@@ -100,9 +100,13 @@ router.get('/api/mapbox-token', async (req: Request, res: Response) => {
     const token = typeof tokenRaw === 'string' ? tokenRaw.trim() : null;
 
     if (!token) {
+      const isReachable = secretsManager.smReachable;
       return res.status(500).json({
-        error: 'Mapbox token not configured',
-        message: 'MAPBOX_TOKEN is not available in secrets',
+        error: isReachable ? 'Mapbox token not configured' : 'Secrets Manager unreachable',
+        message: isReachable
+          ? 'MAPBOX_TOKEN is missing from the secret vault.'
+          : `Failed to connect to AWS Secrets Manager: ${secretsManager.smLastError || 'Unknown credential error'}`,
+        ok: false,
       });
     }
 
@@ -112,7 +116,7 @@ router.get('/api/mapbox-token', async (req: Request, res: Response) => {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: msg });
+    res.status(500).json({ error: msg, ok: false });
   }
 });
 

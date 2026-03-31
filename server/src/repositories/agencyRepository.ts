@@ -120,8 +120,8 @@ export async function findNearestAgenciesBatch(bssids: string[], radius: number)
     clustered AS (
       SELECT lat, lon, source,
         ST_ClusterDBSCAN(
-          ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
-          eps := 5000, minpoints := 1
+          ST_SetSRID(ST_MakePoint(lon, lat), 4326),
+          eps := 0.045, minpoints := 1
         ) OVER () AS cid
       FROM all_observations
     ),
