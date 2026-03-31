@@ -88,10 +88,7 @@ function getSqlImportCommand(sqlFile: string) {
   const dbName = process.env.DB_NAME || 'shadowcheck_db';
   const dbUser = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
   const dbPassword =
-    secretsManager.get('db_admin_password') ||
-    secretsManager.get('db_password') ||
-    process.env.DB_PASSWORD ||
-    '';
+    secretsManager.get('db_admin_password') || secretsManager.get('db_password') || '';
 
   const args = [
     '-h',

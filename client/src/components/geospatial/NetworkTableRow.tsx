@@ -9,6 +9,7 @@ import {
   getTimespanBadgeStyle,
   getTimespanDisplay,
 } from '../../utils/networkFormatting';
+import { formatAccuracy, formatAltitude } from '../../utils/geospatial/fieldFormatting';
 
 interface NetworkTableRowProps {
   net: NetworkRow;
@@ -167,16 +168,15 @@ export const NetworkTableRow = ({
           } else {
             content = 'Not computed';
           }
+        } else if (col === 'accuracy') {
+          content = formatAccuracy(value as number | null);
         } else if (
-          [
-            'stationaryConfidence',
-            'min_altitude_m',
-            'max_altitude_m',
-            'altitude_span_m',
-            'max_distance_meters',
-            'last_altitude_m',
-          ].includes(col as string)
+          ['min_altitude_m', 'max_altitude_m', 'altitude_span_m', 'last_altitude_m'].includes(
+            col as string
+          )
         ) {
+          content = formatAltitude(value as number | null);
+        } else if (['stationaryConfidence', 'max_distance_meters'].includes(col as string)) {
           content = (value == null ? 'Not computed' : value) as React.ReactNode;
         } else if (col === 'channel') {
           // Only show channel for WiFi networks

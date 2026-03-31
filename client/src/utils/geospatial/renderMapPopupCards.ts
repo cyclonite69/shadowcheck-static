@@ -1,4 +1,5 @@
 import { formatShortDate } from '../formatDate';
+import { formatRSSI } from './fieldFormatting';
 
 type AgencyPopupProps = {
   name?: string;
@@ -130,7 +131,7 @@ export const renderAgencyPopupCard = (props: AgencyPopupProps) => {
 
 export const renderWigleObservationPopupCard = (props: WigleObservationPopupProps) => {
   const timeText = formatPopupTime(props.time);
-  const signalText = props.signal != null ? `${props.signal} dBm` : 'Unknown';
+  const signalText = props.signal != null ? formatRSSI(Number(props.signal)) : 'Unknown';
   const channelText = props.channel != null ? String(props.channel) : null;
   const distanceText =
     props.distanceFromCenterMeters != null

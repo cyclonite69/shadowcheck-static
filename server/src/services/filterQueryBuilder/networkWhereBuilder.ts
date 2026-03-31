@@ -34,11 +34,11 @@ export function buildNetworkWhere(ctx: FilterBuildContext): string[] {
     ctx.addApplied('threat', 'threatCategories', f.threatCategories);
   }
   if (e.observationCountMin && f.observationCountMin !== undefined) {
-    networkWhere.push(`r.observation_count >= ${ctx.addParam(f.observationCountMin)}`);
+    networkWhere.push(`ne.observations >= ${ctx.addParam(f.observationCountMin)}`);
     ctx.addApplied('quality', 'observationCountMin', f.observationCountMin);
   }
   if (e.observationCountMax && f.observationCountMax !== undefined) {
-    networkWhere.push(`r.observation_count <= ${ctx.addParam(f.observationCountMax)}`);
+    networkWhere.push(`ne.observations <= ${ctx.addParam(f.observationCountMax)}`);
     ctx.addApplied('quality', 'observationCountMax', f.observationCountMax);
   }
 

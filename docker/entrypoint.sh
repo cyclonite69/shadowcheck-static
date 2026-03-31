@@ -7,11 +7,9 @@ SOCKET=/var/run/docker.sock
 AWS_SECRET_NAME="${SHADOWCHECK_AWS_SECRET:-shadowcheck/config}"
 
 load_runtime_secrets() {
-  if [ -n "${MAPBOX_TOKEN:-}" ] && [ -n "${DB_PASSWORD:-}" ] && [ -n "${DB_ADMIN_PASSWORD:-}" ]; then
-    return 0
-  fi
-
-
+  # Never short-circuit on DB_PASSWORD / DB_ADMIN_PASSWORD — those must always
+  # come from AWS Secrets Manager.  Only skip the fetch when non-credential
+  # tokens are already present AND the aws CLI isn't available.
   if ! command -v aws >/dev/null 2>&1; then
     return 0
   fi
@@ -31,6 +29,10 @@ load_runtime_secrets() {
 
   EXPORTS=$(SECRET_JSON="$SECRET_JSON" node -e '
     const obj = JSON.parse(process.env.SECRET_JSON || "{}");
+    // Credential keys: SM always wins (never trust env placeholders for secrets).
+    const credentialKeys = new Set([
+      "db_password", "db_admin_password",
+    ]);
     const mapping = {
       db_password: "DB_PASSWORD",
       db_admin_password: "DB_ADMIN_PASSWORD",
@@ -48,9 +50,11 @@ load_runtime_secrets() {
 
     for (const [secretKey, envKey] of Object.entries(mapping)) {
       const value = obj[secretKey];
-      if (typeof value === "string" && value.length > 0 && !process.env[envKey]) {
-        console.log(`export ${envKey}=${JSON.stringify(value)}`);
-      }
+      if (typeof value !== "string" || value.length === 0) continue;
+      // For credential keys, SM always overrides env (secrets never live on disk).
+      // For non-credential keys, keep existing env if already set.
+      if (!credentialKeys.has(secretKey) && process.env[envKey]) continue;
+      console.log(`export ${envKey}=${JSON.stringify(value)}`);
     }
   ')
 

@@ -12,7 +12,7 @@ services:
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
       DB_USER: shadowcheck_user
-      DB_PASSWORD: ${DB_PASSWORD}
+      # DB_PASSWORD: fetched from AWS Secrets Manager by entrypoint.sh
       DB_NAME: shadowcheck_db
     network_mode: host
     restart: unless-stopped

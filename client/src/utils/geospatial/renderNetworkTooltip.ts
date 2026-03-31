@@ -1,5 +1,12 @@
 import { isRandomizedMAC } from '../macUtils';
 import { formatISODate } from '../formatDate';
+import {
+  formatCoord,
+  formatAltitude,
+  formatRSSI,
+  formatConfidence,
+  formatAccuracy,
+} from './fieldFormatting';
 
 /**
  * Network Tooltip Renderer
@@ -72,8 +79,9 @@ function statsCell(label: string, valueText: string, fillPct: number, color: str
   </div>`;
 }
 
-function fieldRow(label: string, value: string): string {
-  return `<div style="display:grid;grid-template-columns:130px 1fr;align-items:center;min-height:26px;padding:3px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
+function fieldRow(label: string, value: string, title?: string): string {
+  const titleAttr = title ? `title="${title}"` : '';
+  return `<div ${titleAttr} style="display:grid;grid-template-columns:130px 1fr;align-items:center;min-height:26px;padding:3px 12px;border-bottom:1px solid rgba(255,255,255,0.05);">
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:rgba(255,255,255,0.38);white-space:nowrap;">${label}</div>
     <div style="font-size:11px;color:rgba(255,255,255,0.85);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${value}</div>
   </div>`;
@@ -124,7 +132,7 @@ export const renderNetworkTooltip = (props: any): string => {
       : rssi > -70
         ? '#facc15'
         : '#f87171';
-  const signalValue = Number.isFinite(rssi) ? `${Math.round(rssi)} dBm` : EM_DASH;
+  const signalValue = Number.isFinite(rssi) ? formatRSSI(rssi) : EM_DASH;
 
   const scoreFill = Number.isFinite(score) ? clamp(score, 0, 100) : 0;
   const scoreColor = !Number.isFinite(score)
@@ -137,7 +145,7 @@ export const renderNetworkTooltip = (props: any): string => {
   const scoreText = Number.isFinite(score) ? score.toFixed(1) : EM_DASH;
 
   const qualityFill = Number.isFinite(quality) ? clamp(quality, 0, 100) : 0;
-  const qualityText = Number.isFinite(quality) ? `${quality}%` : EM_DASH;
+  const qualityText = Number.isFinite(quality) ? formatConfidence(quality, true) : EM_DASH;
 
   const hasBand = !isMissingValue(props.band);
   const channelValue = isMissingValue(props.channel)
@@ -154,11 +162,11 @@ export const renderNetworkTooltip = (props: any): string => {
     Number(props.sibling_count) > 0 ? `${Number(props.sibling_count)} radios` : '';
   const wigleValue = props.wigle_match ? 'Yes' : '';
   const accuracyNumber = Number(props.accuracy);
-  const accuracyValue = Number.isFinite(accuracyNumber) ? `${accuracyNumber} m` : '';
+  const accuracyValue = Number.isFinite(accuracyNumber) ? formatAccuracy(accuracyNumber) : '';
   const altitudeNumber = Number(props.altitude);
   const altitudeValue =
     Number.isFinite(altitudeNumber) && Math.abs(altitudeNumber) > 0.5
-      ? `${Math.round(altitudeNumber)} m`
+      ? formatAltitude(altitudeNumber)
       : '';
 
   const fieldRows = [
@@ -173,8 +181,20 @@ export const renderNetworkTooltip = (props: any): string => {
     observationsValue ? fieldRow('Observations', observationsValue) : '',
     siblingValue ? fieldRow('Sibling Radios', siblingValue) : '',
     wigleValue ? fieldRow('WiGLE Match', wigleValue) : '',
-    accuracyValue ? fieldRow('GPS Accuracy', accuracyValue) : '',
-    altitudeValue ? fieldRow('Altitude', altitudeValue) : '',
+    accuracyValue
+      ? fieldRow(
+          'GPS Accuracy',
+          accuracyValue,
+          Number.isFinite(accuracyNumber) ? `${accuracyNumber.toFixed(4)} m` : undefined
+        )
+      : '',
+    altitudeValue
+      ? fieldRow(
+          'Altitude',
+          altitudeValue,
+          Number.isFinite(altitudeNumber) ? `${altitudeNumber.toFixed(2)} m` : undefined
+        )
+      : '',
   ]
     .filter(Boolean)
     .join('');
@@ -231,7 +251,7 @@ export const renderNetworkTooltip = (props: any): string => {
 
   <div style="padding:6px 12px 2px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.08);margin-top:2px;">Location</div>
   ${locationText ? `<div style="padding:1px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}
-  ${hasCoords ? `<div style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);">${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}</div>` : ''}
+  ${hasCoords ? `<div title="${lat.toFixed(6)}, ${lon.toFixed(6)}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}</div>` : ''}
   ${
     Number.isFinite(homeKm)
       ? `<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;">
