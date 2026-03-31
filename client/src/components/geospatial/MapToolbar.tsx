@@ -479,6 +479,7 @@ export const MapToolbar = ({
           padding: '3px',
           gap: '2px',
           flexShrink: 0,
+          marginLeft: 'auto',
         }}
       >
         <button
