@@ -66,9 +66,16 @@ inclusion: always
 
 - AWS Secrets Manager is the sole source of truth for credentials
 - Secret name: `shadowcheck/config` (overridable via `SHADOWCHECK_AWS_SECRET` env var)
-- `CREDENTIAL_SECRETS` (`db_password`, `db_admin_password`) in `secretsManager.ts` are never overridden by env vars
-- Shell entrypoint (`docker/entrypoint.sh`) fetches SM before running migrations or starting the app
-- Policy enforced by `scripts/security/check-no-secret-disk-writes.sh`
+- `CREDENTIAL_SECRETS` (`db_password`, `db_admin_password`) in `secretsManager.ts`:
+  - When SM is reachable: SM value always wins, env vars are ignored for credential keys
+  - When SM is unreachable (expired SSO, no IAM role): env vars are accepted as fallback so local dev and tests still work
+  - Non-credential secrets (mapbox_token, etc.) always accept env var overrides
+- Shell entrypoint (`docker/entrypoint.sh`) fetches SM before running migrations or starting the app; credential keys from SM always override env vars in the entrypoint too
+- Policy enforced by `scripts/security/check-no-secret-disk-writes.sh` and `npm run policy:secrets`
+- SM resilience: if SM is unreachable at startup, the app retries with exponential backoff (10s → 5min cap) and self-heals when credentials are refreshed — no container restart needed
+- Health check (`/health`) exposes `sm_reachable`, `sm_error`, and an actionable `hint` when SSO tokens expire
+- Startup logs print a loud banner with fix instructions when SM is unreachable
+- Local dev uses AWS SSO profile `shadowcheck-sso` mounted read-only from `~/.aws`; tokens expire after ~12h of inactivity — run `aws sso login --profile shadowcheck-sso` to refresh
 
 ## Database Users
 

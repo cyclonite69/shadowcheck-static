@@ -12,7 +12,11 @@ inclusion: always
 - Postgres uses `POSTGRES_HOST_AUTH_METHOD: trust` (no password locally)
 - API builds from root `Dockerfile` (multi-stage: builder → production Alpine)
 - Frontend builds from `docker/Dockerfile.frontend.local`
-- Secrets: mount `~/.aws` read-only into container, or export env vars in shell
+- Secrets: mount `~/.aws` read-only into container; uses SSO profile `shadowcheck-sso`
+- SSO tokens expire after ~12h inactivity; refresh with `aws sso login --profile shadowcheck-sso`
+- Nginx uses dynamic DNS resolver (`docker/nginx.local.conf`) so API container restarts don't cause 502s — the resolver reads the nameserver from `/etc/resolv.conf` at startup, works with both Podman and Docker
+- The local API container runs compiled JS from `dist/`, not live TypeScript — code changes require `docker compose build api && docker compose up -d api`
+- Container runtime: Podman (not Docker) on the dev machine; DNS is at `10.89.1.x`, not `127.0.0.11`
 
 ### AWS Production (EC2)
 

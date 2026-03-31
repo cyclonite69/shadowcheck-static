@@ -108,6 +108,12 @@ shadowcheck-web/
 - **Server bootstrap**: Each init phase is a separate file in `server/src/utils/` (credentialsInit, middlewareInit, databaseSetup, routesInit, serverLifecycle, etc.).
 - **Client API layer**: `client/src/api/client.ts` is a centralized fetch wrapper. Domain-specific API modules (networkApi, adminApi, etc.) use this client.
 - **Admin UI**: `client/src/components/admin/` uses a hooks + tabs pattern. Each admin feature has a hook (`useBackups.ts`) and a tab component (`BackupsTab.tsx`).
+- **Universal Filter Query Builder** (`server/src/services/filterQueryBuilder/`): Modular SQL query builder with separate modules for observations, networks, geospatial, and analytics. Key architecture rules:
+  - `networkWhereBuilder.ts` generates WHERE clauses that reference `ne.*` (the MV alias) — these are shared across network list, geospatial, and analytics query paths
+  - `observationSpatialQualityPredicates.ts` generates WHERE clauses for the observation-level query (`o.*` alias)
+  - Observation count filtering (`observationCountMin/Max`) is handled at the network level via `ne.observations` from the MV, NOT at the observation level — the `app.networks` base table does not have an `observations` column
+  - The `r` alias means different things in different query paths: `obs_rollup` (network slow path) vs `rollup` (geospatial path) — never assume `r` has the same columns everywhere
+  - Display formatting is in `client/src/utils/geospatial/fieldFormatting.ts` — formatting is display-only, raw values stay in DB and component state
 
 ## File Naming Conventions
 
