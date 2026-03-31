@@ -82,6 +82,10 @@ export interface NetworkRow {
   ssid: string | null;
   lat: number;
   lon: number;
+  centroid_lat: number | null;
+  centroid_lon: number | null;
+  weighted_lat: number | null;
+  weighted_lon: number | null;
   threat?: ThreatObject;
   [key: string]: unknown;
 }
@@ -91,6 +95,10 @@ export interface GeospatialRow {
   ssid: string | null;
   lat: number;
   lon: number;
+  centroid_lat: number | null;
+  centroid_lon: number | null;
+  weighted_lat: number | null;
+  weighted_lon: number | null;
   level: number | null;
   accuracy: number | null;
   altitude: number | null;

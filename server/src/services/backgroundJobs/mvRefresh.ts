@@ -49,6 +49,18 @@ const refreshMaterializedViews = async (
 ): Promise<{ refreshedViews: string[] }> => {
   logger.info('[MV Refresh Job] Starting materialized view refresh...');
 
+  // Refresh network_locations FIRST — the MV (api_network_explorer_mv) now includes
+  // centroid_lat/lon and weighted_lat/lon from this table. Computing centroids before
+  // the MV refresh ensures the MV snapshot contains fresh centroid data.
+  try {
+    logger.info('[MV Refresh Job] Refreshing app.network_locations (pre-MV dependency)...');
+    await runAdminQuery('SELECT app.refresh_network_locations()');
+    logger.info('[MV Refresh Job] app.network_locations refreshed.');
+  } catch (error) {
+    // Non-critical: the MV will still work with stale centroid values (or NULLs).
+    logger.error('[MV Refresh Job] Failed to refresh network_locations:', (error as Error).message);
+  }
+
   const existingViews = await loadExistingViews(runAdminQuery);
   const availableViews = MATERIALIZED_VIEWS.filter((view) => existingViews.has(view.name));
   const missingViews = MATERIALIZED_VIEWS.filter((view) => !existingViews.has(view.name)).map(
@@ -82,17 +94,6 @@ const refreshMaterializedViews = async (
   }
 
   throwOnRefreshFailures(failures);
-
-  // Recompute network_locations (centroid + weighted centroid) after MV refresh.
-  // Uses the same quality-filter criterion as the MV. Non-critical: failure is logged but
-  // does not abort the refresh job.
-  try {
-    logger.info('[MV Refresh Job] Refreshing app.network_locations...');
-    await runAdminQuery('SELECT app.refresh_network_locations()');
-    logger.info('[MV Refresh Job] app.network_locations refreshed.');
-  } catch (error) {
-    logger.error('[MV Refresh Job] Failed to refresh network_locations:', (error as Error).message);
-  }
 
   return { refreshedViews: MATERIALIZED_VIEWS.map((view) => view.name) };
 };

@@ -1,8 +1,5 @@
-import {
-  OBS_TYPE_EXPR,
-  SECURITY_FROM_CAPS_EXPR,
-  WIFI_CHANNEL_EXPR,
-} from '../sqlExpressions';
+import { OBS_TYPE_EXPR, SECURITY_FROM_CAPS_EXPR, WIFI_CHANNEL_EXPR } from '../sqlExpressions';
+import { SqlFragmentLibrary } from '../SqlFragmentLibrary';
 import type { FilterBuildContext } from '../FilterBuildContext';
 import type { CteResult, GeospatialOptions } from '../types';
 
@@ -13,6 +10,7 @@ export interface GeospatialQueryContext {
   includeStationaryConfidence: boolean;
   limitClause: string;
   selectClause: string;
+  networkLocationsJoin: string;
 }
 
 export function buildGeospatialQueryContext(
@@ -20,12 +18,14 @@ export function buildGeospatialQueryContext(
   filteredObservationsCte: CteResult,
   options: GeospatialOptions = {}
 ): GeospatialQueryContext {
-  const { limit = null, offset = 0 } = options;
+  const { limit = null, offset = 0, locationMode = 'latest_observation' } = options;
   const { cte } = filteredObservationsCte;
   const networkWhere = ctx.buildNetworkWhere();
   const includeStationaryConfidence = ctx.shouldComputeStationaryConfidence();
   const limitClause =
     limit !== null ? `LIMIT ${ctx.addParam(limit)} OFFSET ${ctx.addParam(offset)}` : '';
+
+  const networkLocationsJoin = SqlFragmentLibrary.joinNetworkLocations('ne', locationMode);
 
   const selectClause = `
         o.bssid,
@@ -34,6 +34,10 @@ export function buildGeospatialQueryContext(
         ${SECURITY_FROM_CAPS_EXPR('COALESCE(o.radio_capabilities, ne.capabilities)')} AS security,
         o.lat,
         o.lon,
+        nl.centroid_lat,
+        nl.centroid_lon,
+        nl.weighted_lat,
+        nl.weighted_lon,
         o.level AS signal,
         o.radio_frequency AS frequency,
         ${WIFI_CHANNEL_EXPR('o')} AS channel,
@@ -53,5 +57,6 @@ export function buildGeospatialQueryContext(
     includeStationaryConfidence,
     limitClause,
     selectClause,
+    networkLocationsJoin,
   };
 }

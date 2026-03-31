@@ -15,7 +15,7 @@ export function buildGeospatialListQuery(
   ctx: FilterBuildContext,
   context: GeospatialQueryContext
 ): FilteredQueryResult {
-  const { cte, networkWhere, selectClause, limitClause } = context;
+  const { cte, networkWhere, selectClause, limitClause, networkLocationsJoin } = context;
 
   if (networkWhere.length === 0) {
     return {
@@ -25,6 +25,7 @@ export function buildGeospatialListQuery(
           ${selectClause}
         FROM filtered_obs o
         LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+        LEFT JOIN app.network_locations nl ON UPPER(nl.bssid) = UPPER(o.bssid)
         ORDER BY o.time DESC
         ${limitClause}
       `,
@@ -43,6 +44,7 @@ export function buildGeospatialListQuery(
       FROM filtered_obs o
       JOIN rollup r ON UPPER(r.bssid) = UPPER(o.bssid)
       LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(o.bssid)
+      LEFT JOIN app.network_locations nl ON UPPER(nl.bssid) = UPPER(o.bssid)
       WHERE ${networkWhere.join(' AND ')}
       ORDER BY o.time DESC
       ${limitClause}

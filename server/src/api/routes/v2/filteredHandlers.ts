@@ -284,6 +284,10 @@ const createHandlers = (deps: HandlerDeps) => {
       [],
       'bssids'
     );
+    const rawLocationMode = req.query.location_mode as string | undefined;
+    const locationMode = ['centroid', 'weighted_centroid'].includes(rawLocationMode ?? '')
+      ? (rawLocationMode as 'centroid' | 'weighted_centroid')
+      : 'latest_observation';
 
     const builder = new UniversalFilterQueryBuilder(filters, enabled, {
       pageType: resolvePageType(req),
@@ -292,6 +296,7 @@ const createHandlers = (deps: HandlerDeps) => {
       builder.buildGeospatialQuery({
         limit,
         selectedBssids,
+        locationMode,
       });
 
     const start = Date.now();
@@ -328,6 +333,10 @@ const createHandlers = (deps: HandlerDeps) => {
           radio_frequency: effectiveRow.radio_frequency,
           radio_capabilities: effectiveRow.radio_capabilities,
           radio_type: effectiveRow.radio_type,
+          centroid_lat: effectiveRow.centroid_lat ?? null,
+          centroid_lon: effectiveRow.centroid_lon ?? null,
+          weighted_lat: effectiveRow.weighted_lat ?? null,
+          weighted_lon: effectiveRow.weighted_lon ?? null,
           threat: effectiveRow.threat,
           threatReasons: transparency.threatReasons,
           threatEvidence: transparency.threatEvidence,

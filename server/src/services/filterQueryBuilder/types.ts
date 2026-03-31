@@ -110,6 +110,7 @@ export interface GeospatialOptions {
   limit?: number | null;
   offset?: number;
   selectedBssids?: string[];
+  locationMode?: 'latest_observation' | 'centroid' | 'weighted_centroid';
 }
 
 export interface AnalyticsOptions {
