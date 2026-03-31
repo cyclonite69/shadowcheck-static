@@ -60,3 +60,11 @@ export const formatTimestamp = (value?: string | number | Date | null): string =
   if (isNaN(date.getTime())) return EM_DASH;
   return date.toISOString().slice(0, 19).replace('T', ' ');
 };
+
+/** DateTime for tooltip display — "2026-02-08 02:42:50" */
+export const formatDateTime = (value?: string | Date | null): string => {
+  if (!value) return '—';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (isNaN(date.getTime())) return '—';
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+};
