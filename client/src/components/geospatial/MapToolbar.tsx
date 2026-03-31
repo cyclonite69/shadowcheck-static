@@ -468,98 +468,80 @@ export const MapToolbar = ({
 
       <Separator />
 
-      {/* Zone 3 — View mode toggle group */}
+      {/* Right-aligned control group: Zones 3, 4, 5 */}
       <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          background: 'rgba(255,255,255,0.03)',
-          border: '0.5px solid rgba(255,255,255,0.08)',
-          borderRadius: '7px',
-          padding: '3px',
-          gap: '2px',
-          flexShrink: 0,
-          marginLeft: 'auto',
-        }}
+        style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, marginLeft: 'auto' }}
       >
-        <button
-          onClick={onToggle3DBuildings}
-          disabled={!is3DBuildingsAvailable}
-          title={is3DBuildingsAvailable ? 'Toggle 3D' : '3D unavailable for this style'}
+        {/* Zone 3 — View mode toggle group */}
+        <div
           style={{
-            height: '26px',
-            padding: '0 10px',
-            borderRadius: '5px',
-            border: show3DBuildings ? '0.5px solid rgba(59,130,246,0.25)' : 'none',
-            fontSize: '11px',
-            ...mono,
-            letterSpacing: '0.05em',
-            cursor: is3DBuildingsAvailable ? 'pointer' : 'not-allowed',
-            background: show3DBuildings ? 'rgba(59,130,246,0.15)' : 'transparent',
-            color: !is3DBuildingsAvailable
-              ? '#64748b'
-              : show3DBuildings
-                ? '#60a5fa'
-                : 'var(--nav-text-inactive)',
-            opacity: is3DBuildingsAvailable ? 1 : 0.65,
+            display: 'flex',
+            alignItems: 'center',
+            background: 'rgba(255,255,255,0.03)',
+            border: '0.5px solid rgba(255,255,255,0.08)',
+            borderRadius: '7px',
+            padding: '3px',
+            gap: '2px',
+            flexShrink: 0,
           }}
         >
-          3D
-        </button>
-        <button
-          onClick={onToggleTerrain}
-          style={{
-            height: '26px',
-            padding: '0 10px',
-            borderRadius: '5px',
-            border: showTerrain ? '0.5px solid rgba(59,130,246,0.25)' : 'none',
-            fontSize: '11px',
-            ...mono,
-            letterSpacing: '0.05em',
-            cursor: 'pointer',
-            background: showTerrain ? 'rgba(59,130,246,0.15)' : 'transparent',
-            color: showTerrain ? '#60a5fa' : 'var(--nav-text-inactive)',
-          }}
-        >
-          Terrain
-        </button>
-      </div>
-
-      <Separator />
-
-      {/* Zone 4 — Overlay toggles */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '2px',
-          flexShrink: 0,
-          marginLeft: 'auto',
-        }}
-      >
-        <button
-          onClick={() => onToggleNetworkSummaries?.(!showNetworkSummaries)}
-          title="Toggle network summaries"
-          style={{
-            height: '30px',
-            padding: '0 10px',
-            borderRadius: '6px',
-            border: 'none',
-            fontSize: '11px',
-            ...mono,
-            letterSpacing: '0.04em',
-            cursor: 'pointer',
-            background: showNetworkSummaries ? 'rgba(59,130,246,0.10)' : 'transparent',
-            color: showNetworkSummaries ? '#60a5fa' : 'var(--nav-text-inactive)',
-          }}
-        >
-          <span className="hidden-narrow">Networks</span>
-        </button>
-        {onWigle && (
           <button
-            onClick={onWigle}
-            disabled={!canWigle || wigleLoading}
-            title="Toggle WiGLE observations"
+            onClick={onToggle3DBuildings}
+            disabled={!is3DBuildingsAvailable}
+            title={is3DBuildingsAvailable ? 'Toggle 3D' : '3D unavailable for this style'}
+            style={{
+              height: '26px',
+              padding: '0 10px',
+              borderRadius: '5px',
+              border: show3DBuildings ? '0.5px solid rgba(59,130,246,0.25)' : 'none',
+              fontSize: '11px',
+              ...mono,
+              letterSpacing: '0.05em',
+              cursor: is3DBuildingsAvailable ? 'pointer' : 'not-allowed',
+              background: show3DBuildings ? 'rgba(59,130,246,0.15)' : 'transparent',
+              color: !is3DBuildingsAvailable
+                ? '#64748b'
+                : show3DBuildings
+                  ? '#60a5fa'
+                  : 'var(--nav-text-inactive)',
+              opacity: is3DBuildingsAvailable ? 1 : 0.65,
+            }}
+          >
+            3D
+          </button>
+          <button
+            onClick={onToggleTerrain}
+            style={{
+              height: '26px',
+              padding: '0 10px',
+              borderRadius: '5px',
+              border: showTerrain ? '0.5px solid rgba(59,130,246,0.25)' : 'none',
+              fontSize: '11px',
+              ...mono,
+              letterSpacing: '0.05em',
+              cursor: 'pointer',
+              background: showTerrain ? 'rgba(59,130,246,0.15)' : 'transparent',
+              color: showTerrain ? '#60a5fa' : 'var(--nav-text-inactive)',
+            }}
+          >
+            Terrain
+          </button>
+        </div>
+
+        <Separator />
+
+        {/* Zone 4 — Overlay toggles */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '2px',
+            flexShrink: 0,
+          }}
+        >
+          <button
+            onClick={() => onToggleNetworkSummaries?.(!showNetworkSummaries)}
+            title="Toggle network summaries"
             style={{
               height: '30px',
               padding: '0 10px',
@@ -568,149 +550,170 @@ export const MapToolbar = ({
               fontSize: '11px',
               ...mono,
               letterSpacing: '0.04em',
-              cursor: canWigle && !wigleLoading ? 'pointer' : 'not-allowed',
-              background: wigleActive ? 'rgba(59,130,246,0.10)' : 'transparent',
-              color: wigleActive ? '#60a5fa' : 'var(--nav-text-inactive)',
-              opacity: canWigle ? 1 : 0.5,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            {wigleLoading ? 'Loading...' : 'WIGLE'}
-            {!wigleLoading && selectedCount != null && selectedCount > 0 && (
-              <span
-                style={{
-                  fontSize: '10px',
-                  padding: '1px 5px',
-                  borderRadius: '3px',
-                  background: 'rgba(59,130,246,0.2)',
-                  color: '#60a5fa',
-                  marginLeft: '5px',
-                }}
-              >
-                {selectedCount}
-              </span>
-            )}
-          </button>
-        )}
-        <button
-          onClick={onGps}
-          title="Go to GPS location"
-          style={{
-            height: '30px',
-            padding: '0 10px',
-            borderRadius: '6px',
-            border: 'none',
-            fontSize: '11px',
-            ...mono,
-            letterSpacing: '0.04em',
-            cursor: 'pointer',
-            background: 'transparent',
-            color: 'var(--nav-text-inactive)',
-            display: 'none',
-          }}
-        >
-          GPS
-        </button>
-      </div>
-
-      <Separator />
-
-      {/* Zone 5 — Layers dropdown */}
-      {(onToggleAgenciesPanel || onToggleCourthousesPanel) && (
-        <div ref={layersRef} style={{ position: 'relative', flexShrink: 0 }}>
-          <button
-            onClick={() => setLayersOpen((v) => !v)}
-            style={{
-              height: '28px',
-              padding: '0 10px',
-              borderRadius: '6px',
-              border: hasActiveLayers
-                ? '0.5px solid rgba(59,130,246,0.3)'
-                : '0.5px solid rgba(255,255,255,0.10)',
-              background: 'rgba(255,255,255,0.03)',
-              color: hasActiveLayers ? '#60a5fa' : 'rgba(255,255,255,0.4)',
-              fontSize: '11px',
-              ...mono,
               cursor: 'pointer',
+              background: showNetworkSummaries ? 'rgba(59,130,246,0.10)' : 'transparent',
+              color: showNetworkSummaries ? '#60a5fa' : 'var(--nav-text-inactive)',
             }}
           >
-            Layers ▾
+            <span className="hidden-narrow">Networks</span>
           </button>
-          {layersOpen && (
-            <div
+          {onWigle && (
+            <button
+              onClick={onWigle}
+              disabled={!canWigle || wigleLoading}
+              title="Toggle WiGLE observations"
               style={{
-                position: 'absolute',
-                top: 'calc(100% + 6px)',
-                left: 0,
-                background: '#161b25',
-                border: '0.5px solid rgba(59,130,246,0.15)',
-                borderRadius: '8px',
-                padding: '4px',
-                minWidth: '180px',
-                zIndex: 200,
+                height: '30px',
+                padding: '0 10px',
+                borderRadius: '6px',
+                border: 'none',
+                fontSize: '11px',
+                ...mono,
+                letterSpacing: '0.04em',
+                cursor: canWigle && !wigleLoading ? 'pointer' : 'not-allowed',
+                background: wigleActive ? 'rgba(59,130,246,0.10)' : 'transparent',
+                color: wigleActive ? '#60a5fa' : 'var(--nav-text-inactive)',
+                opacity: canWigle ? 1 : 0.5,
+                display: 'flex',
+                alignItems: 'center',
               }}
             >
-              {onToggleAgenciesPanel && (
-                <div
-                  onClick={() => {
-                    onToggleAgenciesPanel();
-                    setLayersOpen(false);
-                  }}
+              {wigleLoading ? 'Loading...' : 'WIGLE'}
+              {!wigleLoading && selectedCount != null && selectedCount > 0 && (
+                <span
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '7px 10px',
-                    borderRadius: '5px',
-                    fontSize: '12px',
-                    ...mono,
-                    color: showAgenciesPanel ? '#60a5fa' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
+                    fontSize: '10px',
+                    padding: '1px 5px',
+                    borderRadius: '3px',
+                    background: 'rgba(59,130,246,0.2)',
+                    color: '#60a5fa',
+                    marginLeft: '5px',
                   }}
                 >
-                  <span>Agencies</span>
-                  {showAgenciesPanel && <span style={{ color: '#60a5fa' }}>✓</span>}
-                </div>
+                  {selectedCount}
+                </span>
               )}
-              {onToggleCourthousesPanel && (
-                <div
-                  onClick={() => {
-                    onToggleCourthousesPanel();
-                    setLayersOpen(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '7px 10px',
-                    borderRadius: '5px',
-                    fontSize: '12px',
-                    ...mono,
-                    color: showCourthousesPanel ? '#60a5fa' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  <span>Federal Courthouses</span>
-                  {showCourthousesPanel && <span style={{ color: '#60a5fa' }}>✓</span>}
-                </div>
-              )}
-            </div>
+            </button>
           )}
+          <button
+            onClick={onGps}
+            title="Go to GPS location"
+            style={{
+              height: '30px',
+              padding: '0 10px',
+              borderRadius: '6px',
+              border: 'none',
+              fontSize: '11px',
+              ...mono,
+              letterSpacing: '0.04em',
+              cursor: 'pointer',
+              background: 'transparent',
+              color: 'var(--nav-text-inactive)',
+              display: 'none',
+            }}
+          >
+            GPS
+          </button>
         </div>
-      )}
+
+        <Separator />
+
+        {/* Zone 5 — Layers dropdown */}
+        {(onToggleAgenciesPanel || onToggleCourthousesPanel) && (
+          <div ref={layersRef} style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              onClick={() => setLayersOpen((v) => !v)}
+              style={{
+                height: '28px',
+                padding: '0 10px',
+                borderRadius: '6px',
+                border: hasActiveLayers
+                  ? '0.5px solid rgba(59,130,246,0.3)'
+                  : '0.5px solid rgba(255,255,255,0.10)',
+                background: 'rgba(255,255,255,0.03)',
+                color: hasActiveLayers ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+                fontSize: '11px',
+                ...mono,
+                cursor: 'pointer',
+              }}
+            >
+              Layers ▾
+            </button>
+            {layersOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  left: 0,
+                  background: '#161b25',
+                  border: '0.5px solid rgba(59,130,246,0.15)',
+                  borderRadius: '8px',
+                  padding: '4px',
+                  minWidth: '180px',
+                  zIndex: 200,
+                }}
+              >
+                {onToggleAgenciesPanel && (
+                  <div
+                    onClick={() => {
+                      onToggleAgenciesPanel();
+                      setLayersOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      fontSize: '12px',
+                      ...mono,
+                      color: showAgenciesPanel ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span>Agencies</span>
+                    {showAgenciesPanel && <span style={{ color: '#60a5fa' }}>✓</span>}
+                  </div>
+                )}
+                {onToggleCourthousesPanel && (
+                  <div
+                    onClick={() => {
+                      onToggleCourthousesPanel();
+                      setLayersOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      fontSize: '12px',
+                      ...mono,
+                      color: showCourthousesPanel ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span>Federal Courthouses</span>
+                    {showCourthousesPanel && <span style={{ color: '#60a5fa' }}>✓</span>}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Flex spacer */}
       <div style={{ flex: 1 }} />
