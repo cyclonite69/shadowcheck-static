@@ -225,7 +225,6 @@ body {
     border: none !important;
     box-shadow: none !important;
     border-radius: 9px;
-    overflow: visible !important;
   }
 
   .sc-popup .mapboxgl-popup-tip {

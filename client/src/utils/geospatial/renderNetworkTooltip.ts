@@ -285,7 +285,7 @@ export const renderNetworkTooltip = (props: any): string => {
   // Helper to display security: show for WiFi, hide UNKNOWN/OPEN for BLE/BT
   const getSecurityDisplay = (): string | null => {
     if (!securityValue || securityValue === 'UNKNOWN') return null;
-    const isBluetooth = type === 'BLE' || type === 'BT' || type === 'B';
+    const isBluetooth = tech === 'ble' || tech === 'bt_classic';
     if (isBluetooth && securityValue === 'OPEN') return '—';
     if (isWiFi) return securityValue;
     if (isBluetooth && securityValue && securityValue !== 'OPEN') return securityValue;
