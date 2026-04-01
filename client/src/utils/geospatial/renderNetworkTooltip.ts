@@ -141,7 +141,7 @@ const getRadioSVG = (type: string, color: string) => {
     Stingray: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="${color}"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>`,
     Unknown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="${color}"/></svg>`,
   };
-  return iconMap[type] || iconMap['WiFi'];
+  return iconMap[type] || iconMap['Unknown'];
 };
 
 function formatThreatFactors(factors: any): string {
@@ -281,13 +281,23 @@ export const renderNetworkTooltip = (props: any): string => {
       : '';
 
   const securityValue = String(props.encryption || props.security || '').toUpperCase();
-  const showSecurity = isWiFi && securityValue && securityValue !== 'UNKNOWN';
+
+  // Helper to display security: show for WiFi, hide UNKNOWN/OPEN for BLE/BT
+  const getSecurityDisplay = (): string | null => {
+    if (!securityValue || securityValue === 'UNKNOWN') return null;
+    const isBluetooth = type === 'BLE' || type === 'BT' || type === 'B';
+    if (isBluetooth && securityValue === 'OPEN') return '—';
+    if (isWiFi) return securityValue;
+    if (isBluetooth && securityValue && securityValue !== 'OPEN') return securityValue;
+    return null;
+  };
+
+  const displaySecurity = getSecurityDisplay();
+  const showSecurity = !!displaySecurity;
 
   const fieldRows = [
     isStingray ? fieldRow('SIGINT Type', 'Stingray') : '',
-    showSecurity
-      ? fieldRow('Encryption', normalizeDisplay(props.encryption || props.security))
-      : '',
+    showSecurity ? fieldRow('Encryption', displaySecurity) : '',
     btDeviceLabel ? fieldRow('Device Type', btDeviceLabel) : '',
     btInfo?.bondState ? fieldRow('Bond State', btInfo.bondState) : '',
     cellInfo?.carrier ? fieldRow('Carrier', cellInfo.carrier) : '',
