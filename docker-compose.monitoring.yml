@@ -3,7 +3,6 @@ services:
     image: grafana/grafana:latest
     container_name: shadowcheck_grafana
     restart: unless-stopped
-    network_mode: host
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-grafanaadmin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD from AWS Secrets Manager before starting Grafana}
@@ -11,14 +10,15 @@ services:
       - GF_SECURITY_ALLOW_EMBEDDING=${GF_SECURITY_ALLOW_EMBEDDING:-true}
       - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED:-false}
       - GF_AUTH_ANONYMOUS_ORG_ROLE=${GF_AUTH_ANONYMOUS_ORG_ROLE:-Viewer}
-      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:?Set GF_SERVER_ROOT_URL for the deployed Grafana URL}
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-http://localhost:8080/grafana/}
       - GF_SERVER_HTTP_PORT=${GF_SERVER_HTTP_PORT:-3002}
       - GF_SERVER_SERVE_FROM_SUB_PATH=${GF_SERVER_SERVE_FROM_SUB_PATH:-true}
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=${GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH:-/etc/grafana/provisioning/dashboards/shadowcheck_overview.json}
       - GRAFANA_READER_PASSWORD=${GRAFANA_READER_PASSWORD:?Set GRAFANA_READER_PASSWORD from AWS Secrets Manager before starting Grafana}
-      # Database connection for provisioned datasource (postgres.yml)
       - DB_HOST=localhost
       - DB_PORT=5432
+    ports:
+      - "127.0.0.1:3002:3002"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning
