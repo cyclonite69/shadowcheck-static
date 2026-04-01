@@ -500,7 +500,11 @@ export const MapToolbar = ({
           <button
             onClick={onToggle3DBuildings}
             disabled={!is3DBuildingsAvailable}
-            title={is3DBuildingsAvailable ? 'Toggle 3D' : '3D unavailable for this style'}
+            title={
+              is3DBuildingsAvailable
+                ? 'Show/hide 3D building extrusions on the map'
+                : '3D buildings unavailable for this map style'
+            }
             style={{
               height: '26px',
               padding: '0 10px',
@@ -523,6 +527,7 @@ export const MapToolbar = ({
           </button>
           <button
             onClick={onToggleTerrain}
+            title="Show/hide terrain elevation on the map"
             style={{
               height: '26px',
               padding: '0 10px',
@@ -553,7 +558,7 @@ export const MapToolbar = ({
         >
           <button
             onClick={() => onToggleNetworkSummaries?.(!showNetworkSummaries)}
-            title="Toggle network summaries"
+            title="Show/hide marker overlays for network summary positions: centroids (◊) represent the geometric center, weighted markers (▲) represent the signal-weighted average location"
             style={{
               height: '30px',
               padding: '0 10px',
@@ -567,13 +572,19 @@ export const MapToolbar = ({
               color: showNetworkSummaries ? '#60a5fa' : 'var(--nav-text-inactive)',
             }}
           >
-            <span className="hidden-narrow">Networks</span>
+            <span className="hidden-narrow">Markers</span>
           </button>
           {onWigle && (
             <button
               onClick={onWigle}
               disabled={!canWigle || wigleLoading}
-              title="Toggle WiGLE observations"
+              title={
+                wigleLoading
+                  ? 'Loading WiGLE data...'
+                  : canWigle
+                    ? 'Fetch and display observations from WiGLE API for selected networks'
+                    : 'Select networks to fetch WiGLE observations'
+              }
               style={{
                 height: '30px',
                 padding: '0 10px',
@@ -609,7 +620,7 @@ export const MapToolbar = ({
           )}
           <button
             onClick={onGps}
-            title="Go to GPS location"
+            title="Pan map to your current GPS location"
             style={{
               height: '30px',
               padding: '0 10px',
