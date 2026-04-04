@@ -26,7 +26,18 @@ const inferMediaType = (mimetype: string | undefined) =>
   mimetype?.startsWith('video/') ? 'video' : mimetype === 'application/pdf' ? 'document' : 'image';
 
 type MediaService = {
-  addNoteMedia: (...args: any[]) => Promise<{ id: number }>;
+  addNoteMedia: (...args: any[]) => Promise<{
+    id: number;
+    note_id?: number;
+    bssid?: string;
+    file_path?: string;
+    file_name?: string;
+    file_size?: number;
+    media_type?: string;
+    mime_type?: string;
+    storage_backend?: string;
+    created_at?: string;
+  }>;
 };
 
 const handleNoteMediaUpload = async (
@@ -35,30 +46,47 @@ const handleNoteMediaUpload = async (
   service: MediaService,
   logger: typeof import('../../../../logging/logger')
 ) => {
-  const { noteId } = req.params;
-  const { bssid } = req.body;
-  if (!req.file) {
-    return res.status(400).json({ ok: false, error: 'No file provided' });
+  try {
+    const { noteId } = req.params;
+    const { bssid } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: 'No file provided' });
+    }
+    const mediaType = inferMediaType(req.file.mimetype);
+    const media = await service.addNoteMedia(
+      noteId,
+      bssid,
+      null,
+      req.file.originalname,
+      req.file.size,
+      mediaType,
+      req.file.buffer,
+      req.file.mimetype || null,
+      'db'
+    );
+    res.json({
+      ok: true,
+      note_id: noteId,
+      media_id: media.id,
+      file_path: `/api/media/${media.id}`,
+      file_name: media.file_name,
+      file_size: media.file_size,
+      mime_type: media.mime_type,
+      message: 'Media uploaded',
+    });
+  } catch (error: any) {
+    logger.error('Note media upload failed:', error);
+    const statusCode = error.code === '23502' ? 400 : 500; // 23502 = NOT NULL violation
+    const message =
+      error.code === '23502'
+        ? 'Invalid BSSID: network not found'
+        : error.message || 'Failed to upload media';
+    res.status(statusCode).json({
+      ok: false,
+      error: message,
+      details: error.message,
+    });
   }
-  const mediaType = inferMediaType(req.file.mimetype);
-  const media = await service.addNoteMedia(
-    noteId,
-    bssid,
-    null,
-    req.file.originalname,
-    req.file.size,
-    mediaType,
-    req.file.buffer,
-    req.file.mimetype || null,
-    'db'
-  );
-  res.json({
-    ok: true,
-    note_id: noteId,
-    media_id: media.id,
-    file_path: `/api/media/${media.id}`,
-    message: 'Media uploaded',
-  });
 };
 
 const serveNoteMedia = async (
