@@ -160,26 +160,8 @@ export async function insertNoteMedia(
   const result = await adminQuery(
     `INSERT INTO app.note_media
       (note_id, bssid, file_path, file_name, file_size, media_type, media_data, mime_type, storage_backend)
-     VALUES (
-       $1,
-       CASE
-         WHEN EXISTS (
-           SELECT 1
-           FROM app.access_points ap
-           WHERE UPPER(ap.bssid) = UPPER($2)
-         )
-         THEN $2
-         ELSE NULL
-       END,
-       $3,
-       $4,
-       $5,
-       $6,
-       $7,
-       $8,
-       $9
-     )
-     RETURNING id, file_path, storage_backend`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, note_id, bssid, file_path, file_name, file_size, media_type, mime_type, storage_backend, created_at`,
     [noteId, bssid, filePath, fileName, fileSize, mediaType, mediaData, mimeType, storageBackend]
   );
   return result.rows[0];
