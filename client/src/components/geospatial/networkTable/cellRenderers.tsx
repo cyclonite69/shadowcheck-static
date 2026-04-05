@@ -11,6 +11,7 @@ import {
   getTimespanBadgeStyle,
   getTimespanDisplay,
 } from '../../../utils/networkFormatting';
+import { formatSecurity } from '../../../utils/wigle/security';
 import {
   formatCoordOverview,
   formatAltitude,
@@ -153,7 +154,7 @@ const renderChannel = ({ value, row }: NetworkTableCellRendererContext) => {
   }
 
   return {
-    content: <span>{networkType === 'W' ? 'N/A' : '—'}</span>,
+    content: <span>—</span>,
     style: { color: '#cbd5e1' },
   };
 };
@@ -199,7 +200,7 @@ const renderTimespanDays = ({ value }: NetworkTableCellRendererContext) => {
   }
 
   return {
-    content: <span>Not computed</span>,
+    content: <span>—</span>,
     style: { color: '#94a3b8' },
   };
 };
@@ -273,20 +274,25 @@ const getSecurityTooltip = (
   security: string | null | undefined,
   capabilities: string | null | undefined
 ) => {
-  const normalizedSecurity = typeof security === 'string' ? security.trim().toUpperCase() : '';
-  const normalizedCapabilities = typeof capabilities === 'string' ? capabilities.trim() : '';
-  const displaySecurity =
-    normalizedSecurity && !normalizedSecurity.startsWith('UNKNOWN') && normalizedSecurity !== '—'
-      ? normalizedSecurity
-      : '';
-
-  if (displaySecurity && normalizedCapabilities) {
-    return displaySecurity === normalizedCapabilities.toUpperCase()
-      ? normalizedCapabilities
-      : `${displaySecurity} | ${normalizedCapabilities}`;
+  const displaySecurity = formatSecurity(capabilities, security).trim().toUpperCase();
+  if (!displaySecurity || displaySecurity.startsWith('UNKNOWN') || displaySecurity === '—') {
+    return undefined;
   }
 
-  return normalizedCapabilities || displaySecurity || undefined;
+  const rawCapabilities = typeof capabilities === 'string' ? capabilities.trim() : '';
+  const normalizedRawCapabilities = rawCapabilities.toUpperCase();
+  const hasStructuredCapabilities =
+    normalizedRawCapabilities.includes('[') ||
+    /(WPA|RSN|WEP|WPS|OWE|SAE|TKIP|CCMP|EAP|ESS|IBSS)/.test(normalizedRawCapabilities);
+  const shouldIncludeRawCapabilities =
+    hasStructuredCapabilities &&
+    rawCapabilities.length > 0 &&
+    normalizedRawCapabilities !== displaySecurity &&
+    normalizedRawCapabilities !== 'OPEN' &&
+    normalizedRawCapabilities !== 'OPEN/UNKNOWN' &&
+    normalizedRawCapabilities !== 'NONE';
+
+  return shouldIncludeRawCapabilities ? `${displaySecurity} | ${rawCapabilities}` : displaySecurity;
 };
 
 const renderSecurity = ({ value, row }: NetworkTableCellRendererContext) => {
@@ -301,7 +307,7 @@ const renderSecurity = ({ value, row }: NetworkTableCellRendererContext) => {
 
 const renderNotesCount = ({ value }: NetworkTableCellRendererContext) => {
   const count = typeof value === 'number' ? value : null;
-  const notesContent = <span>{count && count > 0 ? count : '—'}</span>;
+  const notesContent = <span>{count && count > 0 ? 'Yes' : '—'}</span>;
   const tooltip = count && count > 0 ? `${count} note${count === 1 ? '' : 's'}` : undefined;
 
   return {
@@ -309,13 +315,32 @@ const renderNotesCount = ({ value }: NetworkTableCellRendererContext) => {
   };
 };
 
+const formatPercentLabel = (value: number | null | undefined) => {
+  if (value == null || !Number.isFinite(value)) return null;
+  const percent = value * 100;
+  return Number.isInteger(percent) ? `${percent}%` : `${percent.toFixed(1)}%`;
+};
+
 const renderStationaryConfidence = ({ value }: NetworkTableCellRendererContext) => {
-  const percent = typeof value === 'number' ? Math.round(value * 100) : null;
-  const confidenceContent = <span>{percent != null ? `${percent}%` : '—'}</span>;
-  const tooltip = percent != null ? `Stationary confidence: ${percent}%` : undefined;
+  const raw = typeof value === 'number' ? value : null;
+  const label = formatPercentLabel(raw);
+  const confidenceContent = <span>{label ?? '—'}</span>;
+  const tooltip = raw != null ? `Stationary confidence: ${(raw * 100).toFixed(4)}%` : undefined;
 
   return {
     content: tooltip ? <Tooltip content={tooltip}>{confidenceContent}</Tooltip> : confidenceContent,
+  };
+};
+
+const renderGeocodedConfidence = ({ value }: NetworkTableCellRendererContext) => {
+  const raw = typeof value === 'number' ? value : null;
+  const label = formatPercentLabel(raw);
+  const confidenceContent = <span>{label ?? '—'}</span>;
+  const tooltip = raw != null ? `Geocoding confidence: ${(raw * 100).toFixed(4)}%` : undefined;
+
+  return {
+    content: tooltip ? <Tooltip content={tooltip}>{confidenceContent}</Tooltip> : confidenceContent,
+    title: tooltip,
   };
 };
 
@@ -468,13 +493,42 @@ const defaultValue = (value: unknown) => {
     return value;
   }
   if (value == null) {
-    return 'N/A';
+    return '—';
   }
   return '—';
 };
 
 const defaultTitle = (value: unknown) =>
   typeof value === 'string' || typeof value === 'number' ? String(value) : undefined;
+
+const renderPresence = ({ value }: NetworkTableCellRendererContext) => {
+  const isPresent = value === true;
+  return {
+    content: <span>{isPresent ? 'Yes' : '—'}</span>,
+  };
+};
+
+const renderTruncatedText = ({ value }: NetworkTableCellRendererContext) => {
+  const text = typeof value === 'string' ? value.trim() : '';
+  const label = text || '—';
+  const content = (
+    <span
+      style={{
+        display: 'block',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </span>
+  );
+
+  return {
+    content: text ? <Tooltip content={text}>{content}</Tooltip> : content,
+    title: text || undefined,
+  };
+};
 
 const columnRenderers: Partial<
   Record<
@@ -497,7 +551,19 @@ const columnRenderers: Partial<
   distanceFromHome: renderDistanceFromHome,
   max_distance_meters: renderMaxDistance,
   notes_count: renderNotesCount,
+  is_ignored: renderPresence,
   stationaryConfidence: renderStationaryConfidence,
+  geocoded_confidence: renderGeocodedConfidence,
+  manufacturer: renderTruncatedText,
+  geocoded_address: renderTruncatedText,
+  geocoded_city: renderTruncatedText,
+  geocoded_state: renderTruncatedText,
+  geocoded_postal_code: renderTruncatedText,
+  geocoded_country: renderTruncatedText,
+  geocoded_poi_name: renderTruncatedText,
+  geocoded_poi_category: renderTruncatedText,
+  geocoded_feature_type: renderTruncatedText,
+  geocoded_provider: renderTruncatedText,
   accuracy: renderAccuracyCell,
   latitude: renderLatitude,
   longitude: renderLongitude,
