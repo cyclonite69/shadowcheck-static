@@ -11,22 +11,34 @@
 ### Core Tables
 
 ```sql
--- Networks (WiFi, BLE, Cellular)
-app.networks             -- Network metadata (bssid, ssid, type, encryption)
-app.observations         -- Observation records (lat, lon, signal, time)
+-- Canonical network/observation layer
+app.networks                  -- Canonical network metadata used by explorer flows
+app.observations              -- Canonical local observation records
+app.api_network_explorer_mv   -- Explorer-facing materialized view with geocoded_* enrichment
 
--- Classifications
-app.network_tags         -- Manual classifications (threat, false_positive, known_safe)
-app.location_markers     -- Home/work locations for threat analysis
-...
-_Last Updated: 2026-03-14_
-app.wigle_networks_enriched  -- WiGLE API enrichment data
-app.radio_manufacturers      -- OUI → manufacturer mapping
+-- Import and reconciliation
+app.import_history            -- Audit trail for SQLite/KML/WiGLE imports
+app.networks_orphans          -- Parent-only network rows peeled out of canonical networks
+app.orphan_network_backfills  -- Lightweight orphan WiGLE lookup status
+
+-- Classification / reference
+app.network_tags              -- Manual classifications (threat, false_positive, known_safe)
+app.location_markers          -- Home/work locations for threat analysis
+app.radio_manufacturers       -- OUI -> manufacturer mapping
+
+-- External evidence
+app.wigle_v3_network_details  -- WiGLE detail records keyed by netid
+app.wigle_v3_observations     -- WiGLE observation rows keyed to v3 detail records
 
 -- ML
 app.ml_model_metadata        -- ML model versioning
 app.network_threat_scores    -- Precomputed threat scores
 ```
+
+Operational rule:
+
+- `app.networks` stays canonical.
+- orphan-triggered WiGLE checks write to `app.wigle_v3_*` plus `app.orphan_network_backfills`, not back into canonical `app.networks`.
 
 ---
 
@@ -148,11 +160,12 @@ $$ LANGUAGE plpgsql;
 ### Apply Migrations
 
 ```bash
-# Direct connection
-psql -U shadowcheck_admin -d shadowcheck_db -f sql/migrations/00_init_schema.sql
+# Review migration ordering / folded state
+cat sql/migrations/README.md
 
-# Via Docker
-docker exec -i postgres psql -U shadowcheck_admin -d shadowcheck_db < sql/migrations/00_init_schema.sql
+# Apply a specific migration manually
+docker exec -e PGPASSWORD=\"$DB_ADMIN_PASSWORD\" -i shadowcheck_postgres \\
+  psql -U shadowcheck_admin -d shadowcheck_db < sql/migrations/<migration>.sql
 ```
 
 ### Migration Order
@@ -211,3 +224,5 @@ VACUUM ANALYZE;
 - [Development](Development) - Database management in development
 - [API Reference](API-Reference) - API endpoints that query the database
 - [Security](Security) - Database security model
+
+_Last Updated: 2026-04-05_

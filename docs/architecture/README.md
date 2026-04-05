@@ -15,8 +15,8 @@ Suggested filenames:
 
 Current assets:
 
-- [ShadowCheck SIGINT Forensics PDF](./ShadowCheck_SIGINT_Forensics.pdf) - exported architecture reference deck
-- [NotebookLM Mind Map PNG](./NotebookLM%20Mind%20Map.png) - visual mind map / architecture overview
+- No standalone architecture binaries are currently checked in.
+- Treat [`../ARCHITECTURE.md`](../ARCHITECTURE.md) and the wiki architecture page as the current source of truth.
 
 Notes:
 

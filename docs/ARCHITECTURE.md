@@ -30,8 +30,8 @@ ShadowCheck-Web is a SIGINT (Signals Intelligence) forensics platform built on a
 Additional architecture assets:
 
 - [Architecture Assets Index](architecture/README.md)
-- [ShadowCheck SIGINT Forensics PDF](architecture/ShadowCheck_SIGINT_Forensics.pdf)
-- [NotebookLM Mind Map PNG](architecture/NotebookLM%20Mind%20Map.png)
+
+Diagrams currently live in the wiki Mermaid blocks and this document. No versioned PDF/PNG architecture exports are checked in right now.
 
 ### Core Components
 
@@ -385,16 +385,19 @@ For detailed operational details, see **[GEOCODING_DAEMON.md](GEOCODING_DAEMON.m
 
 ### Core Entities
 
-| Table                       | Primary Key | Description                                                |
-| :-------------------------- | :---------- | :--------------------------------------------------------- |
-| `app.networks`              | `bssid`     | Master registry of detected wireless networks.             |
-| `app.observations`          | `id`        | Individual sightings with signal strength and coordinates. |
-| `app.network_tags`          | `id`        | Manual classifications and forensic notes.                 |
-| `app.location_markers`      | `id`        | User-defined points of interest (Home, Work).              |
-| `app.agency_offices`        | `id`        | FBI Field Offices and Resident Agencies dataset.           |
-| `app.federal_courthouses`   | `id`        | US District and Circuit Court locations (357 records).     |
-| `app.radio_manufacturers`   | `prefix`    | Standardized OUI-to-vendor mapping (74k+ records).         |
-| `app.wigle_v3_observations` | `id`        | Crowdsourced enrichment data from WiGLE API.               |
+| Table                          | Primary Key | Description                                                                      |
+| :----------------------------- | :---------- | :------------------------------------------------------------------------------- |
+| `app.networks`                 | `bssid`     | Master registry of detected wireless networks.                                   |
+| `app.networks_orphans`         | `bssid`     | Holding area for parent-only network rows removed from canonical explorer state. |
+| `app.observations`             | `id`        | Individual sightings with signal strength and coordinates.                       |
+| `app.import_history`           | `id`        | Import audit trail for SQLite, KML, and related ETL runs.                        |
+| `app.network_tags`             | `id`        | Manual classifications and forensic notes.                                       |
+| `app.location_markers`         | `id`        | User-defined points of interest (Home, Work).                                    |
+| `app.agency_offices`           | `id`        | FBI Field Offices and Resident Agencies dataset.                                 |
+| `app.federal_courthouses`      | `id`        | US District and Circuit Court locations (357 records).                           |
+| `app.radio_manufacturers`      | `prefix`    | Standardized OUI-to-vendor mapping (74k+ records).                               |
+| `app.wigle_v3_observations`    | `id`        | Crowdsourced enrichment data from WiGLE API.                                     |
+| `app.orphan_network_backfills` | `bssid`     | Minimal tracking for orphan-triggered WiGLE checks.                              |
 
 ### Entity Relationships
 
@@ -402,11 +405,13 @@ For detailed operational details, see **[GEOCODING_DAEMON.md](GEOCODING_DAEMON.m
 erDiagram
     networks ||--o{ observations : has
     networks ||--o{ network_tags : has
+    networks_orphans ||--o| orphan_network_backfills : tracked_by
     agency_offices }o--|| agency_offices : "RA belongs to FO"
     location_markers ||--o{ networks : "proximity source"
     federal_courthouses }o--|| federal_courthouses : "Divisional belongs to District"
     radio_manufacturers ||--o{ networks : "identifies vendor"
     wigle_v3_observations }o--|| networks : enriches
+    import_history ||--o{ networks_orphans : "may produce during import cleanup"
 ```
 
 ## Agency Offices Data Model

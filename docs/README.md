@@ -15,6 +15,7 @@ The wiki in `.github/wiki/` is the primary source for diagram-heavy documentatio
 
 - Do not add new docs unless they replace an existing page.
 - Wiki is the primary source for diagrams; docs are for concise current state.
+- If a diagram asset is missing, prefer updating the wiki Mermaid/source doc instead of linking to a dead binary export.
 
 ## Start Here
 
@@ -104,4 +105,4 @@ Historical notes are kept in dated markdown files and the `fixes/` directory. Pr
 
 ---
 
-**Last Updated:** 2026-03-22
+**Last Updated:** 2026-04-05

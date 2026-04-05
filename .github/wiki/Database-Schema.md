@@ -4,6 +4,13 @@
 
 > **Complete field-level documentation for all tables**
 
+Current-state note:
+
+- Canonical explorer rows live in `app.networks` plus `app.api_network_explorer_mv`.
+- Parent-only rows peeled out during import cleanup now live in `app.networks_orphans`.
+- Orphan WiGLE checks are tracked in `app.orphan_network_backfills`.
+- WiGLE evidence remains in `app.wigle_v3_network_details` and `app.wigle_v3_observations`.
+
 ---
 
 ## Complete Database Schema Diagram
@@ -17,6 +24,8 @@ erDiagram
     NETWORKS ||--o{ NETWORK_MEDIA : "has many"
     NETWORKS ||--o{ SSID_HISTORY : "tracks"
     NETWORKS ||--o{ NETWORK_THREAT_SCORES : "scored by"
+    NETWORKS_ORPHANS ||--o| ORPHAN_NETWORK_BACKFILLS : "tracked by"
+    IMPORT_HISTORY ||--o{ NETWORKS_ORPHANS : "may produce during import cleanup"
 
     %% Device Sources
     DEVICE_SOURCES ||--o{ NETWORKS : "sources"
@@ -66,6 +75,14 @@ erDiagram
         timestamptz threat_updated_at
     }
 
+    NETWORKS_ORPHANS {
+        text bssid PK
+        text ssid
+        text type
+        timestamptz moved_at
+        text move_reason
+    }
+
     OBSERVATIONS {
         bigint id PK
         text device_id FK
@@ -81,6 +98,18 @@ erDiagram
         timestamptz time
         bigint observed_at_ms
         geometry geom
+    }
+
+    IMPORT_HISTORY {
+        bigint id PK
+        text source_tag
+        text filename
+        integer imported
+        integer failed
+        text status
+        boolean backup_taken
+        timestamptz started_at
+        timestamptz finished_at
     }
 
     NETWORK_TAGS {
@@ -163,6 +192,16 @@ erDiagram
         text source
         timestamptz cached_at
         timestamptz expires_at
+    }
+
+    ORPHAN_NETWORK_BACKFILLS {
+        text bssid PK
+        text status
+        text matched_netid
+        boolean detail_imported
+        integer observations_imported
+        timestamptz last_attempted_at
+        text last_error
     }
 
     WIGLE_V3_OBSERVATIONS {

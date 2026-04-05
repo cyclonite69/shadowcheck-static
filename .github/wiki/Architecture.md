@@ -18,8 +18,8 @@ ShadowCheck uses a modern modular architecture combining:
 Additional reference assets:
 
 - [Architecture assets index](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/architecture/README.md)
-- [ShadowCheck SIGINT Forensics PDF](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/architecture/ShadowCheck_SIGINT_Forensics.pdf)
-- [NotebookLM Mind Map PNG](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/architecture/NotebookLM%20Mind%20Map.png)
+
+Standalone architecture PDF/PNG exports are not currently versioned in the repo; use the Mermaid diagrams on this page and the repo docs as the current source of truth.
 
 ---
 
