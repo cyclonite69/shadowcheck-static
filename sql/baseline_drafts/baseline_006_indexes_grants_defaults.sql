@@ -1,0 +1,30 @@
+-- ============================================================================
+-- DRAFT REFRESHED BASELINE 006
+-- indexes + grants + default privileges
+-- ============================================================================
+-- Status: planning draft only
+-- Not part of sql/run-migrations.sh
+--
+-- Intended scope:
+--   - indexes belonging to the folded cut line
+--   - stable grants/default privileges for folded objects
+--   - schema-level access needed for runtime roles after a fresh bootstrap
+--
+-- Primary source migrations to fold:
+--   - 20260216_consolidated_010_performance_indexes.sql
+--   - grant/default-privilege sections from:
+--       20260216_consolidated_003_auth_and_users.sql
+--       20260216_consolidated_006_wigle_integration.sql
+--       20260331_consolidated_011.sql
+--       20260331_consolidated_012_mv_centroid_fields.sql
+--
+-- Explicit exclusions:
+--   - 20260401_observations_upper_bssid_index.sql
+--   - 20260404_align_kml_staging_permissions.sql
+--   - post-restore repair grants that belong in restore/bootstrap scripts
+--
+-- Phase 3 implementation notes:
+--   1. Keep runtime grants and post-restore grants clearly separated.
+--   2. Validate shadowcheck_user login/session creation after fresh bootstrap.
+--   3. Validate shadowcheck_user access to explorer MV, wigle_v3 tables, and import history.
+--   4. Do not bury restore-specific fixes inside the baseline.

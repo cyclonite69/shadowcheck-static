@@ -1,0 +1,28 @@
+-- ============================================================================
+-- DRAFT REFRESHED BASELINE 001
+-- extensions + auth-adjacent schema objects
+-- ============================================================================
+-- Status: planning draft only
+-- Not part of sql/run-migrations.sh
+-- Do not move into sql/migrations/ until fresh-bootstrap and upgrade proofs exist.
+--
+-- Intended scope:
+--   - extensions and schema creation
+--   - auth-adjacent schema objects that are safe in a DB baseline
+--   - app.schema_migrations tracking table
+--
+-- Source migrations to fold:
+--   - 20260216_consolidated_001_extensions_and_schemas.sql
+--   - 20260216_consolidated_003_auth_and_users.sql
+--
+-- Explicit exclusions:
+--   - deploy/bootstrap password creation and ALTER ROLE password logic remain in:
+--       sql/init/00_bootstrap.sql
+--       docker/initdb/01-shadowcheck-local.sql
+--       docker/initdb/02-shadowcheck-local-post-restore.sql
+--   - runtime/post-restore grants remain separate until phase 3 verification
+--
+-- Phase 3 implementation notes:
+--   1. Inline only schema-safe auth objects here.
+--   2. Keep password/bootstrap behavior out of migration baselines.
+--   3. Ensure app.schema_migrations ownership and grants stay consistent with runner expectations.

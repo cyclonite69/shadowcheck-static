@@ -1,0 +1,35 @@
+-- ============================================================================
+-- DRAFT REFRESHED BASELINE 003
+-- external evidence + reference datasets
+-- ============================================================================
+-- Status: planning draft only
+-- Not part of sql/run-migrations.sh
+--
+-- Intended scope:
+--   - WiGLE integration tables
+--   - agency / courthouse reference data tables
+--   - radio manufacturer reference structures
+--
+-- Primary source migrations to fold:
+--   - 20260216_consolidated_006_wigle_integration.sql
+--   - 20260216_consolidated_007_agency_offices.sql
+--   - reference-table portions of 20260216_consolidated_004_network_analysis.sql
+--
+-- Candidate object families:
+--   - app.wigle_v2_networks_search
+--   - app.wigle_v3_network_details
+--   - app.wigle_v3_observations
+--   - app.wigle_import_runs
+--   - app.wigle_import_run_pages
+--   - app.agency_offices
+--   - app.federal_courthouses
+--   - app.radio_manufacturers
+--
+-- Explicit exclusions:
+--   - orphan-triggered WiGLE status tracking stays additive in:
+--       20260405_add_orphan_network_backfill_tracking.sql
+--
+-- Phase 3 implementation notes:
+--   1. Preserve the rule that WiGLE evidence remains external/non-canonical.
+--   2. Verify runtime privileges for shadowcheck_user on wigle_v3 tables after baseline refresh.
+--   3. Keep imported_at/default expressions aligned with current ETL expectations.

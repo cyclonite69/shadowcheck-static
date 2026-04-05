@@ -1,0 +1,36 @@
+-- ============================================================================
+-- DRAFT REFRESHED BASELINE 002
+-- core canonical tables
+-- ============================================================================
+-- Status: planning draft only
+-- Not part of sql/run-migrations.sh
+--
+-- Intended scope:
+--   - canonical app tables required for normal runtime
+--   - import_history and related operational tables that existed before the 20260401+ cut line
+--   - stable table/column additions through 20260331_consolidated_012_mv_centroid_fields.sql
+--
+-- Primary source migrations to fold:
+--   - 20260216_consolidated_002_core_tables.sql
+--   - 20260216_consolidated_004_network_analysis.sql
+--   - 20260216_consolidated_005_ml_and_scoring.sql
+--   - 20260331_consolidated_011.sql
+--
+-- Candidate object families:
+--   - app.networks
+--   - app.observations
+--   - app.network_tags
+--   - app.location_markers
+--   - app.import_history
+--   - app.network_locations
+--   - app.ai_insights
+--
+-- Explicit exclusions:
+--   - app.networks_orphans
+--   - app.orphan_network_backfills
+--   - post-20260401 KML staging / anchor point additions
+--
+-- Phase 3 implementation notes:
+--   1. Preserve canonical/orphan separation by keeping orphan tables additive for now.
+--   2. Keep column additions deduplicated against 20260331_consolidated_011.sql.
+--   3. Confirm restore-local-backup.sh still lands on the same post-restore grant model.

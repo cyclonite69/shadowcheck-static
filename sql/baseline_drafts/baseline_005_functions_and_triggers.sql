@@ -1,0 +1,31 @@
+-- ============================================================================
+-- DRAFT REFRESHED BASELINE 005
+-- functions + trigger logic
+-- ============================================================================
+-- Status: planning draft only
+-- Not part of sql/run-migrations.sh
+--
+-- Intended scope:
+--   - SQL functions
+--   - trigger functions
+--   - stable trigger declarations required by the cut-line schema
+--
+-- Primary source migrations to fold:
+--   - 20260216_consolidated_005_ml_and_scoring.sql
+--   - 20260216_consolidated_009_functions_and_triggers.sql
+--   - function/trigger portions of 20260216_consolidated_010_performance_indexes.sql
+--   - function/trigger portions of 20260331_consolidated_011.sql
+--
+-- Candidate object families:
+--   - threat scoring functions
+--   - refresh helpers
+--   - network location refresh/install functions
+--   - sibling detection functions
+--
+-- Explicit exclusions:
+--   - any function changes that depend on post-20260401 additive schema changes
+--
+-- Phase 3 implementation notes:
+--   1. Keep CREATE OR REPLACE order deterministic.
+--   2. Re-verify trigger install order against baseline 002/004 object creation.
+--   3. Confirm no function body still assumes pre-fold legacy object names.
