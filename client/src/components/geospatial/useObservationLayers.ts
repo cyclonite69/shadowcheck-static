@@ -33,6 +33,7 @@ type ObservationLayerProps = {
   mapReady: boolean;
   mapRef: MutableRefObject<MapboxMap | null>;
   mapboxRef: MutableRefObject<typeof mapboxglType | null>;
+  mapStyle?: string;
   activeObservationSets: ObservationSet[];
   networkLookup: Map<string, NetworkRow>;
   wigleObservations?: WigleObservationsState;
@@ -45,6 +46,7 @@ export const useObservationLayers = ({
   mapReady,
   mapRef,
   mapboxRef,
+  mapStyle,
   activeObservationSets,
   networkLookup,
   wigleObservations,
@@ -212,30 +214,45 @@ export const useObservationLayers = ({
         },
       }));
 
-    if (map.getSource('observations')) {
-      (map.getSource('observations') as GeoJSONSource).setData({
+    const syncObservationSources = () => {
+      const observationSource = map.getSource('observations') as GeoJSONSource | undefined;
+      const lineSource = map.getSource('observation-lines') as GeoJSONSource | undefined;
+      if (!observationSource || !lineSource) return false;
+
+      observationSource.setData({
         type: 'FeatureCollection',
         features: features as any,
       });
-    }
 
-    if (map.getSource('observation-lines')) {
-      (map.getSource('observation-lines') as GeoJSONSource).setData({
+      lineSource.setData({
         type: 'FeatureCollection',
         features: lineFeatures as any,
       });
-    }
 
-    // Auto-zoom to fit bounds of all observations (skip if locked)
-    if (features.length > 0 && !isViewportLocked) {
-      const coords = features.map((f: any) => f.geometry.coordinates as [number, number]);
-      const bounds = coords.reduce(
-        (bounds, coord) => bounds.extend(coord),
-        new mapboxgl.LngLatBounds(coords[0], coords[0])
-      );
-      fitBoundsWithZoomInset(map, bounds, { padding: 80, duration: 1000, maxZoom: 15 });
-    }
-  }, [activeObservationSets, mapReady, mapRef, mapboxRef, isViewportLocked]);
+      // Auto-zoom to fit bounds of all observations (skip if locked)
+      if (features.length > 0 && !isViewportLocked) {
+        const coords = features.map((f: any) => f.geometry.coordinates as [number, number]);
+        const bounds = coords.reduce(
+          (bounds, coord) => bounds.extend(coord),
+          new mapboxgl.LngLatBounds(coords[0], coords[0])
+        );
+        fitBoundsWithZoomInset(map, bounds, { padding: 80, duration: 1000, maxZoom: 15 });
+      }
+
+      return true;
+    };
+
+    if (syncObservationSources()) return;
+
+    const handleStyleLoad = () => {
+      syncObservationSources();
+    };
+
+    map.once('style.load', handleStyleLoad);
+    return () => {
+      map.off('style.load', handleStyleLoad);
+    };
+  }, [activeObservationSets, mapReady, mapRef, mapboxRef, isViewportLocked, mapStyle]);
 
   // WiGLE observations layer effect
   useEffect(() => {
@@ -267,125 +284,143 @@ export const useObservationLayers = ({
       }
     };
 
-    // Add WiGLE observations source if it doesn't exist
-    if (!map.getSource('wigle-observations')) {
-      map.addSource('wigle-observations', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [],
-        },
-      });
+    const handleUniqueClick = (e: MapLayerMouseEvent) => {
+      if (!e.features || e.features.length === 0) return;
+      const feature = e.features[0];
+      const props = feature.properties;
+      if (!props) return;
 
-      // WiGLE unique observations - diamond markers (orange)
-      map.addLayer({
-        id: 'wigle-unique-points',
-        type: 'circle',
-        source: 'wigle-observations',
-        filter: ['==', ['get', 'source'], 'wigle_unique'],
-        paint: {
-          'circle-radius': 7,
-          'circle-color': '#f59e0b', // amber-500
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#ffffff',
-          'circle-opacity': 0.9,
-        },
-      });
+      const coords = (feature.geometry as any).coordinates;
 
-      // WiGLE matched observations - smaller dots (green)
-      map.addLayer({
-        id: 'wigle-matched-points',
-        type: 'circle',
-        source: 'wigle-observations',
-        filter: ['==', ['get', 'source'], 'matched'],
-        paint: {
-          'circle-radius': 5,
-          'circle-color': '#22c55e', // green-500
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#ffffff',
-          'circle-opacity': 0.7,
-        },
-      });
+      new (mapboxgl as any).Popup({
+        maxWidth: 'min(360px, 90vw)',
+        className: 'sc-popup',
+        offset: 14,
+        focusAfterOpen: false,
+      })
+        .setLngLat(coords)
+        .setHTML(
+          renderWigleObservationPopupCard({
+            ssid: props.ssid,
+            time: props.time,
+            signal: props.level,
+            channel: props.channel,
+            distanceFromCenterMeters: props.distance_from_our_center_m,
+            matched: false,
+          })
+        )
+        .addTo(map);
+    };
 
-      // Add click handler for WiGLE observations
-      map.on('click', 'wigle-unique-points', (e: MapLayerMouseEvent) => {
-        if (!e.features || e.features.length === 0) return;
-        const feature = e.features[0];
-        const props = feature.properties;
-        if (!props) return;
+    const handleMatchedClick = (e: MapLayerMouseEvent) => {
+      if (!e.features || e.features.length === 0) return;
+      const feature = e.features[0];
+      const props = feature.properties;
+      if (!props) return;
 
-        const coords = (feature.geometry as any).coordinates;
+      const coords = (feature.geometry as any).coordinates;
 
-        new (mapboxgl as any).Popup({
-          maxWidth: 'min(360px, 90vw)',
-          className: 'sc-popup',
-          offset: 14,
-          focusAfterOpen: false,
-        })
-          .setLngLat(coords)
-          .setHTML(
-            renderWigleObservationPopupCard({
-              ssid: props.ssid,
-              time: props.time,
-              signal: props.level,
-              channel: props.channel,
-              distanceFromCenterMeters: props.distance_from_our_center_m,
-              matched: false,
-            })
-          )
-          .addTo(map);
-      });
+      new (mapboxgl as any).Popup({
+        maxWidth: 'min(360px, 90vw)',
+        className: 'sc-popup',
+        offset: 14,
+        focusAfterOpen: false,
+      })
+        .setLngLat(coords)
+        .setHTML(
+          renderWigleObservationPopupCard({
+            ssid: props.ssid,
+            time: props.time,
+            signal: props.level,
+            channel: props.channel,
+            matched: true,
+          })
+        )
+        .addTo(map);
+    };
 
-      map.on('click', 'wigle-matched-points', (e: MapLayerMouseEvent) => {
-        if (!e.features || e.features.length === 0) return;
-        const feature = e.features[0];
-        const props = feature.properties;
-        if (!props) return;
+    const handleUniqueEnter = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
 
-        const coords = (feature.geometry as any).coordinates;
+    const handleUniqueLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
 
-        new (mapboxgl as any).Popup({
-          maxWidth: 'min(360px, 90vw)',
-          className: 'sc-popup',
-          offset: 14,
-          focusAfterOpen: false,
-        })
-          .setLngLat(coords)
-          .setHTML(
-            renderWigleObservationPopupCard({
-              ssid: props.ssid,
-              time: props.time,
-              signal: props.level,
-              channel: props.channel,
-              matched: true,
-            })
-          )
-          .addTo(map);
-      });
+    const handleMatchedEnter = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
 
-      // Add context menu handlers
-      map.on('contextmenu', 'observation-points', handleContextMenu);
-      map.on('contextmenu', 'wigle-unique-points', handleContextMenu);
-      map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
+    const handleMatchedLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
 
-      // Hover cursor
-      map.on('mouseenter', 'wigle-unique-points', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'wigle-unique-points', () => {
-        map.getCanvas().style.cursor = '';
-      });
-      map.on('mouseenter', 'wigle-matched-points', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'wigle-matched-points', () => {
-        map.getCanvas().style.cursor = '';
-      });
-    }
+    const ensureWigleLayers = () => {
+      if (!map.isStyleLoaded()) return false;
 
-    // Update WiGLE observations data
-    const wigleSource = map.getSource('wigle-observations') as GeoJSONSource;
-    if (wigleSource) {
+      if (!map.getSource('wigle-observations')) {
+        map.addSource('wigle-observations', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [],
+          },
+        });
+      }
+
+      if (!map.getLayer('wigle-unique-points')) {
+        map.addLayer({
+          id: 'wigle-unique-points',
+          type: 'circle',
+          source: 'wigle-observations',
+          filter: ['==', ['get', 'source'], 'wigle_unique'],
+          paint: {
+            'circle-radius': 7,
+            'circle-color': '#f59e0b',
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': 0.9,
+          },
+        });
+        map.on('click', 'wigle-unique-points', handleUniqueClick);
+        map.on('contextmenu', 'wigle-unique-points', handleContextMenu);
+        map.on('mouseenter', 'wigle-unique-points', handleUniqueEnter);
+        map.on('mouseleave', 'wigle-unique-points', handleUniqueLeave);
+      }
+
+      if (!map.getLayer('wigle-matched-points')) {
+        map.addLayer({
+          id: 'wigle-matched-points',
+          type: 'circle',
+          source: 'wigle-observations',
+          filter: ['==', ['get', 'source'], 'matched'],
+          paint: {
+            'circle-radius': 5,
+            'circle-color': '#22c55e',
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': 0.7,
+          },
+        });
+        map.on('click', 'wigle-matched-points', handleMatchedClick);
+        map.on('contextmenu', 'wigle-matched-points', handleContextMenu);
+        map.on('mouseenter', 'wigle-matched-points', handleMatchedEnter);
+        map.on('mouseleave', 'wigle-matched-points', handleMatchedLeave);
+      }
+
+      if (map.getLayer('observation-points')) {
+        map.off('contextmenu', 'observation-points', handleContextMenu);
+        map.on('contextmenu', 'observation-points', handleContextMenu);
+      }
+
+      return true;
+    };
+
+    const syncWigleSource = () => {
+      if (!ensureWigleLayers()) return false;
+      const wigleSource = map.getSource('wigle-observations') as GeoJSONSource | undefined;
+      if (!wigleSource) return false;
+
       if (wigleObservations.observations.length > 0) {
         const features = wigleObservations.observations.map((obs, index) => ({
           type: 'Feature',
@@ -421,14 +456,47 @@ export const useObservationLayers = ({
           fitBoundsWithZoomInset(map, bounds, { padding: 80, duration: 1000 });
         }
       } else {
-        // Clear WiGLE observations
         wigleSource.setData({
           type: 'FeatureCollection',
           features: [],
         });
       }
+
+      return true;
+    };
+
+    if (syncWigleSource()) {
+      return () => {
+        map.off('click', 'wigle-unique-points', handleUniqueClick);
+        map.off('click', 'wigle-matched-points', handleMatchedClick);
+        map.off('contextmenu', 'observation-points', handleContextMenu);
+        map.off('contextmenu', 'wigle-unique-points', handleContextMenu);
+        map.off('contextmenu', 'wigle-matched-points', handleContextMenu);
+        map.off('mouseenter', 'wigle-unique-points', handleUniqueEnter);
+        map.off('mouseleave', 'wigle-unique-points', handleUniqueLeave);
+        map.off('mouseenter', 'wigle-matched-points', handleMatchedEnter);
+        map.off('mouseleave', 'wigle-matched-points', handleMatchedLeave);
+      };
     }
-  }, [mapReady, mapRef, mapboxRef, wigleObservations, isViewportLocked]);
+
+    const handleStyleLoad = () => {
+      syncWigleSource();
+    };
+
+    map.once('style.load', handleStyleLoad);
+    return () => {
+      map.off('style.load', handleStyleLoad);
+      map.off('click', 'wigle-unique-points', handleUniqueClick);
+      map.off('click', 'wigle-matched-points', handleMatchedClick);
+      map.off('contextmenu', 'observation-points', handleContextMenu);
+      map.off('contextmenu', 'wigle-unique-points', handleContextMenu);
+      map.off('contextmenu', 'wigle-matched-points', handleContextMenu);
+      map.off('mouseenter', 'wigle-unique-points', handleUniqueEnter);
+      map.off('mouseleave', 'wigle-unique-points', handleUniqueLeave);
+      map.off('mouseenter', 'wigle-matched-points', handleMatchedEnter);
+      map.off('mouseleave', 'wigle-matched-points', handleMatchedLeave);
+    };
+  }, [mapReady, mapRef, mapboxRef, wigleObservations, isViewportLocked, mapStyle]);
 
   // Network summary markers (centroid/weighted) layer effect
   useEffect(() => {
@@ -438,8 +506,9 @@ export const useObservationLayers = ({
     const mapboxgl = mapboxRef.current;
     if (!mapboxgl) return;
 
-    try {
-      // Add network summary source if it doesn't exist
+    const ensureSummaryLayers = () => {
+      if (!map.isStyleLoaded()) return false;
+
       if (!map.getSource('network-summaries')) {
         map.addSource('network-summaries', {
           type: 'geojson',
@@ -448,71 +517,67 @@ export const useObservationLayers = ({
             features: [],
           },
         });
-
-        // Centroid markers - hollow circles with blue stroke
-        if (!map.getLayer('network-centroid-markers')) {
-          map.addLayer({
-            id: 'network-centroid-markers',
-            type: 'circle',
-            source: 'network-summaries',
-            filter: ['==', ['get', 'markerType'], 'centroid'],
-            paint: {
-              'circle-radius': 12,
-              'circle-color': 'rgba(96, 165, 250, 0.1)',
-              'circle-stroke-width': 2.5,
-              'circle-stroke-color': '#60a5fa',
-              'circle-opacity': 1,
-            },
-          });
-        }
-
-        // Weighted markers - hollow circles with green stroke
-        if (!map.getLayer('network-weighted-markers')) {
-          map.addLayer({
-            id: 'network-weighted-markers',
-            type: 'circle',
-            source: 'network-summaries',
-            filter: ['==', ['get', 'markerType'], 'weighted'],
-            paint: {
-              'circle-radius': 12,
-              'circle-color': 'rgba(52, 211, 153, 0.1)',
-              'circle-stroke-width': 2.5,
-              'circle-stroke-color': '#34d399',
-              'circle-opacity': 1,
-            },
-          });
-        }
-
-        // Add labels to distinguish marker types
-        if (!map.getLayer('network-marker-labels')) {
-          map.addLayer({
-            id: 'network-marker-labels',
-            type: 'symbol',
-            source: 'network-summaries',
-            layout: {
-              'text-field': ['case', ['==', ['get', 'markerType'], 'centroid'], '◊', '▲'],
-              'text-size': 16,
-              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-              'text-allow-overlap': true,
-              'text-ignore-placement': true,
-              'text-offset': [0, 0],
-            },
-            paint: {
-              'text-color': [
-                'case',
-                ['==', ['get', 'markerType'], 'centroid'],
-                '#60a5fa',
-                '#34d399',
-              ],
-              'text-opacity': 0.9,
-            },
-          });
-        }
       }
 
-      // Update marker data based on showNetworkSummaries flag
-      const source = map.getSource('network-summaries') as GeoJSONSource;
-      if (!source) return;
+      if (!map.getLayer('network-centroid-markers')) {
+        map.addLayer({
+          id: 'network-centroid-markers',
+          type: 'circle',
+          source: 'network-summaries',
+          filter: ['==', ['get', 'markerType'], 'centroid'],
+          paint: {
+            'circle-radius': 12,
+            'circle-color': 'rgba(96, 165, 250, 0.1)',
+            'circle-stroke-width': 2.5,
+            'circle-stroke-color': '#60a5fa',
+            'circle-opacity': 1,
+          },
+        });
+      }
+
+      if (!map.getLayer('network-weighted-markers')) {
+        map.addLayer({
+          id: 'network-weighted-markers',
+          type: 'circle',
+          source: 'network-summaries',
+          filter: ['==', ['get', 'markerType'], 'weighted'],
+          paint: {
+            'circle-radius': 12,
+            'circle-color': 'rgba(52, 211, 153, 0.1)',
+            'circle-stroke-width': 2.5,
+            'circle-stroke-color': '#34d399',
+            'circle-opacity': 1,
+          },
+        });
+      }
+
+      if (!map.getLayer('network-marker-labels')) {
+        map.addLayer({
+          id: 'network-marker-labels',
+          type: 'symbol',
+          source: 'network-summaries',
+          layout: {
+            'text-field': ['case', ['==', ['get', 'markerType'], 'centroid'], '◊', '▲'],
+            'text-size': 16,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+            'text-offset': [0, 0],
+          },
+          paint: {
+            'text-color': ['case', ['==', ['get', 'markerType'], 'centroid'], '#60a5fa', '#34d399'],
+            'text-opacity': 0.9,
+          },
+        });
+      }
+
+      return true;
+    };
+
+    const syncSummarySource = () => {
+      if (!ensureSummaryLayers()) return false;
+      const source = map.getSource('network-summaries') as GeoJSONSource | undefined;
+      if (!source) return false;
 
       if (showNetworkSummaries && activeObservationSets.length > 0) {
         const summaryFeatures: any[] = [];
@@ -575,8 +640,21 @@ export const useObservationLayers = ({
           features: [],
         });
       }
+
+      return true;
+    };
+
+    try {
+      if (syncSummarySource()) return;
+      const handleStyleLoad = () => {
+        syncSummarySource();
+      };
+      map.once('style.load', handleStyleLoad);
+      return () => {
+        map.off('style.load', handleStyleLoad);
+      };
     } catch (err) {
       console.error('[useObservationLayers] Error managing network summary markers:', err);
     }
-  }, [mapReady, mapRef, mapboxRef, activeObservationSets, showNetworkSummaries]);
+  }, [mapReady, mapRef, mapboxRef, activeObservationSets, showNetworkSummaries, mapStyle]);
 };

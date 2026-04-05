@@ -258,6 +258,7 @@ export const useGeospatialExplorerState = ({
     mapReady,
     mapRef,
     mapboxRef,
+    mapStyle,
     activeObservationSets,
     networkLookup,
     wigleObservations,
