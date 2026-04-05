@@ -149,7 +149,7 @@ docker run \
 
 ### Database Configuration
 
-File: [`server/src/config/database.ts`](server/src/config/database.ts)
+File: [`server/src/config/database.ts`](../server/src/config/database.ts)
 
 ```typescript
 {
@@ -166,7 +166,7 @@ File: [`server/src/config/database.ts`](server/src/config/database.ts)
 
 ### Server Configuration
 
-File: [`server/src/utils/serverConfig.ts`](server/src/utils/serverConfig.ts)
+File: [`server/src/utils/serverConfig.ts`](../server/src/utils/serverConfig.ts)
 
 ```typescript
 {
@@ -282,6 +282,6 @@ Error: NODE_ENV must be 'production' or 'development'
 
 - [Development Guide](DEVELOPMENT.md)
 - [Deployment Guide](DEPLOYMENT.md)
-- [Security Guidelines](SECURITY.md)
+- [Security Guidelines](../SECURITY.md)
 - [Secrets Management](SECRETS.md)
 - [AWS Infrastructure](../deploy/aws/docs/AWS_INFRASTRUCTURE.md)

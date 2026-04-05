@@ -511,12 +511,76 @@ pg_dump -U shadowcheck_user -d shadowcheck_db -s > schema_backup.sql
 #### Restore Database
 
 ```bash
-# From custom format
-pg_restore -U shadowcheck_user -d shadowcheck_db backup.dump
-
-# From SQL
-psql -U shadowcheck_user -d shadowcheck_db < backup.sql
+# Preferred local restore path
+./scripts/restore-local-backup.sh /path/to/backup.dump
 ```
+
+Local restore behavior:
+
+- recreates `shadowcheck_db`
+- restores with `shadowcheck_admin`
+- reinstalls required extensions
+- reapplies privileges via [`docker/initdb/02-shadowcheck-local-post-restore.sql`](/home/dbcooper/repos/shadowcheck-web/docker/initdb/02-shadowcheck-local-post-restore.sql)
+
+Do not use [`docker/initdb/01-shadowcheck-local.sql`](/home/dbcooper/repos/shadowcheck-web/docker/initdb/01-shadowcheck-local.sql) as a post-restore replay file. It is the bootstrap/init file for first container start.
+
+#### SQLite Import
+
+```bash
+# Place SQLite sources here
+ls backups/sqlite/*.sqlite
+
+# Frontend path
+# Admin -> Data Import -> Import SQLite
+
+# CLI path
+npx tsx etl/load/sqlite-import.ts backups/sqlite/your-file.sqlite your_source_tag
+```
+
+Current SQLite import semantics:
+
+- observations import into `app.observations`
+- non-observation-backed parent rows are moved into `app.networks_orphans`
+- canonical `app.networks` should end with zero orphan rows
+- import audit runs are tracked in `app.import_history`
+
+#### Orphan Networks
+
+Orphan rows are intentionally preserved, not deleted:
+
+- `app.networks_orphans` holds parent-only rows peeled out of canonical `app.networks`
+- `app.orphan_network_backfills` tracks lightweight WiGLE backfill attempts
+- WiGLE hits write into:
+  - `app.wigle_v3_network_details`
+  - `app.wigle_v3_observations`
+- WiGLE misses are recorded as `no_wigle_match`
+- none of this automatically promotes data back into canonical `app.networks`
+
+#### Local Validation Loop
+
+```sql
+SELECT id, started_at, finished_at, status, source_tag, imported, failed, backup_taken
+FROM app.import_history
+ORDER BY started_at DESC
+LIMIT 1;
+
+SELECT COUNT(*) AS networks_orphans FROM app.networks_orphans;
+
+SELECT COUNT(*) AS canonical_orphans_remaining
+FROM app.networks n
+WHERE NOT EXISTS (
+  SELECT 1 FROM app.observations o WHERE o.bssid = n.bssid
+);
+```
+
+#### Database Roles and Privileges
+
+Local should mirror EC2 as closely as possible:
+
+- `shadowcheck_admin`: admin/import/migration role
+- `shadowcheck_user`: constrained runtime role
+
+When troubleshooting restore/import behavior, prefer aligning local grants with EC2’s actual role model rather than inventing a separate local privilege scheme.
 
 ### Useful Queries
 

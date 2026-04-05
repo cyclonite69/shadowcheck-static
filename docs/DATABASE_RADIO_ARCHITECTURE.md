@@ -2,6 +2,18 @@
 
 **Wiki versions (diagrams):** [Database](../.github/wiki/Database.md), [Database Schema](../.github/wiki/Database-Schema.md)
 
+## Current Operational Additions
+
+The design discussion below is architecture context, not a full live-schema inventory. The current platform also depends on:
+
+- `app.import_history` for import audit runs
+- `app.networks_orphans` for parent-only rows peeled out of canonical `app.networks`
+- `app.orphan_network_backfills` for lightweight WiGLE-check status on orphan rows
+- `app.wigle_v3_network_details` and `app.wigle_v3_observations` for external WiGLE evidence
+- `app.api_network_explorer_mv` as the explorer-facing materialized view, including `geocoded_*` enrichment columns
+
+Treat the wiki database pages as the current relationship view and this page as the architecture-rationale page.
+
 ## Current Situation
 
 ### ShadowCheckMobile (Separate Tables)

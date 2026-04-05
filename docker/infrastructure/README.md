@@ -224,9 +224,9 @@ For production deployments:
 ## See Also
 
 - [Project Root README](../../README.md)
-- [CLAUDE.md](../../CLAUDE.md) - Development guidance
-- [PROJECT_STRUCTURE.md](../../docs/architecture/PROJECT_STRUCTURE.md) - Directory organization
-- [docs/SHARED_INFRASTRUCTURE.md](../../docs/SHARED_INFRASTRUCTURE.md) - Detailed infrastructure docs
+- [docs/ai/CLAUDE.md](../../docs/ai/CLAUDE.md) - Development guidance
+- [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) - Current directory and service architecture
+- [deploy/README.md](../../deploy/README.md) - Deployment entry points and infrastructure guidance
 
 ---
 

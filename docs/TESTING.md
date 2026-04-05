@@ -69,10 +69,10 @@ Unit tests verify individual functions and modules in isolation.
 
 **Examples**:
 
-- [`escapeSQL.test.ts`](tests/unit/escapeSQL.test.ts) - SQL escaping utilities
-- [`filterQueryBuilder.test.ts`](tests/unit/filterQueryBuilder.test.ts) - Filter query builder
-- [`health.test.ts`](tests/unit/health.test.ts) - Health check endpoints
-- [`requestId.test.ts`](tests/unit/requestId.test.ts) - Request ID middleware
+- [`escapeSQL.test.ts`](../tests/unit/escapeSQL.test.ts) - SQL escaping utilities
+- [`filterQueryBuilder.test.ts`](../tests/unit/filterQueryBuilder.test.ts) - Filter query builder
+- [`health.test.ts`](../tests/unit/health.test.ts) - Health check endpoints
+- [`requestId.test.ts`](../tests/unit/requestId.test.ts) - Request ID middleware
 
 **Best Practices**:
 
@@ -91,14 +91,14 @@ Integration tests verify the interaction between multiple components or API endp
 
 **Examples**:
 
-- [`explorer-v2.test.ts`](tests/integration/explorer-v2.test.ts) - Explorer v2 functionality
-- [`like-escaping.test.ts`](tests/integration/like-escaping.test.ts) - SQL LIKE escaping
-- [`networks-data-integrity.test.ts`](tests/integration/networks-data-integrity.test.ts) - Data integrity
-- [`observability.test.ts`](tests/integration/observability.test.ts) - Observability features
-- [`route-refactoring-verification.test.ts`](tests/integration/route-refactoring-verification.test.ts) - Route tests
-- [`sql-injection-fixes.test.ts`](tests/integration/sql-injection-fixes.test.ts) - SQL injection prevention
+- [`explorer-v2.test.ts`](../tests/integration/explorer-v2.test.ts) - Explorer v2 functionality
+- [`like-escaping.test.ts`](../tests/integration/like-escaping.test.ts) - SQL LIKE escaping
+- [`networks-data-integrity.test.ts`](../tests/integration/networks-data-integrity.test.ts) - Data integrity
+- [`observability.test.ts`](../tests/integration/observability.test.ts) - Observability features
+- [`route-refactoring-verification.test.ts`](../tests/integration/route-refactoring-verification.test.ts) - Route tests
+- [`sql-injection-fixes.test.ts`](../tests/integration/sql-injection-fixes.test.ts) - SQL injection prevention
 
-**See also**: [`integration/README.md`](tests/integration/README.md)
+**See also**: [`integration/README.md`](../tests/integration/README.md)
 
 ### 3. API Tests (`tests/api/`)
 
@@ -108,7 +108,7 @@ API tests verify REST endpoint behavior.
 
 **Examples**:
 
-- [`dashboard.test.ts`](tests/api/dashboard.test.ts) - Dashboard API tests
+- [`dashboard.test.ts`](../tests/api/dashboard.test.ts) - Dashboard API tests
 
 ### 4. Helper Files (`tests/helpers/`)
 
@@ -116,13 +116,13 @@ Utilities for test setup and configuration.
 
 **Examples**:
 
-- [`integrationEnv.ts`](tests/helpers/integrationEnv.ts) - Integration environment setup
+- [`integrationEnv.ts`](../tests/helpers/integrationEnv.ts) - Integration environment setup
 
 ## Test Configuration
 
 ### Jest Configuration
 
-See [`jest.config.js`](jest.config.js) for Jest configuration.
+See [`jest.config.js`](../jest.config.js) for Jest configuration.
 
 ```javascript
 module.exports = {
@@ -137,7 +137,7 @@ module.exports = {
 
 ### Test Setup
 
-The [`tests/setup.ts`](tests/setup.ts) file contains:
+The [`tests/setup.ts`](../tests/setup.ts) file contains:
 
 - Mock setups- Global test configuration
 - Environment variable defaults
@@ -202,11 +202,11 @@ Run `npm run test:cov` to generate coverage reports.
 
 Client-side tests are located in:
 
-- [`client/src/components/admin/hooks/__tests__/`](client/src/components/admin/hooks/__tests__/)
+- [`client/src/components/admin/hooks/__tests__/`](../client/src/components/admin/hooks/__tests__/)
 
 **Example**:
 
-- [`useMLTraining.test.js`](client/src/components/admin/hooks/__tests__/useMLTraining.test.js)
+- [`useMLTraining.test.ts`](../client/src/components/admin/hooks/__tests__/useMLTraining.test.ts)
 
 ## Security Testing
 
@@ -214,10 +214,10 @@ Client-side tests are located in:
 
 Special attention is given to SQL injection prevention:
 
-- [`sql-injection-fixes.test.ts`](tests/integration/sql-injection-fixes.test.ts)
-- [`escapeSQL.test.ts`](tests/unit/escapeSQL.test.ts)
+- [`sql-injection-fixes.test.ts`](../tests/integration/sql-injection-fixes.test.ts)
+- [`escapeSQL.test.ts`](../tests/unit/escapeSQL.test.ts)
 
-All user inputs must be properly escaped. See [`server/src/utils/escapeSQL.ts`](server/src/utils/escapeSQL.ts).
+All user inputs must be properly escaped. See [`server/src/utils/escapeSQL.ts`](../server/src/utils/escapeSQL.ts).
 
 ### API Security Tests
 
@@ -255,7 +255,7 @@ Tests run automatically on:
 
 - Pull requests
 - Merges to main/develop branches
-- See [`.circleci/config.yml`](.circleci/config.yml)
+- See [`.circleci/config.yml`](../.circleci/config.yml)
 
 ## Test Data Management
 
@@ -324,12 +324,12 @@ Use mocking for:
 
 See the CI configuration:
 
-- [`.circleci/config.yml`](.circleci/config.yml)
-- [`.github/workflows/`](.github/workflows/)
+- [`.circleci/config.yml`](../.circleci/config.yml)
+- [`.github/workflows/`](../.github/workflows/)
 
 ## Related Documentation
 
 - [Development Guide](DEVELOPMENT.md)
 - [API Reference](API_REFERENCE.md)
-- [Security Guidelines](SECURITY.md)
-- [Database Schema](DATABASE_SCHEMA_ENTITIES.md)
+- [Security Guidelines](../SECURITY.md)
+- [Database Schema](DATABASE_RADIO_ARCHITECTURE.md)

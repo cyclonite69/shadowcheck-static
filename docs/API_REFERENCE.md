@@ -258,7 +258,7 @@ Filtered network list with universal filter support.
 
 - `page` (int, default: 1)
 - `limit` (int, default: 100, max: 5000)
-- Universal filter parameters (see [Universal Filter System](universal-filter-system.md))
+- Universal filter parameters (see [Features](FEATURES.md) for the unified filter overview)
 
 **Response:**
 
@@ -759,7 +759,42 @@ Refresh colocation data.
 
 ### POST /api/admin/import-sqlite 🔒
 
-Import SQLite database.
+Import a SQLite backup file into the canonical observation pipeline.
+
+Behavior:
+
+- records the run in `app.import_history`
+- optionally takes a pre-import PostgreSQL backup
+- imports observations into `app.observations`
+- preserves parent-only network rows in `app.networks_orphans`
+- leaves canonical `app.networks` observation-backed only
+
+Admin UI:
+
+- `Admin -> Data Import -> Import SQLite`
+
+Related endpoints:
+
+- `GET /api/admin/import-history`
+- `GET /api/admin/device-sources`
+- `GET /api/admin/orphan-networks`
+- `POST /api/admin/orphan-networks/:bssid/check-wigle`
+
+### GET /api/admin/orphan-networks 🔒
+
+List preserved orphan network rows from `app.networks_orphans` plus backfill status from `app.orphan_network_backfills`.
+
+### POST /api/admin/orphan-networks/:bssid/check-wigle 🔒
+
+Perform a lightweight WiGLE check for a single orphan row.
+
+Behavior:
+
+- on match, imports into:
+  - `app.wigle_v3_network_details`
+  - `app.wigle_v3_observations`
+- on miss, records `no_wigle_match` in `app.orphan_network_backfills`
+- does not automatically promote data into canonical `app.networks`
 
 ### GET /api/admin/network-summary/:bssid 🔒
 

@@ -110,12 +110,59 @@ export S3_BACKUP_BUCKET=dbcoopers-briefcase-161020170158
 ./scripts/restore-local-backup.sh ./backups/s3/<latest-backup>.dump
 ```
 
+What that restore script actually does:
+
+- drops and recreates `shadowcheck_db`
+- restores the dump as `shadowcheck_admin`
+- reinstalls required extensions (`postgis`, `pg_trgm`)
+- reapplies local post-restore grants from [`docker/initdb/02-shadowcheck-local-post-restore.sql`](/home/dbcooper/repos/shadowcheck-web/docker/initdb/02-shadowcheck-local-post-restore.sql)
+
+Important privilege-model note:
+
+- [`docker/initdb/01-shadowcheck-local.sql`](/home/dbcooper/repos/shadowcheck-web/docker/initdb/01-shadowcheck-local.sql) is bootstrap-only
+- it is not the post-restore file
+- local is intended to mirror EC2 closely:
+  - `shadowcheck_admin` is the powerful admin role
+  - `shadowcheck_user` is the constrained runtime role
+
+SQLite import sources should live under:
+
+```bash
+backups/sqlite/
+```
+
+The current import behavior is:
+
+- raw observations import into `app.observations`
+- parent-only network rows are preserved in `app.networks_orphans`
+- canonical `app.networks` should end with zero orphan rows
+- orphan review and WiGLE backfill now live under the admin `Data Import` tab
+
+Orphan backfill notes:
+
+- orphan rows stay in `app.networks_orphans`
+- WiGLE backfill writes to `app.wigle_v3_network_details` and `app.wigle_v3_observations`
+- misses are tracked in `app.orphan_network_backfills`
+- this does not automatically promote rows back into canonical `app.networks`
+
 If `api/v2/networks/filtered` or explorer pages fail after restore, refresh the
 materialized view used by those endpoints:
 
 ```bash
 docker exec shadowcheck_postgres_local psql -U shadowcheck_user -d shadowcheck_db -c \
   "REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;"
+```
+
+Useful local validation queries after restore/import:
+
+```sql
+SELECT COUNT(*) AS networks_orphans FROM app.networks_orphans;
+
+SELECT COUNT(*) AS canonical_orphans_remaining
+FROM app.networks n
+WHERE NOT EXISTS (
+  SELECT 1 FROM app.observations o WHERE o.bssid = n.bssid
+);
 ```
 
 Local shell helpers are also available:
