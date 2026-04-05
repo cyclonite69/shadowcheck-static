@@ -1,0 +1,34 @@
+-- ============================================================================
+-- DRAFT REFRESHED BASELINE 004
+-- analysis views + materialized views
+-- ============================================================================
+-- Status: planning draft only
+-- Not part of sql/run-migrations.sh
+--
+-- Intended scope:
+--   - stable non-cut-line views and materialized views
+--   - explorer MV state through centroid/weighted coordinate additions
+--
+-- Primary source migrations to fold:
+--   - 20260216_consolidated_004_network_analysis.sql
+--   - 20260216_consolidated_008_views_and_materialized_views.sql
+--   - 20260331_consolidated_011.sql
+--   - 20260331_consolidated_012_mv_centroid_fields.sql
+--
+-- Candidate object families:
+--   - app.api_network_explorer_mv
+--   - app.analytics_summary_mv
+--   - stable helper views used by explorer/analytics paths
+--
+-- Explicit exclusions:
+--   - 20260403_fix_api_network_explorer_distance_from_home.sql
+--   - 20260404_add_geocoding_to_api_network_explorer_mv.sql
+--
+-- Reason for exclusion:
+--   the current explorer MV is still changing operationally; keep post-20260401 MV mutations additive
+--   until local and EC2 migration proofs are stable.
+--
+-- Phase 3 implementation notes:
+--   1. Baseline 004 must document the exact MV generation point it represents.
+--   2. If 20260403/20260404 MV changes are later folded, create a new cut line.
+--   3. Verify distance_from_home, centroid_*, weighted_*, and future geocoded_* behavior separately.
