@@ -25,8 +25,8 @@ type MapStyleControlsProps = {
   networkLookup: Map<string, NetworkRow>;
   show3DBuildings: boolean;
   showTerrain: boolean;
-  toggle3DBuildings: (enabled: boolean) => void;
-  toggleTerrain: (enabled: boolean) => void;
+  add3DBuildings: () => boolean;
+  addTerrain: () => void;
   logError: (message: string, error?: unknown) => void;
 };
 
@@ -40,8 +40,8 @@ export const useMapStyleControls = ({
   networkLookup,
   show3DBuildings,
   showTerrain,
-  toggle3DBuildings,
-  toggleTerrain,
+  add3DBuildings,
+  addTerrain,
   logError,
 }: MapStyleControlsProps) => {
   // Export KML for Google Earth
@@ -414,10 +414,10 @@ export const useMapStyleControls = ({
       // Small delay to ensure Mapbox internal state is fully ready for config properties
       setTimeout(() => {
         if (show3DBuildings) {
-          toggle3DBuildings(true);
+          add3DBuildings();
         }
         if (showTerrain) {
-          toggleTerrain(true);
+          addTerrain();
         }
       }, 100);
 
