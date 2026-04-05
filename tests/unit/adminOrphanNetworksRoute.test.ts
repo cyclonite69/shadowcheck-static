@@ -23,6 +23,7 @@ jest.mock('../../server/src/config/container', () => ({
   adminOrphanNetworksService: {
     listOrphanNetworks: jest.fn(),
     getOrphanNetworkCounts: jest.fn(),
+    backfillOrphanNetworkFromWigle: jest.fn(),
   },
   backupService: {
     runPostgresBackup: jest.fn(),
@@ -83,6 +84,17 @@ function getOrphanNetworksHandler() {
   return layer.route.stack[layer.route.stack.length - 1].handle;
 }
 
+function getOrphanCheckWigleHandler() {
+  const router = require('../../server/src/api/routes/v1/admin/import');
+  const layer = router.stack.find(
+    (entry: any) => entry.route?.path === '/admin/orphan-networks/:bssid/check-wigle'
+  );
+  if (!layer) {
+    throw new Error('Could not find /admin/orphan-networks/:bssid/check-wigle route');
+  }
+  return layer.route.stack[layer.route.stack.length - 1].handle;
+}
+
 describe('admin/orphan-networks route', () => {
   let container: any;
 
@@ -132,5 +144,32 @@ describe('admin/orphan-networks route', () => {
         },
       ],
     });
+  });
+
+  test('runs a WiGLE backfill check for a single orphan', async () => {
+    const handler = getOrphanCheckWigleHandler();
+    const req: any = {
+      params: {
+        bssid: 'AA:BB:CC:DD:EE:FF',
+      },
+    };
+    const { res, done } = createRes();
+
+    container.adminOrphanNetworksService.backfillOrphanNetworkFromWigle.mockResolvedValue({
+      ok: true,
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      status: 'no_wigle_match',
+      endpoint: 'wifi',
+      importedObservations: 0,
+    });
+
+    await handler(req, res, jest.fn());
+    await done;
+
+    expect(
+      container.adminOrphanNetworksService.backfillOrphanNetworkFromWigle
+    ).toHaveBeenCalledWith('AA:BB:CC:DD:EE:FF');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe('no_wigle_match');
   });
 });

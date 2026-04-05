@@ -51,4 +51,10 @@ export interface OrphanNetworkRow {
   wigle_v3_last_import_at: string | null;
   moved_at: string;
   move_reason: string;
+  backfill_status: 'not_attempted' | 'wigle_match_imported_v3' | 'no_wigle_match' | 'error';
+  matched_netid: string | null;
+  detail_imported: boolean | null;
+  observations_imported: number | null;
+  last_attempted_at: string | null;
+  last_error: string | null;
 }
