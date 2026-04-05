@@ -14,8 +14,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [draftSearch, setDraftSearch] = useState('');
+  const [activeBssid, setActiveBssid] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadRows = () => {
     setLoading(true);
     adminApi
       .getOrphanNetworks(50, search)
@@ -28,7 +29,42 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
         setTotal(0);
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadRows();
   }, [refreshKey, search]);
+
+  const handleCheckWigle = async (bssid: string) => {
+    try {
+      setActiveBssid(bssid);
+      await adminApi.checkOrphanNetworkWigle(bssid);
+      loadRows();
+    } finally {
+      setActiveBssid(null);
+    }
+  };
+
+  const renderStatus = (row: OrphanNetworkRow) => {
+    switch (row.backfill_status) {
+      case 'wigle_match_imported_v3':
+        return (
+          <span className="text-green-400" title={row.matched_netid || undefined}>
+            matched
+          </span>
+        );
+      case 'no_wigle_match':
+        return <span className="text-slate-400">no match</span>;
+      case 'error':
+        return (
+          <span className="text-red-400" title={row.last_error || undefined}>
+            error
+          </span>
+        );
+      default:
+        return <span className="text-amber-300">not checked</span>;
+    }
+  };
 
   return (
     <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">
@@ -81,6 +117,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                 <th className="text-left py-1.5 pr-3">Best Coords</th>
                 <th className="text-left py-1.5 pr-3">Source</th>
                 <th className="text-right py-1.5 pr-3">WiGLE Obs</th>
+                <th className="text-left py-1.5 pr-3">Backfill</th>
                 <th className="text-left py-1.5">Reason</th>
               </tr>
             </thead>
@@ -109,6 +146,20 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                   </td>
                   <td className="py-1.5 pr-3 text-right tabular-nums">
                     {row.wigle_v3_observation_count ?? 0}
+                  </td>
+                  <td className="py-1.5 pr-3 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {renderStatus(row)}
+                      <button
+                        type="button"
+                        onClick={() => handleCheckWigle(row.bssid)}
+                        disabled={activeBssid === row.bssid}
+                        className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-50"
+                        title={row.last_attempted_at || undefined}
+                      >
+                        {activeBssid === row.bssid ? 'Checking...' : 'Check WiGLE'}
+                      </button>
+                    </div>
                   </td>
                   <td className="py-1.5 text-slate-400">{row.move_reason}</td>
                 </tr>
