@@ -65,15 +65,8 @@ module.exports = {
 
   // Transform - Add TypeScript support
   preset: 'ts-jest',
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        lib: ['es2020', 'dom'],
-      },
-    },
-  },
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
     '^.+\\.js$': 'babel-jest',
   },
 
