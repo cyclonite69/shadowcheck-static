@@ -115,27 +115,19 @@ history -w              # Write empty history
 
 **Features:**
 
-- Environment detection (local vs AWS)
 - Generates cryptographically secure 32-character passwords
-- Updates PostgreSQL user password via `ALTER USER`
-- Updates AWS Secrets Manager and PostgreSQL
-- Restarts affected services automatically
+- Updates PostgreSQL role passwords via `ALTER USER`
+- Updates the `shadowcheck/config` AWS Secrets Manager secret
+- Can rotate `db_admin_password` with `--rotate-admin`
+- Restarts `shadowcheck_web_api` or `shadowcheck_backend` when present
 
 ### Rotation Process
 
 ```bash
-# 1. Generate new password
-NEW_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+./scripts/rotate-db-password.sh
 
-# 2. Update PostgreSQL (uses SCRAM-SHA-256)
-docker exec shadowcheck_postgres psql -U postgres -d shadowcheck_db -c \
-  "ALTER USER shadowcheck_user WITH PASSWORD '$NEW_PASSWORD';"
-
-# 3. Update storage
-aws secretsmanager put-secret-value --secret-id shadowcheck/config --secret-string "{\"db_password\":\"$NEW_PASSWORD\"}"
-
-# 4. Restart services
-docker-compose restart api
+# Also rotate db_admin_password / shadowcheck_admin
+./scripts/rotate-db-password.sh --rotate-admin
 ```
 
 ### SCRAM Password Storage

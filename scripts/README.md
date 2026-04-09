@@ -12,10 +12,11 @@
 Automated password rotation for PostgreSQL. Works in both local and AWS environments.
 
 - Generates secure 32-character password
-- Updates secrets in AWS Secrets Manager (no secrets on disk)
-- Updates PostgreSQL user password
-- Restarts affected services
-- See `docs/security/PASSWORD_ROTATION.md` for details
+- Updates `shadowcheck/config` in AWS Secrets Manager (no secrets on disk)
+- Updates the PostgreSQL role password with `ALTER USER`
+- Can also rotate `db_admin_password` with `--rotate-admin`
+- Restarts the running API container when present
+- See `deploy/aws/docs/PASSWORD_ROTATION.md` for details
 
 Grafana rotation script:
 

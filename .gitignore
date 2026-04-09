@@ -59,6 +59,7 @@ credentials.json
 *secret*
 !server/src/services/secretsManager.ts
 !scripts/security/scan-secrets.sh
+!scripts/rotate-db-password.sh
 .ssh/
 .gnupg/
 
