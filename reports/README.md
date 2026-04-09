@@ -11,6 +11,7 @@ This folder contains both active and historical audit snapshots.
 
 ## Historical Snapshots
 
+- `modularity-root-audit/` (moved from repo root)
 - `modularity-audit.md`
 - `modularity-audit-phase2-2026-02-22.md`
 - `modularity-audit-phase3-final.md`
