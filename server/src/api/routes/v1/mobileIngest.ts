@@ -100,6 +100,8 @@ router.post('/complete', async (req: Request, res: Response) => {
     appVersion,
     batteryLevel,
     storageFreeGb,
+    trustMode,
+    manualBackupConfirmed,
     extraMetadata,
   } = req.body;
 
@@ -108,6 +110,21 @@ router.post('/complete', async (req: Request, res: Response) => {
   }
 
   const tag = sourceTag || deviceId || 'mobile_upload';
+  const normalizedTrustMode =
+    typeof trustMode === 'string' && trustMode.trim().length > 0 ? trustMode.trim() : 'untrusted';
+  const hasManualBackup = manualBackupConfirmed === true;
+  const autoProcessEnabled = process.env.ALLOW_MOBILE_INGEST_AUTO_PROCESS === 'true';
+  const shouldQueueForProcessing =
+    normalizedTrustMode === 'trusted' && hasManualBackup && autoProcessEnabled;
+  const uploadStatus = shouldQueueForProcessing ? 'queued' : 'quarantined';
+  const metadata = {
+    ...(extraMetadata && typeof extraMetadata === 'object' ? extraMetadata : {}),
+    provenance: {
+      trustMode: normalizedTrustMode,
+      manualBackupConfirmed: hasManualBackup,
+      autoProcessEnabled,
+    },
+  };
 
   try {
     // Verify object exists in S3
@@ -124,20 +141,23 @@ router.post('/complete', async (req: Request, res: Response) => {
     const dbId = await mobileIngestService.recordUpload({
       s3Key,
       sourceTag: tag,
+      status: uploadStatus,
       deviceModel,
       deviceId,
       osVersion,
       appVersion,
       batteryLevel,
       storageFreeGb,
-      extraMetadata,
+      extraMetadata: metadata,
     });
 
-    // Fire off the background processing
-    void mobileIngestService.processUpload(dbId);
+    if (shouldQueueForProcessing) {
+      void mobileIngestService.processUpload(dbId);
+    }
 
     res.json({
-      status: 'queued',
+      status: uploadStatus,
+      queuedForProcessing: shouldQueueForProcessing,
       uploadId,
       dbId,
       s3Key,

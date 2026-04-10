@@ -17,6 +17,7 @@ import { IncrementalImporter } from '../../../etl/load/sqlite-import';
 export interface MobileUploadData {
   s3Key: string;
   sourceTag: string;
+  status?: string;
   deviceModel?: string;
   deviceId?: string;
   osVersion?: string;
@@ -44,9 +45,9 @@ class MobileIngestService {
     const { rows } = await adminQuery(
       `INSERT INTO app.mobile_uploads (
         s3_key, source_tag, device_model, device_id, 
-        os_version, app_version, battery_level, 
+        os_version, app_version, battery_level,
         storage_free_gb, extra_metadata, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING id`,
       [
         data.s3Key,
@@ -58,6 +59,7 @@ class MobileIngestService {
         data.batteryLevel,
         data.storageFreeGb,
         data.extraMetadata ? JSON.stringify(data.extraMetadata) : null,
+        data.status || 'pending',
       ]
     );
     return rows[0].id;

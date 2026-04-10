@@ -151,6 +151,7 @@ describe('Mobile Ingest API', () => {
     jest.clearAllMocks();
     mockGetSignedUrl.mockResolvedValue('https://mock-presigned-url.com/upload');
     mockRecordUpload.mockResolvedValue(123);
+    process.env.ALLOW_MOBILE_INGEST_AUTO_PROCESS = 'false';
   });
 
   describe('POST /api/v1/ingest/request-upload', () => {
@@ -256,10 +257,100 @@ describe('Mobile Ingest API', () => {
       });
 
       expect(response.status).toBe(200);
-      expect(response.body.status).toBe('queued');
+      expect(response.body.status).toBe('quarantined');
+      expect(response.body.queuedForProcessing).toBe(false);
       expect(response.body.dbId).toBe(123);
-      expect(mockRecordUpload).toHaveBeenCalled();
-      expect(mockProcessUpload).toHaveBeenCalledWith(123);
+      expect(mockRecordUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          s3Key: 'valid/path',
+          sourceTag: 'my-s22',
+          status: 'quarantined',
+          deviceModel: 'S22 Ultra',
+          deviceId: 'my-s22',
+          extraMetadata: expect.objectContaining({
+            provenance: expect.objectContaining({
+              trustMode: 'untrusted',
+              manualBackupConfirmed: false,
+              autoProcessEnabled: false,
+            }),
+          }),
+        })
+      );
+      expect(mockProcessUpload).not.toHaveBeenCalled();
+    });
+
+    it('should quarantine untrusted uploads after S3 verification', async () => {
+      mockSend.mockResolvedValueOnce({});
+      mockRecordUpload.mockResolvedValueOnce(42);
+
+      const response = await invokeRoute('/complete', {
+        authorization: `Bearer ${API_KEY}`,
+        body: {
+          uploadId: 'uuid',
+          s3Key: 'uploads/test/u1.sqlite',
+          sourceTag: 'android_test',
+          deviceId: 'device-1',
+          trustMode: 'test_untrusted',
+          manualBackupConfirmed: false,
+          extraMetadata: { packageName: 'net.shadowcheck.collector' },
+        },
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('quarantined');
+      expect(response.body.queuedForProcessing).toBe(false);
+      expect(response.body.dbId).toBe(42);
+      expect(mockRecordUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'quarantined',
+          sourceTag: 'android_test',
+          extraMetadata: expect.objectContaining({
+            packageName: 'net.shadowcheck.collector',
+            provenance: expect.objectContaining({
+              trustMode: 'test_untrusted',
+              manualBackupConfirmed: false,
+              autoProcessEnabled: false,
+            }),
+          }),
+        })
+      );
+      expect(mockProcessUpload).not.toHaveBeenCalled();
+    });
+
+    it('should queue trusted uploads only when backup is confirmed and auto-process is enabled', async () => {
+      process.env.ALLOW_MOBILE_INGEST_AUTO_PROCESS = 'true';
+      mockSend.mockResolvedValueOnce({});
+      mockRecordUpload.mockResolvedValueOnce(42);
+
+      const response = await invokeRoute('/complete', {
+        authorization: `Bearer ${API_KEY}`,
+        body: {
+          uploadId: 'uuid',
+          s3Key: 'uploads/test/u2.sqlite',
+          sourceTag: 'android_trusted',
+          deviceId: 'device-2',
+          trustMode: 'trusted',
+          manualBackupConfirmed: true,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('queued');
+      expect(response.body.queuedForProcessing).toBe(true);
+      expect(response.body.dbId).toBe(42);
+      expect(mockRecordUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'queued',
+          extraMetadata: expect.objectContaining({
+            provenance: expect.objectContaining({
+              trustMode: 'trusted',
+              manualBackupConfirmed: true,
+              autoProcessEnabled: true,
+            }),
+          }),
+        })
+      );
+      expect(mockProcessUpload).toHaveBeenCalledWith(42);
     });
   });
 });
