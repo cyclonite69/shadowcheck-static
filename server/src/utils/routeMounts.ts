@@ -167,7 +167,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   app.use('/api/network-tags', userGate, networkTagsRoutes);
   app.use('/api', userGate, claudeRoutes);
   app.use('/api', userGate, threatReportRoutes);
-  app.use('/api/v1/ingest', userGate, mobileIngestRoutes);
+  app.use('/api/v1/ingest', mobileIngestRoutes);
 
   // Network agencies (nearest agencies to network observations)
   const networkAgenciesRoutes = require('../api/routes/v1/network-agencies');
