@@ -6,3 +6,5 @@ export { ThreatFilters } from './ThreatFilters';
 export { EngagementFilters } from './EngagementFilters';
 export { QualityFilters } from './QualityFilters';
 export { SpatialFilters } from './SpatialFilters';
+export { GeocodingFilters } from './GeocodingFilters';
+export { ActivityFilters } from './ActivityFilters';

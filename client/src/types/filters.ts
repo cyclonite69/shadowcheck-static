@@ -31,6 +31,7 @@ export interface NetworkFilters {
   has_notes?: boolean;
   tag_type?: TagType[];
   wigle_v3_observation_count_min?: number;
+  wigle_v3_observation_count_max?: number;
   gpsAccuracyMax?: number; // meters
   excludeInvalidCoords?: boolean;
   qualityFilter?: 'none' | 'temporal' | 'extreme' | 'duplicate' | 'all';
@@ -47,6 +48,41 @@ export interface NetworkFilters {
   threatCategories?: ThreatCategory[];
   stationaryConfidenceMin?: number; // 0.0 → 1.0, NOT binary
   stationaryConfidenceMax?: number;
+
+  // H. Geocoding
+  geocodedAddress?: string;
+  geocodedCity?: string;
+  geocodedState?: string;
+  geocodedPostalCode?: string;
+  geocodedCountry?: string;
+  geocodedPoiName?: string;
+  geocodedPoiCategory?: string;
+  geocodedFeatureType?: string;
+  geocodedConfidenceMin?: number;
+  geocodedConfidenceMax?: number;
+
+  // I. Forensic Activity
+  uniqueDaysMin?: number;
+  uniqueDaysMax?: number;
+  uniqueLocationsMin?: number;
+  uniqueLocationsMax?: number;
+  maxDistanceMetersMin?: number;
+  maxDistanceMetersMax?: number;
+
+  // J. Machine Learning & Scoring
+  ruleBasedScoreMin?: number;
+  ruleBasedScoreMax?: number;
+  mlThreatScoreMin?: number;
+  mlThreatScoreMax?: number;
+  mlWeightMin?: number;
+  mlWeightMax?: number;
+  mlBoostMin?: number;
+  mlBoostMax?: number;
+  modelVersion?: string[];
+
+  // K. WiGLE Persistence
+  wigleV3LastImportBefore?: string;
+  wigleV3LastImportAfter?: string;
 }
 
 export type RadioType = 'W' | 'E' | 'B' | 'L' | 'G' | 'N' | '?';

@@ -16,6 +16,8 @@ import {
   EngagementFilters,
   QualityFilters,
   SpatialFilters,
+  GeocodingFilters,
+  ActivityFilters,
 } from './filters/sections';
 
 type FilterPanelDensity = 'normal' | 'compact';
@@ -145,6 +147,16 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           onToggleFilter={toggleFilter}
         />
 
+        {/* Forensic Activity */}
+        <ActivityFilters
+          filters={filters}
+          enabled={enabled}
+          isCompact={isCompact}
+          controlClass={controlClass}
+          onSetFilter={setFilter}
+          onToggleFilter={toggleFilter}
+        />
+
         {/* Spatial & Proximity */}
         <SpatialFilters
           filters={filters}
@@ -155,6 +167,16 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           boundingBoxViewportLock={boundingBoxViewportLock}
           onSetFilter={setFilter}
           onSetBoundingBoxViewportLock={setBoundingBoxViewportLock}
+          onToggleFilter={toggleFilter}
+        />
+
+        {/* Geocoding & Address */}
+        <GeocodingFilters
+          filters={filters}
+          enabled={enabled}
+          isCompact={isCompact}
+          controlClass={controlClass}
+          onSetFilter={setFilter}
           onToggleFilter={toggleFilter}
         />
 

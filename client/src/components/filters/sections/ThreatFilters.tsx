@@ -132,6 +132,142 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
           className={controlClass}
         />
       </FilterInput>
+
+      <FilterInput
+        label="Rule-Based Score Range"
+        enabled={enabled.ruleBasedScoreMin || enabled.ruleBasedScoreMax}
+        onToggle={() => {
+          onToggleFilter('ruleBasedScoreMin');
+          onToggleFilter('ruleBasedScoreMax');
+        }}
+        compact={isCompact}
+      >
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={filters.ruleBasedScoreMin ?? ''}
+            onChange={(e) => onSetFilter('ruleBasedScoreMin', parseFloat(e.target.value))}
+            placeholder="Min (0)"
+            className={controlClass}
+          />
+          <span className="text-slate-500">to</span>
+          <input
+            type="number"
+            value={filters.ruleBasedScoreMax ?? ''}
+            onChange={(e) => onSetFilter('ruleBasedScoreMax', parseFloat(e.target.value))}
+            placeholder="Max (100)"
+            className={controlClass}
+          />
+        </div>
+      </FilterInput>
+
+      <FilterInput
+        label="ML Threat Score Range"
+        enabled={enabled.mlThreatScoreMin || enabled.mlThreatScoreMax}
+        onToggle={() => {
+          onToggleFilter('mlThreatScoreMin');
+          onToggleFilter('mlThreatScoreMax');
+        }}
+        compact={isCompact}
+      >
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={filters.mlThreatScoreMin ?? ''}
+            onChange={(e) => onSetFilter('mlThreatScoreMin', parseFloat(e.target.value))}
+            placeholder="Min (0)"
+            className={controlClass}
+          />
+          <span className="text-slate-500">to</span>
+          <input
+            type="number"
+            value={filters.mlThreatScoreMax ?? ''}
+            onChange={(e) => onSetFilter('mlThreatScoreMax', parseFloat(e.target.value))}
+            placeholder="Max (100)"
+            className={controlClass}
+          />
+        </div>
+      </FilterInput>
+
+      <FilterInput
+        label="ML Evidence Weight Range"
+        enabled={enabled.mlWeightMin || enabled.mlWeightMax}
+        onToggle={() => {
+          onToggleFilter('mlWeightMin');
+          onToggleFilter('mlWeightMax');
+        }}
+        compact={isCompact}
+      >
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={filters.mlWeightMin ?? ''}
+            onChange={(e) => onSetFilter('mlWeightMin', parseFloat(e.target.value))}
+            placeholder="Min (0)"
+            className={controlClass}
+          />
+          <span className="text-slate-500">to</span>
+          <input
+            type="number"
+            value={filters.mlWeightMax ?? ''}
+            onChange={(e) => onSetFilter('mlWeightMax', parseFloat(e.target.value))}
+            placeholder="Max"
+            className={controlClass}
+          />
+        </div>
+      </FilterInput>
+
+      <FilterInput
+        label="ML Model Boost Range"
+        enabled={enabled.mlBoostMin || enabled.mlBoostMax}
+        onToggle={() => {
+          onToggleFilter('mlBoostMin');
+          onToggleFilter('mlBoostMax');
+        }}
+        compact={isCompact}
+      >
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={filters.mlBoostMin ?? ''}
+            onChange={(e) => onSetFilter('mlBoostMin', parseFloat(e.target.value))}
+            placeholder="Min"
+            className={controlClass}
+          />
+          <span className="text-slate-500">to</span>
+          <input
+            type="number"
+            value={filters.mlBoostMax ?? ''}
+            onChange={(e) => onSetFilter('mlBoostMax', parseFloat(e.target.value))}
+            placeholder="Max"
+            className={controlClass}
+          />
+        </div>
+      </FilterInput>
+
+      <FilterInput
+        label="ML Model Version"
+        enabled={enabled.modelVersion || false}
+        onToggle={() => onToggleFilter('modelVersion')}
+        compact={isCompact}
+      >
+        <input
+          type="text"
+          value={(filters.modelVersion ?? []).join(', ')}
+          onChange={(e) =>
+            onSetFilter(
+              'modelVersion',
+              e.target.value
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+            )
+          }
+          placeholder="e.g. 1.0.0, legacy..."
+          className={controlClass}
+        />
+        <p className="mt-1 text-[10px] text-slate-500">Comma-separated versions.</p>
+      </FilterInput>
     </FilterSection>
   );
 };

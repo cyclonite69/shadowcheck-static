@@ -73,11 +73,14 @@ export function useObservations(
         let allRows: any[] = [];
         const usePostTransport = selectedBssids.length > 100;
 
-        const observationFilters = useFilters ? debouncedFilterState : { filters: {}, enabled: {} };
+        const observationFilters = useFilters
+          ? debouncedFilterState
+          : { filters: {}, enabled: {} as any };
 
         while (true) {
           const pageType =
-            currentPage === 'wigle' && observationFilters.enabled.wigle_v3_observation_count_min
+            currentPage === 'wigle' &&
+            (observationFilters.enabled as any)?.wigle_v3_observation_count_min
               ? 'wigle'
               : undefined;
           const data = usePostTransport

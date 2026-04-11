@@ -31,6 +31,17 @@ export function buildFastPathSupplementalPredicates(
     }
   }
 
+  if (e.wigle_v3_observation_count_max && f.wigle_v3_observation_count_max !== undefined) {
+    if (ctx.context?.pageType === 'wigle') {
+      where.push(
+        `ne.wigle_v3_observation_count <= ${ctx.addParam(f.wigle_v3_observation_count_max)}`
+      );
+      ctx.addApplied('quality', 'wigle_v3_observation_count_max', f.wigle_v3_observation_count_max);
+    } else if (options.addUnsupportedWigleIgnored) {
+      ctx.addIgnored('quality', 'wigle_v3_observation_count_max', 'unsupported_page');
+    }
+  }
+
   if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
     where.push(
       `ne.accuracy_meters IS NOT NULL AND ne.accuracy_meters > 0 AND ne.accuracy_meters <= ${ctx.addParam(
@@ -114,6 +125,145 @@ export function buildFastPathSupplementalPredicates(
     }
     ctx.addApplied('temporal', 'timeframe', f.timeframe);
     ctx.addApplied('temporal', 'temporalScope', scope);
+  }
+
+  // --- Geocoding Filters ---
+
+  if (e.geocodedAddress && f.geocodedAddress) {
+    where.push(`ne.geocoded_address ILIKE ${ctx.addParam(`%${f.geocodedAddress}%`)}`);
+    ctx.addApplied('geocoding', 'geocodedAddress', f.geocodedAddress);
+  }
+
+  if (e.geocodedCity && f.geocodedCity) {
+    where.push(`ne.geocoded_city ILIKE ${ctx.addParam(`${f.geocodedCity}%`)}`);
+    ctx.addApplied('geocoding', 'geocodedCity', f.geocodedCity);
+  }
+
+  if (e.geocodedState && f.geocodedState) {
+    where.push(`UPPER(ne.geocoded_state) = UPPER(${ctx.addParam(f.geocodedState)})`);
+    ctx.addApplied('geocoding', 'geocodedState', f.geocodedState);
+  }
+
+  if (e.geocodedPostalCode && f.geocodedPostalCode) {
+    where.push(`ne.geocoded_postal_code ILIKE ${ctx.addParam(`${f.geocodedPostalCode}%`)}`);
+    ctx.addApplied('geocoding', 'geocodedPostalCode', f.geocodedPostalCode);
+  }
+
+  if (e.geocodedCountry && f.geocodedCountry) {
+    where.push(`UPPER(ne.geocoded_country) = UPPER(${ctx.addParam(f.geocodedCountry)})`);
+    ctx.addApplied('geocoding', 'geocodedCountry', f.geocodedCountry);
+  }
+
+  if (e.geocodedPoiName && f.geocodedPoiName) {
+    where.push(`ne.geocoded_poi_name ILIKE ${ctx.addParam(`%${f.geocodedPoiName}%`)}`);
+    ctx.addApplied('geocoding', 'geocodedPoiName', f.geocodedPoiName);
+  }
+
+  if (e.geocodedPoiCategory && f.geocodedPoiCategory) {
+    where.push(`ne.geocoded_poi_category ILIKE ${ctx.addParam(`%${f.geocodedPoiCategory}%`)}`);
+    ctx.addApplied('geocoding', 'geocodedPoiCategory', f.geocodedPoiCategory);
+  }
+
+  if (e.geocodedFeatureType && f.geocodedFeatureType) {
+    where.push(`ne.geocoded_feature_type ILIKE ${ctx.addParam(`%${f.geocodedFeatureType}%`)}`);
+    ctx.addApplied('geocoding', 'geocodedFeatureType', f.geocodedFeatureType);
+  }
+
+  if (e.geocodedConfidenceMin && f.geocodedConfidenceMin !== undefined) {
+    where.push(`ne.geocoded_confidence >= ${ctx.addParam(f.geocodedConfidenceMin)}`);
+    ctx.addApplied('geocoding', 'geocodedConfidenceMin', f.geocodedConfidenceMin);
+  }
+
+  if (e.geocodedConfidenceMax && f.geocodedConfidenceMax !== undefined) {
+    where.push(`ne.geocoded_confidence <= ${ctx.addParam(f.geocodedConfidenceMax)}`);
+    ctx.addApplied('geocoding', 'geocodedConfidenceMax', f.geocodedConfidenceMax);
+  }
+
+  // --- Observation & Activity Counts ---
+
+  if (e.uniqueDaysMin && f.uniqueDaysMin !== undefined) {
+    where.push(`ne.unique_days >= ${ctx.addParam(f.uniqueDaysMin)}`);
+    ctx.addApplied('quality', 'uniqueDaysMin', f.uniqueDaysMin);
+  }
+  if (e.uniqueDaysMax && f.uniqueDaysMax !== undefined) {
+    where.push(`ne.unique_days <= ${ctx.addParam(f.uniqueDaysMax)}`);
+    ctx.addApplied('quality', 'uniqueDaysMax', f.uniqueDaysMax);
+  }
+
+  if (e.uniqueLocationsMin && f.uniqueLocationsMin !== undefined) {
+    where.push(`ne.unique_locations >= ${ctx.addParam(f.uniqueLocationsMin)}`);
+    ctx.addApplied('quality', 'uniqueLocationsMin', f.uniqueLocationsMin);
+  }
+  if (e.uniqueLocationsMax && f.uniqueLocationsMax !== undefined) {
+    where.push(`ne.unique_locations <= ${ctx.addParam(f.uniqueLocationsMax)}`);
+    ctx.addApplied('quality', 'uniqueLocationsMax', f.uniqueLocationsMax);
+  }
+
+  // --- Extended Threat & ML Score Filters ---
+
+  if (e.ruleBasedScoreMin && f.ruleBasedScoreMin !== undefined) {
+    where.push(`ne.rule_based_score >= ${ctx.addParam(f.ruleBasedScoreMin)}`);
+    ctx.addApplied('threat', 'ruleBasedScoreMin', f.ruleBasedScoreMin);
+  }
+  if (e.ruleBasedScoreMax && f.ruleBasedScoreMax !== undefined) {
+    where.push(`ne.rule_based_score <= ${ctx.addParam(f.ruleBasedScoreMax)}`);
+    ctx.addApplied('threat', 'ruleBasedScoreMax', f.ruleBasedScoreMax);
+  }
+
+  if (e.mlThreatScoreMin && f.mlThreatScoreMin !== undefined) {
+    where.push(`ne.ml_threat_score >= ${ctx.addParam(f.mlThreatScoreMin)}`);
+    ctx.addApplied('threat', 'mlThreatScoreMin', f.mlThreatScoreMin);
+  }
+  if (e.mlThreatScoreMax && f.mlThreatScoreMax !== undefined) {
+    where.push(`ne.ml_threat_score <= ${ctx.addParam(f.mlThreatScoreMax)}`);
+    ctx.addApplied('threat', 'mlThreatScoreMax', f.mlThreatScoreMax);
+  }
+
+  if (e.mlWeightMin && f.mlWeightMin !== undefined) {
+    where.push(`ne.ml_weight >= ${ctx.addParam(f.mlWeightMin)}`);
+    ctx.addApplied('threat', 'mlWeightMin', f.mlWeightMin);
+  }
+  if (e.mlWeightMax && f.mlWeightMax !== undefined) {
+    where.push(`ne.ml_weight <= ${ctx.addParam(f.mlWeightMax)}`);
+    ctx.addApplied('threat', 'mlWeightMax', f.mlWeightMax);
+  }
+
+  if (e.mlBoostMin && f.mlBoostMin !== undefined) {
+    where.push(`ne.ml_boost >= ${ctx.addParam(f.mlBoostMin)}`);
+    ctx.addApplied('threat', 'mlBoostMin', f.mlBoostMin);
+  }
+  if (e.mlBoostMax && f.mlBoostMax !== undefined) {
+    where.push(`ne.ml_boost <= ${ctx.addParam(f.mlBoostMax)}`);
+    ctx.addApplied('threat', 'mlBoostMax', f.mlBoostMax);
+  }
+
+  if (e.modelVersion && Array.isArray(f.modelVersion) && f.modelVersion.length > 0) {
+    where.push(`ne.model_version = ANY(${ctx.addParam(f.modelVersion)})`);
+    ctx.addApplied('threat', 'modelVersion', f.modelVersion);
+  }
+
+  // --- Extended Spatial & Metadata ---
+
+  if (e.maxDistanceMetersMin && f.maxDistanceMetersMin !== undefined) {
+    where.push(`ne.max_distance_meters >= ${ctx.addParam(f.maxDistanceMetersMin)}`);
+    ctx.addApplied('spatial', 'maxDistanceMetersMin', f.maxDistanceMetersMin);
+  }
+  if (e.maxDistanceMetersMax && f.maxDistanceMetersMax !== undefined) {
+    where.push(`ne.max_distance_meters <= ${ctx.addParam(f.maxDistanceMetersMax)}`);
+    ctx.addApplied('spatial', 'maxDistanceMetersMax', f.maxDistanceMetersMax);
+  }
+
+  if (e.wigleV3LastImportBefore && f.wigleV3LastImportBefore) {
+    where.push(
+      `ne.wigle_v3_last_import_at <= ${ctx.addParam(f.wigleV3LastImportBefore)}::timestamptz`
+    );
+    ctx.addApplied('quality', 'wigleV3LastImportBefore', f.wigleV3LastImportBefore);
+  }
+  if (e.wigleV3LastImportAfter && f.wigleV3LastImportAfter) {
+    where.push(
+      `ne.wigle_v3_last_import_at >= ${ctx.addParam(f.wigleV3LastImportAfter)}::timestamptz`
+    );
+    ctx.addApplied('quality', 'wigleV3LastImportAfter', f.wigleV3LastImportAfter);
   }
 
   return where;

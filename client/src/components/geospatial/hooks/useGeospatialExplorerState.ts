@@ -201,7 +201,7 @@ export const useGeospatialExplorerState = ({
     mapRef,
     enabled: enabled.boundingBox,
     syncToViewport: lockBoundingBoxToViewport,
-    setFilter,
+    setFilter: setFilter as any,
   });
 
   useMapInteractionLock({

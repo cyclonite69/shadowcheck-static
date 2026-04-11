@@ -219,6 +219,8 @@ export const useWigleSearch = () => {
     }
   };
 
+  const hasMorePages = searchAfter !== null;
+
   const effectiveLoadedCount =
     searchResults?.run?.rowsReturned ?? searchResults?.loadedCount ?? allResults.length;
   const effectiveTotalResults = searchResults?.run?.apiTotalResults ?? totalResults;

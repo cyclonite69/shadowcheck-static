@@ -93,6 +93,7 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   has_notes: false,
   tag_type: false,
   wigle_v3_observation_count_min: false,
+  wigle_v3_observation_count_max: false,
   gpsAccuracyMax: false,
   excludeInvalidCoords: false,
   qualityFilter: false,
@@ -105,18 +106,34 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   threatCategories: false,
   stationaryConfidenceMin: false,
   stationaryConfidenceMax: false,
+  geocodedAddress: false,
+  geocodedCity: false,
+  geocodedState: false,
+  geocodedPostalCode: false,
+  geocodedCountry: false,
+  geocodedPoiName: false,
+  geocodedPoiCategory: false,
+  geocodedFeatureType: false,
+  geocodedConfidenceMin: false,
+  geocodedConfidenceMax: false,
+  uniqueDaysMin: false,
+  uniqueDaysMax: false,
+  uniqueLocationsMin: false,
+  uniqueLocationsMax: false,
+  maxDistanceMetersMin: false,
+  maxDistanceMetersMax: false,
+  ruleBasedScoreMin: false,
+  ruleBasedScoreMax: false,
+  mlThreatScoreMin: false,
+  mlThreatScoreMax: false,
+  mlWeightMin: false,
+  mlWeightMax: false,
+  mlBoostMin: false,
+  mlBoostMax: false,
+  modelVersion: false,
+  wigleV3LastImportBefore: false,
+  wigleV3LastImportAfter: false,
 };
-
-const applyDataQualityDefaults = (pageState: PageFilterState): PageFilterState => ({
-  filters: {
-    ...pageState.filters,
-    qualityFilter: pageState.filters.qualityFilter ?? defaultFilters.qualityFilter,
-  },
-  enabled: {
-    ...pageState.enabled,
-    qualityFilter: pageState.enabled.qualityFilter ?? defaultEnabled.qualityFilter,
-  },
-});
 
 const createDefaultPageState = (): PageFilterState => ({
   filters: { ...defaultFilters },

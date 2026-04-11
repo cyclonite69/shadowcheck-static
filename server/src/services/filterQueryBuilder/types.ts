@@ -44,6 +44,7 @@ export interface Filters {
   has_notes?: boolean;
   tag_type?: string[];
   wigle_v3_observation_count_min?: number;
+  wigle_v3_observation_count_max?: number;
   gpsAccuracyMax?: number;
   excludeInvalidCoords?: boolean;
   qualityFilter?: 'none' | 'temporal' | 'extreme' | 'duplicate' | 'all';
@@ -56,6 +57,33 @@ export interface Filters {
   threatCategories?: string[];
   stationaryConfidenceMin?: number;
   stationaryConfidenceMax?: number;
+  geocodedAddress?: string;
+  geocodedCity?: string;
+  geocodedState?: string;
+  geocodedPostalCode?: string;
+  geocodedCountry?: string;
+  geocodedPoiName?: string;
+  geocodedPoiCategory?: string;
+  geocodedFeatureType?: string;
+  geocodedConfidenceMin?: number;
+  geocodedConfidenceMax?: number;
+  uniqueDaysMin?: number;
+  uniqueDaysMax?: number;
+  uniqueLocationsMin?: number;
+  uniqueLocationsMax?: number;
+  ruleBasedScoreMin?: number;
+  ruleBasedScoreMax?: number;
+  mlThreatScoreMin?: number;
+  mlThreatScoreMax?: number;
+  mlWeightMin?: number;
+  mlWeightMax?: number;
+  mlBoostMin?: number;
+  mlBoostMax?: number;
+  modelVersion?: string[];
+  maxDistanceMetersMin?: number;
+  maxDistanceMetersMax?: number;
+  wigleV3LastImportBefore?: string;
+  wigleV3LastImportAfter?: string;
 }
 
 export type EnabledFlags = Record<FilterKey, boolean>;
