@@ -4,6 +4,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import logger from '../../../logging/logger';
 const mobileIngestService = require('../../../services/mobileIngestService');
+const featureFlagService = require('../../../services/featureFlagService');
 
 const router = Router();
 
@@ -113,7 +114,11 @@ router.post('/complete', async (req: Request, res: Response) => {
   const normalizedTrustMode =
     typeof trustMode === 'string' && trustMode.trim().length > 0 ? trustMode.trim() : 'untrusted';
   const hasManualBackup = manualBackupConfirmed === true;
-  const autoProcessEnabled = process.env.ALLOW_MOBILE_INGEST_AUTO_PROCESS === 'true';
+
+  // Sync flags with DB before checking
+  await featureFlagService.refreshCache();
+  const autoProcessEnabled = featureFlagService.getFlag('allow_mobile_ingest_auto_process');
+
   const shouldQueueForProcessing =
     normalizedTrustMode === 'trusted' && hasManualBackup && autoProcessEnabled;
   const uploadStatus = shouldQueueForProcessing ? 'queued' : 'quarantined';
