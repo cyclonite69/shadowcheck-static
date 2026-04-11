@@ -258,7 +258,7 @@ Filtered network list with universal filter support.
 
 - `page` (int, default: 1)
 - `limit` (int, default: 100, max: 5000)
-- Universal filter parameters (see [Features](FEATURES.md) for the unified filter overview)
+- Universal filter parameters (see [Universal Filters](FILTERS.md) for the detailed parameter reference)
 
 **Response:**
 

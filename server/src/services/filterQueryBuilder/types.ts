@@ -65,6 +65,7 @@ export interface Filters {
   geocodedPoiName?: string;
   geocodedPoiCategory?: string;
   geocodedFeatureType?: string;
+  geocodedProvider?: string;
   geocodedConfidenceMin?: number;
   geocodedConfidenceMax?: number;
   uniqueDaysMin?: number;

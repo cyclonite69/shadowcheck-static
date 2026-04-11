@@ -29,6 +29,24 @@ describe('UniversalFilterQueryBuilder - New MV Filters', () => {
       expect(result.params).toContain('mi');
     });
 
+    test('geocodedPostalCode applies prefix ILIKE match', () => {
+      const result = new UniversalFilterQueryBuilder(
+        { geocodedPostalCode: '482' },
+        { geocodedPostalCode: true }
+      ).buildNetworkListQuery();
+      expect(result.sql).toContain('ne.geocoded_postal_code ILIKE $1');
+      expect(result.params).toContain('482%');
+    });
+
+    test('geocodedProvider applies ILIKE match', () => {
+      const result = new UniversalFilterQueryBuilder(
+        { geocodedProvider: 'mapbox' },
+        { geocodedProvider: true }
+      ).buildNetworkListQuery();
+      expect(result.sql).toContain('ne.geocoded_provider ILIKE $1');
+      expect(result.params).toContain('%mapbox%');
+    });
+
     test('geocodedConfidence range applies min/max bounds', () => {
       const result = new UniversalFilterQueryBuilder(
         { geocodedConfidenceMin: 0.5, geocodedConfidenceMax: 0.9 },

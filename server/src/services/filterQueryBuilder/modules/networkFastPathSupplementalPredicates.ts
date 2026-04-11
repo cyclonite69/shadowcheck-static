@@ -169,6 +169,11 @@ export function buildFastPathSupplementalPredicates(
     ctx.addApplied('geocoding', 'geocodedFeatureType', f.geocodedFeatureType);
   }
 
+  if (e.geocodedProvider && f.geocodedProvider) {
+    where.push(`ne.geocoded_provider ILIKE ${ctx.addParam(`%${f.geocodedProvider}%`)}`);
+    ctx.addApplied('geocoding', 'geocodedProvider', f.geocodedProvider);
+  }
+
   if (e.geocodedConfidenceMin && f.geocodedConfidenceMin !== undefined) {
     where.push(`ne.geocoded_confidence >= ${ctx.addParam(f.geocodedConfidenceMin)}`);
     ctx.addApplied('geocoding', 'geocodedConfidenceMin', f.geocodedConfidenceMin);

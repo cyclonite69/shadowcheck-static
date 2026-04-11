@@ -37,8 +37,8 @@ export interface NetworkFilters {
   qualityFilter?: 'none' | 'temporal' | 'extreme' | 'duplicate' | 'all';
 
   // F. Spatial / Proximity
-  distanceFromHomeMin?: number; // meters, per-observation
-  distanceFromHomeMax?: number; // meters, per-observation
+  distanceFromHomeMin?: number; // km, per-observation
+  distanceFromHomeMax?: number; // km, per-observation
   boundingBox?: BoundingBox;
   radiusFilter?: RadiusFilter;
 
@@ -58,6 +58,7 @@ export interface NetworkFilters {
   geocodedPoiName?: string;
   geocodedPoiCategory?: string;
   geocodedFeatureType?: string;
+  geocodedProvider?: string;
   geocodedConfidenceMin?: number;
   geocodedConfidenceMax?: number;
 

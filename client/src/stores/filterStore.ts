@@ -114,6 +114,7 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   geocodedPoiName: false,
   geocodedPoiCategory: false,
   geocodedFeatureType: false,
+  geocodedProvider: false,
   geocodedConfidenceMin: false,
   geocodedConfidenceMax: false,
   uniqueDaysMin: false,

@@ -146,6 +146,21 @@ export const GeocodingFilters: React.FC<GeocodingFiltersProps> = ({
       </FilterInput>
 
       <FilterInput
+        label="Geocoding Provider"
+        enabled={enabled.geocodedProvider || false}
+        onToggle={() => onToggleFilter('geocodedProvider')}
+        compact={isCompact}
+      >
+        <input
+          type="text"
+          value={filters.geocodedProvider || ''}
+          onChange={(e) => onSetFilter('geocodedProvider', e.target.value)}
+          placeholder="e.g. mapbox, google..."
+          className={controlClass}
+        />
+      </FilterInput>
+
+      <FilterInput
         label="Confidence Min"
         enabled={enabled.geocodedConfidenceMin || false}
         onToggle={() => onToggleFilter('geocodedConfidenceMin')}

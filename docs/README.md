@@ -25,6 +25,7 @@ The wiki in `.github/wiki/` is the primary source for diagram-heavy documentatio
 - [Deployment](DEPLOYMENT.md) - Production deployment guidance.
 - [Configuration](CONFIG.md) - Environment variables and configuration.
 - [API Reference](API_REFERENCE.md) - REST endpoints.
+- [Universal Filters](FILTERS.md) - Detailed filter parameter reference.
 - [TODO](TODO.md) - Shared active backlog and deferred follow-up work.
 - [Wiki Home](../.github/wiki/Home.md) - Diagram-heavy documentation hub.
 - [Wiki Map](WIKI_MAP.md) - Docs ↔ wiki mapping.
