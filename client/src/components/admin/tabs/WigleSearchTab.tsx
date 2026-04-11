@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useWigleSearch } from '../hooks/useWigleSearch';
+import { useWigleRuns } from '../hooks/useWigleRuns';
 import { US_STATES } from '../../../constants/network';
 import { formatShortDate } from '../../../utils/formatDate';
+import { WigleRunsCard } from '../components/WigleRunsCard';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -69,6 +71,17 @@ export const WigleSearchTab: React.FC = () => {
     totalResults,
     loadedCount,
   } = useWigleSearch();
+
+  const {
+    runs,
+    loading: runsLoading,
+    error: runsError,
+    actionLoading,
+    refresh: refreshRuns,
+    resumeRun,
+    pauseRun,
+    cancelRun,
+  } = useWigleRuns({ limit: 100 });
 
   useEffect(() => {
     loadApiStatus();
@@ -432,6 +445,18 @@ export const WigleSearchTab: React.FC = () => {
           </AdminCard>
         </div>
       </div>
+
+      {/* WiGLE Import Runs Section */}
+      <WigleRunsCard
+        runs={runs}
+        loading={runsLoading}
+        actionLoading={actionLoading}
+        error={runsError}
+        onRefresh={refreshRuns}
+        onResume={resumeRun}
+        onPause={pauseRun}
+        onCancel={cancelRun}
+      />
     </div>
   );
 };

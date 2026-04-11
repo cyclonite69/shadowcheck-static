@@ -24,7 +24,7 @@ export interface WigleCompletenessReport {
   states: WigleCompletenessState[];
 }
 
-export const useWigleRuns = () => {
+export const useWigleRuns = (options: { limit?: number } = {}) => {
   const [runs, setRuns] = useState<WigleImportRun[]>([]);
   const [report, setReport] = useState<WigleCompletenessReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,8 +34,9 @@ export const useWigleRuns = () => {
   const fetchRuns = useCallback(async () => {
     setLoading(true);
     try {
+      const limit = options.limit || 100;
       const [runsData, reportData] = await Promise.all([
-        wigleApi.listImportRuns(new URLSearchParams({ limit: '10' })),
+        wigleApi.listImportRuns(new URLSearchParams({ limit: String(limit) })),
         wigleApi.getImportCompletenessReport(),
       ]);
       setRuns(runsData?.runs || []);
@@ -46,7 +47,7 @@ export const useWigleRuns = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [options.limit]);
 
   const resumeRun = async (runId: number) => {
     setActionLoading(true);
