@@ -53,15 +53,15 @@ export const wigleApi = {
 
   // WiGLE v3 Batch Enrichment
   async getEnrichmentStats(): Promise<any> {
-    return apiClient.get('/wigle/detail/enrichment/stats');
+    return apiClient.get('/wigle/enrichment/stats');
   },
 
   async startEnrichment(): Promise<any> {
-    return apiClient.post('/wigle/detail/enrichment/start', {});
+    return apiClient.post('/wigle/enrichment/start', {});
   },
 
   async resumeEnrichment(runId: number): Promise<any> {
-    return apiClient.post(`/wigle/detail/enrichment/resume/${runId}`, {});
+    return apiClient.post(`/wigle/enrichment/resume/${runId}`, {});
   },
 
   // WiGLE Detail

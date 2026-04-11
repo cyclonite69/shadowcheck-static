@@ -63,10 +63,21 @@ export const WigleDetailTab: React.FC = () => {
     error: runsError,
     actionLoading,
     refresh: refreshRuns,
-    resumeRun,
+    resumeRun: originalResume,
     pauseRun,
     cancelRun,
   } = useWigleRuns({ limit: 10 });
+
+  const resumeRun = async (id: number) => {
+    try {
+      const data = await wigleApi.resumeEnrichment(id);
+      if (data?.ok) {
+        await refreshRuns();
+      }
+    } catch (e: any) {
+      alert(`Failed to resume enrichment: ${e.message}`);
+    }
+  };
 
   const loadEnrichmentStats = async () => {
     try {
