@@ -376,8 +376,9 @@ router.get(
 router.post(
   '/enrichment/start',
   requireAdmin,
-  asyncHandler(async (_req: Request, res: Response) => {
-    const run = await wigleEnrichmentService.startBatchEnrichment();
+  asyncHandler(async (req: Request, res: Response) => {
+    const { bssids } = req.body;
+    const run = await wigleEnrichmentService.startBatchEnrichment(bssids);
     res.json({ ok: true, run });
   })
 );

@@ -38,7 +38,21 @@ async function getPendingEnrichmentCount(): Promise<number> {
 /**
  * Get next batch of BSSIDs to enrich
  */
-async function getNextEnrichmentBatch(limit = BATCH_SIZE): Promise<any[]> {
+async function getNextEnrichmentBatch(limit = BATCH_SIZE, manualList?: string[]): Promise<any[]> {
+  if (manualList && manualList.length > 0) {
+    // For manual runs, we find which of the requested BSSIDs are still missing details
+    const sql = `
+      SELECT DISTINCT v2.bssid, v2.type
+      FROM (SELECT unnest($2::text[]) as bssid) m
+      JOIN app.wigle_v2_networks_search v2 ON v2.bssid = m.bssid
+      LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
+      WHERE v3.netid IS NULL
+      LIMIT $1
+    `;
+    const { rows } = await adminQuery(sql, [limit, manualList]);
+    return rows;
+  }
+
   const sql = `
     SELECT DISTINCT v2.bssid, v2.type
     FROM app.wigle_v2_networks_search v2
@@ -127,11 +141,13 @@ async function fetchAndImportDetail(bssid: string, type: string) {
   return { bssid, obsCount };
 }
 
-async function runEnrichmentLoop(runId: number) {
+async function runEnrichmentLoop(runId: number, manualList?: string[]) {
   let run = await getImportRun(runId);
   if (run.status === 'completed' || run.status === 'cancelled') return run;
 
-  logger.info(`[v3 Enrichment] Starting batch loop for run #${runId}`);
+  logger.info(
+    `[v3 Enrichment] Starting batch loop for run #${runId}${manualList ? ` (Manual: ${manualList.length} items)` : ''}`
+  );
 
   try {
     for (;;) {
@@ -145,7 +161,7 @@ async function runEnrichmentLoop(runId: number) {
         return;
       }
 
-      const batch = await getNextEnrichmentBatch(5); // Small batches for better state updates
+      const batch = await getNextEnrichmentBatch(5, manualList);
       if (batch.length === 0) {
         await completeRun(runId);
         logger.info(`[v3 Enrichment] Completed run #${runId}`);
@@ -184,15 +200,25 @@ async function runEnrichmentLoop(runId: number) {
   }
 }
 
-async function startBatchEnrichment() {
-  const pending = await getPendingEnrichmentCount();
-  if (pending === 0) throw new Error('No networks found awaiting v3 enrichment');
+async function startBatchEnrichment(bssids?: string[]) {
+  const isManual = Array.isArray(bssids) && bssids.length > 0;
+  const pending = isManual ? bssids!.length : await getPendingEnrichmentCount();
+
+  if (pending === 0) {
+    throw new Error(
+      isManual
+        ? 'All provided BSSIDs already have v3 details'
+        : 'No networks found awaiting v3 enrichment'
+    );
+  }
 
   const run = await createImportRun({
     version: 'v3',
-    source: 'v3_batch',
-    searchTerm: `Batch Enrichment (${pending} items)`,
-    resultsPerPage: 1, // Using this as item count proxy
+    source: isManual ? 'v3_manual' : 'v3_batch',
+    searchTerm: isManual
+      ? `Manual Enrichment (${pending} items)`
+      : `Batch Enrichment (${pending} items)`,
+    resultsPerPage: 1,
   });
 
   // Set total items in api_total_results for progress bar
@@ -202,7 +228,7 @@ async function startBatchEnrichment() {
   ]);
 
   // Start background loop
-  void runEnrichmentLoop(run.id);
+  void runEnrichmentLoop(run.id, bssids);
 
   return run;
 }

@@ -56,8 +56,8 @@ export const wigleApi = {
     return apiClient.get('/wigle/enrichment/stats');
   },
 
-  async startEnrichment(): Promise<any> {
-    return apiClient.post('/wigle/enrichment/start', {});
+  async startEnrichment(bssids?: string[]): Promise<any> {
+    return apiClient.post('/wigle/enrichment/start', { bssids });
   },
 
   async resumeEnrichment(runId: number): Promise<any> {

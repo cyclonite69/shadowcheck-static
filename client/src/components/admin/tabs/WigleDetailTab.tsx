@@ -58,6 +58,9 @@ export const WigleDetailTab: React.FC = () => {
   const { uploadError, uploadSuccess, uploadFile, reset } = useWigleFileUpload();
 
   const [pendingEnrichment, setPendingEnrichment] = useState<number | null>(null);
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [manualBssids, setManualBssids] = useState('');
+
   const {
     runs,
     loading: runsLoading,
@@ -97,10 +100,18 @@ export const WigleDetailTab: React.FC = () => {
 
   const handleStartEnrichment = async () => {
     try {
-      const data = await wigleApi.startEnrichment();
+      const bssids = isManualMode
+        ? manualBssids
+            .split(/[\n,]/)
+            .map((s) => s.trim())
+            .filter((s) => s.length > 5)
+        : undefined;
+
+      const data = await wigleApi.startEnrichment(bssids);
       if (data?.ok) {
         await refreshRuns();
         void loadEnrichmentStats();
+        if (isManualMode) setManualBssids('');
       }
     } catch (e: any) {
       alert(`Failed to start enrichment: ${e.message}`);
@@ -452,21 +463,59 @@ export const WigleDetailTab: React.FC = () => {
           </div>
 
           <div className="pt-2">
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                id="manual-enrich-toggle"
+                checked={isManualMode}
+                onChange={(e) => setIsManualMode(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-500/20"
+              />
+              <label htmlFor="manual-enrich-toggle" className="text-xs text-slate-300 font-medium">
+                Manual Selection Mode
+              </label>
+            </div>
+
+            {isManualMode && (
+              <div className="mb-4">
+                <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1.5 ml-1">
+                  BSSID List (Comma or Newline separated)
+                </label>
+                <textarea
+                  value={manualBssids}
+                  onChange={(e) => setManualBssids(e.target.value)}
+                  placeholder="00:11:22:33:44:55&#10;AA:BB:CC:DD:EE:FF"
+                  className="w-full h-24 bg-slate-950/50 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-cyan-400 placeholder:text-slate-700 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                />
+              </div>
+            )}
+
             <button
               onClick={handleStartEnrichment}
-              disabled={runsLoading || actionLoading || (pendingEnrichment || 0) === 0}
+              disabled={
+                runsLoading ||
+                actionLoading ||
+                (!isManualMode && (pendingEnrichment || 0) === 0) ||
+                (isManualMode && manualBssids.trim().length < 5)
+              }
               className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-bold hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-xs shadow-lg shadow-blue-500/20 transition-all active:scale-95"
             >
-              Start Batch Enrichment
+              {isManualMode ? 'Enrich Selected BSSIDs' : 'Start Batch Enrichment'}
             </button>
           </div>
         </div>
       </AdminCard>
 
       {/* Progress Table */}
-      {runs.some((r) => r.source === 'v3_batch' || r.state?.includes('Enrichment')) && (
+      {runs.some(
+        (r) =>
+          r.source === 'v3_batch' || r.source === 'v3_manual' || r.state?.includes('Enrichment')
+      ) && (
         <WigleRunsCard
-          runs={runs.filter((r) => r.source === 'v3_batch' || r.state?.includes('Enrichment'))}
+          runs={runs.filter(
+            (r) =>
+              r.source === 'v3_batch' || r.source === 'v3_manual' || r.state?.includes('Enrichment')
+          )}
           loading={runsLoading}
           actionLoading={actionLoading}
           error={runsError}
