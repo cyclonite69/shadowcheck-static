@@ -352,4 +352,47 @@ router.post(
   })
 );
 
+// --- Batch Enrichment Routes ---
+
+const wigleEnrichmentService = require('../../../../services/wigleEnrichmentService');
+
+/**
+ * GET /api/v1/wigle/detail/enrichment/stats
+ * Get count of v2 networks awaiting v3 enrichment
+ */
+router.get(
+  '/enrichment/stats',
+  requireAdmin,
+  asyncHandler(async (_req: Request, res: Response) => {
+    const pendingCount = await wigleEnrichmentService.getPendingEnrichmentCount();
+    res.json({ ok: true, pendingCount });
+  })
+);
+
+/**
+ * POST /api/v1/wigle/detail/enrichment/start
+ * Start a new batch enrichment run
+ */
+router.post(
+  '/enrichment/start',
+  requireAdmin,
+  asyncHandler(async (_req: Request, res: Response) => {
+    const run = await wigleEnrichmentService.startBatchEnrichment();
+    res.json({ ok: true, run });
+  })
+);
+
+/**
+ * POST /api/v1/wigle/detail/enrichment/resume/:runId
+ * Resume an existing enrichment run
+ */
+router.post(
+  '/enrichment/resume/:runId',
+  requireAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const run = await wigleEnrichmentService.resumeEnrichment(Number(req.params.runId));
+    res.json({ ok: true, run });
+  })
+);
+
 export default router;

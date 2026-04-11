@@ -116,8 +116,26 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const handleCheckWigle = async (bssid: string) => {
     try {
       setActiveBssid(bssid);
-      await adminApi.checkOrphanNetworkWigle(bssid);
-      reloadRows();
+      const result = await adminApi.checkOrphanNetworkWigle(bssid);
+
+      // Update the row in-place to avoid full reload and scroll reset
+      setRows((prev) =>
+        prev.map((row) => {
+          if (row.bssid === bssid) {
+            return {
+              ...row,
+              backfill_status: result.status,
+              matched_netid: result.matchedNetid,
+              wigle_v3_observation_count:
+                result.totalObservations ?? row.wigle_v3_observation_count,
+              last_attempted_at: new Date().toISOString(),
+            };
+          }
+          return row;
+        })
+      );
+    } catch (err: any) {
+      console.error('Failed to check WiGLE for orphan:', err);
     } finally {
       setActiveBssid(null);
     }

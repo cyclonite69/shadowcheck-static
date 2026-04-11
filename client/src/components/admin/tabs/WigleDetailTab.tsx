@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useWigleDetail, type WigleDetailType } from '../hooks/useWigleDetail';
 import { useWigleFileUpload } from '../../../hooks/useWigleFileUpload';
+import { useWigleRuns } from '../hooks/useWigleRuns';
+import { wigleApi } from '../../../api/wigleApi';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 import { formatShortDate } from '../../../utils/formatDate';
+import { WigleRunsCard } from '../components/WigleRunsCard';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -52,6 +55,45 @@ export const WigleDetailTab: React.FC = () => {
     fetchDetail,
   } = useWigleDetail();
   const { uploadError, uploadSuccess, uploadFile, reset } = useWigleFileUpload();
+
+  const [pendingEnrichment, setPendingEnrichment] = useState<number | null>(null);
+  const {
+    runs,
+    loading: runsLoading,
+    error: runsError,
+    actionLoading,
+    refresh: refreshRuns,
+    resumeRun,
+    pauseRun,
+    cancelRun,
+  } = useWigleRuns({ limit: 10 });
+
+  const loadEnrichmentStats = async () => {
+    try {
+      const data = await wigleApi.getEnrichmentStats();
+      if (data?.ok) {
+        setPendingEnrichment(data.pendingCount);
+      }
+    } catch (e) {
+      console.error('Failed to load enrichment stats', e);
+    }
+  };
+
+  useEffect(() => {
+    void loadEnrichmentStats();
+  }, []);
+
+  const handleStartEnrichment = async () => {
+    try {
+      const data = await wigleApi.startEnrichment();
+      if (data?.ok) {
+        await refreshRuns();
+        void loadEnrichmentStats();
+      }
+    } catch (e: any) {
+      alert(`Failed to start enrichment: ${e.message}`);
+    }
+  };
 
   const handleSearch = (shouldImport: boolean) => {
     reset();
@@ -374,6 +416,55 @@ export const WigleDetailTab: React.FC = () => {
             )}
           </div>
         </AdminCard>
+      )}
+
+      {/* Batch Enrichment Section */}
+      <AdminCard icon={DetailIcon} title="Batch v3 Enrichment" color="from-blue-500 to-indigo-600">
+        <div className="space-y-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-slate-300 font-bold">Enrich v2 Records</p>
+              <p className="text-xs text-slate-400 mt-1 max-w-md">
+                Automatically fetch deep forensics and observation clusters for networks discovered
+                via v2 search that don't have v3 details yet.
+              </p>
+            </div>
+            {pendingEnrichment !== null && (
+              <div className="text-right px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div className="text-xl font-black text-blue-400">
+                  {pendingEnrichment.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
+                  Pending
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={handleStartEnrichment}
+              disabled={runsLoading || actionLoading || (pendingEnrichment || 0) === 0}
+              className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-bold hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-xs shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+            >
+              Start Batch Enrichment
+            </button>
+          </div>
+        </div>
+      </AdminCard>
+
+      {/* Progress Table */}
+      {runs.some((r) => r.source === 'v3_batch' || r.state?.includes('Enrichment')) && (
+        <WigleRunsCard
+          runs={runs.filter((r) => r.source === 'v3_batch' || r.state?.includes('Enrichment'))}
+          loading={runsLoading}
+          actionLoading={actionLoading}
+          error={runsError}
+          onRefresh={refreshRuns}
+          onResume={resumeRun}
+          onPause={pauseRun}
+          onCancel={cancelRun}
+        />
       )}
     </div>
   );
