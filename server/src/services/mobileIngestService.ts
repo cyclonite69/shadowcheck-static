@@ -68,7 +68,39 @@ class MobileIngestService {
         data.status || 'pending',
       ]
     );
-    return rows[0].id;
+    const dbId = rows[0].id;
+
+    // Create a corresponding entry in import_history so it shows up in the UI
+    try {
+      const metricsBefore = await adminImportHistoryService.captureImportMetrics();
+      const historyId = await adminImportHistoryService.createImportHistoryEntry(
+        data.sourceTag,
+        path.basename(data.s3Key),
+        metricsBefore
+      );
+
+      // Link it back
+      await adminQuery('UPDATE app.mobile_uploads SET history_id = $1 WHERE id = $2', [
+        historyId,
+        dbId,
+      ]);
+
+      // If quarantined, mark history as quarantined immediately
+      if (data.status === 'quarantined') {
+        await adminImportHistoryService.completeImportSuccess(
+          historyId,
+          0,
+          0,
+          '0.00',
+          metricsBefore,
+          'quarantined'
+        );
+      }
+    } catch (e: any) {
+      logger.warn(`[MobileIngest] Could not create initial import_history entry: ${e.message}`);
+    }
+
+    return dbId;
   }
 
   /**
@@ -114,11 +146,21 @@ class MobileIngestService {
 
       // 3. Capture baseline metrics
       const metricsBefore = await adminImportHistoryService.captureImportMetrics();
-      historyId = await adminImportHistoryService.createImportHistoryEntry(
-        upload.source_tag,
-        path.basename(upload.s3_key),
-        metricsBefore
-      );
+
+      if (upload.history_id) {
+        historyId = upload.history_id;
+        // Update existing entry to 'running'
+        await adminQuery(
+          "UPDATE app.import_history SET status = 'running', started_at = NOW(), metrics_before = $1 WHERE id = $2",
+          [JSON.stringify(metricsBefore), historyId]
+        );
+      } else {
+        historyId = await adminImportHistoryService.createImportHistoryEntry(
+          upload.source_tag,
+          path.basename(upload.s3_key),
+          metricsBefore
+        );
+      }
 
       // 4. Run Importer
       logger.info(`[MobileIngest] Starting IncrementalImporter for ${upload.source_tag}`);

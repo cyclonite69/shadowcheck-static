@@ -84,18 +84,19 @@ async function completeImportSuccess(
   imported: number,
   failed: number,
   durationS: string,
-  metricsAfter: ImportMetrics
+  metricsAfter: ImportMetrics,
+  status: string = 'success'
 ): Promise<void> {
   await adminQuery(
     `UPDATE app.import_history
        SET finished_at   = NOW(),
-           status        = 'success',
+           status        = $6,
            imported      = $2,
            failed        = $3,
            duration_s    = $4,
            metrics_after = $5
      WHERE id = $1`,
-    [historyId, imported, failed, durationS, JSON.stringify(metricsAfter)]
+    [historyId, imported, failed, durationS, JSON.stringify(metricsAfter), status]
   );
 }
 
