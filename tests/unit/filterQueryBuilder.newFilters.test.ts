@@ -148,4 +148,30 @@ describe('UniversalFilterQueryBuilder - New MV Filters', () => {
       expect(geoResult.params).toContain(100);
     });
   });
+
+  describe('Slow Path Integration', () => {
+    test('WiGLE filters apply on slow path when combined with boundingBox', () => {
+      // boundingBox triggers the slow path (CTE scan of observations)
+      const result = new UniversalFilterQueryBuilder(
+        {
+          boundingBox: { north: 45, south: 44, east: -73, west: -74 },
+          wigle_v3_observation_count_min: 10,
+          wigleV3LastImportAfter: '2024-01-01',
+        },
+        { boundingBox: true, wigle_v3_observation_count_min: true, wigleV3LastImportAfter: true }
+      ).buildNetworkListQuery();
+
+      expect(result.sql).toContain('filtered_obs AS ('); // Slow path check
+      expect(result.sql).toContain('ne.wigle_v3_observation_count >= $5');
+      expect(result.sql).toContain('ne.wigle_v3_last_import_at >= $6::timestamptz');
+      expect(result.params[4]).toBe(10);
+      expect(result.params[5]).toBe('2024-01-01');
+      expect(
+        result.appliedFilters.some((f: any) => f.field === 'wigle_v3_observation_count_min')
+      ).toBe(true);
+      expect(result.appliedFilters.some((f: any) => f.field === 'wigleV3LastImportAfter')).toBe(
+        true
+      );
+    });
+  });
 });
