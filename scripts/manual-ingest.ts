@@ -24,8 +24,12 @@ async function run() {
 
   if (process.env.NODE_ENV === 'production' && !require('fs').existsSync('./server/src')) {
     console.log('Production mode detected, using compiled modules from dist/');
-    service = require('../dist/server/server/src/services/mobileIngestService').default;
-    log = require('../dist/server/server/src/logging/logger').default;
+    service =
+      require('../dist/server/server/src/services/mobileIngestService').default ||
+      require('../dist/server/server/src/services/mobileIngestService');
+    log =
+      require('../dist/server/server/src/logging/logger').default ||
+      require('../dist/server/server/src/logging/logger');
   }
 
   log.info(`Manually triggering process for upload ID: ${uploadId}`);
