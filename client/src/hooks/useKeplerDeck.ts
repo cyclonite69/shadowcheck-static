@@ -1,18 +1,13 @@
 import { useRef, useCallback, useState } from 'react';
 import { NetworkData, LayerType } from '../components/kepler/types';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
-import {
-  normalizeTooltipData,
-  normalizeTooltipEssentials,
-} from '../utils/geospatial/tooltipDataNormalizer';
+import { normalizeTooltipData } from '../utils/geospatial/tooltipDataNormalizer';
 
 type TooltipState = {
   x: number;
   y: number;
   html: string;
   pinned: boolean;
-  bssid?: string;
-  isFull?: boolean;
 };
 
 /** Compute center + zoom that fits [[minLon,minLat],[maxLon,maxLat]] into a viewport. */
@@ -55,35 +50,13 @@ export function useKeplerDeck({
   const [zoom, setZoom] = useState<number>(10);
   const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
 
-  /**
-   * Builds a lightweight 'essentials' tooltip for immediate hover feedback.
-   */
-  const buildLiteTooltip = useCallback((object: NetworkData, x: number, y: number) => {
-    const essentials = normalizeTooltipEssentials(object, object.position);
-    // Render a skeleton/lite version of the forensic card
-    // We reuse renderNetworkTooltip but it will show EM_DASH for missing fields
-    return {
-      x,
-      y,
-      pinned: false,
-      isFull: false,
-      bssid: essentials.bssid as string,
-      html: renderNetworkTooltip(essentials),
-    };
-  }, []);
-
-  /**
-   * Upgrades a lite tooltip to a full forensic tooltip.
-   */
-  const buildFullTooltip = useCallback(
+  const buildTooltipState = useCallback(
     (object: NetworkData, x: number, y: number, pinned: boolean) => {
       const normalized = normalizeTooltipData(object, object.position);
       return {
         x,
         y,
         pinned,
-        isFull: true,
-        bssid: normalized.bssid as string,
         html: renderNetworkTooltip(normalized),
       };
     },
@@ -227,11 +200,7 @@ export function useKeplerDeck({
                 setTooltipState((current) => {
                   if (current?.pinned) return current;
                   if (!object) return null;
-                  // If we already have this BSSID but it's not full, we could upgrade it,
-                  // but for hover we just stick to lite for speed.
-                  if (current?.bssid === (object.bssid || object.netid) && !current.isFull)
-                    return current;
-                  return buildLiteTooltip(object, x, y);
+                  return buildTooltipState(object, x, y, false);
                 });
               },
               onClick: ({ object, x, y }: any) => {
@@ -239,8 +208,7 @@ export function useKeplerDeck({
                   clearTooltip();
                   return;
                 }
-                // Clicking triggers full Forensic upgrade
-                setTooltipState(buildFullTooltip(object, x, y, true));
+                setTooltipState(buildTooltipState(object, x, y, true));
               },
             })
           );
@@ -294,7 +262,7 @@ export function useKeplerDeck({
                 setTooltipState((current) => {
                   if (current?.pinned) return current;
                   if (!object) return null;
-                  return buildLiteTooltip(object, x, y);
+                  return buildTooltipState(object, x, y, false);
                 });
               },
               onClick: ({ object, x, y }: any) => {
@@ -302,7 +270,7 @@ export function useKeplerDeck({
                   clearTooltip();
                   return;
                 }
-                setTooltipState(buildFullTooltip(object, x, y, true));
+                setTooltipState(buildTooltipState(object, x, y, true));
               },
             })
           );
@@ -329,7 +297,7 @@ export function useKeplerDeck({
         ensureNavigationControl();
       }
     },
-    [layerType, pointSize, pitch, height3d, buildLiteTooltip, buildFullTooltip, clearTooltip]
+    [layerType, pointSize, pitch, height3d, buildTooltipState, clearTooltip]
   );
 
   return { mapRef, deckRef, zoom, setZoom, handleFitBounds, initDeck, tooltipState, clearTooltip };

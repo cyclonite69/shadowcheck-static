@@ -72,39 +72,6 @@ function normalizeDistanceFromHomeKm(raw: AnyRecord): number | null {
 }
 
 /**
- * Lightweight normalization for high-volume scenarios (e.g. initial hover in Kepler).
- * Only extracts essentials for identification and basic status.
- */
-export const normalizeTooltipEssentials = (raw: AnyRecord, fallbackPosition?: [number, number]) => {
-  const lat = toNumberOrNull(
-    pickFirst(raw.lat, raw.latitude, raw.trilat, raw.y, fallbackPosition?.[1])
-  );
-  const lon = toNumberOrNull(
-    pickFirst(
-      raw.lon,
-      raw.lng,
-      raw.longitude,
-      raw.trilong,
-      raw.trilon,
-      raw.x,
-      fallbackPosition?.[0]
-    )
-  );
-
-  return {
-    ssid: pickFirst(raw.ssid, raw.name, 'Hidden'),
-    bssid: pickFirst(raw.bssid, raw.netid, 'UNKNOWN'),
-    type: pickFirst(raw.type, '?'),
-    radio_type: pickFirst(raw.radio_type, raw.type, '?'),
-    threat_level: pickFirst(raw.threat_level, raw.threat, 'NONE'),
-    threat_score: Number(pickFirst(raw.threat_score, 0)),
-    lat,
-    lon,
-    wigle_match: Boolean(raw.wigle_match),
-  };
-};
-
-/**
  * Normalize mixed network/observation payloads from Geospatial, Kepler, and WiGLE
  * into canonical tooltip fields consumed by renderNetworkTooltip.
  */

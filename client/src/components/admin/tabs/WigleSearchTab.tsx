@@ -5,8 +5,6 @@ import { useWigleRuns } from '../hooks/useWigleRuns';
 import { US_STATES } from '../../../constants/network';
 import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
-import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
-import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -99,8 +97,6 @@ export const WigleSearchTab: React.FC = () => {
     pauseRun,
     cancelRun,
   } = useWigleRuns({ limit: 100 });
-
-  const [selectedNetwork, setSelectedNetwork] = React.useState<any | null>(null);
 
   useEffect(() => {
     loadApiStatus();
@@ -453,16 +449,7 @@ export const WigleSearchTab: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-700/50">
                           {searchResults.results.map((net, idx) => (
-                            <tr
-                              key={idx}
-                              className={`hover:bg-slate-700/30 cursor-pointer transition-colors ${
-                                (selectedNetwork?.netid || selectedNetwork?.bssid) ===
-                                (net.netid || net.bssid)
-                                  ? 'bg-blue-500/10'
-                                  : ''
-                              }`}
-                              onClick={() => setSelectedNetwork(net)}
-                            >
+                            <tr key={idx} className="hover:bg-slate-700/30">
                               <td className="px-3 py-2 font-medium text-white">
                                 {net.ssid || '<hidden>'}
                               </td>
@@ -481,44 +468,6 @@ export const WigleSearchTab: React.FC = () => {
                           ))}
                         </tbody>
                       </table>
-                    </div>
-                  )}
-
-                  {/* Tooltip Preview (Unified Design) */}
-                  {selectedNetwork && (
-                    <div className="mt-4 p-4 bg-slate-900/40 rounded border border-slate-700/50">
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase">
-                          Forensic Tooltip Preview
-                        </h4>
-                        <button
-                          onClick={() => setSelectedNetwork(null)}
-                          className="text-[10px] text-slate-500 hover:text-white"
-                        >
-                          Clear Preview
-                        </button>
-                      </div>
-                      <div className="flex justify-center bg-slate-950/50 p-4 rounded-lg border border-slate-800 shadow-inner overflow-hidden">
-                        <div
-                          className="scale-[0.85] origin-top"
-                          dangerouslySetInnerHTML={{
-                            __html: renderNetworkTooltip(
-                              normalizeTooltipData({
-                                ...selectedNetwork,
-                                lat:
-                                  selectedNetwork.trilat ||
-                                  selectedNetwork.lat ||
-                                  selectedNetwork.latitude,
-                                lon:
-                                  selectedNetwork.trilong ||
-                                  selectedNetwork.lon ||
-                                  selectedNetwork.longitude,
-                                qos: selectedNetwork.qos,
-                              })
-                            ),
-                          }}
-                        />
-                      </div>
                     </div>
                   )}
 
