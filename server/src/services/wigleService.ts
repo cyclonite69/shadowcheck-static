@@ -26,8 +26,8 @@ type QueryExecutor = {
 
 export async function getWigleNetworkByBSSID(bssid: string): Promise<any | null> {
   const { rows } = await query(
-    `SELECT bssid, ssid, encryption, country, region, city, trilat, trilon, first_seen, last_seen
-     FROM app.wigle_networks_enriched WHERE bssid = $1 LIMIT 1`,
+    `SELECT bssid, ssid, encryption, country, region, city, trilat, trilong, firsttime as first_seen, lasttime as last_seen
+     FROM app.wigle_v2_networks_search WHERE bssid = $1 ORDER BY lasttime DESC LIMIT 1`,
     [bssid]
   );
   return rows.length > 0 ? rows[0] : null;
@@ -295,13 +295,13 @@ export async function getKmlPointsForMap(params: {
 
   let total: number | null = null;
   if (includeTotal) {
-    const countResult = await query(
+    const { rows: countRows } = await query(
       `SELECT COUNT(*) AS total
        FROM app.kml_points kp
        ${whereSql}`,
-      queryParams.slice(0, bssid ? 1 : 0)
+      bssid ? [`${bssid}%`] : []
     );
-    total = parseInt(countResult.rows[0]?.total || '0', 10);
+    total = parseInt(countRows[0]?.total || '0', 10);
   }
 
   return { rows, total };

@@ -46,22 +46,25 @@ async function getEnrichmentCatalog(options: {
   const offset = (page - 1) * limit;
 
   const where: string[] = [];
-  const params: any[] = [limit, offset];
+  const filterParams: any[] = [];
 
   if (options.region) {
-    where.push(`TRIM(region) ILIKE $${params.push(options.region.trim() + '%')}`);
+    where.push(`TRIM(region) ILIKE $${filterParams.push(options.region.trim() + '%')}`);
   }
   if (options.city) {
-    where.push(`TRIM(city) ILIKE $${params.push(options.city.trim() + '%')}`);
+    where.push(`TRIM(city) ILIKE $${filterParams.push(options.city.trim() + '%')}`);
   }
   if (options.ssid) {
-    where.push(`ssid ILIKE $${params.push('%' + options.ssid.trim() + '%')}`);
+    where.push(`ssid ILIKE $${filterParams.push('%' + options.ssid.trim() + '%')}`);
   }
   if (options.bssid) {
-    where.push(`bssid ILIKE $${params.push(options.bssid.trim() + '%')}`);
+    where.push(`bssid ILIKE $${filterParams.push(options.bssid.trim() + '%')}`);
   }
 
   const subWhereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+
+  // Main query parameters: [limit, offset, ...filters]
+  const queryParams = [limit, offset, ...filterParams];
 
   const sql = `
     SELECT 
@@ -84,15 +87,58 @@ async function getEnrichmentCatalog(options: {
     LIMIT $1 OFFSET $2
   `;
 
+  // For the main query, filters start at $3
+  let mainSql = sql;
+  filterParams.forEach((_, i) => {
+    // Replace the $N in subWhereClause which were $1, $2... with $3, $4...
+    // We do this by calculating the offset.
+    // Actually, it's easier to just build the WHERE clause with the correct numbers.
+  });
+
+  // Re-build where with correct numbering for each query
+  const getWhere = (startIndex: number) => {
+    const w: string[] = [];
+    let idx = startIndex;
+    if (options.region) w.push(`TRIM(region) ILIKE $${idx++}`);
+    if (options.city) w.push(`TRIM(city) ILIKE $${idx++}`);
+    if (options.ssid) w.push(`ssid ILIKE $${idx++}`);
+    if (options.bssid) w.push(`bssid ILIKE $${idx++}`);
+    return w.length > 0 ? `WHERE ${w.join(' AND ')}` : '';
+  };
+
+  const mainWhere = getWhere(3);
+  const countWhere = getWhere(1);
+
+  const finalSql = `
+    SELECT 
+      v2.bssid, 
+      v2.ssid, 
+      v2.region, 
+      v2.city, 
+      v2.type,
+      v2.lasttime,
+      v3.imported_at as last_v3_import,
+      (SELECT COUNT(*)::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid) as v3_obs_count
+    FROM (
+      SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, lasttime
+      FROM app.wigle_v2_networks_search
+      ${mainWhere}
+      ORDER BY bssid, lasttime DESC
+    ) v2
+    LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
+    ORDER BY v2.lasttime DESC, v2.bssid ASC
+    LIMIT $1 OFFSET $2
+  `;
+
   const countSql = `
     SELECT COUNT(DISTINCT bssid)::int 
     FROM app.wigle_v2_networks_search
-    ${subWhereClause}
+    ${countWhere}
   `;
 
   const [dataResult, countResult] = await Promise.all([
-    adminQuery(sql, params),
-    adminQuery(countSql, params.slice(2)),
+    adminQuery(finalSql, queryParams),
+    adminQuery(countSql, filterParams),
   ]);
 
   return {
