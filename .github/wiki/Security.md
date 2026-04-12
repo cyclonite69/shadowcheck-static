@@ -187,7 +187,7 @@ Error: Access to AWS Secrets Manager denied
 
 ## Related Documentation
 
-- [Repo Secrets Doc](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/SECRETS.md) - Detailed secrets guide
-- [Repo Security Policy](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/SECURITY_POLICY.md) - Database and operational security
+- [Repo Secrets Doc](https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/SECRETS.md) - Detailed secrets guide
+- [Repo Security Policy](https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/SECURITY_POLICY.md) - Database and operational security
 - [Architecture](Architecture) - Security architecture overview
 - [Development](Development) - Secure development practices

@@ -19,6 +19,7 @@ graph TB
 
     B --> B1[Installation]
     B --> B2[Quick Start]
+    click B2 "https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/guides/QUICK_START.md"
 
     C --> C1[System Architecture]
     C --> C2[Data Flow]

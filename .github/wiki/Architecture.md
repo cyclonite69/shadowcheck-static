@@ -17,7 +17,7 @@ ShadowCheck uses a modern modular architecture combining:
 
 Additional reference assets:
 
-- [Architecture assets index](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/architecture/README.md)
+- [Architecture assets index](https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/architecture/README.md)
 
 Standalone architecture PDF/PNG exports are not currently versioned in the repo; use the Mermaid diagrams on this page and the repo docs as the current source of truth.
 

@@ -56,7 +56,8 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 ### Getting Started
 
 - [Installation](Installation) - Set up your development environment
-- [Repo README](https://github.com/cyclonite69/shadowcheck-web/blob/main/README.md) - current setup and entry points
+- [Quick Start](https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/guides/QUICK_START.md) - 5-minute setup tutorial
+- [Repo README](https://github.com/cyclonite69/shadowcheck-web/blob/master/README.md) - current setup and entry points
 - [Quick Reference](Quick-Reference) - Wiki navigation guide
 
 ### Documentation
@@ -68,19 +69,19 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 - [Development](Development) - Contributing and workflow
 - [Database](Database) - Schema and query reference
 - [Features](Features) - Complete feature catalog
-- [Geocoding Daemon](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/GEOCODING_DAEMON.md) - Background enrichment guide
+- [Geocoding Daemon](https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/GEOCODING_DAEMON.md) - Background enrichment guide
 
 ### Advanced Topics
 
 - [Machine Learning](Machine-Learning) - ML threat detection system
 - [Security](Security) - Security best practices and hardening
-- [Intelligence Dashboards](https://github.com/cyclonite69/shadowcheck-web/blob/main/deploy/monitoring/INTELLIGENCE.md) - Forensic visualization guide
+- [Intelligence Dashboards](https://github.com/cyclonite69/shadowcheck-web/blob/master/deploy/monitoring/INTELLIGENCE.md) - Forensic visualization guide
 
 ### Operations
 
 - [Troubleshooting](Troubleshooting) - Common issues and solutions
-- [Deployment](https://github.com/cyclonite69/shadowcheck-web/blob/main/docs/DEPLOYMENT.md) - Production deployment guide
-- [Monitoring](https://github.com/cyclonite69/shadowcheck-web/blob/main/deploy/monitoring/README.md) - Monitoring stack and Grafana dashboards
+- [Deployment](https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/DEPLOYMENT.md) - Production deployment guide
+- [Monitoring](https://github.com/cyclonite69/shadowcheck-web/blob/master/deploy/monitoring/README.md) - Monitoring stack and Grafana dashboards
 
 ---
 
@@ -96,7 +97,7 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](https://github.com/cyclonite69/shadowcheck-web/blob/main/CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide](https://github.com/cyclonite69/shadowcheck-web/blob/master/CONTRIBUTING.md) for details.
 
 ---
 
