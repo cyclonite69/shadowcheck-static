@@ -11,6 +11,7 @@ import * as os from 'os';
 import { pipeline } from 'stream/promises';
 const { adminQuery } = require('./adminDbService');
 import logger from '../logging/logger';
+import secretsManager from './secretsManager';
 const adminImportHistoryService = require('./adminImportHistoryService');
 import { IncrementalImporter } from '../../../etl/load/sqlite-import';
 
@@ -28,15 +29,20 @@ export interface MobileUploadData {
 }
 
 class MobileIngestService {
-  private s3Client: S3Client;
-  private bucketName: string;
+  private s3Client: S3Client | null = null;
+  private bucketName: string | null = null;
 
-  constructor() {
-    this.s3Client = new S3Client({
-      region: process.env.AWS_REGION || 'us-east-1',
-    });
-    this.bucketName = process.env.S3_BACKUP_BUCKET || '';
+  private initS3() {
+    if (this.s3Client) return;
+    const region = secretsManager.get('aws_region') || process.env.AWS_REGION || 'us-east-1';
+    this.s3Client = new S3Client({ region });
+    this.bucketName =
+      secretsManager.get('s3_backup_bucket') ||
+      process.env.S3_BACKUP_BUCKET ||
+      'dbcoopers-briefcase-161020170158';
   }
+
+  constructor() {}
 
   /**
    * Record a new upload in the tracking table
@@ -69,6 +75,7 @@ class MobileIngestService {
    * Process an upload: Download from S3 and run ETL
    */
   async processUpload(uploadId: number): Promise<void> {
+    this.initS3();
     const { rows } = await adminQuery('SELECT * FROM app.mobile_uploads WHERE id = $1', [uploadId]);
 
     if (rows.length === 0) {
@@ -95,7 +102,7 @@ class MobileIngestService {
       );
       if (!this.bucketName) throw new Error('S3_BACKUP_BUCKET not configured');
 
-      const response = await this.s3Client.send(
+      const response = await this.s3Client!.send(
         new GetObjectCommand({
           Bucket: this.bucketName,
           Key: upload.s3_key,

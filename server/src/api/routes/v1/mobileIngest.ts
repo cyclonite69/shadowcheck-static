@@ -3,19 +3,26 @@ import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import logger from '../../../logging/logger';
+import secretsManager from '../../../services/secretsManager';
 const mobileIngestService = require('../../../services/mobileIngestService');
 const featureFlagService = require('../../../services/featureFlagService');
 
 const router = Router();
 
-// Infrastructure Constants
-const S3_BUCKET = process.env.S3_BACKUP_BUCKET || 'dbcoopers-briefcase-161020170158';
-const S3_REGION = process.env.AWS_REGION || 'us-east-1';
+// Configuration Getters
+const getS3Config = () => ({
+  bucket:
+    secretsManager.get('s3_backup_bucket') ||
+    process.env.S3_BACKUP_BUCKET ||
+    'dbcoopers-briefcase-161020170158',
+  region: secretsManager.get('aws_region') || process.env.AWS_REGION || 'us-east-1',
+});
+
+const getS3Client = () => new S3Client({ region: getS3Config().region });
+
 const UPLOAD_PREFIX = 'uploads';
 const MAX_FILE_SIZE = 524288000; // 500MB
 const PRESIGNED_EXPIRY = 900; // 15 minutes
-
-const s3Client = new S3Client({ region: S3_REGION });
 
 /**
  * Validates the SHADOWCHECK_API_KEY from the Authorization header.
@@ -28,7 +35,7 @@ const validateApiKey = (req: Request, res: Response): boolean => {
   }
 
   const providedKey = authHeader.substring(7); // "Bearer "
-  const serverKey = process.env.SHADOWCHECK_API_KEY;
+  const serverKey = secretsManager.get('shadowcheck_api_key') || process.env.SHADOWCHECK_API_KEY;
 
   if (!serverKey || providedKey !== serverKey) {
     res.status(401).json({ error: 'Unauthorized' });
@@ -56,18 +63,19 @@ router.post('/request-upload', async (req: Request, res: Response) => {
   }
 
   const uploadId = randomUUID();
+  const { bucket } = getS3Config();
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
   const folder = case_id || 'default';
   const s3Key = `${UPLOAD_PREFIX}/${folder}/${dateStr}/${uploadId}-${fileName}`;
 
   try {
     const command = new PutObjectCommand({
-      Bucket: S3_BUCKET,
+      Bucket: bucket,
       Key: s3Key,
       ContentType: 'application/x-sqlite3',
     });
 
-    const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: PRESIGNED_EXPIRY });
+    const uploadUrl = await getSignedUrl(getS3Client(), command, { expiresIn: PRESIGNED_EXPIRY });
     const expires_at = new Date(Date.now() + PRESIGNED_EXPIRY * 1000).toISOString();
 
     logger.info(`[Ingest] Generated presigned URL for upload: ${uploadId}`, { s3Key });
@@ -110,6 +118,7 @@ router.post('/complete', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 's3Key is required' });
   }
 
+  const { bucket } = getS3Config();
   const tag = sourceTag || deviceId || 'mobile_upload';
   const normalizedTrustMode =
     typeof trustMode === 'string' && trustMode.trim().length > 0 ? trustMode.trim() : 'untrusted';
@@ -133,9 +142,9 @@ router.post('/complete', async (req: Request, res: Response) => {
 
   try {
     // Verify object exists in S3
-    await s3Client.send(
+    await getS3Client().send(
       new HeadObjectCommand({
-        Bucket: S3_BUCKET,
+        Bucket: bucket,
         Key: s3Key,
       })
     );

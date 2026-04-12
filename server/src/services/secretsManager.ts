@@ -29,6 +29,8 @@ const OPTIONAL_SECRETS = [
   'smarty_auth_id',
   'smarty_auth_token',
   'db_admin_password',
+  'shadowcheck_api_key',
+  's3_backup_bucket',
 ];
 
 // Credential keys: AWS Secrets Manager is the sole source of truth.
