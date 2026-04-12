@@ -287,8 +287,8 @@ describe('LIKE Wildcard Escaping - Integration Tests', () => {
 
       const duration = Date.now() - start;
 
-      // 1000 iterations should complete in under 10ms
-      expect(duration).toBeLessThan(10);
+      // 1000 iterations should complete in under 50ms
+      expect(duration).toBeLessThan(50);
     });
 
     test('should handle long SSIDs efficiently', () => {

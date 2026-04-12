@@ -34,9 +34,10 @@ describe('WiGLE Service', () => {
       const result = await getWigleNetworkByBSSID('AA:BB:CC:DD:EE:FF');
 
       expect(result).toEqual(mockNetwork);
-      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('wigle_networks_enriched'), [
-        'AA:BB:CC:DD:EE:FF',
-      ]);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('app.wigle_v2_networks_search'),
+        ['AA:BB:CC:DD:EE:FF']
+      );
     });
 
     it('returns null when not found', async () => {
