@@ -29,8 +29,14 @@ const PRESIGNED_EXPIRY = 900; // 15 minutes
  */
 const validateApiKey = (req: Request, res: Response): boolean => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Missing or invalid Authorization header' });
+  if (!authHeader) {
+    logger.warn(`[Ingest] Missing Authorization header from ${req.ip}`);
+    res.status(401).json({ error: 'Missing Authorization header' });
+    return false;
+  }
+  if (!authHeader.startsWith('Bearer ')) {
+    logger.warn(`[Ingest] Invalid Authorization header format from ${req.ip}`);
+    res.status(401).json({ error: 'Invalid Authorization header format' });
     return false;
   }
 
@@ -49,7 +55,7 @@ const validateApiKey = (req: Request, res: Response): boolean => {
     const maskedServer =
       serverKey.substring(0, 4) + '...' + serverKey.substring(serverKey.length - 4);
     logger.warn(
-      `[Ingest] API key mismatch. Provided: ${maskedProvided} (${providedKey.length}), Expected: ${maskedServer} (${serverKey.length})`
+      `[Ingest] API key mismatch from ${req.ip}. Provided: ${maskedProvided} (${providedKey.length}), Expected: ${maskedServer} (${serverKey.length})`
     );
     res.status(401).json({ error: 'Unauthorized' });
     return false;
