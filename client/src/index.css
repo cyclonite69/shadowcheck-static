@@ -332,4 +332,19 @@ body {
     border-radius: 9px !important;
     pointer-events: none;
   }
+
+  [role="tooltip"],
+  .tooltip {
+    position: absolute;
+    z-index: 9999;
+    pointer-events: none;
+    /* Prevent parent overflow from clipping tooltip */
+  }
+
+  /* Container for tooltips should NOT clip children */
+  .map-container,
+  [data-tooltip-container] {
+    overflow: visible !important;
+    position: relative;
+  }
 }
