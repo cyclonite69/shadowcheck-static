@@ -57,12 +57,28 @@ export function buildNetworkWhere(ctx: FilterBuildContext): string[] {
   );
 
   if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
-    if (ctx.context?.pageType === 'wigle') {
-      networkWhere.push(
-        `ne.wigle_v3_observation_count >= ${ctx.addParam(f.wigle_v3_observation_count_min)}`
-      );
-      ctx.addApplied('quality', 'wigle_v3_observation_count_min', f.wigle_v3_observation_count_min);
-    }
+    networkWhere.push(
+      `ne.wigle_v3_observation_count >= ${ctx.addParam(f.wigle_v3_observation_count_min)}`
+    );
+    ctx.addApplied('quality', 'wigle_v3_observation_count_min', f.wigle_v3_observation_count_min);
+  }
+  if (e.wigle_v3_observation_count_max && f.wigle_v3_observation_count_max !== undefined) {
+    networkWhere.push(
+      `ne.wigle_v3_observation_count <= ${ctx.addParam(f.wigle_v3_observation_count_max)}`
+    );
+    ctx.addApplied('quality', 'wigle_v3_observation_count_max', f.wigle_v3_observation_count_max);
+  }
+  if (e.wigleV3LastImportBefore && f.wigleV3LastImportBefore) {
+    networkWhere.push(
+      `ne.wigle_v3_last_import_at <= ${ctx.addParam(f.wigleV3LastImportBefore)}::timestamptz`
+    );
+    ctx.addApplied('quality', 'wigleV3LastImportBefore', f.wigleV3LastImportBefore);
+  }
+  if (e.wigleV3LastImportAfter && f.wigleV3LastImportAfter) {
+    networkWhere.push(
+      `ne.wigle_v3_last_import_at >= ${ctx.addParam(f.wigleV3LastImportAfter)}::timestamptz`
+    );
+    ctx.addApplied('quality', 'wigleV3LastImportAfter', f.wigleV3LastImportAfter);
   }
   if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
     networkWhere.push(

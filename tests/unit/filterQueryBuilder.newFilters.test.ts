@@ -129,14 +129,23 @@ describe('UniversalFilterQueryBuilder - New MV Filters', () => {
       expect(result.params[1]).toBe('2024-01-01');
     });
 
-    test('wigle_v3_observation_count_max applies max bound on wigle page', () => {
-      const result = new UniversalFilterQueryBuilder(
+    test('wigle_v3_observation_count_max applies max bound universally', () => {
+      // Test on WiGLE page
+      const wigleResult = new UniversalFilterQueryBuilder(
         { wigle_v3_observation_count_max: 50 },
         { wigle_v3_observation_count_max: true },
         { pageType: 'wigle' }
       ).buildNetworkListQuery();
-      expect(result.sql).toContain('ne.wigle_v3_observation_count <= $1');
-      expect(result.params).toContain(50);
+      expect(wigleResult.sql).toContain('ne.wigle_v3_observation_count <= $1');
+      expect(wigleResult.params).toContain(50);
+
+      // Test on Geospatial page (no pageType specified)
+      const geoResult = new UniversalFilterQueryBuilder(
+        { wigle_v3_observation_count_max: 100 },
+        { wigle_v3_observation_count_max: true }
+      ).buildNetworkListQuery();
+      expect(geoResult.sql).toContain('ne.wigle_v3_observation_count <= $1');
+      expect(geoResult.params).toContain(100);
     });
   });
 });

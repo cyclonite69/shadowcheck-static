@@ -21,25 +21,17 @@ export function buildFastPathSupplementalPredicates(
   }
 
   if (e.wigle_v3_observation_count_min && f.wigle_v3_observation_count_min !== undefined) {
-    if (ctx.context?.pageType === 'wigle') {
-      where.push(
-        `ne.wigle_v3_observation_count >= ${ctx.addParam(f.wigle_v3_observation_count_min)}`
-      );
-      ctx.addApplied('quality', 'wigle_v3_observation_count_min', f.wigle_v3_observation_count_min);
-    } else if (options.addUnsupportedWigleIgnored) {
-      ctx.addIgnored('quality', 'wigle_v3_observation_count_min', 'unsupported_page');
-    }
+    where.push(
+      `ne.wigle_v3_observation_count >= ${ctx.addParam(f.wigle_v3_observation_count_min)}`
+    );
+    ctx.addApplied('quality', 'wigle_v3_observation_count_min', f.wigle_v3_observation_count_min);
   }
 
   if (e.wigle_v3_observation_count_max && f.wigle_v3_observation_count_max !== undefined) {
-    if (ctx.context?.pageType === 'wigle') {
-      where.push(
-        `ne.wigle_v3_observation_count <= ${ctx.addParam(f.wigle_v3_observation_count_max)}`
-      );
-      ctx.addApplied('quality', 'wigle_v3_observation_count_max', f.wigle_v3_observation_count_max);
-    } else if (options.addUnsupportedWigleIgnored) {
-      ctx.addIgnored('quality', 'wigle_v3_observation_count_max', 'unsupported_page');
-    }
+    where.push(
+      `ne.wigle_v3_observation_count <= ${ctx.addParam(f.wigle_v3_observation_count_max)}`
+    );
+    ctx.addApplied('quality', 'wigle_v3_observation_count_max', f.wigle_v3_observation_count_max);
   }
 
   if (e.gpsAccuracyMax && f.gpsAccuracyMax !== undefined) {
