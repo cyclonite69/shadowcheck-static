@@ -37,8 +37,11 @@ function normalizeDisplay(value: unknown): string {
 }
 
 function buildLocation(props: any): string {
+  if (props.geocoded_address) return props.geocoded_address;
   const street = [props.housenumber, props.road].filter(Boolean).join(' ');
-  const city = [props.city, props.region].filter(Boolean).join(', ');
+  const city = [props.geocoded_city || props.city, props.geocoded_state || props.region]
+    .filter(Boolean)
+    .join(', ');
   return street && city ? `${street}, ${city}` : street || city || '';
 }
 
@@ -316,6 +319,8 @@ export const renderNetworkTooltip = (props: any): string => {
     cellInfo && !cellInfo.carrier ? fieldRow('Network', cellInfo.tech) : '',
     channelValue ? fieldRow('Channel', channelValue) : '',
     frequencyValue ? fieldRow('Frequency', frequencyValue) : '',
+    props.geocoded_poi_name ? fieldRow('POI Name', props.geocoded_poi_name) : '',
+    props.geocoded_address ? fieldRow('Address', props.geocoded_address) : '',
     !isMissingValue(props.manufacturer) && String(props.manufacturer).toUpperCase() !== 'UNKNOWN'
       ? fieldRow('Manufacturer', normalizeDisplay(props.manufacturer))
       : '',
@@ -358,10 +363,6 @@ export const renderNetworkTooltip = (props: any): string => {
       : homeKm < 5
         ? '#facc15'
         : '#f87171';
-  const temporalPresent =
-    !isMissingValue(props.first_seen) ||
-    !isMissingValue(props.last_seen) ||
-    !isMissingValue(props.time);
 
   return `
 <div style="width:288px;max-width:min(340px, 90vw);background:#1a1d23;border:2px solid ${bc};border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">

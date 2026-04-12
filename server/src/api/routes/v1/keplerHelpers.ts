@@ -22,6 +22,8 @@ export interface KeplerNetworkRow {
   unique_days: number | null;
   first_observed_at: unknown;
   last_observed_at: unknown;
+  geocoded_address?: string | null;
+  geocoded_poi_name?: string | null;
 }
 
 export interface KeplerObsRow {
@@ -48,6 +50,8 @@ export interface KeplerObsRow {
   unique_days: number | null;
   max_distance_meters: number | null;
   stationary_confidence: number | null;
+  geocoded_address?: string | null;
+  geocoded_poi_name?: string | null;
 }
 
 interface KeplerBssidRow {
@@ -231,6 +235,8 @@ export const buildKeplerDataGeoJson = (
       threat_score: row.threat?.score || null,
       distance_from_home: row.distance_from_home_km || null,
       max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
+      geocoded_address: row.geocoded_address || null,
+      geocoded_poi_name: row.geocoded_poi_name || null,
     })
   );
 
@@ -281,6 +287,8 @@ export const buildKeplerObservationsGeoJson = (
       threat_level: row.threat_level || null,
       threat_score: row.threat_score || null,
       distance_from_home: row.distance_from_home_km || null,
+      geocoded_address: row.geocoded_address || null,
+      geocoded_poi_name: row.geocoded_poi_name || null,
     })
   );
 
@@ -317,6 +325,8 @@ export const buildKeplerNetworksGeoJson = (
       threat_score: row.threat?.score || null,
       distance_from_home: row.distance_from_home_km || null,
       max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
+      geocoded_address: row.geocoded_address || null,
+      geocoded_poi_name: row.geocoded_poi_name || null,
       timespan_days:
         row.first_seen && row.last_seen
           ? Math.ceil(

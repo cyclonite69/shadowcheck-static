@@ -54,6 +54,10 @@ export function buildGeospatialQueryContext(
         ne.threat_level,
         o.accuracy,
         ne.distance_from_home_km,
+        ne.geocoded_address,
+        ne.geocoded_city,
+        ne.geocoded_state,
+        ne.geocoded_poi_name,
         ${includeStationaryConfidence ? 'ne.stationary_confidence' : 'NULL::numeric AS stationary_confidence'}
       `;
 

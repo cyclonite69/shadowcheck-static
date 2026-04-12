@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { apiClient } from '../../../api/client';
-import { useWigleRuns } from '../hooks/useWigleRuns';
-import { formatShortDate } from '../../../utils/formatDate';
-import { WigleRunsCard } from '../components/WigleRunsCard';
 
 const TrophyIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -57,18 +54,6 @@ export const WigleStatsTab: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
-
-  const {
-    runs,
-    report,
-    loading: runsLoading,
-    error: runsError,
-    actionLoading,
-    refresh: refreshRuns,
-    resumeRun,
-    pauseRun,
-    cancelRun,
-  } = useWigleRuns({ limit: 100 }); // Increase limit to see more runs
 
   const fetchStats = async () => {
     try {
@@ -308,65 +293,6 @@ export const WigleStatsTab: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* WiGLE Import Runs Section */}
-      <WigleRunsCard
-        runs={runs}
-        loading={runsLoading}
-        actionLoading={actionLoading}
-        error={runsError}
-        onRefresh={refreshRuns}
-        onResume={resumeRun}
-        onPause={pauseRun}
-        onCancel={cancelRun}
-      />
-
-      {report && (
-        <AdminCard icon={BadgeIcon} title="Completeness Status" color="from-amber-500 to-amber-600">
-          <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-300 uppercase mb-3 flex items-center justify-between">
-              <span>Coverage Snapshot</span>
-              <span className="text-[10px] text-slate-500 font-normal">
-                Updated: {new Date(report.generatedAt).toLocaleTimeString()}
-              </span>
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {report.states
-                ?.filter((s) => s.storedCount > 0 || s.runId)
-                .slice(0, 15)
-                .map((s) => (
-                  <div
-                    key={s.state}
-                    className="p-2 bg-slate-900/40 rounded border border-slate-800/60 flex flex-col justify-between"
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-black text-white">{s.state}</span>
-                      <span
-                        className={`text-[9px] px-1 rounded ${
-                          s.status === 'completed'
-                            ? 'text-emerald-400 bg-emerald-500/5'
-                            : s.status === 'failed'
-                              ? 'text-red-400 bg-red-500/5'
-                              : s.status === 'running'
-                                ? 'text-blue-400 bg-blue-500/5'
-                                : 'text-slate-600'
-                        }`}
-                      >
-                        {s.status === 'completed' ? '✓' : s.status ? '...' : ''}
-                      </span>
-                    </div>
-                    <div className="text-lg font-bold text-slate-100">
-                      {s.storedCount.toLocaleString()}
-                    </div>
-                    <div className="text-[9px] text-slate-500 uppercase font-semibold">
-                      Networks
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </AdminCard>
-      )}
     </div>
   );
 };
