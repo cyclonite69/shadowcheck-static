@@ -210,6 +210,198 @@ erDiagram
         geometry location
         text address
         text venue_name
+        text source
+        timestamptz cached_at
+        integer precision
+    }
+
+    ORPHAN_NETWORK_BACKFILLS {
+        text bssid PK
+        text status
+        text matched_netid
+        boolean detail_imported
+        integer observations_imported
+        timestamptz last_attempted_at
+        text last_error
+    }
+
+    WIGLE_V3_OBSERVATIONS {
+        bigint id PK
+        text bssid FK
+        text ssid
+        geometry location
+        double trilat
+        double trilong
+        text source
+        timestamptz fetched_at
+    }
+
+    WIGLE_V3_NETWORK_DETAILS {
+        bigint id PK
+        text bssid FK
+        text ssid
+        text encryption
+        integer channel
+        timestamptz first_seen
+        timestamptz last_update
+        text country
+    }
+
+    AGENCY_OFFICES {
+        bigint id PK
+        text name
+        text office_type
+        geometry location
+        text address
+        text city
+        text state
+        text postal_code
+        text phone
+    }
+
+    USERS {
+        bigint id PK
+        text username UK
+        text password_hash
+        text email
+        text role
+        timestamptz created_at
+        timestamptz last_login
+        boolean is_active
+    }
+
+    USER_SESSIONS {
+        text session_id PK
+        bigint user_id FK
+        inet ip_address
+        text user_agent
+        timestamptz created_at
+        timestamptz expires_at
+    }
+
+    ML_MODEL_METADATA {
+        bigint id PK
+        text model_type
+        text version
+        float accuracy
+        float precision
+        float recall
+        float f1_score
+        float roc_auc
+        timestamptz trained_at
+        boolean is_active
+    }
+
+    ML_TRAINING_HISTORY {
+        bigint id PK
+        bigint model_id FK
+        integer training_samples
+        integer threat_samples
+        integer benign_samples
+        jsonb hyperparameters
+        jsonb cross_val_scores
+        timestamptz trained_at
+    }
+
+    FEDERAL_COURTHOUSES {
+        integer id PK
+        text name
+        text courthouse_type
+        text district
+        text circuit
+        geometry location
+        text city
+        text state
+        boolean active
+    }
+
+    RADIO_MANUFACTURERS {
+        text prefix PK
+        integer bit_length PK
+        text manufacturer
+        text address
+        timestamptz updated_at
+    }
+
+    DEVICE_SOURCES {
+        text code PK
+        text name
+        text device_type
+        text description
+        timestamptz created_at
+    }
+
+    SETTINGS {
+        text key PK
+        text value
+        text description
+        timestamptz updated_at
+        text updated_by FK
+    }
+```
+
+        text note
+        text created_by FK
+        timestamptz created_at
+    }
+
+    NETWORK_MEDIA {
+        bigint id PK
+        text bssid FK
+        text media_type
+        text file_path
+        bigint file_size
+        text mime_type
+        timestamptz captured_at
+        text uploaded_by FK
+    }
+
+    SSID_HISTORY {
+        bigint id PK
+        text bssid FK
+        text ssid
+        timestamptz first_seen
+        timestamptz last_seen
+        integer observation_count
+    }
+
+    NETWORK_THREAT_SCORES {
+        bigint id PK
+        text bssid FK
+        float rule_score
+        float ml_score
+        float ml_weight
+        float combined_score
+        timestamptz calculated_at
+        text model_version FK
+    }
+
+    LOCATION_MARKERS {
+        bigint id PK
+        text name
+        text description
+        geometry location
+        boolean is_home
+        float radius_km
+        text color
+        text created_by FK
+    }
+
+    ROUTES {
+        bigint id PK
+        text name
+        geometry path
+        float distance_km
+        integer duration_seconds
+        timestamptz recorded_at
+        text created_by FK
+    }
+
+    GEOCODING_CACHE {
+        bigint id PK
+        geometry location
+        text address
+        text venue_name
         text venue_type
         text source
         timestamptz cached_at
@@ -339,6 +531,7 @@ erDiagram
         timestamptz updated_at
         text updated_by FK
     }
+
 ```
 
 ---
@@ -983,3 +1176,4 @@ Application configuration key-value store.
 ---
 
 _Last Updated: 2026-03-23_
+```
