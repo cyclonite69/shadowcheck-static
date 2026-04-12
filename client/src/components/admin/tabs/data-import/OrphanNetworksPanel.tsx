@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi } from '../../../../api/adminApi';
 import type { OrphanNetworkRow } from './types';
 import { formatShortDate } from '../../../../utils/formatDate';
+import { renderNetworkTooltip } from '../../../../utils/geospatial/renderNetworkTooltip';
+import { normalizeTooltipData } from '../../../../utils/geospatial/tooltipDataNormalizer';
 
 const PAGE_SIZE = 100;
 
@@ -19,6 +21,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [search, setSearch] = useState('');
   const [draftSearch, setDraftSearch] = useState('');
   const [activeBssid, setActiveBssid] = useState<string | null>(null);
+  const [selectedNetwork, setSelectedNetwork] = useState<OrphanNetworkRow | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const requestIdRef = useRef(0);
   const rowsRef = useRef<OrphanNetworkRow[]>([]);
@@ -224,7 +227,13 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.bssid} className="border-b border-slate-800/50">
+                <tr
+                  key={row.bssid}
+                  className={`border-b border-slate-800/50 hover:bg-slate-800/30 cursor-pointer transition-colors ${
+                    selectedNetwork?.bssid === row.bssid ? 'bg-blue-500/10' : ''
+                  }`}
+                  onClick={() => setSelectedNetwork(row)}
+                >
                   <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
                     {formatShortDate(row.moved_at)}
                   </td>
@@ -253,7 +262,10 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                       {renderStatus(row)}
                       <button
                         type="button"
-                        onClick={() => handleCheckWigle(row.bssid)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckWigle(row.bssid);
+                        }}
                         disabled={activeBssid === row.bssid}
                         className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-50"
                         title={row.last_attempted_at || undefined}
@@ -270,6 +282,37 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
           {isLoadingMore ? (
             <p className="px-2 py-3 text-xs text-slate-500">Loading more orphan networks...</p>
           ) : null}
+        </div>
+      )}
+
+      {/* Tooltip Preview (Unified Design) */}
+      {selectedNetwork && (
+        <div className="mt-6 p-4 bg-slate-900/40 rounded border border-slate-700/50">
+          <div className="flex justify-between items-center mb-3">
+            <h4 className="text-xs font-bold text-slate-400 uppercase">Forensic Tooltip Preview</h4>
+            <button
+              onClick={() => setSelectedNetwork(null)}
+              className="text-[10px] text-slate-500 hover:text-white"
+            >
+              Clear Preview
+            </button>
+          </div>
+          <div className="flex justify-center bg-slate-950/50 p-4 rounded-lg border border-slate-800 shadow-inner overflow-hidden">
+            <div
+              className="scale-[0.85] origin-top"
+              dangerouslySetInnerHTML={{
+                __html: renderNetworkTooltip(
+                  normalizeTooltipData({
+                    ...selectedNetwork,
+                    lat: selectedNetwork.bestlat,
+                    lon: selectedNetwork.bestlon,
+                    observation_count: 0, // It's an orphan (parent record only)
+                    comment: selectedNetwork.move_reason,
+                  })
+                ),
+              }}
+            />
+          </div>
         </div>
       )}
     </div>
