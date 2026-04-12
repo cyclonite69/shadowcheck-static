@@ -7,63 +7,52 @@ This catalog summarizes the features implemented in the current ShadowCheck code
 ## Core UI & Exploration
 
 - **Dashboard**: Real-time metrics cards, threat indicators, and filter-aware summaries.
-- **Geospatial Intelligence**: Map-based analysis with heatmaps, routes, and timeline overlays driven by the unified filter system.
-- **Geospatial Explorer**: Interactive map view with network selection, tooltips, and map controls.
-- **Networks Explorer**: Filtered network table with sorting, selection, and manufacturer/band cues.
-- **Threats Explorer**: Strong-signal candidate list with quick triage.
-- **Analytics**: Temporal activity, radio-type trends, and threat score charts.
-- **WiGLE Page**: Local WiGLE data search with optional live API lookups.
-- **Kepler Page**: Kepler.gl-ready GeoJSON feeds with filter support.
-- **Kepler Data Policy**: Kepler endpoints do not apply default limits; use filters/bbox instead.
-- **API Test Page**: Endpoint smoke tests and response inspection.
-- **Admin Page**: Configuration workflows and operational controls.
+- **Geospatial Explorer**: Unified interactive map view with network selection, forensic tooltips, integrated network table, and timeline views.
+- **Analytics**: Temporal activity, radio-type trends, and threat score charts with advanced filtering support.
+- **WiGLE Page**: Local WiGLE database search (v2/v3) with optional live API lookups and forensic enrichment.
+- **Kepler Page**: Kepler.gl-ready GeoJSON feeds with universal filter support and **lazy-loaded tooltips** for high-performance visualization.
+- **Monitoring**: Real-time system health and performance monitoring metrics.
+- **Admin Panel**: Comprehensive configuration workflows, operational controls, and data management.
 
 ## Universal Filter System
 
-- **20+ filter types** spanning time, signal, radio, security, distance, geography, tags, and device attributes.
-- **Page-scoped filters** with URL sync and debounced application.
-- **Distance-from-home filters** backed by stored home location markers.
+- **25+ filter types** spanning time (`FIRST_SEEN`, `LAST_SEEN`, `NETWORK_LIFETIME`), signal, radio, security, distance, geography, tags, and device attributes.
+- **BSSID Wildcards**: Support for `*` and `?` in BSSID filters.
+- **SSID Exclusion**: Support for `-` and `NOT` prefixes to exclude specific SSIDs.
+- **WiGLE Persistence Filters**: Universally available filters for WiGLE observation counts and last import dates.
+- **Page-scoped filters** with URL sync and debounced application across Geospatial, Analytics, and Kepler views.
 
 ## Geospatial & Mapping
 
 - **Mapbox integration**: Token management, style proxying, and request proxy for client egress safety.
 - **Google Maps tiles**: Server-side tile proxy with key management.
 - **Heatmaps, routes, and timelines**: Geospatial overlays for movement and activity patterns.
-- **Location markers & home location**: CRUD for saved markers plus radius-based home zone.
-- **Unified tooltips**: Consistent, rich hover tooltips across map views.
-
-## Agency & Judicial Infrastructure
-
-Comprehensive datasets of federal law enforcement and judicial locations for geospatial correlation and proximity analysis.
-
-### Dataset Composition
-
-- **FBI Field Offices**: 56 primary offices with 100% precise coordinate and ZIP+4 coverage.
-- **FBI Resident Agencies**: 334 satellite offices with 93.4% ZIP+4 coverage and inferred parent-office relationships.
-- **Federal Courthouses**: 357 records covering all 94 US District Courts and all 13 Circuits.
-- **Spatial Accuracy**: 100% PostGIS POINT coverage for all 747 infrastructure locations.
-- **Contact Info**: Normalized 10-digit phone numbers and verified website URLs.
-
-### Data Engineering
-
-- **Judicial Alignment**: Courthouses are categorized by type (District, Appeals, Bankruptcy, Specialty) and mapped to their respective Circuits.
-- **Normalization**: Addresses standardized via Smarty; judicial naming cleaned for professional display.
-- **PostGIS Integration**: high-performance spatial queries using `ST_Distance` (spheroid) for accurate forensic proximity analysis.
+- **Location markers & home location**: CRUD for saved markers plus radius-based home zone distance filtering.
+- **Unified Forensic Tooltips**: High-fidelity tooltips powered by a unified normalizer, featuring lazy-loading in Kepler for thousands of points.
 
 ## Data & Enrichment
 
-- **Multi-API address enrichment**: OpenCage, LocationIQ, and Overpass support.
-- **Radio Manufacturer Standardization**: High-fidelity cleanup of 74,000+ records applying professional Title Casing and acronym preservation (IBM, NEC, TRW, LLC, Inc., etc.).
-- **Network tagging**: Manual classification and forensic note-taking.
-- **Trilateration**: Estimated access point locations derived from weighted observation centroids.
+- **Geocoded Address Intelligence**: Automated background reverse geocoding via multiple providers (Mapbox, OpenCage, etc.) stored in a persistent cache.
+- **Radio Manufacturer Standardization**: High-fidelity cleanup of 74,000+ records with integrated OUI resolution.
+- **Network tagging**: Manual classification, forensic note-taking, and media attachments (images/video).
+- **Trilateration**: Estimated access point locations derived from weighted observation centroids and signal clustering.
 - **Export tooling**: Streamed CSV, JSON, and GeoJSON exports.
 
 ## Threat Detection & ML
 
-- **Threat scoring**: Rule-based scoring with ML-assisted boosts.
-- **ML training endpoint**: Logistic regression model training and scoring pipeline.
+- **Threat scoring**: Rule-based scoring with ML-assisted boosts and automated behavioral analysis.
+- **ML training tab**: Admin-gated logistic regression model training and scoring pipeline.
 - **ML iteration script**: Offline model comparison (logistic regression, random forest, gradient boosting).
-- **Threat analytics**: Quick and detailed threat detection endpoints.
+- **Threat analytics**: Quick and detailed movement-based forensic detection endpoints.
+
+## Admin & Operations
+
+- **Automation (Jobs)**: Scheduled background tasks for geocoding, database maintenance, and WiGLE enrichment.
+- **Data Import**: High-performance SQLite, SQL, and KML import pipelines with automated orphan preservation.
+- **Orphan Management**: Specialized interface for tracking and backfilling parent-only network rows.
+- **Geocoding Daemon**: Continuous background enrichment of the geocoding cache.
+- **Infrastructure Monitoring**: Standalone Grafana stack with tactical dashboards.
+- **Secrets management**: AWS Secrets Manager-backed runtime loading.
 
 ### Threat Score Calculation
 

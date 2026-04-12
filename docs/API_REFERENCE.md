@@ -252,40 +252,67 @@ Get specific network details.
 
 ### GET /api/v2/networks/filtered
 
-Filtered network list with universal filter support.
+Filtered network list with universal filter support. Powers the Geospatial Explorer and filtered table views.
 
 **Parameters:**
 
 - `page` (int, default: 1)
 - `limit` (int, default: 100, max: 5000)
-- Universal filter parameters (see [Universal Filters](FILTERS.md) for the detailed parameter reference)
+- `sort` (string) - Field to sort by (ssid, bssid, observed_at, threat_score, etc.)
+- `order` (string) - Sort direction (ASC, DESC)
+- `filters` (JSON string) - Universal filter payload (see below)
+- `enabled` (JSON string) - Map of which filters are active
+
+**Universal Filter Payload Structure:**
+
+```json
+{
+  "filters": {
+    "ssid": "Target SSID",
+    "bssid": "00:11:22:*",
+    "threatLevel": ["HIGH", "CRITICAL"],
+    "timeframe": {
+      "scope": "LAST_SEEN",
+      "relativeWindow": "30d"
+    },
+    "wigle_v3_observation_count_min": 10,
+    "geocodedCity": "Detroit"
+  },
+  "enabled": {
+    "ssid": true,
+    "threatLevel": true,
+    "timeframe": true
+  }
+}
+```
 
 **Response:**
 
 ```json
 {
+  "ok": true,
   "data": [...],
-  "pagination": { "page": 1, "total": 173326 },
-  "filters": { ... }
+  "pagination": { "page": 1, "total": 173326, "totalPages": 1734 },
+  "filters": { "applied": [...], "ignored": [...], "warnings": [...] }
 }
 ```
 
 ### GET /api/v2/networks/filtered/geospatial
 
-Filtered networks optimized for geospatial display.
+Filtered networks optimized for geospatial display (GeoJSON-like points).
 
 **Parameters:**
 
 - Same as `/api/v2/networks/filtered`
-- `bbox` (optional) - Bounding box filter [minLon, minLat, maxLon, maxLat]
+- `bbox` (string) - Bounding box filter "minLon,minLat,maxLon,maxLat"
 
 ### GET /api/v2/networks/filtered/observations
 
-Filtered observations with network context.
+Filtered observations with network context. Returns high-volume observation stream for heatmaps and routes.
 
 ### GET /api/v2/networks/filtered/analytics
 
-Aggregated analytics for filtered networks.
+Aggregated analytics (counts, averages) derived from the current filter set.
 
 ---
 
@@ -629,7 +656,7 @@ Fetch WiGLE v2 networks for map testing.
 
 ### GET /api/wigle/networks-v3
 
-Fetch WiGLE v3 networks for map testing.
+Fetch WiGLE v3 networks for map testing. **Forensic Note:** Results are automatically enriched with local threat scores, geocoding, and capture metrics when a BSSID match exists in the local database.
 
 ### POST /api/wigle/search-api 🔒
 
@@ -637,7 +664,7 @@ Search WiGLE API directly.
 
 ### POST /api/wigle/detail/:netid 🔒
 
-Get WiGLE detail for network.
+Get WiGLE detail for network. **Forensic Note:** Returns enriched local forensic data if the network is present in the local database.
 
 ### POST /api/wigle/detail/bt/:netid 🔒
 
@@ -645,7 +672,7 @@ Get Bluetooth detail.
 
 ### POST /api/wigle/import/v3 🔒
 
-Import WiGLE v3 data.
+Import WiGLE v3 data into local tables (`app.wigle_v3_observations`, `app.wigle_v3_network_details`).
 
 ### GET /api/wigle/observations/:netid
 

@@ -9,6 +9,7 @@ Current-state note:
 - Canonical explorer rows live in `app.networks` plus `app.api_network_explorer_mv`.
 - Parent-only rows peeled out during import cleanup now live in `app.networks_orphans`.
 - Orphan WiGLE checks are tracked in `app.orphan_network_backfills`.
+- Geocoding results are cached in `app.geocoding_cache`.
 - WiGLE evidence remains in `app.wigle_v3_network_details` and `app.wigle_v3_observations`.
 
 ---
@@ -24,6 +25,7 @@ erDiagram
     NETWORKS ||--o{ NETWORK_MEDIA : "has many"
     NETWORKS ||--o{ SSID_HISTORY : "tracks"
     NETWORKS ||--o{ NETWORK_THREAT_SCORES : "scored by"
+    NETWORKS ||--o| API_NETWORK_EXPLORER_MV : "powers"
     NETWORKS_ORPHANS ||--o| ORPHAN_NETWORK_BACKFILLS : "tracked by"
     IMPORT_HISTORY ||--o{ NETWORKS_ORPHANS : "may produce during import cleanup"
 
@@ -34,7 +36,7 @@ erDiagram
     %% Geospatial
     LOCATION_MARKERS ||--o{ NETWORKS : "distance from"
     ROUTES }o--|| USERS : "created by"
-    GEOCODING_CACHE }o--o{ OBSERVATIONS : "enriches"
+    GEOCODING_CACHE }o--o| API_NETWORK_EXPLORER_MV : "enriches"
 
     %% WiGLE Integration
     WIGLE_V3_OBSERVATIONS }o--|| NETWORKS : "enriches"
@@ -73,6 +75,26 @@ erDiagram
         jsonb threat_factors
         varchar threat_level
         timestamptz threat_updated_at
+    }
+
+    API_NETWORK_EXPLORER_MV {
+        text bssid PK
+        text ssid
+        text type
+        integer frequency
+        integer signal
+        double lat
+        double lon
+        text geocoded_address
+        text geocoded_city
+        text geocoded_poi_name
+        timestamptz observed_at
+        text security
+        numeric threat_score
+        varchar threat_level
+        integer observations
+        float distance_from_home_km
+        text manufacturer
     }
 
     NETWORKS_ORPHANS {
@@ -331,6 +353,11 @@ erDiagram
   - [network_media](#network_media)
   - [ssid_history](#ssid_history)
   - [network_threat_scores](#network_threat_scores)
+- [Explorer Materialized Views](#explorer-materialized-views)
+  - [api_network_explorer_mv](#api_network_explorer_mv)
+- [Orphan & Backfill Management](#orphan--backfill-management)
+  - [networks_orphans](#networks_orphans)
+  - [orphan_network_backfills](#orphan_network_backfills)
 - [Geospatial Tables](#geospatial-tables)
   - [location_markers](#location_markers)
   - [routes](#routes)
@@ -549,6 +576,68 @@ Historical threat score calculations with ML model tracking.
 
 - `idx_threat_scores_bssid` - btree (bssid)
 - `idx_threat_scores_combined` - btree (combined_score DESC)
+
+---
+
+## Explorer Materialized Views
+
+### api_network_explorer_mv
+
+Primary high-performance view powering the Geospatial Explorer and filtered network lists. Enriched with forensic scores, geocoding, and local/external observation metrics.
+
+| Column                     | Type             | Description                                     |
+| -------------------------- | ---------------- | ----------------------------------------------- |
+| bssid                      | text (PK)        | MAC address                                     |
+| ssid                       | text             | Network name                                    |
+| type                       | text             | Radio type (W/E/B/L/N/G)                        |
+| frequency                  | integer          | Frequency in MHz                                |
+| signal                     | integer          | Best signal strength (dBm)                      |
+| lat                        | double precision | Latitude of best observation                    |
+| lon                        | double precision | Longitude of best observation                   |
+| geocoded_address           | text             | Enriched street address                         |
+| geocoded_city              | text             | Enriched city name                              |
+| geocoded_poi_name          | text             | Enriched Point of Interest name                 |
+| observed_at                | timestamptz      | Last observed timestamp                         |
+| security                   | text             | Derived security level (WPA3, WPA2, etc.)       |
+| threat_score               | numeric          | Final behavioral threat score (0-100)           |
+| threat_level               | varchar          | Qualitative threat level (CRITICAL/HIGH/etc.)   |
+| observations               | integer          | Total count of local observations               |
+| first_seen                 | timestamptz      | Earliest local observation                      |
+| last_seen                  | timestamptz      | Latest local observation                        |
+| distance_from_home_km      | float            | Proximity to defined 'home' marker              |
+| wigle_v3_observation_count | integer          | Count of WiGLE v3 external observations         |
+| wigle_v3_last_import_at    | timestamptz      | Timestamp of last WiGLE detail import           |
+| manufacturer               | text             | Standardized manufacturer name via OUI          |
+| stationary_confidence      | numeric          | Confidence score (0-1) that device is permanent |
+
+---
+
+## Orphan & Backfill Management
+
+### networks_orphans
+
+Preserved parent-only rows (MACs seen without GPS coordinates) peeled out of canonical `app.networks` during import cleanup. These await WiGLE-based location reconciliation.
+
+| Column      | Type        | Description                               |
+| ----------- | ----------- | ----------------------------------------- |
+| bssid       | text (PK)   | MAC address                               |
+| ssid        | text        | Network name                              |
+| moved_at    | timestamptz | Date moved to orphan table                |
+| move_reason | text        | Context for orphan status (e.g. 'no_gps') |
+
+### orphan_network_backfills
+
+State tracking for lightweight WiGLE-check reconciliation of orphan rows.
+
+| Column                | Type        | Description                                |
+| --------------------- | ----------- | ------------------------------------------ |
+| bssid                 | text (PK)   | MAC address (FK to networks_orphans)       |
+| status                | text        | not_attempted/wigle_match_imported_v3/etc. |
+| matched_netid         | text        | WiGLE internal identifier if matched       |
+| detail_imported       | boolean     | Flag if v3 detail was successfully pulled  |
+| observations_imported | integer     | Count of external observations backfilled  |
+| last_attempted_at     | timestamptz | Timestamp of last reconciliation attempt   |
+| last_error            | text        | Error message from failed check/import     |
 
 ---
 

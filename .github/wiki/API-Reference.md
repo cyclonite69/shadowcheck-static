@@ -203,47 +203,46 @@ graph LR
 GET /api/networks?page=1&limit=100&sort=lastSeen&order=DESC
 ```
 
-#### List Networks (v2)
+#### Filtered Networks (v2)
 
 ```http
-GET /api/v2/networks?page=1&limit=100
+GET /api/v2/networks/filtered?page=1&limit=100&sort=observed_at&order=DESC
 ```
 
 **New in v2:**
 
-- Optimized query performance via materialized views
-- Improved filter alignment with universal filter system
-- Enhanced error reporting and metadata
+- **Universal Filters**: Standardized JSON payload for complex temporal, spatial, and behavioral queries.
+- **Materialized Performance**: Powered by `app.api_network_explorer_mv` for sub-second filtering.
+- **Rich Metadata**: Includes geocoded addresses, threat scores, and WiGLE metrics.
 
-| Parameter   | Type    | Default  | Description                            |
-| ----------- | ------- | -------- | -------------------------------------- |
-| `page`      | integer | 1        | Page number                            |
-| `limit`     | integer | 100      | Results per page (max 5000)            |
-| `sort`      | string  | lastSeen | Sort field                             |
-| `order`     | string  | DESC     | Sort order (ASC/DESC)                  |
-| `type`      | string  | -        | Filter by network type (W, E, B, etc.) |
-| `minSignal` | integer | -        | Minimum signal strength                |
-| `maxSignal` | integer | -        | Maximum signal strength                |
+| Parameter | Type    | Description                                                   |
+| --------- | ------- | ------------------------------------------------------------- |
+| `page`    | integer | Page number                                                   |
+| `limit`   | integer | Results per page (max 5000)                                   |
+| `sort`    | string  | Sort field (bssid, ssid, observed_at, threat_score, etc.)     |
+| `order`   | string  | Sort direction (ASC/DESC)                                     |
+| `filters` | JSON    | Universal filter object (see [Universal Filters](FILTERS.md)) |
+| `enabled` | JSON    | Map of active filters (e.g. `{"ssid":true,"timeframe":true}`) |
+| `bbox`    | string  | (Geospatial only) Bounding box: `minLon,minLat,maxLon,maxLat` |
 
 **Response:**
 
 ```json
 {
-  "networks": [
+  "ok": true,
+  "data": [
     {
       "bssid": "AA:BB:CC:DD:EE:FF",
-      "ssid": "Home WiFi",
+      "ssid": "Target SSID",
       "type": "W",
-      "encryption": "WPA3-PSK",
-      "manufacturer": "Apple",
-      "last_seen": "2025-12-02T08:30:00Z",
-      "observation_count": 145,
-      "threat_score": 15
+      "security": "WPA3",
+      "threat_score": 85,
+      "geocoded_address": "123 Main St, Detroit, MI",
+      "observed_at": "2026-04-12T08:30:00Z"
     }
   ],
-  "total": 173326,
-  "page": 1,
-  "limit": 100
+  "pagination": { "total": 1842, "page": 1, "limit": 100 },
+  "filters": { "applied": [...], "warnings": [] }
 }
 ```
 
@@ -519,12 +518,21 @@ graph TB
     A --> H["POST pgadmin/start"]
     A --> I["POST pgadmin/stop"]
     A --> J["Geocoding Admin"]
+    A --> K["Orphan Management"]
 
     style B fill:#ed8936,stroke:#c05621,color:#fff
     style D fill:#4299e1,stroke:#2b6cb0,color:#fff
 ```
 
 All admin endpoints require authentication and admin role.
+
+#### Orphan Management
+
+**GET /api/admin/orphan-networks 🔒**
+List preserved parent-only networks from `app.networks_orphans`.
+
+**POST /api/admin/orphan-networks/:bssid/check-wigle 🔒**
+Trigger a lightweight WiGLE v3 check for a specific orphan BSSID.
 
 #### Geocoding Admin
 

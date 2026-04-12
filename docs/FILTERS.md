@@ -6,11 +6,11 @@ The Universal Filter system provides a standardized way to query wireless networ
 
 ### A. Identity Filters
 
-| Key            | Type     | Description                      |
-| :------------- | :------- | :------------------------------- |
-| `ssid`         | `string` | SSID name (partial ILIKE match). |
-| `bssid`        | `string` | Exact BSSID or BSSID prefix.     |
-| `manufacturer` | `string` | Manufacturer name or OUI prefix. |
+| Key            | Type     | Description                                                                    |
+| :------------- | :------- | :----------------------------------------------------------------------------- |
+| `ssid`         | `string` | SSID name (partial ILIKE match). Supports `-` or `NOT` prefixes for exclusion. |
+| `bssid`        | `string` | BSSID match. Supports `*` and `?` wildcards (e.g. `00:11:22:*`).               |
+| `manufacturer` | `string` | Manufacturer name or OUI prefix.                                               |
 
 ### B. Radio / Physical Layer
 
@@ -32,10 +32,10 @@ The Universal Filter system provides a standardized way to query wireless networ
 
 ### D. Temporal Filters
 
-| Key             | Type              | Description                                                                |
-| :-------------- | :---------------- | :------------------------------------------------------------------------- |
-| `timeframe`     | `TimeframeFilter` | Absolute (date range) or Relative (`24h`, `7d`, `30d`, `90d`).             |
-| `temporalScope` | `TemporalScope`   | Domain: `observation_time` (default), `network_lifetime`, `threat_window`. |
+| Key             | Type              | Description                                                                                              |
+| :-------------- | :---------------- | :------------------------------------------------------------------------------------------------------- |
+| `timeframe`     | `TimeframeFilter` | Absolute (date range) or Relative (`24h`, `7d`, `30d`, `90d`).                                           |
+| `temporalScope` | `TemporalScope`   | Domain: `observation_time` (default), `FIRST_SEEN`, `LAST_SEEN`, `NETWORK_LIFETIME`, or `threat_window`. |
 
 ### E. Observation Quality & Metadata
 
@@ -108,12 +108,12 @@ The Universal Filter system provides a standardized way to query wireless networ
 | `mlBoostMax`        | `number`   | Maximum ML model boost applied.       |
 | `modelVersion`      | `string[]` | Specific ML model version strings.    |
 
-### K. WiGLE Persistence
+### K. WiGLE Persistence (Universal)
 
 | Key                              | Type     | Description                                         |
 | :------------------------------- | :------- | :-------------------------------------------------- |
-| `wigle_v3_observation_count_min` | `number` | Min WiGLE observations (WiGLE page only).           |
-| `wigle_v3_observation_count_max` | `number` | Max WiGLE observations (WiGLE page only).           |
+| `wigle_v3_observation_count_min` | `number` | Minimum WiGLE external observations.                |
+| `wigle_v3_observation_count_max` | `number` | Maximum WiGLE external observations.                |
 | `wigleV3LastImportBefore`        | `string` | Observations imported before date (ISO/YYYY-MM-DD). |
 | `wigleV3LastImportAfter`         | `string` | Observations imported after date (ISO/YYYY-MM-DD).  |
 

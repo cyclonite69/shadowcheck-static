@@ -6,11 +6,16 @@
 
 The design discussion below is architecture context, not a full live-schema inventory. The current platform also depends on:
 
-- `app.import_history` for import audit runs
-- `app.networks_orphans` for parent-only rows peeled out of canonical `app.networks`
-- `app.orphan_network_backfills` for lightweight WiGLE-check status on orphan rows
-- `app.wigle_v3_network_details` and `app.wigle_v3_observations` for external WiGLE evidence
-- `app.api_network_explorer_mv` as the explorer-facing materialized view, including `geocoded_*` enrichment columns
+- `app.import_history`: Tracking and metrics for all data ingest operations.
+- `app.networks_orphans`: Preserved parent-only rows (no matching observations) peeled out of canonical `app.networks` during import cleanup.
+- `app.orphan_network_backfills`: State tracking for lightweight WiGLE-checks and reconciliation of orphan rows.
+- `app.geocoding_cache`: Persistent store for reverse geocoding results (address, POI, state) to minimize API egress.
+- `app.wigle_v3_network_details` & `app.wigle_v3_observations`: External evidence fetched via WiGLE API v3.
+- `app.api_network_explorer_mv`: The primary materialized view powering the UI, featuring:
+  - Enriched forensic fields (threat scores, ML boosts, manufacturer).
+  - Geocoded address intelligence.
+  - Aggregated WiGLE v3 metrics.
+  - Performance-optimized spatial tiebreakers for sorting.
 
 Treat the wiki database pages as the current relationship view and this page as the architecture-rationale page.
 

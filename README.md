@@ -14,13 +14,14 @@
 
 ## Current System Status
 
-- **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-explorer`, `/analytics`, `/wigle`, `/kepler`, `/endpoint-test`)
+- **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-explorer`, `/analytics`, `/wigle`, `/kepler`)
 - **Modern modular backend architecture** with organized services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
 - **Integrated Asset Serving**: The main Express server natively serves compiled frontend assets from `dist/` with optimized security headers.
-- **Universal filter system** with 20+ filter types supporting complex queries across all pages
+- **Universal filter system** with 25+ filter types supporting complex queries across all pages (including temporal scopes and WiGLE persistence)
+- **Unified Forensic Tooltips**: High-fidelity, rich tooltips with lazy-loading support in Kepler.
 - **DevContainer support** for consistent development environments with VS Code integration
 - **Integrated asset serving** via the main Express server plus an optional static server for Lighthouse/security-header benchmarking
-- **PostGIS materialized views** for fast explorer pages with precomputed threat intelligence
+- **PostGIS materialized views** for fast explorer pages with precomputed threat intelligence and geocoding data
 - **ETL pipeline** lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed
 - **Machine learning** with multiple algorithms (Logistic Regression, Random Forest, Gradient Boosting) and hyperparameter optimization
 - **Redis Integration** handles caching, session management, and rate limiting.
@@ -29,26 +30,25 @@
 
 - **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards.
 - **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**.
+- **Geospatial Explorer:** Unified map-based exploration with integrated network table, forensic overlays, and timeline views.
 - **Infrastructure Datasets:** 56 FBI Field Offices, 334 Resident Agencies, and 357 Federal Courthouses with 100% PostGIS coordinate coverage for geospatial correlation.
-- **Geospatial Explorer:** Map-based network exploration with overlays and timeline views.
-- **Network Analysis:** Deep dive into individual network characteristics and behavior patterns with universal filtering.
-- **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms.
+- **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms and automated scoring boosts.
 - **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations.
-- **Address Enrichment:** Multi-API venue and business identification (4 sources: OpenCage, LocationIQ, Abstract, Overpass).
-- **Device Classification:** Standardized OUI-to-vendor resolution (74k+ records) with behavioral profiling.
-- **Network Tagging:** Manual classification and tag retrieval for networks.
+- **Address Enrichment:** Multi-API venue and geocoded address identification (OpenCage, LocationIQ, Abstract, Overpass).
+- **Device Classification:** Standardized OUI-to-vendor resolution (74k+ records) with behavioral profiling and integrated manufacturer info.
+- **Network Tagging:** Manual classification, forensic note-taking, and media attachments for networks.
 - **Trilateration:** AP location calculation from multiple observations with accuracy estimation.
 - **Machine Learning:** Multi-algorithm threat detection with hyperparameter optimization and model versioning.
-- **Universal Filters:** 20+ filter types supporting complex temporal, spatial, and behavioral queries.
-- **WiGLE Integration:** Local WiGLE database search with live API lookups.
-- **Kepler Integration:** Kepler.gl-ready GeoJSON endpoints with filter support.
+- **Universal Filters:** 25+ filter types supporting complex temporal (`FIRST_SEEN`, `LAST_SEEN`), spatial, and behavioral queries.
+- **WiGLE Integration:** Local WiGLE database search (v2/v3) with live API lookups and forensic enrichment.
+- **Kepler Integration:** Kepler.gl-ready GeoJSON endpoints with filter support and lazy-loaded tooltips.
 - **Home Location & Markers:** Saved locations and distance-from-home filters.
-- **Data Export & Backup:** CSV/JSON/GeoJSON exports plus admin-protected backups.
-- **Authentication & Roles:** Session-based login with admin-gated operations.
+- **Data Export & Backup:** CSV/JSON/GeoJSON exports plus admin-protected backups and SQLite imports.
+- **Authentication & Roles:** Session-based login with admin-gated operations and forced password rotation support.
 - **Admin Settings:** AWS Secrets Manager-backed Mapbox/WiGLE/Google Maps configuration.
 - **DevContainer Support:** Consistent development environment with VS Code integration.
 - **Security Headers:** Production-ready deployment with CSP, HTTPS enforcement, and Lighthouse optimization.
-- **Admin Features:** System administration interface with configuration management, user settings, and role-based gating.
+- **Admin Features:** Comprehensive system administration interface including Automation (Jobs), DB Stats, Geocoding Daemon control, and Orphan Network management.
 - **Admin Database Security**: Multi-user model with read-only `shadowcheck_user` and privileged `shadowcheck_admin`.
 
 See `docs/FEATURES.md` for the full feature catalog.
