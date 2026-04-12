@@ -192,6 +192,18 @@ describe('routeMounts authz smoke', () => {
     const analyticsPublic = invokeChain(analyticsPublicHandlers);
     expect(analyticsPublic.res.statusCode).toBe(200);
     expect(analyticsPublic.res.body.route).toBe('analytics-public');
+
+    // Verify mobile ingest routes are public on both paths
+    const mobileIngestEntry = mounted.find(
+      (m) => m.handlers[m.handlers.length - 1] === deps.mobileIngestRoutes
+    );
+    expect(mobileIngestEntry).toBeDefined();
+    expect(mobileIngestEntry?.path).toEqual(['/v1/ingest', '/api/v1/ingest']);
+
+    const ingestHandlers = mobileIngestEntry!.handlers;
+    const ingestNoAuth = invokeChain(ingestHandlers);
+    expect(ingestNoAuth.res.statusCode).toBe(200);
+    expect(ingestNoAuth.res.body.route).toBe('mobile-ingest');
   });
 
   test('health routes stay public on both / and /api when gate is enabled', () => {
