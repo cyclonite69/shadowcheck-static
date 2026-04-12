@@ -372,3 +372,62 @@ module.exports = {
   startBatchEnrichment,
   resumeEnrichment,
 };
+
+/**
+ * Validates that the WiGLE API key has remaining credit.
+ * Returns { hasCredit: boolean, message: string }
+ */
+export async function validateWigleApiCredit() {
+  try {
+    const wigleApiName = secretsManager.get('wigle_api_name');
+    const wigleApiToken = secretsManager.get('wigle_api_token');
+
+    if (!wigleApiName || !wigleApiToken) {
+      return { hasCredit: false, message: 'WiGLE API credentials not configured' };
+    }
+
+    const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
+
+    // WiGLE API: GET /api/v2/stats
+    // Returns { estimatedApiQuotaRemaining: number }
+    const response = await fetch('https://api.wigle.net/api/v2/stats', {
+      headers: {
+        Authorization: `Basic ${encodedAuth}`,
+      },
+    });
+
+    if (response.status === 401) {
+      return {
+        hasCredit: false,
+        message: 'Invalid WiGLE API key',
+      };
+    }
+
+    const data = (await response.json()) as any;
+    const remaining = data?.estimatedApiQuotaRemaining || 0;
+
+    if (remaining === 0) {
+      return {
+        hasCredit: false,
+        message: `No API credit remaining (0 requests)`,
+      };
+    }
+
+    if (remaining < 10) {
+      console.warn(`[WiGLE] Low API credit: ${remaining} requests remaining`);
+    }
+
+    return {
+      hasCredit: true,
+      message: `${remaining} requests available`,
+    };
+  } catch (err) {
+    console.error('[WiGLE] Error checking API credit:', err);
+    // Fail open: if we can't check credit, don't block the request
+    // (but log it for investigation)
+    return {
+      hasCredit: true,
+      message: 'Credit check unavailable (proceeding with request)',
+    };
+  }
+}

@@ -141,7 +141,11 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
       );
     } catch (err: any) {
       console.error('Failed to check WiGLE for orphan:', err);
-      alert(`Request failed: ${err.message || 'Unknown error'}`);
+      if (err.status === 402) {
+        alert(`⚠ API Credit Exhausted: ${err.data?.details || err.message}`);
+      } else {
+        alert(`Request failed: ${err.message || 'Unknown error'}`);
+      }
     } finally {
       setActiveBssid(null);
     }
