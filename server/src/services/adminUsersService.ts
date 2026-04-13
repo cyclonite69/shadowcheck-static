@@ -3,6 +3,7 @@ export {};
 const bcrypt = require('bcrypt');
 const { adminQuery } = require('./adminDbService');
 const { query } = require('../config/database');
+import logger from '../logging/logger';
 
 // Duplicated from adminDbService.ts
 const AUTH_SALT_ROUNDS = 12;
@@ -89,7 +90,20 @@ export async function setAppUserActive(userId: number, isActive: boolean): Promi
 
   if (!isActive) {
     // Invalidate active sessions for disabled accounts.
-    await adminQuery(`DELETE FROM app.user_sessions WHERE user_id = $1`, [userId]);
+    try {
+      const sessionResult = await adminQuery(`DELETE FROM app.user_sessions WHERE user_id = $1`, [
+        userId,
+      ]);
+      logger.info(
+        `Invalidated ${sessionResult.rowCount || 0} sessions for disabled user ${userId}`
+      );
+    } catch (sessionError) {
+      logger.error(`SECURITY CRITICAL: Failed to invalidate sessions for disabled user ${userId}`, {
+        error: sessionError,
+      });
+      // We don't throw here to allow the user status update to remain "success",
+      // but the error is now visible in logs.
+    }
   }
 
   return result.rows[0];

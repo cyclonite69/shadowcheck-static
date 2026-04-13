@@ -24,8 +24,9 @@ export async function checkNetworkExists(bssid: string): Promise<boolean> {
   return result.rowCount > 0;
 }
 
-export async function deleteNetworkTag(bssid: string): Promise<void> {
-  await query(`DELETE FROM app.network_tags WHERE bssid = $1`, [bssid]);
+export async function deleteNetworkTag(bssid: string): Promise<boolean> {
+  const result = await query(`DELETE FROM app.network_tags WHERE bssid = $1`, [bssid]);
+  return result.rowCount !== null && result.rowCount > 0;
 }
 
 export async function insertNetworkTag(
