@@ -60,6 +60,11 @@ export const WigleDetailTab: React.FC = () => {
 
   const [pendingEnrichment, setPendingEnrichment] = useState<number | null>(null);
   const [isManualMode, setIsManualMode] = useState(false);
+  const [selectedObs, setSelectedObs] = useState<(typeof observations)[0] | null>(null);
+
+  useEffect(() => {
+    setSelectedObs(null);
+  }, [data]);
 
   const {
     runs,
@@ -310,9 +315,22 @@ export const WigleDetailTab: React.FC = () => {
 
               {/* Tooltip Preview (Unified Design) */}
               <div className="bg-slate-900/40 p-4 rounded border border-slate-700/50">
-                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">
-                  Forensic Tooltip Preview
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase">
+                    Forensic Tooltip Preview
+                  </h4>
+                  <span
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                      selectedObs
+                        ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
+                        : 'bg-slate-800 text-slate-500'
+                    }`}
+                  >
+                    {selectedObs
+                      ? `Viewing observation: ${formatShortDate(selectedObs.observed_at)}`
+                      : 'Network overview'}
+                  </span>
+                </div>
                 <div className="flex justify-center bg-slate-950/50 p-4 rounded-lg border border-slate-800 shadow-inner overflow-hidden">
                   <div
                     className="scale-[0.85] origin-top"
@@ -321,7 +339,7 @@ export const WigleDetailTab: React.FC = () => {
                         normalizeTooltipData({
                           ...data,
                           netid: data.networkId,
-                          ssid: data.ssid || data.name,
+                          ssid: selectedObs?.ssid || data.ssid || data.name,
                           type:
                             data.type?.toLowerCase() === 'wifi'
                               ? 'W'
@@ -339,6 +357,14 @@ export const WigleDetailTab: React.FC = () => {
                           ...data.streetAddress,
                           qos: data.bestClusterWiGLEQoS,
                           comment: data.comment,
+                          ...(selectedObs && {
+                            lat: selectedObs.latitude,
+                            lon: selectedObs.longitude,
+                            signal: selectedObs.signal,
+                            altitude: selectedObs.altitude,
+                            first_seen: selectedObs.observed_at,
+                            last_seen: selectedObs.observed_at,
+                          }),
                         })
                       ),
                     }}
@@ -396,13 +422,21 @@ export const WigleDetailTab: React.FC = () => {
 
             {/* Timestamps */}
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="bg-slate-800/30 p-3 rounded">
+              <div
+                className={`p-3 rounded transition-colors ${selectedObs ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-slate-800/30'}`}
+              >
                 <div className="text-xs text-slate-500 mb-1">First Seen</div>
-                <div className="text-sm text-white">{formatShortDate(data.firstSeen)}</div>
+                <div className="text-sm text-white">
+                  {formatShortDate(selectedObs ? selectedObs.observed_at : data.firstSeen)}
+                </div>
               </div>
-              <div className="bg-slate-800/30 p-3 rounded">
+              <div
+                className={`p-3 rounded transition-colors ${selectedObs ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-slate-800/30'}`}
+              >
                 <div className="text-xs text-slate-500 mb-1">Last Seen</div>
-                <div className="text-sm text-white">{formatShortDate(data.lastSeen)}</div>
+                <div className="text-sm text-white">
+                  {formatShortDate(selectedObs ? selectedObs.observed_at : data.lastSeen)}
+                </div>
               </div>
               <div className="bg-slate-800/30 p-3 rounded">
                 <div className="text-xs text-slate-500 mb-1">Channel</div>
@@ -417,8 +451,19 @@ export const WigleDetailTab: React.FC = () => {
                   <h4 className="text-xs font-bold text-slate-400 uppercase">
                     Individual Observation Points ({observations.length})
                   </h4>
-                  <div className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
-                    Deep Forensic Data
+                  <div className="flex items-center gap-2">
+                    {selectedObs && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedObs(null)}
+                        className="text-[10px] text-violet-400 hover:text-violet-300 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded transition-colors"
+                      >
+                        Clear selection
+                      </button>
+                    )}
+                    <div className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
+                      Deep Forensic Data
+                    </div>
                   </div>
                 </div>
 
@@ -435,33 +480,46 @@ export const WigleDetailTab: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800">
-                        {observations.map((obs) => (
-                          <tr key={obs.id} className="hover:bg-slate-800/30 text-slate-300">
-                            <td className="px-3 py-2 whitespace-nowrap">
-                              {formatShortDate(obs.observed_at)}
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              <span
-                                className={`${
-                                  obs.signal > -70
-                                    ? 'text-green-400'
-                                    : obs.signal > -85
-                                      ? 'text-yellow-400'
-                                      : 'text-red-400'
-                                }`}
-                              >
-                                {obs.signal} dBm
-                              </span>
-                            </td>
-                            <td className="px-3 py-2 text-right text-slate-400 font-mono">
-                              {obs.altitude ? `${obs.altitude}m` : '-'}
-                            </td>
-                            <td className="px-3 py-2 font-mono text-cyan-500/80">
-                              {obs.latitude.toFixed(5)}, {obs.longitude.toFixed(5)}
-                            </td>
-                            <td className="px-3 py-2 italic text-slate-400">{obs.ssid || '-'}</td>
-                          </tr>
-                        ))}
+                        {observations.map((obs) => {
+                          const isActive = selectedObs?.id === obs.id;
+                          return (
+                            <tr
+                              key={obs.id}
+                              className={`cursor-pointer text-slate-300 transition-colors ${
+                                isActive
+                                  ? 'bg-violet-500/15 border-l-2 border-violet-400'
+                                  : 'hover:bg-slate-800/30'
+                              }`}
+                              onClick={() =>
+                                setSelectedObs((prev) => (prev?.id === obs.id ? null : obs))
+                              }
+                            >
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                {formatShortDate(obs.observed_at)}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <span
+                                  className={`${
+                                    obs.signal > -70
+                                      ? 'text-green-400'
+                                      : obs.signal > -85
+                                        ? 'text-yellow-400'
+                                        : 'text-red-400'
+                                  }`}
+                                >
+                                  {obs.signal} dBm
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-right text-slate-400 font-mono">
+                                {obs.altitude ? `${obs.altitude}m` : '-'}
+                              </td>
+                              <td className="px-3 py-2 font-mono text-cyan-500/80">
+                                {obs.latitude.toFixed(5)}, {obs.longitude.toFixed(5)}
+                              </td>
+                              <td className="px-3 py-2 italic text-slate-400">{obs.ssid || '-'}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
