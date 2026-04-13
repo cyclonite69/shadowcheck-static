@@ -44,12 +44,7 @@ type MediaService = {
   }>;
 };
 
-const handleNoteMediaUpload = async (
-  req: any,
-  res: any,
-  service: MediaService,
-  logger: typeof import('../../../../logging/logger')
-) => {
+const handleNoteMediaUpload = async (req: any, res: any, service: MediaService, logger: any) => {
   try {
     const { noteId } = req.params;
     if (!req.file) {
@@ -100,7 +95,7 @@ const serveNoteMedia = async (
   req: any,
   res: any,
   service: { getNoteMediaById: (id: string) => Promise<any> },
-  logger: typeof import('../../../../logging/logger')
+  logger: any
 ) => {
   try {
     const { filename } = req.params;

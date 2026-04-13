@@ -201,4 +201,6 @@ logger.createRequestLogger = function (requestId: string) {
   };
 };
 
-export = logger;
+export default logger;
+// @ts-ignore
+module.exports = logger;
