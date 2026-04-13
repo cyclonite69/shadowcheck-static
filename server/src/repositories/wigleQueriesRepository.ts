@@ -89,7 +89,7 @@ const buildWigleV3NetworksQuery = (params: {
   );
 
   const sql = `
-    SELECT·
+    SELECT
       obs.netid, obs.ssid, obs.encryption, obs.latitude, obs.longitude, obs.observed_at,
       ne.threat_score, ne.threat_level, ne.manufacturer,
       ne.geocoded_address, ne.geocoded_city, ne.geocoded_state, ne.geocoded_poi_name,
@@ -99,8 +99,8 @@ const buildWigleV3NetworksQuery = (params: {
       (ne.bssid IS NOT NULL) AS wigle_match
     FROM app.wigle_v3_observations obs
     LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(obs.netid)
-    ${whereSql}·
-    ORDER BY obs.observed_at DESC·
+    ${whereSql}
+    ORDER BY obs.observed_at DESC
     ${paginationSql}
   `;
   return { sql, queryParams: allParams };
