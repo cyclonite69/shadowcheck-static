@@ -42,6 +42,7 @@ export default defineConfig({
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html'),
       output: {
+        format: 'es',
         manualChunks(id) {
           // Core vendor chunks - order matters to avoid circular deps
           if (id.includes('node_modules')) {
