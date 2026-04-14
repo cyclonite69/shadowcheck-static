@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
 import type {
   GeocodingDaemonConfig,
@@ -30,11 +30,17 @@ export const useGeocodingCache = (precision = 5) => {
   const [probeResult, setProbeResult] = useState<GeocodingProviderProbeResult | null>(null);
   const [daemon, setDaemon] = useState<GeocodingDaemonStatus | null>(null);
 
+  // Track current precision via ref so refreshStats stays stable.
+  // Without this, every setPrecision(config.precision) call recreates refreshStats,
+  // which re-triggers the useEffect and causes a double fetch + stats flicker.
+  const precisionRef = useRef(precision);
+  precisionRef.current = precision;
+
   const refreshStats = useCallback(async () => {
     setIsLoading(true);
     setError('');
     try {
-      const data = await adminApi.getGeocodingStats(String(precision));
+      const data = await adminApi.getGeocodingStats(String(precisionRef.current));
       setStats(data.stats);
       setLastResult(data.stats?.last_run?.result || null);
       setDaemon(data.stats?.daemon || null);
@@ -44,7 +50,7 @@ export const useGeocodingCache = (precision = 5) => {
     } finally {
       setIsLoading(false);
     }
-  }, [precision]);
+  }, []); // stable — precision read from ref, not closure
 
   const runGeocoding = useCallback(
     async (options: GeocodingRunOptions) => {
