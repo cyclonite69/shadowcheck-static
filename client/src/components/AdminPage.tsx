@@ -344,21 +344,10 @@ const AdminPage: React.FC = () => {
       </div>
 
       {/* Centered Container */}
-      <div className="relative w-full max-w-7xl mx-auto px-6 py-4 pt-[60px]">
-        {/* Compact Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg shadow-blue-500/20">
-            <SettingsIcon size={20} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white leading-tight">Admin Panel</h1>
-            <p className="text-xs text-slate-400">System configuration and data management</p>
-          </div>
-        </div>
-
+      <div className="relative w-full max-w-[1400px] mx-auto px-4 py-4 pt-[60px]">
         {/* Tab Navigation */}
         <div className="mb-6 rounded-xl border border-slate-700/40 bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
