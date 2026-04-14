@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { wigleApi } from '../../../../api/wigleApi';
+import { networkApi } from '../../../../api/networkApi';
 import { formatShortDate } from '../../../../utils/formatDate';
 import { renderNetworkTooltip } from '../../../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../../../utils/geospatial/tooltipDataNormalizer';
@@ -42,27 +43,46 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   const [cityFilter, setCityFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
 
-  const [activeTooltip, setActiveTooltip] = useState<{ bssid: string; html: string } | null>(null);
+  const [activePanel, setActivePanel] = useState<{
+    bssid: string;
+    html: string;
+    loading: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveTooltip(null);
+      if (e.key === 'Escape') setActivePanel(null);
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleRowClick = (row: EnrichmentRow, event: React.MouseEvent<HTMLTableRowElement>) => {
-    if (activeTooltip?.bssid === row.bssid) {
-      setActiveTooltip(null);
+  const handleRowClick = (row: EnrichmentRow) => {
+    if (activePanel?.bssid === row.bssid) {
+      setActivePanel(null);
       return;
     }
-    const normalized = normalizeTooltipData({
+
+    // Show placeholder immediately
+    const placeholderNormalized = normalizeTooltipData({
       ...row,
       wigle_v3_observation_count: row.v3_obs_count,
     });
-    const html = renderNetworkTooltip({ ...normalized, triggerElement: event.currentTarget });
-    if (html) setActiveTooltip({ bssid: row.bssid, html });
+    const placeholderHtml =
+      renderNetworkTooltip({ ...placeholderNormalized, triggerElement: null }) ?? '';
+    setActivePanel({ bssid: row.bssid, html: placeholderHtml, loading: true });
+
+    // Fetch full MV record
+    networkApi.getNetworkByBssid(row.bssid).then((mvData) => {
+      const source = mvData ?? { ...row, wigle_v3_observation_count: row.v3_obs_count };
+      const normalized = normalizeTooltipData(source);
+      const fullHtml =
+        renderNetworkTooltip({ ...normalized, triggerElement: null }) ?? placeholderHtml;
+      setActivePanel((current) => {
+        if (!current || current.bssid !== row.bssid) return current;
+        return { bssid: row.bssid, html: fullHtml, loading: false };
+      });
+    });
   };
 
   const fetchCatalog = useCallback(
@@ -150,222 +170,236 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   };
 
   return (
-    <div className="space-y-4">
-      {statusMessage && (
-        <div
-          className={`p-3 rounded-lg border text-xs flex justify-between items-center ${
-            statusMessage.type === 'error'
-              ? 'bg-red-900/20 border-red-700/50 text-red-400'
-              : 'bg-blue-900/20 border-blue-700/50 text-blue-400'
-          }`}
-        >
-          <span>{statusMessage.text}</span>
-          <button onClick={() => setStatusMessage(null)} className="opacity-50 hover:opacity-100">
-            ✕
-          </button>
+    <div className="flex gap-4 items-start">
+      <div className="flex-1 min-w-0 space-y-4">
+        {statusMessage && (
+          <div
+            className={`p-3 rounded-lg border text-xs flex justify-between items-center ${
+              statusMessage.type === 'error'
+                ? 'bg-red-900/20 border-red-700/50 text-red-400'
+                : 'bg-blue-900/20 border-blue-700/50 text-blue-400'
+            }`}
+          >
+            <span>{statusMessage.text}</span>
+            <button onClick={() => setStatusMessage(null)} className="opacity-50 hover:opacity-100">
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Filters Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <input
+            type="text"
+            placeholder="Filter SSID..."
+            value={ssidFilter}
+            onChange={(e) => {
+              setSsidFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
+          />
+          <input
+            type="text"
+            placeholder="Filter BSSID..."
+            value={bssidFilter}
+            onChange={(e) => {
+              setBssidFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
+          />
+          <input
+            type="text"
+            placeholder="Filter City..."
+            value={cityFilter}
+            onChange={(e) => {
+              setCityFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
+          />
+          <input
+            type="text"
+            placeholder="Filter Region/State..."
+            value={regionFilter}
+            onChange={(e) => {
+              setRegionFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
+          />
         </div>
-      )}
 
-      {/* Filters Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <input
-          type="text"
-          placeholder="Filter SSID..."
-          value={ssidFilter}
-          onChange={(e) => {
-            setSsidFilter(e.target.value);
-            setPage(1);
-          }}
-          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
-        />
-        <input
-          type="text"
-          placeholder="Filter BSSID..."
-          value={bssidFilter}
-          onChange={(e) => {
-            setBssidFilter(e.target.value);
-            setPage(1);
-          }}
-          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
-        />
-        <input
-          type="text"
-          placeholder="Filter City..."
-          value={cityFilter}
-          onChange={(e) => {
-            setCityFilter(e.target.value);
-            setPage(1);
-          }}
-          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
-        />
-        <input
-          type="text"
-          placeholder="Filter Region/State..."
-          value={regionFilter}
-          onChange={(e) => {
-            setRegionFilter(e.target.value);
-            setPage(1);
-          }}
-          className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
-        />
-      </div>
-
-      {/* Action Bar */}
-      <div className="flex justify-between items-center py-1">
-        <div className="flex items-center gap-3">
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-            {total.toLocaleString()} Networks Found
+        {/* Action Bar */}
+        <div className="flex justify-between items-center py-1">
+          <div className="flex items-center gap-3">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+              {total.toLocaleString()} Networks Found
+            </div>
+            <button
+              onClick={() => fetchCatalog()}
+              className="text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-tighter"
+            >
+              Refresh List
+            </button>
           </div>
           <button
-            onClick={() => fetchCatalog()}
-            className="text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-tighter"
+            onClick={handleEnrichSelected}
+            disabled={selected.size === 0 || actionLoading}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-lg shadow-blue-500/20"
           >
-            Refresh List
+            Enrich Selected ({selected.size})
           </button>
         </div>
-        <button
-          onClick={handleEnrichSelected}
-          disabled={selected.size === 0 || actionLoading}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-lg shadow-blue-500/20"
-        >
-          Enrich Selected ({selected.size})
-        </button>
-      </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded border border-slate-800/60 bg-slate-900/20">
-        <table className="w-full text-left text-[11px]">
-          <thead className="bg-slate-800/40 text-slate-500 font-bold uppercase tracking-widest border-b border-slate-800">
-            <tr>
-              <th className="px-3 py-2 w-8">
-                <input
-                  type="checkbox"
-                  checked={data.length > 0 && selected.size === data.length}
-                  onChange={toggleSelectAll}
-                  className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
-                />
-              </th>
-              <th className="px-3 py-2">Network (SSID/BSSID)</th>
-              <th className="px-3 py-2">Location</th>
-              <th className="px-3 py-2 text-center">Status</th>
-              <th className="px-3 py-2 text-right">Last v3 Import</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {loading && (
+        {/* Table */}
+        <div className="overflow-x-auto rounded border border-slate-800/60 bg-slate-900/20">
+          <table className="w-full text-left text-[11px]">
+            <thead className="bg-slate-800/40 text-slate-500 font-bold uppercase tracking-widest border-b border-slate-800">
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-slate-500 italic">
-                  Loading catalog...
-                </td>
+                <th className="px-3 py-2 w-8">
+                  <input
+                    type="checkbox"
+                    checked={data.length > 0 && selected.size === data.length}
+                    onChange={toggleSelectAll}
+                    className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
+                  />
+                </th>
+                <th className="px-3 py-2">Network (SSID/BSSID)</th>
+                <th className="px-3 py-2">Location</th>
+                <th className="px-3 py-2 text-center">Status</th>
+                <th className="px-3 py-2 text-right">Last v3 Import</th>
               </tr>
-            )}
-            {!loading && data.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-slate-500 italic">
-                  No networks found matching filters.
-                </td>
-              </tr>
-            )}
-            {!loading &&
-              data.map((row) => (
-                <React.Fragment key={row.bssid}>
-                  <tr
-                    className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
-                      activeTooltip?.bssid === row.bssid
-                        ? 'bg-blue-500/10'
-                        : selected.has(row.bssid)
+            </thead>
+            <tbody className="divide-y divide-slate-800/50">
+              {loading && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-8 text-center text-slate-500 italic">
+                    Loading catalog...
+                  </td>
+                </tr>
+              )}
+              {!loading && data.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-8 text-center text-slate-500 italic">
+                    No networks found matching filters.
+                  </td>
+                </tr>
+              )}
+              {!loading &&
+                data.map((row) => (
+                  <React.Fragment key={row.bssid}>
+                    <tr
+                      className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
+                        activePanel?.bssid === row.bssid
                           ? 'bg-blue-500/10'
-                          : ''
-                    } ${processingBssids.has(row.bssid) ? 'opacity-60 cursor-wait' : ''}`}
-                    onClick={(e) => handleRowClick(row, e)}
-                  >
-                    <td
-                      className="px-3 py-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSelect(row.bssid);
-                      }}
+                          : selected.has(row.bssid)
+                            ? 'bg-blue-500/10'
+                            : ''
+                      } ${processingBssids.has(row.bssid) ? 'opacity-60 cursor-wait' : ''}`}
+                      onClick={() => handleRowClick(row)}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selected.has(row.bssid)}
-                        onChange={() => {}}
-                        disabled={processingBssids.has(row.bssid)}
-                        className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="font-bold text-slate-200 truncate max-w-[180px]">
-                        {row.ssid || row.bssid}
-                      </div>
-                      <div className="text-[10px] font-mono text-slate-500">{row.bssid}</div>
-                    </td>
-                    <td className="px-3 py-2 text-slate-400">
-                      <div className="truncate max-w-[140px]">
-                        {row.city || 'Unknown'}
-                        {row.region ? `, ${row.region}` : ''}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      {processingBssids.has(row.bssid) ? (
-                        <span className="text-blue-400 animate-pulse font-bold uppercase text-[9px]">
-                          Queuing...
-                        </span>
-                      ) : row.v3_obs_count > 0 ? (
-                        <div className="flex flex-col items-center">
-                          <span className="text-cyan-400 font-bold tabular-nums">
-                            {row.v3_obs_count}
-                          </span>
-                          <span className="text-[8px] text-slate-600 uppercase">Forensics</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-600 uppercase text-[9px]">Pending</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">
-                      {row.last_v3_import ? formatShortDate(row.last_v3_import) : 'Never'}
-                    </td>
-                  </tr>
-                  {activeTooltip?.bssid === row.bssid && (
-                    <tr>
                       <td
-                        colSpan={5}
-                        style={{
-                          padding: '0 12px 12px',
-                          background: 'transparent',
-                          border: 'none',
+                        className="px-3 py-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelect(row.bssid);
                         }}
                       >
-                        <div dangerouslySetInnerHTML={{ __html: activeTooltip.html }} />
+                        <input
+                          type="checkbox"
+                          checked={selected.has(row.bssid)}
+                          onChange={() => {}}
+                          disabled={processingBssids.has(row.bssid)}
+                          className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="font-bold text-slate-200 truncate max-w-[180px]">
+                          {row.ssid || row.bssid}
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-500">{row.bssid}</div>
+                      </td>
+                      <td className="px-3 py-2 text-slate-400">
+                        <div className="truncate max-w-[140px]">
+                          {row.city || 'Unknown'}
+                          {row.region ? `, ${row.region}` : ''}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {processingBssids.has(row.bssid) ? (
+                          <span className="text-blue-400 animate-pulse font-bold uppercase text-[9px]">
+                            Queuing...
+                          </span>
+                        ) : row.v3_obs_count > 0 ? (
+                          <div className="flex flex-col items-center">
+                            <span className="text-cyan-400 font-bold tabular-nums">
+                              {row.v3_obs_count}
+                            </span>
+                            <span className="text-[8px] text-slate-600 uppercase">Forensics</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-600 uppercase text-[9px]">Pending</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">
+                        {row.last_v3_import ? formatShortDate(row.last_v3_import) : 'Never'}
                       </td>
                     </tr>
-                  )}
-                </React.Fragment>
-              ))}
-          </tbody>
-        </table>
+                  </React.Fragment>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex justify-between items-center px-1">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1 || loading}
+            className="text-[10px] text-slate-400 hover:text-white disabled:opacity-30 uppercase font-bold"
+          >
+            Previous
+          </button>
+          <span className="text-[10px] text-slate-500">
+            Page <span className="text-slate-200">{page}</span> of {Math.ceil(total / 50) || 1}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= Math.ceil(total / 50) || loading}
+            className="text-[10px] text-slate-400 hover:text-white disabled:opacity-30 uppercase font-bold"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
-      {/* Pagination */}
-      <div className="flex justify-between items-center px-1">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1 || loading}
-          className="text-[10px] text-slate-400 hover:text-white disabled:opacity-30 uppercase font-bold"
-        >
-          Previous
-        </button>
-        <span className="text-[10px] text-slate-500">
-          Page <span className="text-slate-200">{page}</span> of {Math.ceil(total / 50) || 1}
-        </span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          disabled={page >= Math.ceil(total / 50) || loading}
-          className="text-[10px] text-slate-400 hover:text-white disabled:opacity-30 uppercase font-bold"
-        >
-          Next
-        </button>
-      </div>
+      {/* Side panel — forensic card, appears when a row is selected */}
+      {activePanel && (
+        <div className="w-[360px] flex-shrink-0 sticky top-4">
+          <div className="rounded-xl border border-slate-700/50 bg-slate-900/80 backdrop-blur-sm shadow-2xl overflow-hidden">
+            {/* Panel header */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/60 bg-slate-900/60">
+              <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                {activePanel.loading ? 'Loading…' : 'Forensic Preview'}
+              </span>
+              <button
+                onClick={() => setActivePanel(null)}
+                className="text-slate-500 hover:text-slate-200 transition-colors text-sm leading-none"
+                aria-label="Close panel"
+              >
+                ✕
+              </button>
+            </div>
+            {/* Tooltip card */}
+            <div
+              className="overflow-y-auto max-h-[calc(100vh-200px)]"
+              dangerouslySetInnerHTML={{ __html: activePanel.html }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
