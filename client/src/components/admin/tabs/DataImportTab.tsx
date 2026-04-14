@@ -46,7 +46,7 @@ export const DataImportTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SQLiteImportCard
           backupEnabled={backupEnabled}
           canImport={canImport}

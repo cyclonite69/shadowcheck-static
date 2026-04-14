@@ -184,7 +184,7 @@ export const WigleDetailTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Search Input */}
       <AdminCard
         icon={SearchIcon}
