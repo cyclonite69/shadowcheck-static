@@ -244,9 +244,14 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
 
     // Check if payload has actual observation data. networkId alone is not sufficient —
     // WiGLE echoes the queried ID back even when it has no location data for the network.
-    // Only treat as a match when locationClusters is a non-empty array.
-    const hasObservations =
-      Array.isArray(data?.locationClusters) && data.locationClusters.length > 0;
+    // Clusters may exist but contain zero location points — count actual locations to be sure.
+    const locationCount = Array.isArray(data?.locationClusters)
+      ? data.locationClusters.reduce(
+          (sum: number, c: any) => sum + (Array.isArray(c?.locations) ? c.locations.length : 0),
+          0
+        )
+      : 0;
+    const hasObservations = locationCount > 0;
     if (
       !detailResponse.ok ||
       !data ||
