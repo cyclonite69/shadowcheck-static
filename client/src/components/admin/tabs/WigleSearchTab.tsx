@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useWigleSearch } from '../hooks/useWigleSearch';
 import { useWigleRuns } from '../hooks/useWigleRuns';
@@ -7,6 +7,8 @@ import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
+import { wigleApi } from '../../../api/wigleApi';
+import type { WigleCompletenessReport } from '../hooks/useWigleRuns';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -105,6 +107,31 @@ export const WigleSearchTab: React.FC = () => {
   );
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  // Coverage dropdown: unique search terms derived from runs
+  const coverageTerms = useMemo(
+    () => [...new Set(runs.map((r) => r.searchTerm).filter(Boolean))] as string[],
+    [runs]
+  );
+  const [coverageTerm, setCoverageTerm] = useState<string>('');
+  const [termReport, setTermReport] = useState<WigleCompletenessReport | null>(null);
+  const [termReportLoading, setTermReportLoading] = useState(false);
+
+  // Auto-select first available term
+  useEffect(() => {
+    if (!coverageTerm && coverageTerms.length > 0) setCoverageTerm(coverageTerms[0]);
+  }, [coverageTerms, coverageTerm]);
+
+  // Re-fetch coverage when selected term changes
+  useEffect(() => {
+    if (!coverageTerm) return;
+    setTermReportLoading(true);
+    wigleApi
+      .getImportCompletenessReport(new URLSearchParams({ searchTerm: coverageTerm }))
+      .then((data) => setTermReport(data?.report || null))
+      .catch(() => setTermReport(null))
+      .finally(() => setTermReportLoading(false));
+  }, [coverageTerm]);
+
   const handleRowClick = (net: any, event: React.MouseEvent<HTMLTableRowElement>) => {
     const bssid = net.netid || net.bssid;
     if (activeTooltip?.bssid === bssid) {
@@ -171,53 +198,87 @@ export const WigleSearchTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {report && (
+      {coverageTerms.length > 0 && (
         <AdminCard
           icon={BadgeIcon}
           title="WiGLE Coverage by State"
           color="from-amber-500 to-amber-600"
         >
-          <div className="space-y-4">
-            <h4 className="text-xs font-bold text-slate-300 uppercase mb-3 flex items-center justify-between">
-              <span>Coverage Snapshot</span>
-              <span className="text-[10px] text-slate-500 font-normal">
-                Updated: {new Date(report.generatedAt).toLocaleTimeString()}
-              </span>
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {report.states
-                ?.filter((s) => s.storedCount > 0 || s.runId)
-                .slice(0, 15)
-                .map((s) => (
-                  <div
-                    key={s.state}
-                    className="p-2 bg-slate-900/40 rounded border border-slate-800/60 flex flex-col justify-between"
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-black text-white">{s.state}</span>
-                      <span
-                        className={`text-[9px] px-1 rounded ${
-                          s.status === 'completed'
-                            ? 'text-emerald-400 bg-emerald-500/5'
-                            : s.status === 'failed'
-                              ? 'text-red-400 bg-red-500/5'
-                              : s.status === 'running'
-                                ? 'text-blue-400 bg-blue-500/5'
-                                : 'text-slate-600'
-                        }`}
-                      >
-                        {s.status === 'completed' ? '✓' : s.status ? '...' : ''}
-                      </span>
-                    </div>
-                    <div className="text-lg font-bold text-slate-100">
-                      {s.storedCount.toLocaleString()}
-                    </div>
-                    <div className="text-[9px] text-slate-500 uppercase font-semibold">
-                      Networks
-                    </div>
-                  </div>
+          <div className="space-y-3">
+            {/* Search term selector */}
+            <div className="flex items-center gap-2">
+              <select
+                value={coverageTerm}
+                onChange={(e) => setCoverageTerm(e.target.value)}
+                className="flex-1 px-2 py-1.5 bg-slate-800/60 border border-slate-700/60 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+              >
+                {coverageTerms.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
+              </select>
+              {termReport && (
+                <span className="text-[10px] text-slate-500 whitespace-nowrap">
+                  Updated: {new Date(termReport.generatedAt).toLocaleTimeString()}
+                </span>
+              )}
             </div>
+
+            {/* State grid */}
+            {termReportLoading ? (
+              <p className="text-xs text-slate-500 py-2">Loading coverage…</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                {(termReport?.states ?? [])
+                  .filter((s) => (s.rowsInserted ?? 0 > 0) || s.runId)
+                  .slice(0, 20)
+                  .map((s) => (
+                    <div
+                      key={s.state}
+                      className="p-2 bg-slate-900/40 rounded border border-slate-800/60 flex flex-col justify-between"
+                      title={s.lastError ? `Note: ${s.lastError}` : undefined}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-xs font-black text-white">{s.state}</span>
+                        <span
+                          className={`text-[9px] px-1 rounded ${
+                            s.status === 'completed' && (s.rowsInserted ?? 0) === 0
+                              ? 'text-amber-400 bg-amber-500/5'
+                              : s.status === 'completed'
+                                ? 'text-emerald-400 bg-emerald-500/5'
+                                : s.status === 'failed'
+                                  ? 'text-red-400 bg-red-500/5'
+                                  : s.status === 'running'
+                                    ? 'text-blue-400 bg-blue-500/5'
+                                    : 'text-slate-600'
+                          }`}
+                        >
+                          {s.status === 'completed' && (s.rowsInserted ?? 0) === 0
+                            ? '!'
+                            : s.status === 'completed'
+                              ? '✓'
+                              : s.status
+                                ? '…'
+                                : ''}
+                        </span>
+                      </div>
+                      <div className="text-lg font-bold text-slate-100">
+                        {(s.rowsInserted ?? 0).toLocaleString()}
+                      </div>
+                      <div className="text-[9px] text-slate-500 uppercase font-semibold">
+                        Imported
+                      </div>
+                    </div>
+                  ))}
+                {(termReport?.states ?? []).filter((s) => (s.rowsInserted ?? 0 > 0) || s.runId)
+                  .length === 0 && (
+                  <p className="col-span-5 text-xs text-slate-500 py-2">
+                    No runs found for this search term.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </AdminCard>
       )}

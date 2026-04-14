@@ -4,6 +4,7 @@ import { networkApi } from '../../../../api/networkApi';
 import { formatShortDate } from '../../../../utils/formatDate';
 import { renderNetworkTooltip } from '../../../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../../../utils/geospatial/tooltipDataNormalizer';
+import { US_STATES } from '../../../../constants/network';
 
 interface EnrichmentRow {
   bssid: string;
@@ -219,16 +220,21 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             }}
             className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
           />
-          <input
-            type="text"
-            placeholder="Filter Region/State..."
+          <select
             value={regionFilter}
             onChange={(e) => {
               setRegionFilter(e.target.value);
               setPage(1);
             }}
-            className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
-          />
+            className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white focus:border-blue-500/50 outline-none transition-all"
+          >
+            <option value="">All States</option>
+            {US_STATES.map((s) => (
+              <option key={s.code} value={s.code}>
+                {s.code} — {s.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Action Bar */}
