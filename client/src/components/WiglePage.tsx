@@ -604,42 +604,40 @@ const WiglePage: React.FC = () => {
       <AppHeader
         pageLabel="WiGLE"
         rightContent={
-          <button
-            aria-label={showMenu ? 'Close controls' : 'Open controls'}
-            onClick={() => setShowMenu(!showMenu)}
-            title="Map controls"
-            style={
-              showMenu
-                ? {
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '6px',
-                    border: '0.5px solid rgba(59,130,246,0.3)',
-                    background: 'rgba(59,130,246,0.10)',
-                    color: '#60a5fa',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {(['Filters', 'Layers'] as const).map((label) => {
+              const active = label === 'Filters' ? showFilters : showMenu;
+              const toggle =
+                label === 'Filters'
+                  ? () => setShowFilters(!showFilters)
+                  : () => setShowMenu(!showMenu);
+              return (
+                <button
+                  key={label}
+                  aria-label={
+                    active ? `Close ${label.toLowerCase()}` : `Open ${label.toLowerCase()}`
                   }
-                : {
-                    width: '30px',
-                    height: '30px',
+                  onClick={toggle}
+                  style={{
+                    height: '28px',
+                    padding: '0 10px',
                     borderRadius: '6px',
-                    border: '0.5px solid rgba(255,255,255,0.10)',
-                    background: 'rgba(255,255,255,0.03)',
-                    color: 'rgba(255,255,255,0.5)',
+                    border: active
+                      ? '0.5px solid rgba(59,130,246,0.4)'
+                      : '0.5px solid rgba(255,255,255,0.10)',
+                    background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+                    color: active ? '#60a5fa' : 'rgba(255,255,255,0.5)',
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
-                  }
-            }
-          >
-            {showMenu ? '✕' : '⚙'}
-          </button>
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    letterSpacing: '0.3px',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         }
       />
 
@@ -648,8 +646,6 @@ const WiglePage: React.FC = () => {
         className={
           isMobile ? '!left-3 !right-3 !w-auto !max-h-[calc(100vh-92px)] !rounded-2xl !p-4' : ''
         }
-        onShowFilters={() => setShowFilters(!showFilters)}
-        showFilters={showFilters}
         mapStyle={mapStyle}
         onMapStyleChange={setMapStyle}
         mapStyles={MAP_STYLES}
@@ -672,11 +668,7 @@ const WiglePage: React.FC = () => {
         adaptedFilters={adaptedFilters}
         position="overlay"
         className={
-          isMobile
-            ? '!left-3 !right-3 !top-[4.5rem] !w-auto !max-h-[calc(100vh-100px)]'
-            : showMenu
-              ? ''
-              : 'hidden'
+          isMobile ? '!left-3 !right-3 !top-[4.5rem] !w-auto !max-h-[calc(100vh-100px)]' : ''
         }
       />
 

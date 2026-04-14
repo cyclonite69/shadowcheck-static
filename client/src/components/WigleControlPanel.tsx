@@ -5,8 +5,6 @@ import type { WigleLayerState } from './wigle/useWigleLayers';
 interface WigleControlPanelProps {
   isOpen: boolean;
   className?: string;
-  onShowFilters: () => void;
-  showFilters: boolean;
   mapStyle: string;
   onMapStyleChange: (style: string) => void;
   mapStyles: Array<{ label: string; value: string }>;
@@ -25,8 +23,6 @@ interface WigleControlPanelProps {
 export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
   isOpen,
   className = '',
-  onShowFilters,
-  showFilters,
   mapStyle,
   onMapStyleChange,
   mapStyles,
@@ -50,16 +46,6 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
       <div className="border-b border-blue-500/20 pb-3.5 mb-1.5">
         <h3 className="text-xl font-bold text-blue-400">🛡️ ShadowCheck</h3>
         <p className="text-xs text-slate-400 mt-1">Network Mapping</p>
-        <button
-          onClick={onShowFilters}
-          className={`mt-3 w-full px-3 py-2 text-sm font-semibold text-white rounded-lg border shadow-lg transition-all hover:shadow-xl ${
-            showFilters
-              ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-600'
-              : 'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-600'
-          }`}
-        >
-          {showFilters ? '✕ Hide Filters' : '🔍 Show Filters'}
-        </button>
       </div>
 
       {/* Layer Toggles */}
