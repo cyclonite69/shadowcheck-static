@@ -103,6 +103,7 @@ export const WigleSearchTab: React.FC = () => {
   const [activeTooltip, setActiveTooltip] = React.useState<{ bssid: string; html: string } | null>(
     null
   );
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const handleRowClick = (net: any, event: React.MouseEvent<HTMLTableRowElement>) => {
     const bssid = net.netid || net.bssid;
@@ -143,6 +144,30 @@ export const WigleSearchTab: React.FC = () => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const handleScroll = () => {
+      if (searchLoading || !hasMorePages) return;
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        if (scrollHeight - scrollTop <= clientHeight + 200) {
+          loadMoreResults(false);
+        }
+      }, 100);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, [hasMorePages, searchLoading, loadMoreResults]);
 
   return (
     <div className="space-y-4">
@@ -481,94 +506,106 @@ export const WigleSearchTab: React.FC = () => {
                   </div>
 
                   {searchResults.results && searchResults.results.length > 0 && (
-                    <div className="overflow-x-auto mt-4 rounded-lg border border-slate-700">
-                      <table className="w-full text-xs text-left text-slate-300">
-                        <thead className="bg-slate-800 text-slate-400 uppercase">
-                          <tr>
-                            <th className="px-3 py-2">SSID</th>
-                            <th className="px-3 py-2">BSSID</th>
-                            <th className="px-3 py-2">Type</th>
-                            <th className="px-3 py-2">Encryption</th>
-                            <th className="px-3 py-2">Location</th>
-                            <th className="px-3 py-2">Last Seen</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700/50">
-                          {searchResults.results.map((net, idx) => {
-                            const bssid = net.netid || net.bssid;
-                            const isActive = activeTooltip?.bssid === bssid;
-                            return (
-                              <React.Fragment key={idx}>
-                                <tr
-                                  className={`cursor-pointer transition-colors ${
-                                    isActive ? 'bg-blue-500/10' : 'hover:bg-slate-700/30'
-                                  }`}
-                                  onClick={(e) => handleRowClick(net, e)}
-                                >
-                                  <td className="px-3 py-2 font-medium text-white">
-                                    {net.ssid || '<hidden>'}
-                                  </td>
-                                  <td className="px-3 py-2 font-mono text-slate-400">
-                                    {net.netid || net.bssid}
-                                  </td>
-                                  <td className="px-3 py-2">{net.type}</td>
-                                  <td className="px-3 py-2">{net.encryption}</td>
-                                  <td className="px-3 py-2">
-                                    {[net.city, net.region, net.country].filter(Boolean).join(', ')}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    {net.lasttime ? formatShortDate(net.lasttime) : 'N/A'}
-                                  </td>
-                                </tr>
-                                {isActive && (
-                                  <tr>
+                    <>
+                      <div
+                        ref={scrollRef}
+                        className="mt-4 max-h-[36rem] overflow-auto rounded-lg border border-slate-700"
+                      >
+                        <table className="w-full text-xs text-left text-slate-300">
+                          <thead className="bg-slate-800 text-slate-400 uppercase sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2 whitespace-nowrap">BSSID</th>
+                              <th className="px-3 py-2">SSID</th>
+                              <th className="px-3 py-2">Type</th>
+                              <th className="px-3 py-2">Ch</th>
+                              <th className="px-3 py-2">City</th>
+                              <th className="px-3 py-2">State</th>
+                              <th className="px-3 py-2 whitespace-nowrap">First Seen</th>
+                              <th className="px-3 py-2 whitespace-nowrap">Last Seen</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-700/50">
+                            {searchResults.results.map((net: any, idx: number) => {
+                              const bssid = net.netid || net.bssid;
+                              const isActive = activeTooltip?.bssid === bssid;
+                              const city = net.geocoded_city || net.city || '—';
+                              const state = net.geocoded_state || net.region || '—';
+                              const firstSeen = net.local_first_seen || net.firsttime || null;
+                              const lastSeen = net.local_last_seen || net.lasttime || null;
+                              return (
+                                <React.Fragment key={idx}>
+                                  <tr
+                                    className={`cursor-pointer transition-colors ${
+                                      isActive ? 'bg-blue-500/10' : 'hover:bg-slate-700/30'
+                                    }`}
+                                    onClick={(e) => handleRowClick(net, e)}
+                                  >
+                                    <td className="px-3 py-2 font-mono text-slate-400 whitespace-nowrap">
+                                      {bssid}
+                                    </td>
                                     <td
-                                      colSpan={6}
-                                      style={{
-                                        padding: '0 12px 12px',
-                                        background: 'transparent',
-                                        border: 'none',
-                                      }}
+                                      className="px-3 py-2 font-medium text-white max-w-[14rem] truncate"
+                                      title={net.ssid || undefined}
                                     >
-                                      <div
-                                        dangerouslySetInnerHTML={{ __html: activeTooltip.html }}
-                                      />
+                                      {net.ssid || '(hidden)'}
+                                    </td>
+                                    <td className="px-3 py-2">{net.type || '—'}</td>
+                                    <td className="px-3 py-2 tabular-nums">{net.channel ?? '—'}</td>
+                                    <td className="px-3 py-2">{city}</td>
+                                    <td className="px-3 py-2">{state}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                                      {firstSeen ? formatShortDate(firstSeen) : '—'}
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                                      {lastSeen ? formatShortDate(lastSeen) : '—'}
                                     </td>
                                   </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                                  {isActive && (
+                                    <tr>
+                                      <td
+                                        colSpan={8}
+                                        style={{
+                                          padding: '0 12px 12px',
+                                          background: 'transparent',
+                                          border: 'none',
+                                        }}
+                                      >
+                                        <div
+                                          dangerouslySetInnerHTML={{ __html: activeTooltip.html }}
+                                        />
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                        {searchLoading && (
+                          <p className="px-3 py-3 text-xs text-slate-500">
+                            Loading more results...
+                          </p>
+                        )}
+                      </div>
 
-                  {/* Pagination controls */}
-                  {hasMorePages && (
-                    <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
-                      <button
-                        onClick={() => loadMoreResults(false)}
-                        disabled={searchLoading}
-                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-500 hover:to-blue-600 disabled:opacity-50 text-sm transition-all"
-                      >
-                        {searchLoading ? 'Loading...' : `Load Next 100 (Page ${currentPage + 1})`}
-                      </button>
-                      <button
-                        onClick={() => loadMoreResults(true)}
-                        disabled={searchLoading}
-                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
-                      >
-                        {searchLoading ? 'Loading...' : 'Load & Import Next 100'}
-                      </button>
-                    </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-slate-400">
+                          {hasMorePages
+                            ? `Showing ${loadedCount.toLocaleString()} of ${totalResults.toLocaleString()} — scroll to load more`
+                            : `All ${loadedCount.toLocaleString()} results loaded`}
+                        </p>
+                        {hasMorePages && (
+                          <button
+                            onClick={() => loadMoreResults(true)}
+                            disabled={searchLoading}
+                            className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-xs transition-all"
+                          >
+                            {searchLoading ? 'Loading...' : 'Load & Import Next 100'}
+                          </button>
+                        )}
+                      </div>
+                    </>
                   )}
-
-                  <p className="text-xs text-slate-400 mt-2">
-                    {hasMorePages
-                      ? `Showing ${loadedCount.toLocaleString()} of ${totalResults.toLocaleString()} results`
-                      : 'All results loaded'}
-                  </p>
                 </>
               ) : (
                 <div className="text-center text-slate-500 py-6">
