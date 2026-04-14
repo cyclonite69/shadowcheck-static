@@ -597,7 +597,10 @@ const WiglePage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full text-slate-100 flex flex-col relative">
+    <div
+      className="min-h-screen w-full text-slate-100 flex flex-col relative"
+      style={{ paddingTop: '48px' }}
+    >
       <AppHeader
         pageLabel="WiGLE"
         rightContent={
