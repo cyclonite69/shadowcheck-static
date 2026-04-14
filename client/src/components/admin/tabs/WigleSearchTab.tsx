@@ -147,7 +147,11 @@ export const WigleSearchTab: React.FC = () => {
   return (
     <div className="space-y-4">
       {report && (
-        <AdminCard icon={BadgeIcon} title="Completeness Status" color="from-amber-500 to-amber-600">
+        <AdminCard
+          icon={BadgeIcon}
+          title="WiGLE Coverage by State"
+          color="from-amber-500 to-amber-600"
+        >
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-slate-300 uppercase mb-3 flex items-center justify-between">
               <span>Coverage Snapshot</span>
