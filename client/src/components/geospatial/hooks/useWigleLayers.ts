@@ -5,6 +5,33 @@ import type * as mapboxglType from 'mapbox-gl';
 import type { NetworkRow } from '../../../types/network';
 import { renderWigleObservationPopupCard } from '../../../utils/geospatial/renderMapPopupCards';
 import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
+import { networkApi } from '../../../api/networkApi';
+import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
+import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
+
+/** Center a Mapbox popup within the map container after it renders. */
+function centerPopupInMap(popup: any, map: MapboxMap) {
+  requestAnimationFrame(() => {
+    const el = popup.getElement();
+    if (!el) return;
+    const containerRect = map.getContainer().getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const pad = 12;
+    const content = el.querySelector('.mapboxgl-popup-content') as HTMLElement | null;
+    if (content) {
+      content.style.maxHeight = `${containerRect.height - pad * 2}px`;
+      content.style.overflowY = 'auto';
+    }
+    const left = containerRect.left + (containerRect.width - elRect.width) / 2;
+    const top =
+      containerRect.top +
+      (containerRect.height - Math.min(elRect.height, containerRect.height - pad * 2)) / 2;
+    el.style.position = 'fixed';
+    el.style.left = `${Math.max(containerRect.left + pad, Math.min(left, containerRect.right - elRect.width - pad))}px`;
+    el.style.top = `${Math.max(containerRect.top + pad, Math.min(top, containerRect.bottom - elRect.height - pad))}px`;
+    el.style.transform = 'none';
+  });
+}
 
 export type WigleObservation = {
   lat: number;
@@ -86,32 +113,54 @@ export const useWigleLayers = ({
       }
     };
 
-    const handleUniqueClick = (e: MapLayerMouseEvent) => {
-      if (!e.features || e.features.length === 0) return;
-      const feature = e.features[0];
-      const props = feature.properties;
-      if (!props) return;
-
-      const coords = (feature.geometry as any).coordinates;
-
-      new (mapboxgl as any).Popup({
+    const makeObsPopup = (props: any, coords: [number, number], matched: boolean) => {
+      const fallbackHtml = renderWigleObservationPopupCard({
+        ssid: props.ssid,
+        time: props.time,
+        signal: props.level,
+        channel: props.channel,
+        distanceFromCenterMeters: matched ? undefined : props.distance_from_our_center_m,
+        matched,
+      });
+      const popup = new (mapboxgl as any).Popup({
         maxWidth: 'min(360px, 90vw)',
         className: 'sc-popup',
         offset: 14,
         focusAfterOpen: false,
       })
         .setLngLat(coords)
-        .setHTML(
-          renderWigleObservationPopupCard({
-            ssid: props.ssid,
-            time: props.time,
-            signal: props.level,
-            channel: props.channel,
-            distanceFromCenterMeters: props.distance_from_our_center_m,
-            matched: false,
-          })
-        )
+        .setHTML(fallbackHtml)
         .addTo(map);
+      centerPopupInMap(popup, map);
+
+      // Upgrade to platinum card if BSSID is in local DB
+      const bssid = props.bssid;
+      if (bssid) {
+        networkApi.getNetworkByBssid(bssid).then((mvData) => {
+          if (!popup.isOpen() || !mvData) return;
+          const normalized = normalizeTooltipData({ ...mvData, lat: coords[1], lon: coords[0] }, [
+            coords[0],
+            coords[1],
+          ]);
+          const fullHtml = renderNetworkTooltip({
+            ...normalized,
+            triggerElement: map.getContainer(),
+          });
+          if (fullHtml) {
+            popup.setHTML(fullHtml);
+            centerPopupInMap(popup, map);
+          }
+        });
+      }
+      return popup;
+    };
+
+    const handleUniqueClick = (e: MapLayerMouseEvent) => {
+      if (!e.features || e.features.length === 0) return;
+      const feature = e.features[0];
+      const props = feature.properties;
+      if (!props) return;
+      makeObsPopup(props, (feature.geometry as any).coordinates, false);
     };
 
     const handleMatchedClick = (e: MapLayerMouseEvent) => {
@@ -119,30 +168,11 @@ export const useWigleLayers = ({
       const feature = e.features[0];
       const props = feature.properties;
       if (!props) return;
-
-      const coords = (feature.geometry as any).coordinates;
-
-      new (mapboxgl as any).Popup({
-        maxWidth: 'min(360px, 90vw)',
-        className: 'sc-popup',
-        offset: 14,
-        focusAfterOpen: false,
-      })
-        .setLngLat(coords)
-        .setHTML(
-          renderWigleObservationPopupCard({
-            ssid: props.ssid,
-            time: props.time,
-            signal: props.level,
-            channel: props.channel,
-            matched: true,
-          })
-        )
-        .addTo(map);
+      makeObsPopup(props, (feature.geometry as any).coordinates, true);
     };
 
     const handleUniqueEnter = () => {
-      map.getCanvas().style.cursor = 'pointer';
+      map.getCanvas().style.cursor = 'crosshair';
     };
 
     const handleUniqueLeave = () => {
@@ -150,7 +180,7 @@ export const useWigleLayers = ({
     };
 
     const handleMatchedEnter = () => {
-      map.getCanvas().style.cursor = 'pointer';
+      map.getCanvas().style.cursor = 'crosshair';
     };
 
     const handleMatchedLeave = () => {
@@ -177,10 +207,11 @@ export const useWigleLayers = ({
           source: 'wigle-observations',
           filter: ['==', ['get', 'source'], 'wigle_unique'],
           paint: {
-            'circle-radius': 7,
+            // Shrink at low zoom so they don't overwhelm the map
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 2, 10, 4, 14, 7],
             'circle-color': '#f59e0b',
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#92400e', // dark amber ring — distinctive WiGLE v3 identity
             'circle-opacity': 0.9,
           },
         });
@@ -197,11 +228,11 @@ export const useWigleLayers = ({
           source: 'wigle-observations',
           filter: ['==', ['get', 'source'], 'matched'],
           paint: {
-            'circle-radius': 5,
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 2, 10, 3, 14, 6],
             'circle-color': '#22c55e',
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#ffffff',
-            'circle-opacity': 0.7,
+            'circle-stroke-width': 1.5,
+            'circle-stroke-color': '#14532d',
+            'circle-opacity': 0.8,
           },
         });
         map.on('click', 'wigle-matched-points', handleMatchedClick);
