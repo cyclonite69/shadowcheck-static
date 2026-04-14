@@ -15,7 +15,6 @@ const AnalyticsPage = lazy(() => import('./components/AnalyticsPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const WiglePage = lazy(() => import('./components/WiglePage'));
 const KeplerPage = lazy(() => import('./components/KeplerPage'));
-const ApiPage = lazy(() => import('./components/ApiPage'));
 const MonitoringPage = lazy(() => import('./components/MonitoringPage'));
 
 /**
@@ -116,7 +115,6 @@ function AppContent() {
             <Route path="/wigle" element={<WiglePage />} />
             <Route path="/kepler" element={<KeplerPage />} />
             <Route path="/monitoring" element={<MonitoringPage />} />
-            <Route path="/endpoint-test" element={<ApiPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </Suspense>
