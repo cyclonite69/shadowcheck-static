@@ -154,7 +154,10 @@ export function buildNetworkSlowPathListQuery(
       ) nn_agg ON TRUE
     ${ctx.requiresHome ? 'CROSS JOIN home' : ''}
     ${effectiveWhereClause}
-    ORDER BY ${orderBy}
+    ORDER BY ${orderBy.replace(
+      /\bsecurity\b/g,
+      "CASE security WHEN 'OPEN' THEN 0 WHEN 'UNKNOWN' THEN 1 WHEN 'WPS' THEN 2 WHEN 'WEP' THEN 3 WHEN 'WPA' THEN 4 WHEN 'WPA2' THEN 5 WHEN 'WPA2-P' THEN 6 WHEN 'WPA2-E' THEN 7 WHEN 'OWE' THEN 8 WHEN 'WPA3' THEN 9 WHEN 'WPA3-P' THEN 10 WHEN 'WPA3-E' THEN 11 ELSE 1 END"
+    )}
     LIMIT ${ctx.addParam(limit)} OFFSET ${ctx.addParam(offset)}
   `;
 

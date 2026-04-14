@@ -34,6 +34,8 @@ export const KeplerVisualization: React.FC<KeplerVisualizationProps> = ({
 }) => {
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+  // Container sits below the 48px AppHeader
+  const containerHeight = viewportHeight - 48;
 
   useEffect(() => {
     if (mapboxToken && networkData.length > 0) {
@@ -56,10 +58,13 @@ export const KeplerVisualization: React.FC<KeplerVisualizationProps> = ({
       <div ref={mapRef} className="absolute inset-0 w-full h-full" />
       {tooltipState && (
         <div
-          className="absolute z-20 max-w-[min(340px,90vw)]"
+          className="absolute z-20 max-w-[min(340px,90vw)] max-h-[calc(100vh-80px)] overflow-y-auto"
           style={{
             left: `${Math.max(16, Math.min(tooltipState.x + 12, viewportWidth - 360))}px`,
-            top: `${Math.max(16, Math.min(tooltipState.y + 12, viewportHeight - 320))}px`,
+            // Flip above click point when in the lower half so the card doesn't run off-screen
+            ...(tooltipState.y > containerHeight * 0.55
+              ? { bottom: `${Math.max(16, containerHeight - tooltipState.y + 12)}px` }
+              : { top: `${Math.max(16, tooltipState.y + 12)}px` }),
           }}
         >
           <div className="relative rounded-lg border border-slate-700 bg-slate-950 shadow-2xl">

@@ -38,7 +38,12 @@ export function buildNetworkNoFilterListQuery(
     .replace(/\br\.first_observed_at\b/g, 'ne.first_seen')
     .replace(/\br\.last_observed_at\b/g, 'ne.last_seen')
     .replace(/\bne\.stationary_confidence\b/g, 'ne.stationary_confidence')
-    .replace(/\bs\.stationary_confidence\b/g, 'ne.stationary_confidence');
+    .replace(/\bs\.stationary_confidence\b/g, 'ne.stationary_confidence')
+    // Sort security by strength (open→weak→strong) rather than alphabetically
+    .replace(
+      /\bsecurity\b/g,
+      "CASE security WHEN 'OPEN' THEN 0 WHEN 'UNKNOWN' THEN 1 WHEN 'WPS' THEN 2 WHEN 'WEP' THEN 3 WHEN 'WPA' THEN 4 WHEN 'WPA2' THEN 5 WHEN 'WPA2-P' THEN 6 WHEN 'WPA2-E' THEN 7 WHEN 'OWE' THEN 8 WHEN 'WPA3' THEN 9 WHEN 'WPA3-P' THEN 10 WHEN 'WPA3-E' THEN 11 ELSE 1 END"
+    );
 
   const sql = `
     SELECT
