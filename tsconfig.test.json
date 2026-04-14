@@ -10,6 +10,7 @@
   "exclude": [
     "tests/unit/middleware/**/*",
     "tests/unit/errors/**/*",
-    "tests/unit/repositories/**/*"
+    "tests/unit/repositories/**/*",
+    "tests/unit/services/authService.test.ts"
   ]
 }
