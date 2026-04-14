@@ -57,7 +57,7 @@ export function useKeplerDeck({
         x,
         y,
         pinned,
-        html: renderNetworkTooltip(normalized),
+        html: renderNetworkTooltip({ ...normalized, triggerElement: mapRef.current }) ?? '',
       };
     },
     []
