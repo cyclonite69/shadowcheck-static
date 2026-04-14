@@ -54,7 +54,7 @@ const requireAuth: RequestHandler = (req, res, next) => {
     return;
   }
 
-  authService
+  return authService
     .validateSession(token)
     .then((result: { valid: boolean; error?: string; user?: Request['user'] }) => {
       if (!result.valid) {
@@ -83,7 +83,7 @@ const requireAuth: RequestHandler = (req, res, next) => {
  */
 const requireAdmin: RequestHandler = (req, res, next) => {
   // First check if user is authenticated
-  requireAuth(req, res, ((err?: unknown) => {
+  return requireAuth(req, res, ((err?: unknown) => {
     if (err) {
       return;
     }
