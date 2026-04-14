@@ -1,5 +1,3 @@
-import { frequencyToChannel } from '../../../utils/frequencyUtils';
-
 export interface KeplerNetworkRow {
   bssid: string | null;
   ssid: string | null;
@@ -218,33 +216,10 @@ export const buildKeplerDataGeoJson = (
       bestlevel: row.signal || 0,
       signal: row.signal || 0,
       level: row.signal || 0,
-      first_seen: row.first_seen || row.observed_at,
-      last_seen: row.last_seen || row.observed_at,
-      timestamp: row.last_seen || row.observed_at,
       manufacturer: row.manufacturer || 'Unknown',
-      device_type: 'Unknown',
       type: inferRadioType(row.type, row.ssid, row.frequency, row.capabilities),
-      channel: frequencyToChannel(row.frequency),
-      frequency: row.frequency || null,
-      capabilities: row.capabilities || '',
-      encryption: row.capabilities || 'Open/Unknown',
-      altitude: row.last_altitude_m ?? null,
-      accuracy: row.accuracy_meters ?? null,
-      obs_count: row.observations || 0,
       threat_level: row.threat?.level || null,
       threat_score: row.threat?.score || null,
-      distance_from_home: row.distance_from_home_km || null,
-      max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
-      geocoded_address: row.geocoded_address || null,
-      geocoded_poi_name: row.geocoded_poi_name || null,
-      timespan_days:
-        row.first_seen && row.last_seen
-          ? Math.ceil(
-              ((new Date(row.last_seen as string) as unknown as number) -
-                (new Date(row.first_seen as string) as unknown as number)) /
-                86400000
-            )
-          : null,
     })
   );
 
@@ -261,42 +236,10 @@ export const buildKeplerObservationsGeoJson = (
       ssid: row.ssid || 'Hidden Network',
       bestlevel: row.level || 0,
       signal: row.level || 0,
-      first_seen: row.time,
-      last_seen: row.time,
-      timestamp: row.time,
-      first_observed_at: row.first_observed_at || row.time,
-      last_observed_at: row.last_observed_at || row.time,
       manufacturer: row.manufacturer || 'Unknown',
-      device_type: 'Unknown',
       type: inferRadioType(row.radio_type, row.ssid, row.radio_frequency, row.radio_capabilities),
-      channel: frequencyToChannel(row.radio_frequency),
-      frequency: row.radio_frequency || null,
-      capabilities: row.radio_capabilities || '',
-      encryption: row.radio_capabilities || 'Open/Unknown',
-      device_id: row.device_id,
-      source_tag: row.source_tag,
-      altitude: row.altitude,
-      accuracy: row.accuracy,
-      observation_count: row.observations || 0,
-      observations: row.observations || 0,
-      obs_count: row.observations || 0,
-      unique_days: row.unique_days || null,
-      max_distance_meters: row.max_distance_meters ?? null,
-      max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
-      timespan_days:
-        row.first_observed_at && row.last_observed_at
-          ? Math.ceil(
-              ((new Date(row.last_observed_at as string) as unknown as number) -
-                (new Date(row.first_observed_at as string) as unknown as number)) /
-                86400000
-            )
-          : null,
-      stationary_confidence: row.stationary_confidence ?? null,
       threat_level: row.threat_level || null,
       threat_score: row.threat_score || null,
-      distance_from_home: row.distance_from_home_km || null,
-      geocoded_address: row.geocoded_address || null,
-      geocoded_poi_name: row.geocoded_poi_name || null,
     })
   );
 
@@ -314,35 +257,9 @@ export const buildKeplerNetworksGeoJson = (
       bestlevel: row.signal || 0,
       signal: row.signal || 0,
       level: row.signal || 0,
-      first_seen: row.first_seen || row.first_observed_at,
-      last_seen: row.last_seen || row.last_observed_at,
-      timestamp: row.last_seen || row.last_observed_at,
       manufacturer: row.manufacturer || 'Unknown',
-      device_type: 'Unknown',
       type: inferRadioType(row.type, row.ssid, row.frequency, row.capabilities),
-      channel: frequencyToChannel(row.frequency),
-      frequency: row.frequency || null,
-      capabilities: row.capabilities || '',
-      encryption: row.capabilities || 'Open/Unknown',
-      altitude: row.last_altitude_m ?? null,
-      accuracy: row.accuracy_meters ?? null,
-      obs_count: row.observations || 0,
-      observation_count: row.observations || 0,
-      observations: row.observations || 0,
       threat_level: row.threat?.level || null,
       threat_score: row.threat?.score || null,
-      distance_from_home: row.distance_from_home_km || null,
-      max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
-      geocoded_address: row.geocoded_address || null,
-      geocoded_poi_name: row.geocoded_poi_name || null,
-      timespan_days:
-        row.first_seen && row.last_seen
-          ? Math.ceil(
-              ((new Date(row.last_seen as string) as unknown as number) -
-                (new Date(row.first_seen as string) as unknown as number)) /
-                86400000
-            )
-          : null,
-      unique_days: row.unique_days || null,
     })
   );
