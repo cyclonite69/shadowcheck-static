@@ -2,6 +2,7 @@ import { useRef, useCallback, useState } from 'react';
 import { NetworkData, LayerType } from '../components/kepler/types';
 import { renderNetworkTooltip } from '../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../utils/geospatial/tooltipDataNormalizer';
+import { networkApi } from '../api/networkApi';
 
 type TooltipState = {
   x: number;
@@ -61,6 +62,37 @@ export function useKeplerDeck({
       };
     },
     []
+  );
+
+  /** Show placeholder immediately, then replace with full MV card when fetch resolves. */
+  const handlePlatinumClick = useCallback(
+    (object: NetworkData, x: number, y: number) => {
+      const bssid = String((object as any).bssid || (object as any).netid || '');
+      const ssid = (object as any).ssid || '';
+      const placeholderHtml = `
+        <div style="min-width:200px;padding:10px 12px;font:12px/1.5 system-ui,sans-serif;color:#e2e8f0">
+          <div style="font-weight:700;color:#60a5fa;margin-bottom:4px">${ssid || bssid || 'Network'}</div>
+          <div style="color:#94a3b8;font-size:11px">${bssid}</div>
+          <div style="margin-top:8px;color:#64748b;font-size:11px">Loading full data…</div>
+        </div>`;
+
+      setTooltipState({ x, y, pinned: true, html: placeholderHtml });
+
+      if (bssid) {
+        networkApi.getNetworkByBssid(bssid).then((mvData) => {
+          const source = mvData ?? object;
+          const normalized = normalizeTooltipData(source, object.position);
+          const fullHtml =
+            renderNetworkTooltip({ ...normalized, triggerElement: mapRef.current }) ??
+            placeholderHtml;
+          setTooltipState((current) => {
+            if (!current || !current.pinned) return current;
+            return { x, y, pinned: true, html: fullHtml };
+          });
+        });
+      }
+    },
+    [buildTooltipState]
   );
 
   const clearTooltip = useCallback(() => {
@@ -208,7 +240,7 @@ export function useKeplerDeck({
                   clearTooltip();
                   return;
                 }
-                setTooltipState(buildTooltipState(object, x, y, true));
+                handlePlatinumClick(object, x, y);
               },
             })
           );
@@ -270,7 +302,7 @@ export function useKeplerDeck({
                   clearTooltip();
                   return;
                 }
-                setTooltipState(buildTooltipState(object, x, y, true));
+                handlePlatinumClick(object, x, y);
               },
             })
           );

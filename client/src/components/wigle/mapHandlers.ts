@@ -3,6 +3,7 @@ import type * as mapboxglType from 'mapbox-gl';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
+import { networkApi } from '../../api/networkApi';
 import {
   setupPopupDrag,
   cleanupPopupDrag,
@@ -22,41 +23,18 @@ export const attachClickHandlers = (
     const props = feature?.properties;
     if (!props || !e.lngLat) return;
 
-    // Determine type code for normalizer
-    const rawType = String(props.type || '').toLowerCase();
-    const typeCode =
-      rawType === 'wifi'
-        ? 'W'
-        : rawType === 'gsm'
-          ? 'G'
-          : rawType === 'lte'
-            ? 'L'
-            : rawType === 'ble'
-              ? 'E'
-              : rawType === 'bt'
-                ? 'B'
-                : props.type;
+    const bssid = String(props.netid || props.bssid || '');
+    const ssid = props.ssid || props.netid || '';
 
-    const normalizedData = normalizeTooltipData(
-      {
-        ...props,
-        type: typeCode,
-        threat_level: props.threat_level || 'NONE',
-        threat_score: props.threat_score || 0,
-        // v3 field aliases — local_* prefixed fields from the v3 query
-        observation_count: props.local_observations ?? props.observation_count,
-        first_seen: props.local_first_seen ?? props.first_seen,
-        last_seen: props.local_last_seen ?? props.last_seen,
-      },
-      [e.lngLat.lng, e.lngLat.lat]
-    );
+    // Placeholder shown immediately while the full MV record loads
+    const placeholderHTML = `
+      <div style="min-width:200px;padding:10px 12px;font:12px/1.5 system-ui,sans-serif;color:#e2e8f0">
+        <div style="font-weight:700;color:#60a5fa;margin-bottom:4px">${ssid || bssid || 'Network'}</div>
+        <div style="color:#94a3b8;font-size:11px">${bssid}</div>
+        <div style="margin-top:8px;color:#64748b;font-size:11px">Loading full data…</div>
+      </div>`;
 
-    const tooltipHTML = renderNetworkTooltip({
-      ...normalizedData,
-      triggerElement: map.getContainer(),
-    });
-    const anchor = getPopupAnchor(map, e.lngLat, tooltipHTML);
-
+    const anchor = getPopupAnchor(map, e.lngLat, placeholderHTML);
     const popup = new mapboxgl.Popup({
       anchor,
       offset: 15,
@@ -65,8 +43,22 @@ export const attachClickHandlers = (
       focusAfterOpen: false,
     })
       .setLngLat(e.lngLat)
-      .setHTML(tooltipHTML)
+      .setHTML(placeholderHTML)
       .addTo(map);
+
+    // Async fetch full MV record — update popup when ready
+    if (bssid) {
+      networkApi.getNetworkByBssid(bssid).then((mvData) => {
+        if (!popup.isOpen()) return;
+        const source = mvData ?? { ...props, bssid };
+        const normalized = normalizeTooltipData(source, [e.lngLat.lng, e.lngLat.lat]);
+        const fullHTML = renderNetworkTooltip({
+          ...normalized,
+          triggerElement: map.getContainer(),
+        });
+        popup.setHTML(fullHTML ?? placeholderHTML);
+      });
+    }
 
     // Setup drag and tether
     let dragState: PopupDragState | null = null;

@@ -219,4 +219,13 @@ export const networkApi = {
     a.remove();
     URL.revokeObjectURL(url);
   },
+
+  /** Fetch the full MV record for a BSSID — used by platinum tooltip. */
+  async getNetworkByBssid(bssid: string): Promise<any | null> {
+    try {
+      return await apiClient.get<any>(`/explorer/network/${encodeURIComponent(bssid)}`);
+    } catch {
+      return null;
+    }
+  },
 };

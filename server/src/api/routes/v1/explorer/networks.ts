@@ -235,4 +235,17 @@ router.get('/explorer/networks-v2', async (req: Request, res: Response, next: Ne
   }
 });
 
+// GET /api/explorer/network/:bssid — single network full MV record (platinum tooltip)
+router.get('/explorer/network/:bssid', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const bssid = String(req.params.bssid || '').toUpperCase();
+    if (!bssid) return res.status(400).json({ error: 'bssid is required' });
+    const row = await explorerService.getNetworkByBssid(bssid);
+    if (!row) return res.status(404).json({ error: 'Network not found' });
+    res.json(row);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

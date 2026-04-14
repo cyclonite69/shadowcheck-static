@@ -63,9 +63,22 @@ export async function listNetworksV2(opts: {
   return { total: result.rows[0]?.total || 0, rows: result.rows };
 }
 
+/**
+ * Fetch the full MV record for a single network by BSSID.
+ * Used by the platinum tooltip: click → fetch → full forensic card.
+ */
+export async function getNetworkByBssid(bssid: string): Promise<any | null> {
+  const result = await query(
+    `SELECT * FROM app.api_network_explorer_mv WHERE UPPER(bssid) = UPPER($1) LIMIT 1`,
+    [bssid]
+  );
+  return result.rows[0] ?? null;
+}
+
 module.exports = {
   checkHomeLocationForFilters,
   executeExplorerQuery,
   listNetworks,
   listNetworksV2,
+  getNetworkByBssid,
 };

@@ -8,6 +8,7 @@ import type * as mapboxglType from 'mapbox-gl';
 import { renderNetworkTooltip } from '../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../utils/geospatial/tooltipDataNormalizer';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
+import { networkApi } from '../../api/networkApi';
 import {
   setupPopupDrag,
   cleanupPopupDrag,
@@ -21,20 +22,18 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
     const props = feature?.properties;
     if (!props || !e.lngLat) return;
 
-    const tooltipHTML = renderNetworkTooltip({
-      ...normalizeTooltipData(
-        {
-          ...props,
-          threat_level: 'NONE',
-          threat_score: 0,
-        },
-        [e.lngLat.lng, e.lngLat.lat]
-      ),
-      triggerElement: e.target.getContainer(),
-    });
+    const map = e.target;
+    const bssid = String(props.netid || props.bssid || '');
+    const ssid = props.ssid || props.netid || '';
 
-    const anchor = getPopupAnchor(e.target, e.lngLat, tooltipHTML);
+    const placeholderHTML = `
+      <div style="min-width:200px;padding:10px 12px;font:12px/1.5 system-ui,sans-serif;color:#e2e8f0">
+        <div style="font-weight:700;color:#60a5fa;margin-bottom:4px">${ssid || bssid || 'Network'}</div>
+        <div style="color:#94a3b8;font-size:11px">${bssid}</div>
+        <div style="margin-top:8px;color:#64748b;font-size:11px">Loading full data…</div>
+      </div>`;
 
+    const anchor = getPopupAnchor(map, e.lngLat, placeholderHTML);
     const popup = new mapboxgl.Popup({
       anchor,
       offset: 15,
@@ -42,8 +41,21 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
       maxWidth: '340px',
     })
       .setLngLat(e.lngLat)
-      .setHTML(tooltipHTML)
-      .addTo(e.target);
+      .setHTML(placeholderHTML)
+      .addTo(map);
+
+    if (bssid) {
+      networkApi.getNetworkByBssid(bssid).then((mvData) => {
+        if (!popup.isOpen()) return;
+        const source = mvData ?? { ...props, bssid };
+        const normalized = normalizeTooltipData(source, [e.lngLat.lng, e.lngLat.lat]);
+        const fullHTML = renderNetworkTooltip({
+          ...normalized,
+          triggerElement: map.getContainer(),
+        });
+        popup.setHTML(fullHTML ?? placeholderHTML);
+      });
+    }
 
     // Setup drag and tether
     const map = e.target as Map;
