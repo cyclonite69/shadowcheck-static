@@ -427,15 +427,6 @@ router.get('/admin/orphan-networks', async (req: any, res: any, next: any) => {
 
 router.post('/admin/orphan-networks/:bssid/check-wigle', async (req: any, res: any, next: any) => {
   try {
-    const wigleEnrichmentService = require('../../../../services/wigleEnrichmentService');
-    const creditCheck = await wigleEnrichmentService.validateWigleApiCredit();
-    if (!creditCheck.hasCredit) {
-      return res.status(402).json({
-        error: 'Out of API credit',
-        details: creditCheck.message,
-      });
-    }
-
     const result = await adminOrphanNetworksService.backfillOrphanNetworkFromWigle(
       req.params.bssid
     );

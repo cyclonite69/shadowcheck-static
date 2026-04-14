@@ -166,11 +166,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
       );
     } catch (err: any) {
       console.error('Failed to check WiGLE for orphan:', err);
-      if (err.status === 402) {
-        alert(`⚠ API Credit Exhausted: ${err.data?.details || err.message}`);
-      } else {
-        alert(`Request failed: ${err.message || 'Unknown error'}`);
-      }
+      alert(`Request failed: ${err.message || 'Unknown error'}`);
     } finally {
       setActiveBssid(null);
     }
@@ -253,9 +249,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                 <th className="text-left py-1.5 pr-3">Best Coords</th>
                 <th className="text-left py-1.5 pr-3">Source</th>
                 <th className="text-right py-1.5 pr-3">WiGLE Obs</th>
-                <th className="text-left py-1.5 pr-3">Backfill</th>
-                <th className="text-left py-1.5 pr-3">Promoted</th>
-                <th className="text-left py-1.5">Reason</th>
+                <th className="text-left py-1.5 pr-3">Status</th>
+                <th className="text-left py-1.5 pr-3">Reason</th>
+                <th className="text-left py-1.5">Check</th>
               </tr>
             </thead>
             <tbody>
@@ -297,32 +293,27 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                       <td className="py-1.5 pr-3 text-right tabular-nums">
                         {row.wigle_v3_observation_count ?? 0}
                       </td>
-                      <td className="py-1.5 pr-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {renderStatus(row)}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCheckWigle(row.bssid);
-                            }}
-                            disabled={activeBssid === row.bssid}
-                            className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-50"
-                            title={row.last_attempted_at || undefined}
-                          >
-                            {activeBssid === row.bssid ? 'Checking...' : 'Check WiGLE'}
-                          </button>
-                        </div>
+                      <td className="py-1.5 pr-3 whitespace-nowrap">{renderStatus(row)}</td>
+                      <td className="py-1.5 pr-3 text-slate-400">{row.move_reason}</td>
+                      <td className="py-1.5 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCheckWigle(row.bssid);
+                          }}
+                          disabled={activeBssid === row.bssid}
+                          className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-50"
+                          title={row.last_attempted_at || undefined}
+                        >
+                          {activeBssid === row.bssid ? 'Checking...' : 'Check WiGLE'}
+                        </button>
                       </td>
-                      <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
-                        {row.last_promoted_at ? formatShortDate(row.last_promoted_at) : '—'}
-                      </td>
-                      <td className="py-1.5 text-slate-400">{row.move_reason}</td>
                     </tr>
                     {isActive && (
                       <tr>
                         <td
-                          colSpan={11}
+                          colSpan={10}
                           style={{
                             padding: '0 12px 12px',
                             background: 'transparent',
