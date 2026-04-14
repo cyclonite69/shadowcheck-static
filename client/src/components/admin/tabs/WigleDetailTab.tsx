@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { useWigleDetail, type WigleDetailType } from '../hooks/useWigleDetail';
 import { useWigleFileUpload } from '../../../hooks/useWigleFileUpload';
@@ -61,10 +61,51 @@ export const WigleDetailTab: React.FC = () => {
   const [pendingEnrichment, setPendingEnrichment] = useState<number | null>(null);
   const [isManualMode, setIsManualMode] = useState(false);
   const [selectedObs, setSelectedObs] = useState<(typeof observations)[0] | null>(null);
+  const tooltipContainerRef = useRef<HTMLDivElement>(null);
+  const [tooltipHtml, setTooltipHtml] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedObs(null);
   }, [data]);
+
+  useEffect(() => {
+    const el = tooltipContainerRef.current;
+    if (!el || !data) {
+      setTooltipHtml(null);
+      return;
+    }
+    const normalized = normalizeTooltipData({
+      ...data,
+      netid: data.networkId,
+      ssid: selectedObs?.ssid || data.ssid || data.name,
+      type:
+        data.type?.toLowerCase() === 'wifi'
+          ? 'W'
+          : data.type?.toLowerCase() === 'gsm'
+            ? 'G'
+            : data.type?.toLowerCase() === 'lte'
+              ? 'L'
+              : data.type?.toLowerCase() === 'ble'
+                ? 'E'
+                : data.type?.toLowerCase() === 'bt'
+                  ? 'B'
+                  : 'W',
+      observation_count: observations?.length || 0,
+      accuracy: data.locationClusters?.[0]?.accuracy || null,
+      ...data.streetAddress,
+      qos: data.bestClusterWiGLEQoS,
+      comment: data.comment,
+      ...(selectedObs && {
+        lat: selectedObs.latitude,
+        lon: selectedObs.longitude,
+        signal: selectedObs.signal,
+        altitude: selectedObs.altitude,
+        first_seen: selectedObs.observed_at,
+        last_seen: selectedObs.observed_at,
+      }),
+    });
+    setTooltipHtml(renderNetworkTooltip({ ...normalized, triggerElement: el }));
+  }, [data, selectedObs, observations]);
 
   const {
     runs,
@@ -331,44 +372,20 @@ export const WigleDetailTab: React.FC = () => {
                       : 'Network overview'}
                   </span>
                 </div>
-                <div className="flex justify-center bg-slate-950/50 p-4 rounded-lg border border-slate-800 shadow-inner overflow-hidden">
-                  <div
-                    className="scale-[0.85] origin-top"
-                    dangerouslySetInnerHTML={{
-                      __html: renderNetworkTooltip(
-                        normalizeTooltipData({
-                          ...data,
-                          netid: data.networkId,
-                          ssid: selectedObs?.ssid || data.ssid || data.name,
-                          type:
-                            data.type?.toLowerCase() === 'wifi'
-                              ? 'W'
-                              : data.type?.toLowerCase() === 'gsm'
-                                ? 'G'
-                                : data.type?.toLowerCase() === 'lte'
-                                  ? 'L'
-                                  : data.type?.toLowerCase() === 'ble'
-                                    ? 'E'
-                                    : data.type?.toLowerCase() === 'bt'
-                                      ? 'B'
-                                      : 'W',
-                          observation_count: observations?.length || 0,
-                          accuracy: data.locationClusters?.[0]?.accuracy || null,
-                          ...data.streetAddress,
-                          qos: data.bestClusterWiGLEQoS,
-                          comment: data.comment,
-                          ...(selectedObs && {
-                            lat: selectedObs.latitude,
-                            lon: selectedObs.longitude,
-                            signal: selectedObs.signal,
-                            altitude: selectedObs.altitude,
-                            first_seen: selectedObs.observed_at,
-                            last_seen: selectedObs.observed_at,
-                          }),
-                        })
-                      ),
-                    }}
-                  />
+                <div
+                  ref={tooltipContainerRef}
+                  className="flex justify-center bg-slate-950/50 p-4 rounded-lg border border-slate-800 shadow-inner overflow-hidden"
+                >
+                  {tooltipHtml ? (
+                    <div
+                      className="scale-[0.85] origin-top"
+                      dangerouslySetInnerHTML={{ __html: tooltipHtml }}
+                    />
+                  ) : (
+                    <div className="text-xs text-slate-500 italic py-4">
+                      {data ? 'Loading preview...' : 'No data'}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
