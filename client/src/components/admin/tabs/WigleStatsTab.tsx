@@ -36,6 +36,36 @@ const ChartIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const BarChartIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <rect x="3" y="12" width="4" height="9" />
+    <rect x="10" y="7" width="4" height="14" />
+    <rect x="17" y="3" width="4" height="18" />
+  </svg>
+);
+
+const StarIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+  </svg>
+);
+
 const BadgeIcon = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
@@ -227,11 +257,11 @@ export const WigleStatsTab: React.FC = () => {
 
       {/* Additional Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-800/20 rounded-xl p-6 border border-slate-700/50">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-            Observation Breakdown
-          </h3>
+        <AdminCard
+          icon={BarChartIcon}
+          title="Observation Breakdown"
+          color="from-blue-500 to-blue-600"
+        >
           <div className="space-y-3 text-sm">
             <div className="flex justify-between py-2 border-b border-slate-800">
               <span className="text-slate-400">Total Observations</span>
@@ -258,13 +288,13 @@ export const WigleStatsTab: React.FC = () => {
               </span>
             </div>
           </div>
-        </div>
+        </AdminCard>
 
-        <div className="bg-slate-800/20 rounded-xl p-6 border border-slate-700/50">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-            Milestones & Totals
-          </h3>
+        <AdminCard
+          icon={StarIcon}
+          title="Milestones & Totals"
+          color="from-emerald-500 to-emerald-600"
+        >
           <div className="space-y-3 text-sm">
             <div className="flex justify-between py-2 border-b border-slate-800">
               <span className="text-slate-400">Ever Found WiFi</span>
@@ -291,7 +321,7 @@ export const WigleStatsTab: React.FC = () => {
               </span>
             </div>
           </div>
-        </div>
+        </AdminCard>
       </div>
     </div>
   );
