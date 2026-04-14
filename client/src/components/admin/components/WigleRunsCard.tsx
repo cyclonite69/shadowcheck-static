@@ -147,16 +147,25 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
                   <td className="px-3 py-2">
                     <span
                       className={`px-1.5 py-0.5 rounded-full font-bold uppercase text-[9px] border ${
-                        run.status === 'completed'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          : run.status === 'running'
-                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                            : run.status === 'failed'
-                              ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                              : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                        run.status === 'completed' && run.rowsInserted === 0
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          : run.status === 'completed'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            : run.status === 'running'
+                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                              : run.status === 'failed'
+                                ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                       }`}
+                      title={
+                        run.status === 'completed' && run.rowsInserted === 0
+                          ? 'Completed with 0 records — API quota may have been exhausted'
+                          : undefined
+                      }
                     >
-                      {run.status}
+                      {run.status === 'completed' && run.rowsInserted === 0
+                        ? 'completed (0)'
+                        : run.status}
                     </span>
                   </td>
                   <td className="px-3 py-2">
@@ -172,11 +181,13 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
                       <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all duration-500 ${
-                            run.status === 'completed'
-                              ? 'bg-emerald-500'
-                              : run.status === 'failed'
-                                ? 'bg-red-500'
-                                : 'bg-blue-500'
+                            run.status === 'completed' && run.rowsInserted === 0
+                              ? 'bg-amber-500'
+                              : run.status === 'completed'
+                                ? 'bg-emerald-500'
+                                : run.status === 'failed'
+                                  ? 'bg-red-500'
+                                  : 'bg-blue-500'
                           }`}
                           style={{
                             width: `${

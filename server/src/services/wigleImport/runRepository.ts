@@ -167,16 +167,16 @@ const resumeRunState = async (runId: number) => {
   return result.rows[0] || null;
 };
 
-const completeRun = async (runId: number) => {
+const completeRun = async (runId: number, note?: string) => {
   const result = await query(
     `UPDATE app.wigle_import_runs
         SET status = 'completed',
             completed_at = NOW(),
             updated_at = NOW(),
-            last_error = NULL
+            last_error = $2
       WHERE id = $1
       RETURNING *`,
-    [runId]
+    [runId, note ?? null]
   );
   return result.rows[0];
 };

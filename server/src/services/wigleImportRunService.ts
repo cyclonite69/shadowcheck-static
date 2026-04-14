@@ -171,7 +171,11 @@ const executeImportLoop = async (runId: number) => {
       }
 
       if (results.length === 0 && nextCursor === null) {
-        run = await completeRun(runId);
+        const note =
+          pageNumber === 1
+            ? 'No records returned on first page — API quota may be exhausted or no results match the search'
+            : undefined;
+        run = await completeRun(runId, note);
         return run;
       }
 
