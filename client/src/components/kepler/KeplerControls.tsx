@@ -5,8 +5,6 @@ import { LayerType, DrawMode } from './types';
 interface KeplerControlsProps {
   showMenu: boolean;
   className?: string;
-  onShowFilters: () => void;
-  showFilters: boolean;
   layerType: LayerType;
   setLayerType: (type: LayerType) => void;
   pointSize: number;
@@ -30,8 +28,6 @@ interface KeplerControlsProps {
 export const KeplerControls: React.FC<KeplerControlsProps> = ({
   showMenu,
   className,
-  onShowFilters,
-  showFilters,
   layerType,
   setLayerType,
   pointSize,
@@ -52,12 +48,7 @@ export const KeplerControls: React.FC<KeplerControlsProps> = ({
   onFitBounds,
 }) => {
   return (
-    <ControlPanel
-      isOpen={showMenu}
-      className={className}
-      onShowFilters={onShowFilters}
-      showFilters={showFilters}
-    >
+    <ControlPanel isOpen={showMenu} className={className}>
       <div className="space-y-6">
         {/* Map Actions */}
         <div className="space-y-3">
