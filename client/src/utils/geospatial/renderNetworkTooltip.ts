@@ -343,13 +343,14 @@ export const renderNetworkTooltip = (props: any): any => {
       : '',
     !isMissingValue(props.comment) ? fieldRow('Comment', String(props.comment)) : '',
     !isMissingValue(props.source) ? fieldRow('Source', String(props.source)) : '',
-    !isMissingValue(props.first_seen)
-      ? fieldRow('First Seen', formatDateTime(props.first_seen))
-      : '',
-    !isMissingValue(props.last_seen) ? fieldRow('Last Seen', formatDateTime(props.last_seen)) : '',
   ]
     .filter(Boolean)
     .join('');
+
+  const temporalPresent =
+    !isMissingValue(props.first_seen) ||
+    !isMissingValue(props.last_seen) ||
+    !isMissingValue(props.time);
 
   const locationText = buildLocation(props);
   const hasCoords = lat != null && lon != null;
@@ -417,6 +418,28 @@ export const renderNetworkTooltip = (props: any): any => {
       : ''
   }
   ${Number.isFinite(lastPointMeters) && lastPointMeters > 0 ? fieldRow('Last Pt', `${Math.round(lastPointMeters)}m`) : ''}
+
+  ${
+    temporalPresent
+      ? `<div style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);">
+    ${!isMissingValue(props.number) ? `<div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px;">OBS #${normalizeDisplay(props.number)}</div>` : ''}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+      <div style="text-align:center;">
+        <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:2px;">First</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${formatDateTime(props.first_seen)}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:2px;">Last</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.3;">${formatDateTime(props.last_seen)}</div>
+      </div>
+      <div ${!isMissingValue(props.time) ? `style="padding:4px 6px;background:#eab30820;border:1px solid #eab30840;border-radius:4px;text-align:center;"` : `style="text-align:center;"`}>
+        <div style="font-size:8px;text-transform:uppercase;letter-spacing:0.08em;color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.3)'};font-weight:${!isMissingValue(props.time) ? '600' : '400'};margin-bottom:2px;">Seen</div>
+        <div style="font-size:${!isMissingValue(props.time) ? '11px;font-weight:600' : '10px'};color:${!isMissingValue(props.time) ? '#eab308' : 'rgba(255,255,255,0.85)'};font-family:monospace;line-height:1.3;">${!isMissingValue(props.time) ? formatDateTime(props.time) : '—'}${!isMissingValue(props.time) && !isMissingValue(props.time_since_prior) ? `<span style="font-weight:400;font-size:9px;color:rgba(234,179,8,0.6);"> · ${normalizeDisplay(props.time_since_prior)}</span>` : ''}</div>
+      </div>
+    </div>
+  </div>`
+      : ''
+  }
 
   ${
     !isMissingValue(props.notes)
