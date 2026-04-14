@@ -116,6 +116,14 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
     loadRows({ reset: true });
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveTooltip(null);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleRowClick = (row: OrphanNetworkRow, event: React.MouseEvent<HTMLTableRowElement>) => {
     if (activeTooltip?.bssid === row.bssid) {
       setActiveTooltip(null);
