@@ -43,6 +43,10 @@ export const attachClickHandlers = (
         type: typeCode,
         threat_level: props.threat_level || 'NONE',
         threat_score: props.threat_score || 0,
+        // v3 field aliases — local_* prefixed fields from the v3 query
+        observation_count: props.local_observations ?? props.observation_count,
+        first_seen: props.local_first_seen ?? props.first_seen,
+        last_seen: props.local_last_seen ?? props.last_seen,
       },
       [e.lngLat.lng, e.lngLat.lat]
     );

@@ -237,6 +237,14 @@ export const buildKeplerDataGeoJson = (
       max_distance_km: row.max_distance_meters ? row.max_distance_meters / 1000 : null,
       geocoded_address: row.geocoded_address || null,
       geocoded_poi_name: row.geocoded_poi_name || null,
+      timespan_days:
+        row.first_seen && row.last_seen
+          ? Math.ceil(
+              ((new Date(row.last_seen as string) as unknown as number) -
+                (new Date(row.first_seen as string) as unknown as number)) /
+                86400000
+            )
+          : null,
     })
   );
 

@@ -62,7 +62,8 @@ const buildWigleV2NetworksQuery = (params: {
     params.offset
   );
 
-  const sql = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime, type
+  const sql = `SELECT bssid, ssid, encryption, trilat, trilong, firsttime, lasttime, type,
+                      channel, frequency, qos, comment, source, region, city, road, housenumber
                FROM app.wigle_v2_networks_search ${whereSql} ORDER BY lasttime DESC ${paginationSql}`;
   return { sql, queryParams: allParams };
 };
