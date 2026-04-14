@@ -115,8 +115,8 @@ const KeplerPage: React.FC = () => {
 
       <AppHeader
         pageLabel="Kepler"
-        rightContent={
-          <div style={{ display: 'flex', gap: '6px' }}>
+        afterLabel={
+          <>
             {(['Filters', 'Layers'] as const).map((label) => {
               const active = label === 'Filters' ? showFilters : showMenu;
               const toggle =
@@ -131,16 +131,16 @@ const KeplerPage: React.FC = () => {
                   }
                   onClick={toggle}
                   style={{
-                    height: '28px',
-                    padding: '0 10px',
-                    borderRadius: '6px',
+                    height: '24px',
+                    padding: '0 8px',
+                    borderRadius: '5px',
                     border: active
                       ? '0.5px solid rgba(59,130,246,0.4)'
                       : '0.5px solid rgba(255,255,255,0.10)',
                     background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
-                    color: active ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                    color: active ? '#60a5fa' : 'rgba(255,255,255,0.4)',
                     cursor: 'pointer',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: 600,
                     letterSpacing: '0.3px',
                   }}
@@ -149,7 +149,7 @@ const KeplerPage: React.FC = () => {
                 </button>
               );
             })}
-          </div>
+          </>
         }
       />
 

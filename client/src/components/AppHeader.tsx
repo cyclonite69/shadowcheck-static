@@ -4,12 +4,13 @@ import { MapToolbarNav } from './geospatial/toolbar/MapToolbarNav';
 
 interface AppHeaderProps {
   pageLabel: string;
+  afterLabel?: React.ReactNode;
   rightContent?: React.ReactNode;
 }
 
 const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)' };
 
-export const AppHeader: React.FC<AppHeaderProps> = ({ pageLabel, rightContent }) => {
+export const AppHeader: React.FC<AppHeaderProps> = ({ pageLabel, afterLabel, rightContent }) => {
   const [navOpen, setNavOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +65,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ pageLabel, rightContent })
         Shadow<span style={{ color: '#60a5fa' }}>Check</span>{' '}
         <span style={{ color: '#60a5fa' }}>{pageLabel}</span>
       </span>
+
+      {/* After-label slot — renders inline next to the page label */}
+      {afterLabel && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
+          {afterLabel}
+        </div>
+      )}
 
       {/* Right slot */}
       {rightContent && (
