@@ -1,7 +1,4 @@
-const { query } = require('../../config/database');
-
-export {};
-
+import { query } from '../../config/database';
 import { buildNetworkCountQuery, buildNetworkDataQuery } from './sql';
 
 const getNetworkCount = async (

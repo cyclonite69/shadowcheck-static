@@ -1,5 +1,3 @@
-export {};
-
 const buildNetworkDataQuery = (
   selectColumns: string[],
   joins: string[],
