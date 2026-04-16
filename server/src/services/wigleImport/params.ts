@@ -122,7 +122,7 @@ export const buildSearchParams = (
 };
 
 export const getSearchTerm = (query: WigleImportParams): string =>
-  query.ssid || query.bssid || query.city || '';
+  query.ssid || query.bssid || query.city || query.country || '';
 
 export const getRequestFingerprint = (query: WigleImportParams): string =>
   crypto.createHash('sha256').update(stableStringify(query)).digest('hex');

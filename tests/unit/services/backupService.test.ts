@@ -1,77 +1,332 @@
+import fs from 'fs/promises';
+import { createWriteStream } from 'fs';
+import os from 'os';
+import { spawn, execSync } from 'child_process';
 import {
   runPostgresBackup,
   listS3Backups,
   deleteS3Backup,
 } from '../../../server/src/services/backupService';
-import fs from 'fs/promises';
+import secretsManager from '../../../server/src/services/secretsManager';
 import {
-  uploadBackupToS3,
-  listS3BackupObjects,
   deleteS3BackupObject,
+  listS3BackupObjects,
+  uploadBackupToS3,
 } from '../../../server/src/services/backup/awsCli';
 import {
-  verifyBackupFile,
   resolveBackupScope,
+  verifyBackupFile,
 } from '../../../server/src/services/backup/backupUtils';
-import { spawn } from 'child_process';
+import logger from '../../../server/src/logging/logger';
+import { EventEmitter } from 'events';
 
+// Mock winston to avoid file transport issues
+jest.mock('winston', () => ({
+  format: {
+    combine: jest.fn().mockReturnThis(),
+    timestamp: jest.fn().mockReturnThis(),
+    errors: jest.fn().mockReturnThis(),
+    splat: jest.fn().mockReturnThis(),
+    json: jest.fn().mockReturnThis(),
+    colorize: jest.fn().mockReturnThis(),
+    printf: jest.fn().mockReturnThis(),
+  },
+  transports: {
+    Console: jest.fn(),
+    File: jest.fn(),
+  },
+  createLogger: jest.fn().mockReturnValue({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    http: jest.fn(),
+    on: jest.fn(),
+  }),
+  addColors: jest.fn(),
+}));
+
+// Mock all dependencies
 jest.mock('fs/promises');
+jest.mock('fs', () => {
+  const actualFs = jest.requireActual('fs');
+  return {
+    ...actualFs,
+    createWriteStream: jest.fn(),
+    constants: { X_OK: 1, F_OK: 0, R_OK: 4, W_OK: 2 },
+  };
+});
+jest.mock('os');
+jest.mock('child_process');
+jest.mock('../../../server/src/services/secretsManager');
 jest.mock('../../../server/src/services/backup/awsCli');
 jest.mock('../../../server/src/services/backup/backupUtils');
-jest.mock('child_process');
+jest.mock('../../../server/src/logging/logger');
 
 describe('backupService', () => {
+  const mockEnv = { ...process.env };
+
+  const createMockStream = () => {
+    const stream = new EventEmitter() as any;
+    stream.write = jest.fn().mockReturnValue(true);
+    stream.end = jest.fn();
+    stream.destroy = jest.fn();
+    stream.pipe = jest.fn().mockReturnThis();
+    stream.writable = true;
+    return stream;
+  };
+
+  const createMockProcess = (code: number, stderrContent = '') => {
+    const stdout = new EventEmitter() as any;
+    stdout.pipe = jest.fn();
+    const stderr = new EventEmitter() as any;
+    const child = new EventEmitter() as any;
+    child.stdout = stdout;
+    child.stderr = stderr;
+    
+    child.on = jest.fn().mockImplementation((event, cb) => {
+      if (event === 'close') {
+        process.nextTick(() => {
+          if (stderrContent) {
+            stderr.emit('data', Buffer.from(stderrContent));
+          }
+          cb(code);
+        });
+      }
+      return child;
+    });
+
+    return child;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.DB_HOST = 'postgres';
-    process.env.DB_SSL = 'true';
+    process.env = {
+      ...mockEnv,
+      DB_HOST: 'localhost',
+      DB_NAME: 'test_db',
+      DB_USER: 'test_user',
+      BACKUP_DIR: '/tmp/backups',
+      S3_BACKUP_BUCKET: 'test-bucket',
+    };
+
+    (os.hostname as jest.Mock).mockReturnValue('test-host');
     (resolveBackupScope as jest.Mock).mockReturnValue({ mode: 'full', schemas: [] });
+    (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
+    (fs.access as jest.Mock).mockResolvedValue(undefined);
+    (fs.stat as jest.Mock).mockResolvedValue({ size: 1024, mtimeMs: Date.now() });
+    (fs.readdir as jest.Mock).mockResolvedValue([]);
+    (fs.unlink as jest.Mock).mockResolvedValue(undefined);
+    (verifyBackupFile as jest.Mock).mockResolvedValue(1024);
+    (createWriteStream as jest.Mock).mockImplementation(createMockStream);
+    (spawn as jest.Mock).mockImplementation(() => createMockProcess(0));
+    (execSync as jest.Mock).mockImplementation(() => { throw new Error('not aws'); });
+  });
+
+  afterAll(() => {
+    process.env = mockEnv;
   });
 
   describe('runPostgresBackup', () => {
-    it('should execute backup process', async () => {
-      (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
-      (fs.readdir as jest.Mock).mockResolvedValue([]);
-      (fs.stat as jest.Mock).mockResolvedValue({ size: 1024 });
-      (verifyBackupFile as jest.Mock).mockResolvedValue(1024);
-      (spawn as any).mockReturnValue({
-        stderr: { on: jest.fn() },
-        on: jest.fn((event, cb) => event === 'close' && cb(0)),
+    it('should successfully run a standard backup', async () => {
+      const result = await runPostgresBackup();
+
+      expect(fs.mkdir).toHaveBeenCalledWith('/tmp/backups', { recursive: true });
+      expect(spawn).toHaveBeenCalled();
+      expect(verifyBackupFile).toHaveBeenCalled();
+      expect(result.fileName).toContain('test_db_');
+      expect(result.bytes).toBe(1024);
+    });
+
+    it('should run a dockerized backup when DB_HOST is "postgres"', async () => {
+      process.env.DB_HOST = 'postgres';
+      process.env.DB_SSL = 'false';
+
+      const result = await runPostgresBackup();
+
+      expect(spawn).toHaveBeenCalledWith(
+        'docker',
+        expect.arrayContaining(['exec', 'shadowcheck_postgres_local', 'pg_dump']),
+        expect.any(Object)
+      );
+      expect(result.source.environment).toBe('local');
+    });
+
+    it('should handle pg_dump failure', async () => {
+      (spawn as jest.Mock).mockImplementation((cmd, args) => {
+        if (args.includes('pg_dump') || cmd.includes('pg_dump')) {
+          return createMockProcess(1, 'dump failed');
+        }
+        return createMockProcess(0);
       });
 
-      const result = await runPostgresBackup({ uploadToS3: false });
+      await expect(runPostgresBackup()).rejects.toThrow('pg_dump failed (code 1): dump failed');
+    });
 
-      expect(fs.mkdir).toHaveBeenCalled();
-      expect(verifyBackupFile).toHaveBeenCalled();
-      expect(result.bytes).toBe(1024);
+    it('should upload to S3 when requested', async () => {
+      (uploadBackupToS3 as jest.Mock).mockResolvedValue({
+        ETag: 'test-etag',
+        Location: 's3-location',
+        Key: 'backup-key',
+      });
+
+      const result = await runPostgresBackup({ uploadToS3: true });
+
+      expect(uploadBackupToS3).toHaveBeenCalled();
+      expect(result.s3).toBeDefined();
+      expect(result.s3[0].Key).toBe('backup-key');
+    });
+
+    it('should continue if S3 upload fails', async () => {
+      (uploadBackupToS3 as jest.Mock).mockRejectedValue(new Error('S3 upload error'));
+
+      const result = await runPostgresBackup({ uploadToS3: true });
+
+      expect(result.s3Error).toBe('S3 upload error');
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('S3 upload failed'));
+    });
+
+    it('should handle schema-scoped backup', async () => {
+      (resolveBackupScope as jest.Mock).mockReturnValue({
+        mode: 'schema_subset',
+        schemas: ['public', 'audit'],
+      });
+
+      await runPostgresBackup();
+
+      expect(spawn).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.arrayContaining(['--schema', 'public', '--schema', 'audit']),
+        expect.any(Object)
+      );
+    });
+
+    it('should prune old backups', async () => {
+      process.env.BACKUP_RETENTION_DAYS = '7';
+      const now = Date.now();
+      const oldTime = now - 10 * 24 * 60 * 60 * 1000;
+      
+      (fs.readdir as jest.Mock).mockResolvedValue([
+        { isFile: () => true, name: 'old.dump' },
+        { isFile: () => true, name: 'new.dump' },
+      ]);
+      
+      (fs.stat as jest.Mock).mockImplementation((path: string) => {
+        if (path.endsWith('old.dump')) return Promise.resolve({ size: 1024, mtimeMs: oldTime });
+        return Promise.resolve({ size: 1024, mtimeMs: now });
+      });
+
+      await runPostgresBackup();
+
+      expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('old.dump'));
+      expect(fs.unlink).not.toHaveBeenCalledWith(expect.stringContaining('new.dump'));
+    });
+
+    it('should not prune if retention days is 0', async () => {
+      process.env.BACKUP_RETENTION_DAYS = '0';
+      await runPostgresBackup();
+      expect(fs.readdir).not.toHaveBeenCalled();
+    });
+
+    it('should use secretsManager for passwords', async () => {
+      (secretsManager.get as jest.Mock).mockImplementation((key) => {
+        if (key === 'db_admin_password') return 'admin-pass';
+        return null;
+      });
+
+      await runPostgresBackup();
+
+      const spawnCalls = (spawn as jest.Mock).mock.calls;
+      const pgDumpCall = spawnCalls.find(call => (call[0].includes('pg_dump') || (call[1] && call[1].includes('pg_dump'))) && call[2].env.PGPASSWORD === 'admin-pass');
+      expect(pgDumpCall).toBeDefined();
+    });
+
+    it('should fall back to application credentials if admin ones are missing', async () => {
+      process.env.DB_HOST = 'remote-host';
+      process.env.DB_USER = 'app-user';
+      (secretsManager.get as jest.Mock).mockImplementation((key) => {
+        if (key === 'db_password') return 'app-pass';
+        return null;
+      });
+      delete process.env.DB_ADMIN_PASSWORD;
+
+      await runPostgresBackup();
+
+      const spawnCalls = (spawn as jest.Mock).mock.calls;
+      const pgDumpCall = spawnCalls.find(call => call[1].includes('--format=custom'));
+      expect(pgDumpCall[2].env.PGUSER).toBe('app-user');
+      expect(pgDumpCall[2].env.PGPASSWORD).toBe('app-pass');
+    });
+
+    it('should detect AWS environment via IMDS', async () => {
+      (execSync as jest.Mock).mockReturnValue('i-1234567890abcdef0');
+
+      const result = await runPostgresBackup();
+
+      expect(result.source.environment).toBe('aws-ec2');
+      expect(result.source.instanceId).toBe('i-1234567890abcdef0');
+    });
+
+    it('should detect AWS environment via hostname', async () => {
+      (os.hostname as jest.Mock).mockReturnValue('ip-10-0-0-1.ec2.internal');
+      const result = await runPostgresBackup();
+      expect(result.source.environment).toBe('aws-ec2');
+    });
+
+    it('should resolve tool path from env var', async () => {
+      process.env.PG_DUMP_PATH = '/custom/pg_dump';
+      (fs.access as jest.Mock).mockResolvedValue(undefined);
+      
+      await runPostgresBackup();
+      
+      expect(fs.access).toHaveBeenCalledWith('/custom/pg_dump', expect.anything());
+    });
+
+    it('should fall back to default tool path if candidates fail', async () => {
+      (fs.access as jest.Mock).mockRejectedValue(new Error('not found'));
+      
+      await runPostgresBackup();
+      
+      // Should still call spawn with the tool name as a fallback
+      expect(spawn).toHaveBeenCalled();
     });
   });
 
   describe('listS3Backups', () => {
-    it('should list S3 backups', async () => {
+    it('should list and format S3 backups', async () => {
       (listS3BackupObjects as jest.Mock).mockResolvedValue([
-        {
-          Key: 'backups/db_20260101.dump',
-          Size: 100,
-          LastModified: new Date(),
-        },
+        { Key: 'backups/prod/db_20260101.dump', Size: 2048, LastModified: '2026-01-01' },
+        { Key: 'backups/db_20260102.dump', Size: 4096, LastModified: '2026-01-02' },
       ]);
-      process.env.S3_BACKUP_BUCKET = 'test-bucket';
 
-      const backups = await listS3Backups();
-      expect(backups).toHaveLength(1);
-      expect(backups[0].fileName).toBe('db_20260101.dump');
+      const result = await listS3Backups();
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        key: 'backups/prod/db_20260101.dump',
+        fileName: 'db_20260101.dump',
+        sourceEnv: 'prod',
+        size: 2048,
+        lastModified: '2026-01-01',
+        url: 's3://test-bucket/backups/prod/db_20260101.dump',
+      });
+      expect(result[1].sourceEnv).toBe('unknown');
+    });
+
+    it('should throw if S3_BACKUP_BUCKET is not set', async () => {
+      delete process.env.S3_BACKUP_BUCKET;
+      await expect(listS3Backups()).rejects.toThrow('S3_BACKUP_BUCKET is not configured');
     });
   });
 
   describe('deleteS3Backup', () => {
     it('should delete S3 backup', async () => {
-      process.env.S3_BACKUP_BUCKET = 'test-bucket';
       (deleteS3BackupObject as jest.Mock).mockResolvedValue(undefined);
 
-      const result = await deleteS3Backup('key');
+      const result = await deleteS3Backup('test-key');
+
+      expect(deleteS3BackupObject).toHaveBeenCalledWith('test-bucket', 'test-key');
       expect(result.deleted).toBe(true);
-      expect(deleteS3BackupObject).toHaveBeenCalledWith('test-bucket', 'key');
     });
   });
 });

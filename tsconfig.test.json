@@ -8,6 +8,10 @@
   },
   "include": ["tests/**/*", "server/**/*"],
   "exclude": [
+    "node_modules",
+    "dist",
+    "client",
+    ".claude",
     "tests/unit/middleware/**/*",
     "tests/unit/errors/**/*",
     "tests/unit/repositories/**/*",

@@ -18,5 +18,5 @@
     "jsx": "react-jsx"
   },
   "include": ["server/**/*", "scripts/**/*", "etl/**/*"],
-  "exclude": ["node_modules", "dist", "client"]
+  "exclude": ["node_modules", "dist", "client", ".claude"]
 }

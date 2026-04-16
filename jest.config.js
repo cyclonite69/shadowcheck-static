@@ -63,6 +63,10 @@ module.exports = {
     '__tests__',
   ],
 
+  modulePathIgnorePatterns: [
+    '<rootDir>/.claude/',
+  ],
+
   // Transform - Add TypeScript support
   preset: 'ts-jest',
   transform: {
