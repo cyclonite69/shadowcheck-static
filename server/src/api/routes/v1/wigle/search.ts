@@ -336,4 +336,98 @@ router.post('/search-api/import-runs/:id/cancel', requireAdmin, async (req, res,
   }
 });
 
+/**
+ * GET /search-api/saved-ssid-terms
+ * List all saved SSID search terms, ordered by most recently used.
+ */
+router.get('/search-api/saved-ssid-terms', requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await require('../../../../config/database').query(
+      `SELECT id, term, last_used_at
+         FROM app.wigle_saved_ssid_terms
+        ORDER BY last_used_at DESC, term ASC`
+    );
+    return res.json({ ok: true, terms: rows });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Saved terms fetch error: ${err.message}`);
+    next(err);
+  }
+});
+
+/**
+ * POST /search-api/saved-ssid-terms
+ * Upsert a saved SSID search term (trimmed, lowercased for uniqueness).
+ */
+router.post('/search-api/saved-ssid-terms', requireAdmin, async (req, res, next) => {
+  try {
+    const raw = String(req.body?.term ?? '').trim();
+    const normalized = raw.toLowerCase();
+    // Reject short, blank, or country-code-like terms
+    if (
+      raw.length < 3 ||
+      /^\s*$/.test(raw) ||
+      ['us', 'uk', 'ca', 'au', 'de', 'fr', 'jp'].includes(normalized)
+    ) {
+      return res.status(400).json({ ok: false, error: 'Term too short or invalid' });
+    }
+    const { rows } = await require('../../../../config/database').query(
+      `INSERT INTO app.wigle_saved_ssid_terms (term, term_normalized)
+       VALUES ($1, $2)
+       ON CONFLICT (term_normalized)
+       DO UPDATE SET last_used_at = now(), term = EXCLUDED.term
+       RETURNING id, term, last_used_at`,
+      [raw, normalized]
+    );
+    return res.json({ ok: true, term: rows[0] });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Saved term upsert error: ${err.message}`);
+    next(err);
+  }
+});
+
+/**
+ * DELETE /search-api/saved-ssid-terms/:id
+ * Delete a saved SSID search term by ID.
+ */
+router.delete('/search-api/saved-ssid-terms/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const id = Number.parseInt(String(req.params.id), 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ ok: false, error: 'Invalid id' });
+    }
+    const result = await require('../../../../config/database').query(
+      `DELETE FROM app.wigle_saved_ssid_terms WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'Term not found' });
+    }
+    return res.json({ ok: true, deleted: id });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Saved term delete error: ${err.message}`);
+    next(err);
+  }
+});
+
+/**
+ * DELETE /search-api/import-runs/cluster-cleanup
+ * Bulk-deletes all CANCELLED Global runs that fall in a 60-second creation cluster.
+ * Requires explicit confirmation flag in body.
+ */
+router.delete('/search-api/import-runs/cluster-cleanup', requireAdmin, async (req, res, next) => {
+  try {
+    if (req.body?.confirm !== true) {
+      return res
+        .status(400)
+        .json({ ok: false, error: 'Pass { confirm: true } to confirm deletion' });
+    }
+    const deleted = await wigleImportRunService.bulkDeleteGlobalCancelledCluster();
+    logger.info('[WiGLE] Cluster cleanup completed', { deleted });
+    return res.json({ ok: true, deleted });
+  } catch (err: any) {
+    logger.error(`[WiGLE] Cluster cleanup error: ${err.message}`, { error: err });
+    next(err);
+  }
+});
+
 export default router;

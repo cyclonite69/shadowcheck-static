@@ -103,6 +103,9 @@ export const WigleSearchTab: React.FC = () => {
 
   const [selectedNetwork, setSelectedNetwork] = useState<any | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [savedTerms, setSavedTerms] = useState<Array<{ id: number; term: string }>>([]);
+  const [ssidDropdownOpen, setSsidDropdownOpen] = useState(false);
+  const ssidInputRef = React.useRef<HTMLInputElement>(null);
 
   // Coverage dropdown: unique search terms derived from runs
   const coverageTerms = useMemo(
@@ -137,6 +140,36 @@ export const WigleSearchTab: React.FC = () => {
   useEffect(() => {
     loadApiStatus();
   }, []);
+
+  useEffect(() => {
+    wigleApi
+      .getSavedSsidTerms()
+      .then((data: any) => setSavedTerms(data?.terms || []))
+      .catch(() => {});
+  }, []);
+
+  const saveCurrentSsid = async () => {
+    const term = searchParams.ssid?.trim() ?? '';
+    if (term.length < 3) return;
+    try {
+      const data = await wigleApi.saveSsidTerm(term);
+      if (data?.term) {
+        setSavedTerms((prev) => {
+          const without = prev.filter((t) => t.id !== data.term.id);
+          return [data.term, ...without];
+        });
+      }
+    } catch {}
+  };
+
+  const deleteSavedTerm = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Remove this saved search term?')) return;
+    try {
+      await wigleApi.deleteSavedSsidTerm(id);
+      setSavedTerms((prev) => prev.filter((t) => t.id !== id));
+    } catch {}
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -265,15 +298,43 @@ export const WigleSearchTab: React.FC = () => {
         compact
       >
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div>
+          <div className="relative">
             <label className="block text-xs text-slate-400 mb-1">SSID</label>
             <input
+              ref={ssidInputRef}
               type="text"
               value={searchParams.ssid}
               onChange={(e) => setSearchParams({ ...searchParams, ssid: e.target.value })}
+              onFocus={() => setSsidDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setSsidDropdownOpen(false), 150)}
               placeholder="Network name"
               className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
+            {ssidDropdownOpen && savedTerms.length > 0 && (
+              <div className="absolute z-20 top-full left-0 right-0 mt-0.5 bg-slate-800 border border-slate-600/60 rounded shadow-xl max-h-48 overflow-y-auto">
+                {savedTerms.map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between px-2 py-1.5 hover:bg-slate-700/60 cursor-pointer group"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setSearchParams({ ...searchParams, ssid: t.term });
+                      setSsidDropdownOpen(false);
+                    }}
+                  >
+                    <span className="text-xs text-slate-200 truncate">{t.term}</span>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => deleteSavedTerm(t.id, e)}
+                      className="ml-2 text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-[10px] leading-none shrink-0"
+                      title="Remove saved term"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-slate-400 mb-1">BSSID</label>
@@ -423,14 +484,20 @@ export const WigleSearchTab: React.FC = () => {
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => runSearch(false)}
+                onClick={() => {
+                  runSearch(false);
+                  saveCurrentSsid();
+                }}
                 disabled={searchLoading || !apiStatus?.configured}
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-sm transition-all"
               >
                 {searchLoading ? 'Searching...' : 'Search Only'}
               </button>
               <button
-                onClick={() => runSearch(true)}
+                onClick={() => {
+                  runSearch(true);
+                  saveCurrentSsid();
+                }}
                 disabled={searchLoading || !apiStatus?.configured}
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
               >
@@ -438,7 +505,10 @@ export const WigleSearchTab: React.FC = () => {
               </button>
             </div>
             <button
-              onClick={importAllResults}
+              onClick={() => {
+                importAllResults();
+                saveCurrentSsid();
+              }}
               disabled={searchLoading || !apiStatus?.configured}
               className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 text-sm transition-all"
             >
@@ -613,6 +683,10 @@ export const WigleSearchTab: React.FC = () => {
         onResume={resumeRun}
         onPause={pauseRun}
         onCancel={cancelRun}
+        onCleanupCluster={async () => {
+          await wigleApi.cleanupCancelledCluster();
+          await refreshRuns();
+        }}
       />
     </div>
   );

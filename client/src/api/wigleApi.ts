@@ -113,6 +113,32 @@ export const wigleApi = {
     return apiClient.get(`/wigle/kml-points${suffix ? `?${suffix}` : ''}`);
   },
 
+  async cleanupCancelledCluster(): Promise<any> {
+    const res = await fetch('/api/wigle/search-api/import-runs/cluster-cleanup', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ confirm: true }),
+    });
+    return res.json();
+  },
+
+  async getSavedSsidTerms(): Promise<any> {
+    return apiClient.get('/wigle/search-api/saved-ssid-terms');
+  },
+
+  async saveSsidTerm(term: string): Promise<any> {
+    return apiClient.post('/wigle/search-api/saved-ssid-terms', { term });
+  },
+
+  async deleteSavedSsidTerm(id: number): Promise<any> {
+    const res = await fetch(`/api/wigle/search-api/saved-ssid-terms/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    return res.json();
+  },
+
   // Mapbox Token (for WiGLE map)
   async getMapboxToken(): Promise<any> {
     return apiClient.get('/mapbox-token');
