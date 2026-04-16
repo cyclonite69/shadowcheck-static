@@ -6,7 +6,7 @@ const logger = require('../logging/logger');
 /**
  * Fetch detailed database statistics including row counts, storage size, and activity metrics
  */
-async function getDetailedDatabaseStats(): Promise<any> {
+export async function getDetailedDatabaseStats(): Promise<any> {
   try {
     // 1. Get Global DB Size
     const sizeResult = await adminQuery(

@@ -9,6 +9,7 @@ jest.mock('../../../server/src/logging/logger');
 
 describe('wigleImportService', () => {
   let mockClient: any;
+  let mockPool: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -16,9 +17,10 @@ describe('wigleImportService', () => {
       query: jest.fn(),
       release: jest.fn(),
     };
-    (adminDb.getAdminPool as jest.Mock).mockReturnValue({
+    mockPool = {
       connect: jest.fn().mockResolvedValue(mockClient),
-    });
+    };
+    (adminDb.getAdminPool as jest.Mock).mockReturnValue(mockPool);
   });
 
   describe('importWigleDirectory', () => {
@@ -34,7 +36,7 @@ describe('wigleImportService', () => {
 
       const result = await wigleImportService.importWigleDirectory('/test');
       expect(result.totalImported).toBe(0);
-      expect(mockClient.connect).toHaveBeenCalled();
+      expect(mockPool.connect).toHaveBeenCalled();
     });
   });
 });

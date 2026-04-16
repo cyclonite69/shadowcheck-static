@@ -108,9 +108,14 @@ export const buildSearchParams = (
     if (apiVer === 'v3') {
       // v3 uses cursor-based pagination
       params.append('search_after', searchAfter);
-    } else if (/^\d+$/.test(searchAfter)) {
-      // v2 uses offset-based pagination via the 'first' parameter
-      params.append('first', searchAfter);
+    } else {
+      // v2 uses searchAfter for cursors (e.g. from WiGLE search)
+      params.append('searchAfter', searchAfter);
+      
+      // If it's purely numeric, some legacy v2 endpoints might have used 'first'
+      if (/^\d+$/.test(searchAfter)) {
+        params.append('first', searchAfter);
+      }
     }
   }
   return params;

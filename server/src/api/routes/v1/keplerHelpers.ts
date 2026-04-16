@@ -220,6 +220,14 @@ export const buildKeplerDataGeoJson = (
       type: inferRadioType(row.type, row.ssid, row.frequency, row.capabilities),
       threat_level: row.threat?.level || null,
       threat_score: row.threat?.score || null,
+      observation_count: row.observations || 0,
+      obs_count: row.observations || 0,
+      unique_days: row.unique_days || 0,
+      max_distance_meters: row.max_distance_meters || 0,
+      first_observed_at: row.first_observed_at,
+      last_observed_at: row.last_observed_at,
+      geocoded_address: row.geocoded_address,
+      geocoded_poi_name: row.geocoded_poi_name,
     })
   );
 
@@ -231,16 +239,34 @@ export const buildKeplerObservationsGeoJson = (
     rows,
     rowCount,
     (row) => [row.lon, row.lat],
-    (row) => ({
-      bssid: row.bssid,
-      ssid: row.ssid || 'Hidden Network',
-      bestlevel: row.level || 0,
-      signal: row.level || 0,
-      manufacturer: row.manufacturer || 'Unknown',
-      type: inferRadioType(row.radio_type, row.ssid, row.radio_frequency, row.radio_capabilities),
-      threat_level: row.threat_level || null,
-      threat_score: row.threat_score || null,
-    })
+    (row) => {
+      const firstObs = row.first_observed_at ? new Date(String(row.first_observed_at)) : null;
+      const lastObs = row.last_observed_at ? new Date(String(row.last_observed_at)) : null;
+      const timespanDays = firstObs && lastObs ? (lastObs.getTime() - firstObs.getTime()) / (1000 * 60 * 60 * 24) : 0;
+
+      return {
+        bssid: row.bssid,
+        ssid: row.ssid || 'Hidden Network',
+        bestlevel: row.level || 0,
+        signal: row.level || 0,
+        level: row.level || 0,
+        manufacturer: row.manufacturer || 'Unknown',
+        type: inferRadioType(row.radio_type, row.ssid, row.radio_frequency, row.radio_capabilities),
+        threat_level: row.threat_level || null,
+        threat_score: row.threat_score || null,
+        observation_count: row.observations || 0,
+        obs_count: row.observations || 0,
+        unique_days: row.unique_days || 0,
+        max_distance_meters: row.max_distance_meters || 0,
+        max_distance_km: (row.max_distance_meters || 0) / 1000,
+        first_observed_at: row.first_observed_at,
+        last_observed_at: row.last_observed_at,
+        timespan_days: Math.round(timespanDays * 10) / 10,
+        stationary_confidence: row.stationary_confidence,
+        geocoded_address: row.geocoded_address,
+        geocoded_poi_name: row.geocoded_poi_name,
+      };
+    }
   );
 
 export const buildKeplerNetworksGeoJson = (
@@ -261,5 +287,13 @@ export const buildKeplerNetworksGeoJson = (
       type: inferRadioType(row.type, row.ssid, row.frequency, row.capabilities),
       threat_level: row.threat?.level || null,
       threat_score: row.threat?.score || null,
+      observation_count: row.observations || 0,
+      obs_count: row.observations || 0,
+      unique_days: row.unique_days || 0,
+      max_distance_meters: row.max_distance_meters || 0,
+      first_observed_at: row.first_observed_at,
+      last_observed_at: row.last_observed_at,
+      geocoded_address: row.geocoded_address,
+      geocoded_poi_name: row.geocoded_poi_name,
     })
   );

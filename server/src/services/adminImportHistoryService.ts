@@ -30,7 +30,7 @@ const IMPORT_METRIC_QUERIES: Record<ImportMetricName, string> = {
   kml_points: 'SELECT COUNT(*)::bigint AS value FROM app.kml_points',
 };
 
-async function captureImportMetrics(): Promise<ImportMetrics> {
+export async function captureImportMetrics(): Promise<ImportMetrics> {
   const metrics: ImportMetrics = {};
 
   for (const [name, sql] of Object.entries(IMPORT_METRIC_QUERIES) as [ImportMetricName, string][]) {
@@ -51,7 +51,7 @@ async function captureImportMetrics(): Promise<ImportMetrics> {
  * Opens a new import_history row with status='running'.
  * Returns the generated id, or 0 on failure.
  */
-async function createImportHistoryEntry(
+export async function createImportHistoryEntry(
   sourceTag: string,
   filename: string,
   metricsBefore: ImportMetrics
@@ -72,14 +72,14 @@ async function createImportHistoryEntry(
 /**
  * Marks the import history row as having taken a backup.
  */
-async function markImportBackupTaken(historyId: number): Promise<void> {
+export async function markImportBackupTaken(historyId: number): Promise<void> {
   await adminQuery(`UPDATE app.import_history SET backup_taken = TRUE WHERE id = $1`, [historyId]);
 }
 
 /**
  * Closes an import history row with status='success'.
  */
-async function completeImportSuccess(
+export async function completeImportSuccess(
   historyId: number,
   imported: number,
   failed: number,
@@ -104,7 +104,7 @@ async function completeImportSuccess(
  * Closes an import history row with status='failed'.
  * durationS is optional (unknown if the process errored before spawning).
  */
-async function failImportHistory(
+export async function failImportHistory(
   historyId: number,
   errorDetail: string,
   durationS?: string
@@ -134,7 +134,7 @@ async function failImportHistory(
 /**
  * Returns the most recent import history rows.
  */
-async function getImportHistory(limit: number): Promise<any[]> {
+export async function getImportHistory(limit: number): Promise<any[]> {
   const { rows } = await adminQuery(
     `SELECT id, started_at, finished_at, source_tag, filename,
             imported, failed, duration_s, status, error_detail,
@@ -150,7 +150,7 @@ async function getImportHistory(limit: number): Promise<any[]> {
 /**
  * Returns all known device source tags with their last import date and total imported count.
  */
-async function getDeviceSources(): Promise<any[]> {
+export async function getDeviceSources(): Promise<any[]> {
   const { rows } = await adminQuery(`
     SELECT
       ds.code AS source_tag,
@@ -168,7 +168,7 @@ async function getDeviceSources(): Promise<any[]> {
 /**
  * Get import counts after SQLite import
  */
-async function getImportCounts(): Promise<{ observations: number; networks: number }> {
+export async function getImportCounts(): Promise<{ observations: number; networks: number }> {
   const result = await query(`
     SELECT 
       (SELECT COUNT(*) FROM app.observations) as observations,

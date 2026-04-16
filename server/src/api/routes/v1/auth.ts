@@ -60,9 +60,8 @@ router.post('/auth/login', loginLimiter, async (req: any, res: any) => {
       message: 'Login successful',
     });
   } catch (error: any) {
-    logger.error('Login route error:', error);
-    console.error('[AUTH ERROR]', error);
-    res.status(500).json({ error: 'Login failed', details: error.message });
+    logger.error('[AUTH ERROR]', error);
+    res.status(500).json({ error: 'Authentication failed' });
   }
 });
 
@@ -70,125 +69,104 @@ router.post('/auth/login', loginLimiter, async (req: any, res: any) => {
  * POST /api/auth/logout
  * User logout
  */
-router.post('/auth/logout', async (req: any, res: any) => {
-  try {
-    const token = extractToken(req);
-
-    if (token) {
-      await authService.logout(token);
-    }
-
-    // Clear cookie (must match original cookie options)
-    res.clearCookie('session_token', {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: 'lax',
-    });
-
-    res.json({
-      success: true,
-      message: 'Logout successful',
-    });
-  } catch (error: any) {
-    logger.error('Logout route error:', error);
-    res.status(500).json({ error: 'Logout failed' });
-  }
+router.post('/auth/logout', (req: any, res: any) => {
+  res.clearCookie('session_token');
+  res.json({
+    success: true,
+    message: 'Logged out successfully',
+  });
 });
 
 /**
  * GET /api/auth/me
  * Get current user info
  */
-router.get('/auth/me', async (req: any, res: any) => {
+router.get('/auth/me', extractToken, async (req: any, res: any) => {
   try {
-    const token = extractToken(req);
-
+    const token = req.token;
     if (!token) {
-      return res.status(401).json({
-        error: 'Not authenticated',
-        authenticated: false,
-      });
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const result = await authService.validateSession(token);
-
-    if (!result.valid) {
-      return res.status(401).json({
-        error: result.error,
-        authenticated: false,
-      });
+    const result = await authService.verifyToken(token);
+    if (!result.success) {
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
     res.json({
-      authenticated: true,
+      success: true,
       user: result.user,
-      forcePasswordChange: Boolean(result.forcePasswordChange),
     });
   } catch (error: any) {
-    logger.error('Auth me route error:', error);
-    res.status(500).json({
-      error: 'Authentication check failed',
-      authenticated: false,
-    });
+    logger.error('Auth me error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 /**
  * POST /api/auth/change-password
- * Change user password (requires current password)
+ * Change user password
  */
-router.post('/auth/change-password', changePasswordLimiter, async (req: any, res: any) => {
+router.post('/auth/change-password', extractToken, changePasswordLimiter, async (req: any, res: any) => {
   try {
-    const { username, currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body;
+    const token = req.token;
 
-    if (!username || !currentPassword || !newPassword) {
-      return res.status(400).json({
-        error: 'Username, current password, and new password are required',
-      });
+    if (!token || !currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    if (newPassword.length < 8) {
-      return res.status(400).json({
-        error: 'New password must be at least 8 characters',
-      });
+    const authCheck = await authService.verifyToken(token);
+    if (!authCheck.success) {
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const result = await authService.changePassword(username, currentPassword, newPassword);
-
+    const result = await authService.changePassword(authCheck.user.username, currentPassword, newPassword);
     if (!result.success) {
       return res.status(400).json({ error: result.error });
     }
-
-    logger.info(`Password changed for user ${username}`);
 
     res.json({
       success: true,
       message: 'Password changed successfully',
     });
   } catch (error: any) {
-    logger.error('Change password route error:', error);
-    res.status(500).json({ error: 'Failed to change password' });
+    logger.error('Change password error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 /**
- * POST /api/auth/create-user
- * Create new user (admin only)
+ * GET /api/admin/users
+ * List all users (admin only)
  */
-router.post('/auth/create-user', requireAdmin, async (req: any, res: any) => {
+router.get('/admin/users', extractToken, requireAdmin, async (req: any, res: any) => {
   try {
-    const { username, email, password, role = 'user' } = req.body;
-
-    if (!username || !email || !password) {
-      return res.status(400).json({
-        error: 'Username, email, and password are required',
-      });
+    const result = await authService.listUsers();
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
     }
 
-    if (!['user', 'admin'].includes(role)) {
-      return res.status(400).json({
-        error: 'Role must be either "user" or "admin"',
-      });
+    res.json({
+      success: true,
+      users: result.users,
+    });
+  } catch (error: any) {
+    logger.error('List users error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/admin/users
+ * Create a new user (admin only)
+ */
+router.post('/admin/users', extractToken, requireAdmin, async (req: any, res: any) => {
+  try {
+    const { username, email, password, role } = req.body;
+
+    if (!username || !password || !role) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const result = await authService.createUser(username, email, password, role);

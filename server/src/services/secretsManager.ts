@@ -252,10 +252,10 @@ class SecretsManager {
     return value;
   }
 
-  has(secret: string): boolean {
+  has = (secret: string): boolean => {
     const key = secret.toLowerCase();
     return Boolean(this.secrets.has(key) || this.getEnvOverride(key));
-  }
+  };
 
   getAccessLog(): AccessLogEntry[] {
     return [...this.accessLog];

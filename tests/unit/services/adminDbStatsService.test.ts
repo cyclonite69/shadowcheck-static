@@ -1,27 +1,30 @@
-jest.mock('../../../server/src/services/adminDbService', () => ({
-  adminQuery: jest.fn(),
-}));
-jest.mock('../../../server/src/logging/logger', () => ({
-  error: jest.fn(),
-}));
+import { getDetailedDatabaseStats } from '../../../server/src/services/adminDbStatsService';
+import { adminQuery } from '../../../server/src/services/adminDbService';
+import logger from '../../../server/src/logging/logger';
 
-const { getDetailedDatabaseStats } = require('../../../server/src/services/adminDbStatsService');
-const { adminQuery } = require('../../../server/src/services/adminDbService');
+jest.mock('../../../server/src/services/adminDbService');
+jest.mock('../../../server/src/logging/logger');
 
 describe('adminDbStatsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test('getDetailedDatabaseStats returns stats', async () => {
-    (adminQuery as jest.Mock)
-      .mockResolvedValueOnce({ rows: [{ total_size: '100MB' }] }) // sizeResult
-      .mockResolvedValueOnce({ rows: [] }) // tableStats
-      .mockResolvedValueOnce({ rows: [] }) // mvStats
-      .mockResolvedValueOnce({ rows: [] }); // unusedIndexes
+  test('getDetailedDatabaseStats returns formatted stats on success', async () => {
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [{ total_size: '100MB' }] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [{ table_name: 'test' }] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
 
     const stats = await getDetailedDatabaseStats();
     expect(stats.total_db_size).toBe('100MB');
-    expect(adminQuery).toHaveBeenCalledTimes(4);
+    expect(stats.tables).toHaveLength(1);
+    expect(stats.success).toBe(true);
+  });
+
+  test('getDetailedDatabaseStats throws and logs error on failure', async () => {
+    (adminQuery as jest.Mock).mockRejectedValue(new Error('DB Error'));
+    await expect(getDetailedDatabaseStats()).rejects.toThrow('DB Error');
+    expect(logger.error).toHaveBeenCalled();
   });
 });
