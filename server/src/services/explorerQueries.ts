@@ -19,8 +19,15 @@ const buildLegacyExplorerQuery = (opts: {
   const where: string[] = [];
   if (search) {
     params.push(`%${search}%`, `%${search}%`);
+    const ssidP = params.length - 1;
+    const bssidP = params.length;
     where.push(
-      `(COALESCE(NULLIF(obs.ssid, ''), NULLIF(n.ssid, '')) ILIKE $${params.length - 1} OR n.bssid ILIKE $${params.length})`
+      `(COALESCE(NULLIF(obs.ssid, ''), NULLIF(n.ssid, '')) ILIKE $${ssidP}
+       OR n.bssid ILIKE $${bssidP}
+       OR EXISTS (
+         SELECT 1 FROM app.observations o2
+         WHERE o2.bssid = n.bssid AND NULLIF(o2.ssid, '') ILIKE $${ssidP}
+       ))`
     );
   }
 
@@ -114,11 +121,16 @@ const buildExplorerV2Query = (opts: {
   const where: string[] = [];
   if (search) {
     params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    const ssidP = params.length - 3; // first param = SSID search term
     where.push(
-      `(ssid ILIKE $${params.length - 3}
+      `(ssid ILIKE $${ssidP}
         OR bssid ILIKE $${params.length - 2}
         OR manufacturer ILIKE $${params.length - 1}
-        OR manufacturer_address ILIKE $${params.length})`
+        OR manufacturer_address ILIKE $${params.length}
+        OR EXISTS (
+          SELECT 1 FROM app.observations o
+          WHERE o.bssid = mv.bssid AND NULLIF(o.ssid, '') ILIKE $${ssidP}
+        ))`
     );
   }
 
