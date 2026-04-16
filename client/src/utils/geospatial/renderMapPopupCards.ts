@@ -96,7 +96,7 @@ export const renderCourthousePopupCard = (props: {
 
   const body = `
     <div style="font-size: 14px; font-weight: 600; color: #f8fafc; margin-bottom: 6px;">${props.name}</div>
-    <div style="margin-bottom: 8px; color: #cbd5e1;">${props.address}</div>
+    <div style="margin-bottom: 8px; color: #cbd5e1; white-space: pre-line;">${props.address}</div>
     <div style="margin-bottom: 4px;"><span style="color:#94a3b8;">District:</span> ${props.district}</div>
     <div style="margin-bottom: 4px;"><span style="color:#94a3b8;">Circuit:</span> ${props.circuit}</div>
   `;

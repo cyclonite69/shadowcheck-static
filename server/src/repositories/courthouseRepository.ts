@@ -17,8 +17,10 @@ export async function fetchFederalCourthousesGeoJSON(): Promise<any> {
               'courthouse_type', courthouse_type,
               'district', district,
               'circuit', circuit,
+              'address_line1', address_line1,
               'city', city,
               'state', state,
+              'postal_code', postal_code,
               'active', active
             )
           )

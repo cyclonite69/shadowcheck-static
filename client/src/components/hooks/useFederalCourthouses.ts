@@ -26,8 +26,10 @@ interface CourthouseFeature {
     courthouse_type: string;
     district: string;
     circuit: string;
+    address_line1: string | null;
     city: string;
     state: string;
+    postal_code: string | null;
     active: boolean;
   };
 }
@@ -246,7 +248,11 @@ export const useFederalCourthouses = (
       if (!feature || !e.lngLat) return;
 
       const props = feature.properties as CourthouseFeature['properties'];
-      const address = `${props.city}, ${props.state}`;
+      const addressParts = [
+        props.address_line1,
+        [props.city, props.state, props.postal_code].filter(Boolean).join(', '),
+      ].filter(Boolean);
+      const address = addressParts.join('\n');
 
       const html = renderCourthousePopupCard({
         name: props.name,
