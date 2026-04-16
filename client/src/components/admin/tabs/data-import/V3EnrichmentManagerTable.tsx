@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { wigleApi } from '../../../../api/wigleApi';
 import { networkApi } from '../../../../api/networkApi';
 import { formatShortDate } from '../../../../utils/formatDate';
@@ -27,10 +27,12 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   onSelect: _onSelect,
   isLoading: actionLoading,
 }) => {
-  const [data, setData] = useState<EnrichmentRow[]>([]);
+  const [allRows, setAllRows] = useState<EnrichmentRow[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
+  const [nextPage, setNextPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const tableRef = useRef<HTMLDivElement | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [processingBssids, setProcessingBssids] = useState<Set<string>>(new Set());
   const [statusMessage, setStatusMessage] = useState<{
@@ -86,12 +88,12 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     });
   };
 
-  const fetchCatalog = useCallback(
-    async (isSilent = false) => {
-      if (!isSilent) setLoading(true);
+  const loadPage = useCallback(
+    async (pageNum: number, append: boolean) => {
+      setLoading(true);
       try {
         const params = new URLSearchParams({
-          page: String(page),
+          page: String(pageNum),
           limit: '50',
           ssid: ssidFilter,
           bssid: bssidFilter,
@@ -100,22 +102,52 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
         });
         const response = await wigleApi.getEnrichmentCatalog(params);
         if (response.ok) {
-          setData(response.data);
+          const rows: EnrichmentRow[] = response.data || [];
+          if (append) {
+            setAllRows((prev) => [...prev, ...rows]);
+          } else {
+            setAllRows(rows);
+            setSelected(new Set());
+          }
           setTotal(response.total);
+          const totalPages = Math.ceil((response.total || 0) / 50);
+          setHasMore(pageNum < totalPages);
+          setNextPage(pageNum + 1);
         }
       } catch (e) {
         console.error('Failed to fetch enrichment catalog', e);
       } finally {
-        if (!isSilent) setLoading(false);
+        setLoading(false);
       }
     },
-    [page, ssidFilter, bssidFilter, cityFilter, regionFilter]
+    [ssidFilter, bssidFilter, cityFilter, regionFilter]
   );
 
+  // Reset and reload from page 1 when filters change (debounced)
   useEffect(() => {
-    const timeout = setTimeout(() => fetchCatalog(), 300);
+    setAllRows([]);
+    setNextPage(1);
+    setHasMore(true);
+    const timeout = setTimeout(() => loadPage(1, false), 300);
     return () => clearTimeout(timeout);
-  }, [fetchCatalog]);
+  }, [ssidFilter, bssidFilter, cityFilter, regionFilter, loadPage]);
+
+  // Infinite scroll: append next page when near bottom
+  useEffect(() => {
+    const container = tableRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (loading || !hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop <= clientHeight + 200) {
+        loadPage(nextPage, true);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [loading, hasMore, nextPage, loadPage]);
 
   const toggleSelect = (bssid: string) => {
     if (processingBssids.has(bssid)) return;
@@ -128,10 +160,10 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   };
 
   const toggleSelectAll = () => {
-    if (selected.size === data.length) {
+    if (selected.size === allRows.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(data.map((r) => r.bssid)));
+      setSelected(new Set(allRows.map((r) => r.bssid)));
     }
   };
 
@@ -155,7 +187,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
       }
 
       // Wait a bit then refresh to see updated counts
-      setTimeout(() => fetchCatalog(true), 2000);
+      setTimeout(() => loadPage(1, false), 2000);
     } catch (e: any) {
       setStatusMessage({ type: 'error', text: e.message || 'Failed to start enrichment' });
     } finally {
@@ -196,7 +228,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             value={ssidFilter}
             onChange={(e) => {
               setSsidFilter(e.target.value);
-              setPage(1);
             }}
             className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
           />
@@ -206,7 +237,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             value={bssidFilter}
             onChange={(e) => {
               setBssidFilter(e.target.value);
-              setPage(1);
             }}
             className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
           />
@@ -216,7 +246,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             value={cityFilter}
             onChange={(e) => {
               setCityFilter(e.target.value);
-              setPage(1);
             }}
             className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white placeholder:text-slate-600 focus:border-blue-500/50 outline-none transition-all"
           />
@@ -224,7 +253,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             value={regionFilter}
             onChange={(e) => {
               setRegionFilter(e.target.value);
-              setPage(1);
             }}
             className="px-2 py-1.5 bg-slate-950/50 border border-slate-800 rounded text-xs text-white focus:border-blue-500/50 outline-none transition-all"
           >
@@ -244,7 +272,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
               {total.toLocaleString()} Networks Found
             </div>
             <button
-              onClick={() => fetchCatalog()}
+              onClick={() => loadPage(1, false)}
               className="text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-tighter"
             >
               Refresh List
@@ -260,14 +288,17 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto rounded border border-slate-800/60 bg-slate-900/20">
+        <div
+          ref={tableRef}
+          className="overflow-x-auto overflow-y-auto max-h-[36rem] rounded border border-slate-800/60 bg-slate-900/20"
+        >
           <table className="w-full text-left text-[11px]">
             <thead className="bg-slate-800/40 text-slate-500 font-bold uppercase tracking-widest border-b border-slate-800">
               <tr>
                 <th className="px-3 py-2 w-8">
                   <input
                     type="checkbox"
-                    checked={data.length > 0 && selected.size === data.length}
+                    checked={allRows.length > 0 && selected.size === allRows.length}
                     onChange={toggleSelectAll}
                     className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
                   />
@@ -286,15 +317,14 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                   </td>
                 </tr>
               )}
-              {!loading && data.length === 0 && (
+              {!loading && allRows.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-3 py-8 text-center text-slate-500 italic">
                     No networks found matching filters.
                   </td>
                 </tr>
               )}
-              {!loading &&
-                data.map((row) => (
+              {allRows.map((row) => (
                   <React.Fragment key={row.bssid}>
                     <tr
                       className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
@@ -353,31 +383,21 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                         {row.last_v3_import ? formatShortDate(row.last_v3_import) : 'Never'}
                       </td>
                     </tr>
-                  </React.Fragment>
                 ))}
             </tbody>
           </table>
-        </div>
 
-        {/* Pagination */}
-        <div className="flex justify-between items-center px-1">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1 || loading}
-            className="text-[10px] text-slate-400 hover:text-white disabled:opacity-30 uppercase font-bold"
-          >
-            Previous
-          </button>
-          <span className="text-[10px] text-slate-500">
-            Page <span className="text-slate-200">{page}</span> of {Math.ceil(total / 50) || 1}
-          </span>
-          <button
-            onClick={() => setPage((p) => p + 1)}
-            disabled={page >= Math.ceil(total / 50) || loading}
-            className="text-[10px] text-slate-400 hover:text-white disabled:opacity-30 uppercase font-bold"
-          >
-            Next
-          </button>
+          {/* Infinite scroll indicators */}
+          {loading && allRows.length > 0 && (
+            <div className="px-3 py-3 text-center text-[11px] text-slate-500 bg-slate-900/40">
+              Loading more records…
+            </div>
+          )}
+          {!hasMore && allRows.length > 0 && (
+            <div className="px-3 py-3 text-center text-[11px] text-slate-600">
+              All {allRows.length.toLocaleString()} records loaded
+            </div>
+          )}
         </div>
       </div>
 
