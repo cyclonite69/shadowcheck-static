@@ -98,6 +98,7 @@ export type NetworkRow = {
 export type Observation = {
   id: string | number;
   bssid: string;
+  ssid?: string | null;
   lat: number;
   lon: number;
   signal?: number | null;

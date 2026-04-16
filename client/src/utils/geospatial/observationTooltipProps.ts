@@ -34,7 +34,8 @@ export const buildObservationTooltipProps = ({
     frequency,
     channel,
     altitude: obs.altitude,
-    ssid: network?.ssid || '(hidden)',
+    // Use the SSID recorded at this specific observation's time, not the network's current primary.
+    ssid: (obs.ssid && obs.ssid !== '(hidden)' ? obs.ssid : null) ?? network?.ssid ?? '(hidden)',
     manufacturer: network?.manufacturer || null,
     security: network?.security || null,
     capabilities: obs.capabilities || network?.capabilities || network?.security || null,
