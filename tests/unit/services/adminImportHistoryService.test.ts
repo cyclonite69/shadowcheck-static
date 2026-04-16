@@ -1,40 +1,98 @@
-import * as adminImportHistoryService from '../../../server/src/services/adminImportHistoryService';
-import { adminQuery } from '../../../server/src/services/adminDbService';
-import { query } from '../../../server/src/config/database';
-import logger from '../../../server/src/logging/logger';
+const { 
+  captureImportMetrics, 
+  createImportHistoryEntry, 
+  markImportBackupTaken, 
+  completeImportSuccess, 
+  failImportHistory, 
+  getImportHistory, 
+  getDeviceSources, 
+  getImportCounts: getCountsHistory
+} = require('../../../server/src/services/adminImportHistoryService');
 
-jest.mock('../../../server/src/services/adminDbService');
-jest.mock('../../../server/src/config/database');
-jest.mock('../../../server/src/logging/logger');
+// Mock dependencies
+jest.mock('../../../server/src/services/adminDbService', () => ({
+  adminQuery: jest.fn(),
+}));
+
+jest.mock('../../../server/src/config/database', () => ({
+  query: jest.fn(),
+}));
+
+const { adminQuery: historyAdminQuery } = require('../../../server/src/services/adminDbService');
+const { query: historyDbQuery } = require('../../../server/src/config/database');
 
 describe('adminImportHistoryService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test('captureImportMetrics catches errors for individual metrics', async () => {
-    (adminQuery as jest.Mock).mockRejectedValue(new Error('Query failed'));
-    const metrics = await adminImportHistoryService.captureImportMetrics();
-    expect(metrics.networks).toBeNull();
-    expect(logger.warn).toHaveBeenCalled();
+  describe('captureImportMetrics', () => {
+    it('should query multiple tables and return metrics object', async () => {
+      historyAdminQuery.mockResolvedValue({ rows: [{ value: '100' }] });
+      const metrics = await captureImportMetrics();
+      expect(metrics.networks).toBe(100);
+      expect(historyAdminQuery).toHaveBeenCalledTimes(8);
+    });
   });
 
-  test('createImportHistoryEntry returns new ID', async () => {
-    (adminQuery as jest.Mock).mockResolvedValue({ rows: [{ id: 123 }] });
-    const id = await adminImportHistoryService.createImportHistoryEntry('tag', 'file.kml', {});
-    expect(id).toBe(123);
+  describe('createImportHistoryEntry', () => {
+    it('should insert a new history row and return the id', async () => {
+      historyAdminQuery.mockResolvedValue({ rows: [{ id: 123 }] });
+      const id = await createImportHistoryEntry('tag', 'file.sqlite', {});
+      expect(id).toBe(123);
+    });
   });
 
-  test('completeImportSuccess calls correct update query', async () => {
-    (adminQuery as jest.Mock).mockResolvedValue({ rowCount: 1 });
-    await adminImportHistoryService.completeImportSuccess(1, 10, 0, '5', {});
-    expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('UPDATE app.import_history'), expect.any(Array));
+  describe('markImportBackupTaken', () => {
+    it('should update the row with backup_taken=TRUE', async () => {
+      await markImportBackupTaken(123);
+      expect(historyAdminQuery).toHaveBeenCalledWith(expect.stringContaining('backup_taken = TRUE'), [123]);
+    });
   });
 
-  test('getImportCounts returns correct data', async () => {
-    (query as jest.Mock).mockResolvedValue({ rows: [{ observations: 1, networks: 2 }] });
-    const counts = await adminImportHistoryService.getImportCounts();
-    expect(counts.observations).toBe(1);
-    expect(counts.networks).toBe(2);
+  describe('completeImportSuccess', () => {
+    it('should update history with success metrics', async () => {
+      await completeImportSuccess(123, 10, 0, '5.5', {});
+      expect(historyAdminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('status'),
+        expect.arrayContaining([123, 10, 0, '5.5', '{}', 'success'])
+      );
+    });
+  });
+
+  describe('failImportHistory', () => {
+    it('should update history with failure details', async () => {
+      await failImportHistory(123, 'some error');
+      expect(historyAdminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('status'),
+        expect.arrayContaining([123, 'some error'])
+      );
+    });
+  });
+
+  describe('getImportHistory', () => {
+    it('should return recent history rows', async () => {
+      const mockRows = [{ id: 1 }];
+      historyAdminQuery.mockResolvedValue({ rows: mockRows });
+      const result = await getImportHistory(10);
+      expect(result).toEqual(mockRows);
+    });
+  });
+
+  describe('getDeviceSources', () => {
+    it('should return list of sources', async () => {
+      const mockRows = [{ source_tag: 'tag1' }];
+      historyAdminQuery.mockResolvedValue({ rows: mockRows });
+      const result = await getDeviceSources();
+      expect(result).toEqual(mockRows);
+    });
+  });
+
+  describe('getCountsHistory', () => {
+    it('should return counts from DB', async () => {
+      historyDbQuery.mockResolvedValue({ rows: [{ observations: 10, networks: 5 }] });
+      const result = await getCountsHistory();
+      expect(result).toEqual({ observations: 10, networks: 5 });
+    });
   });
 });

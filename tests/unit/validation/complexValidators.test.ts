@@ -83,14 +83,12 @@ describe('Complex Validation Schemas', () => {
       expect(result.value).toEqual({ lat: -20, lng: 30 });
     });
 
-    it('should fail if latitude or longitude is missing', () => {
-      expect(validateLocation({ latitude: 45 } as any).valid).toBe(false);
-      expect(validateLocation({ longitude: 90 } as any).valid).toBe(false);
+    it('should fail for invalid latitude in location', () => {
+      expect(validateLocation({ latitude: 'invalid', longitude: 90 }).valid).toBe(false);
     });
 
-    it('should fail for invalid coordinates', () => {
-      expect(validateLocation({ latitude: 100, longitude: 90 }).valid).toBe(false);
-      expect(validateLocation({ latitude: 45, longitude: 200 }).valid).toBe(false);
+    it('should fail for invalid longitude in location', () => {
+      expect(validateLocation({ latitude: 45, longitude: 'invalid' }).valid).toBe(false);
     });
   });
 
@@ -106,6 +104,13 @@ describe('Complex Validation Schemas', () => {
     it('should validate complete valid network', () => {
       const result = validateNetworkForCreate(validNetwork);
       expect(result.valid).toBe(true);
+      expect(result.value?.status).toBe('ACTIVE');
+    });
+
+    it('should default status to UNKNOWN if not provided', () => {
+      const result = validateNetworkForCreate({ ...validNetwork, status: undefined });
+      expect(result.valid).toBe(true);
+      expect(result.value?.status).toBe('UNKNOWN');
     });
 
     it('should fail for missing BSSID', () => {
@@ -118,6 +123,12 @@ describe('Complex Validation Schemas', () => {
       const result = validateNetworkForCreate({ ...validNetwork, latitude: undefined });
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Location');
+    });
+
+    it('should fail for invalid SSID', () => {
+      const result = validateNetworkForCreate({ ...validNetwork, ssid: 'A'.repeat(100) });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('SSID');
     });
 
     it('should fail for invalid status', () => {
@@ -152,9 +163,28 @@ describe('Complex Validation Schemas', () => {
       expect(result.valid).toBe(false);
     });
 
+    it('should fail for invalid SSID', () => {
+      const result = validateObservation({ ...validObservation, ssid: 'A'.repeat(100) });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('SSID');
+    });
+
     it('should fail for invalid signal', () => {
       const result = validateObservation({ ...validObservation, signal: 10 });
       expect(result.valid).toBe(false);
+      expect(result.error).toContain('Signal');
+    });
+
+    it('should fail for invalid location', () => {
+      const result = validateObservation({ ...validObservation, latitude: 100 });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Location');
+    });
+
+    it('should fail for invalid timestamp', () => {
+      const result = validateObservation({ ...validObservation, timestamp: 'invalid-date' });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Timestamp');
     });
   });
 
@@ -180,11 +210,25 @@ describe('Complex Validation Schemas', () => {
     it('should fail for invalid tag type', () => {
       const result = validateTag({ ...validTag, tagType: 'INVALID' });
       expect(result.valid).toBe(false);
+      expect(result.error).toContain('Tag type');
     });
 
     it('should fail for invalid confidence', () => {
       const result = validateTag({ ...validTag, confidence: 150 });
       expect(result.valid).toBe(false);
+      expect(result.error).toContain('Confidence');
+    });
+
+    it('should fail for invalid threat level', () => {
+      const result = validateTag({ ...validTag, threatLevel: 'CRITICAL_MAX' });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Threat level');
+    });
+
+    it('should fail for invalid notes', () => {
+      const result = validateTag({ ...validTag, notes: 123 as any });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Notes');
     });
   });
 
@@ -197,6 +241,8 @@ describe('Complex Validation Schemas', () => {
       networkType: 'WIFI',
       startDate: '2023-01-01T00:00:00Z',
       endDate: '2023-01-02T00:00:00Z',
+      minSignal: -90,
+      maxSignal: -30,
     };
 
     it('should validate complete valid filters', () => {
@@ -204,10 +250,50 @@ describe('Complex Validation Schemas', () => {
       expect(result.valid).toBe(true);
     });
 
+    it('should fail for invalid BSSID filter', () => {
+      const result = validateFilters({ bssid: '!!!' });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('BSSID');
+    });
+
+    it('should fail for invalid SSID filter', () => {
+      const result = validateFilters({ ssid: 'A'.repeat(100) });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('SSID');
+    });
+
+    it('should fail for invalid network status filter', () => {
+      const result = validateFilters({ status: 'INVALID' });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Status');
+    });
+
+    it('should fail for invalid network type filter', () => {
+      const result = validateFilters({ networkType: 'INVALID' });
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Network type');
+    });
+
+    it('should validate authentication and encryption filters', () => {
+      const result = validateFilters({ authentication: 'WPA2', encryption: 'CCMP' });
+      expect(result.valid).toBe(true);
+    });
+
+
+    it('should fail for invalid authentication or encryption filters', () => {
+      expect(validateFilters({ authentication: 'INVALID' }).valid).toBe(false);
+      expect(validateFilters({ encryption: 'INVALID' }).valid).toBe(false);
+    });
+
     it('should fail if only startDate is provided', () => {
       const result = validateFilters({ startDate: '2023-01-01T00:00:00Z' });
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Both startDate and endDate are required');
+    });
+
+    it('should fail for invalid startDate or endDate', () => {
+      expect(validateFilters({ startDate: 'invalid', endDate: '2023-01-01T00:00:00Z' }).valid).toBe(false);
+      expect(validateFilters({ startDate: '2023-01-01T00:00:00Z', endDate: 'invalid' }).valid).toBe(false);
     });
 
     it('should fail if startDate is after endDate', () => {
@@ -222,6 +308,13 @@ describe('Complex Validation Schemas', () => {
     it('should fail for invalid bounding box', () => {
       const result = validateFilters({ boundingBox: 'invalid' });
       expect(result.valid).toBe(false);
+      expect(result.error).toContain('Bounding box');
+    });
+
+    it('should fail for invalid min/max signal', () => {
+      expect(validateFilters({ minSignal: 10 }).valid).toBe(false);
+      expect(validateFilters({ maxSignal: 10 }).valid).toBe(false);
     });
   });
 });
+

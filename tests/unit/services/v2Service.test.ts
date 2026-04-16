@@ -8,7 +8,7 @@
 
 export {};
 
-jest.mock('../../server/src/config/database', () => ({
+jest.mock('../../../server/src/config/database', () => ({
   query: jest.fn(),
   CONFIG: { MAX_PAGE_SIZE: 5000, THREAT_THRESHOLD: 40 },
 }));
@@ -21,13 +21,13 @@ import {
   getThreatMapData,
   getThreatSeverityCounts,
   checkHomeExists,
-} from '../../server/src/services/v2Service';
+} from '../../../server/src/services/v2Service';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getQueryMock(): jest.Mock {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require('../../server/src/config/database').query as jest.Mock;
+  return require('../../../server/src/config/database').query as jest.Mock;
 }
 
 function makeRow(overrides: Record<string, unknown> = {}) {
@@ -74,6 +74,56 @@ describe('executeV2Query', () => {
     mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
     await executeV2Query('SELECT NOW()');
     expect(mockQuery).toHaveBeenCalledWith('SELECT NOW()', undefined);
+  });
+
+  it('logs a warning for slow queries', async () => {
+    const mockQuery = getQueryMock();
+    const logger = require('../../../server/src/logging/logger');
+    const spyWarn = jest.spyOn(logger, 'warn').mockImplementation();
+
+    // Force it to look slow by mocking Date.now()
+    const realDateNow = Date.now;
+    let callCount = 0;
+    Date.now = jest.fn(() => {
+      callCount++;
+      return callCount === 1 ? 1000 : 5000; // 4000ms duration
+    });
+
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    await executeV2Query('SELECT 1');
+
+    expect(spyWarn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Slow V2 query detected',
+      })
+    );
+
+    Date.now = realDateNow;
+    spyWarn.mockRestore();
+  });
+
+  it('does NOT log a warning for fast queries', async () => {
+    const mockQuery = getQueryMock();
+    const logger = require('../../../server/src/logging/logger');
+    const spyWarn = jest.spyOn(logger, 'warn').mockImplementation();
+
+    // Force it to look fast
+    const realDateNow = Date.now;
+    let callCount = 0;
+    Date.now = jest.fn(() => {
+      callCount++;
+      return callCount === 1 ? 1000 : 1100; // 100ms duration
+    });
+
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    await executeV2Query('SELECT 1');
+
+    expect(spyWarn).not.toHaveBeenCalled();
+
+    Date.now = realDateNow;
+    spyWarn.mockRestore();
   });
 });
 

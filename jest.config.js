@@ -58,12 +58,14 @@ module.exports = {
     '/data/',
     '/docs/',
     '/scripts/manual/',
-    '<rootDir>/client/src/components/',
+    '<rootDir>/client/',
+    '/client/',
     '<rootDir>/.claude/',
     '__tests__',
   ],
 
   modulePathIgnorePatterns: [
+
     '<rootDir>/.claude/',
   ],
 

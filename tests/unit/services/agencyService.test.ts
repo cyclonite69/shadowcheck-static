@@ -1,7 +1,9 @@
 const agencyService = require('../../../server/src/services/agencyService');
-const agencyRepository = require('../../../server/src/repositories/agencyRepository');
+import * as agencyRepository from '../../../server/src/repositories/agencyRepository';
 
 jest.mock('../../../server/src/repositories/agencyRepository');
+
+const mockedAgencyRepository = agencyRepository as jest.Mocked<typeof agencyRepository>;
 
 describe('agencyService', () => {
   beforeEach(() => {
@@ -9,34 +11,34 @@ describe('agencyService', () => {
   });
 
   test('getAgencyOfficesGeoJSON calls repository', async () => {
-    const mockData = { type: 'FeatureCollection', features: [] };
-    agencyRepository.fetchAgencyOfficesGeoJSON.mockResolvedValue(mockData);
+    const mockData = { type: 'FeatureCollection' as const, features: [] };
+    mockedAgencyRepository.fetchAgencyOfficesGeoJSON.mockResolvedValue(mockData);
     const result = await agencyService.getAgencyOfficesGeoJSON();
-    expect(agencyRepository.fetchAgencyOfficesGeoJSON).toHaveBeenCalled();
+    expect(mockedAgencyRepository.fetchAgencyOfficesGeoJSON).toHaveBeenCalled();
     expect(result).toEqual(mockData);
   });
 
   test('getAgencyOfficeCountByType calls repository', async () => {
     const mockData = { police: 10 };
-    agencyRepository.fetchAgencyOfficeCounts.mockResolvedValue(mockData);
+    mockedAgencyRepository.fetchAgencyOfficeCounts.mockResolvedValue(mockData as any);
     const result = await agencyService.getAgencyOfficeCountByType();
-    expect(agencyRepository.fetchAgencyOfficeCounts).toHaveBeenCalled();
+    expect(mockedAgencyRepository.fetchAgencyOfficeCounts).toHaveBeenCalled();
     expect(result).toEqual(mockData);
   });
 
   test('getNearestAgenciesToNetwork calls repository', async () => {
     const mockData = [{ id: 1 }];
-    agencyRepository.findNearestAgenciesToNetwork.mockResolvedValue(mockData);
+    mockedAgencyRepository.findNearestAgenciesToNetwork.mockResolvedValue(mockData as any);
     const result = await agencyService.getNearestAgenciesToNetwork(123);
-    expect(agencyRepository.findNearestAgenciesToNetwork).toHaveBeenCalledWith(123);
+    expect(mockedAgencyRepository.findNearestAgenciesToNetwork).toHaveBeenCalledWith(123);
     expect(result).toEqual(mockData);
   });
 
   test('getNearestAgenciesToNetworksBatch calls repository', async () => {
     const mockData = [[{ id: 1 }]];
-    agencyRepository.findNearestAgenciesBatch.mockResolvedValue(mockData);
+    mockedAgencyRepository.findNearestAgenciesBatch.mockResolvedValue(mockData as any);
     const result = await agencyService.getNearestAgenciesToNetworksBatch([1, 2]);
-    expect(agencyRepository.findNearestAgenciesBatch).toHaveBeenCalledWith([1, 2]);
+    expect(mockedAgencyRepository.findNearestAgenciesBatch).toHaveBeenCalledWith([1, 2]);
     expect(result).toEqual(mockData);
   });
 });

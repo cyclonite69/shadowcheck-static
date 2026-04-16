@@ -22,6 +22,26 @@ describe('adminDbStatsService', () => {
     expect(stats.success).toBe(true);
   });
 
+  test('getDetailedDatabaseStats handles missing total_size', async () => {
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [{}] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+    const stats = await getDetailedDatabaseStats();
+    expect(stats.total_db_size).toBe('Unknown');
+  });
+
+  test('getDetailedDatabaseStats handles missing total_size row', async () => {
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+    (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+    const stats = await getDetailedDatabaseStats();
+    expect(stats.total_db_size).toBe('Unknown');
+  });
+
   test('getDetailedDatabaseStats throws and logs error on failure', async () => {
     (adminQuery as jest.Mock).mockRejectedValue(new Error('DB Error'));
     await expect(getDetailedDatabaseStats()).rejects.toThrow('DB Error');

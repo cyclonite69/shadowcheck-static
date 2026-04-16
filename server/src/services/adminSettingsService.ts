@@ -6,7 +6,7 @@ const { query } = require('../config/database');
 /**
  * Get all settings
  */
-async function getAllSettings(): Promise<any[]> {
+export async function getAllSettings(): Promise<any[]> {
   const result = await query(
     'SELECT key, value, description, updated_at FROM app.settings ORDER BY key'
   );
@@ -16,7 +16,7 @@ async function getAllSettings(): Promise<any[]> {
 /**
  * Get setting by key
  */
-async function getSettingByKey(key: string): Promise<any | null> {
+export async function getSettingByKey(key: string): Promise<any | null> {
   const result = await query(
     'SELECT value, description, updated_at FROM app.settings WHERE key = $1',
     [key]
@@ -27,7 +27,7 @@ async function getSettingByKey(key: string): Promise<any | null> {
 /**
  * Update setting
  */
-async function updateSetting(key: string, value: any): Promise<any> {
+export async function updateSetting(key: string, value: any): Promise<any> {
   const result = await adminQuery(
     'UPDATE app.settings SET value = $1, updated_at = NOW() WHERE key = $2 RETURNING *',
     [JSON.stringify(value), key]
@@ -38,7 +38,7 @@ async function updateSetting(key: string, value: any): Promise<any> {
 /**
  * Toggle ML blending setting
  */
-async function toggleMLBlending(): Promise<boolean> {
+export async function toggleMLBlending(): Promise<boolean> {
   const result = await adminQuery(`
     UPDATE app.settings
     SET value = CASE WHEN value::text = 'true' THEN 'false' ELSE 'true' END,
@@ -52,7 +52,7 @@ async function toggleMLBlending(): Promise<boolean> {
 /**
  * Save ML model configuration
  */
-async function saveMLModelConfig(
+export async function saveMLModelConfig(
   modelType: string,
   coefficients: any,
   intercept: number,

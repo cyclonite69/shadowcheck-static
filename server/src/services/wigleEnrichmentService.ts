@@ -24,7 +24,7 @@ const BATCH_SIZE = 100;
 /**
  * Get count of unique BSSIDs in v2 search results
  */
-async function getPendingEnrichmentCount(): Promise<number> {
+export async function getPendingEnrichmentCount(): Promise<number> {
   const sql = `SELECT COUNT(DISTINCT bssid)::int AS count FROM app.wigle_v2_networks_search`;
   const { rows } = await adminQuery(sql);
   return rows[0]?.count || 0;
@@ -33,7 +33,7 @@ async function getPendingEnrichmentCount(): Promise<number> {
 /**
  * Get the full enrichment catalog with current v3 stats
  */
-async function getEnrichmentCatalog(options: {
+export async function getEnrichmentCatalog(options: {
   page?: number;
   limit?: number;
   region?: string;
@@ -325,7 +325,7 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
   }
 }
 
-async function startBatchEnrichment(bssids?: string[]) {
+export async function startBatchEnrichment(bssids?: string[]) {
   const isManual = Array.isArray(bssids) && bssids.length > 0;
   const pending = isManual ? bssids!.length : await getPendingEnrichmentCount();
 
@@ -356,7 +356,7 @@ async function startBatchEnrichment(bssids?: string[]) {
   return run;
 }
 
-async function resumeEnrichment(runId: number) {
+export async function resumeEnrichment(runId: number) {
   const { rows } = await adminQuery(
     "UPDATE app.wigle_import_runs SET status = 'running', last_error = NULL WHERE id = $1 RETURNING *",
     [runId]
@@ -379,7 +379,7 @@ module.exports = {
  * Validates that the WiGLE API key has remaining credit.
  * Returns { hasCredit: boolean, message: string }
  */
-async function validateWigleApiCredit() {
+export async function validateWigleApiCredit() {
   try {
     const wigleApiName = secretsManager.get('wigle_api_name');
     const wigleApiToken = secretsManager.get('wigle_api_token');

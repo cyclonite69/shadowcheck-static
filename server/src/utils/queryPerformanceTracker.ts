@@ -3,7 +3,7 @@
  * Tracks execution time and filter application metrics
  */
 
-const logger = require('../../logging/logger');
+const logger = require('../logging/logger');
 
 interface FilterMetrics {
   filterType: string;

@@ -2,15 +2,15 @@
  * ML Scoring Service Unit Tests
  */
 
-import { scoreAllNetworks } from '../../server/src/services/ml/scoringService';
-const scoringRepository = require('../../server/src/services/ml/repository');
-import * as modelScoring from '../../server/src/services/ml/modelScoring';
-const logger = require('../../server/src/logging/logger');
-const schemas = require('../../server/src/validation/schemas');
+import { scoreAllNetworks } from '../../../server/src/services/ml/scoringService';
+const scoringRepository = require('../../../server/src/services/ml/repository');
+import * as modelScoring from '../../../server/src/services/ml/modelScoring';
+const logger = require('../../../server/src/logging/logger');
+const schemas = require('../../../server/src/validation/schemas');
 
-jest.mock('../../server/src/logging/logger');
-jest.mock('../../server/src/services/ml/repository');
-jest.mock('../../server/src/validation/schemas', () => ({
+jest.mock('../../../server/src/logging/logger');
+jest.mock('../../../server/src/services/ml/repository');
+jest.mock('../../../server/src/validation/schemas', () => ({
   validateIntegerRange: jest.fn(),
 }));
 
@@ -155,6 +155,48 @@ describe('ML Scoring Service', () => {
 
       expect(result.scored).toBe(0);
       expect(scoringRepository.upsertLegacyThreatScore).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Re-exported repository functions', () => {
+    const {
+      getMLModelStatus,
+      getMLTrainingData,
+      getMLScoreForNetwork,
+      getNetworksByThreatLevel,
+      getNetworksForBehavioralScoring,
+      bulkUpsertThreatScores,
+    } = require('../../../server/src/services/ml/scoringService');
+
+    it('getMLModelStatus should call repository', async () => {
+      await getMLModelStatus();
+      expect(scoringRepository.getMLModelStatus).toHaveBeenCalled();
+    });
+
+    it('getMLTrainingData should call repository', async () => {
+      await getMLTrainingData();
+      expect(scoringRepository.getMLTrainingData).toHaveBeenCalled();
+    });
+
+    it('getMLScoreForNetwork should call repository', async () => {
+      await getMLScoreForNetwork('AA:BB:CC:DD:EE:FF');
+      expect(scoringRepository.getMLScoreForNetwork).toHaveBeenCalledWith('AA:BB:CC:DD:EE:FF');
+    });
+
+    it('getNetworksByThreatLevel should call repository', async () => {
+      await getNetworksByThreatLevel('high', 10, 0);
+      expect(scoringRepository.getNetworksByThreatLevel).toHaveBeenCalledWith('high', 10, 0);
+    });
+
+    it('getNetworksForBehavioralScoring should call repository', async () => {
+      await getNetworksForBehavioralScoring(10);
+      expect(scoringRepository.getNetworksForBehavioralScoring).toHaveBeenCalledWith(10);
+    });
+
+    it('bulkUpsertThreatScores should call repository', async () => {
+      const mockScores = [{ bssid: 'AA:BB:CC:DD:EE:FF', threat_score: 50 }];
+      await bulkUpsertThreatScores(mockScores);
+      expect(scoringRepository.bulkUpsertThreatScores).toHaveBeenCalledWith(mockScores);
     });
   });
 });

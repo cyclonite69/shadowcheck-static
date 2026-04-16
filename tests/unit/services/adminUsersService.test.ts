@@ -3,18 +3,18 @@
  */
 
 const bcrypt = require('bcrypt');
-import { adminQuery } from '../../server/src/services/adminDbService';
-import { query } from '../../server/src/config/database';
-import logger from '../../server/src/logging/logger';
+import { adminQuery } from '../../../server/src/services/adminDbService';
+import { query } from '../../../server/src/config/database';
+import logger from '../../../server/src/logging/logger';
 
 // Note: adminUsersService uses CommonJS require for some dependencies,
 // so we need to be careful with mocking.
-const adminUsersService = require('../../server/src/services/adminUsersService');
+const adminUsersService = require('../../../server/src/services/adminUsersService');
 
 jest.mock('bcrypt');
-jest.mock('../../server/src/services/adminDbService');
-jest.mock('../../server/src/config/database');
-jest.mock('../../server/src/logging/logger');
+jest.mock('../../../server/src/services/adminDbService');
+jest.mock('../../../server/src/config/database');
+jest.mock('../../../server/src/logging/logger');
 
 describe('AdminUsersService', () => {
   beforeEach(() => {
