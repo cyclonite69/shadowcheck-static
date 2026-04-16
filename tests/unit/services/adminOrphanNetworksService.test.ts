@@ -20,14 +20,6 @@ jest.mock('../../../server/src/logging/logger', () => ({
   error: jest.fn(),
 }));
 
-jest.mock('../../../server/src/services/externalServiceHandler', () => ({
-  withRetry: jest.fn(async (fn) => {
-    const res = await fn();
-    console.log('withRetry returning:', res);
-    return res;
-  }),
-}));
-
 const { adminQuery } = require('../../../server/src/services/adminDbService');
 const wigleService = require('../../../server/src/services/wigleService');
 const secretsManager = require('../../../server/src/services/secretsManager').default;
