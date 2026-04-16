@@ -103,15 +103,14 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
   // Calculate quality score if not provided
   // Factor 1: Observation count (up to 20 obs for full points)
   // Factor 2: GPS accuracy (under 10m for full points)
-  const obsCount = Number(
-    pickFirst(
-      raw.observation_count,
-      raw.obs_count,
-      raw.observations,
-      raw.wigle_v3_observation_count,
-      0
-    )
+  // Separate local and WiGLE observation counts
+  const localObsCount = Number(
+    pickFirst(raw.observation_count, raw.obs_count, raw.observations, 0)
   );
+  const wigleObsCount = toNumberOrNull(raw.wigle_v3_observation_count) || null;
+  // Use WiGLE count if available (for WiGLE-correlated points), else local count
+  const obsCount = wigleObsCount !== null ? wigleObsCount : localObsCount;
+
   const accuracy = toNumberOrNull(pickFirst(raw.accuracy, raw.acc));
   const explicitQuality = toNumberOrNull(pickFirst(raw.quality_score, raw.data_quality));
   const wigleQos = toNumberOrNull(raw.qos);
@@ -167,6 +166,8 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     altitude: toNumberOrNull(raw.altitude),
     manufacturer: pickFirst(raw.manufacturer, raw.ne_manufacturer, 'Unknown'),
     observation_count: obsCount,
+    local_observation_count: localObsCount,
+    wigle_observation_count: wigleObsCount,
     timespan_days: toNumberOrNull(raw.timespan_days),
     time: pickFirst(raw.time, raw.timestamp, raw.observed_at, raw.lasttime),
     first_seen: pickFirst(

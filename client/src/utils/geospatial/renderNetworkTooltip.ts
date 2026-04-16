@@ -50,7 +50,24 @@ function formatDistance(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
 }
 
-function formatObservationText(countValue: unknown, daysValue: unknown): string {
+function formatObservationText(
+  countValue: unknown,
+  daysValue: unknown,
+  localCount?: unknown,
+  wigleCount?: unknown
+): string {
+  // If we have separate local and WiGLE counts, show both clearly labeled
+  if (!isMissingValue(localCount) && !isMissingValue(wigleCount)) {
+    const local = Number(localCount);
+    const wigle = Number(wigleCount);
+    if (Number.isFinite(local) && Number.isFinite(wigle)) {
+      const days = Number(daysValue);
+      const base = `Your obs: ${local}  |  WiGLE obs: ${wigle}`;
+      return Number.isFinite(days) && days > 0 ? `${base} · ${Math.round(days)} days` : base;
+    }
+  }
+
+  // Fallback to single count
   if (isMissingValue(countValue)) return '';
   const count = Number(countValue);
   if (!Number.isFinite(count)) return '';
@@ -289,7 +306,12 @@ export const renderNetworkTooltip = (props: any): any => {
     channel > 0 ? `${channel}${hasBand ? ` (${normalizeDisplay(band)})` : ''}` : '';
   const frequencyValue = frequency > 0 ? `${frequency} MHz` : '';
 
-  const observationsValue = formatObservationText(props.observation_count, props.timespan_days);
+  const observationsValue = formatObservationText(
+    props.observation_count,
+    props.timespan_days,
+    (props as any).local_observation_count,
+    (props as any).wigle_observation_count
+  );
   const siblingValue =
     Number(props.sibling_count) > 0 ? `${Number(props.sibling_count)} radios` : '';
   const wigleValue = props.wigle_match ? 'Yes' : '';
