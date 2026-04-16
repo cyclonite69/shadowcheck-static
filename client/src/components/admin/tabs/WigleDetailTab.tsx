@@ -100,15 +100,16 @@ export const WigleDetailTab: React.FC = () => {
       region: data.streetAddress?.region,
       qos: data.bestClusterWiGLEQoS,
       comment: data.comment,
-      // Always include network-level timestamps; override with observation timestamps if selected
-      first_seen: selectedObs?.observed_at || data.firstSeen,
-      last_seen: selectedObs?.observed_at || data.lastSeen,
+      // Always include network-level timestamps
+      first_seen: data.firstSeen,
+      last_seen: data.lastSeen,
+      // When observation is selected, also include the specific observation time
       ...(selectedObs && {
         lat: selectedObs.latitude,
         lon: selectedObs.longitude,
         signal: selectedObs.signal,
         altitude: selectedObs.altitude,
-        time: selectedObs.observed_at,
+        time: selectedObs.observed_at, // This becomes the "Seen" timestamp
       }),
     });
     setTooltipHtml(renderNetworkTooltip({ ...normalized, triggerElement: el }));
