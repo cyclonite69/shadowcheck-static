@@ -359,6 +359,32 @@ const WiglePage: React.FC = () => {
     fetchKmlPoints,
   ]);
 
+  // Refetch when filters change (if data already loaded)
+  useEffect(() => {
+    if (!mapReady) return;
+    const hasV2Data = layers.v2 && v2Rows.length > 0;
+    const hasV3Data = layers.v3 && v3Rows.length > 0;
+    const hasKmlData = layers.kml && kmlRows.length > 0;
+
+    if (hasV2Data || hasV3Data) {
+      fetchPoints();
+    }
+    if (hasKmlData) {
+      fetchKmlPoints();
+    }
+  }, [
+    adaptedFilters,
+    mapReady,
+    layers.v2,
+    layers.v3,
+    layers.kml,
+    v2Rows.length,
+    v3Rows.length,
+    kmlRows.length,
+    fetchPoints,
+    fetchKmlPoints,
+  ]);
+
   // Handle map style changes - use ref to get latest featureCollection without causing re-runs
   useEffect(() => {
     const map = mapRef.current;
