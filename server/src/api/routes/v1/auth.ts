@@ -69,33 +69,59 @@ router.post('/auth/login', loginLimiter, async (req: any, res: any) => {
  * POST /api/auth/logout
  * User logout
  */
-router.post('/auth/logout', (req: any, res: any) => {
-  res.clearCookie('session_token');
-  res.json({
-    success: true,
-    message: 'Logged out successfully',
-  });
+router.post('/auth/logout', async (req: any, res: any) => {
+  try {
+    const token = extractToken(req);
+
+    if (token) {
+      await authService.logout(token);
+    }
+
+    // Clear cookie with same options used when setting it
+    res.clearCookie('session_token', {
+      httpOnly: true,
+      secure: process.env.COOKIE_SECURE === 'true',
+      sameSite: 'lax',
+    });
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error: any) {
+    logger.error('Logout route error:', error);
+    res.status(500).json({ error: 'Logout failed' });
+  }
 });
 
 /**
  * GET /api/auth/me
  * Get current user info
  */
-router.get('/auth/me', extractToken, async (req: any, res: any) => {
+router.get('/auth/me', async (req: any, res: any) => {
   try {
-    const token = req.token;
+    const token = extractToken(req);
+
     if (!token) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      return res.status(401).json({
+        error: 'Not authenticated',
+        authenticated: false,
+      });
     }
 
-    const result = await authService.verifyToken(token);
-    if (!result.success) {
-      return res.status(401).json({ error: 'Invalid token' });
+    const result = await authService.validateSession(token);
+
+    if (!result.valid) {
+      return res.status(401).json({
+        error: result.error,
+        authenticated: false,
+      });
     }
 
     res.json({
-      success: true,
+      authenticated: true,
       user: result.user,
+      forcePasswordChange: Boolean(result.forcePasswordChange),
     });
   } catch (error: any) {
     logger.error('Auth me error:', error);
@@ -107,21 +133,25 @@ router.get('/auth/me', extractToken, async (req: any, res: any) => {
  * POST /api/auth/change-password
  * Change user password
  */
-router.post('/auth/change-password', extractToken, changePasswordLimiter, async (req: any, res: any) => {
+router.post('/auth/change-password', changePasswordLimiter, async (req: any, res: any) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const token = req.token;
+    const token = extractToken(req);
 
     if (!token || !currentPassword || !newPassword) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const authCheck = await authService.verifyToken(token);
-    if (!authCheck.success) {
-      return res.status(401).json({ error: 'Invalid token' });
+    const authCheck = await authService.validateSession(token);
+    if (!authCheck.valid) {
+      return res.status(401).json({ error: 'Invalid or expired session' });
     }
 
-    const result = await authService.changePassword(authCheck.user.username, currentPassword, newPassword);
+    const result = await authService.changePassword(
+      authCheck.user.username,
+      currentPassword,
+      newPassword
+    );
     if (!result.success) {
       return res.status(400).json({ error: result.error });
     }
