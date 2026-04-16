@@ -110,17 +110,18 @@ async function getEnrichmentCatalog(options: {
   const countWhere = getWhere(1);
 
   const finalSql = `
-    SELECT 
-      v2.bssid, 
-      v2.ssid, 
-      v2.region, 
-      v2.city, 
+    SELECT
+      v2.bssid,
+      v2.ssid,
+      v2.region,
+      v2.city,
       v2.type,
+      v2.firsttime,
       v2.lasttime,
       v3.imported_at as last_v3_import,
       (SELECT COUNT(*)::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid) as v3_obs_count
     FROM (
-      SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, lasttime
+      SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, firsttime, lasttime
       FROM app.wigle_v2_networks_search
       ${mainWhere}
       ORDER BY bssid, lasttime DESC
