@@ -325,65 +325,65 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                 </tr>
               )}
               {allRows.map((row) => (
-                  <React.Fragment key={row.bssid}>
-                    <tr
-                      className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
-                        activePanel?.bssid === row.bssid
-                          ? 'bg-blue-500/10'
-                          : selected.has(row.bssid)
-                            ? 'bg-blue-500/10'
-                            : ''
-                      } ${processingBssids.has(row.bssid) ? 'opacity-60 cursor-wait' : ''}`}
-                      onClick={() => handleRowClick(row)}
-                    >
-                      <td
-                        className="px-3 py-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSelect(row.bssid);
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selected.has(row.bssid)}
-                          onChange={() => {}}
-                          disabled={processingBssids.has(row.bssid)}
-                          className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="font-bold text-slate-200 truncate max-w-[180px]">
-                          {row.ssid || row.bssid}
-                        </div>
-                        <div className="text-[10px] font-mono text-slate-500">{row.bssid}</div>
-                      </td>
-                      <td className="px-3 py-2 text-slate-400">
-                        <div className="truncate max-w-[140px]">
-                          {row.city || 'Unknown'}
-                          {row.region ? `, ${row.region}` : ''}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {processingBssids.has(row.bssid) ? (
-                          <span className="text-blue-400 animate-pulse font-bold uppercase text-[9px]">
-                            Queuing...
-                          </span>
-                        ) : row.v3_obs_count > 0 ? (
-                          <div className="flex flex-col items-center">
-                            <span className="text-cyan-400 font-bold tabular-nums">
-                              {row.v3_obs_count}
-                            </span>
-                            <span className="text-[8px] text-slate-600 uppercase">Forensics</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-600 uppercase text-[9px]">Pending</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">
-                        {row.last_v3_import ? formatShortDate(row.last_v3_import) : 'Never'}
-                      </td>
-                    </tr>
-                ))}
+                <tr
+                  key={row.bssid}
+                  className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
+                    activePanel?.bssid === row.bssid
+                      ? 'bg-blue-500/10'
+                      : selected.has(row.bssid)
+                        ? 'bg-blue-500/10'
+                        : ''
+                  } ${processingBssids.has(row.bssid) ? 'opacity-60 cursor-wait' : ''}`}
+                  onClick={() => handleRowClick(row)}
+                >
+                  <td
+                    className="px-3 py-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelect(row.bssid);
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(row.bssid)}
+                      onChange={() => {}}
+                      disabled={processingBssids.has(row.bssid)}
+                      className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="font-bold text-slate-200 truncate max-w-[180px]">
+                      {row.ssid || row.bssid}
+                    </div>
+                    <div className="text-[10px] font-mono text-slate-500">{row.bssid}</div>
+                  </td>
+                  <td className="px-3 py-2 text-slate-400">
+                    <div className="truncate max-w-[140px]">
+                      {row.city || 'Unknown'}
+                      {row.region ? `, ${row.region}` : ''}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {processingBssids.has(row.bssid) ? (
+                      <span className="text-blue-400 animate-pulse font-bold uppercase text-[9px]">
+                        Queuing...
+                      </span>
+                    ) : row.v3_obs_count > 0 ? (
+                      <div className="flex flex-col items-center">
+                        <span className="text-cyan-400 font-bold tabular-nums">
+                          {row.v3_obs_count}
+                        </span>
+                        <span className="text-[8px] text-slate-600 uppercase">Forensics</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-600 uppercase text-[9px]">Pending</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right text-slate-500 whitespace-nowrap">
+                    {row.last_v3_import ? formatShortDate(row.last_v3_import) : 'Never'}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
 
