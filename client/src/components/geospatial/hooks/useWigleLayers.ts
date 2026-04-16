@@ -109,8 +109,24 @@ export const useWigleLayers = ({
         { ...props, lat: coords[1], lon: coords[0], signal: props.level },
         [coords[0], coords[1]]
       );
-      const immediateCard =
+      let immediateCard =
         renderNetworkTooltip({ ...immediateNormalized, triggerElement: map.getContainer() }) ?? '';
+
+      // Fallback: if no card rendered (missing fields), show WiGLE-specific tooltip
+      if (!immediateCard) {
+        const ssid = props.ssid || 'Hidden Network';
+        const bssid = props.bssid || 'Unknown';
+        const signal = props.level ? `${props.level} dBm` : 'N/A';
+        const time = props.time ? new Date(props.time * 1000).toLocaleString() : 'Unknown';
+        immediateCard = `
+          <div style="min-width:220px;color:#e2e8f0;font:12px/1.45 system-ui,sans-serif">
+            <div style="font-weight:700;color:#60a5fa;margin-bottom:8px">${ssid}</div>
+            <div><strong>BSSID:</strong> ${bssid}</div>
+            <div><strong>Signal:</strong> ${signal}</div>
+            <div><strong>Observed:</strong> ${time}</div>
+          </div>
+        `;
+      }
       const initialHtml = wigleBadge(matched) + immediateCard;
 
       const anchor = getPopupAnchor(map, lngLat, initialHtml);
