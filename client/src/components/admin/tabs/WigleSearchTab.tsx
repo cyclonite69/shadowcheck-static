@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
+import { ObservationsCard } from '../components/ObservationsCard';
 import { useWigleSearch } from '../hooks/useWigleSearch';
 import { useWigleRuns } from '../hooks/useWigleRuns';
 import { US_STATES } from '../../../constants/network';
 import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
-import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
-import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { wigleApi } from '../../../api/wigleApi';
 import type { WigleCompletenessReport } from '../hooks/useWigleRuns';
 
@@ -102,9 +101,7 @@ export const WigleSearchTab: React.FC = () => {
     cancelRun,
   } = useWigleRuns({ limit: 100 });
 
-  const [activeTooltip, setActiveTooltip] = React.useState<{ bssid: string; html: string } | null>(
-    null
-  );
+  const [selectedNetwork, setSelectedNetwork] = useState<any | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Coverage dropdown: unique search terms derived from runs
@@ -132,32 +129,9 @@ export const WigleSearchTab: React.FC = () => {
       .finally(() => setTermReportLoading(false));
   }, [coverageTerm]);
 
-  const handleRowClick = (net: any, event: React.MouseEvent<HTMLTableRowElement>) => {
+  const handleRowClick = (net: any) => {
     const bssid = net.netid || net.bssid;
-    if (activeTooltip?.bssid === bssid) {
-      setActiveTooltip(null);
-      return;
-    }
-    // Derive frequency from channel when frequency is absent (WiGLE v2 omits it)
-    const ch = net.channel ? Number(net.channel) : null;
-    const derivedFreq = ch
-      ? ch >= 1 && ch <= 13
-        ? 2407 + ch * 5
-        : ch === 14
-          ? 2484
-          : ch >= 36 && ch <= 177
-            ? 5000 + ch * 5
-            : null
-      : null;
-    const normalized = normalizeTooltipData({
-      ...net,
-      bssid,
-      lat: net.trilat ?? net.lat ?? net.latitude,
-      lon: net.trilong ?? net.lon ?? net.longitude,
-      frequency: net.frequency || derivedFreq,
-    });
-    const html = renderNetworkTooltip({ ...normalized, triggerElement: event.currentTarget });
-    if (html) setActiveTooltip({ bssid, html });
+    setSelectedNetwork((prev: any) => (prev && (prev.netid || prev.bssid) === bssid ? null : net));
   };
 
   useEffect(() => {
@@ -166,7 +140,7 @@ export const WigleSearchTab: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveTooltip(null);
+      if (e.key === 'Escape') setSelectedNetwork(null);
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
@@ -509,12 +483,6 @@ export const WigleSearchTab: React.FC = () => {
                         {loadedCount.toLocaleString()} / {totalResults.toLocaleString()}
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Page:</span>
-                      <span className="font-semibold text-slate-300">
-                        {currentPage} of {totalPages}
-                      </span>
-                    </div>
                     {searchResults.pagesProcessed && (
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">Pages Processed:</span>
@@ -555,56 +523,42 @@ export const WigleSearchTab: React.FC = () => {
                           <tbody className="divide-y divide-slate-700/50">
                             {searchResults.results.map((net: any, idx: number) => {
                               const bssid = net.netid || net.bssid;
-                              const isActive = activeTooltip?.bssid === bssid;
+                              const isActive =
+                                (selectedNetwork?.netid || selectedNetwork?.bssid) === bssid;
                               const city = net.geocoded_city || net.city || '—';
                               const state = net.geocoded_state || net.region || '—';
                               const firstSeen = net.local_first_seen || net.firsttime || null;
                               const lastSeen = net.local_last_seen || net.lasttime || null;
                               return (
-                                <React.Fragment key={idx}>
-                                  <tr
-                                    className={`cursor-pointer transition-colors ${
-                                      isActive ? 'bg-blue-500/10' : 'hover:bg-slate-700/30'
-                                    }`}
-                                    onClick={(e) => handleRowClick(net, e)}
+                                <tr
+                                  key={idx}
+                                  className={`cursor-pointer transition-colors ${
+                                    isActive
+                                      ? 'bg-violet-500/10 border-l-2 border-violet-400'
+                                      : 'hover:bg-slate-700/30'
+                                  }`}
+                                  onClick={() => handleRowClick(net)}
+                                >
+                                  <td className="px-3 py-2 font-mono text-slate-400 whitespace-nowrap">
+                                    {bssid}
+                                  </td>
+                                  <td
+                                    className="px-3 py-2 font-medium text-white max-w-[14rem] truncate"
+                                    title={net.ssid || undefined}
                                   >
-                                    <td className="px-3 py-2 font-mono text-slate-400 whitespace-nowrap">
-                                      {bssid}
-                                    </td>
-                                    <td
-                                      className="px-3 py-2 font-medium text-white max-w-[14rem] truncate"
-                                      title={net.ssid || undefined}
-                                    >
-                                      {net.ssid || '(hidden)'}
-                                    </td>
-                                    <td className="px-3 py-2">{net.type || '—'}</td>
-                                    <td className="px-3 py-2 tabular-nums">{net.channel ?? '—'}</td>
-                                    <td className="px-3 py-2">{city}</td>
-                                    <td className="px-3 py-2">{state}</td>
-                                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                                      {firstSeen ? formatShortDate(firstSeen) : '—'}
-                                    </td>
-                                    <td className="px-3 py-2 whitespace-nowrap tabular-nums">
-                                      {lastSeen ? formatShortDate(lastSeen) : '—'}
-                                    </td>
-                                  </tr>
-                                  {isActive && (
-                                    <tr>
-                                      <td
-                                        colSpan={8}
-                                        style={{
-                                          padding: '0 12px 12px',
-                                          background: 'transparent',
-                                          border: 'none',
-                                        }}
-                                      >
-                                        <div
-                                          dangerouslySetInnerHTML={{ __html: activeTooltip.html }}
-                                        />
-                                      </td>
-                                    </tr>
-                                  )}
-                                </React.Fragment>
+                                    {net.ssid || '(hidden)'}
+                                  </td>
+                                  <td className="px-3 py-2">{net.type || '—'}</td>
+                                  <td className="px-3 py-2 tabular-nums">{net.channel ?? '—'}</td>
+                                  <td className="px-3 py-2">{city}</td>
+                                  <td className="px-3 py-2">{state}</td>
+                                  <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                                    {firstSeen ? formatShortDate(firstSeen) : '—'}
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap tabular-nums">
+                                    {lastSeen ? formatShortDate(lastSeen) : '—'}
+                                  </td>
+                                </tr>
                               );
                             })}
                           </tbody>
@@ -645,6 +599,9 @@ export const WigleSearchTab: React.FC = () => {
           </AdminCard>
         </div>
       </div>
+
+      {/* Observations Card — populated when a network row is clicked */}
+      <ObservationsCard selectedNetwork={selectedNetwork} />
 
       {/* WiGLE Import Runs Section */}
       <WigleRunsCard
