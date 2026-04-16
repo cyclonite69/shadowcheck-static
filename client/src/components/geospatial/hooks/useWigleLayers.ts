@@ -120,6 +120,8 @@ export const useWigleLayers = ({
         className: 'sc-popup',
         offset: 14,
         focusAfterOpen: false,
+        closeOnClick: true,
+        closeButton: false,
       })
         .setLngLat(coords)
         .setHTML(initialHtml)

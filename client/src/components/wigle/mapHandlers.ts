@@ -9,7 +9,6 @@ import {
   cleanupPopupDrag,
   type PopupDragState,
 } from '../../utils/geospatial/setupPopupDrag';
-import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
 
 export const attachClickHandlers = (
   map: Map,
@@ -41,6 +40,8 @@ export const attachClickHandlers = (
       className: 'sc-popup',
       maxWidth: 'min(340px, 90vw)',
       focusAfterOpen: false,
+      closeOnClick: true,
+      closeButton: false,
     })
       .setLngLat(e.lngLat)
       .setHTML(placeholderHTML)
@@ -60,27 +61,18 @@ export const attachClickHandlers = (
       });
     }
 
-    // Setup drag and tether
+    // Setup drag
     let dragState: PopupDragState | null = null;
-    let pinCleanup: (() => void) | null = null;
 
     dragState = setupPopupDrag(popup, (offset) => {
       // Drag handler (tether line removed)
     });
-
-    // Tether line removed for cleaner UI
-
-    // Setup pin to viewport functionality
-    pinCleanup = setupPopupPin(popup, map);
 
     // Cleanup on popup close
     const originalRemove = popup.remove.bind(popup);
     popup.remove = function () {
       if (dragState) {
         cleanupPopupDrag(popup, dragState);
-      }
-      if (pinCleanup) {
-        pinCleanup();
       }
       return originalRemove();
     };
@@ -122,6 +114,8 @@ export const attachClickHandlers = (
       className: 'sc-popup',
       maxWidth: 'min(340px, 90vw)',
       focusAfterOpen: false,
+      closeOnClick: true,
+      closeButton: false,
     })
       .setLngLat(e.lngLat)
       .setHTML(html)

@@ -14,7 +14,6 @@ import {
   cleanupPopupDrag,
   type PopupDragState,
 } from '../../utils/geospatial/setupPopupDrag';
-import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
 
 export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
   return (e: any) => {
@@ -39,6 +38,8 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
       offset: 15,
       className: 'sc-popup',
       maxWidth: '340px',
+      closeOnClick: true,
+      closeButton: false,
     })
       .setLngLat(e.lngLat)
       .setHTML(placeholderHTML)
@@ -57,28 +58,19 @@ export function createUnclusteredClickHandler(mapboxgl: typeof mapboxglType) {
       });
     }
 
-    // Setup drag and tether
+    // Setup drag
     const map = e.target as Map;
     let dragState: PopupDragState | null = null;
-    let pinCleanup: (() => void) | null = null;
 
     dragState = setupPopupDrag(popup, (offset) => {
       // Drag handler (tether line removed)
     });
-
-    // Tether line removed for cleaner UI
-
-    // Setup pin to viewport functionality
-    pinCleanup = setupPopupPin(popup, map);
 
     // Cleanup on popup close
     const originalRemove = popup.remove.bind(popup);
     popup.remove = function () {
       if (dragState) {
         cleanupPopupDrag(popup, dragState);
-      }
-      if (pinCleanup) {
-        pinCleanup();
       }
       return originalRemove();
     };

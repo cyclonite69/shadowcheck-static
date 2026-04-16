@@ -24,10 +24,12 @@ export function mapObservationApiRow(row: ObservationApiRow): Observation | null
   const radioFrequency = toFiniteNumber(row.radio_frequency);
   const altitude = toFiniteNumber(row.altitude);
   const accuracy = toFiniteNumber(row.accuracy);
+  const ssid = typeof row.ssid === 'string' ? row.ssid : undefined;
 
   return {
     id: (row.obs_number as string | number) || `${bssid}-${String(row.time || '')}`,
     bssid,
+    ssid,
     lat,
     lon,
     signal,

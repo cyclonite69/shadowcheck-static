@@ -9,7 +9,6 @@ import {
   cleanupPopupDrag,
   type PopupDragState,
 } from '../../../utils/geospatial/setupPopupDrag';
-import { setupPopupPin } from '../../../utils/geospatial/setupPopupPin';
 
 export const useMapPopups = (
   mapRef: React.MutableRefObject<MapboxMap | null>,
@@ -49,7 +48,7 @@ export const useMapPopups = (
           className: 'sc-popup',
           maxWidth: 'min(340px, 90vw)',
           closeOnClick: true,
-          closeButton: true,
+          closeButton: false,
           focusAfterOpen: false,
         })
           .setLngLat(e.lngLat)
@@ -58,23 +57,16 @@ export const useMapPopups = (
 
         // Setup drag functionality
         let dragState: PopupDragState | null = null;
-        let pinCleanup: (() => void) | null = null;
 
         dragState = setupPopupDrag(popup, (_offset) => {
           // Drag handler (tether line removed)
         });
-
-        // Setup pin to viewport functionality
-        pinCleanup = setupPopupPin(popup, map);
 
         // Cleanup on popup close
         const originalRemove = popup.remove.bind(popup);
         popup.remove = function () {
           if (dragState) {
             cleanupPopupDrag(popup, dragState);
-          }
-          if (pinCleanup) {
-            pinCleanup();
           }
           return originalRemove();
         };

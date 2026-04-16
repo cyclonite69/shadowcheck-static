@@ -233,6 +233,7 @@ export const renderNetworkTooltip = (props: any): any => {
         ? '#facc15'
         : '#f87171';
   const signalValue = Number.isFinite(rssi) ? formatRSSI(rssi) : EM_DASH;
+  const hasSignal = Number.isFinite(rssi);
 
   const scoreFill = Number.isFinite(score) ? clamp(score, 0, 100) : 0;
   const scoreColor = !Number.isFinite(score)
@@ -243,9 +244,14 @@ export const renderNetworkTooltip = (props: any): any => {
         ? '#facc15'
         : '#f87171';
   const scoreText = Number.isFinite(score) ? score.toFixed(1) : EM_DASH;
+  const hasThreatScore = Number.isFinite(score);
 
   const qualityFill = Number.isFinite(quality) ? clamp(quality, 0, 100) : 0;
   const qualityText = Number.isFinite(quality) ? formatConfidence(quality, true) : EM_DASH;
+  const hasQuality = Number.isFinite(quality);
+
+  // Count visible stat cells for border logic
+  const statCellCount = [hasSignal, hasThreatScore, hasQuality].filter(Boolean).length;
 
   const hasBand = !isMissingValue(props.band);
 
@@ -288,7 +294,8 @@ export const renderNetworkTooltip = (props: any): any => {
     Number(props.sibling_count) > 0 ? `${Number(props.sibling_count)} radios` : '';
   const wigleValue = props.wigle_match ? 'Yes' : '';
   const accuracyNumber = Number(props.accuracy);
-  const accuracyValue = Number.isFinite(accuracyNumber) ? formatAccuracy(accuracyNumber) : '';
+  const accuracyValue =
+    Number.isFinite(accuracyNumber) && accuracyNumber > 0 ? formatAccuracy(accuracyNumber) : '';
   const altitudeNumber = Number(props.altitude);
   const altitudeValue =
     Number.isFinite(altitudeNumber) && Math.abs(altitudeNumber) > 0.5
@@ -354,6 +361,8 @@ export const renderNetworkTooltip = (props: any): any => {
 
   const locationText = buildLocation(props);
   const hasCoords = lat != null && lon != null;
+  const hasAddress =
+    !isMissingValue(props.geocoded_address) && String(props.geocoded_address).trim() !== '';
   const homeKm = Number(props.distance_from_home_km);
   const maxKm = Number(props.max_distance_km);
   const lastPointMeters = Number(props.distance_from_last_point_m);
@@ -368,17 +377,7 @@ export const renderNetworkTooltip = (props: any): any => {
   return `
 <div style="width:288px;max-width:min(340px, 90vw);max-height:480px;background:#1a1d23;border:2px solid ${bc};border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;">
-    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-      <span class="popup-drag-handle" title="Drag to move" aria-hidden="true">
-        <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
-          <circle cx="3" cy="3" r="1" fill="currentColor" />
-          <circle cx="7" cy="3" r="1" fill="currentColor" />
-          <circle cx="3" cy="7" r="1" fill="currentColor" />
-          <circle cx="7" cy="7" r="1" fill="currentColor" />
-          <circle cx="3" cy="11" r="1" fill="currentColor" />
-          <circle cx="7" cy="11" r="1" fill="currentColor" />
-        </svg>
-      </span>
+    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;display:flex;align-items:center;gap:6px;">
         <div style="flex-shrink:0;">${getRadioTypeIcon(displayRadioType, bc)}</div>
         <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ssid}</div>
@@ -390,24 +389,39 @@ export const renderNetworkTooltip = (props: any): any => {
     <div style="font-size:11px;font-family:monospace;color:${bc};letter-spacing:0.05em;word-break:break-all;">${bssid}</div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:8px;">
-    ${statsCell('Signal', signalValue, signalFill, signalColor)}
-    ${statsCell(
-      'Threat Score',
-      scoreText,
-      scoreFill,
-      scoreColor,
-      'border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);'
-    )}
-    ${statsCell('Data Quality', qualityText, qualityFill, '#60a5fa')}
-  </div>
+  ${
+    statCellCount > 0
+      ? `<div style="display:grid;grid-template-columns:${statCellCount === 1 ? '1fr' : statCellCount === 3 ? '1fr 1fr 1fr' : '1fr 1fr'};gap:0;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:8px;">
+    ${hasSignal ? statsCell('Signal', signalValue, signalFill, signalColor, statCellCount > 1 && hasThreatScore ? 'border-right:1px solid rgba(255,255,255,0.08);' : '') : ''}
+    ${
+      hasThreatScore
+        ? statsCell(
+            'Threat Score',
+            scoreText,
+            scoreFill,
+            scoreColor,
+            statCellCount === 3
+              ? 'border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);'
+              : statCellCount === 2
+                ? hasSignal
+                  ? 'border-left:1px solid rgba(255,255,255,0.08);'
+                  : 'border-right:1px solid rgba(255,255,255,0.08);'
+                : ''
+          )
+        : ''
+    }
+    ${hasQuality ? statsCell('Data Quality', qualityText, qualityFill, '#60a5fa', statCellCount > 1 && hasSignal && !hasThreatScore ? 'border-left:1px solid rgba(255,255,255,0.08);' : '') : ''}
+  </div>`
+      : ''
+  }
 
   ${fieldRows}
   ${formatThreatFactors(props.threat_factors)}
 
   <div style="padding:6px 12px 2px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.08);margin-top:2px;">Location</div>
-  ${locationText ? `<div style="padding:1px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}
-  ${hasCoords ? `<div title="${locationText ? `${locationText} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : `${lat.toFixed(6)}, ${lon.toFixed(6)}`}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;${locationText ? 'text-decoration:underline dotted rgba(255,255,255,0.2);' : ''}">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}${obsNumber > 0 && obsTotal > 0 ? `<span style="color:rgba(255,255,255,0.3);">#${obsNumber} / ${obsTotal}</span>` : ''}</div>` : ''}
+  ${hasAddress ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;">${String(props.geocoded_address)}</div>` : ''}
+  ${!hasAddress && locationText ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}
+  ${hasCoords ? `<div title="${hasAddress ? `${props.geocoded_address} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : locationText ? `${locationText} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : `${lat.toFixed(6)}, ${lon.toFixed(6)}`}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;text-decoration:underline dotted rgba(255,255,255,0.2);">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}${obsNumber > 0 && obsTotal > 0 ? `<span style="color:rgba(255,255,255,0.3);">#${obsNumber} / ${obsTotal}</span>` : ''}</div>` : ''}
   ${
     Number.isFinite(homeKm)
       ? `<div style="display:flex;align-items:center;gap:8px;padding:4px 12px;">
