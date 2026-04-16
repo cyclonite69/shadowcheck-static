@@ -9,6 +9,7 @@ import { networkApi } from '../../../api/networkApi';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 import { getPopupAnchor } from '../../../utils/geospatial/popupAnchor';
+import { popupStateManager } from '../../../utils/geospatial/popupStateManager';
 
 /** Amber for WiGLE-unique; green for locally correlated WiGLE points. */
 const WIGLE_UNIQUE_COLOR = '#f59e0b';
@@ -142,6 +143,16 @@ export const useWigleLayers = ({
         .setLngLat(coords)
         .setHTML(initialHtml)
         .addTo(map);
+
+      // Register this popup and close any previous one (single tooltip at a time)
+      popupStateManager.setActive(popup);
+
+      // Cleanup on popup close
+      const originalRemove = popup.remove.bind(popup);
+      popup.remove = function () {
+        popupStateManager.closeIfActive(popup);
+        return originalRemove();
+      };
 
       // Upgrade with full MV data if this BSSID is in the local DB
       const bssid = props.bssid;

@@ -1,9 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { Map as MapboxMap, MapLayerMouseEvent } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { getPopupAnchor } from '../../../utils/geospatial/popupAnchor';
+import { popupStateManager } from '../../../utils/geospatial/popupStateManager';
 import {
   setupPopupDrag,
   cleanupPopupDrag,
@@ -14,6 +15,8 @@ export const useMapPopups = (
   mapRef: React.MutableRefObject<MapboxMap | null>,
   mapboxRef: React.MutableRefObject<typeof mapboxglType | null>
 ) => {
+  const dragStateRef = useRef<PopupDragState | null>(null);
+
   const attachPopupHandlers = useCallback(
     (map: MapboxMap) => {
       const mapboxgl = mapboxRef.current;
@@ -55,19 +58,22 @@ export const useMapPopups = (
           .setHTML(popupHTML)
           .addTo(map);
 
-        // Setup drag functionality
-        let dragState: PopupDragState | null = null;
+        // Register this popup and close any previous one (single tooltip at a time)
+        popupStateManager.setActive(popup);
 
-        dragState = setupPopupDrag(popup, (_offset) => {
+        // Setup drag functionality
+        dragStateRef.current = setupPopupDrag(popup, (_offset) => {
           // Drag handler (tether line removed)
         });
 
         // Cleanup on popup close
         const originalRemove = popup.remove.bind(popup);
         popup.remove = function () {
-          if (dragState) {
-            cleanupPopupDrag(popup, dragState);
+          if (dragStateRef.current) {
+            cleanupPopupDrag(popup, dragStateRef.current);
+            dragStateRef.current = null;
           }
+          popupStateManager.closeIfActive(popup);
           return originalRemove();
         };
       };
