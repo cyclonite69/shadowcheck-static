@@ -6,7 +6,7 @@ import { buildObservationSecurityTemporalPredicates } from '../../server/src/ser
 import { buildObservationSpatialQualityPredicates } from '../../server/src/services/filterQueryBuilder/modules/observationSpatialQualityPredicates';
 
 describe('observation filter helper modules', () => {
-  test('identity helper tokenizes SSID and adds manufacturer join when needed', () => {
+  test('identity helper adds manufacturer join (SSID filtering moved to network level)', () => {
     const ctx = new FilterBuildContext(
       { ssid: 'Home, Guest', manufacturer: 'Cisco' },
       { ssid: true, manufacturer: true }
@@ -14,12 +14,13 @@ describe('observation filter helper modules', () => {
 
     const where = buildObservationIdentityPredicates(ctx);
 
-    expect(where[0]).toContain('OR');
-    expect(where[1]).toContain('rm.manufacturer ILIKE');
+    // SSID filtering is now done at network level (networkWhereBuilder), not observation level
+    // Only manufacturer filter should be present here
+    expect(where[0]).toContain('rm.manufacturer ILIKE');
     expect(Array.from(ctx.obsJoins).some((join) => join.includes('radio_manufacturers'))).toBe(
       true
     );
-    expect(ctx.getParams()).toEqual(['%Home%', '%Guest%', '%Cisco%']);
+    expect(ctx.getParams()).toEqual(['%Cisco%']);
   });
 
   test('security/temporal helper applies encryption, warning, and timeframe params', () => {
