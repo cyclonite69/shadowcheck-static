@@ -381,20 +381,14 @@ export const countRecentCancelledByFingerprint = async (
 };
 
 // Finds IDs of cancelled Global (state IS NULL) runs that cluster within windowSeconds of each other
-export const findGlobalCancelledClusterIds = async (windowSeconds = 60): Promise<number[]> => {
+// Returns IDs of ALL cancelled Global (state IS NULL) runs — no time-window restriction.
+export const findGlobalCancelledClusterIds = async (): Promise<number[]> => {
   const result = await query(
-    `WITH ranked AS (
-       SELECT id, started_at,
-              FIRST_VALUE(started_at) OVER (ORDER BY started_at) AS earliest
+    `SELECT id
        FROM app.wigle_import_runs
-       WHERE status = 'cancelled'
-         AND state IS NULL
-     )
-     SELECT id
-       FROM ranked
-      WHERE EXTRACT(EPOCH FROM (started_at - earliest)) <= $1
-      ORDER BY started_at`,
-    [windowSeconds]
+      WHERE status = 'cancelled'
+        AND state IS NULL
+      ORDER BY started_at`
   );
   return result.rows.map((r: any) => Number(r.id));
 };

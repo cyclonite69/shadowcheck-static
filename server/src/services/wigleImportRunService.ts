@@ -349,7 +349,7 @@ const getImportCompletenessReport = async (options: { searchTerm?: string; state
 };
 
 const bulkDeleteGlobalCancelledCluster = async (): Promise<number> => {
-  const ids = await findGlobalCancelledClusterIds(60);
+  const ids = await findGlobalCancelledClusterIds();
   if (ids.length === 0) return 0;
   return bulkDeleteCancelledRunsByIds(ids);
 };

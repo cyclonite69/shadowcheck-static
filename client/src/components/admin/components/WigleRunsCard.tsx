@@ -95,24 +95,8 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
   const [page, setPage] = React.useState(0);
   const PAGE_SIZE = 25;
 
-  // Detect cluster: 3+ CANCELLED runs with null state created within 60s of each other
-  const cancelledGlobal = runs.filter((r) => r.status === 'cancelled' && !r.state);
-  const clusterIds = React.useMemo(() => {
-    if (cancelledGlobal.length < 3) return [];
-    const sorted = [...cancelledGlobal].sort(
-      (a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
-    );
-    // Find the largest cluster within 60s window
-    let best: number[] = [];
-    for (let i = 0; i < sorted.length; i++) {
-      const anchor = new Date(sorted[i].startedAt).getTime();
-      const cluster = sorted
-        .filter((r) => Math.abs(new Date(r.startedAt).getTime() - anchor) <= 60_000)
-        .map((r) => r.id);
-      if (cluster.length >= 3 && cluster.length > best.length) best = cluster;
-    }
-    return best;
-  }, [cancelledGlobal]);
+  // All cancelled Global (no state) runs — any count ≥ 1 shows the cleanup button
+  const cancelledGlobalCount = runs.filter((r) => r.status === 'cancelled' && !r.state).length;
 
   const filteredRuns = React.useMemo(
     () =>
@@ -144,12 +128,12 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
             Automated search loops. Resumable via cursor-based pagination.
           </p>
           <div className="flex items-center gap-2">
-            {clusterIds.length >= 3 && (
+            {cancelledGlobalCount > 0 && (
               <button
                 onClick={async () => {
                   if (
                     !window.confirm(
-                      `Delete ${clusterIds.length} cancelled Global runs from the timestamp cluster? This cannot be undone.`
+                      `Delete all ${cancelledGlobalCount} cancelled Global runs? This cannot be undone.`
                     )
                   )
                     return;
@@ -157,9 +141,9 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
                 }}
                 disabled={loading || actionLoading}
                 className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300 border border-red-500/30 bg-red-500/10 rounded hover:bg-red-500/20 transition-colors disabled:opacity-30"
-                title={`${clusterIds.length} cancelled Global runs in a tight timestamp cluster`}
+                title={`${cancelledGlobalCount} cancelled Global runs`}
               >
-                Clean Up ({clusterIds.length})
+                Clean Up ({cancelledGlobalCount})
               </button>
             )}
             <button
