@@ -31,6 +31,8 @@ export async function getObservationsByBSSID(
             COALESCE(NULLIF(o.ssid, ''), '(hidden)') as ssid, o.radio_type as type,
             o.lat, o.lon, o.level as signal, EXTRACT(EPOCH FROM o.time)::BIGINT * 1000 as time,
             COALESCE(o.accuracy, 3.79) as acc, o.altitude as alt,
+            gc.address as geocoded_address, gc.city as geocoded_city, gc.state as geocoded_state,
+            gc.poi_name as geocoded_poi_name,
             CASE
               WHEN $1::numeric IS NOT NULL AND $2::numeric IS NOT NULL THEN
                 ST_Distance(
@@ -40,6 +42,9 @@ export async function getObservationsByBSSID(
               ELSE NULL
             END as distance_from_home_km
      FROM app.observations o
+     LEFT JOIN app.geocoding_cache gc ON gc.precision = 4
+       AND gc.lat_round = ROUND(o.lat::numeric, 4)
+       AND gc.lon_round = ROUND(o.lon::numeric, 4)
      WHERE o.bssid = $3
        AND o.geom IS NOT NULL
        AND COALESCE(o.is_quality_filtered, false) = false
