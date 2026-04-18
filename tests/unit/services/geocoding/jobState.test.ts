@@ -68,6 +68,17 @@ describe('jobState', () => {
       expect(snapshot.precision).toBe(5);
       expect(snapshot.limit).toBe(1000);
     });
+
+    it('should use default values for precision, limit, and perMinute if not provided', () => {
+      const options = {
+        provider: 'mapbox' as const,
+        mode: 'address-only' as const,
+      };
+      const snapshot = createRunSnapshot('running', options as any);
+      expect(snapshot.precision).toBe(5);
+      expect(snapshot.limit).toBe(1000);
+      expect(snapshot.perMinute).toBe(200);
+    });
   });
 
   describe('loadRecentJobHistory', () => {
@@ -110,6 +121,32 @@ describe('jobState', () => {
         durationMs: 5000,
       });
     });
+
+    it('should handle rows with missing results and string dates', async () => {
+      const mockRows = [
+        {
+          id: '2',
+          status: 'running',
+          provider: 'mapbox',
+          mode: 'address-only',
+          precision: '5',
+          limit_rows: '100',
+          per_minute: '60',
+          permanent: false,
+          processed: null,
+          started_at: '2023-02-01 10:00:00',
+          finished_at: null,
+          error: 'Some error',
+        },
+      ];
+      (query as jest.Mock).mockResolvedValue({ rows: mockRows });
+
+      const history = await loadRecentJobHistory();
+      expect(history[0].result).toBeUndefined();
+      expect(history[0].startedAt).toBe('2023-02-01 10:00:00');
+      expect(history[0].finishedAt).toBeUndefined();
+      expect(history[0].error).toBe('Some error');
+    });
   });
 
   describe('getProbeCoordinates', () => {
@@ -139,14 +176,10 @@ describe('jobState', () => {
       };
       const id = await createJobRun(options);
       expect(id).toBe(123);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO app.geocoding_job_runs'), [
-        'mapbox',
-        'address-only',
-        5,
-        1000,
-        200,
-        false,
-      ]);
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO app.geocoding_job_runs'),
+        ['mapbox', 'address-only', 5, 1000, 200, false]
+      );
     });
   });
 
@@ -160,14 +193,10 @@ describe('jobState', () => {
         durationMs: 10000,
       };
       await completeJobRun(123, result as any);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining("status = 'completed'"), [
-        123,
-        100,
-        90,
-        5,
-        1,
-        10000,
-      ]);
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining("status = 'completed'"),
+        [123, 100, 90, 5, 1, 10000]
+      );
     });
   });
 
@@ -180,21 +209,20 @@ describe('jobState', () => {
         rateLimited: 0,
       };
       await updateJobRunProgress(123, result, 5000);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining("status = 'running'"), [
-        123,
-        50,
-        45,
-        2,
-        0,
-        5000,
-      ]);
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining("status = 'running'"),
+        [123, 50, 45, 2, 0, 5000]
+      );
     });
   });
 
   describe('failJobRun', () => {
     it('should update status to failed', async () => {
       await failJobRun(123, 'some error');
-      expect(query).toHaveBeenCalledWith(expect.stringContaining("status = 'failed'"), [123, 'some error']);
+      expect(query).toHaveBeenCalledWith(expect.stringContaining("status = 'failed'"), [
+        123,
+        'some error',
+      ]);
     });
   });
 
@@ -203,7 +231,10 @@ describe('jobState', () => {
       (query as jest.Mock).mockResolvedValue({ rows: [{ acquired: true }] });
       const acquired = await acquireGeocodingRunLock();
       expect(acquired).toBe(true);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('pg_try_advisory_lock'), [74100531]);
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining('pg_try_advisory_lock'),
+        [74100531]
+      );
     });
 
     it('releaseGeocodingRunLock should call unlock', async () => {

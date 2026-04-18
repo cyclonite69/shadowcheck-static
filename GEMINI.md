@@ -134,6 +134,21 @@ All routes use `/api/v1/` or `/api/v2/` prefixes.
 
 Use PostGIS `ST_Distance` (spheroid) for all distance-based SQL logic.
 
+### Multi-Agent Orchestration
+
+For large-scale efforts (e.g., expanding test coverage across multiple
+directories, project-wide audits, or bulk refactoring), **ALWAYS** prioritize
+parallel execution by spawning multiple `generalist` subagents.
+
+- **Task Partitioning:** Divide the objective into independent, logical batches
+  (e.g., by service category or directory).
+- **Concurrency:** Assign each batch to a separate subagent to maximize
+  throughput.
+- **Conflict Avoidance:** Ensure subagents work on distinct files to prevent
+  race conditions.
+- **Verification:** Subagents must report specific outcomes (e.g., coverage %
+  achieved, logical bugs fixed, or standard verification results).
+
 ### Security
 
 - Validate all inputs with Joi or Zod
