@@ -96,6 +96,18 @@ describe('pgAdmin control', () => {
       expect(status.dockerAvailable).toBe(false);
       expect(status.error).toBe('Docker not found');
     });
+
+    it('should clear error if docker is unavailable but HTTP probe succeeds', async () => {
+      mockState.runCommand.mockRejectedValue(new Error('Docker not found'));
+      mockState.probePgAdminReachable.mockResolvedValue(true);
+
+      const status = await control.getPgAdminStatus();
+
+      expect(status.dockerAvailable).toBe(false);
+      expect(status.container.running).toBe(true);
+      expect(status.container.status).toContain('Reachable (HTTP probe)');
+      expect(status.error).toBe('');
+    });
   });
 
   describe('destroyPgAdmin', () => {
@@ -109,6 +121,11 @@ describe('pgAdmin control', () => {
         expect.any(Object)
       );
     });
+
+    it('should work without arguments', async () => {
+      await control.destroyPgAdmin();
+      expect(mockState.removePgAdminContainer).toHaveBeenCalled();
+    });
   });
 
   describe('startPgAdmin', () => {
@@ -118,6 +135,13 @@ describe('pgAdmin control', () => {
       await control.startPgAdmin({ reset: true });
 
       expect(mockState.removePgAdminContainer).toHaveBeenCalled();
+    });
+
+    it('should handle start failure', async () => {
+      mockState.runCommand.mockResolvedValueOnce({ stdout: 'true' }); // Already exists (but maybe stopped)
+      mockState.runCommand.mockRejectedValueOnce(new Error('Start failed')); // start fails
+
+      await expect(control.startPgAdmin()).rejects.toThrow('Start failed');
     });
 
     it('should start existing stopped container', async () => {
