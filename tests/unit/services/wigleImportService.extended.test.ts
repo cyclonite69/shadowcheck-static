@@ -43,7 +43,7 @@ describe('wigleImportService - Extended', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.readdirSync as jest.Mock).mockReturnValue(['data.json']);
 
-      const result = await wigleImportService.importWigleDirectory('/test');
+      const result = await (wigleImportService as any).importWigleDirectory('/test');
       expect(result.totalImported).toBe(2);
       expect(mockClient.query).toHaveBeenCalledWith('BEGIN');
       expect(mockClient.query).toHaveBeenCalledWith('COMMIT');
@@ -71,7 +71,7 @@ describe('wigleImportService - Extended', () => {
         return Promise.resolve({ rows: [], rowCount: 0 });
       });
 
-      const result = await wigleImportService.importWigleDirectory('/test');
+      const result = await (wigleImportService as any).importWigleDirectory('/test');
       expect(result.totalImported).toBe(2);
       expect(mockClient.query).toHaveBeenCalledWith('ROLLBACK TO SAVEPOINT sp_network');
       expect(logger.error).toHaveBeenCalledWith(
@@ -84,7 +84,7 @@ describe('wigleImportService - Extended', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.readdirSync as jest.Mock).mockReturnValue(['data.json']);
 
-      const result = await wigleImportService.importWigleDirectory('/test');
+      const result = await (wigleImportService as any).importWigleDirectory('/test');
       expect(result.totalImported).toBe(0);
       expect(result.results[0].error).toBeDefined();
       // In importWigleV2Json, JSON.parse happens before BEGIN?
@@ -105,7 +105,7 @@ describe('wigleImportService - Extended', () => {
       (fs.readdirSync as jest.Mock).mockReturnValue(['data.json', 'readme.txt', 'other.json']);
       (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({ results: [] }));
 
-      const result = await wigleImportService.importWigleDirectory('/test');
+      const result = await (wigleImportService as any).importWigleDirectory('/test');
       expect(result.results).toHaveLength(2);
       expect(result.results[0].file).toBe('data.json');
       expect(result.results[1].file).toBe('other.json');
@@ -118,7 +118,7 @@ describe('wigleImportService - Extended', () => {
         throw new Error('Read error');
       });
 
-      const result = await wigleImportService.importWigleDirectory('/test');
+      const result = await (wigleImportService as any).importWigleDirectory('/test');
       expect(result.totalImported).toBe(0);
       expect(result.results[0].error).toBe('Read error');
     });
