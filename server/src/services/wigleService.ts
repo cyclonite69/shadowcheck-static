@@ -230,6 +230,24 @@ export async function getWigleDetail(netid: string): Promise<any | null> {
   return getWigleNetworkByBSSID(netid);
 }
 
+export async function getRecentWigleDetailImport(
+  netid: string,
+  withinHours: number
+): Promise<any | null> {
+  const hours = Number.isFinite(withinHours) && withinHours > 0 ? withinHours : 24;
+  const { rows } = await query(
+    `SELECT *
+       FROM app.wigle_v3_network_details
+      WHERE netid = $1
+        AND imported_at >= NOW() - ($2::int * INTERVAL '1 hour')
+      ORDER BY imported_at DESC
+      LIMIT 1`,
+    [netid, Math.floor(hours)]
+  );
+
+  return rows[0] || null;
+}
+
 /**
  * Paginated observation timeline for a network.
  *
@@ -323,6 +341,8 @@ export async function getKmlPointsForMap(params: {
  */
 export async function getUserStats(): Promise<any> {
   const secretsManager = require('./secretsManager').default;
+  const { fetchWigle } = require('./wigleClient');
+  const { hashRecord } = require('./wigleRequestUtils');
   const name = secretsManager.get('wigle_api_name');
   const token = secretsManager.get('wigle_api_token');
 
@@ -332,9 +352,19 @@ export async function getUserStats(): Promise<any> {
 
   const encoded = Buffer.from(`${name}:${token}`).toString('base64');
 
-  const response = await fetch('https://api.wigle.net/api/v2/stats/user', {
-    headers: {
-      Authorization: `Basic ${encoded}`,
+  const response = await fetchWigle({
+    kind: 'stats',
+    url: 'https://api.wigle.net/api/v2/stats/user',
+    timeoutMs: 15000,
+    maxRetries: 0,
+    label: 'WiGLE User Stats',
+    entrypoint: 'stats',
+    paramsHash: hashRecord({ endpoint: 'v2/stats/user' }),
+    endpointType: 'v2/stats/user',
+    init: {
+      headers: {
+        Authorization: `Basic ${encoded}`,
+      },
     },
   });
 
@@ -360,6 +390,7 @@ module.exports = {
   importWigleV2SearchResult,
   getWigleDatabase,
   getWigleDetail,
+  getRecentWigleDetailImport,
   getWigleObservations,
   getKmlPointsForMap,
   getUserStats,

@@ -4,7 +4,8 @@ const { adminQuery } = require('./adminDbService');
 const wigleService = require('./wigleService');
 const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
-const { withRetry } = require('./externalServiceHandler');
+const { fetchWigle } = require('./wigleClient');
+const { hashRecord } = require('./wigleRequestUtils');
 
 type ListOrphanNetworksOptions = {
   search?: string;
@@ -116,16 +117,26 @@ async function fetchWigleDetail(bssid: string, endpoint: 'wifi' | 'bt') {
   }
 
   const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
-  const response = await withRetry(
-    () =>
-      fetch(`https://api.wigle.net/api/v3/detail/${endpoint}/${bssid}`, {
-        headers: {
-          Authorization: `Basic ${encodedAuth}`,
-          Accept: 'application/json',
-        },
-      }),
-    { serviceName: 'WiGLE Orphan Backfill', timeoutMs: 15000, maxRetries: 2 }
-  );
+  const response = await fetchWigle({
+    kind: 'detail',
+    url: `https://api.wigle.net/api/v3/detail/${endpoint}/${bssid}`,
+    timeoutMs: 15000,
+    maxRetries: 1,
+    label: 'WiGLE Orphan Backfill',
+    entrypoint: 'orphan-backfill',
+    paramsHash: hashRecord({ endpoint, bssid }),
+    endpointType: `v3/detail/${endpoint}`,
+    init: {
+      headers: {
+        Authorization: `Basic ${encodedAuth}`,
+        Accept: 'application/json',
+      },
+    },
+  });
+
+  if (!response) {
+    throw new Error('WiGLE detail request returned no response');
+  }
 
   if (response.status === 404) {
     return { ok: false, status: 404, data: null };

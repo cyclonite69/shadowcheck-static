@@ -5,6 +5,7 @@ import express from 'express';
 const mockContainer = {
   wigleService: {
     getWigleDetail: jest.fn(),
+    getRecentWigleDetailImport: jest.fn(),
     importWigleV3NetworkDetail: jest.fn(),
     importWigleV3Observation: jest.fn(),
     getWigleObservations: jest.fn(),
@@ -21,7 +22,10 @@ const mockWigleEnrichmentService = {
 
 // Mock dependencies
 jest.mock('../../../../server/src/config/container', () => mockContainer);
-jest.mock('../../../../server/src/services/wigleEnrichmentService', () => mockWigleEnrichmentService);
+jest.mock(
+  '../../../../server/src/services/wigleEnrichmentService',
+  () => mockWigleEnrichmentService
+);
 
 jest.mock('../../../../server/src/services/secretsManager', () => ({
   __esModule: true,
@@ -62,6 +66,8 @@ global.fetch = mockFetch as any;
 describe('WiGLE Detail API v1', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    require('../../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
+    mockContainer.wigleService.getRecentWigleDetailImport.mockResolvedValue(null);
     const secretsManager = require('../../../../server/src/services/secretsManager').default;
     secretsManager.get.mockImplementation((key: string) => {
       if (key === 'wigle_api_name') return 'test_user';
@@ -134,11 +140,16 @@ describe('WiGLE Detail API v1', () => {
     });
 
     it('POST /enrichment/start should start enrichment', async () => {
-      mockWigleEnrichmentService.startBatchEnrichment.mockResolvedValue({ id: 1, status: 'running' });
-
-      const res = await request(app).post('/api/v1/wigle/enrichment/start').send({
-        bssids: ['00:11:22:33:44:55'],
+      mockWigleEnrichmentService.startBatchEnrichment.mockResolvedValue({
+        id: 1,
+        status: 'running',
       });
+
+      const res = await request(app)
+        .post('/api/v1/wigle/enrichment/start')
+        .send({
+          bssids: ['00:11:22:33:44:55'],
+        });
 
       expect(res.status).toBe(200);
       expect(res.body.run.id).toBe(1);

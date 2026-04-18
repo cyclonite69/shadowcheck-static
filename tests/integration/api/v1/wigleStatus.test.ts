@@ -6,6 +6,10 @@ jest.mock('../../../../server/src/services/secretsManager', () => ({
   get: jest.fn(),
 }));
 
+jest.mock('../../../../server/src/middleware/authMiddleware', () => ({
+  requireAdmin: (_req: any, _res: any, next: any) => next(),
+}));
+
 const secretsManager = require('../../../../server/src/services/secretsManager');
 const statusRouter = require('../../../../server/src/api/routes/v1/wigle/status').default;
 

@@ -3,7 +3,7 @@ const logger = require('../logging/logger');
 
 // Type definitions for threat scoring
 
-type ThreatLevel = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW' | 'NONE';
+type ThreatLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 
 interface ThreatScoringStats {
   totalProcessed: number;
@@ -76,26 +76,21 @@ class ThreatScoringService {
         scored AS (
           SELECT
             t.bssid,
-            calculate_threat_score_v4(t.bssid) AS details
+            calculate_threat_score_v5(t.bssid) AS details
           FROM targets t
         )
         INSERT INTO app.network_threat_scores
-          (bssid, rule_based_score, rule_based_flags, final_threat_score,
-           final_threat_level, model_version, scored_at)
+          (bssid, rule_based_score, rule_based_flags, model_version, scored_at)
         SELECT
           bssid,
           (details->>'total_score')::numeric,
           details->'components',
-          (details->>'total_score')::numeric,
-          details->>'threat_level',
           details->>'model_version',
           NOW()
         FROM scored
         ON CONFLICT (bssid) DO UPDATE SET
           rule_based_score = EXCLUDED.rule_based_score,
           rule_based_flags = EXCLUDED.rule_based_flags,
-          final_threat_score = EXCLUDED.final_threat_score,
-          final_threat_level = EXCLUDED.final_threat_level,
           model_version = EXCLUDED.model_version,
           scored_at = NOW(),
           updated_at = NOW()

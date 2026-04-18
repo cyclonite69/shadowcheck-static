@@ -12,19 +12,18 @@ const {
   registerSmartyRoutes,
   registerWiGLERoutes,
 } = require('./settingsMultiSecretRoutes');
-const { getConfiguredAwsRegion, getErrorMessage, validateAwsRegion } = require('./settingsHelpers');
 
 registerWiGLERoutes({ router, secretsManager });
 registerMapboxTokenRoutes({ router, secretsManager });
 registerSmartyRoutes({ router, secretsManager });
 registerMapboxCleanupRoutes({ router, secretsManager });
-registerProviderSecretRoutes({ router, secretsManager });
+const { getConfiguredAwsRegion, getErrorMessage, validateAwsRegion } = require('./settingsHelpers');
 
 // Get AWS runtime configuration (region only; credentials use provider chain)
 router.get('/settings/aws', requireAuth, async (req: Request, res: Response) => {
   try {
-    const region =
-      (await getConfiguredAwsRegion()) || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
+    const configuredRegion = await getConfiguredAwsRegion();
+    const region = configuredRegion || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
 
     res.json({
       configured: Boolean(region),

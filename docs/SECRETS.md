@@ -30,6 +30,14 @@ const dbPassword = secretsManager.get('db_password');
 ### Scripts (Bash)
 Use `aws secretsmanager get-secret-value` with `jq` to parse the `SecretString`.
 
+### Bitwarden Backup
+
+Use `node scripts/backup-sm-to-bitwarden.js` for a one-way backup of the
+AWS `SecretString` into a Bitwarden secure note. The note body is the raw JSON
+blob so the stored shape still matches `shadowcheck/config` on restore. The
+script does not write secret values to disk, but `bw` must already be logged in
+and unlocked.
+
 ## Rotation Policy
 
 - **Schedule**: Database and API secrets should be rotated every 90 days.

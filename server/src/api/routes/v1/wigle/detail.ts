@@ -10,7 +10,10 @@ const { wigleService } = require('../../../../config/container');
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
-import { withRetry } from '../../../../services/externalServiceHandler';
+import { logWigleAuditEvent } from '../../../../services/wigleAuditLogger';
+import { assertBulkWigleAllowed } from '../../../../services/wigleBulkPolicy';
+import { fetchWigle } from '../../../../services/wigleClient';
+import { hashRecord } from '../../../../services/wigleRequestUtils';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 
 interface FileUploadRequest extends Request {
@@ -131,16 +134,22 @@ async function fetchWigleDetail(netid: string, endpoint: string) {
 
   logger.info(`[WiGLE] Fetching ${endpoint} detail for: ${netid}`);
 
-  const response = await withRetry(
-    () =>
-      fetch(apiUrl, {
-        headers: {
-          Authorization: `Basic ${encodedAuth}`,
-          Accept: 'application/json',
-        },
-      }),
-    { serviceName: 'WiGLE Detail API', timeoutMs: 15000, maxRetries: 2 }
-  );
+  const response = await fetchWigle({
+    kind: 'detail',
+    url: apiUrl,
+    timeoutMs: 15000,
+    maxRetries: 1,
+    label: 'WiGLE Detail API',
+    entrypoint: 'manual-detail',
+    paramsHash: hashRecord({ endpoint, netid }),
+    endpointType: `v3/detail/${endpoint}`,
+    init: {
+      headers: {
+        Authorization: `Basic ${encodedAuth}`,
+        Accept: 'application/json',
+      },
+    },
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -161,6 +170,10 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
   try {
     const netid = (req.params.netid || '').trim().toUpperCase();
     const shouldImport = req.body?.import === true;
+    const recentImportHours = Math.max(
+      1,
+      Number(process.env.WIGLE_DETAIL_IMPORT_DEDUPE_HOURS || 24)
+    );
 
     if (!shouldImport) {
       const cached = await wigleService.getWigleDetail(netid);
@@ -173,6 +186,39 @@ async function handleWigleDetailRequest(req: any, res: any, next: any, endpoint:
           cached: true,
           importedObservations: 0,
           totalObservations: 0,
+          attemptedObservations: 0,
+          failedObservations: 0,
+        });
+      }
+    }
+
+    if (shouldImport) {
+      const recentImport = await wigleService.getRecentWigleDetailImport(netid, recentImportHours);
+      if (recentImport) {
+        const importedSnapshot = await wigleService.getWigleObservations(netid, 1, 0);
+        logger.info('[WiGLE] Skipping upstream detail call because recent import already exists', {
+          endpoint,
+          netid,
+          recentImportHours,
+        });
+        logWigleAuditEvent({
+          entrypoint: 'manual-detail-import',
+          endpointType: `v3/detail/${endpoint}`,
+          paramsHash: hashRecord({ endpoint, netid }),
+          status: 'CACHE_HIT',
+          latencyMs: 0,
+          servedFromCache: true,
+          retryCount: 0,
+          kind: 'detail',
+        });
+        return res.json({
+          ok: true,
+          data: stripNullBytesDeep(mapCachedDetailToApiShape(recentImport)),
+          imported: false,
+          cached: true,
+          deduplicated: true,
+          importedObservations: 0,
+          totalObservations: importedSnapshot.total,
           attemptedObservations: 0,
           failedObservations: 0,
         });
@@ -397,11 +443,21 @@ router.get(
 router.post(
   '/enrichment/start',
   requireAdmin,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { bssids } = req.body;
-    const run = await wigleEnrichmentService.startBatchEnrichment(bssids);
-    res.json({ ok: true, run });
-  })
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { bssids } = req.body;
+      if (!Array.isArray(bssids) || bssids.length === 0) {
+        assertBulkWigleAllowed('Start Batch Enrichment (Full Backlog)');
+      }
+      const run = await wigleEnrichmentService.startBatchEnrichment(bssids);
+      res.json({ ok: true, run });
+    } catch (err: any) {
+      if (err?.status === 403) {
+        return res.status(403).json({ ok: false, error: err.message, code: err.code });
+      }
+      next(err);
+    }
+  }
 );
 
 /**

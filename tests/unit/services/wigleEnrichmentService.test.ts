@@ -8,7 +8,6 @@ import {
 import { adminQuery } from '../../../server/src/services/adminDbService';
 import * as wigleService from '../../../server/src/services/wigleService';
 import secretsManager from '../../../server/src/services/secretsManager';
-import { withRetry } from '../../../server/src/services/externalServiceHandler';
 import * as runRepo from '../../../server/src/services/wigleImport/runRepository';
 
 jest.mock('../../../server/src/services/adminDbService', () => ({
@@ -17,13 +16,14 @@ jest.mock('../../../server/src/services/adminDbService', () => ({
 
 jest.mock('../../../server/src/services/wigleService');
 jest.mock('../../../server/src/services/secretsManager');
-jest.mock('../../../server/src/services/externalServiceHandler');
 jest.mock('../../../server/src/services/wigleImport/runRepository');
 jest.mock('../../../server/src/logging/logger');
 
 describe('wigleEnrichmentService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.WIGLE_ALLOW_BULK = 'I_UNDERSTAND';
+    require('../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
     // @ts-ignore
     global.fetch = jest.fn();
     // @ts-ignore
@@ -68,7 +68,7 @@ describe('wigleEnrichmentService', () => {
         ssid: 'Test',
         bssid: 'AA:',
       });
-      
+
       expect(adminQuery).toHaveBeenCalledWith(
         expect.stringContaining('ILIKE'),
         expect.arrayContaining(['US%', 'NYC%', '%Test%', 'AA:%'])
@@ -139,9 +139,9 @@ describe('wigleEnrichmentService', () => {
       (adminQuery as jest.Mock).mockResolvedValue({ rows: [{ count: 5 }] });
       (runRepo.createImportRun as jest.Mock).mockResolvedValue({ id: 123 });
       (runRepo.getImportRun as jest.Mock).mockResolvedValue({ id: 123, status: 'running' });
-      
+
       const result = await startBatchEnrichment();
-      
+
       expect(result.id).toBe(123);
       expect(runRepo.createImportRun).toHaveBeenCalled();
       expect(adminQuery).toHaveBeenCalledWith(
@@ -153,13 +153,15 @@ describe('wigleEnrichmentService', () => {
     it('should handle manual BSSIDs', async () => {
       (runRepo.createImportRun as jest.Mock).mockResolvedValue({ id: 123 });
       (runRepo.getImportRun as jest.Mock).mockResolvedValue({ id: 123, status: 'running' });
-      
+
       const result = await startBatchEnrichment(['AA:BB:CC']);
-      
+
       expect(result.id).toBe(123);
-      expect(runRepo.createImportRun).toHaveBeenCalledWith(expect.objectContaining({
-        source: 'v3_manual'
-      }));
+      expect(runRepo.createImportRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: 'v3_manual',
+        })
+      );
     });
   });
 
@@ -167,7 +169,7 @@ describe('wigleEnrichmentService', () => {
     it('should update run status and start loop', async () => {
       (adminQuery as jest.Mock).mockResolvedValue({ rows: [{ id: 123, status: 'running' }] });
       (runRepo.getImportRun as jest.Mock).mockResolvedValue({ id: 123, status: 'running' });
-      
+
       const result = await resumeEnrichment(123);
       expect(result.status).toBe('running');
       expect(adminQuery).toHaveBeenCalledWith(
@@ -199,21 +201,20 @@ describe('wigleEnrichmentService', () => {
 
       // Mock for fetchAndImportDetail
       (secretsManager.get as jest.Mock).mockReturnValue('mock');
-      (withRetry as jest.Mock).mockImplementation((fn) => fn());
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         status: 200,
         json: jest.fn().mockResolvedValue({
           networkId: 'AA:BB:CC',
-          locationClusters: [{ locations: [{ lat: 1 }] }]
+          locationClusters: [{ locations: [{ lat: 1 }] }],
         }),
       });
 
       await startBatchEnrichment();
 
       // Wait for background loop to finish (since I mocked setTimeout to call immediately and nextTick)
-      await new Promise(resolve => process.nextTick(resolve));
-      await new Promise(resolve => process.nextTick(resolve));
+      await new Promise((resolve) => process.nextTick(resolve));
+      await new Promise((resolve) => process.nextTick(resolve));
 
       expect(wigleService.importWigleV3NetworkDetail).toHaveBeenCalled();
       expect(wigleService.importWigleV3Observation).toHaveBeenCalled();
@@ -233,7 +234,6 @@ describe('wigleEnrichmentService', () => {
       (runRepo.getImportRun as jest.Mock).mockResolvedValue({ id: 123, status: 'running' });
 
       (secretsManager.get as jest.Mock).mockReturnValue('mock');
-      (withRetry as jest.Mock).mockImplementation((fn) => fn());
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 500,
@@ -241,7 +241,7 @@ describe('wigleEnrichmentService', () => {
       });
 
       await startBatchEnrichment();
-      await new Promise(resolve => process.nextTick(resolve));
+      await new Promise((resolve) => process.nextTick(resolve));
 
       // Should have logged error but continued (or in this case finished because next batch is empty)
       expect(runRepo.completeRun).toHaveBeenCalledWith(123);
@@ -258,7 +258,6 @@ describe('wigleEnrichmentService', () => {
       (runRepo.getImportRun as jest.Mock).mockResolvedValue({ id: 123, status: 'running' });
 
       (secretsManager.get as jest.Mock).mockReturnValue('mock');
-      (withRetry as jest.Mock).mockImplementation((fn) => fn());
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 429,
@@ -266,7 +265,7 @@ describe('wigleEnrichmentService', () => {
       });
 
       await startBatchEnrichment();
-      await new Promise(resolve => process.nextTick(resolve));
+      await new Promise((resolve) => process.nextTick(resolve));
 
       expect(runRepo.markRunControlStatus).toHaveBeenCalledWith(123, 'paused');
     });

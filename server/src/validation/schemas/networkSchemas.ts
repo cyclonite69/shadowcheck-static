@@ -133,10 +133,6 @@ export function validateSignalStrength(signal: number | string): {
     return { valid: false, error: 'Signal strength must be a number' };
   }
 
-  if (value > 0) {
-    return { valid: false, error: 'Signal strength must be negative (dBm)' };
-  }
-
   if (value < -100 || value > 0) {
     return { valid: false, error: 'Signal strength must be between -100 and 0 dBm' };
   }

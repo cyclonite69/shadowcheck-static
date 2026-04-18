@@ -1,13 +1,9 @@
 export {};
 import type { Request, Response } from 'express';
-
+const express = require('express');
+const router = express.Router();
 const { requireAuth } = require('../../../middleware/authMiddleware');
-const {
-  getErrorMessage,
-  getIncomingValue,
-  validateGenericKey,
-  validateGoogleMapsKey,
-} = require('./settingsHelpers');
+const helpers = require('./settingsHelpers');
 
 const registerSingleSecretRoutes = ({
   getPath,
@@ -23,7 +19,7 @@ const registerSingleSecretRoutes = ({
   postPath: string;
   responseKey?: string;
   secretKey: string;
-  validateValue: (value: unknown) => { valid: boolean; error?: string; value?: string };
+  validateValue: any;
   router: any;
   secretsManager: any;
   requireAuthForPost?: boolean;
@@ -33,15 +29,18 @@ const registerSingleSecretRoutes = ({
       const value = await secretsManager.getSecret(secretKey);
       res.json({ configured: Boolean(value), [responseKey]: value || '' });
     } catch (error) {
-      res.status(500).json({ error: getErrorMessage(error) });
+      res.status(500).json({ error: helpers.getErrorMessage(error) });
     }
   });
 
   const postMiddleware = requireAuthForPost ? [requireAuth] : [];
   router.post(postPath, ...postMiddleware, async (req: Request, res: Response) => {
     try {
-      const incomingValue = getIncomingValue(req.body, 'apiKey');
-      const validation = validateValue(incomingValue);
+      const incomingValue = helpers.getIncomingValue(req.body, 'apiKey');
+      
+      const validator = (typeof validateValue === 'string') ? helpers[validateValue] : validateValue;
+      const validation = validator(incomingValue);
+      
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
       }
@@ -49,7 +48,7 @@ const registerSingleSecretRoutes = ({
       await secretsManager.putSecret(secretKey, validation.value);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: getErrorMessage(error) });
+      res.status(500).json({ error: helpers.getErrorMessage(error) });
     }
   });
 };
@@ -59,7 +58,7 @@ const registerProviderSecretRoutes = ({ router, secretsManager }: { router: any;
     getPath: '/settings/mapbox-unlimited',
     postPath: '/settings/mapbox-unlimited',
     secretKey: 'mapbox_unlimited_api_key',
-    validateValue: (value: unknown) => validateGenericKey(value, 'mapbox_unlimited_api_key'),
+    validateValue: 'validateGenericKey',
     router,
     secretsManager,
   });
@@ -68,7 +67,7 @@ const registerProviderSecretRoutes = ({ router, secretsManager }: { router: any;
     getPath: '/settings/google-maps',
     postPath: '/settings/google-maps',
     secretKey: 'google_maps_api_key',
-    validateValue: validateGoogleMapsKey,
+    validateValue: 'validateGoogleMapsKey',
     router,
     secretsManager,
     requireAuthForPost: false,
@@ -78,7 +77,7 @@ const registerProviderSecretRoutes = ({ router, secretsManager }: { router: any;
     getPath: '/settings/opencage',
     postPath: '/settings/opencage',
     secretKey: 'opencage_api_key',
-    validateValue: (value: unknown) => validateGenericKey(value, 'opencage_api_key'),
+    validateValue: 'validateGenericKey',
     router,
     secretsManager,
   });
@@ -87,7 +86,7 @@ const registerProviderSecretRoutes = ({ router, secretsManager }: { router: any;
     getPath: '/settings/geocodio',
     postPath: '/settings/geocodio',
     secretKey: 'geocodio_api_key',
-    validateValue: (value: unknown) => validateGenericKey(value, 'geocodio_api_key'),
+    validateValue: 'validateGenericKey',
     router,
     secretsManager,
   });
@@ -96,7 +95,7 @@ const registerProviderSecretRoutes = ({ router, secretsManager }: { router: any;
     getPath: '/settings/locationiq',
     postPath: '/settings/locationiq',
     secretKey: 'locationiq_api_key',
-    validateValue: (value: unknown) => validateGenericKey(value, 'locationiq_api_key'),
+    validateValue: 'validateGenericKey',
     router,
     secretsManager,
   });

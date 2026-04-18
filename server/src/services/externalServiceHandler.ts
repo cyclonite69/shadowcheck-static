@@ -56,5 +56,4 @@ async function withRetry(serviceFn: any, options: Record<string, unknown> = {}) 
     `${serviceName} failed after ${maxRetries + 1} attempts: ${lastError?.message || String(lastError)}`
   );
 }
-
 export { delay, withRetry };

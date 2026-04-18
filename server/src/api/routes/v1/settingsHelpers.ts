@@ -1,19 +1,19 @@
 export {};
 
-const { validateString } = require('../../../validation/schemas');
-const { getConfiguredAwsRegion } = require('../../../services/awsService');
+export const getConfiguredAwsRegion =
+  require('../../../services/awsService').getConfiguredAwsRegion;
 
-const getErrorMessage = (error: unknown) =>
+export const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
-const getIncomingValue = (
+export const getIncomingValue = (
   body: Record<string, unknown>,
   primaryKey: string,
   fallbackKey = 'value'
 ) => body[primaryKey] ?? body[fallbackKey];
 
 function validateMapboxToken(value: unknown) {
-  const validation = validateString(String(value || ''), 'token');
+  const validation = validateString(String(value || ''), 1, 255, 'token');
   if (!validation.valid) {
     return validation;
   }
@@ -27,7 +27,7 @@ function validateMapboxToken(value: unknown) {
 }
 
 function validateLabel(value: unknown) {
-  const validation = validateString(String(value || ''), 'label');
+  const validation = validateString(String(value || ''), 1, 255, 'label');
   if (!validation.valid) {
     return validation;
   }
@@ -35,7 +35,7 @@ function validateLabel(value: unknown) {
 }
 
 function validateGoogleMapsKey(value: unknown) {
-  const validation = validateString(String(value || ''), 'google_maps_api_key');
+  const validation = validateString(String(value || ''), 1, 255, 'google_maps_api_key');
   if (!validation.valid) {
     return validation;
   }
@@ -43,7 +43,7 @@ function validateGoogleMapsKey(value: unknown) {
 }
 
 function validateGenericKey(value: unknown, field: string) {
-  const validation = validateString(String(value || ''), field);
+  const validation = validateString(String(value || ''), 1, 255, field);
   if (!validation.valid) {
     return validation;
   }
@@ -51,11 +51,15 @@ function validateGenericKey(value: unknown, field: string) {
 }
 
 function validateAwsRegion(value: unknown) {
-  const validation = validateString(String(value || ''), 'aws_region');
+  const validation = validateString(String(value || ''), 1, 255, 'aws_region');
   if (!validation.valid) {
     return validation;
   }
   return { valid: true, value: String(value).trim() };
+}
+
+export function validateString(value: string, min: number, max: number, field: string) {
+  return require('../../../validation/schemas').validateString(value, min, max, field);
 }
 
 module.exports = {

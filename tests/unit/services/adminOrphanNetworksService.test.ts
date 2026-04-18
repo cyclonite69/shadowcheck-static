@@ -20,14 +20,6 @@ jest.mock('../../../server/src/logging/logger', () => ({
   error: jest.fn(),
 }));
 
-jest.mock('../../../server/src/services/externalServiceHandler', () => ({
-  withRetry: jest.fn(async (fn) => {
-    const res = await fn();
-    console.log('withRetry returning:', res);
-    return res;
-  }),
-}));
-
 const { adminQuery } = require('../../../server/src/services/adminDbService');
 const wigleService = require('../../../server/src/services/wigleService');
 const secretsManager = require('../../../server/src/services/secretsManager').default;
@@ -41,6 +33,7 @@ describe('adminOrphanNetworksService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
+    require('../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
   });
 
   describe('listOrphanNetworks', () => {
@@ -91,7 +84,7 @@ describe('adminOrphanNetworksService', () => {
     it('should handle API 404', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
       secretsManager.get.mockReturnValue('token');
-      (global.fetch as jest.Mock).mockResolvedValue({ status: 404 });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 404, ok: false });
       adminQuery.mockResolvedValueOnce({ rows: [] }); // record attempt
 
       const res = await backfillOrphanNetworkFromWigle('00:11:22');
@@ -101,11 +94,17 @@ describe('adminOrphanNetworksService', () => {
     it('should handle API non-ok status', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
       secretsManager.get.mockReturnValue('token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        status: 500,
-        ok: false,
-        text: () => Promise.resolve('err'),
-      });
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          status: 500,
+          ok: false,
+          text: () => Promise.resolve('err'),
+        })
+        .mockResolvedValueOnce({
+          status: 500,
+          ok: false,
+          text: () => Promise.resolve('err'),
+        });
       adminQuery.mockResolvedValueOnce({ rows: [] }); // record attempt
 
       await expect(backfillOrphanNetworkFromWigle('00:11:22')).rejects.toThrow(

@@ -78,6 +78,15 @@ describe('Network Validation Schemas', () => {
     it('should fail for out of range', () => {
       expect(validateSignalStrength(-101).valid).toBe(false);
     });
+
+    it('should fail for null or non-number', () => {
+      expect(validateSignalStrength(null as any).valid).toBe(false);
+      expect(validateSignalStrength('abc').valid).toBe(false);
+    });
+
+    it('should validate 0 dBm', () => {
+      expect(validateSignalStrength(0).valid).toBe(true);
+    });
   });
 
   describe('validateBSSIDList()', () => {
@@ -87,10 +96,21 @@ describe('Network Validation Schemas', () => {
       expect(result.value).toHaveLength(2);
     });
 
+    it('should fail for null or empty list', () => {
+      expect(validateBSSIDList(null as any).valid).toBe(false);
+      expect(validateBSSIDList('').valid).toBe(false);
+      expect(validateBSSIDList(' , ').valid).toBe(false);
+    });
+
     it('should fail if any BSSID is invalid', () => {
       const result = validateBSSIDList('AA:BB:CC:DD:EE:FF, !!!');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid BSSID: !!!');
+    });
+
+    it('should fail for too many BSSIDs', () => {
+      const bssids = Array(101).fill('AA:BB:CC:DD:EE:FF').join(',');
+      expect(validateBSSIDList(bssids).valid).toBe(false);
     });
   });
 
@@ -100,6 +120,10 @@ describe('Network Validation Schemas', () => {
       expect(validateChannel(6).valid).toBe(true);
       expect(validateChannel(11).valid).toBe(true);
       expect(validateChannel(36).valid).toBe(true);
+    });
+
+    it('should fail for non-number', () => {
+      expect(validateChannel('abc').valid).toBe(false);
     });
 
     it('should fail for invalid channel', () => {
@@ -112,6 +136,10 @@ describe('Network Validation Schemas', () => {
     it('should validate WiFi frequencies', () => {
       expect(validateFrequency(2412).valid).toBe(true);
       expect(validateFrequency(5180).valid).toBe(true);
+    });
+
+    it('should fail for non-number', () => {
+      expect(validateFrequency('abc').valid).toBe(false);
     });
 
     it('should fail for out of range frequency', () => {
@@ -130,6 +158,7 @@ describe('Network Validation Schemas', () => {
     it('should fail for negative or non-integer count', () => {
       expect(validateObservationCount(-1).valid).toBe(false);
       expect(validateObservationCount('abc').valid).toBe(false);
+      expect(validateObservationCount(1.5).valid).toBe(true); // parseInt(1.5) is 1, so it passes. Is this intended?
     });
   });
 

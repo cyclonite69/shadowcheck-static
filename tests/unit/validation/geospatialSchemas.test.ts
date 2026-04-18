@@ -27,6 +27,11 @@ describe('Geospatial Validation Schemas', () => {
       expect(validateLatitude(-91).valid).toBe(false);
       expect(validateLatitude(91).valid).toBe(false);
     });
+
+    it('should fail for null or non-number', () => {
+      expect(validateLatitude(null as any).valid).toBe(false);
+      expect(validateLatitude('abc').valid).toBe(false);
+    });
   });
 
   describe('validateLongitude()', () => {
@@ -40,6 +45,11 @@ describe('Geospatial Validation Schemas', () => {
     it('should fail for out of range longitude', () => {
       expect(validateLongitude(-181).valid).toBe(false);
       expect(validateLongitude(181).valid).toBe(false);
+    });
+
+    it('should fail for null or non-number', () => {
+      expect(validateLongitude(null as any).valid).toBe(false);
+      expect(validateLongitude('abc').valid).toBe(false);
     });
   });
 
@@ -62,6 +72,12 @@ describe('Geospatial Validation Schemas', () => {
     it('should fail for incorrect length', () => {
       expect(validateBoundingBox([-74.1, 40.7, -73.9]).valid).toBe(false);
     });
+
+    it('should fail for null or invalid format', () => {
+      expect(validateBoundingBox(null as any).valid).toBe(false);
+      expect(validateBoundingBox('invalid').valid).toBe(false);
+      expect(validateBoundingBox('1,2,3,a').valid).toBe(false);
+    });
   });
 
   describe('validateRadius()', () => {
@@ -78,6 +94,11 @@ describe('Geospatial Validation Schemas', () => {
     it('should fail for radius exceeding max', () => {
       expect(validateRadius(60000).valid).toBe(false);
     });
+
+    it('should fail for null or non-number', () => {
+      expect(validateRadius(null as any).valid).toBe(false);
+      expect(validateRadius('abc').valid).toBe(false);
+    });
   });
 
   describe('validateGeoJSONPoint()', () => {
@@ -90,6 +111,20 @@ describe('Geospatial Validation Schemas', () => {
       const point = { type: 'NotAPoint', coordinates: [-74.006, 40.7128] };
       expect(validateGeoJSONPoint(point as any).valid).toBe(false);
     });
+
+    it('should fail for missing coordinates', () => {
+      const point = { type: 'Point' };
+      expect(validateGeoJSONPoint(point as any).valid).toBe(false);
+    });
+
+    it('should fail for invalid coordinates', () => {
+      const point = { type: 'Point', coordinates: [-200, 100] };
+      expect(validateGeoJSONPoint(point as any).valid).toBe(false);
+    });
+
+    it('should fail for null', () => {
+      expect(validateGeoJSONPoint(null as any).valid).toBe(false);
+    });
   });
 
   describe('validateRadiusSearch()', () => {
@@ -100,6 +135,11 @@ describe('Geospatial Validation Schemas', () => {
 
     it('should fail for missing params', () => {
       expect(validateRadiusSearch({ lat: 40.7128, lng: -74.006 }).valid).toBe(false);
+    });
+
+    it('should fail for invalid lat/lng in search', () => {
+      expect(validateRadiusSearch({ lat: 100, lng: -74, radius: 100 }).valid).toBe(false);
+      expect(validateRadiusSearch({ lat: 40, lng: -200, radius: 100 }).valid).toBe(false);
     });
   });
 

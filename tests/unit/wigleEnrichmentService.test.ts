@@ -17,7 +17,6 @@ const mockLogger = {
   warn: jest.fn(),
   error: jest.fn(),
 };
-const mockWithRetry = jest.fn((fn) => fn());
 const mockRunRepository = {
   createImportRun: jest.fn(),
   getImportRun: jest.fn(),
@@ -33,7 +32,6 @@ jest.mock('../../server/src/services/secretsManager', () => ({
   default: mockSecretsManager,
 }));
 jest.mock('../../server/src/logging/logger', () => mockLogger);
-jest.mock('../../server/src/services/externalServiceHandler', () => ({ withRetry: mockWithRetry }));
 jest.mock('../../server/src/services/wigleImport/runRepository', () => mockRunRepository);
 
 // Mock global fetch
@@ -44,6 +42,8 @@ const wigleEnrichmentService = require('../../server/src/services/wigleEnrichmen
 describe('WigleEnrichmentService Exhaustive', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.WIGLE_ALLOW_BULK = 'I_UNDERSTAND';
+    require('../../server/src/services/wigleRequestLedger').resetQuotaLedger();
     // Default: stop any loop immediately
     mockAdminQuery.mockResolvedValue({ rows: [{ status: 'completed' }] });
     mockRunRepository.getImportRun.mockResolvedValue({ status: 'completed' });

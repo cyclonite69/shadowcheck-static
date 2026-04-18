@@ -321,6 +321,7 @@ const executeSql = async (sql: string, params: any[] = []) => {
 };
 
 beforeEach(() => {
+  process.env.WIGLE_ALLOW_BULK = 'I_UNDERSTAND';
   dbState.runs = [];
   dbState.pages = [];
   dbState.nextRunId = 1;
@@ -331,6 +332,8 @@ beforeEach(() => {
   mockSecretGet.mockReset();
   mockImportWigleV2SearchResult.mockReset();
   global.fetch = jest.fn() as any;
+  require('../../server/src/services/wigleSearchCache').resetSearchCache();
+  require('../../server/src/services/wigleRequestLedger').resetQuotaLedger();
 
   mockQuery.mockImplementation((sql: string, params?: any[]) => executeSql(sql, params));
   mockPoolConnect.mockResolvedValue({
@@ -445,6 +448,7 @@ describe('wigleImportRunService', () => {
         })
       )
       .mockRejectedValueOnce(new Error('network down'))
+      .mockRejectedValueOnce(new Error('network down'))
       .mockResolvedValueOnce(
         makeResponse({
           totalResults: 3,
@@ -512,6 +516,7 @@ describe('wigleImportRunService', () => {
         })
       )
       .mockRejectedValueOnce(new Error('timeout'))
+      .mockRejectedValueOnce(new Error('timeout'))
       .mockResolvedValueOnce(
         makeResponse({
           totalResults: 3,
@@ -552,7 +557,9 @@ describe('wigleImportRunService', () => {
   });
 
   it('supports pause and cancel control states for resumable runs', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('rate limit'));
+    (global.fetch as jest.Mock)
+      .mockRejectedValueOnce(new Error('rate limit'))
+      .mockRejectedValueOnce(new Error('rate limit'));
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const service = require('../../server/src/services/wigleImportRunService');

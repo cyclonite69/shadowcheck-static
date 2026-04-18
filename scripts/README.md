@@ -47,6 +47,21 @@ and syncs the local `grafana_reader` PostgreSQL role.
 
 Creates timestamped PostgreSQL backup with optional S3 upload.
 
+### Bitwarden Secrets Backup
+
+```bash
+BITWARDENCLI_APPDATA_DIR=/tmp/bwcli \
+node ./scripts/backup-sm-to-bitwarden.js
+```
+
+Backs up the raw AWS Secrets Manager `SecretString` from `shadowcheck/config`
+into a Bitwarden secure note without writing secret values to disk.
+
+- Requires `aws` CLI access to the target secret
+- Requires `bw` CLI with an authenticated, unlocked vault
+- Stores the exact AWS JSON blob in the Bitwarden note body for restore-friendly backups
+- Supports `--secret-id`, `--region`, `--profile`, `--item-name`, `--folder-id`, and `--organization-id`
+
 ### AWS Spot Instance
 
 ```bash

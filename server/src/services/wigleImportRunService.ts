@@ -1,5 +1,6 @@
 import logger from '../logging/logger';
 import secretsManager from './secretsManager';
+import { assertBulkWigleAllowed } from './wigleBulkPolicy';
 import {
   buildSearchParams,
   DEFAULT_RESULTS_PER_PAGE,
@@ -9,6 +10,7 @@ import {
   validateImportQuery,
 } from './wigleImport/params';
 import { processSuccessfulPage } from './wigleImport/pageProcessor';
+import { fetchWigleSearchPage } from './wigleSearchApiService';
 import {
   bulkDeleteCancelledRunsByIds,
   completeRun,
@@ -40,7 +42,6 @@ type WiglePageResponse = {
 };
 
 const IMPORT_ALL_PAGE_DELAY_MS = 1500;
-const IMPORT_ALL_MAX_RETRIES = 4;
 const RESUMABLE_STATUSES: WigleImportRunStatus[] = ['running', 'paused', 'failed'];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -62,28 +63,16 @@ const fetchWiglePage = async (
   searchAfter: string | null
 ): Promise<WiglePageResponse> => {
   const params = buildSearchParams(requestParams, searchAfter);
-  const apiUrl = `https://api.wigle.net/api/v2/network/search?${params.toString()}`;
-
-  logger.info(`[WiGLE Import] Fetch page request ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`, {
+  logger.info('[WiGLE Import] Fetch page request', {
     searchAfter: searchAfter || null,
   });
 
-  const response = await fetch(apiUrl, {
-    headers: {
-      Authorization: `Basic ${encodedAuth}`,
-      Accept: 'application/json',
-    },
+  const data = await fetchWigleSearchPage({
+    encodedAuth,
+    apiVer: 'v2',
+    params,
+    entrypoint: 'import-run',
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    const error: any = new Error(`WiGLE API request failed with status ${response.status}`);
-    error.status = response.status;
-    error.details = errorText;
-    throw error;
-  }
-
-  const data = await response.json();
   if (!data || typeof data !== 'object') {
     throw new Error('WiGLE API returned a malformed response');
   }
@@ -121,28 +110,7 @@ const executeImportLoop = async (runId: number) => {
 
     let data: WiglePageResponse | null = null;
     try {
-      for (let attempt = 0; ; attempt++) {
-        try {
-          data = await fetchWiglePage(encodedAuth, requestParams, requestCursor);
-          break;
-        } catch (error: any) {
-          const retriable =
-            error.status === 429 ||
-            (typeof error.status === 'number' && error.status >= 500 && error.status < 600);
-          if (!retriable || attempt >= IMPORT_ALL_MAX_RETRIES) {
-            throw error;
-          }
-          const backoffMs = IMPORT_ALL_PAGE_DELAY_MS * Math.pow(2, attempt + 1);
-          logger.warn('[WiGLE Import] Page retry scheduled', {
-            runId,
-            pageNumber,
-            attempt: attempt + 1,
-            status: error.status,
-            backoffMs,
-          });
-          await sleep(backoffMs);
-        }
-      }
+      data = await fetchWiglePage(encodedAuth, requestParams, requestCursor);
 
       const results = Array.isArray(data?.results) ? data.results : [];
       const totalResults =
@@ -230,6 +198,7 @@ const executeImportLoop = async (runId: number) => {
 };
 
 const startImportRun = async (rawQuery: Record<string, unknown>) => {
+  assertBulkWigleAllowed('Import All Pages');
   const validationError = validateImportQuery(rawQuery);
   if (validationError) {
     throw new Error(validationError);
@@ -264,6 +233,7 @@ const startImportRun = async (rawQuery: Record<string, unknown>) => {
 };
 
 const resumeImportRun = async (runId: number) => {
+  assertBulkWigleAllowed('Resume Import All Pages');
   const run = await getRunOrThrow(runId);
   if (run.status === 'completed') {
     return getImportRun(runId);
@@ -278,6 +248,7 @@ const resumeImportRun = async (runId: number) => {
 };
 
 const resumeLatestImportRun = async (rawQuery: Record<string, unknown>) => {
+  assertBulkWigleAllowed('Resume Import All Pages');
   const validationError = validateImportQuery(rawQuery);
   if (validationError) {
     throw new Error(validationError);

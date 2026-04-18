@@ -30,11 +30,9 @@ describe('AuthQueries', () => {
     it('should fallback to schema without force_password_change if column missing', async () => {
       const error = new Error('column "force_password_change" does not exist');
       (error as any).code = '42703';
-      (query as jest.Mock)
-        .mockRejectedValueOnce(error)
-        .mockResolvedValueOnce({
-          rows: [{ id: 1, username: 'test', force_password_change: false }],
-        });
+      (query as jest.Mock).mockRejectedValueOnce(error).mockResolvedValueOnce({
+        rows: [{ id: 1, username: 'test', force_password_change: false }],
+      });
 
       const result = await getUserForLogin('test');
 
@@ -75,6 +73,13 @@ describe('AuthQueries', () => {
         ['test']
       );
     });
+
+    it('should rethrow other database errors', async () => {
+      const error = new Error('DB Error');
+      (query as jest.Mock).mockRejectedValue(error);
+
+      await expect(getUserForPasswordChange('test')).rejects.toThrow('DB Error');
+    });
   });
 
   describe('getSessionUser()', () => {
@@ -102,6 +107,13 @@ describe('AuthQueries', () => {
         expect.stringContaining('false AS force_password_change'),
         ['hash']
       );
+    });
+
+    it('should rethrow other database errors', async () => {
+      const error = new Error('DB Error');
+      (query as jest.Mock).mockRejectedValue(error);
+
+      await expect(getSessionUser('hash')).rejects.toThrow('DB Error');
     });
   });
 });

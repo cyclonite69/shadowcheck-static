@@ -59,7 +59,7 @@ const US_STATES = [
   'WY',
 ];
 
-const SLEEP_BETWEEN_STATES_MS = 10000; // 10 seconds between states to be safe
+const SLEEP_BETWEEN_STATES_MS = 10 * 60 * 1000;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -121,6 +121,14 @@ async function runDaemon(searchTerm: string) {
 const searchTerm = process.argv[2];
 if (!searchTerm) {
   console.error('Usage: npx ts-node scripts/wigle-daemon.ts <search_term>');
+  process.exit(1);
+}
+
+if (process.env.WIGLE_UNSAFE_BULK_DAEMON !== 'I_UNDERSTAND') {
+  console.error(
+    'Refusing to start scripts/wigle-daemon.ts without WIGLE_UNSAFE_BULK_DAEMON=I_UNDERSTAND. ' +
+      'This script performs repeated multi-state WiGLE imports and matches bulk-harvesting patterns.'
+  );
   process.exit(1);
 }
 

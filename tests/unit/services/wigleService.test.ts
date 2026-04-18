@@ -32,6 +32,7 @@ jest.mock('../../../server/src/services/secretsManager');
 describe('wigleService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    require('../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
     // @ts-ignore
     global.fetch = jest.fn();
   });

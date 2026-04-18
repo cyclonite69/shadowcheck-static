@@ -7,7 +7,9 @@ const { adminQuery } = require('./adminDbService');
 const wigleService = require('./wigleService');
 const secretsManager = require('./secretsManager').default;
 const logger = require('../logging/logger');
-const { withRetry } = require('./externalServiceHandler');
+const { assertBulkWigleAllowed } = require('./wigleBulkPolicy');
+const { fetchWigle } = require('./wigleClient');
+const { hashRecord } = require('./wigleRequestUtils');
 const {
   createImportRun,
   getImportRun,
@@ -18,7 +20,7 @@ const {
 
 export {};
 
-const ENRICHMENT_DELAY_MS = 1500;
+const ENRICHMENT_DELAY_MS = 20_000;
 const BATCH_SIZE = 100;
 
 /**
@@ -196,16 +198,22 @@ async function fetchAndImportDetail(bssid: string, type: string) {
   const endpoint = inferWigleEndpoint(type);
   const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
 
-  const response = await withRetry(
-    () =>
-      fetch(`https://api.wigle.net/api/v3/detail/${endpoint}/${bssid}`, {
-        headers: {
-          Authorization: `Basic ${encodedAuth}`,
-          Accept: 'application/json',
-        },
-      }),
-    { serviceName: 'WiGLE Batch Enrichment', timeoutMs: 15000, maxRetries: 1 }
-  );
+  const response = await fetchWigle({
+    kind: 'detail',
+    url: `https://api.wigle.net/api/v3/detail/${endpoint}/${bssid}`,
+    timeoutMs: 15000,
+    maxRetries: 1,
+    label: 'WiGLE Batch Enrichment',
+    entrypoint: 'enrichment',
+    paramsHash: hashRecord({ endpoint, bssid }),
+    endpointType: `v3/detail/${endpoint}`,
+    init: {
+      headers: {
+        Authorization: `Basic ${encodedAuth}`,
+        Accept: 'application/json',
+      },
+    },
+  });
 
   if (response.status === 404) return null;
   if (!response.ok) {
@@ -308,9 +316,14 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
 
           await new Promise((resolve) => setTimeout(resolve, ENRICHMENT_DELAY_MS));
         } catch (err: any) {
-          if (err.message?.includes('429')) {
+          if (
+            err.status === 429 ||
+            err.status === 403 ||
+            err.message?.includes('429') ||
+            err.message?.includes('403')
+          ) {
             await markRunControlStatus(runId, 'paused');
-            logger.warn(`[v3 Enrichment] Rate limited. Pausing run #${runId}`);
+            logger.warn(`[v3 Enrichment] WiGLE blocked/throttled request. Pausing run #${runId}`);
             return;
           }
           // Log but continue for other errors
@@ -327,6 +340,9 @@ async function runEnrichmentLoop(runId: number, manualList?: string[]) {
 
 export async function startBatchEnrichment(bssids?: string[]) {
   const isManual = Array.isArray(bssids) && bssids.length > 0;
+  if (!isManual) {
+    assertBulkWigleAllowed('Start Batch Enrichment (Full Backlog)');
+  }
   const pending = isManual ? bssids!.length : await getPendingEnrichmentCount();
 
   if (pending === 0) {
@@ -392,9 +408,19 @@ export async function validateWigleApiCredit() {
 
     // WiGLE API: GET /api/v2/stats
     // Returns { estimatedApiQuotaRemaining: number }
-    const response = await fetch('https://api.wigle.net/api/v2/stats', {
-      headers: {
-        Authorization: `Basic ${encodedAuth}`,
+    const response = await fetchWigle({
+      kind: 'stats',
+      url: 'https://api.wigle.net/api/v2/stats',
+      timeoutMs: 15000,
+      maxRetries: 0,
+      label: 'WiGLE API Credit Check',
+      entrypoint: 'stats',
+      paramsHash: hashRecord({ endpoint: 'v2/stats' }),
+      endpointType: 'v2/stats',
+      init: {
+        headers: {
+          Authorization: `Basic ${encodedAuth}`,
+        },
       },
     });
 

@@ -7,7 +7,8 @@ import express from 'express';
 const router = express.Router();
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
-import { withRetry } from '../../../../services/externalServiceHandler';
+import { fetchWigle } from '../../../../services/wigleClient';
+import { hashRecord } from '../../../../services/wigleRequestUtils';
 import { macParamMiddleware } from '../../../../validation/middleware';
 
 import type { Request, Response, NextFunction } from 'express';
@@ -32,20 +33,22 @@ router.get(
       const encodedAuth = Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
       logger.info(`[WiGLE] Querying for BSSID: ${bssidStr}`);
 
-      const response = await withRetry(
-        () =>
-          fetch(`https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(bssidStr)}`, {
-            headers: {
-              Authorization: `Basic ${encodedAuth}`,
-              Accept: 'application/json',
-            },
-          }),
-        {
-          serviceName: 'WiGLE API',
-          timeoutMs: 10000,
-          maxRetries: 2,
-        }
-      );
+      const response = await fetchWigle({
+        kind: 'detail',
+        url: `https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(bssidStr)}`,
+        timeoutMs: 10000,
+        maxRetries: 1,
+        label: 'WiGLE Live API',
+        entrypoint: 'live-route',
+        paramsHash: hashRecord({ endpoint: 'wifi', bssid: bssidStr }),
+        endpointType: 'v3/detail/wifi',
+        init: {
+          headers: {
+            Authorization: `Basic ${encodedAuth}`,
+            Accept: 'application/json',
+          },
+        },
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -57,7 +60,7 @@ router.get(
         });
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
       logger.info(`[WiGLE] Found ${data.resultCount || 0} results for ${bssid}`);
 
       res.json({

@@ -10,43 +10,13 @@ const { wigleImportRunService } = require('../../../../config/container');
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
-import { withRetry } from '../../../../services/externalServiceHandler';
+import { assertBulkWigleAllowed } from '../../../../services/wigleBulkPolicy';
 import {
   buildSearchParams,
   validateImportQuery as validateSearchQuery,
   DEFAULT_RESULTS_PER_PAGE,
 } from '../../../../services/wigleImport/params';
-
-async function fetchWiglePage(
-  encodedAuth: string,
-  apiVer: 'v2' | 'v3',
-  params: URLSearchParams
-): Promise<any> {
-  const apiUrl = `https://api.wigle.net/api/${apiVer}/network/search?${params.toString()}`;
-
-  logger.info(`[WiGLE] Searching API (${apiVer}): ${apiUrl.replace(/netid=[^&]+/, 'netid=***')}`);
-
-  const response = await withRetry(
-    () =>
-      fetch(apiUrl, {
-        headers: {
-          Authorization: `Basic ${encodedAuth}`,
-          Accept: 'application/json',
-        },
-      }),
-    { serviceName: 'WiGLE Search API', timeoutMs: 30000, maxRetries: 2 }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    const error: any = new Error(`WiGLE API request failed with status ${response.status}`);
-    error.status = response.status;
-    error.details = errorText;
-    throw error;
-  }
-
-  return response.json();
-}
+import { fetchWigleSearchPage } from '../../../../services/wigleSearchApiService';
 
 async function importSearchResults(results: any[]): Promise<{
   importedCount: number;
@@ -133,7 +103,12 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
 
     let data;
     try {
-      data = await fetchWiglePage(encodedAuth, apiVer, params);
+      data = await fetchWigleSearchPage({
+        encodedAuth,
+        apiVer,
+        params,
+        entrypoint: 'manual-search',
+      });
     } catch (error: any) {
       logger.error(
         `[WiGLE] Search API error ${error.status || 500}: ${error.details || error.message}`
@@ -196,6 +171,7 @@ router.all('/search-api', requireAdmin, async (req, res, next) => {
 
 router.post('/search-api/import-all', requireAdmin, async (req, res, next) => {
   try {
+    assertBulkWigleAllowed('Import All Pages');
     const query = { ...req.query, ...req.body };
     const validationError = wigleImportRunService.validateImportQuery(query);
     if (validationError) {
@@ -217,6 +193,9 @@ router.post('/search-api/import-all', requireAdmin, async (req, res, next) => {
     return res.json(buildRunImportResponse(run));
   } catch (err: any) {
     logger.error(`[WiGLE] Import-all error: ${err.message}`, { error: err });
+    if (err?.status === 403) {
+      return res.status(403).json({ ok: false, error: err.message, code: err.code });
+    }
     next(err);
   }
 });
@@ -275,6 +254,9 @@ router.post('/search-api/import-runs/resume-latest', requireAdmin, async (req, r
     return res.json(buildRunImportResponse(run));
   } catch (err: any) {
     logger.error(`[WiGLE] Resume-latest error: ${err.message}`, { error: err });
+    if (err?.status === 403) {
+      return res.status(403).json({ ok: false, error: err.message, code: err.code });
+    }
     next(err);
   }
 });
@@ -304,6 +286,9 @@ router.post('/search-api/import-runs/:id/resume', requireAdmin, async (req, res,
     return res.json(buildRunImportResponse(run));
   } catch (err: any) {
     logger.error(`[WiGLE] Resume run error: ${err.message}`, { error: err });
+    if (err?.status === 403) {
+      return res.status(403).json({ ok: false, error: err.message, code: err.code });
+    }
     next(err);
   }
 });
