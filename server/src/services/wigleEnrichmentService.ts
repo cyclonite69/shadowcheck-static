@@ -3,22 +3,44 @@
  * Batches v3 detail lookups for existing v2 search results.
  */
 
-const { adminQuery } = require('./adminDbService');
-const wigleService = require('./wigleService');
-const secretsManager = require('./secretsManager').default;
-const logger = require('../logging/logger');
-const { assertBulkWigleAllowed } = require('./wigleBulkPolicy');
-const { fetchWigle } = require('./wigleClient');
-const { hashRecord } = require('./wigleRequestUtils');
-const {
+import * as container from '../config/container';
+import logger from '../logging/logger';
+import { assertBulkWigleAllowed } from './wigleBulkPolicy';
+import { fetchWigle } from './wigleClient';
+import { hashRecord } from './wigleRequestUtils';
+import {
   createImportRun,
   getImportRun,
   markRunControlStatus,
   markRunFailure,
   completeRun,
-} = require('./wigleImport/runRepository');
+} from './wigleImport/runRepository';
 
-export {};
+const { adminDbService, wigleService, secretsManager } = container as any;
+const { adminQuery } = adminDbService;
+
+interface WigleV3LocationCluster {
+  clusterSsid?: string;
+  locations?: Array<{ ssid?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+interface WigleV3DetailResponse {
+  networkId: string;
+  name?: string;
+  type?: string;
+  comment?: string;
+  locationClusters?: WigleV3LocationCluster[];
+  trilateratedLatitude?: number;
+  trilateratedLongitude?: number;
+  encryption?: string;
+  channel?: number;
+  firstSeen?: string;
+  lastSeen?: string;
+  lastUpdate?: string;
+  streetAddress?: unknown;
+  [key: string]: unknown;
+}
 
 const ENRICHMENT_DELAY_MS = 20_000;
 const BATCH_SIZE = 100;
@@ -221,7 +243,7 @@ async function fetchAndImportDetail(bssid: string, type: string) {
     throw new Error(`WiGLE API failed (${response.status}): ${errorText}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as any;
   if (!data?.networkId) return null;
 
   // Import detail (using UPSERT logic inside wigleService if it already handles it,
@@ -382,14 +404,6 @@ export async function resumeEnrichment(runId: number) {
   void runEnrichmentLoop(runId);
   return rows[0];
 }
-
-module.exports = {
-  getPendingEnrichmentCount,
-  getEnrichmentCatalog,
-  startBatchEnrichment,
-  resumeEnrichment,
-  validateWigleApiCredit,
-};
 
 /**
  * Validates that the WiGLE API key has remaining credit.
