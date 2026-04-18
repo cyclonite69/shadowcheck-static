@@ -25,9 +25,10 @@ const UsersIcon = ({ size = 24, className = '' }) => (
 export const UsersTab: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const [username, setUsername] = useState('');
@@ -40,12 +41,13 @@ export const UsersTab: React.FC = () => {
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
       const result = await adminApi.listUsers();
       setUsers(result.users || []);
     } catch (err: any) {
-      setError(err?.message || 'Failed to load users');
+      setUsers([]);
+      setLoadError(err?.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -182,6 +184,21 @@ export const UsersTab: React.FC = () => {
         {notice && <div className="text-sm text-emerald-400 mb-3">{notice}</div>}
         {loading ? (
           <div className="text-sm text-slate-400">Loading users...</div>
+        ) : loadError ? (
+          <div className="rounded-lg border border-red-500/30 bg-red-950/30 p-4">
+            <div className="text-sm text-red-300">{loadError}</div>
+            <button
+              type="button"
+              onClick={() => void loadUsers()}
+              className="mt-3 rounded-lg border border-red-400/40 px-3 py-1.5 text-sm text-red-200 hover:bg-red-500/10"
+            >
+              Retry
+            </button>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4 text-sm text-slate-400">
+            No users found.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm text-slate-300">

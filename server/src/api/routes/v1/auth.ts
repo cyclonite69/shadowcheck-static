@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { authService } = require('../../../config/container');
-const { requireAdmin, extractToken } = require('../../../middleware/authMiddleware');
+const { extractToken } = require('../../../middleware/authMiddleware');
 const logger = require('../../../logging/logger');
 
 const loginLimiter = rateLimit({
@@ -163,58 +163,6 @@ router.post('/auth/change-password', changePasswordLimiter, async (req: any, res
   } catch (error: any) {
     logger.error('Change password error:', error);
     res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-/**
- * GET /api/admin/users
- * List all users (admin only)
- */
-router.get('/admin/users', extractToken, requireAdmin, async (req: any, res: any) => {
-  try {
-    const result = await authService.listUsers();
-    if (!result.success) {
-      return res.status(500).json({ error: result.error });
-    }
-
-    res.json({
-      success: true,
-      users: result.users,
-    });
-  } catch (error: any) {
-    logger.error('List users error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-/**
- * POST /api/admin/users
- * Create a new user (admin only)
- */
-router.post('/admin/users', extractToken, requireAdmin, async (req: any, res: any) => {
-  try {
-    const { username, email, password, role } = req.body;
-
-    if (!username || !password || !role) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const result = await authService.createUser(username, email, password, role);
-
-    if (!result.success) {
-      return res.status(400).json({ error: result.error });
-    }
-
-    logger.info(`User ${username} created by admin ${req.user.username}`);
-
-    res.json({
-      success: true,
-      user: result.user,
-      message: 'User created successfully',
-    });
-  } catch (error: any) {
-    logger.error('Create user route error:', error);
-    res.status(500).json({ error: 'Failed to create user' });
   }
 });
 

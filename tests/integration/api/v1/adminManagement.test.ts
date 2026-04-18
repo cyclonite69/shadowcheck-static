@@ -6,13 +6,12 @@ const cookieParser = require('cookie-parser');
 
 // Define mock container
 const mockContainer = {
-  authService: {
-    listUsers: jest.fn(),
-    createUser: jest.fn(),
-  },
+  authService: {},
   adminUsersService: {
-    activateUser: jest.fn(),
-    resetUserPassword: jest.fn(),
+    listUsers: jest.fn(),
+    createAppUser: jest.fn(),
+    setAppUserActive: jest.fn(),
+    resetAppUserPassword: jest.fn(),
   },
   adminMaintenanceService: {
     getDuplicateObservationStats: jest.fn(),
@@ -50,7 +49,7 @@ jest.mock('../../../../server/src/logging/logger', () => ({
   debug: jest.fn(),
 }));
 
-const authRouter = require('../../../../server/src/api/routes/v1/auth');
+const adminUsersRouter = require('../../../../server/src/api/routes/v1/admin/users');
 const maintenanceRouter = require('../../../../server/src/api/routes/v1/admin/maintenance');
 const settingsRouter = require('../../../../server/src/api/routes/v1/admin/settings');
 
@@ -59,7 +58,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Mount routes
-app.use('/api/v1', authRouter);
+app.use('/api/v1/admin/users', adminUsersRouter);
 app.use('/api/v1', maintenanceRouter);
 app.use('/api/v1/admin/settings', settingsRouter);
 
@@ -68,10 +67,10 @@ describe('Admin Management API Integration', () => {
     jest.clearAllMocks();
   });
 
-  describe('User Management (Auth Routes)', () => {
+  describe('User Management (Admin Users Routes)', () => {
     it('GET /api/v1/admin/users should list users', async () => {
       const mockUsers = [{ username: 'user1', role: 'user' }];
-      mockContainer.authService.listUsers.mockResolvedValue({ success: true, users: mockUsers });
+      mockContainer.adminUsersService.listUsers.mockResolvedValue(mockUsers);
 
       const res = await request(app).get('/api/v1/admin/users');
 
@@ -83,7 +82,9 @@ describe('Admin Management API Integration', () => {
 
   describe('Maintenance Routes', () => {
     it('POST /api/v1/admin/cleanup-duplicates should trigger cleanup', async () => {
-      mockContainer.adminMaintenanceService.getDuplicateObservationStats.mockResolvedValue({ total: 20 });
+      mockContainer.adminMaintenanceService.getDuplicateObservationStats.mockResolvedValue({
+        total: 20,
+      });
       mockContainer.adminMaintenanceService.deleteDuplicateObservations.mockResolvedValue(10);
       mockContainer.adminMaintenanceService.getObservationCount.mockResolvedValue(100);
 
@@ -97,7 +98,9 @@ describe('Admin Management API Integration', () => {
 
   describe('Settings Routes', () => {
     it('GET /api/v1/admin/settings should fetch settings', async () => {
-      const mockSettingsRows = [{ key: 'site_name', value: 'ShadowCheck', description: 'Test', updated_at: new Date() }];
+      const mockSettingsRows = [
+        { key: 'site_name', value: 'ShadowCheck', description: 'Test', updated_at: new Date() },
+      ];
       mockContainer.settingsAdminService.getAllSettings.mockResolvedValue(mockSettingsRows);
 
       const res = await request(app).get('/api/v1/admin/settings');
