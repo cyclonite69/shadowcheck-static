@@ -48,6 +48,7 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
           encryption: row.encryption || 'Unknown',
           channel: row.channel,
           frequency: row.frequency,
+          observed_at: (row as any).observed_at || null,
           firsttime: row.firsttime,
           lasttime: row.lasttime || (row as any).lastupdt,
           accuracy: row.accuracy,

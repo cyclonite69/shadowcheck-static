@@ -455,8 +455,8 @@ export const renderNetworkTooltip = (props: any): any => {
   ${
     displayAddress || locationText
       ? `<div style="padding:6px 12px 2px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);border-top:1px solid rgba(255,255,255,0.08);margin-top:2px;">Location</div>
-  ${displayAddress ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;">${String(displayAddress)}</div>` : ''}
-  ${!displayAddress && locationText ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.7);">${locationText}</div>` : ''}`
+  ${displayAddress ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${String(displayAddress)}">${String(displayAddress)}</div>` : ''}
+  ${!displayAddress && locationText ? `<div style="padding:3px 12px;font-size:11px;color:rgba(255,255,255,0.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${locationText}">${locationText}</div>` : ''}`
       : ''
   }
   ${hasCoords ? `<div title="${displayAddress ? `${displayAddress} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : locationText ? `${locationText} · ${lat.toFixed(6)}, ${lon.toFixed(6)}` : `Location coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}`}" style="padding:1px 12px 4px;font-size:10px;font-family:monospace;color:rgba(255,255,255,0.45);cursor:help;display:flex;justify-content:space-between;text-decoration:underline dotted rgba(255,255,255,0.2);">${formatCoord(Number(lat), 5)}, ${formatCoord(Number(lon), 5)}</div>` : ''}

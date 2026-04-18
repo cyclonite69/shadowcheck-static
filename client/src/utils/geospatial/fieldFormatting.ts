@@ -61,10 +61,11 @@ export const formatTimestamp = (value?: string | number | Date | null): string =
   return date.toISOString().slice(0, 19).replace('T', ' ');
 };
 
-/** DateTime for tooltip display — "2026-02-08 02:42:50" */
-export const formatDateTime = (value?: string | Date | null): string => {
-  if (!value) return '—';
-  const date = typeof value === 'string' ? new Date(value) : value;
+/** DateTime for tooltip display — "2026-02-08 02:42:50" (local time, full seconds precision) */
+export const formatDateTime = (value?: string | number | Date | null): string => {
+  if (value == null || value === '') return '—';
+  const date = typeof value === 'number' ? new Date(value) : new Date(value as string | Date);
   if (isNaN(date.getTime())) return '—';
-  return date.toISOString().slice(0, 19).replace('T', ' ');
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };

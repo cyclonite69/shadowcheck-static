@@ -586,8 +586,14 @@ export const WigleSearchTab: React.FC = () => {
                               <th className="px-3 py-2">Ch</th>
                               <th className="px-3 py-2">City</th>
                               <th className="px-3 py-2">State</th>
-                              <th className="px-3 py-2 whitespace-nowrap">First Seen</th>
-                              <th className="px-3 py-2 whitespace-nowrap">Last Seen</th>
+                              <th className="px-3 py-2 whitespace-nowrap text-slate-500">
+                                First Seen{' '}
+                                <span className="normal-case text-[9px] text-slate-600">(v2)</span>
+                              </th>
+                              <th className="px-3 py-2 whitespace-nowrap text-slate-500">
+                                Last Seen{' '}
+                                <span className="normal-case text-[9px] text-slate-600">(v2)</span>
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-700/50">

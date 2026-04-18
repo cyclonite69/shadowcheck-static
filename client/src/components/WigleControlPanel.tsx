@@ -59,7 +59,7 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
         <label className="block mb-1.5 text-xs text-slate-300 font-medium">Layers</label>
         <div className="space-y-0.5">
           <LayerToggle
-            label="v2 Points"
+            label="v2 Points (legacy)"
             enabled={layers.v2}
             onChange={() => onToggleLayer('v2')}
             color="#3b82f6"

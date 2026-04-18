@@ -51,7 +51,24 @@ export const attachClickHandlers = (
     if (bssid) {
       networkApi.getNetworkByBssid(bssid).then((mvData) => {
         if (!popup.isOpen()) return;
-        const source = mvData ?? { ...props, bssid };
+        let source = mvData ?? { ...props, bssid };
+
+        // The MV geocoded address was reverse-geocoded from local (home) observations.
+        // If this WiGLE point is far from where the network was locally observed, the
+        // home address is wrong for this location — clear it so coordinates show instead.
+        if (mvData?.geocoded_address) {
+          const mvLat = Number(mvData.lat ?? mvData.trilat ?? mvData.latitude ?? NaN);
+          const mvLon = Number(
+            mvData.lon ?? mvData.trilong ?? mvData.trilon ?? mvData.longitude ?? NaN
+          );
+          if (Number.isFinite(mvLat) && Number.isFinite(mvLon)) {
+            const dLat = (e.lngLat.lat - mvLat) * 111;
+            const dLon = (e.lngLat.lng - mvLon) * 111 * Math.cos((e.lngLat.lat * Math.PI) / 180);
+            const distKm = Math.sqrt(dLat * dLat + dLon * dLon);
+            if (distKm > 100) source = { ...source, geocoded_address: null };
+          }
+        }
+
         const normalized = normalizeTooltipData(source, [e.lngLat.lng, e.lngLat.lat]);
         const fullHTML = renderNetworkTooltip({
           ...normalized,
