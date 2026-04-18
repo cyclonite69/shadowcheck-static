@@ -222,6 +222,34 @@ Stop, show the plan, and wait for explicit "yes" before:
 
 ---
 
+## Parallelism & Subagents
+
+Spawn subagents (via the `Agent` tool) when tasks are **independent and can run in
+parallel** — this is faster and protects the main context window from large result sets.
+
+**Good candidates for subagents:**
+
+- Broad codebase exploration that spans more than 3 search queries
+- Running tests or lint in parallel with reading files
+- Independent research tasks that don't share intermediate results
+
+**Preferred subagent types:**
+
+- `Explore` — fast codebase searches, file pattern matching, keyword grep
+- `general-purpose` — open-ended multi-step research or code analysis
+- `Plan` — architecture and implementation planning before writing code
+
+**Do NOT spawn a subagent when:**
+
+- You already know the file/function to read — use `Read` or `Grep` directly
+- The task is a single focused edit — do it inline
+- A prior subagent of the same type is still running — continue via `SendMessage`
+
+When launching parallel subagents, send a **single message with all `Agent` tool calls**
+so they start simultaneously rather than sequentially.
+
+---
+
 ## Scope Discipline
 
 You are NOT:
