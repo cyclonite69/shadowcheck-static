@@ -98,6 +98,53 @@ BEGIN
           AND geom_next IS NOT NULL
           AND ST_Distance(geom::geography, geom_next::geography) >= 500  -- At least 500m
     ),
+    -- Linear Travel Gate: flag consecutive pairs consistent with drive-by movement
+    linear_travel_thresholds AS (
+        SELECT
+            500::numeric  AS distance_threshold_m,   -- max gap for drive-by gate
+            5::numeric    AS speed_min_kmh,           -- lower bound: plausible vehicle speed
+            80::numeric   AS speed_max_kmh,           -- upper bound: plausible vehicle speed
+            0.2::numeric  AS linear_travel_weight     -- day weight when all obs are drive-by
+    ),
+    linear_travel_pairs AS (
+        -- Pairs where the device was merely passing through (short distance, vehicle speed)
+        SELECT
+            os.id_current,
+            os.time_current
+        FROM obs_sequence os
+        CROSS JOIN linear_travel_thresholds ltt
+        WHERE os.id_next IS NOT NULL
+          AND os.geom IS NOT NULL
+          AND os.geom_next IS NOT NULL
+          AND is_linear_travel_pair(
+                ST_Distance(os.geom::geography, os.geom_next::geography),
+                EXTRACT(EPOCH FROM (os.time_next - os.time_current)),
+                ltt.distance_threshold_m,
+                ltt.speed_min_kmh,
+                ltt.speed_max_kmh
+              )
+    ),
+    linear_travel_stats AS (
+        SELECT COUNT(*)::integer AS excluded_count
+        FROM linear_travel_pairs
+    ),
+    obs_gate_flag AS (
+        SELECT DISTINCT id_current AS obs_id
+        FROM linear_travel_pairs
+    ),
+    -- Per-day weight: 0.2 when every observation that day is a drive-by, else 1.0
+    effective_daily_weights AS (
+        SELECT
+            DATE(o.time) AS obs_date,
+            CASE
+                WHEN COUNT(*) = COUNT(ogf.obs_id) THEN ltt.linear_travel_weight
+                ELSE 1.0::numeric
+            END AS day_weight
+        FROM observations o
+        CROSS JOIN linear_travel_thresholds ltt
+        LEFT JOIN obs_gate_flag ogf ON ogf.obs_id = o.id
+        GROUP BY DATE(o.time), ltt.linear_travel_weight
+    ),
     -- Count qualifying legs and compute bonuses
     leg_statistics AS (
         SELECT
@@ -230,13 +277,13 @@ BEGIN
         CROSS JOIN manufacturer_lookup ml
     ),
 
-    -- Task 6: Temporal Persistence Score (5%) - same as v4
+    -- Task 6: Temporal Persistence Score (5%) — drive-by-only days downweighted to 0.2
     temporal_score AS (
         SELECT
             LEAST(5,
-                (COUNT(DISTINCT DATE(time))::numeric / 100.0) * 5
+                (SUM(edw.day_weight)::numeric / 100.0) * 5
             )::numeric AS score
-        FROM observations
+        FROM effective_daily_weights edw
     ),
 
     -- Task 7: Fleet Correlation Bonus — deferred (not yet enabled)
@@ -289,7 +336,8 @@ BEGIN
                 WHEN cm.multiplier * (COALESCE(fls.score, 0) * bm.multiplier + COALESCE(ps.score, 0) + COALESCE(cs.score, 0) + COALESCE(es.score, 0) + COALESCE(ts.score, 0) + COALESCE(fls_fleet.score, 0)) >= 21 THEN 'LOW'
                 ELSE 'NONE'
             END,
-        'model_version', '5.1',
+        'model_version', '5.2',
+        'linear_travel_excluded_count', lts.excluded_count,
         'components', jsonb_build_object(
             'follow_legs', COALESCE(fls.score, 0) * bm.multiplier * cm.multiplier,
             'parked_surveillance', COALESCE(ps.score, 0) * cm.multiplier,
@@ -307,6 +355,7 @@ BEGIN
     CROSS JOIN equipment_score es
     CROSS JOIN temporal_score ts
     CROSS JOIN fleet_score fls_fleet
+    CROSS JOIN linear_travel_stats lts
     CROSS JOIN cellular_multiplier cm
     CROSS JOIN bt_ble_modifier bm;
 
@@ -315,4 +364,4 @@ END;
 $$;
 
 COMMENT ON FUNCTION calculate_threat_score_v5(TEXT) IS
-'Threat Scoring v5.1 - Cellular excluded, BT/BLE signal-strength modifier, sentinel-safe signal averaging';
+'Threat Scoring v5.2 - Linear travel gate: drive-by-only days downweighted (0.2) in temporal_score; is_linear_travel_pair() shared helper';
