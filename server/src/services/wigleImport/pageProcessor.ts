@@ -9,7 +9,8 @@ const processSuccessfulPage = async (
   nextCursor: string | null,
   results: any[],
   apiTotalResults: number | null,
-  pageSize: number
+  pageSize: number,
+  markCompleted = false
 ) => {
   const client = await pool.connect();
   try {
@@ -65,10 +66,12 @@ const processSuccessfulPage = async (
               api_cursor = $6,
               last_attempted_at = NOW(),
               last_error = NULL,
-              updated_at = NOW()
+              updated_at = NOW(),
+              status = CASE WHEN $7 THEN 'completed' ELSE status END,
+              completed_at = CASE WHEN $7 THEN NOW() ELSE completed_at END
         WHERE id = $1
         RETURNING *`,
-      [runId, apiTotalResults, pageSize, totalPages, pageNumber, nextCursor]
+      [runId, apiTotalResults, pageSize, totalPages, pageNumber, nextCursor, markCompleted]
     );
 
     await client.query('COMMIT');

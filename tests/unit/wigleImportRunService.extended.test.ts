@@ -210,12 +210,26 @@ const executeSql = async (sql: string, params: any[] = []) => {
       run.total_pages = params[3] ?? run.total_pages;
       run.last_successful_page = Math.max(run.last_successful_page, params[4]);
       run.api_cursor = params[5];
+      if (params[6] === true) {
+        run.status = 'completed';
+        run.completed_at = nowIso();
+      }
     } else {
+      const shouldComplete =
+        run.status !== 'cancelled' &&
+        params[1] > 0 &&
+        params[5] === null &&
+        (run.total_pages === null || params[1] >= run.total_pages);
       run.pages_fetched = params[1];
       run.rows_returned = params[2];
       run.rows_inserted = params[3];
       run.last_successful_page = params[4];
       run.api_cursor = params[5] || run.api_cursor;
+      if (shouldComplete) {
+        run.status = 'completed';
+        run.completed_at = run.completed_at || nowIso();
+        run.last_error = null;
+      }
     }
     run.next_page = run.last_successful_page + 1;
     const summary = pageSummaryForRun(run.id);
@@ -515,6 +529,70 @@ describe('wigleImportRunService - Extended', () => {
       const result = await service.resumeImportRun(20);
       expect(result.id).toBe(20);
       expect(result.status).toBe('completed');
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('reconciles a stale final-page run to completed before any resume fetch occurs', async () => {
+      dbState.runs.push({
+        id: 25,
+        source: 'wigle',
+        api_version: 'v2',
+        search_term: 'stale-final',
+        state: 'IL',
+        request_fingerprint: 'fp-stale-final',
+        request_params: { ssid: 'stale-final', region: 'IL', country: 'US' },
+        status: 'running',
+        api_total_results: 2,
+        page_size: 1,
+        total_pages: 2,
+        last_successful_page: 1,
+        next_page: 3,
+        pages_fetched: 1,
+        rows_returned: 1,
+        rows_inserted: 1,
+        api_cursor: null,
+        last_error: null,
+        started_at: nowIso(),
+        last_attempted_at: null,
+        completed_at: null,
+        updated_at: nowIso(),
+      } as any);
+
+      dbState.pages.push(
+        {
+          id: dbState.nextPageId++,
+          run_id: 25,
+          page_number: 1,
+          request_cursor: null,
+          next_cursor: 'cursor-2',
+          fetched_at: nowIso(),
+          rows_returned: 1,
+          rows_inserted: 1,
+          success: true,
+          error_message: null,
+          updated_at: nowIso(),
+        },
+        {
+          id: dbState.nextPageId++,
+          run_id: 25,
+          page_number: 2,
+          request_cursor: 'cursor-2',
+          next_cursor: null,
+          fetched_at: nowIso(),
+          rows_returned: 1,
+          rows_inserted: 1,
+          success: true,
+          error_message: null,
+          updated_at: nowIso(),
+        }
+      );
+
+      const service = getService();
+      const result = await service.resumeImportRun(25);
+
+      expect(result.status).toBe('completed');
+      expect(result.pagesFetched).toBe(2);
+      expect(result.rowsReturned).toBe(2);
       expect(global.fetch).not.toHaveBeenCalled();
     });
 

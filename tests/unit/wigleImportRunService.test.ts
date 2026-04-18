@@ -181,6 +181,11 @@ const executeSql = async (sql: string, params: any[] = []) => {
   if (normalized.startsWith('UPDATE app.wigle_import_runs SET pages_fetched = $2')) {
     const run = dbState.runs.find((item) => item.id === params[0]);
     if (!run) return { rows: [], rowCount: 0 };
+    const shouldComplete =
+      run.status !== 'cancelled' &&
+      params[1] > 0 &&
+      params[5] === null &&
+      (run.total_pages === null || params[1] >= run.total_pages);
     run.pages_fetched = params[1];
     run.rows_returned = params[2];
     run.rows_inserted = params[3];
@@ -190,6 +195,11 @@ const executeSql = async (sql: string, params: any[] = []) => {
         ? Math.max(run.next_page, params[4] + 1)
         : Math.max(params[4] + 1, run.next_page);
     run.api_cursor = params[4] > 0 ? params[5] : run.api_cursor;
+    if (shouldComplete) {
+      run.status = 'completed';
+      run.completed_at = run.completed_at || nowIso();
+      run.last_error = null;
+    }
     run.updated_at = nowIso();
     return { rows: [cloneRun(run)], rowCount: 1 };
   }
@@ -303,6 +313,10 @@ const executeSql = async (sql: string, params: any[] = []) => {
     run.api_cursor = params[5];
     run.last_attempted_at = nowIso();
     run.last_error = null;
+    if (params[6] === true) {
+      run.status = 'completed';
+      run.completed_at = nowIso();
+    }
     run.updated_at = nowIso();
     return { rows: [cloneRun(run)], rowCount: 1 };
   }
@@ -421,6 +435,14 @@ describe('wigleImportRunService', () => {
     expect(result.rowCompletenessPct).toBe(100);
     expect(result.pages[0].pageNumber).toBe(2);
     expect(result.pages[1].pageNumber).toBe(1);
+    expect(
+      mockQuery.mock.calls.some(([sql]) =>
+        String(sql)
+          .replace(/\s+/g, ' ')
+          .trim()
+          .startsWith("UPDATE app.wigle_import_runs SET status = 'completed'")
+      )
+    ).toBe(false);
   });
 
   it('preserves next_page on failure and resumes exactly where it left off', async () => {

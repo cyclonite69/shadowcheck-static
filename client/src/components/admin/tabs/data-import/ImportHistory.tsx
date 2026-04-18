@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { adminApi } from '../../../../api/adminApi';
 import type { Metrics } from './types';
 import { formatShortDate } from '../../../../utils/formatDate';
+import { getImportHistoryStatusMeta, type ImportHistoryStatus } from './importHistoryStatusMeta';
 
 interface ImportRun {
   id: number;
@@ -12,7 +13,7 @@ interface ImportRun {
   imported: number | null;
   failed: number | null;
   duration_s: string | null;
-  status: 'running' | 'success' | 'failed';
+  status: ImportHistoryStatus;
   error_detail: string | null;
   metrics_before: Metrics | null;
   metrics_after: Metrics | null;
@@ -24,7 +25,10 @@ function fmt(n: number | null | undefined): string {
   return n.toLocaleString();
 }
 
-function diff(after: number | undefined, before: number | undefined): React.ReactNode {
+function diff(
+  after: number | null | undefined,
+  before: number | null | undefined
+): React.ReactNode {
   if (after == null || before == null) return null;
   const d = after - before;
   if (d === 0) return <span className="text-slate-500 text-xs ml-1">(+0)</span>;
@@ -170,40 +174,42 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
           </tr>
         </thead>
         <tbody>
-          {history.map((run) => (
-            <React.Fragment key={run.id}>
-              <tr
-                className="border-b border-slate-800/50 hover:bg-slate-800/30 cursor-pointer"
-                onClick={() => toggle(run.id)}
-              >
-                <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
-                  {formatShortDate(run.started_at)}
-                </td>
-                <td className="py-1.5 pr-3 font-mono">{run.source_tag}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.imported)}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.failed)}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums text-slate-400">
-                  {run.duration_s ? `${run.duration_s}s` : '—'}
-                </td>
-                <td className="py-1.5 pr-3 text-center">
-                  {run.backup_taken ? (
-                    <span className="text-green-400">✓</span>
-                  ) : (
-                    <span className="text-slate-600">—</span>
-                  )}
-                </td>
-                <td className="py-1.5 pr-3">
-                  {run.status === 'success' && <span className="text-green-400">✓ success</span>}
-                  {run.status === 'failed' && <span className="text-red-400">✗ failed</span>}
-                  {run.status === 'running' && <span className="text-yellow-400">⏳ running</span>}
-                </td>
-                <td className="py-1.5 text-slate-500 text-xs">
-                  {expanded.has(run.id) ? '▲' : '▼'}
-                </td>
-              </tr>
-              {expanded.has(run.id) && <ExpandedRow run={run} />}
-            </React.Fragment>
-          ))}
+          {history.map((run) => {
+            const statusMeta = getImportHistoryStatusMeta(run.status);
+
+            return (
+              <React.Fragment key={run.id}>
+                <tr
+                  className="border-b border-slate-800/50 hover:bg-slate-800/30 cursor-pointer"
+                  onClick={() => toggle(run.id)}
+                >
+                  <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">
+                    {formatShortDate(run.started_at)}
+                  </td>
+                  <td className="py-1.5 pr-3 font-mono">{run.source_tag}</td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.imported)}</td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums">{fmt(run.failed)}</td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums text-slate-400">
+                    {run.duration_s ? `${run.duration_s}s` : '—'}
+                  </td>
+                  <td className="py-1.5 pr-3 text-center">
+                    {run.backup_taken ? (
+                      <span className="text-green-400">✓</span>
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
+                  </td>
+                  <td className="py-1.5 pr-3">
+                    <span className={statusMeta.className}>{statusMeta.label}</span>
+                  </td>
+                  <td className="py-1.5 text-slate-500 text-xs">
+                    {expanded.has(run.id) ? '▲' : '▼'}
+                  </td>
+                </tr>
+                {expanded.has(run.id) && <ExpandedRow run={run} />}
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>

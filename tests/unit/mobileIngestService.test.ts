@@ -36,6 +36,51 @@ describe('MobileIngestService', () => {
     jest.restoreAllMocks();
   });
 
+  describe('recoverStuckUploads', () => {
+    it('marks stale queued or processing uploads as failed and updates linked import history', async () => {
+      (adminQuery as jest.Mock)
+        .mockResolvedValueOnce({
+          rows: [
+            { id: 10, history_id: 210, source_tag: 'queued-device', status: 'queued' },
+            { id: 11, history_id: 211, source_tag: 'processing-device', status: 'processing' },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [], rowCount: 2 });
+
+      const recovered = await mobileIngestService.recoverStuckUploads(45);
+
+      expect(recovered).toBe(2);
+      expect(adminQuery).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("WHERE status IN ('processing', 'queued')"),
+        [45, expect.stringContaining('stuck_recovery')]
+      );
+      expect(adminQuery).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('SET finished_at = NOW(),'),
+        [[210, 211], expect.stringContaining('stuck_recovery')]
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        '[MobileIngest] Recovered stuck uploads at startup',
+        expect.objectContaining({
+          count: 2,
+          olderThanMinutes: 45,
+          uploadIds: [10, 11],
+        })
+      );
+    });
+
+    it('returns zero without logging when no stuck uploads are found', async () => {
+      (adminQuery as jest.Mock).mockResolvedValueOnce({ rows: [] });
+
+      const recovered = await mobileIngestService.recoverStuckUploads(30);
+
+      expect(recovered).toBe(0);
+      expect(adminQuery).toHaveBeenCalledTimes(1);
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+  });
+
   describe('recordUpload', () => {
     it('should record an upload and create history entry', async () => {
       (adminQuery as jest.Mock)

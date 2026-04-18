@@ -59,6 +59,30 @@ const reconcileRunProgress = async (runId: number): Promise<any> => {
               last_successful_page = $5,
               next_page = CASE WHEN status = 'completed' THEN GREATEST(next_page, $5 + 1) ELSE GREATEST($5 + 1, next_page) END,
               api_cursor = CASE WHEN $5 > 0 THEN $6 ELSE api_cursor END,
+              status = CASE
+                WHEN status <> 'cancelled'
+                  AND $2 > 0
+                  AND $6 IS NULL
+                  AND (total_pages IS NULL OR $2 >= total_pages)
+                THEN 'completed'
+                ELSE status
+              END,
+              completed_at = CASE
+                WHEN status <> 'cancelled'
+                  AND $2 > 0
+                  AND $6 IS NULL
+                  AND (total_pages IS NULL OR $2 >= total_pages)
+                THEN COALESCE(completed_at, NOW())
+                ELSE completed_at
+              END,
+              last_error = CASE
+                WHEN status <> 'cancelled'
+                  AND $2 > 0
+                  AND $6 IS NULL
+                  AND (total_pages IS NULL OR $2 >= total_pages)
+                THEN NULL
+                ELSE last_error
+              END,
               updated_at = NOW()
         WHERE id = $1
         RETURNING *`,

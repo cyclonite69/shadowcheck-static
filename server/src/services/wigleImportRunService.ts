@@ -151,16 +151,6 @@ const executeImportLoop = async (runId: number) => {
         return run;
       }
 
-      run = await processSuccessfulPage(
-        runId,
-        pageNumber,
-        requestCursor,
-        nextCursor,
-        results,
-        totalResults,
-        requestParams.resultsPerPage || DEFAULT_RESULTS_PER_PAGE
-      );
-
       const totalPages =
         totalResults !== null
           ? Math.max(
@@ -174,8 +164,18 @@ const executeImportLoop = async (runId: number) => {
           pageNumber >= totalPages ||
           results.length < (requestParams.resultsPerPage || DEFAULT_RESULTS_PER_PAGE));
 
+      run = await processSuccessfulPage(
+        runId,
+        pageNumber,
+        requestCursor,
+        nextCursor,
+        results,
+        totalResults,
+        requestParams.resultsPerPage || DEFAULT_RESULTS_PER_PAGE,
+        isComplete
+      );
+
       if (isComplete) {
-        run = await completeRun(runId);
         return run;
       }
 

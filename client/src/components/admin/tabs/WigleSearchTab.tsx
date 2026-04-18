@@ -8,6 +8,7 @@ import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
 import { wigleApi } from '../../../api/wigleApi';
 import type { WigleCompletenessReport } from '../hooks/useWigleRuns';
+import { getCoverageStatusMeta } from './wigleCoverageStatusMeta';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -240,44 +241,32 @@ export const WigleSearchTab: React.FC = () => {
                 {(termReport?.states ?? [])
                   .filter((s) => (s.rowsInserted ?? 0 > 0) || s.runId)
                   .slice(0, 20)
-                  .map((s) => (
-                    <div
-                      key={s.state}
-                      className="p-2 bg-slate-900/40 rounded border border-slate-800/60 flex flex-col justify-between"
-                      title={s.lastError ? `Note: ${s.lastError}` : undefined}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-xs font-black text-white">{s.state}</span>
-                        <span
-                          className={`text-[9px] px-1 rounded ${
-                            s.status === 'completed' && (s.rowsInserted ?? 0) === 0
-                              ? 'text-amber-400 bg-amber-500/5'
-                              : s.status === 'completed'
-                                ? 'text-emerald-400 bg-emerald-500/5'
-                                : s.status === 'failed'
-                                  ? 'text-red-400 bg-red-500/5'
-                                  : s.status === 'running'
-                                    ? 'text-blue-400 bg-blue-500/5'
-                                    : 'text-slate-600'
-                          }`}
-                        >
-                          {s.status === 'completed' && (s.rowsInserted ?? 0) === 0
-                            ? '!'
-                            : s.status === 'completed'
-                              ? '✓'
-                              : s.status
-                                ? '…'
-                                : ''}
-                        </span>
+                  .map((s) => {
+                    const statusMeta = getCoverageStatusMeta(s.status, s.rowsInserted);
+
+                    return (
+                      <div
+                        key={s.state}
+                        className="p-2 bg-slate-900/40 rounded border border-slate-800/60 flex flex-col justify-between"
+                        title={s.lastError ? `Note: ${s.lastError}` : statusMeta.title || undefined}
+                      >
+                        <div className="flex justify-between items-start mb-1 gap-2">
+                          <span className="text-xs font-black text-white">{s.state}</span>
+                          <span
+                            className={`text-[9px] px-1 rounded whitespace-nowrap ${statusMeta.className}`}
+                          >
+                            {statusMeta.label}
+                          </span>
+                        </div>
+                        <div className="text-lg font-bold text-slate-100">
+                          {(s.rowsInserted ?? 0).toLocaleString()}
+                        </div>
+                        <div className="text-[9px] text-slate-500 uppercase font-semibold">
+                          Imported
+                        </div>
                       </div>
-                      <div className="text-lg font-bold text-slate-100">
-                        {(s.rowsInserted ?? 0).toLocaleString()}
-                      </div>
-                      <div className="text-[9px] text-slate-500 uppercase font-semibold">
-                        Imported
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 {(termReport?.states ?? []).filter((s) => (s.rowsInserted ?? 0 > 0) || s.runId)
                   .length === 0 && (
                   <p className="col-span-5 text-xs text-slate-500 py-2">

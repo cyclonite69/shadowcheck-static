@@ -28,6 +28,8 @@ export interface MobileUploadData {
   extraMetadata?: any;
 }
 
+const DEFAULT_STUCK_THRESHOLD_MINUTES = 30;
+
 class MobileIngestService {
   private s3Client: S3Client | null = null;
   private bucketName: string | null = null;
@@ -43,6 +45,63 @@ class MobileIngestService {
   }
 
   constructor() {}
+
+  private getStuckThresholdMinutes(): number {
+    const raw =
+      process.env.MOBILE_INGEST_STUCK_THRESHOLD_MINUTES ||
+      process.env.MOBILE_INGEST_STUCK_THRESHOLD_MINUTES_DEFAULT;
+    const parsed = Number.parseInt(String(raw ?? ''), 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_STUCK_THRESHOLD_MINUTES;
+  }
+
+  async recoverStuckUploads(olderThanMinutes = this.getStuckThresholdMinutes()): Promise<number> {
+    const recoveryNote = `stuck_recovery: marked failed after ${olderThanMinutes} minute timeout`;
+    const recovered = await adminQuery(
+      `UPDATE app.mobile_uploads
+          SET status = 'failed',
+              error_detail = CASE
+                WHEN error_detail IS NULL OR BTRIM(error_detail) = '' THEN $2
+                WHEN POSITION($2 IN error_detail) > 0 THEN error_detail
+                ELSE error_detail || '; ' || $2
+              END,
+              updated_at = NOW()
+        WHERE status IN ('processing', 'queued')
+          AND updated_at < NOW() - ($1 * INTERVAL '1 minute')
+      RETURNING id, history_id, source_tag, status`,
+      [olderThanMinutes, recoveryNote]
+    );
+
+    const rows = Array.isArray(recovered?.rows) ? recovered.rows : [];
+    const historyIds = rows
+      .map((row: any) => Number(row.history_id))
+      .filter((historyId: number) => Number.isFinite(historyId) && historyId > 0);
+
+    if (historyIds.length > 0) {
+      await adminQuery(
+        `UPDATE app.import_history
+            SET finished_at = NOW(),
+                status = 'failed',
+                error_detail = CASE
+                  WHEN error_detail IS NULL OR BTRIM(error_detail) = '' THEN $2
+                  WHEN POSITION($2 IN error_detail) > 0 THEN error_detail
+                  ELSE error_detail || '; ' || $2
+                END
+          WHERE id = ANY($1::int[])
+            AND status = 'running'`,
+        [historyIds, recoveryNote]
+      );
+    }
+
+    if (rows.length > 0) {
+      logger.warn('[MobileIngest] Recovered stuck uploads at startup', {
+        count: rows.length,
+        olderThanMinutes,
+        uploadIds: rows.map((row: any) => row.id),
+      });
+    }
+
+    return rows.length;
+  }
 
   /**
    * Record a new upload in the tracking table

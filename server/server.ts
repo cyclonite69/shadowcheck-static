@@ -61,6 +61,8 @@ require('ts-node').register({
     // 8. DATABASE SETUP
     // ============================================================================
     const { pool, query } = await initializeDatabaseConnection(logger);
+    const mobileIngestService = require('./src/services/mobileIngestService').default;
+    await mobileIngestService.recoverStuckUploads();
 
     // ============================================================================
     // 8. DEMO ROUTES (before static files)
