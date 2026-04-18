@@ -1,6 +1,9 @@
-const { getHomeLocation } = require('../../../../server/src/services/networking/homeLocation');
-const { query } = require('../../../../server/src/config/database');
-const logger = require('../../../../server/src/logging/logger');
+import {
+  getHomeLocation,
+  setHomeLocation,
+} from '../../../../server/src/services/networking/homeLocation';
+import { query } from '../../../../server/src/config/database';
+import logger from '../../../../server/src/logging/logger';
 
 jest.mock('../../../../server/src/config/database', () => ({
   query: jest.fn(),

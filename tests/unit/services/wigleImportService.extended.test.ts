@@ -1,8 +1,8 @@
-const fs = require('fs');
-const path = require('path');
-const wigleImportService = require('../../../server/src/services/wigleImportService');
-const adminDb = require('../../../server/src/services/adminDbService');
-const logger = require('../../../server/src/logging/logger');
+import * as fs from 'fs';
+import * as path from 'path';
+import wigleImportService from '../../../server/src/services/wigleImportService';
+import * as adminDb from '../../../server/src/services/adminDbService';
+import logger from '../../../server/src/logging/logger';
 
 jest.mock('fs');
 jest.mock('../../../server/src/services/adminDbService');
