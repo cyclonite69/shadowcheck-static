@@ -402,5 +402,6 @@ module.exports = {
   getKmlImportHistoryContext,
   parseKmlImportCounts,
   buildContextMenuDemoHtml,
+  resolveEtlCommand,
   PROJECT_ROOT,
 };
