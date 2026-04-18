@@ -14,7 +14,9 @@ describe('SchemaCompat', () => {
   });
 
   test('manufacturer and threat tag expressions are schema-compatible', () => {
-    expect(FIELD_EXPRESSIONS.manufacturerName('rm')).toContain("to_jsonb(rm)->>'organization_name'");
+    expect(FIELD_EXPRESSIONS.manufacturerName('rm')).toContain(
+      "to_jsonb(rm)->>'organization_name'"
+    );
     expect(FIELD_EXPRESSIONS.manufacturerAddress('rm')).toContain(
       "to_jsonb(rm)->>'organization_address'"
     );
@@ -28,5 +30,16 @@ describe('SchemaCompat', () => {
     expect(NULL_SAFE_COMPARISONS.isIgnored('nt')).toBe(
       "COALESCE((to_jsonb(nt)->>'is_ignored')::boolean, FALSE)"
     );
+  });
+
+  test('default parameters are used when no alias is provided', () => {
+    expect(FIELD_EXPRESSIONS.networkBssid()).toBe('UPPER(ne.bssid)');
+    expect(FIELD_EXPRESSIONS.manufacturerName()).toContain('to_jsonb(rm)');
+    expect(FIELD_EXPRESSIONS.manufacturerAddress()).toContain('to_jsonb(rm)');
+    expect(FIELD_EXPRESSIONS.threatTag()).toContain('to_jsonb(nt)');
+    expect(FIELD_EXPRESSIONS.threatTagLowercase()).toContain('to_jsonb(nt)');
+    expect(FIELD_EXPRESSIONS.observationLat()).toContain('COALESCE(o.lat');
+    expect(FIELD_EXPRESSIONS.observationLon()).toContain('COALESCE(o.lon');
+    expect(NULL_SAFE_COMPARISONS.isIgnored()).toContain('to_jsonb(nt)');
   });
 });

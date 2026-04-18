@@ -1,14 +1,14 @@
 export {};
 
-const { 
-  addNetworkNote, 
-  getNetworkNotes, 
-  deleteNetworkNote, 
-  uploadNetworkMedia, 
-  getNetworkMediaList, 
-  getNetworkMediaFile, 
-  addNetworkNotation, 
-  getNetworkNotations 
+const {
+  addNetworkNote,
+  getNetworkNotes,
+  deleteNetworkNote,
+  uploadNetworkMedia,
+  getNetworkMediaList,
+  getNetworkMediaFile,
+  addNetworkNotation,
+  getNetworkNotations,
 } = require('../../../../server/src/services/admin/networkNotesAdminService');
 
 jest.mock('../../../../server/src/config/container', () => ({
@@ -54,13 +54,24 @@ describe('networkNotesAdminService', () => {
       const bssid = await deleteNetworkNote('note-1');
       expect(bssid).toBe('AA:BB');
     });
+
+    it('should return null if note not found', async () => {
+      adminDbService.adminQuery.mockResolvedValue({ rows: [] });
+      const bssid = await deleteNetworkNote('missing-note');
+      expect(bssid).toBeNull();
+    });
   });
 
   describe('uploadNetworkMedia', () => {
     it('should insert media and return the new row', async () => {
       const mockMedia = { id: 1, filename: 'test.jpg' };
       adminDbService.adminQuery.mockResolvedValue({ rows: [mockMedia] });
-      const result = await uploadNetworkMedia('AA:BB', 'test.jpg', 'image/jpeg', Buffer.from('data'));
+      const result = await uploadNetworkMedia(
+        'AA:BB',
+        'test.jpg',
+        'image/jpeg',
+        Buffer.from('data')
+      );
       expect(result).toEqual(mockMedia);
     });
   });

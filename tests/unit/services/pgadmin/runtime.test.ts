@@ -95,6 +95,21 @@ describe('pgAdmin runtime', () => {
         stderr: 'error message',
       });
     });
+
+    it('should reject on process error event', async () => {
+      const child = createMockChild();
+      mockSpawn.mockReturnValueOnce(child);
+      const promise = runtime.runCommand('test-cmd', []);
+      child.emit('error', new Error('Spawn error'));
+      await expect(promise).rejects.toThrow('Spawn error');
+    });
+
+    it('should use generic error message if stderr is empty on non-zero exit', async () => {
+      mockSpawnProcess(1, '', '');
+      await expect(runtime.runCommand('test-cmd', [])).rejects.toThrow(
+        'test-cmd exited with code 1'
+      );
+    });
   });
 
   describe('composeFileExists', () => {
@@ -108,6 +123,17 @@ describe('pgAdmin runtime', () => {
       mockFsPromises.access.mockRejectedValueOnce(new Error('ENOENT'));
       const exists = await runtime.composeFileExists();
       expect(exists).toBe(false);
+    });
+
+    it('should return true in local mode without checking fs', async () => {
+      process.env.DB_HOST = 'postgres';
+      process.env.NODE_ENV = 'development';
+      jest.resetModules();
+      runtime = require('../../../../server/src/services/pgadmin/runtime');
+
+      const exists = await runtime.composeFileExists();
+      expect(exists).toBe(true);
+      expect(mockFsPromises.access).not.toHaveBeenCalled();
     });
   });
 
@@ -129,6 +155,37 @@ describe('pgAdmin runtime', () => {
         expect.any(Object)
       );
     });
+
+    it('should fall back to "docker compose" if "docker-compose" is missing', async () => {
+      mockFsPromises.access.mockResolvedValue(undefined);
+
+      // First call to runCommand (docker-compose) fails with ENOENT
+      const childEnoent = createMockChild();
+      mockSpawn.mockReturnValueOnce(childEnoent);
+      setImmediate(() => childEnoent.emit('error', { code: 'ENOENT' }));
+
+      // Second call (docker compose) succeeds
+      mockSpawnProcess(0, 'docker compose output', '');
+
+      const result = await runtime.runCompose(['up']);
+      expect(result.stdout).toBe('docker compose output');
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'docker',
+        expect.arrayContaining(['compose']),
+        expect.any(Object)
+      );
+    });
+
+    it('should throw if in local mode', async () => {
+      process.env.DB_HOST = 'postgres';
+      process.env.NODE_ENV = 'development';
+      jest.resetModules();
+      runtime = require('../../../../server/src/services/pgadmin/runtime');
+
+      await expect(runtime.runCompose(['up'])).rejects.toThrow(
+        /docker-compose pgAdmin control is disabled in local mode/
+      );
+    });
   });
 
   describe('parseDockerStatus', () => {
@@ -143,6 +200,24 @@ describe('pgAdmin runtime', () => {
       expect(status.running).toBe(true);
       expect(status.id).toBe('id123');
     });
+
+    it('should handle missing status or other fields', () => {
+      const stdout = 'id123||name123||||';
+      const status = runtime.parseDockerStatus(stdout);
+      expect(status.exists).toBe(true);
+      expect(status.running).toBe(false);
+      expect(status.status).toBe('');
+      expect(status.ports).toBe('');
+    });
+
+    it('should handle missing name and status fields (empty string cases)', () => {
+      // id||||||ports
+      const stdout = 'id123||||||ports123';
+      const status = runtime.parseDockerStatus(stdout);
+      expect(status.exists).toBe(true);
+      expect(status.status).toBe('');
+      expect(status.name).toBe('shadowcheck_pgadmin'); // falls back to containerName constant
+    });
   });
 
   describe('probePgAdminReachable', () => {
@@ -150,6 +225,16 @@ describe('pgAdmin runtime', () => {
       mockSpawnProcess(0, 'HTTP/1.1 200 OK', '');
       const reachable = await runtime.probePgAdminReachable();
       expect(reachable).toBe(true);
+    });
+
+    it('should return false if curl fails or returns non-2xx', async () => {
+      mockSpawnProcess(0, 'HTTP/1.1 500 Error', '');
+      let reachable = await runtime.probePgAdminReachable();
+      expect(reachable).toBe(false);
+
+      mockSpawnProcess(1, '', 'connection refused');
+      reachable = await runtime.probePgAdminReachable();
+      expect(reachable).toBe(false);
     });
   });
 

@@ -156,6 +156,19 @@ describe('GeocodingDaemon', () => {
       expect(loadPersistedDaemonConfig).toHaveBeenCalled();
       expect(status.config).toBeDefined();
     });
+
+    it('should handle failure to load persisted config', async () => {
+      geocodeDaemon.config = null;
+      (loadPersistedDaemonConfig as jest.Mock).mockRejectedValueOnce(new Error('Load failed'));
+
+      const status = await getGeocodingDaemonStatus();
+
+      expect(status.lastError).toBe('Load failed');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load persisted daemon config for status'),
+        expect.any(Object)
+      );
+    });
   });
 
   describe('runGeocodeDaemonLoop', () => {
@@ -206,6 +219,71 @@ describe('GeocodingDaemon', () => {
         expect.any(Object)
       );
       expect(geocodeDaemon.lastError).toBe('Network Error');
+    });
+
+    it('should stop if config becomes missing', async () => {
+      geocodeDaemon.config = { provider: 'mapbox' } as any;
+      const runGeocodeCacheUpdate = jest.fn().mockImplementation(async () => {
+        geocodeDaemon.config = null;
+        return { processed: 0 };
+      });
+
+      await runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+      expect(runGeocodeCacheUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not start if config is missing', async () => {
+      geocodeDaemon.config = null;
+      const runGeocodeCacheUpdate = jest.fn();
+
+      await runGeocodeDaemonLoop(runGeocodeCacheUpdate);
+      expect(runGeocodeCacheUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('startGeocodingDaemon', () => {
+    it('should handle failure to load persisted config before start', async () => {
+      (loadPersistedDaemonConfig as jest.Mock).mockRejectedValueOnce(new Error('Load error'));
+      (resolveProviderCredentials as jest.Mock).mockResolvedValue('mock-creds');
+
+      const runGeocodeCacheUpdate = jest.fn().mockImplementation(async () => {
+        geocodeDaemon.stopRequested = true;
+        return { processed: 0 };
+      });
+
+      await startGeocodingDaemon({}, runGeocodeCacheUpdate);
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load persisted daemon config before start'),
+        expect.any(Object)
+      );
+      expect(normalizeDaemonConfig).toHaveBeenCalledWith({});
+    });
+
+    it('should ensure all enabled providers are ready', async () => {
+      const config = {
+        provider: 'mapbox',
+        providers: [
+          { provider: 'nominatim', enabled: true },
+          { provider: 'opencage', enabled: false },
+          { provider: 'geocodio' }, // default enabled
+        ],
+      };
+      (loadPersistedDaemonConfig as jest.Mock).mockResolvedValueOnce({});
+      (normalizeDaemonConfig as jest.Mock).mockReturnValue(config);
+      (resolveProviderCredentials as jest.Mock).mockResolvedValue('creds');
+
+      const runGeocodeCacheUpdate = jest.fn().mockImplementation(async () => {
+        geocodeDaemon.stopRequested = true;
+        return { processed: 0 };
+      });
+
+      await startGeocodingDaemon(config as any, runGeocodeCacheUpdate);
+
+      expect(resolveProviderCredentials).toHaveBeenCalledWith('mapbox');
+      expect(resolveProviderCredentials).toHaveBeenCalledWith('nominatim');
+      expect(resolveProviderCredentials).toHaveBeenCalledWith('geocodio');
+      expect(resolveProviderCredentials).not.toHaveBeenCalledWith('opencage');
     });
   });
 

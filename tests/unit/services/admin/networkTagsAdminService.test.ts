@@ -20,7 +20,12 @@ describe('networkTagsAdminService', () => {
         .mockResolvedValueOnce({ rows: [{ bssid }] }) // existing check
         .mockResolvedValue({ rows: [{ bssid }] }); // all updates
 
-      const result = await networkTagsAdminService.upsertNetworkTag(bssid, 'threat', true, 'some notes');
+      const result = await networkTagsAdminService.upsertNetworkTag(
+        bssid,
+        'threat',
+        true,
+        'some notes'
+      );
 
       expect(result).toEqual({ bssid, updated: true });
       expect(adminDbService.adminQuery).toHaveBeenCalledTimes(4); // check + 3 updates
@@ -31,7 +36,12 @@ describe('networkTagsAdminService', () => {
         .mockResolvedValueOnce({ rows: [] }) // existing check
         .mockResolvedValue({ rows: [{ bssid }] }); // all inserts
 
-      const result = await networkTagsAdminService.upsertNetworkTag(bssid, 'threat', true, 'some notes');
+      const result = await networkTagsAdminService.upsertNetworkTag(
+        bssid,
+        'threat',
+        true,
+        'some notes'
+      );
 
       expect(result).toEqual({ bssid, inserted: true });
       expect(adminDbService.adminQuery).toHaveBeenCalledTimes(4); // check + 3 inserts
@@ -45,6 +55,40 @@ describe('networkTagsAdminService', () => {
       await networkTagsAdminService.upsertNetworkTag(bssid, 'threat', null, null);
 
       expect(adminDbService.adminQuery).toHaveBeenCalledTimes(2); // check + 1 update (threatTag)
+    });
+
+    it('should handle all null parameters for existing tag', async () => {
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [{ bssid }] });
+      const result = await networkTagsAdminService.upsertNetworkTag(bssid, null, null, null);
+      expect(result).toEqual({ bssid, updated: true });
+      expect(adminDbService.adminQuery).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle all null parameters for new tag', async () => {
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [] });
+      const result = await networkTagsAdminService.upsertNetworkTag(bssid, null, null, null);
+      expect(result).toEqual({ bssid, inserted: true });
+      expect(adminDbService.adminQuery).toHaveBeenCalledTimes(1);
+    });
+
+    it('should update partial parameters for existing tag', async () => {
+      adminDbService.adminQuery
+        .mockResolvedValueOnce({ rows: [{ bssid }] }) // existing check
+        .mockResolvedValue({ rows: [{ bssid }] }); // updates
+
+      await networkTagsAdminService.upsertNetworkTag(bssid, null, true, 'notes');
+
+      expect(adminDbService.adminQuery).toHaveBeenCalledTimes(3); // check + 2 updates
+    });
+
+    it('should insert partial parameters for new tag', async () => {
+      adminDbService.adminQuery
+        .mockResolvedValueOnce({ rows: [] }) // existing check
+        .mockResolvedValue({ rows: [{ bssid }] }); // inserts
+
+      await networkTagsAdminService.upsertNetworkTag(bssid, 'threat', null, 'notes');
+
+      expect(adminDbService.adminQuery).toHaveBeenCalledTimes(3); // check + 2 inserts
     });
   });
 
