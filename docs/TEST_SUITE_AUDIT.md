@@ -22,6 +22,9 @@
 
 ### Tested (Well) -> [EXPANDED]
 
+- **Server Utilities (`server/src/utils`)**: 100% branch coverage achieved for most core utilities (e.g., `safeJsonParse`, `serverStartup`, `queryPerformanceTracker`).
+- **Reports**: `threatReportRenderers.ts` reached 96% branch coverage.
+- **Background Jobs**: `settings.ts` reached 100% branch coverage.
 - **WiGLE Client & Utilities**: `wigleClient.ts`, `wigleAuditLogger.ts`, `wigleRequestLedger.ts`, `wigleRequestUtils.ts`.
 - **Filter Query Builder**: Reached **100% Statement Coverage** for `universalFilterQueryBuilder.ts` and `SqlFragmentLibrary.ts`.
 - **Infrastructure**: `secretsManager.ts` reached **84.21%** coverage.

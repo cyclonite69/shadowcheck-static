@@ -115,4 +115,26 @@ describe('QueryPerformanceTracker', () => {
       expect.objectContaining({ queryType: 'testQuery' })
     );
   });
+
+  it('should handle undefined metric arrays safely', () => {
+    const tracker = new QueryPerformanceTracker('testQuery');
+    
+    // Artificially make arrays undefined to test ?. and || [] fallbacks
+    (tracker as any).metrics.appliedFilters = undefined;
+    (tracker as any).metrics.ignoredFilters = undefined;
+    (tracker as any).metrics.warnings = undefined;
+    
+    // These should not throw thanks to ?.
+    tracker.addAppliedFilter('test', true);
+    tracker.addIgnoredFilter('test');
+    tracker.addWarning('test');
+    
+    const metrics = tracker.finish();
+    
+    // These should fall back to empty arrays
+    expect(metrics.appliedFilters).toEqual([]);
+    expect(metrics.ignoredFilters).toEqual([]);
+    expect(metrics.warnings).toEqual([]);
+    expect(metrics.filterCount).toBe(0);
+  });
 });

@@ -87,4 +87,200 @@ describe('threatReportRenderers', () => {
       expect(err?.message || err?.code).toBe('PDFKIT_NOT_INSTALLED');
     }
   });
+
+  test('renderMarkdown handles empty awayLocations and missing scores', () => {
+    const md = renderMarkdown({
+      ...sampleReport,
+      threat: {
+        ...sampleReport.threat,
+        finalThreatScore: null,
+        ruleBasedScore: null,
+      },
+      observations: {
+        ...sampleReport.observations,
+        awayLocations: [],
+      }
+    });
+    expect(md).toContain('- Final Threat Score: N/A');
+    expect(md).toContain('- Rule-Based Score: N/A');
+    expect(md).toContain('- None');
+  });
+
+  test('renderHtml handles empty awayLocations', () => {
+    const html = renderHtml({
+      ...sampleReport,
+      observations: {
+        ...sampleReport.observations,
+        awayLocations: [],
+      }
+    });
+    expect(html).toContain('<tr><td colspan="5">None</td></tr>');
+  });
+
+  test('renderPdfBuffer handles empty awayLocations and missing scores', async () => {
+    try {
+      const buf = await renderPdfBuffer({
+        ...sampleReport,
+        threat: {
+          ...sampleReport.threat,
+          finalThreatScore: null,
+          ruleBasedScore: null,
+        },
+        observations: {
+          ...sampleReport.observations,
+          awayLocations: [],
+        }
+      });
+      expect(Buffer.isBuffer(buf)).toBe(true);
+    } catch (err: any) {
+      expect(err?.message || err?.code).toBe('PDFKIT_NOT_INSTALLED');
+    }
+  });
+
+  test('renderPdfBuffer handles missing streetUrl and mapsUrl in awayLocations', async () => {
+    jest.mock('../../server/src/services/reports/threatReportUtils', () => {
+      const original = jest.requireActual('../../server/src/services/reports/threatReportUtils');
+      return {
+        ...original,
+        buildGoogleMapsUrl: () => null,
+        buildStreetViewUrl: () => null,
+      };
+    });
+
+    // Need to re-require if the mock is applied, but since it's already required at top level,
+    // we can test the behavior by omitting lat/lon if the utility allows it, or we can just 
+    // rely on a report that yields no URLs. Wait, buildGoogleMapsUrl returns null if lat/lon are missing.
+    try {
+      const buf = await renderPdfBuffer({
+        ...sampleReport,
+        observations: {
+          ...sampleReport.observations,
+          awayLocations: [
+            {
+              lat: null,
+              lon: null,
+              time: Date.UTC(2025, 5, 25, 22, 30, 42),
+              distanceKm: 9.13,
+              signal: null,
+            },
+          ],
+        }
+      });
+      expect(Buffer.isBuffer(buf)).toBe(true);
+    } catch (err: any) {
+      expect(err?.message || err?.code).toBe('PDFKIT_NOT_INSTALLED');
+    }
+  });
+
+  test('renderMarkdown handles missing optional fields to cover optional chaining', () => {
+    const md = renderMarkdown({
+      ...sampleReport,
+      network: {
+        ...sampleReport.network,
+        threatTag: null,
+      },
+      threat: {
+        ...sampleReport.threat,
+        finalThreatScore: null,
+        ruleBasedScore: null,
+      },
+      observations: {
+        ...sampleReport.observations,
+        awayLocations: [
+          {
+            lat: null,
+            lon: null,
+            time: Date.UTC(2025, 5, 25, 22, 30, 42),
+            distanceKm: null,
+            signal: null,
+          }
+        ],
+      }
+    });
+    expect(md).toContain('- Threat Tag: N/A');
+    expect(md).toContain('- Final Threat Score: N/A');
+    expect(md).toContain('- Rule-Based Score: N/A');
+    expect(md).toContain('N/A dBm');
+  });
+
+  test('renderHtml handles missing optional fields to cover optional chaining', () => {
+    const html = renderHtml({
+      ...sampleReport,
+      network: {
+        ...sampleReport.network,
+        threatTag: '',
+      },
+      threat: {
+        ...sampleReport.threat,
+        finalThreatScore: null,
+        ruleBasedScore: null,
+      },
+      observations: {
+        ...sampleReport.observations,
+        awayLocations: [
+          {
+            lat: null,
+            lon: null,
+            time: Date.UTC(2025, 5, 25, 22, 30, 42),
+            distanceKm: null,
+            signal: null,
+          }
+        ],
+      }
+    });
+    expect(html).toContain('Threat Tag</b><br/>N/A');
+    expect(html).toContain('Final Threat Score</b><br/>N/A');
+    expect(html).toContain('Rule-Based Score</b><br/>N/A');
+    expect(html).toContain('<td>N/A</td>');
+  });
+
+  test('renderPdfBuffer handles missing optional fields to cover optional chaining', async () => {
+    try {
+      const buf = await renderPdfBuffer({
+        ...sampleReport,
+        network: {
+          ...sampleReport.network,
+          threatTag: '',
+          isIgnored: true,
+        },
+        threat: {
+          ...sampleReport.threat,
+          finalThreatScore: null,
+          ruleBasedScore: null,
+        },
+        observations: {
+          ...sampleReport.observations,
+          awayLocations: [
+            {
+              lat: null,
+              lon: null,
+              time: Date.UTC(2025, 5, 25, 22, 30, 42),
+              distanceKm: null,
+              signal: null,
+            }
+          ],
+        }
+      });
+      expect(Buffer.isBuffer(buf)).toBe(true);
+    } catch (err: any) {
+      expect(err?.message || err?.code).toBe('PDFKIT_NOT_INSTALLED');
+    }
+  });
+
+  test('renderPdfBuffer throws error when pdfkit is missing', async () => {
+    jest.resetModules();
+    jest.doMock('pdfkit', () => {
+      throw new Error('Module not found');
+    });
+    
+    const { renderPdfBuffer: mockedRenderPdfBuffer } = require('../../server/src/services/reports/threatReportRenderers');
+    
+    try {
+      await mockedRenderPdfBuffer(sampleReport);
+      // If it doesn't throw, we should fail the test
+      expect(true).toBe(false);
+    } catch (err: any) {
+      expect(err.code).toBe('PDFKIT_NOT_INSTALLED');
+    }
+  });
 });
