@@ -9,12 +9,12 @@
   - **Certification Tests**: 1 file
   - **API Tests**: 2 files
 - **Coverage (Server Code)**:
-  - **Statements**: 53.23%
-  - **Branches**: 44.51%
-  - **Functions**: 48.5%
-  - **Lines**: 54.74%
+  - **Statements**: 54.22%
+  - **Branches**: 46.83%
+  - **Functions**: 50.05%
+  - **Lines**: 55.62%
 - **Pass/Fail Status**:
-  - **Passed**: 2119 (Added WiGLE utilities, Ledger, and Query Builder modules)
+  - **Passed**: 2345
   - **Failed**: 0
   - **Skipped**: 37 (Integration tests skipped when DB is not available)
 
@@ -22,6 +22,9 @@
 
 ### Tested (Well) -> [EXPANDED]
 
+- **Server Utilities (`server/src/utils`)**: 100% branch coverage achieved for most core utilities (e.g., `safeJsonParse`, `serverStartup`, `queryPerformanceTracker`).
+- **Reports**: `threatReportRenderers.ts` reached 96% branch coverage.
+- **Background Jobs**: `settings.ts` reached 100% branch coverage.
 - **WiGLE Client & Utilities**: `wigleClient.ts`, `wigleAuditLogger.ts`, `wigleRequestLedger.ts`, `wigleRequestUtils.ts`.
 - **Filter Query Builder**: Reached **100% Statement Coverage** for `universalFilterQueryBuilder.ts` and `SqlFragmentLibrary.ts`.
 - **Infrastructure**: `secretsManager.ts` reached **84.21%** coverage.
