@@ -20,18 +20,17 @@ jest.mock('fs', () => ({
   },
 }));
 
-jest.mock('multer', () => {
-  const multer: any = jest.fn(() => ({
-    any: jest.fn(),
-    array: jest.fn(),
-    fields: jest.fn(),
-    none: jest.fn(),
-    single: jest.fn(),
-  }));
-  multer.diskStorage = jest.fn();
-  multer.memoryStorage = jest.fn();
-  return multer;
-});
+const multerMock = jest.fn(() => ({
+  any: jest.fn(),
+  array: jest.fn(),
+  fields: jest.fn(),
+  none: jest.fn(),
+  single: jest.fn(),
+}));
+(multerMock as any).diskStorage = jest.fn();
+(multerMock as any).memoryStorage = jest.fn();
+
+jest.mock('multer', () => multerMock);
 
 jest.mock('../../../../server/src/config/container', () => ({
   secretsManager: {
@@ -39,7 +38,13 @@ jest.mock('../../../../server/src/config/container', () => ({
   },
 }));
 
+import * as adminHelpers from '../../../../server/src/services/admin/adminHelpers';
+import * as container from '../../../../server/src/config/container';
+
 const {
+  upload,
+  sqlUpload,
+  kmlUpload,
   validateSQLiteMagic,
   resolveEtlCommand,
   getImportCommand,
@@ -50,13 +55,60 @@ const {
   getKmlImportHistoryContext,
   parseKmlImportCounts,
   buildContextMenuDemoHtml,
-} = require('../../../../server/src/services/admin/adminHelpers');
+} = adminHelpers;
 
-const { secretsManager } = require('../../../../server/src/config/container');
+const { secretsManager } = container as any;
 
 describe('adminHelpers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('multer file filters', () => {
+    it('should validate SQLite file extensions', () => {
+      const sqliteCall = (multerMock as jest.Mock).mock.calls.find(
+        (call) => call[0]?.limits?.fileSize === 500 * 1024 * 1024 && !call[0]?.limits?.files
+      );
+      expect(sqliteCall).toBeDefined();
+      const filter = sqliteCall[0].fileFilter;
+      const cb = jest.fn();
+
+      filter({}, { originalname: 'test.sqlite' }, cb);
+      expect(cb).toHaveBeenCalledWith(null, true);
+
+      filter({}, { originalname: 'test.txt' }, cb);
+      expect(cb).toHaveBeenCalledWith(expect.any(Error));
+    });
+
+    it('should validate SQL file extensions', () => {
+      const sqlCall = (multerMock as jest.Mock).mock.calls.find(
+        (call) => call[0]?.limits?.fileSize === 200 * 1024 * 1024
+      );
+      expect(sqlCall).toBeDefined();
+      const filter = sqlCall[0].fileFilter;
+      const cb = jest.fn();
+
+      filter({}, { originalname: 'test.sql' }, cb);
+      expect(cb).toHaveBeenCalledWith(null, true);
+
+      filter({}, { originalname: 'test.db' }, cb);
+      expect(cb).toHaveBeenCalledWith(expect.any(Error));
+    });
+
+    it('should validate KML file extensions', () => {
+      const kmlCall = (multerMock as jest.Mock).mock.calls.find(
+        (call) => call[0]?.limits?.files === 1000
+      );
+      expect(kmlCall).toBeDefined();
+      const filter = kmlCall[0].fileFilter;
+      const cb = jest.fn();
+
+      filter({}, { originalname: 'test.kml' }, cb);
+      expect(cb).toHaveBeenCalledWith(null, true);
+
+      filter({}, { originalname: 'test.xml' }, cb);
+      expect(cb).toHaveBeenCalledWith(expect.any(Error));
+    });
   });
 
   describe('validateSQLiteMagic', () => {
@@ -67,16 +119,7 @@ describe('adminHelpers', () => {
       };
       (require('fs').promises.open as jest.Mock).mockResolvedValue(mockFd);
 
-      // The magic string is Buffer.from('53514c69746520666f726d61742033', 'hex')
-      // which is "SQLite format 3"
       const magicBuf = Buffer.from('53514c69746520666f726d61742033', 'hex');
-
-      // We need to make buf.equals(SQLITE_MAGIC) return true
-      // The implementation does:
-      // const { bytesRead } = await fd.read(buf, 0, 15, 0);
-      // return bytesRead === 15 && buf.equals(SQLITE_MAGIC);
-
-      // We need to control the 'buf' passed to read.
       mockFd.read.mockImplementation((buf, offset, length, position) => {
         magicBuf.copy(buf);
         return Promise.resolve({ bytesRead: 15 });
@@ -87,29 +130,54 @@ describe('adminHelpers', () => {
       expect(mockFd.close).toHaveBeenCalled();
     });
 
-    it('should return false for invalid bytesRead', async () => {
+    it('should return false for truncated file (bytesRead < 15)', async () => {
       const mockFd = {
         read: jest.fn().mockResolvedValue({ bytesRead: 10 }),
         close: jest.fn(),
       };
       (require('fs').promises.open as jest.Mock).mockResolvedValue(mockFd);
 
-      const result = await validateSQLiteMagic('test.sqlite');
+      const result = await validateSQLiteMagic('truncated.sqlite');
       expect(result).toBe(false);
+      expect(mockFd.close).toHaveBeenCalled();
+    });
+
+    it('should return false for 0-byte file', async () => {
+      const mockFd = {
+        read: jest.fn().mockResolvedValue({ bytesRead: 0 }),
+        close: jest.fn(),
+      };
+      (require('fs').promises.open as jest.Mock).mockResolvedValue(mockFd);
+
+      const result = await validateSQLiteMagic('empty.sqlite');
+      expect(result).toBe(false);
+      expect(mockFd.close).toHaveBeenCalled();
     });
 
     it('should return false for invalid magic bytes', async () => {
       const mockFd = {
         read: jest.fn().mockImplementation((buf) => {
-          Buffer.from('not sqlite').copy(buf);
+          Buffer.from('not sqlite but 15b').copy(buf);
           return Promise.resolve({ bytesRead: 15 });
         }),
         close: jest.fn(),
       };
       (require('fs').promises.open as jest.Mock).mockResolvedValue(mockFd);
 
-      const result = await validateSQLiteMagic('test.sqlite');
+      const result = await validateSQLiteMagic('invalid.sqlite');
       expect(result).toBe(false);
+      expect(mockFd.close).toHaveBeenCalled();
+    });
+
+    it('should close file descriptor even if read fails', async () => {
+      const mockFd = {
+        read: jest.fn().mockRejectedValue(new Error('Read error')),
+        close: jest.fn(),
+      };
+      (require('fs').promises.open as jest.Mock).mockResolvedValue(mockFd);
+
+      await expect(validateSQLiteMagic('error.sqlite')).rejects.toThrow('Read error');
+      expect(mockFd.close).toHaveBeenCalled();
     });
   });
 
@@ -131,6 +199,11 @@ describe('adminHelpers', () => {
       const result = resolveEtlCommand('test-script', 'arg1');
       expect(result.cmd).toContain('tsx');
       expect(result.args[0]).toContain('test-script.ts');
+    });
+
+    it('should throw error for path traversal attempt', () => {
+      expect(() => resolveEtlCommand('../../../etc/passwd')).toThrow('Invalid script base name');
+      expect(() => resolveEtlCommand('script; rm -rf')).toThrow('Invalid script base name');
     });
 
     it('should return node command if compiled script exists', () => {
@@ -255,6 +328,11 @@ describe('adminHelpers', () => {
   });
 
   describe('parseRelativePathsPayload', () => {
+    it('should return empty array for malformed JSON', () => {
+      expect(parseRelativePathsPayload('["unclosed array')).toEqual([]);
+      expect(parseRelativePathsPayload('{not json}')).toEqual([]);
+    });
+
     it('should return empty array for non-string input', () => {
       expect(parseRelativePathsPayload(null)).toEqual([]);
       expect(parseRelativePathsPayload(123)).toEqual([]);
