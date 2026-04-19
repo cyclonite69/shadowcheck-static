@@ -67,4 +67,5 @@
 - [x] **Turn 6: Deep Infrastructure Expansion**: Expanded coverage for WiGLE High-Level Services (`wigleImportService.ts`, `wigleImportRunService.ts`) and Geocoding State (`jobState.ts`) to 100% Statements. Refined WebSocket terminal tests.
 - [x] **Turn 7: WiGLE Utilities & Query Builders**: Expanded coverage for WiGLE Client/Ledger/AuditLogger and Filter Query Builder modules (`universalFilterQueryBuilder.ts`, `SqlFragmentLibrary.ts`) to 100% Statements. Refined `wigleClient.ts` retry logic tests.
 - [x] **Turn 8: Server Utilities & Reports**: Expanded coverage for Server Utilities (`safeJsonParse.ts`, `serverStartup.ts`, `queryPerformanceTracker.ts`), Reports (`threatReportRenderers.ts`), and Background Jobs (`settings.ts`) to >96% branch coverage.
+- [x] **Turn 9: Infrastructure & Filter Logic**: Expanded coverage for Filter Query Builder modules (`GeospatialModule.ts`, `NetworkModule.ts`), Geocoding, and PgAdmin control, reaching >90% branch coverage across all modules. Baseline enforced in `jest.config.js`.
       hresholds.

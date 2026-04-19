@@ -9,12 +9,12 @@
   - **Certification Tests**: 1 file
   - **API Tests**: 2 files
 - **Coverage (Server Code)**:
-  - **Statements**: 53.23%
-  - **Branches**: 44.51%
-  - **Functions**: 48.5%
-  - **Lines**: 54.74%
+  - **Statements**: 54.22%
+  - **Branches**: 46.83%
+  - **Functions**: 50.05%
+  - **Lines**: 55.62%
 - **Pass/Fail Status**:
-  - **Passed**: 2119 (Added WiGLE utilities, Ledger, and Query Builder modules)
+  - **Passed**: 2345
   - **Failed**: 0
   - **Skipped**: 37 (Integration tests skipped when DB is not available)
 
