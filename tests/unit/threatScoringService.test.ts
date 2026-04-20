@@ -1,10 +1,9 @@
 export {};
 
-const {
-  createThreatScoringService,
-} = require('../../server/src/services/threatScoringService') as {
-  createThreatScoringService: Function;
-};
+const { createThreatScoringService } =
+  require('../../server/src/services/threatScoringService') as {
+    createThreatScoringService: Function;
+  };
 
 describe('ThreatScoringService', () => {
   const createLogger = () => ({
@@ -317,6 +316,8 @@ describe('ThreatScoringService', () => {
             metrics: { observations: 10 },
             factors: { mobility: 'high' },
             flags: ['MOCK_FLAG'],
+            follow_legs: 70,
+            public_pattern_bonus: 1.2,
           },
         },
       ]);
@@ -351,6 +352,18 @@ describe('ThreatScoringService', () => {
             metrics: { observations: 10 },
             factors: { mobility: 'high' },
             flags: ['MOCK_FLAG'],
+            components: {
+              follow_legs: 70,
+              public_pattern_bonus: 1.2,
+            },
+            publicPatternSignals: {
+              widePublicDistribution: {
+                scoreContribution: 1.2,
+                source: 'wigle_public_observations',
+                description:
+                  'Derived from public WiGLE observation spread; does not represent local LAN observation evidence.',
+              },
+            },
           },
         },
       ]);

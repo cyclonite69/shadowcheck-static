@@ -82,7 +82,23 @@ describe('Threats API v1', () => {
         threatType: 'High risk detected',
         threatLevel: 'high',
         confidence: '95',
-        patterns: { metrics: {}, factors: {}, flags: ['MOCK_FLAG'] },
+        patterns: {
+          metrics: {},
+          factors: {},
+          flags: ['MOCK_FLAG'],
+          components: {
+            follow_legs: 70,
+            public_pattern_bonus: 1.2,
+          },
+          publicPatternSignals: {
+            widePublicDistribution: {
+              scoreContribution: 1.2,
+              source: 'wigle_public_observations',
+              description:
+                'Derived from public WiGLE observation spread; does not represent local LAN observation evidence.',
+            },
+          },
+        },
       },
     ]);
   });
@@ -90,7 +106,7 @@ describe('Threats API v1', () => {
   describe('GET /api/v1/threats/quick', () => {
     it('should return quick threats with pagination', async () => {
       const res = await request(app).get('/api/v1/threats/quick?limit=10&page=1');
-      
+
       expect(res.status).toBe(200);
       expect(res.body.threats).toBeDefined();
       expect(res.body.threats.length).toBe(1);
@@ -112,12 +128,13 @@ describe('Threats API v1', () => {
   describe('GET /api/v1/threats/detect', () => {
     it('should return detailed threats', async () => {
       const res = await request(app).get('/api/v1/threats/detect');
-      
+
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(res.body.threats).toBeDefined();
       expect(res.body.threats[0].threatLevel).toBe('high');
       expect(res.body.threats[0].confidence).toBe('95');
+      expect(res.body.threats[0].patterns.components.public_pattern_bonus).toBe(1.2);
     });
   });
 });

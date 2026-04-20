@@ -139,6 +139,14 @@ export interface ThreatDetailedThreatDto {
     metrics: Record<string, unknown>;
     factors: Record<string, unknown>;
     flags: unknown[];
+    components: Record<string, unknown>;
+    publicPatternSignals: {
+      widePublicDistribution: {
+        scoreContribution: number;
+        source: 'wigle_public_observations';
+        description: string;
+      } | null;
+    };
   };
 }
 
