@@ -38,6 +38,9 @@ type ThreatScoringDependencies = {
 
 const DEFAULT_BEHAVIORAL_MIN_OBSERVATIONS = 2;
 const DEFAULT_MAX_BSSID_LENGTH = 17;
+const RULE_BASED_META_KEYS = new Set(['metrics', 'factors', 'flags', 'summary', 'confidence']);
+const PUBLIC_PATTERN_SIGNAL_DESCRIPTION =
+  'Derived from public WiGLE observation spread; does not represent local LAN observation evidence.';
 
 const toApiThreatLevel = (value: string): ThreatApiLevel => {
   const normalized = value.toLowerCase();
@@ -71,23 +74,36 @@ const toQuickThreatDto = (record: ThreatQuickThreatRecord): ThreatQuickThreatDto
   totalObservations: record.observations,
   uniqueDays: record.uniqueDays,
   uniqueLocations: record.uniqueLocations,
-  distanceRangeKm:
-    record.distanceRangeKm !== null ? record.distanceRangeKm.toFixed(2) : null,
+  distanceRangeKm: record.distanceRangeKm !== null ? record.distanceRangeKm.toFixed(2) : null,
   threatScore: record.threatScore,
   threatLevel: toApiThreatLevel(record.threatLevel),
 });
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const toNullableNumber = (value: unknown): number | null => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number.parseFloat(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  return null;
+};
+
 const toDetailedThreatDto = (record: ThreatDetailedThreatRecord): ThreatDetailedThreatDto => {
   const details = record.ruleBasedFlags || {};
-  const metrics =
-    details.metrics && typeof details.metrics === 'object' && !Array.isArray(details.metrics)
-      ? details.metrics
-      : {};
-  const factors =
-    details.factors && typeof details.factors === 'object' && !Array.isArray(details.factors)
-      ? details.factors
-      : {};
+  const metrics = isPlainObject(details.metrics) ? details.metrics : {};
+  const factors = isPlainObject(details.factors) ? details.factors : {};
   const flags = Array.isArray(details.flags) ? details.flags : [];
+  const components = Object.fromEntries(
+    Object.entries(details).filter(([key]) => !RULE_BASED_META_KEYS.has(key))
+  );
+  const publicPatternBonus = toNullableNumber(components.public_pattern_bonus);
   const rawConfidence = details.confidence;
   const confidence =
     rawConfidence !== undefined && rawConfidence !== null
@@ -114,6 +130,17 @@ const toDetailedThreatDto = (record: ThreatDetailedThreatRecord): ThreatDetailed
       metrics,
       factors,
       flags,
+      components,
+      publicPatternSignals: {
+        widePublicDistribution:
+          publicPatternBonus !== null && publicPatternBonus > 0
+            ? {
+                scoreContribution: publicPatternBonus,
+                source: 'wigle_public_observations',
+                description: PUBLIC_PATTERN_SIGNAL_DESCRIPTION,
+              }
+            : null,
+      },
     },
   };
 };

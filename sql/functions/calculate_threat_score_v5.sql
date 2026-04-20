@@ -213,7 +213,7 @@ BEGIN
         FROM app.wigle_v3_observations
         WHERE UPPER(netid) = UPPER(p_bssid)
     ),
-    public_pattern_bonus AS (
+    public_pattern_bonus_raw AS (
         SELECT CASE
             WHEN ws.obs_count >= 5 AND ws.spread_km >= 0.5
                 THEN LEAST(10, ws.spread_km / 10.0)::numeric
@@ -240,10 +240,20 @@ BEGIN
         SELECT
             LEAST(100,
                 COALESCE(lfls.score, 0) +
-                COALESCE(ppb.bonus, 0)
+                COALESCE(ppbr.bonus, 0)
             )::numeric AS score
         FROM local_follow_legs_score lfls
-        CROSS JOIN public_pattern_bonus ppb
+        CROSS JOIN public_pattern_bonus_raw ppbr
+    ),
+    -- Expose only the effective incremental public contribution after the follow-legs cap.
+    public_pattern_bonus AS (
+        SELECT
+            GREATEST(
+                0::numeric,
+                COALESCE(fls.score, 0) - COALESCE(lfls.score, 0)
+            )::numeric AS bonus
+        FROM follow_legs_score fls
+        CROSS JOIN local_follow_legs_score lfls
     ),
 
     -- Task 3: Parked Surveillance Score — deferred (not yet enabled)
