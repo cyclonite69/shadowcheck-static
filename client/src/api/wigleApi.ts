@@ -114,6 +114,8 @@ export interface WiglePageNetworkResponse {
   localLinkage: {
     has_local_match: boolean;
     local_observation_count: number;
+    local_first_seen: string | null;
+    local_last_seen: string | null;
   };
 }
 

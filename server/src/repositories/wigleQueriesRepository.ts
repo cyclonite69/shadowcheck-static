@@ -219,7 +219,9 @@ const buildWiglePageV2SummaryQuery = (netid: string): SqlQuery => ({
 const buildWiglePageLocalMatchQuery = (netid: string): SqlQuery => ({
   sql: `SELECT
           (COUNT(*) > 0)::boolean AS has_local_match,
-          COUNT(*)::int           AS local_observation_count
+          COUNT(*)::int           AS local_observation_count,
+          MIN(observed_at)::text  AS local_first_seen,
+          MAX(observed_at)::text  AS local_last_seen
         FROM app.observations
         WHERE UPPER(bssid) = UPPER($1)`,
   queryParams: [netid],
@@ -286,7 +288,10 @@ const buildWigleNetworksMvQuery = (bssid: string): SqlQuery => ({
           public_nonstationary_flag,
           public_ssid_variant_flag,
           wigle_precision_warning,
-          has_local_match
+          has_local_match,
+          local_observation_count,
+          local_first_seen,
+          local_last_seen
         FROM app.api_wigle_networks_mv
         WHERE bssid = UPPER($1)`,
   queryParams: [bssid],

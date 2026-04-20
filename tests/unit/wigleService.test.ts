@@ -175,7 +175,12 @@ describe('WiGLE Service', () => {
         has_wigle_v3_observations: true,
         has_wigle_v2_record: false,
       });
-      expect(result!.localLinkage).toEqual({ has_local_match: true, local_observation_count: 3 });
+      expect(result!.localLinkage).toEqual({
+        has_local_match: true,
+        local_observation_count: 3,
+        local_first_seen: null,
+        local_last_seen: null,
+      });
       expect(mockQuery).toHaveBeenCalledTimes(4);
     });
 
@@ -219,7 +224,12 @@ describe('WiGLE Service', () => {
         has_wigle_v3_observations: false,
         wigle_v2_firsttime: '2024-02-01T00:00:00Z',
       });
-      expect(result!.localLinkage).toEqual({ has_local_match: false, local_observation_count: 0 });
+      expect(result!.localLinkage).toEqual({
+        has_local_match: false,
+        local_observation_count: 0,
+        local_first_seen: null,
+        local_last_seen: null,
+      });
     });
 
     it('returns null when neither v3 nor v2 record exists', async () => {

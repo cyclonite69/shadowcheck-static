@@ -1,7 +1,7 @@
 -- Migration: 20260419_add_wigle_networks_mv.sql
 -- Creates app.api_wigle_networks_mv — a WiGLE-native canonical record for the
 -- WiGLE page tooltip pipeline. Keeps local explorer data out of the core public
--- record. Local linkage is limited to a boolean existence flag.
+-- record.
 --
 -- Temporal/spatial truth comes exclusively from WiGLE sources:
 --   - first_seen / last_seen: MIN/MAX of wigle_v3_observations.observed_at
@@ -14,7 +14,7 @@
 
 SET search_path TO app, public;
 
-DROP MATERIALIZED VIEW IF EXISTS app.api_wigle_networks_mv;
+DROP MATERIALIZED VIEW IF EXISTS app.api_wigle_networks_mv CASCADE;
 
 CREATE MATERIALIZED VIEW app.api_wigle_networks_mv AS
 
@@ -44,6 +44,9 @@ v3_obs_agg AS (
     MAX(obs.latitude)                                                    AS wigle_v3_max_lat,
     MIN(obs.longitude)                                                   AS wigle_v3_min_lon,
     MAX(obs.longitude)                                                   AS wigle_v3_max_lon,
+    -- Aggregate frequency/channel from observations (v3 summary table often lacks these)
+    MAX(obs.frequency)                                                   AS frequency,
+    MAX(obs.channel)                                                     AS channel,
     -- Bounding-box diagonal as spread proxy; requires >1 observation to be meaningful
     CASE
       WHEN COUNT(*) > 1 THEN
@@ -59,6 +62,17 @@ v3_obs_agg AS (
     COUNT(DISTINCT NULLIF(TRIM(obs.ssid), ''))::int                      AS wigle_v3_ssid_variant_count
   FROM app.wigle_v3_observations obs
   GROUP BY obs.netid
+),
+
+local_agg AS (
+  -- Aggregate local linkage metadata
+  SELECT
+    UPPER(bssid)                                                         AS bssid,
+    COUNT(*)::int                                                        AS local_observation_count,
+    MIN(observed_at)                                                     AS local_first_seen,
+    MAX(observed_at)                                                     AS local_last_seen
+  FROM app.observations
+  GROUP BY UPPER(bssid)
 )
 
 SELECT
@@ -70,8 +84,8 @@ SELECT
   COALESCE(v2.name, d.name)                                             AS network_name,
   COALESCE(v2.type, d.type)                                             AS network_type,
   COALESCE(v2.encryption, d.encryption)                                 AS encryption,
-  COALESCE(v2.channel, d.channel)                                       AS channel,
-  v2.frequency                                                           AS frequency,
+  COALESCE(v2.channel, d.channel, agg.channel)                          AS channel,
+  COALESCE(v2.frequency, agg.frequency)                                 AS frequency,
   COALESCE(v2.qos, d.qos)                                               AS qos,
   d.comment                                                              AS comment,
   CASE WHEN d.netid IS NOT NULL THEN 'wigle-v3' ELSE 'wigle-v2' END    AS wigle_source,
@@ -136,20 +150,19 @@ SELECT
   (agg.wigle_v3_observation_count IS NOT NULL
     AND agg.wigle_v3_observation_count < 3)                             AS wigle_precision_warning,
 
-  -- ─── Local linkage only — no local temporal/spatial values ─────────────────
-  -- Existence flag derived from app.observations bssid match
-  EXISTS (
-    SELECT 1
-    FROM app.observations lo
-    WHERE UPPER(lo.bssid) = UPPER(COALESCE(d.netid, v2.bssid))
-    LIMIT 1
-  )                                                                      AS has_local_match
+  -- ─── Local linkage ─────────────────────────────────────────────────────────
+  (la.bssid IS NOT NULL)                                                AS has_local_match,
+  COALESCE(la.local_observation_count, 0)                               AS local_observation_count,
+  la.local_first_seen,
+  la.local_last_seen
 
 FROM v3_dedup d
 FULL OUTER JOIN v2_dedup v2
   ON UPPER(d.netid) = UPPER(v2.bssid)
 LEFT JOIN v3_obs_agg agg
   ON agg.netid = d.netid
+LEFT JOIN local_agg la
+  ON la.bssid = UPPER(COALESCE(d.netid, v2.bssid))
 LEFT JOIN app.radio_manufacturers rm
   ON rm.bit_length = 24
   AND rm.prefix = UPPER(LEFT(REPLACE(COALESCE(d.netid, v2.bssid), ':', ''), 6))
@@ -193,7 +206,12 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_wigle_networks_mv;
+  -- Check if materialized view exists before trying to refresh
+  IF EXISTS (
+    SELECT 1 FROM pg_matviews WHERE schemaname = 'app' AND matviewname = 'api_wigle_networks_mv'
+  ) THEN
+    REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_wigle_networks_mv;
+  END IF;
 END;
 $$;
 

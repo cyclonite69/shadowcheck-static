@@ -96,7 +96,12 @@ export async function getWigleV3Networks(params: {
 
 export async function getWiglePageNetwork(netid: string): Promise<{
   wigle: Record<string, unknown>;
-  localLinkage: { has_local_match: boolean; local_observation_count: number };
+  localLinkage: {
+    has_local_match: boolean;
+    local_observation_count: number;
+    local_first_seen: string | null;
+    local_last_seen: string | null;
+  };
 } | null> {
   const normalizedNetid = netid.trim().toUpperCase();
   const v3DetailQuery = buildWiglePageV3DetailQuery(normalizedNetid);
@@ -190,6 +195,8 @@ export async function getWiglePageNetwork(netid: string): Promise<{
     localLinkage: {
       has_local_match: lm.has_local_match ?? false,
       local_observation_count: lm.local_observation_count ?? 0,
+      local_first_seen: lm.local_first_seen ?? null,
+      local_last_seen: lm.local_last_seen ?? null,
     },
   };
 }
@@ -201,7 +208,12 @@ export async function getWiglePageNetwork(netid: string): Promise<{
  */
 export async function getWiglePageNetworkFromMv(bssid: string): Promise<{
   wigle: Record<string, unknown>;
-  localLinkage: { has_local_match: boolean; local_observation_count: number };
+  localLinkage: {
+    has_local_match: boolean;
+    local_observation_count: number;
+    local_first_seen: string | null;
+    local_last_seen: string | null;
+  };
 } | null> {
   const normalizedBssid = bssid.trim().toUpperCase();
   const { sql, queryParams } = buildWigleNetworksMvQuery(normalizedBssid);
@@ -253,7 +265,9 @@ export async function getWiglePageNetworkFromMv(bssid: string): Promise<{
     },
     localLinkage: {
       has_local_match: row.has_local_match ?? false,
-      local_observation_count: 0,
+      local_observation_count: row.local_observation_count ?? 0,
+      local_first_seen: row.local_first_seen,
+      local_last_seen: row.local_last_seen,
     },
   };
 }

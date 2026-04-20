@@ -100,6 +100,8 @@ export const attachClickHandlers = (
             // Local linkage — ONLY these fields from local data
             wigle_match: localLinkage.has_local_match,
             local_observations: localLinkage.local_observation_count,
+            local_first_seen: localLinkage.local_first_seen,
+            local_last_seen: localLinkage.local_last_seen,
           };
 
           popup.setHTML(renderWigleTooltip(normalizeWigleTooltipData(mergedData)));

@@ -16,6 +16,8 @@ export interface NormalizedWigleTooltip {
   region: string | null;
   localMatchExists: boolean;
   localObservationCount: number | null;
+  localFirstSeen: string | null;
+  localLastSeen: string | null;
   wigleObservationCount: number | null;
   publicNonstationaryFlag: boolean;
   publicSsidVariantFlag: boolean;
@@ -100,6 +102,8 @@ export const normalizeWigleTooltipData = (raw: WiglePageNetwork): NormalizedWigl
     localObservationCount: toNumberOrNull(
       pickFirst(raw.localObservationCount, raw.local_observations)
     ),
+    localFirstSeen: (pickFirst(raw.local_first_seen) as string | null) ?? null,
+    localLastSeen: (pickFirst(raw.local_last_seen) as string | null) ?? null,
     wigleObservationCount: toNumberOrNull(raw.wigle_v3_observation_count),
     publicNonstationaryFlag: toBoolean(raw.public_nonstationary_flag),
     publicSsidVariantFlag: toBoolean(raw.public_ssid_variant_flag),
