@@ -7,7 +7,7 @@ const { describeIfIntegration } = require('../../helpers/integrationEnv');
 // Run manually: npx jest tests/integration/ml/mlScoring.test.ts
 describeIfIntegration('ML Scoring Service Integration', () => {
   beforeAll(async () => {
-    await pool.query('TRUNCATE TABLE threat_scores CASCADE');
+    await pool.query('TRUNCATE TABLE app.network_threat_scores CASCADE');
   });
 
   it('should perform a full scoring lifecycle', async () => {
@@ -17,7 +17,7 @@ describeIfIntegration('ML Scoring Service Integration', () => {
     expect(result.scored).toBeGreaterThanOrEqual(0);
 
     // 2. Verify score insertion
-    const { rows } = await pool.query('SELECT count(*) FROM threat_scores');
+    const { rows } = await pool.query('SELECT count(*) FROM app.network_threat_scores');
     expect(parseInt(rows[0].count)).toBeGreaterThanOrEqual(0);
   });
 });

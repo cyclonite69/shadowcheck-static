@@ -6,7 +6,15 @@ module.exports = async () => {
   process.env.DB_PORT = process.env.DB_PORT || '5432';
   process.env.DB_NAME = process.env.DB_NAME || 'shadowcheck_test';
   process.env.DB_USER = process.env.DB_USER || 'shadowcheck_user';
-  if (!process.env.DB_ADMIN_PASSWORD && process.env.NODE_ENV === 'test') {
+
+  // Defensive password fallback: DB_PASSWORD → DB_ADMIN_PASSWORD → test_password
+  if (!process.env.DB_PASSWORD && !process.env.DB_ADMIN_PASSWORD) {
+    process.env.DB_PASSWORD = 'test_password';
+  } else if (!process.env.DB_PASSWORD && process.env.DB_ADMIN_PASSWORD) {
+    process.env.DB_PASSWORD = process.env.DB_ADMIN_PASSWORD;
+  }
+
+  if (!process.env.DB_ADMIN_PASSWORD) {
     process.env.DB_ADMIN_PASSWORD = process.env.DB_PASSWORD;
   }
 
@@ -14,6 +22,13 @@ module.exports = async () => {
   if (process.env.DB_NAME !== expectedDbName) {
     throw new Error(
       `Refusing to run tests against '${process.env.DB_NAME}'. Set DB_NAME=${expectedDbName}.`
+    );
+  }
+
+  // Validate password is a string before creating client
+  if (typeof process.env.DB_PASSWORD !== 'string' || !process.env.DB_PASSWORD) {
+    throw new Error(
+      `DB_PASSWORD must be a non-empty string. Got: ${typeof process.env.DB_PASSWORD}`
     );
   }
 

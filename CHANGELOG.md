@@ -989,6 +989,7 @@
 - Match Kepler tooltip styling exactly with card-like sections ([0f551d8](https://github.com/cyclonite69/shadowcheck-web/commit/0f551d86e95dc8cfebc90181f659462dbdf92c49)), closes [#60a5fa](https://github.com/cyclonite69/shadowcheck-web/issues/60a5fa) [#94a3b8](https://github.com/cyclonite69/shadowcheck-web/issues/94a3b8) [#fbbf24](https://github.com/cyclonite69/shadowcheck-web/issues/fbbf24) [#X](https://github.com/cyclonite69/shadowcheck-web/issues/X)
 - migrate threat scoring services to TypeScript ([8594f8c](https://github.com/cyclonite69/shadowcheck-web/commit/8594f8c4eac4a091396c4db9ac8d141f4bccff17))
 - migration audit script for consolidation planning ([5ca70d4](https://github.com/cyclonite69/shadowcheck-web/commit/5ca70d4483d7f48da949f2e46fe51b4edc05a1d5))
+- **migrations:** add bootstrap tables missing from migration history ([770fa80](https://github.com/cyclonite69/shadowcheck-web/commit/770fa806c185f4d5957458b7cede0034f00340ab))
 - **migrations:** apply phase1 index consolidation and legacy function cleanup to prod and test ([97364d4](https://github.com/cyclonite69/shadowcheck-web/commit/97364d43c8ebe9450931e2376c8bf297d014d00e))
 - ml-train.html uses base-components ([fce39ca](https://github.com/cyclonite69/shadowcheck-web/commit/fce39ca2ebb3e3ff9bc59ebe733d39ada65dae64))
 - **mobile:** adapt dashboard and map pages ([42c02da](https://github.com/cyclonite69/shadowcheck-web/commit/42c02da3242f2dec55f2fb3d5a418436490fc7ba))

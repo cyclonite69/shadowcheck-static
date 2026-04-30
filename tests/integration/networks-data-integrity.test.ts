@@ -9,13 +9,15 @@ const { runIntegration } = require('../helpers/integrationEnv');
 
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 
+const resolveDefault = (m: any) => m?.default || m;
+
 // Only import supertest and server when integration tests are enabled
 let request: any;
 let app: any;
 
 if (runIntegration) {
   request = require('supertest');
-  app = require('../../server/server');
+  app = resolveDefault(require('../../server/server'));
 }
 
 interface NetworkResponse {
