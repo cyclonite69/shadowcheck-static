@@ -211,14 +211,14 @@ describe('geocodingCacheService — expanded', () => {
       expect(upsertGeocodeCacheBatch).toHaveBeenCalled();
     });
 
-    test('calls failJobRun and rethrows on unexpected error', async () => {
+    test('rethrows and releases lock when createJobRun fails before snapshot exists', async () => {
       const {
         createJobRun,
         failJobRun: fjr,
       } = require('../../../server/src/services/geocoding/jobState');
       createJobRun.mockRejectedValue(new Error('DB exploded'));
       await expect(svc.runGeocodeCacheUpdate(BASE_OPTS)).rejects.toThrow('DB exploded');
-      expect(fjr).toHaveBeenCalled();
+      expect(fjr).not.toHaveBeenCalled();
       expect(releaseGeocodingRunLock).toHaveBeenCalled();
     });
   });

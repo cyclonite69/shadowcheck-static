@@ -10,9 +10,16 @@ jest.mock('../../../server/src/services/wigleService', () => ({
   getWigleObservations: jest.fn(),
 }));
 
+jest.mock('../../../server/src/services/wigleDetailService', () => ({
+  fetchUpstream: jest.fn(),
+  importObservations: jest.fn(),
+}));
+
 jest.mock('../../../server/src/services/secretsManager', () => ({
+  __esModule: true,
   default: {
     get: jest.fn(),
+    getOrThrow: jest.fn(),
   },
 }));
 
@@ -26,6 +33,10 @@ const { adminQuery } = require('../../../server/src/services/adminDbService');
 const wigleService = require('../../../server/src/services/wigleService');
 const secretsManager = require('../../../server/src/services/secretsManager').default;
 const {
+  fetchUpstream,
+  importObservations,
+} = require('../../../server/src/services/wigleDetailService');
+const {
   listOrphanNetworks,
   getOrphanNetworkCounts,
   backfillOrphanNetworkFromWigle,
@@ -38,6 +49,8 @@ describe('adminOrphanNetworksService', () => {
     // can call .catch on it (resetMocks: true strips the implementation between tests)
     adminQuery.mockResolvedValue({ rows: [] });
     global.fetch = jest.fn();
+    fetchUpstream.mockResolvedValue({ ok: true, data: null, status: 200 });
+    importObservations.mockResolvedValue({ newCount: 0, totalCount: 0, failedCount: 0 });
     require('../../../server/src/services/wigleRequestLedger').resetQuotaLedger();
   });
 
@@ -78,49 +91,46 @@ describe('adminOrphanNetworksService', () => {
       );
     });
 
-    it('should throw if wigle credentials missing', async () => {
+    it('should return error status when upstream payload is invalid', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
-      secretsManager.get.mockReturnValue(null);
-      await expect(backfillOrphanNetworkFromWigle('00:11:22')).rejects.toThrow(
-        'WiGLE API credentials not configured'
-      );
+      fetchUpstream.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        data: { message: 'upstream failed' },
+      });
+      const res = await backfillOrphanNetworkFromWigle('00:11:22');
+      expect(res.status).toBe('error');
     });
 
     it('should handle API 404', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
-      secretsManager.get.mockReturnValue('token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 404, ok: false });
+      fetchUpstream.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        data: { message: 'not found' },
+      });
       adminQuery.mockResolvedValueOnce({ rows: [] }); // record attempt
 
       const res = await backfillOrphanNetworkFromWigle('00:11:22');
       expect(res.status).toBe('no_wigle_match');
     });
 
-    it('should handle API non-ok status', async () => {
+    it('should return error on API non-ok status', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
-      secretsManager.get.mockReturnValue('token');
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({
-          status: 500,
-          ok: false,
-          text: () => Promise.resolve('err'),
-        })
-        .mockResolvedValueOnce({
-          status: 500,
-          ok: false,
-          text: () => Promise.resolve('err'),
-        });
+      fetchUpstream.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        data: { message: 'err' },
+      });
       adminQuery.mockResolvedValueOnce({ rows: [] }); // record attempt
 
-      await expect(backfillOrphanNetworkFromWigle('00:11:22')).rejects.toThrow(
-        'WiGLE detail request failed'
-      );
+      const res = await backfillOrphanNetworkFromWigle('00:11:22');
+      expect(res.status).toBe('error');
     });
 
     it('should successfully backfill network', async () => {
       // First query to get orphan
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
-      secretsManager.get.mockReturnValue('token');
 
       const wigleData = {
         success: true,
@@ -132,14 +142,10 @@ describe('adminOrphanNetworksService', () => {
         ],
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        status: 200,
-        ok: true,
-        json: () => Promise.resolve(wigleData),
-      });
+      fetchUpstream.mockResolvedValueOnce({ ok: true, status: 200, data: wigleData });
 
       wigleService.importWigleV3NetworkDetail.mockResolvedValueOnce();
-      wigleService.importWigleV3Observation.mockResolvedValueOnce(1);
+      importObservations.mockResolvedValueOnce({ newCount: 1, totalCount: 1, failedCount: 0 });
       wigleService.getWigleObservations.mockResolvedValueOnce({ total: 1 });
       // record attempt query
       adminQuery.mockResolvedValueOnce({ rows: [] });
@@ -152,18 +158,13 @@ describe('adminOrphanNetworksService', () => {
 
     it('should handle API rate limit response', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: '00:11:22', type: 'WIFI' }] });
-      secretsManager.get.mockReturnValue('token');
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        status: 429,
+      fetchUpstream.mockResolvedValueOnce({
         ok: false,
-        json: () => Promise.resolve({ success: false, message: 'too many queries' }),
-        text: () => Promise.resolve(''),
+        status: 429,
+        data: { success: false, message: 'too many queries' },
       });
 
-      await expect(backfillOrphanNetworkFromWigle('00:11:22')).rejects.toThrow(
-        'WiGLE detail request failed (429):'
-      );
+      await expect(backfillOrphanNetworkFromWigle('00:11:22')).rejects.toThrow('rate limit');
     });
   });
 });
