@@ -4,6 +4,21 @@
 `*.sql` file in [`sql/migrations`](/home/dbcooper/repos/shadowcheck-web/sql/migrations)
 in filename sort order and tracks applied files in `app.schema_migrations`.
 
+## Applying a new migration
+
+Always apply to test first, then prod:
+
+`./scripts/apply-migration.sh 20260501_your_migration.sql`
+
+Never apply migrations manually via ad-hoc SSM scripts.
+The `apply-migration.sh` script:
+
+- Validates the file exists on disk
+- Applies to `shadowcheck_test` first (stops if it fails)
+- Applies to `shadowcheck_db` second only after test succeeds
+- Records the migration in `schema_migrations` on both DBs
+- Is idempotent: safe to re-run if interrupted
+
 Fresh installs must use the full active sequence currently present in this
 directory, not just the original consolidated 2026-02-16 baseline files. The
 follow-on migrations are part of the live schema contract.
