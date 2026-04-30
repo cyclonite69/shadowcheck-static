@@ -1,4 +1,4 @@
-# 1.0.0 (2026-04-29)
+# 1.0.0 (2026-04-30)
 
 ### Bug Fixes
 
@@ -123,6 +123,7 @@
 - **backup:** make ec2 backups full and durable ([11ee746](https://github.com/cyclonite69/shadowcheck-web/commit/11ee746b543c7fdaccc167cdb32f0e2aa9e6cd96))
 - **backup:** restrict admin pg_dump to app/public schemas by default ([8a18d26](https://github.com/cyclonite69/shadowcheck-web/commit/8a18d261682b10c7e08ad63b8263016e069d90cf))
 - **backup:** run admin UI backups with DB admin credentials ([102ae23](https://github.com/cyclonite69/shadowcheck-web/commit/102ae2385195ae52ed8b49553c59a098c60d4a94))
+- **baseline:** resolve view dependency and column reference issues in baselines 005-006 ([c29400a](https://github.com/cyclonite69/shadowcheck-web/commit/c29400a7cb015a4958c54e9ef2767373e554a888))
 - **build:** add weatherRoutes to RouteModules interface in routesInit ([f93e043](https://github.com/cyclonite69/shadowcheck-web/commit/f93e0431a0e4bf30cd641c11fe727dfde676217f))
 - **build:** scope server ts types to node ([9798a6a](https://github.com/cyclonite69/shadowcheck-web/commit/9798a6a527a314eebf488d95f1601f9a7d6f3cff))
 - bundle recharts WITH React to fix load order ([258602f](https://github.com/cyclonite69/shadowcheck-web/commit/258602f811142318a0cbe014d2f3565794c8ec08))
@@ -769,6 +770,7 @@
 - **wigle:** remove aggregated-circles from setPointRadius — point size slider was overriding count-based step expression, collapsing all circles to 5px regardless of observation count ([3a50a84](https://github.com/cyclonite69/shadowcheck-web/commit/3a50a84fd19b43831112ccf4f4e3baf1a762446d))
 - **wigle:** remove dead showFieldData from applyLayerVisibility; add cluster TODO ([234f21d](https://github.com/cyclonite69/shadowcheck-web/commit/234f21d8074a3e829723c36a3fb143084012f19c))
 - **wigle:** remove duplicate state declaration in WigleDetailTab ([9715119](https://github.com/cyclonite69/shadowcheck-web/commit/9715119b54df2396df38184dcf9776936f10b093))
+- **wigle:** remove hallucinated v3/network/search endpoint, add param validation ([dec1dab](https://github.com/cyclonite69/shadowcheck-web/commit/dec1dab071baf3e42451c2e7f4a8dafb767ee1c4))
 - **wigle:** report DB-backed import totals in investigate flow ([9a0e9b7](https://github.com/cyclonite69/shadowcheck-web/commit/9a0e9b73f77fb924835e6db5f89ec79d09866226))
 - **wigle:** resolve 500 errors in catalog filtering and single network lookups ([5f2c6bf](https://github.com/cyclonite69/shadowcheck-web/commit/5f2c6bf7ac3182e4c90e85c270539ab7e95512b4))
 - **wigle:** resolve ambiguous column references in v3 network queries ([175a974](https://github.com/cyclonite69/shadowcheck-web/commit/175a97429b4d7e73e19ae94a9c843cf9a2e26e07))
@@ -985,6 +987,7 @@
 - Match Kepler tooltip styling exactly with card-like sections ([0f551d8](https://github.com/cyclonite69/shadowcheck-web/commit/0f551d86e95dc8cfebc90181f659462dbdf92c49)), closes [#60a5fa](https://github.com/cyclonite69/shadowcheck-web/issues/60a5fa) [#94a3b8](https://github.com/cyclonite69/shadowcheck-web/issues/94a3b8) [#fbbf24](https://github.com/cyclonite69/shadowcheck-web/issues/fbbf24) [#X](https://github.com/cyclonite69/shadowcheck-web/issues/X)
 - migrate threat scoring services to TypeScript ([8594f8c](https://github.com/cyclonite69/shadowcheck-web/commit/8594f8c4eac4a091396c4db9ac8d141f4bccff17))
 - migration audit script for consolidation planning ([5ca70d4](https://github.com/cyclonite69/shadowcheck-web/commit/5ca70d4483d7f48da949f2e46fe51b4edc05a1d5))
+- **migrations:** apply phase1 index consolidation and legacy function cleanup to prod and test ([97364d4](https://github.com/cyclonite69/shadowcheck-web/commit/97364d43c8ebe9450931e2376c8bf297d014d00e))
 - ml-train.html uses base-components ([fce39ca](https://github.com/cyclonite69/shadowcheck-web/commit/fce39ca2ebb3e3ff9bc59ebe733d39ada65dae64))
 - **mobile:** adapt dashboard and map pages ([42c02da](https://github.com/cyclonite69/shadowcheck-web/commit/42c02da3242f2dec55f2fb3d5a418436490fc7ba))
 - modularize WiglePage with reusable components ([c600e83](https://github.com/cyclonite69/shadowcheck-web/commit/c600e83d58d6be8448bf3a8f4e7b558f60c6c84b))
