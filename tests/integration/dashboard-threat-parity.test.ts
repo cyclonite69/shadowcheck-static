@@ -12,6 +12,8 @@ export {};
 const { runIntegration } = require('../helpers/integrationEnv');
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 
+const resolveDefault = (m: any) => m?.default || m;
+
 let request: any;
 let express: any;
 let app: any;
@@ -25,19 +27,26 @@ if (runIntegration) {
   request = require('supertest');
   express = require('express');
   v2Service = require('../../server/src/services/v2Service');
-  dashboardRoutesModule = require('../../server/src/api/routes/v1/dashboard');
-  filteredRoutes = require('../../server/src/api/routes/v2/filtered');
-  threatsV2Routes = require('../../server/src/api/routes/v2/threats');
+  dashboardRoutesModule = resolveDefault(require('../../server/src/api/routes/v1/dashboard'));
+  filteredRoutes = resolveDefault(require('../../server/src/api/routes/v2/filtered'));
+  threatsV2Routes = resolveDefault(require('../../server/src/api/routes/v2/threats'));
 
   const NetworkRepository = require('../../server/src/repositories/networkRepository');
   const DashboardService = require('../../server/src/services/dashboardService');
   const networkRepository = new NetworkRepository();
   const dashboardService = new DashboardService(networkRepository);
 
-  dashboardRoutesModule.initDashboardRoutes({ dashboardService });
+  // Check if module has initDashboardRoutes method (for initialized routes)
+  // Otherwise use it directly as a router
+  if (typeof dashboardRoutesModule?.initDashboardRoutes === 'function') {
+    dashboardRoutesModule.initDashboardRoutes({ dashboardService });
+    app = express();
+    app.use('/api', dashboardRoutesModule.router);
+  } else {
+    app = express();
+    app.use('/api', dashboardRoutesModule);
+  }
 
-  app = express();
-  app.use('/api', dashboardRoutesModule.router);
   app.use('/api/v2/networks/filtered', filteredRoutes);
   app.use('/api/v2', threatsV2Routes);
 }

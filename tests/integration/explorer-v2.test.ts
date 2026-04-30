@@ -11,6 +11,8 @@ const { runIntegration } = require('../helpers/integrationEnv');
 
 const describeIfIntegration = runIntegration ? describe : describe.skip;
 
+const resolveDefault = (m: any) => m?.default || m;
+
 let request: (app: any) => any;
 let express: any;
 let explorerRouter: any;
@@ -19,7 +21,7 @@ let app: Express;
 if (runIntegration) {
   request = require('supertest');
   express = require('express');
-  explorerRouter = require('../../server/src/api/routes/v1/explorer');
+  explorerRouter = resolveDefault(require('../../server/src/api/routes/v1/explorer'));
   app = express();
   app.use('/api/explorer', explorerRouter);
 }
