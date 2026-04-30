@@ -77,8 +77,8 @@ module.exports = {
   moduleFileExtensions: ['js', 'ts', 'tsx', 'json'],
 
   // Global setup/teardown
-  // globalSetup: '<rootDir>/tests/globalSetup.js',
-  // globalTeardown: '<rootDir>/tests/globalTeardown.js',
+  globalSetup: '<rootDir>/tests/globalSetup.js',
+  globalTeardown: '<rootDir>/tests/globalTeardown.js',
 
   // Force exit after tests
   forceExit: true,
