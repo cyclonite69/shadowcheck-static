@@ -11,7 +11,7 @@ BEGIN;
 -- ===========================================================================
 -- Only delete data that we own — identified by OUI prefix
 DELETE FROM app.mac_randomization_suspects WHERE oui LIKE '000000:%';
-DELETE FROM app.wigle_import_runs WHERE search_term LIKE 'TEST_%' OR source_tag LIKE 'TEST_%';
+DELETE FROM app.wigle_import_runs WHERE search_term LIKE 'TEST_%';
 DELETE FROM app.wigle_v3_observations WHERE netid LIKE '000000:%';
 DELETE FROM app.wigle_v3_network_details WHERE netid LIKE '000000:%';
 DELETE FROM app.network_notes WHERE bssid LIKE '000000:%';

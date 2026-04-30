@@ -18,16 +18,16 @@ echo "Repo root: $REPO_ROOT"
 echo ""
 
 echo "[1/5] Seeding admin user..."
-$PSQL_CMD < "$REPO_ROOT/sql/seeds/01_create_admin_user.sql"
+$PSQL_CMD -f "$REPO_ROOT/sql/seeds/01_create_admin_user.sql"
 
 echo "[2/5] Seeding federal courthouses..."
-$PSQL_CMD < "$REPO_ROOT/sql/seeds/02_reference_federal_courthouses.sql"
+$PSQL_CMD -f "$REPO_ROOT/sql/seeds/02_reference_federal_courthouses.sql"
 
 echo "[3/5] Seeding radio manufacturers..."
-$PSQL_CMD < "$REPO_ROOT/sql/seeds/03_reference_radio_manufacturers.sql"
+$PSQL_CMD -f "$REPO_ROOT/sql/seeds/03_reference_radio_manufacturers.sql"
 
 echo "[4/5] Seeding synthetic test data..."
-$PSQL_CMD < "$REPO_ROOT/sql/seeds/04_synthetic_test_data.sql"
+$PSQL_CMD -f "$REPO_ROOT/sql/seeds/04_synthetic_test_data.sql"
 
 echo "[5/5] Refreshing materialized views..."
 docker exec -i -e PGPASSWORD=${PGPASSWORD:-changeme} shadowcheck_postgres psql \
