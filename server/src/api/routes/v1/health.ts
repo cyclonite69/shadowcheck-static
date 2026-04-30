@@ -23,9 +23,13 @@ router.get('/health', async (req, res) => {
   const criticalSecrets = ['db_password'];
   const importantSecrets = ['mapbox_token'];
   const sm = (secretsManager as any).default || secretsManager;
-  const criticalLoaded = process.env.NODE_ENV === 'test' ? 1 : criticalSecrets.filter((s) => sm.has(s)).length;
-  const importantLoaded = process.env.NODE_ENV === 'test' ? importantSecrets.length : importantSecrets.filter((s) => sm.has(s)).length;
-  
+  const criticalLoaded =
+    process.env.NODE_ENV === 'test' ? 1 : criticalSecrets.filter((s) => sm.has(s)).length;
+  const importantLoaded =
+    process.env.NODE_ENV === 'test'
+      ? importantSecrets.length
+      : importantSecrets.filter((s) => sm.has(s)).length;
+
   const secretsCheck: Record<string, unknown> = {
     required_count: criticalSecrets.length,
     important_count: importantSecrets.length,
@@ -42,10 +46,12 @@ router.get('/health', async (req, res) => {
     overallStatus = 'unhealthy';
   } else if (importantLoaded < importantSecrets.length) {
     secretsCheck.status = 'degraded';
-    overallStatus = 'degraded';
+    if (overallStatus === 'healthy') {
+      overallStatus = 'degraded';
+    }
   } else {
     secretsCheck.status = 'ok';
-    overallStatus = 'healthy';
+    // Preserve any degraded/unhealthy status from earlier checks (e.g., DB down).
   }
 
   (checks as any).secrets = secretsCheck;

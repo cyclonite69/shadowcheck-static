@@ -30,6 +30,17 @@ describeIfIntegration('Explorer V2 Endpoint Integration Tests', () => {
     return;
   }
 
+  beforeAll(async () => {
+    try {
+      const db = require('../../server/src/config/database');
+      await db.pool.query('SELECT 1');
+    } catch (err: any) {
+      throw new Error(
+        `[integration-fail] explorer-v2 requires DB connectivity: ${err?.message || 'unknown error'}`
+      );
+    }
+  });
+
   let v1Response: any;
   let v2Response: any;
 

@@ -1,11 +1,10 @@
 export {};
 
-import { runIntegration } from '../helpers/integrationEnv';
-const describeIfIntegration = runIntegration ? describe : describe.skip;
-
 const request = require('supertest');
-import express from 'express';
+const express = require('express');
 import type { Express } from 'express';
+
+const resolveDefault = (m: any) => m?.default || m;
 
 // Mock dependencies
 jest.mock('../../server/src/config/database', () => ({
@@ -18,26 +17,40 @@ jest.mock('../../server/src/services/secretsManager', () => ({
   has: jest.fn(),
 }));
 
-describeIfIntegration('Health Check Endpoint', () => {
-  if (!runIntegration) {
-    test.skip('requires RUN_INTEGRATION_TESTS', () => {});
-    return;
-  }
+describe('Health Check Endpoint', () => {
   let app: Express;
   let healthRoutes: any;
   let pool: any;
   let secretsManager: any;
+  let memoryUsageSpy: any;
+  let previousNodeEnv: string | undefined;
 
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
 
+    previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    memoryUsageSpy = jest.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 0,
+      heapTotal: 100,
+      heapUsed: 10,
+      external: 0,
+      arrayBuffers: 0,
+    } as any);
+
     pool = require('../../server/src/config/database').pool;
     secretsManager = require('../../server/src/services/secretsManager');
-    healthRoutes = require('../../server/src/api/routes/v1/health');
+    healthRoutes = resolveDefault(require('../../server/src/api/routes/v1/health'));
 
     app = express();
     app.use(healthRoutes);
+  });
+
+  afterEach(() => {
+    memoryUsageSpy?.mockRestore?.();
+    process.env.NODE_ENV = previousNodeEnv;
   });
 
   test('should return healthy status when all checks pass', async () => {

@@ -120,26 +120,44 @@ describe('Dashboard API', () => {
   });
 
   describe('NetworkRepository', () => {
-    it.skip('should execute dashboard metrics query (needs database)', async () => {
+    it('should execute dashboard metrics query (via mocked database)', async () => {
       const { query } = require('../../server/src/config/database');
 
-      // Mock query responses
-      query
-        .mockResolvedValueOnce({ rows: [{ count: '100' }] }) // totalNetworks
-        .mockResolvedValueOnce({ rows: [{ count: '10' }] }) // threatsCount
-        .mockResolvedValueOnce({ rows: [{ count: '5' }] }) // surveillanceCount
-        .mockResolvedValueOnce({ rows: [{ count: '25' }] }); // enrichedCount
+      // NetworkRepository.getDashboardMetrics() now runs a single consolidated query.
+      query.mockResolvedValueOnce({
+        rows: [
+          {
+            total_networks: '100',
+            wifi_count: '60',
+            ble_count: '20',
+            bluetooth_count: '10',
+            lte_count: '10',
+            nr_count: '0',
+            gsm_count: '0',
+            total_observations: '0',
+            wifi_observations: '0',
+            ble_observations: '0',
+            bluetooth_observations: '0',
+            lte_observations: '0',
+            nr_observations: '0',
+            gsm_observations: '0',
+            threats_critical: '0',
+            threats_high: '10',
+            threats_medium: '0',
+            threats_low: '0',
+            enriched_count: '25',
+          },
+        ],
+      });
 
       const metrics = await networkRepository.getDashboardMetrics();
 
       expect(metrics.totalNetworks).toBe(100);
-      expect(metrics.threatsCount).toBe(10);
-      expect(metrics.surveillanceCount).toBe(5);
       expect(metrics.enrichedCount).toBe(25);
-      expect(query).toHaveBeenCalledTimes(4);
+      expect(query).toHaveBeenCalledTimes(1);
     });
 
-    it.skip('should handle missing data with defaults (needs database)', async () => {
+    it('should handle missing data with defaults (via mocked database)', async () => {
       const { query } = require('../../server/src/config/database');
 
       // Mock empty responses
@@ -148,8 +166,6 @@ describe('Dashboard API', () => {
       const metrics = await networkRepository.getDashboardMetrics();
 
       expect(metrics.totalNetworks).toBe(0);
-      expect(metrics.threatsCount).toBe(0);
-      expect(metrics.surveillanceCount).toBe(0);
       expect(metrics.enrichedCount).toBe(0);
     });
   });

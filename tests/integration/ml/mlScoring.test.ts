@@ -1,10 +1,11 @@
 export {};
 const { scoreAllNetworks } = require('../../../server/src/services/ml/scoringService');
 const { pool } = require('../../../server/src/config/database');
+const { describeIfIntegration } = require('../../helpers/integrationEnv');
 
 // Requires a live PostgreSQL instance at localhost:5432 — only passes on EC2.
 // Run manually: npx jest tests/integration/ml/mlScoring.test.ts
-describe.skip('ML Scoring Service Integration', () => {
+describeIfIntegration('ML Scoring Service Integration', () => {
   beforeAll(async () => {
     await pool.query('TRUNCATE TABLE threat_scores CASCADE');
   });

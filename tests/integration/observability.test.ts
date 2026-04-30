@@ -5,13 +5,10 @@
 
 export {};
 
-export {};
-
-const { runIntegration } = require('../helpers/integrationEnv');
-const describeIfIntegration = runIntegration ? describe : describe.skip;
-
 const request = require('supertest');
 const express = require('express');
+
+const resolveDefault = (m: any) => m?.default || m;
 
 // Mock dependencies
 jest.mock('../../server/src/config/database', () => ({
@@ -24,17 +21,27 @@ jest.mock('../../server/src/services/secretsManager', () => ({
   has: jest.fn(),
 }));
 
-describeIfIntegration('Observability Integration', () => {
-  if (!runIntegration) {
-    test.skip('requires RUN_INTEGRATION_TESTS', () => {});
-    return;
-  }
+describe('Observability Integration (mocked)', () => {
   let app: any;
   let pool: any;
   let secretsManager: any;
+  let memoryUsageSpy: any;
+  let previousNodeEnv: string | undefined;
 
   beforeEach(() => {
+    jest.resetModules();
     jest.clearAllMocks();
+
+    previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    memoryUsageSpy = jest.spyOn(process, 'memoryUsage').mockReturnValue({
+      rss: 0,
+      heapTotal: 100,
+      heapUsed: 10,
+      external: 0,
+      arrayBuffers: 0,
+    } as any);
 
     pool = require('../../server/src/config/database').pool;
     secretsManager = require('../../server/src/services/secretsManager');
@@ -47,11 +54,11 @@ describeIfIntegration('Observability Integration', () => {
     app = express();
 
     // Request ID middleware (must be first)
-    const requestIdMiddleware = require('../../server/src/middleware/requestId');
+    const requestIdMiddleware = resolveDefault(require('../../server/src/middleware/requestId'));
     app.use(requestIdMiddleware);
 
     // Health check route
-    const healthRoutes = require('../../server/src/api/routes/v1/health');
+    const healthRoutes = resolveDefault(require('../../server/src/api/routes/v1/health'));
     app.use(healthRoutes);
 
     // Test route to verify request ID
@@ -61,6 +68,11 @@ describeIfIntegration('Observability Integration', () => {
         hasStartTime: Boolean(req.startTime),
       });
     });
+  });
+
+  afterEach(() => {
+    memoryUsageSpy?.mockRestore?.();
+    process.env.NODE_ENV = previousNodeEnv;
   });
 
   describe('Health Check with Request ID', () => {
