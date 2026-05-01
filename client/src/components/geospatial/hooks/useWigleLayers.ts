@@ -127,6 +127,8 @@ export const useWigleLayers = ({
         threat_score: matched ? (props.threat_score ?? null) : null,
         threat_level: matched ? (props.threat_level ?? null) : null,
         manufacturer: matched ? (props.manufacturer ?? null) : null,
+        wigle_source: 'wigle-v3',
+        wigle_match: matched,
       };
 
       const initialHtml = renderNetworkTooltip(normalizeTooltipData(rawProps, coords));
