@@ -1,4 +1,4 @@
-# 1.0.0 (2026-04-30)
+# 1.0.0 (2026-05-01)
 
 ### Bug Fixes
 
@@ -736,6 +736,7 @@
 - **wigle/map:** include agency + courthouse counts in Loaded counter ([cff80aa](https://github.com/cyclonite69/shadowcheck-web/commit/cff80aad00d8ba1350d3b10c421a60f7c8da4d7f))
 - **wigle/tooltip:** remove duplicate address and restore timestamps on WiGLE detail page ([c2b5b92](https://github.com/cyclonite69/shadowcheck-web/commit/c2b5b922de3203458d56ded68a8d792c960300bf))
 - **wigle/tooltip:** show all three timestamps - First/Last (network) and Seen (observation) ([3c3deea](https://github.com/cyclonite69/shadowcheck-web/commit/3c3deea303f623a5fe41ac55c9215e6cb10c219b))
+- **wigle:** add missing valid v2 params to WIGLE_SEARCH_PARAMS validator ([79145ea](https://github.com/cyclonite69/shadowcheck-web/commit/79145ea0de8f7d23e84fbf026923957410161cbd))
 - **wigle:** add rate limit detection and status feedback to enrichment manager ([daef7d1](https://github.com/cyclonite69/shadowcheck-web/commit/daef7d159353f33d4c221aea7999bc54ef23a8b4))
 - **wigle:** add style.load recovery to useWigleFieldData; log silent source miss ([8d0dc36](https://github.com/cyclonite69/shadowcheck-web/commit/8d0dc366b82b121695d67da740c6c614c4135658))
 - **wigle:** add zoom-scaled row cap to DBSCAN inner queries to prevent 504s at low zoom ([2225864](https://github.com/cyclonite69/shadowcheck-web/commit/222586478cea8ba011a3e21095950c262887203e))
@@ -768,6 +769,7 @@
 - **wigle:** move assertCanRequest pre-loop, document conservative quota policy ([83a95d7](https://github.com/cyclonite69/shadowcheck-web/commit/83a95d7518b3d00b66b8b210e5fbdbdc6f982c39))
 - **wigle:** move Field Data and Clustering to control panel, fix Field Data render ([9cdfa8c](https://github.com/cyclonite69/shadowcheck-web/commit/9cdfa8c83d905f0e15d4a2b256ba98ba8390c460))
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
+- **wigle:** parse v3 detail response shape in live.ts ([2784909](https://github.com/cyclonite69/shadowcheck-web/commit/2784909dfad925f364d7c66adf33afc5f294d25f))
 - **wigle:** prevent enrichment manager rows from appearing to disappear by adding processing states ([05a5a5e](https://github.com/cyclonite69/shadowcheck-web/commit/05a5a5ed9028f2a1ba6b67b45b47876ada88861a))
 - **wigle:** qualify first_seen/last_seen in ON CONFLICT clause to resolve ambiguous column reference ([0bc6058](https://github.com/cyclonite69/shadowcheck-web/commit/0bc6058930f4c4e72724d76fcfe92a69108fba84))
 - **wigle:** refetch when filters change on WiGLE page ([cb43f74](https://github.com/cyclonite69/shadowcheck-web/commit/cb43f74618284a49c5360bdf6c6befeda62be0fc))
@@ -793,6 +795,7 @@
 - **wigle:** stabilize map layer rendering and event binding ([1ce43ce](https://github.com/cyclonite69/shadowcheck-web/commit/1ce43ce462bc4c33e07d59e1370263ff519a27d8))
 - **wigle:** standardize KML layer initialization via callback ([f52f6b2](https://github.com/cyclonite69/shadowcheck-web/commit/f52f6b2c160f2fa4da098cbd5b63e7ae979bc039))
 - **wigle:** swap v3 observation timestamps and fix address locality ([9d73034](https://github.com/cyclonite69/shadowcheck-web/commit/9d73034c939a3ed385c89f6437a286e4e278d66a))
+- **wigle:** use API search_after cursor directly in computeNextCursor ([37a74e4](https://github.com/cyclonite69/shadowcheck-web/commit/37a74e4f0083ba72ef147cbb279ef685e5c10b4b))
 - **wigle:** use bssid field for v3 rows in field data fetch ([5acc4aa](https://github.com/cyclonite69/shadowcheck-web/commit/5acc4aa81920fdd423ad5f673a4cde2f77486682))
 - **wigle:** use CTE proportional count distribution for exact totals with DBSCAN sampling ([1c3a906](https://github.com/cyclonite69/shadowcheck-web/commit/1c3a906886822373560cdf8a3be3ff49bad8c88f))
 - **wigle:** validate API credit before making orphan lookup requests ([3bfb952](https://github.com/cyclonite69/shadowcheck-web/commit/3bfb9524d35ef4522cc15ae7a3ca9e216042505a))

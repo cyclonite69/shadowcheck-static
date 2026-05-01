@@ -4,8 +4,8 @@
  */
 
 import * as container from '../config/container';
-import { fetchWigle } from './wigleClient';
-import { hashRecord, getEncodedWigleAuth } from './wigleRequestUtils';
+import { wigleGatewayFetch } from './wigle/wigleGateway';
+import { getEncodedWigleAuth } from './wigleRequestUtils';
 import { inferWigleEndpoint } from './wigleDetailTransforms';
 
 const { wigleService, secretsManager } = container as any;
@@ -26,14 +26,13 @@ export async function fetchAndImportDetail(
   const endpoint = inferWigleEndpoint(type);
   const encodedAuth = getEncodedWigleAuth();
 
-  const response = await fetchWigle({
+  const response_result = await wigleGatewayFetch({
     kind: 'detail',
     url: `https://api.wigle.net/api/v3/detail/${endpoint}/${bssid}`,
     timeoutMs: 15000,
     maxRetries: 1,
     label: 'WiGLE Batch Enrichment',
     entrypoint: 'enrichment',
-    paramsHash: hashRecord({ endpoint, bssid }),
     endpointType: `v3/detail/${endpoint}`,
     init: {
       headers: {
@@ -43,6 +42,17 @@ export async function fetchAndImportDetail(
     },
   });
 
+  if (!response_result.ok) {
+    if (response_result.status === 404) return null;
+    throw Object.assign(
+      new Error(`WiGLE API failed (${response_result.status}): ${response_result.error}`),
+      {
+        status: response_result.status,
+      }
+    );
+  }
+
+  const response = response_result.response;
   if (response.status === 404) return null;
   if (!response.ok) {
     const errorText = await response.text();

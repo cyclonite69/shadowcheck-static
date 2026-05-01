@@ -7,8 +7,8 @@ import express from 'express';
 const router = express.Router();
 import secretsManager from '../../../../services/secretsManager';
 import logger from '../../../../logging/logger';
-import { fetchWigle } from '../../../../services/wigleClient';
-import { hashRecord, getEncodedWigleAuth } from '../../../../services/wigleRequestUtils';
+import { wigleGatewayFetch } from '../../../../services/wigle/wigleGateway';
+import { getEncodedWigleAuth } from '../../../../services/wigleRequestUtils';
 import { macParamMiddleware } from '../../../../validation/middleware';
 
 import type { Request, Response, NextFunction } from 'express';
@@ -33,14 +33,13 @@ router.get(
       const encodedAuth = getEncodedWigleAuth();
       logger.info(`[WiGLE] Querying for BSSID: ${bssidStr}`);
 
-      const response = await fetchWigle({
+      const gatewayResult = await wigleGatewayFetch({
         kind: 'detail',
         url: `https://api.wigle.net/api/v3/detail/wifi/${encodeURIComponent(bssidStr)}`,
         timeoutMs: 10000,
         maxRetries: 1,
         label: 'WiGLE Live API',
         entrypoint: 'live-route',
-        paramsHash: hashRecord({ endpoint: 'wifi', bssid: bssidStr }),
         endpointType: 'v3/detail/wifi',
         init: {
           headers: {
@@ -50,6 +49,14 @@ router.get(
         },
       });
 
+      if (!gatewayResult.ok) {
+        return res.status(gatewayResult.status ?? 500).json({
+          error: 'WiGLE API request failed',
+          details: gatewayResult.error,
+        });
+      }
+
+      const response = gatewayResult.response;
       if (!response.ok) {
         const errorText = await response.text();
         logger.error(`[WiGLE] API error ${response.status}: ${errorText}`);

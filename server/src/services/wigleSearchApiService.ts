@@ -1,6 +1,6 @@
 import logger from '../logging/logger';
 import { logWigleAuditEvent } from './wigleAuditLogger';
-import { fetchWigle } from './wigleClient';
+import { wigleGatewayFetch } from './wigle/wigleGateway';
 import { hashRecord, normalizeParams } from './wigleRequestUtils';
 import { getCachedSearchResponse, setCachedSearchResponse } from './wigleSearchCache';
 
@@ -44,32 +44,33 @@ async function fetchWigleSearchPage(options: {
     `[WiGLE][${apiVer}/network/search][PRE] sending request | url=${apiUrl} | params=${JSON.stringify(paramsObj)}`
   );
 
-  let response: Response;
-  try {
-    response = await fetchWigle({
-      kind: 'search',
-      url: apiUrl,
-      timeoutMs: 30000,
-      maxRetries: entrypoint === 'import-run' ? 0 : 1,
-      label: 'WiGLE Search API',
-      entrypoint,
-      paramsHash,
-      endpointType: `${apiVer}/network/search`,
-      init: {
-        headers: {
-          Authorization: `Basic ${encodedAuth}`,
-          Accept: 'application/json',
-        },
+  const gatewayResult = await wigleGatewayFetch({
+    kind: 'search',
+    url: apiUrl,
+    timeoutMs: 30000,
+    maxRetries: entrypoint === 'import-run' ? 0 : 1,
+    label: 'WiGLE Search API',
+    entrypoint,
+    endpointType: `${apiVer}/network/search`,
+    searchParams: params,
+    init: {
+      headers: {
+        Authorization: `Basic ${encodedAuth}`,
+        Accept: 'application/json',
       },
-    });
-  } catch (error: any) {
+    },
+  });
+
+  if (!gatewayResult.ok) {
     logger.error(
-      `[WiGLE][${apiVer}/network/search][ERROR] exception | url=${apiUrl} | params=${JSON.stringify(paramsObj)} | error=${String(
-        error?.message || error
-      ).slice(0, 500)}`
+      `[WiGLE][${apiVer}/network/search][ERROR] | url=${apiUrl} | params=${JSON.stringify(paramsObj)} | error=${gatewayResult.error}`
     );
+    const error: any = new Error(gatewayResult.error);
+    error.status = gatewayResult.status;
     throw error;
   }
+
+  const response = gatewayResult.response;
 
   if (!response.ok) {
     const errorText = await response.text();
