@@ -175,9 +175,6 @@ env_keys.txt
 .kiro/
 .sixth/
 
-# --- Local models and large asset directories ---
-Real-ESRGAN/
-
 # --- Temporary & reconnaissance scripts ---
 /recon_ec2*.sh
 /exec_on_ec2.sh
