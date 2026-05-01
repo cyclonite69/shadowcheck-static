@@ -163,6 +163,51 @@ ssid_exact_sequential AS (
       AND upper(split_part(n.bssid, ':', 5)) = t.o5
     )
 ),
+-- Deterministic rule 3: octets 2–5 identical, first octet differs, last octet
+-- delta 1–3. Covers multi-BSSID APs (e.g. Xfinity/Commscope) that broadcast
+-- multiple SSIDs across bands with the same middle octets but varying first
+-- and last octets. Example: 8C:61:A3:7C:BD:08 ↔ CE:61:A3:7C:BD:09.
+middle_octets_sequential AS (
+  SELECT
+    t.bssid AS target_bssid,
+    n.bssid AS sibling_bssid,
+    t.ssid AS target_ssid,
+    n.ssid AS sibling_ssid,
+    t.frequency AS frequency_target,
+    n.frequency AS frequency_sibling,
+    ABS(
+      ('x' || upper(split_part(n.bssid, ':', 6)))::bit(8)::int -
+      ('x' || t.o6)::bit(8)::int
+    ) AS d_last_octet,
+    NULL::integer AS d_third_octet,
+    CASE
+      WHEN t.lat IS NOT NULL AND t.lon IS NOT NULL
+        AND COALESCE(n.bestlat, n.lastlat) IS NOT NULL
+        AND COALESCE(n.bestlon, n.lastlon) IS NOT NULL
+      THEN ST_Distance(
+        ST_SetSRID(ST_MakePoint(t.lon, t.lat), 4326)::public.geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(n.bestlon, n.lastlon), COALESCE(n.bestlat, n.lastlat)), 4326)::public.geography
+      )
+      ELSE NULL
+    END AS distance_m,
+    'middle_octets_sequential' AS rule,
+    1.000::numeric AS confidence
+  FROM t
+  JOIN app.networks n
+    ON upper(n.bssid) <> upper(t.bssid)
+    -- First octet must differ
+    AND upper(split_part(n.bssid, ':', 1)) <> t.o1
+    -- Octets 2–5 must be identical
+    AND upper(split_part(n.bssid, ':', 2)) = t.o2
+    AND upper(split_part(n.bssid, ':', 3)) = t.o3
+    AND upper(split_part(n.bssid, ':', 4)) = t.o4
+    AND upper(split_part(n.bssid, ':', 5)) = t.o5
+    -- Last octet delta 1–3
+    AND ABS(
+      ('x' || upper(split_part(n.bssid, ':', 6)))::bit(8)::int -
+      ('x' || t.o6)::bit(8)::int
+    ) BETWEEN 0 AND 3
+),
 -- Probabilistic candidates: require first 4 octets identical.
 -- Fleet SSIDs are excluded — they produce thousands of false positives via
 -- SSID matching and are only valid evidence via deterministic MAC rules above.
@@ -259,6 +304,11 @@ SELECT target_bssid, sibling_bssid, target_ssid, sibling_ssid,
        frequency_target, frequency_sibling, d_last_octet, d_third_octet,
        distance_m, rule, confidence
 FROM ssid_exact_sequential
+UNION ALL
+SELECT target_bssid, sibling_bssid, target_ssid, sibling_ssid,
+       frequency_target, frequency_sibling, d_last_octet, d_third_octet,
+       distance_m, rule, confidence
+FROM middle_octets_sequential
 UNION ALL
 SELECT target_bssid, sibling_bssid, target_ssid, sibling_ssid,
        frequency_target, frequency_sibling, d_last_octet, d_third_octet,

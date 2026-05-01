@@ -611,6 +611,7 @@
 - Show header buttons on all pages, not just dashboard ([12048aa](https://github.com/cyclonite69/shadowcheck-web/commit/12048aa669816fcf68c61eff1e9f97511f5fdac9))
 - **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
 - **siblings:** deterministic rule bypass + fleet SSID purge ([c2f03c6](https://github.com/cyclonite69/shadowcheck-web/commit/c2f03c6efb3dfab09579bde05fcc2cf468408041)), closes [hi#cardinality](https://github.com/hi/issues/cardinality)
+- **siblings:** manual pairs as baseline + fix upper_octet_rotation SSID exclusion ([504626a](https://github.com/cyclonite69/shadowcheck-web/commit/504626a70dd208f1c2564a65c95236bf46953f0d))
 - **siblings:** only show link badge for real links ([4e66e64](https://github.com/cyclonite69/shadowcheck-web/commit/4e66e64ef2ae61aa524b3fee5e63fbdccf2c8bbd))
 - **siblings:** penalize common SSID long-distance false positives ([5bb903e](https://github.com/cyclonite69/shadowcheck-web/commit/5bb903e97fa0639f4fc980878eebf791c3d0749f))
 - **siblings:** remove distance as penalty/gate; fix BT/BLE first-2-octet false siblings ([713a61a](https://github.com/cyclonite69/shadowcheck-web/commit/713a61a44a23b7a78f1430c7d24f1a830ce0ae38))
