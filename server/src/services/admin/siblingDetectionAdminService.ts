@@ -71,7 +71,7 @@ const EXTRA_RULES_SQL = `
     FROM app.networks a
     JOIN app.networks b
       ON b.ssid = a.ssid
-     AND SUBSTRING(b.bssid, 1, 8) = SUBSTRING(a.bssid, 1, 8)
+     AND SUBSTRING(b.bssid, 1, 11) = SUBSTRING(a.bssid, 1, 11)
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
     LEFT JOIN app.network_sibling_overrides nso

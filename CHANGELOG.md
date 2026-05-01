@@ -272,6 +272,7 @@
 - **filters:** restore radio/security/engagement behavior and wigle batch tally ([a182dd6](https://github.com/cyclonite69/shadowcheck-web/commit/a182dd6126d668baa93e81c6d10af1b3889c5816))
 - **filters:** send complete filter object to backend ([9070b29](https://github.com/cyclonite69/shadowcheck-web/commit/9070b29f782431730f83766d2ea26799c8e90f65))
 - **filters:** stabilize zustand page snapshots ([a94ae29](https://github.com/cyclonite69/shadowcheck-web/commit/a94ae29038f9086a5fa8e48b26efcc6ecde0bf5a))
+- **filters:** support pipe | as OR delimiter in text search tokens ([7e65d37](https://github.com/cyclonite69/shadowcheck-web/commit/7e65d378fec2c3ba35008f07f6a89eb6e17bf9d7))
 - force recreate pgadmin in scs_rebuild and add cert search ([9a9498d](https://github.com/cyclonite69/shadowcheck-web/commit/9a9498dcb2b146bdd99ac564c1336a1e809f7b48))
 - force update psql aliases in setup-psql-aliases.sh ([494a4ae](https://github.com/cyclonite69/shadowcheck-web/commit/494a4aec894d45486c89c9c92193e91d7b554311))
 - **frontend:** disable pwa service worker ([581c930](https://github.com/cyclonite69/shadowcheck-web/commit/581c9309e26deec4d9c06bff871fae3db3096cfc))
