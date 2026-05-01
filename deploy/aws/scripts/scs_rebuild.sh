@@ -411,7 +411,8 @@ PUBLIC_IP=$(curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: $IMDS_TOKE
 
 ENV_FILE=$(mktemp)
 cat > "$ENV_FILE" <<ENVEOF
-NODE_ENV=development
+NODE_ENV=production
+NODE_OPTIONS=--max-old-space-size=2048
 PORT=3001
 DB_HOST=localhost
 DB_USER=shadowcheck_user
