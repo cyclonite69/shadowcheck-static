@@ -133,6 +133,31 @@ describe('runners service', () => {
       expect(mockOUIGroupingService.generateOUIGroups).toHaveBeenCalled();
       expect(mockOUIGroupingService.detectMACRandomization).toHaveBeenCalled();
     });
+
+    it('uses recompute path when pending networks exist and resets needs_recompute', async () => {
+      const pendingNetworks = [{ bssid: 'AA:BB:CC:DD:EE:FF' }, { bssid: '11:22:33:44:55:66' }];
+      const mockScores = pendingNetworks.map((n) => ({ bssid: n.bssid, score: 0.5 }));
+      const mockTagMap = new Map<string, string>();
+
+      mockMlScoringRepository.getNetworksNeedingRecompute.mockResolvedValue(pendingNetworks);
+      mockNetworkTagService.getManualThreatTags.mockResolvedValue([]);
+      mockMlBehavioralScoring.scoreBehavioralThreats.mockReturnValue({
+        scores: mockScores,
+        tagMap: mockTagMap,
+      });
+      mockMlScoringRepository.bulkUpsertThreatScores.mockResolvedValue(2);
+      mockMlScoringRepository.resetNeedsRecompute = jest.fn().mockResolvedValue(undefined);
+
+      const result = await runBehavioralMlScoringJob();
+
+      // Should NOT call getNetworksForBehavioralScoring when recompute list is non-empty
+      expect(mockMlScoringRepository.getNetworksForBehavioralScoring).not.toHaveBeenCalled();
+      expect(result.analyzedNetworks).toBe(2);
+      expect(mockMlScoringRepository.resetNeedsRecompute).toHaveBeenCalledWith([
+        'AA:BB:CC:DD:EE:FF',
+        '11:22:33:44:55:66',
+      ]);
+    });
   });
 
   describe('runSiblingDetectionJob', () => {

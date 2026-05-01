@@ -611,6 +611,7 @@
 - **settings:** wire registerProviderSecretRoutes into settings router ([dfd00d2](https://github.com/cyclonite69/shadowcheck-web/commit/dfd00d2df70ded25441531eb907de56b745d9495))
 - Show header buttons on all pages, not just dashboard ([12048aa](https://github.com/cyclonite69/shadowcheck-web/commit/12048aa669816fcf68c61eff1e9f97511f5fdac9))
 - **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
+- **sibling:** purge fleet-fleet cross-unit pairs + guard refresh against re-creation ([496cfa5](https://github.com/cyclonite69/shadowcheck-web/commit/496cfa5028630c4e63f9ceb80464d13bac0d0208))
 - **sibling:** refresh function now respects not_sibling manual overrides ([4e38540](https://github.com/cyclonite69/shadowcheck-web/commit/4e38540fc2b982e76aadc9eabbdb309250c9e9db))
 - **siblings:** deterministic rule bypass + fleet SSID purge ([c2f03c6](https://github.com/cyclonite69/shadowcheck-web/commit/c2f03c6efb3dfab09579bde05fcc2cf468408041)), closes [hi#cardinality](https://github.com/hi/issues/cardinality)
 - **siblings:** manual pairs as baseline + fix upper_octet_rotation SSID exclusion ([504626a](https://github.com/cyclonite69/shadowcheck-web/commit/504626a70dd208f1c2564a65c95236bf46953f0d))
