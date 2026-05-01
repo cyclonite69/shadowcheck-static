@@ -243,24 +243,12 @@ probabilistic AS (
           WHEN abs(frequency_target - frequency_sibling) <= 25 THEN 0.05
           ELSE 0
         END
-      + CASE
-          WHEN distance_m IS NULL THEN 0
-          WHEN distance_m <= 50 THEN 0.10
-          WHEN distance_m <= 250 THEN 0.05
-          WHEN distance_m <= 500 THEN 0.01
-          ELSE -0.25
-        END
-      - CASE
-          WHEN lower(regexp_replace(coalesce(target_ssid, ''), '[^a-z0-9]+', '', 'g')) IN (
-            'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-            'mtasmartbus','kajeetsmartbus','somguest','somiot'
-          ) AND coalesce(distance_m, 0) > 100 THEN 0.45
-          ELSE 0
-        END
+      -- Distance is NOT a penalty: mobile/vehicle-mounted radios appear at
+      -- different locations on different passes and may never be co-located.
+      -- Distance is stored as metadata only.
     )::numeric, 3))) AS confidence
   FROM c
   WHERE rule IS NOT NULL
-    AND (distance_m IS NULL OR distance_m <= p_max_distance_m)
 )
 SELECT target_bssid, sibling_bssid, target_ssid, sibling_ssid,
        frequency_target, frequency_sibling, d_last_octet, d_third_octet,
