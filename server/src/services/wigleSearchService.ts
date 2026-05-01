@@ -6,7 +6,7 @@
 import logger from '../logging/logger';
 import secretsManager from './secretsManager';
 import { getEncodedWigleAuth } from './wigleRequestUtils';
-import { buildSearchParams, DEFAULT_RESULTS_PER_PAGE } from './wigleImport/params';
+import { buildSearchParams } from './wigleImport/params';
 import { fetchWigleSearchPage } from './wigleSearchApiService';
 import { computeNextCursor, importSearchResults } from './wigleSearchTransforms';
 
@@ -58,7 +58,6 @@ export async function searchWigle(
   }
   const apiVer: 'v2' = 'v2';
   const searchAfter = query.searchAfter ? String(query.searchAfter) : null;
-  const resultsPerPage = parseInt(String(query.resultsPerPage || DEFAULT_RESULTS_PER_PAGE), 10);
   const params = buildSearchParams(query, searchAfter);
 
   let data: any;
@@ -81,7 +80,7 @@ export async function searchWigle(
     `[WiGLE] Search returned ${results.length} results (total: ${data.totalResults || 'unknown'})`
   );
 
-  const nextSearchAfter = computeNextCursor(apiVer, data, results, resultsPerPage, searchAfter);
+  const nextSearchAfter = computeNextCursor(apiVer, data.search_after ?? null);
 
   let importedCount = 0;
   let importErrors: Array<{ bssid: string; error: string }> = [];

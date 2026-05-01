@@ -28,18 +28,10 @@ export function buildRunImportResponse(run: any) {
 
 /**
  * Compute the next-page cursor from a search response.
- * v2: offset-based — synthesise a numeric cursor for uniform client pagination.
+ * Returns the opaque search_after token from the WiGLE API response directly.
  */
-export function computeNextCursor(
-  apiVer: 'v2',
-  data: any,
-  results: any[],
-  resultsPerPage: number,
-  currentSearchAfter: string | null
-): string | null {
-  const currentOffset =
-    currentSearchAfter && /^\d+$/.test(currentSearchAfter) ? parseInt(currentSearchAfter, 10) : 0;
-  return results.length >= resultsPerPage ? String(currentOffset + results.length) : null;
+export function computeNextCursor(apiVer: 'v2', apiSearchAfter: string | null): string | null {
+  return apiSearchAfter ?? null;
 }
 
 /** Import a page of v2 search results into the local DB. */
