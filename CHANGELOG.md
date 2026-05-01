@@ -660,6 +660,7 @@
 - **tooltip:** remove redundant address field from table, keep in Location section ([266ba99](https://github.com/cyclonite69/shadowcheck-web/commit/266ba99b231f1073d8e692ed5d7739810275807e))
 - **tooltip:** restore First/Last/Seen timestamps section ([5c741e6](https://github.com/cyclonite69/shadowcheck-web/commit/5c741e60f559ae3ae0c3b3888fbf56839819d9aa))
 - **tooltip:** restore temporal section (First/Last/Seen grid) and unblock pre-commit ([5406db6](https://github.com/cyclonite69/shadowcheck-web/commit/5406db6b4297e95a240926c9469624b84e11d07a))
+- **tooltip:** restore WiGLE overlay states broken by 4f88b3dd ([c31dc61](https://github.com/cyclonite69/shadowcheck-web/commit/c31dc61e0362341ddf5497230012e42f67437684))
 - **tooltip:** SEEN timestamp shows observation-specific time, not network aggregate ([0f83f6b](https://github.com/cyclonite69/shadowcheck-web/commit/0f83f6b02b6ce2c69bb33bcfbabdc9b74eb5e80d))
 - **tooltips:** full audit — add missing tooltips and fix broken ones ([e353a60](https://github.com/cyclonite69/shadowcheck-web/commit/e353a60a472dcbe7541c1174636c6f352d394e3f))
 - **tooltip:** show WiGLE observation count for WiGLE-correlated points ([13faeca](https://github.com/cyclonite69/shadowcheck-web/commit/13faeca76e475a2342ccb614752811f5fa0ca373))
