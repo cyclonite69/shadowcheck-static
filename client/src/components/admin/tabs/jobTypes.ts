@@ -57,7 +57,7 @@ export const DEFAULT_CONFIGS: Record<JobKey, JobConfig> = {
     max_octet_delta: 6,
     max_distance_m: 5000,
     min_candidate_conf: 0.7,
-    seed_limit: 1000,
+    seed_limit: 2000,
     incremental: true,
   },
 };

@@ -248,6 +248,19 @@ router.put('/:key', async (req: any, res: any) => {
       value = envFlag(value, false);
     }
 
+    // Job configs are objects - stringify them for storage
+    if (
+      [
+        'backup_job_config',
+        'ml_scoring_job_config',
+        'mv_refresh_job_config',
+        'sibling_detection_job_config',
+      ].includes(key) &&
+      typeof value === 'object'
+    ) {
+      value = JSON.stringify(value);
+    }
+
     const setting = await settingsAdminService.updateSetting(key, value);
 
     if (!setting) {
@@ -262,7 +275,14 @@ router.put('/:key', async (req: any, res: any) => {
       await backgroundJobsService.applySchedulerFlagChange();
     }
 
-    if (['backup_job_config', 'ml_scoring_job_config', 'mv_refresh_job_config'].includes(key)) {
+    if (
+      [
+        'backup_job_config',
+        'ml_scoring_job_config',
+        'mv_refresh_job_config',
+        'sibling_detection_job_config',
+      ].includes(key)
+    ) {
       if (backgroundJobsService.isSchedulerEnabled()) {
         await backgroundJobsService.rescheduleJobs();
       } else {

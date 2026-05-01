@@ -46,7 +46,8 @@ const runBackupJob = async () => {
 const runBehavioralMlScoringJob = async () => {
   logger.info('[ML Scoring Job] Starting behavioral threat scoring v2.0 (simple)...');
 
-  const pendingRecompute = await mlScoringRepository.getNetworksNeedingRecompute(ML_RECOMPUTE_LIMIT);
+  const pendingRecompute =
+    await mlScoringRepository.getNetworksNeedingRecompute(ML_RECOMPUTE_LIMIT);
   const hasPending = pendingRecompute.length > 0;
 
   const networks = hasPending
@@ -95,8 +96,12 @@ const runSiblingDetectionJob = async (options: any = {}) => {
   const maxOctetDelta = options.max_octet_delta || 6;
   const maxDistanceM = options.max_distance_m || 5000;
   const minCandidateConf = options.min_candidate_conf || 0.7;
-  const seedLimit = options.seed_limit || 1000;
+  // Cap scheduled runs at 2000 seeds to prevent timeout; manual runs can override
+  const seedLimit = options.seed_limit !== undefined ? options.seed_limit : 2000;
   const incremental = options.incremental !== undefined ? options.incremental : true;
+
+  // Set 10-minute timeout for this specific job (overrides pool's 5-minute default)
+  await adminQuery("SET LOCAL statement_timeout = '10min'");
 
   const result = await adminQuery(
     'SELECT app.refresh_network_sibling_pairs($1, $2, $3, 0.92, $4, $5) as count',
