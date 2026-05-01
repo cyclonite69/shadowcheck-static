@@ -75,7 +75,7 @@ const splitTextFilterTokens = (value: unknown): string[] => {
   }
 
   return value
-    .split(/[,|]/)
+    .split(',')
     .map((token) => token.trim())
     .filter(Boolean);
 };

@@ -40,7 +40,7 @@ export const IdentityFilters: React.FC<IdentityFiltersProps> = ({
           className={`${controlClass} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
         />
         <p className="mt-1 text-xs text-slate-500">
-          Use commas for OR. Prefix with <b>-</b> or <b>NOT</b> to exclude.
+          Use commas or <b>|</b> for OR. Prefix with <b>-</b> or <b>NOT</b> to exclude.
         </p>
       </FilterInput>
 
