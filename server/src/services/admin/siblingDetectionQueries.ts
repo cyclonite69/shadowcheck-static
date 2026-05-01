@@ -213,7 +213,14 @@ const REFRESH_CHUNK_SQL = `
       'default',
       now()
     FROM final_pairs f
+    -- Skip pairs blocked by manual not_sibling overrides
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = f.bssid1
+     AND nso.bssid2 = f.bssid2
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
     WHERE f.final_conf >= $5
+      AND nso.bssid1 IS NULL
     ON CONFLICT (bssid1, bssid2) DO UPDATE
     SET
       rule = EXCLUDED.rule,

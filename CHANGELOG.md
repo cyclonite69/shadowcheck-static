@@ -659,6 +659,7 @@
 - **tooltip:** pin left of SSID, prevent viewport top clipping ([7580cb3](https://github.com/cyclonite69/shadowcheck-web/commit/7580cb3a6f1f24094405e4984ab4f2bd5fda36b3))
 - **tooltip:** remove redundant address field from table, keep in Location section ([266ba99](https://github.com/cyclonite69/shadowcheck-web/commit/266ba99b231f1073d8e692ed5d7739810275807e))
 - **tooltip:** restore First/Last/Seen timestamps section ([5c741e6](https://github.com/cyclonite69/shadowcheck-web/commit/5c741e60f559ae3ae0c3b3888fbf56839819d9aa))
+- **tooltip:** restore original WiGLE badge labels (Correlated/External) ([01e4ca6](https://github.com/cyclonite69/shadowcheck-web/commit/01e4ca62b81783ede5905523d4781578c55602ed))
 - **tooltip:** restore temporal section (First/Last/Seen grid) and unblock pre-commit ([5406db6](https://github.com/cyclonite69/shadowcheck-web/commit/5406db6b4297e95a240926c9469624b84e11d07a))
 - **tooltip:** restore WiGLE overlay states broken by 4f88b3dd ([c31dc61](https://github.com/cyclonite69/shadowcheck-web/commit/c31dc61e0362341ddf5497230012e42f67437684))
 - **tooltip:** SEEN timestamp shows observation-specific time, not network aggregate ([0f83f6b](https://github.com/cyclonite69/shadowcheck-web/commit/0f83f6b02b6ce2c69bb33bcfbabdc9b74eb5e80d))

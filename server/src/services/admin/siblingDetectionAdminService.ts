@@ -7,13 +7,17 @@ import { REFRESH_CHUNK_SQL, SIBLING_STATS_SQL } from './siblingDetectionQueries'
 const EXTRA_RULES_SQL = `
   WITH upper_rotation AS (
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, distance_m, quality_scope, computed_at
     )
     SELECT
       LEAST(a.bssid, b.bssid),
       GREATEST(a.bssid, b.bssid),
       'upper_octet_rotation',
       0.95,
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ),
       'default',
       now()
     FROM app.networks a
@@ -22,10 +26,32 @@ const EXTRA_RULES_SQL = `
      AND SUBSTRING(b.bssid, 1, 5) <> SUBSTRING(a.bssid, 1, 5)
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    -- Skip pairs blocked by manual not_sibling overrides
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND nso.bssid1 IS NULL
+      -- Require both networks to have location data and be within 200m
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) < 200
+      -- Fleet SSIDs are not valid evidence for upper_octet_rotation
+      AND lower(regexp_replace(coalesce(a.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT IN (
+        'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
+        'mtasmartbus','kajeetsmartbus','somguest','somiot'
+      )
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
+          distance_m  = EXCLUDED.distance_m,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
@@ -50,7 +76,13 @@ const EXTRA_RULES_SQL = `
      AND SUBSTRING(b.bssid, 1, 8) = SUBSTRING(a.bssid, 1, 8)
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
       -- Fleet SSIDs are not valid evidence for ssid_anchor — SSID alone is meaningless
       -- for high-cardinality shared SSIDs. Deterministic MAC rules handle these.
@@ -91,7 +123,13 @@ const EXTRA_RULES_SQL = `
      AND SUBSTRING(b.bssid, 1, 8) <> SUBSTRING(a.bssid, 1, 8)
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
       -- Fleet SSIDs are not valid evidence for cross_oui_ssid_exact.
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
@@ -145,7 +183,13 @@ const EXTRA_RULES_SQL = `
          ) BETWEEN 1 AND 6
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND nso.bssid1 IS NULL
       AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
       AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
       AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
