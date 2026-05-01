@@ -5,7 +5,7 @@
 
 import logger from '../logging/logger';
 import secretsManager from './secretsManager';
-import { fetchWigle } from './wigleClient';
+import { wigleGatewayFetch } from './wigle/wigleGateway';
 import { hashRecord, getEncodedWigleAuth } from './wigleRequestUtils';
 import { logWigleAuditEvent } from './wigleAuditLogger';
 import {
@@ -64,33 +64,34 @@ export async function fetchUpstream(
   );
 
   let response: Response;
-  try {
-    response = await fetchWigle({
-      kind: 'detail',
-      url: apiUrl,
-      timeoutMs: 15000,
-      maxRetries: 1,
-      label: 'WiGLE Detail API',
-      entrypoint: 'manual-detail',
-      paramsHash: hashRecord({ endpoint, netid }),
-      endpointType: `v3/detail/${endpoint}`,
-      init: {
-        headers: {
-          Authorization: `Basic ${encodedAuth}`,
-          Accept: 'application/json',
-        },
+  const gatewayResult = await wigleGatewayFetch({
+    kind: 'detail',
+    url: apiUrl,
+    timeoutMs: 15000,
+    maxRetries: 1,
+    label: 'WiGLE Detail API',
+    entrypoint: 'manual-detail',
+    endpointType: `v3/detail/${endpoint}`,
+    init: {
+      headers: {
+        Authorization: `Basic ${encodedAuth}`,
+        Accept: 'application/json',
       },
-    });
-  } catch (err: any) {
-    const status = err?.status ?? 500;
-    logger.error(`[WiGLE][v3/detail/${endpoint}][ERROR] Detail fetch exception: ${err.message}`, {
-      url: apiUrl,
-      netid,
-      endpoint,
-      error: err.message,
-    });
-    return { ok: false, status, error: err.message };
+    },
+  });
+  if (!gatewayResult.ok) {
+    const status = gatewayResult.status ?? 500;
+    logger.error(
+      `[WiGLE][v3/detail/${endpoint}][ERROR] Detail fetch exception: ${gatewayResult.error}`,
+      {
+        url: apiUrl,
+        netid,
+        endpoint,
+      }
+    );
+    return { ok: false, status, error: gatewayResult.error };
   }
+  response = gatewayResult.response;
 
   if (!response.ok) {
     const errorText = await response.text();

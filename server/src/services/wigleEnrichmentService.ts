@@ -6,8 +6,8 @@
 
 import * as container from '../config/container';
 import logger from '../logging/logger';
-import { fetchWigle } from './wigleClient';
-import { hashRecord, getEncodedWigleAuth } from './wigleRequestUtils';
+import { wigleGatewayFetch } from './wigle/wigleGateway';
+import { getEncodedWigleAuth } from './wigleRequestUtils';
 import { fetchAndImportDetail } from './wigleEnrichmentFetcher';
 import {
   getPendingEnrichmentCount,
@@ -175,18 +175,24 @@ export async function validateWigleApiCredit() {
     }
 
     const encodedAuth = getEncodedWigleAuth();
-    const response = await fetchWigle({
+    const gatewayResult = await wigleGatewayFetch({
       kind: 'stats',
       url: 'https://api.wigle.net/api/v2/stats',
       timeoutMs: 15000,
       maxRetries: 0,
       label: 'WiGLE API Credit Check',
       entrypoint: 'stats',
-      paramsHash: hashRecord({ endpoint: 'v2/stats' }),
       endpointType: 'v2/stats',
       init: { headers: { Authorization: `Basic ${encodedAuth}` } },
     });
 
+    if (!gatewayResult.ok) {
+      if (gatewayResult.status === 401)
+        return { hasCredit: false, message: 'Invalid WiGLE API key' };
+      return { hasCredit: false, message: gatewayResult.error };
+    }
+
+    const response = gatewayResult.response;
     if (response.status === 401) return { hasCredit: false, message: 'Invalid WiGLE API key' };
 
     const data = (await response.json()) as any;

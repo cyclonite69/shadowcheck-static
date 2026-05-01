@@ -1,7 +1,6 @@
 export {};
 import type { Request, Response } from 'express';
-import { fetchWigle } from '../../../services/wigleClient';
-import { hashRecord } from '../../../services/wigleRequestUtils';
+import { wigleGatewayFetch } from '../../../services/wigle/wigleGateway';
 
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const {
@@ -62,22 +61,21 @@ const registerWiGLERoutes = ({ router, secretsManager }: { router: any; secretsM
 
       let testResult;
       try {
-        const response = await fetchWigle({
+        const gatewayResult = await wigleGatewayFetch({
           kind: 'stats',
           url: 'https://api.wigle.net/api/v2/profile/user',
           timeoutMs: 15000,
           maxRetries: 0,
           label: 'WiGLE Credential Test',
           entrypoint: 'settings/wigle/save',
-          paramsHash: hashRecord({ endpoint: 'v2/profile/user' }),
           endpointType: 'v2/profile/user',
           init: { headers: { Accept: 'application/json', Authorization: `Basic ${encoded}` } },
         });
-        if (response.ok) {
-          const data = await response.json();
+        if (gatewayResult.ok && gatewayResult.response.ok) {
+          const data = await gatewayResult.response.json();
           testResult = { success: true, user: (data as any).user };
         } else {
-          testResult = { success: false, error: `HTTP ${response.status}` };
+          testResult = { success: false, error: gatewayResult.ok ? `HTTP ${gatewayResult.response.status}` : gatewayResult.error };
         }
       } catch (error: any) {
         testResult = { success: false, error: error.message };
@@ -99,22 +97,21 @@ const registerWiGLERoutes = ({ router, secretsManager }: { router: any; secretsM
       if (!encoded) {
         return res.json({ success: false, error: 'No credentials stored' });
       }
-      const response = await fetchWigle({
+      const gatewayResult = await wigleGatewayFetch({
         kind: 'stats',
         url: 'https://api.wigle.net/api/v2/profile/user',
         timeoutMs: 15000,
         maxRetries: 0,
         label: 'WiGLE Credential Test',
         entrypoint: 'settings/wigle/test',
-        paramsHash: hashRecord({ endpoint: 'v2/profile/user' }),
         endpointType: 'v2/profile/user',
         init: { headers: { Accept: 'application/json', Authorization: `Basic ${encoded}` } },
       });
-      if (response.ok) {
-        const data = await response.json();
+      if (gatewayResult.ok && gatewayResult.response.ok) {
+        const data = await gatewayResult.response.json();
         res.json({ success: true, user: (data as any).user });
       } else {
-        res.json({ success: false, error: `HTTP ${response.status}` });
+        res.json({ success: false, error: gatewayResult.ok ? `HTTP ${gatewayResult.response.status}` : gatewayResult.error });
       }
     } catch (error) {
       res.status(500).json({ error: getErrorMessage(error) });
