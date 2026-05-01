@@ -9,6 +9,15 @@ import { popupStateManager } from '../../../utils/geospatial/popupStateManager';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 
+/** Amber for WiGLE-unique; green for locally correlated WiGLE points. */
+const WIGLE_UNIQUE_COLOR = '#f59e0b';
+const WIGLE_MATCHED_COLOR = '#22c55e';
+
+function wigleBadge(matched: boolean): string {
+  const color = matched ? WIGLE_MATCHED_COLOR : WIGLE_UNIQUE_COLOR;
+  return `<div style="background:${color}1a;border-bottom:1px solid ${color}44;padding:3px 12px;font-size:9px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${color};">◆ WiGLE ${matched ? 'Correlated' : 'External'}</div>`;
+}
+
 export type WigleObservation = {
   lat: number;
   lon: number;
@@ -131,7 +140,8 @@ export const useWigleLayers = ({
         wigle_match: matched,
       };
 
-      const initialHtml = renderNetworkTooltip(normalizeTooltipData(rawProps, coords));
+      const initialHtml =
+        wigleBadge(matched) + renderNetworkTooltip(normalizeTooltipData(rawProps, coords));
 
       const anchor = getPopupAnchor(map, lngLat, initialHtml);
       const popup = new (mapboxgl as any).Popup({
