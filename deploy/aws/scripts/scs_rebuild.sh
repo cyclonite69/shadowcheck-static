@@ -336,6 +336,12 @@ echo "  Disk usage: $(print_disk_usage)"
 
 # 4. Build images
 echo "[4/8] Building images..."
+# Preserve previous images for one-step rollback:
+#   docker stop shadowcheck_backend shadowcheck_frontend
+#   docker run ... shadowcheck/backend:previous
+#   docker run ... shadowcheck/frontend:previous
+docker tag shadowcheck/backend:latest shadowcheck/backend:previous 2>/dev/null || true
+docker tag shadowcheck/frontend:latest shadowcheck/frontend:previous 2>/dev/null || true
 docker build --no-cache -f deploy/aws/docker/Dockerfile.backend -t shadowcheck/backend:latest .
 docker build --no-cache -f deploy/aws/docker/Dockerfile.frontend -t shadowcheck/frontend:latest .
 
@@ -397,7 +403,11 @@ docker cp sql/init/00_bootstrap.sql shadowcheck_postgres:/sql/00_bootstrap.sql
 docker cp sql/migrations shadowcheck_postgres:/sql/migrations
 docker cp sql/run-migrations.sh shadowcheck_postgres:/sql/run-migrations.sh
 docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -v admin_password='$DB_ADMIN_PASSWORD' -f /sql/00_bootstrap.sql" 2>&1 | tail -5
-docker exec shadowcheck_postgres bash -c "export PGPASSWORD='$DB_ADMIN_PASSWORD' MIGRATION_DB_USER=shadowcheck_admin DB_NAME=shadowcheck_db && bash /sql/run-migrations.sh" 2>&1 | tail -10
+# Migrations are intentionally NOT run here — the container entrypoint (docker/entrypoint.sh)
+# runs run-migrations.sh on every startup using credentials fetched directly from
+# AWS Secrets Manager. Running them here a second time is redundant and risks
+# race conditions. Bootstrap (above) is kept because it is idempotent and distinct
+# from the migration runner.
 
 echo "  Refreshing materialized view before backend starts..."
 docker exec shadowcheck_postgres bash -c "PGPASSWORD='$DB_ADMIN_PASSWORD' psql -U shadowcheck_admin -d shadowcheck_db -c 'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv;'" 2>/dev/null \
@@ -503,3 +513,10 @@ echo "API: $(curl -sf http://localhost:3001/health >/dev/null && echo "OK" || ec
 echo "HTTPS: $(curl -sfk https://localhost/health >/dev/null && echo "OK" || echo "WAITING")"
 echo "=== Done ==="
 echo "Disk: $(print_disk_usage)"
+SWAP_TOTAL=$(free -m | awk '/^Swap:/{print $2}')
+if [ "$SWAP_TOTAL" -eq 0 ]; then
+  echo "  ⚠️  WARNING: No swap configured. Consider adding swap:"
+  echo "     sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile"
+  echo "     sudo mkswap /swapfile && sudo swapon /swapfile"
+  echo "     echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab"
+fi
