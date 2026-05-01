@@ -41,11 +41,11 @@ const EXTRA_RULES_SQL = `
      AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
-      -- Fleet SSIDs are not valid evidence for upper_octet_rotation
-      AND lower(regexp_replace(coalesce(a.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT IN (
-        'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-        'mtasmartbus','kajeetsmartbus','somguest','somiot'
-      )
+      -- upper_octet_rotation is a pure MAC-based rule — SSID is irrelevant.
+      -- Do NOT exclude fleet SSIDs here: a multi-BSSID AP (e.g. Xfinity) may
+      -- broadcast xfinitywifi on one BSSID and a different SSID on another,
+      -- with the same last 4 octets and a different first octet. The MAC
+      -- pattern is the evidence; the SSID is incidental.
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -202,12 +202,57 @@ const EXTRA_RULES_SQL = `
           computed_at = EXCLUDED.computed_at
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
+  ),
+  -- Manual sibling overrides are the authoritative baseline.
+  -- Any heuristic pair that the operator has confirmed as a sibling gets
+  -- upgraded to confidence 1.0 and rule 'manual_confirmed'. This ensures
+  -- manual selections survive future refresh runs at full confidence.
+  manual_boost AS (
+    UPDATE app.network_sibling_pairs p
+    SET rule        = 'manual_confirmed',
+        confidence  = 1.0,
+        quality_scope = 'manual',
+        computed_at = now()
+    FROM app.network_sibling_overrides o
+    WHERE o.bssid1 = p.bssid1
+      AND o.bssid2 = p.bssid2
+      AND o.relation = 'sibling'
+      AND o.is_active = true
+      AND p.confidence < 1.0
+    RETURNING 1
+  ),
+  -- Also insert manual sibling pairs that no heuristic rule has created yet.
+  -- This ensures the operator's confirmed pairs are always in network_sibling_pairs
+  -- and not just in the effective view.
+  manual_insert AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, quality_scope, computed_at
+    )
+    SELECT
+      o.bssid1,
+      o.bssid2,
+      'manual_confirmed',
+      1.0,
+      'manual',
+      now()
+    FROM app.network_sibling_overrides o
+    WHERE o.relation = 'sibling'
+      AND o.is_active = true
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = 'manual_confirmed',
+          confidence  = 1.0,
+          quality_scope = 'manual',
+          computed_at = now()
+      WHERE network_sibling_pairs.confidence < 1.0
+    RETURNING 1
   )
   SELECT
     (SELECT COUNT(*)::int FROM upper_rotation)     AS upper_rotation_count,
     (SELECT COUNT(*)::int FROM ssid_anchor)        AS ssid_anchor_count,
     (SELECT COUNT(*)::int FROM cross_oui_ssid)     AS cross_oui_count,
-    (SELECT COUNT(*)::int FROM same_oui_proximity) AS same_oui_proximity_count
+    (SELECT COUNT(*)::int FROM same_oui_proximity) AS same_oui_proximity_count,
+    (SELECT COUNT(*)::int FROM manual_boost)       AS manual_boost_count,
+    (SELECT COUNT(*)::int FROM manual_insert)      AS manual_insert_count
 `;
 import {
   getSiblingRefreshStatus,
@@ -284,6 +329,8 @@ async function runSiblingRefreshJob(
     ssid_anchor: extraRow.ssid_anchor_count,
     cross_oui: extraRow.cross_oui_count,
     same_oui_proximity: extraRow.same_oui_proximity_count,
+    manual_boost: extraRow.manual_boost_count,
+    manual_insert: extraRow.manual_insert_count,
   });
 
   return {

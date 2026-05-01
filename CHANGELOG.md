@@ -613,6 +613,7 @@
 - **siblings:** deterministic rule bypass + fleet SSID purge ([c2f03c6](https://github.com/cyclonite69/shadowcheck-web/commit/c2f03c6efb3dfab09579bde05fcc2cf468408041)), closes [hi#cardinality](https://github.com/hi/issues/cardinality)
 - **siblings:** only show link badge for real links ([4e66e64](https://github.com/cyclonite69/shadowcheck-web/commit/4e66e64ef2ae61aa524b3fee5e63fbdccf2c8bbd))
 - **siblings:** penalize common SSID long-distance false positives ([5bb903e](https://github.com/cyclonite69/shadowcheck-web/commit/5bb903e97fa0639f4fc980878eebf791c3d0749f))
+- **siblings:** remove distance as penalty/gate; fix BT/BLE first-2-octet false siblings ([713a61a](https://github.com/cyclonite69/shadowcheck-web/commit/713a61a44a23b7a78f1430c7d24f1a830ce0ae38))
 - **siblings:** support legacy sibling table schema without pair_strength ([a51b918](https://github.com/cyclonite69/shadowcheck-web/commit/a51b9186c4ed831cb930ac0f908e74fac39a8a6e))
 - **siblings:** tighten false-positive rules + respect not_sibling overrides ([740f420](https://github.com/cyclonite69/shadowcheck-web/commit/740f4202503f95e7f6a9a906e7421a6a7a086dee))
 - **siblings:** use manual links for explorer ([87cd493](https://github.com/cyclonite69/shadowcheck-web/commit/87cd4935d5410578505fb53509a1ec5cb475fb52))
