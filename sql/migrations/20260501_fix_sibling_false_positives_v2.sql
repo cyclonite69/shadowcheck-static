@@ -366,6 +366,22 @@ SELECT COUNT(*) AS rows_deleted FROM deleted;
 
 COMMIT;
 
+-- Purge same_oui_proximity pairs where first 4 octets differ
+-- (created by the old 3-octet OUI-only match — too loose for high-volume OUIs)
+BEGIN;
+
+WITH deleted AS (
+  DELETE FROM app.network_sibling_pairs p
+  WHERE p.rule = 'same_oui_proximity'
+    AND NOT (
+      SUBSTRING(p.bssid1, 1, 11) = SUBSTRING(p.bssid2, 1, 11)
+    )
+  RETURNING 1
+)
+SELECT COUNT(*) AS rows_deleted FROM deleted;
+
+COMMIT;
+
 -- Also purge any pairs blocked by manual not_sibling overrides
 -- (these should never be in network_sibling_pairs)
 BEGIN;

@@ -154,9 +154,10 @@ const EXTRA_RULES_SQL = `
     RETURNING 1
   ),
   same_oui_proximity AS (
-    -- OUI-only match: same first 3 octets, last octet delta 1–6.
-    -- Distance is stored as metadata but NOT used as a gate — mobile/vehicle-
-    -- mounted radios appear at different locations on different passes.
+    -- OUI+1 match: same first 4 octets, last octet delta 1–6.
+    -- Requires 4 octets (not just OUI) to avoid chaining unrelated devices
+    -- from high-volume manufacturers (e.g. TP-Link) that happen to share an OUI.
+    -- Distance is stored as metadata but NOT used as a gate.
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, distance_m, quality_scope, computed_at
     )
@@ -180,7 +181,8 @@ const EXTRA_RULES_SQL = `
       now()
     FROM app.networks a
     JOIN app.networks b
-      ON SUBSTRING(b.bssid, 1, 8) = SUBSTRING(a.bssid, 1, 8)
+      -- First 4 octets identical (11 chars: "XX:XX:XX:XX")
+      ON SUBSTRING(b.bssid, 1, 11) = SUBSTRING(a.bssid, 1, 11)
      AND ABS(
            ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
            ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
