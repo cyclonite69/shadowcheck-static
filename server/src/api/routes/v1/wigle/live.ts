@@ -61,13 +61,11 @@ router.get(
       }
 
       const data: any = await response.json();
-      logger.info(`[WiGLE] Found ${data.resultCount || 0} results for ${bssid}`);
+      logger.info(`[WiGLE] Got v3 detail for ${bssid}: networkId=${data.networkId || 'none'}`);
 
       res.json({
         success: true,
-        network: data.results && data.results.length > 0 ? data.results[0] : null,
-        totalResults: data.resultCount || 0,
-        results: data.results || [],
+        network: data.networkId ? data : null,
       });
     } catch (err: any) {
       logger.error(`[WiGLE] Error: ${err.message}`, { error: err });

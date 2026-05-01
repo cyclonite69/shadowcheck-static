@@ -629,6 +629,7 @@
 - **test:** correct relative paths and remove redundant WiGLE enrichment tests ([b757322](https://github.com/cyclonite69/shadowcheck-web/commit/b7573229d9eba59ee72b2a92bbe0ad03ac23c20a))
 - **tests:** fix 2 failing unit test suites ([977ddbd](https://github.com/cyclonite69/shadowcheck-web/commit/977ddbdf9f75bce99a761bee4f62c47295673572))
 - **tests:** fix globalSetup for integration DB_ADMIN_PASSWORD ([34ab154](https://github.com/cyclonite69/shadowcheck-web/commit/34ab154b21035599f74c9460eaf17578bc8a9919))
+- **tests:** fix import shape issues in FIX 5 tests ([81dc2ba](https://github.com/cyclonite69/shadowcheck-web/commit/81dc2bac2084dbec7538eb0649ffaedfaaec2671))
 - **tests:** fix integration test failures on EC2 ([35d2e84](https://github.com/cyclonite69/shadowcheck-web/commit/35d2e84ee1fbc8731d85bc9c8bf2eda54761850f))
 - **tests:** resolve all TypeScript compilation errors in test suite ([f08b3f4](https://github.com/cyclonite69/shadowcheck-web/commit/f08b3f40dd3c35900bf7b32a49239b2cdbedd67d))
 - **tests:** resolve implicit any[] and null safety errors in wigleImportRunRepository.test.ts ([ad67ba2](https://github.com/cyclonite69/shadowcheck-web/commit/ad67ba2d6125b5de6b1d9a87ba39c058537120df))
