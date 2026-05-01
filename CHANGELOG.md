@@ -1088,6 +1088,7 @@
 - **wigle:** add observations/extent endpoint and Fit Bounds button ([35fdddc](https://github.com/cyclonite69/shadowcheck-web/commit/35fdddcc93b7a78d768b68c7ed2eac5ad96bd6a7))
 - **wigle:** add useWigleObservations unified fetch hook (Phase 2) ([7527963](https://github.com/cyclonite69/shadowcheck-web/commit/7527963224502fff1f7e7797cdf322911660a02a))
 - **wigle:** align tooltip with geospatial/kepler pages ([b61762b](https://github.com/cyclonite69/shadowcheck-web/commit/b61762b1099acbfa2f6e7cac8b4cce6b0937816d))
+- **wigle:** consolidate all outbound calls through wigleGateway.ts ([5b7f503](https://github.com/cyclonite69/shadowcheck-web/commit/5b7f5038f1f1df36a9380369da6e95b4eac3b9f2))
 - **wigle:** enrich WiGLE v3 and detail results with local forensic data (threat scores, geocoding, manufacturer) ([516e558](https://github.com/cyclonite69/shadowcheck-web/commit/516e5585c13cdd35a1ac5839315e6e7dfae7db89))
 - **wigle:** implement resumable v3 batch enrichment for v2 search results ([f05fb56](https://github.com/cyclonite69/shadowcheck-web/commit/f05fb56805be90c94613603e43c9403c1aa2bd34))
 - **wigle:** implement v3 enrichment manager with catalog browser and re-import support ([4cb5ae4](https://github.com/cyclonite69/shadowcheck-web/commit/4cb5ae42d4bacc638e0c4f749f910dfe2c6431a4))

@@ -52,6 +52,12 @@ const EXTRA_RULES_SQL = `
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND a.ssid IS NOT NULL AND a.ssid <> ''
+      -- Fleet SSIDs are not valid evidence for ssid_anchor — SSID alone is meaningless
+      -- for high-cardinality shared SSIDs. Deterministic MAC rules handle these.
+      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
+        'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
+        'mtasmartbus','kajeetsmartbus','somguest','somiot'
+      )
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -87,6 +93,11 @@ const EXTRA_RULES_SQL = `
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND a.ssid IS NOT NULL AND a.ssid <> ''
+      -- Fleet SSIDs are not valid evidence for cross_oui_ssid_exact.
+      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
+        'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
+        'mtasmartbus','kajeetsmartbus','somguest','somiot'
+      )
       AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
       AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
       AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL

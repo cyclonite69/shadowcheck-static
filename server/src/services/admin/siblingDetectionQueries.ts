@@ -125,7 +125,11 @@ const REFRESH_CHUNK_SQL = `
       s.bssid1,
       s.bssid2,
       s.rule,
-      GREATEST(0, (
+      -- Deterministic rules bypass all penalty logic — their confidence is ground truth.
+      -- Applying fleet-SSID partner/family penalties to last_octet_sequential rows was
+      -- killing the 31 confirmed mdt/unit pairs (1.000 → below 0.90 threshold).
+      CASE WHEN s.rule IN ('last_octet_sequential', 'ssid_exact_sequential') THEN s.confidence
+      ELSE GREATEST(0, (
         s.confidence
         - s.distance_penalty
         + CASE
@@ -173,7 +177,8 @@ const REFRESH_CHUNK_SQL = `
               END
             ELSE 0
           END
-      )) AS final_conf,
+      ))
+      END AS final_conf,
       s.d_last_octet,
       s.d_third_octet,
       s.ssid1,
