@@ -155,6 +155,69 @@ export const WIGLE_SEARCH_PARAMS = {
     description: 'Opaque cursor from previous response for pagination',
     validator: validators.cursorString,
   },
+
+  onlymine: {
+    type: 'string' as const,
+    required: false,
+    description: 'Only show networks the user has contributed (true/false)',
+    validator: validators.stringMaxLength(5),
+  },
+
+  freenet: {
+    type: 'string' as const,
+    required: false,
+    description: 'Filter for free networks (true/false)',
+    validator: validators.stringMaxLength(5),
+  },
+
+  paynet: {
+    type: 'string' as const,
+    required: false,
+    description: 'Filter for pay networks (true/false)',
+    validator: validators.stringMaxLength(5),
+  },
+
+  variance: {
+    type: 'string' as const,
+    required: false,
+    description: 'Radius variance for address-based search (decimal degrees)',
+    validator: validators.stringMaxLength(20),
+  },
+
+  ssid: {
+    type: 'string' as const,
+    required: false,
+    description: 'Exact SSID match (use ssidlike for wildcard)',
+    validator: validators.stringMaxLength(100),
+  },
+
+  encryption: {
+    type: 'string' as const,
+    required: false,
+    description: 'Filter by encryption type',
+    validator: validators.stringMaxLength(50),
+  },
+
+  lastupdt: {
+    type: 'string' as const,
+    required: false,
+    description: 'Filter by last update date (YYYYMMDDHHMMSS format)',
+    validator: validators.stringMaxLength(20),
+  },
+
+  startTransID: {
+    type: 'string' as const,
+    required: false,
+    description: 'Transaction ID range start',
+    validator: validators.stringMaxLength(50),
+  },
+
+  endTransID: {
+    type: 'string' as const,
+    required: false,
+    description: 'Transaction ID range end',
+    validator: validators.stringMaxLength(50),
+  },
 } as const;
 
 type ParamKey = keyof typeof WIGLE_SEARCH_PARAMS;
