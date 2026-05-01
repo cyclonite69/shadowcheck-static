@@ -617,6 +617,7 @@
 - **siblings:** remove distance as penalty/gate; fix BT/BLE first-2-octet false siblings ([713a61a](https://github.com/cyclonite69/shadowcheck-web/commit/713a61a44a23b7a78f1430c7d24f1a830ce0ae38))
 - **siblings:** support legacy sibling table schema without pair_strength ([a51b918](https://github.com/cyclonite69/shadowcheck-web/commit/a51b9186c4ed831cb930ac0f908e74fac39a8a6e))
 - **siblings:** tighten false-positive rules + respect not_sibling overrides ([740f420](https://github.com/cyclonite69/shadowcheck-web/commit/740f4202503f95e7f6a9a906e7421a6a7a086dee))
+- **siblings:** tighten same_oui_proximity to 4-octet match ([30b6145](https://github.com/cyclonite69/shadowcheck-web/commit/30b6145d7bba8ebd71838f30db40f0284d6d2c0c)), closes [hi#volume](https://github.com/hi/issues/volume)
 - **siblings:** use manual links for explorer ([87cd493](https://github.com/cyclonite69/shadowcheck-web/commit/87cd4935d5410578505fb53509a1ec5cb475fb52))
 - skip postgres restart when SSL cert paths unchanged ([2c6cef7](https://github.com/cyclonite69/shadowcheck-web/commit/2c6cef77de3a80751b4be11f4f53446cf1822240))
 - **sort:** revert security sort replacements — buildOrderBy already handles it ([9f1737e](https://github.com/cyclonite69/shadowcheck-web/commit/9f1737e92b9495940bcb366680b8af7eab0c6e8c))
