@@ -422,21 +422,7 @@ export const renderNetworkTooltip = (props: any): any => {
         : '#f87171';
 
   return `
-<div style="width:288px;max-width:min(340px, 90vw);max-height:min(600px, 90vh);background:#1a1d23;border:2px solid ${bc};border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;overflow:hidden;">
-  ${
-    isWigleOrigin
-      ? Boolean(props.wigle_match)
-        ? `<div style="width:100%;padding:6px 12px;background:rgba(34,197,94,0.15);border-bottom:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;gap:6px;">
-    <span style="font-size:12px;">🔍</span>
-    <span style="font-size:11px;font-weight:600;color:#86efac;letter-spacing:0.03em;">WiGLE CORRELATED</span>
-    ${Number(props.local_observation_count) > 0 ? `<span style="font-size:10px;color:rgba(134,239,172,0.7);margin-left:auto;">${Number(props.local_observation_count)} local obs</span>` : ''}
-  </div>`
-        : `<div style="width:100%;padding:6px 12px;background:rgba(192,38,211,0.15);border-bottom:1px solid rgba(192,38,211,0.3);display:flex;align-items:center;gap:6px;">
-    <span style="font-size:12px;">🔍</span>
-    <span style="font-size:11px;font-weight:600;color:#e879f9;letter-spacing:0.03em;">WiGLE EXTERNAL</span>
-  </div>`
-      : ''
-  }
+<div style="width:288px;max-width:min(340px, 90vw);max-height:min(600px, 90vh);background:#1a1d23;border:2px solid ${bc};border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;">
     <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;display:flex;align-items:center;gap:6px;">
