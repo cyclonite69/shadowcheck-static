@@ -14,6 +14,10 @@ const logger = require('../../../../logging/logger');
 router.get('/user-stats', async (req: any, res: any, next: any) => {
   try {
     const stats = await wigleService.getUserStats();
+    logger.info(
+      '[WiGLE Stats DEBUG] raw response keys: ' + JSON.stringify(Object.keys(stats || {}))
+    );
+    logger.info('[WiGLE Stats DEBUG] raw response: ' + JSON.stringify(stats));
     res.json({ success: true, stats });
   } catch (err: any) {
     logger.error(`[WiGLE] Failed to fetch user stats: ${err.message}`);
