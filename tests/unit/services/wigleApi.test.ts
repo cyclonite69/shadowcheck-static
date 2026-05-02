@@ -97,7 +97,30 @@ describe('wigle/api — getUserStats', () => {
       ok: true,
       response: mockResponse(false, { message: 'Forbidden' }, 403),
     });
-    await expect(getUserStats()).rejects.toThrow('Forbidden');
+    try {
+      await getUserStats();
+      throw new Error('expected throw');
+    } catch (e: any) {
+      if (e.message === 'expected throw') throw e;
+      expect(e.message).toBe('Forbidden');
+      expect(e.status).toBe(403);
+    }
+  });
+
+  test('propagates WiGLE 401 on upstream auth failure (ledger already recorded in gateway)', async () => {
+    mockGet.mockReturnValue('value');
+    wigleGatewayFetch.mockResolvedValue({
+      ok: true,
+      response: mockResponse(false, { message: 'Not Authorized (WiGLE.net)' }, 401),
+    });
+    try {
+      await getUserStats();
+      throw new Error('expected throw');
+    } catch (e: any) {
+      if (e.message === 'expected throw') throw e;
+      expect(e.message).toContain('Not Authorized');
+      expect(e.status).toBe(401);
+    }
   });
 
   test('throws with status code when error body has no message', async () => {
@@ -106,7 +129,14 @@ describe('wigle/api — getUserStats', () => {
       ok: true,
       response: { ok: false, status: 500, json: () => Promise.reject(new Error('bad json')) },
     });
-    await expect(getUserStats()).rejects.toThrow('WiGLE API error: 500');
+    try {
+      await getUserStats();
+      throw new Error('expected throw');
+    } catch (e: any) {
+      if (e.message === 'expected throw') throw e;
+      expect(e.message).toBe('WiGLE API error: 500');
+      expect(e.status).toBe(500);
+    }
   });
 
   test('sends Basic auth header with base64-encoded credentials', async () => {

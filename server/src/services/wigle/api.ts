@@ -6,7 +6,9 @@ export async function getUserStats(): Promise<any> {
   const token = secretsManager.get('wigle_api_token');
 
   if (!name || !token) {
-    throw new Error('WiGLE API credentials not configured');
+    const err: any = new Error('WiGLE API credentials not configured');
+    err.status = 503;
+    throw err;
   }
 
   const encoded = Buffer.from(`${name}:${token}`).toString('base64');
@@ -35,7 +37,9 @@ export async function getUserStats(): Promise<any> {
   const response = result.response;
   if (!response.ok) {
     const errorData: any = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `WiGLE API error: ${response.status}`);
+    const err: any = new Error(errorData.message || `WiGLE API error: ${response.status}`);
+    err.status = response.status;
+    throw err;
   }
 
   return response.json();
