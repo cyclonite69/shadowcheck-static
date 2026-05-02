@@ -792,6 +792,7 @@
 - **wigle:** mount aggregated route before observations/:netid wildcard ([2d97f06](https://github.com/cyclonite69/shadowcheck-web/commit/2d97f06eda64dc188ea42c294e2d76ee1ff01589))
 - **wigle:** move assertCanRequest pre-loop, document conservative quota policy ([83a95d7](https://github.com/cyclonite69/shadowcheck-web/commit/83a95d7518b3d00b66b8b210e5fbdbdc6f982c39))
 - **wigle:** move Field Data and Clustering to control panel, fix Field Data render ([9cdfa8c](https://github.com/cyclonite69/shadowcheck-web/commit/9cdfa8c83d905f0e15d4a2b256ba98ba8390c460))
+- **wigle:** move ledger panel and preserve outbound auth header ([2437005](https://github.com/cyclonite69/shadowcheck-web/commit/24370058adc137b9da58d93365a8666f7ca63c1c))
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
 - **wigle:** parse v3 detail response shape in live.ts ([2784909](https://github.com/cyclonite69/shadowcheck-web/commit/2784909dfad925f364d7c66adf33afc5f294d25f))
 - **wigle:** prefer secrets manager over env for api name and token ([aad8b1d](https://github.com/cyclonite69/shadowcheck-web/commit/aad8b1d34c31ae0101f674e7687884c370556455))
