@@ -339,6 +339,30 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             </button>
           </div>
 
+          {/* Forensic card — above the table when a row is clicked */}
+          {activePanel && (
+            <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/60">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  {activePanel.loading ? 'Loading forensic data…' : 'Forensic Preview'}
+                </span>
+                <button
+                  onClick={() => setActivePanel(null)}
+                  className="text-slate-500 hover:text-slate-200 transition-colors text-sm leading-none"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex justify-center p-6 bg-slate-950/30">
+                <div
+                  className="scale-[0.92] origin-top"
+                  dangerouslySetInnerHTML={{ __html: activePanel.html }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Table */}
           <div
             ref={tableRef}
@@ -479,30 +503,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
         </div>
       </div>
       {/* end flex container */}
-
-      {/* Forensic card — full-width below the table when a row is clicked */}
-      {activePanel && (
-        <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/60">
-            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-              {activePanel.loading ? 'Loading forensic data…' : 'Forensic Preview'}
-            </span>
-            <button
-              onClick={() => setActivePanel(null)}
-              className="text-slate-500 hover:text-slate-200 transition-colors text-sm leading-none"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="flex justify-center p-6 bg-slate-950/30">
-            <div
-              className="scale-[0.92] origin-top"
-              dangerouslySetInnerHTML={{ __html: activePanel.html }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

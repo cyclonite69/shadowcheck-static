@@ -279,30 +279,7 @@ export const WigleSearchTab: React.FC = () => {
         </AdminCard>
       )}
 
-      {/* Row 1: API Version — compact control bar, not a full card */}
-      <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl border border-slate-700/40 bg-slate-900/50 shadow-lg">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide shrink-0">
-          API Version
-        </span>
-        <div className="flex rounded border border-slate-600/60 overflow-hidden">
-          {(['v2', 'v3'] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setSearchParams({ ...searchParams, version: v })}
-              className={`px-5 py-1.5 text-[11px] font-bold uppercase transition-colors ${
-                (searchParams.version || 'v2') === v
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Row 2: Network Filters | Geographic Filters — 2-column */}
+      {/* Network Filters | Geographic Filters — 2-column */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AdminCard
           icon={DatabaseIcon}
