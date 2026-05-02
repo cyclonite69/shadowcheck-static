@@ -146,12 +146,25 @@ export const WigleStatsTab: React.FC = () => {
         <div className="p-6 bg-red-900/20 border border-red-700/50 rounded-lg text-red-400">
           <h3 className="font-bold mb-2">WiGLE API Error</h3>
           <p className="text-sm">{statsError}</p>
-          <button
-            onClick={fetchStats}
-            className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
-          >
-            RETRY
-          </button>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={fetchStats}
+              className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
+            >
+              RETRY
+            </button>
+            {statsError.includes('soft limit') && (
+              <button
+                onClick={async () => {
+                  await apiClient.post('/wigle/quota-reset', {});
+                  fetchStats();
+                }}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors"
+              >
+                RESET QUOTA LEDGER
+              </button>
+            )}
+          </div>
         </div>
       )}
 

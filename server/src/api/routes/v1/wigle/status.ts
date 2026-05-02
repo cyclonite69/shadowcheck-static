@@ -7,7 +7,7 @@ import express from 'express';
 const router = express.Router();
 import secretsManager from '../../../../services/secretsManager';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
-import { getQuotaStatus } from '../../../../services/wigleRequestLedger';
+import { getQuotaStatus, resetQuotaLedger } from '../../../../services/wigleRequestLedger';
 
 /**
  * GET /wigle/api-status - Check WiGLE API connectivity
@@ -28,6 +28,14 @@ router.get('/quota-status', requireAdmin, async (_req, res) => {
     ok: true,
     quota: getQuotaStatus(),
   });
+});
+
+/**
+ * POST /wigle/quota-reset - Reset the in-memory WiGLE request ledger (admin only)
+ */
+router.post('/quota-reset', requireAdmin, async (_req, res) => {
+  resetQuotaLedger();
+  res.json({ ok: true, quota: getQuotaStatus() });
 });
 
 export default router;
