@@ -53,4 +53,24 @@ router.post('/settings/aws', requireAuth, async (req: Request, res: Response) =>
   }
 });
 
+/**
+ * POST /settings/reload-secrets
+ * Force a fresh load from AWS Secrets Manager into the in-memory cache.
+ * Use this after saving credentials via the admin UI to avoid a container restart.
+ */
+router.post('/settings/reload-secrets', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    secretsManager.awsLoaded = false;
+    secretsManager.awsCache = null;
+    await secretsManager.load();
+    res.json({
+      ok: true,
+      smReachable: secretsManager.smReachable,
+      smLastError: secretsManager.smLastError ?? null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
 module.exports = router;
