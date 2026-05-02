@@ -325,6 +325,21 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'WiGLE',
+    label: 'WiGLE Request Ledger',
+    path: '/api/wigle/ledger',
+    method: 'GET',
+    params: [
+      { name: 'limit', defaultValue: '50', placeholder: '50' },
+      {
+        name: 'status',
+        defaultValue: 'all',
+        placeholder: 'all|success|error|rate_limited|skipped',
+      },
+      { name: 'source', defaultValue: 'all', placeholder: 'all|import|event' },
+    ],
+  },
+  {
+    category: 'WiGLE',
     label: 'WiGLE Import Runs',
     path: '/api/wigle/search-api/import-runs',
     method: 'GET',

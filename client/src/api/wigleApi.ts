@@ -4,6 +4,19 @@
 
 import { apiClient } from './client';
 
+export interface LedgerRow {
+  id: string;
+  source: 'import' | 'event';
+  kind: string;
+  status: 'success' | 'error' | 'rate_limited' | 'skipped';
+  timestamp: string;
+  rowsReturned?: number;
+  rowsInserted?: number;
+  pagesFetched?: number;
+  durationMs?: number;
+  error?: string;
+}
+
 /**
  * Flat shape used for initial tooltip render from map GeoJSON feature properties,
  * and as the merged working object in the click handler after enrichment.
@@ -306,5 +319,24 @@ export const wigleApi = {
     const normalizedEndpoint = normalizeApiEndpoint(endpoint);
     const suffix = params.toString();
     return apiClient.get(`${normalizedEndpoint}${suffix ? `?${suffix}` : ''}`);
+  },
+
+  async getLedger(
+    params: {
+      limit?: number;
+      before?: string;
+      beforeId?: string;
+      status?: string;
+      source?: string;
+    } = {}
+  ): Promise<{ rows: LedgerRow[]; hasMore: boolean }> {
+    const q = new URLSearchParams();
+    if (params.limit) q.set('limit', String(params.limit));
+    if (params.before) q.set('before', params.before);
+    if (params.beforeId) q.set('beforeId', params.beforeId);
+    if (params.status && params.status !== 'all') q.set('status', params.status);
+    if (params.source && params.source !== 'all') q.set('source', params.source);
+    const suffix = q.toString();
+    return apiClient.get(`/wigle/ledger${suffix ? `?${suffix}` : ''}`);
   },
 };

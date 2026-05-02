@@ -10,6 +10,7 @@ import { fetchWigle } from '../wigleClient';
 import { validateWigleSearchParams, WigleValidationError } from '../wigleImport/wigleApiSpec';
 import { logWigleAuditEvent } from '../wigleAuditLogger';
 import { hashRecord } from '../wigleRequestUtils';
+import { updateLedgerOutcome } from '../wigleRequestLedger';
 
 export type WigleRequestKind = 'search' | 'detail' | 'stats';
 
@@ -95,6 +96,11 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
       kind,
     });
 
+    updateLedgerOutcome(kind, {
+      status: response.ok ? 'success' : 'error',
+      duration_ms: latencyMs,
+    });
+
     return { ok: true, response, latencyMs };
   } catch (err: any) {
     const latencyMs = Date.now() - startedAt;
@@ -109,6 +115,13 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
       servedFromCache: false,
       retryCount: 0,
       kind,
+    });
+
+    const ledgerStatus = status === 429 ? 'rate_limited' : 'error';
+    updateLedgerOutcome(kind, {
+      status: ledgerStatus,
+      duration_ms: latencyMs,
+      error_message: err?.message ?? String(err),
     });
 
     return { ok: false, error: err?.message ?? String(err), status };
