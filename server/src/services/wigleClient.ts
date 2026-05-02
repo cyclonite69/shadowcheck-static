@@ -119,7 +119,10 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
       // This protects against a near-boundary request that would pass
       // attempt 0 then be rejected on a subsequent attempt (e.g., SOFT_LIMIT),
       // which should surface the original 429 instead of a later quota rejection.
-      assertCanRequest(kind, priority);
+      // Stats: assertCanRequest runs in wigleGateway only (single shared gate for all callers).
+      if (kind !== 'stats') {
+        assertCanRequest(kind, priority);
+      }
 
       for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
         const startedAt = Date.now();

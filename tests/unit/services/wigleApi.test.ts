@@ -74,6 +74,23 @@ describe('wigle/api — getUserStats', () => {
     await expect(getUserStats()).rejects.toThrow('Network timeout');
   });
 
+  test('preserves HTTP status when gateway returns ok:false (e.g. soft limit 429)', async () => {
+    mockGet.mockReturnValue('value');
+    wigleGatewayFetch.mockResolvedValue({
+      ok: false,
+      error: 'WiGLE stats soft limit reached (10/10).',
+      status: 429,
+    });
+    try {
+      await getUserStats();
+      throw new Error('expected getUserStats to throw');
+    } catch (e: any) {
+      if (e.message === 'expected getUserStats to throw') throw e;
+      expect(e.message).toContain('soft limit');
+      expect(e.status).toBe(429);
+    }
+  });
+
   test('throws with API error message on non-ok HTTP response', async () => {
     mockGet.mockReturnValue('value');
     wigleGatewayFetch.mockResolvedValue({

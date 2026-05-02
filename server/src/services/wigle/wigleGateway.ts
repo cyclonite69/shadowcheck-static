@@ -10,7 +10,7 @@ import { fetchWigle } from '../wigleClient';
 import { validateWigleSearchParams, WigleValidationError } from '../wigleImport/wigleApiSpec';
 import { logWigleAuditEvent } from '../wigleAuditLogger';
 import { hashRecord } from '../wigleRequestUtils';
-import { updateLedgerOutcome } from '../wigleRequestLedger';
+import { assertCanRequest, updateLedgerOutcome } from '../wigleRequestLedger';
 
 export type WigleRequestKind = 'search' | 'detail' | 'stats';
 
@@ -64,6 +64,36 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
         return { ok: false, error: err.message, validationError: true };
       }
       throw err;
+    }
+  }
+
+  // Stats (profile/user, /stats, etc.): enforce soft limit and circuit breaker here so
+  // every caller — including interactive HTTP routes — shares one counter before fetchWigle.
+  if (kind === 'stats') {
+    const priority = req.priority ?? 'background';
+    try {
+      assertCanRequest(kind, priority);
+    } catch (err: any) {
+      logger.warn(`[WiGLE Gateway] Stats request blocked by quota policy`, {
+        entrypoint,
+        message: err?.message,
+        status: err?.status,
+      });
+      logWigleAuditEvent({
+        entrypoint,
+        endpointType: endpointType ?? kind,
+        paramsHash,
+        status: err?.status === 429 ? 'SOFT_LIMIT' : 'QUOTA_BLOCK',
+        latencyMs: 0,
+        servedFromCache: false,
+        retryCount: 0,
+        kind,
+      });
+      return {
+        ok: false,
+        error: err?.message ?? 'WiGLE stats request blocked',
+        status: err?.status,
+      };
     }
   }
 
