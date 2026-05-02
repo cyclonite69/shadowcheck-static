@@ -791,6 +791,7 @@
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
 - **wigle:** parse v3 detail response shape in live.ts ([2784909](https://github.com/cyclonite69/shadowcheck-web/commit/2784909dfad925f364d7c66adf33afc5f294d25f))
 - **wigle:** prevent enrichment manager rows from appearing to disappear by adding processing states ([05a5a5e](https://github.com/cyclonite69/shadowcheck-web/commit/05a5a5ed9028f2a1ba6b67b45b47876ada88861a))
+- **wigle:** propagate 429 status from ledger; add quota-reset endpoint and UI button ([8967fc9](https://github.com/cyclonite69/shadowcheck-web/commit/8967fc94eff8c5a1ceeab78848dc3cb1e8db0470))
 - **wigle:** qualify first_seen/last_seen in ON CONFLICT clause to resolve ambiguous column reference ([0bc6058](https://github.com/cyclonite69/shadowcheck-web/commit/0bc6058930f4c4e72724d76fcfe92a69108fba84))
 - **wigle:** refetch when filters change on WiGLE page ([cb43f74](https://github.com/cyclonite69/shadowcheck-web/commit/cb43f74618284a49c5360bdf6c6befeda62be0fc))
 - **wigle:** remove aggregated-circles from setPointRadius — point size slider was overriding count-based step expression, collapsing all circles to 5px regardless of observation count ([3a50a84](https://github.com/cyclonite69/shadowcheck-web/commit/3a50a84fd19b43831112ccf4f4e3baf1a762446d))
