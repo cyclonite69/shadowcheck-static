@@ -50,6 +50,31 @@ describe('Common Validation Schemas', () => {
       expect(validateString(null).valid).toBe(false);
       expect(validateString(undefined).valid).toBe(false);
     });
+
+    // Test overload with min/max length
+    it('should validate string with min/max length', () => {
+      const result = validateString('test', 1, 10, 'apiName');
+      expect(result.valid).toBe(true);
+      expect(result.value).toBe('test');
+    });
+
+    it('should fail if string is too short', () => {
+      const result = validateString('ab', 3, 10, 'apiName');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('must be at least 3 characters');
+    });
+
+    it('should fail if string is too long', () => {
+      const result = validateString('a'.repeat(300), 1, 256, 'apiToken');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('cannot exceed 256 characters');
+    });
+
+    it('should trim whitespace with min/max validation', () => {
+      const result = validateString('  test  ', 1, 10, 'field');
+      expect(result.valid).toBe(true);
+      expect(result.value).toBe('test');
+    });
   });
 
   describe('validateMinLength()', () => {
