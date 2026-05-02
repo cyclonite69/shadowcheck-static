@@ -17,7 +17,8 @@ router.get('/user-stats', async (req: any, res: any, next: any) => {
     res.json({ success: true, stats });
   } catch (err: any) {
     logger.error(`[WiGLE] Failed to fetch user stats: ${err.message}`);
-    res.status(500).json({ success: false, error: err.message });
+    const isCredsMissing = err.message?.includes('not configured');
+    res.status(isCredsMissing ? 503 : 500).json({ success: false, error: err.message });
   }
 });
 

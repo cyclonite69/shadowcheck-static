@@ -13,7 +13,7 @@ export async function getUserStats(): Promise<any> {
 
   const result = await wigleGatewayFetch({
     kind: 'stats',
-    url: 'https://api.wigle.net/api/v2/stats/user',
+    url: 'https://api.wigle.net/api/v2/profile/user',
     timeoutMs: 15000,
     maxRetries: 0,
     label: 'WiGLE User Stats',

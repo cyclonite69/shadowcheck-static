@@ -53,6 +53,7 @@
 - **admin:** improve aws and pgadmin reliability ([35d6971](https://github.com/cyclonite69/shadowcheck-web/commit/35d69716c5b88eb044e04a728642555c911cd51c))
 - **admin:** merge Configuration tab into single grid — columns now align ([dec2269](https://github.com/cyclonite69/shadowcheck-web/commit/dec22697b23c72950859932e588d0b281e13733f))
 - **admin:** move useEffect hooks before conditional return in AdminPage ([666d575](https://github.com/cyclonite69/shadowcheck-web/commit/666d575f186dbb7778bff7109b9332420d107da0))
+- **admin:** pass wigleApiName and apiToken in saveWigleToken; update backlog status ([fc58923](https://github.com/cyclonite69/shadowcheck-web/commit/fc589237dac3bf626f7ce8e52db6a23e6a1590ac))
 - **admin:** register adminSiblingService and update siblings route ([c04f37b](https://github.com/cyclonite69/shadowcheck-web/commit/c04f37b31cdada1d4f006970755a5d1571a1a02c))
 - **admin:** remove over-strict AWS_REGION env var guard ([92d3b2f](https://github.com/cyclonite69/shadowcheck-web/commit/92d3b2f732c889e2ca8831865017c5e31121790d))
 - **admin:** resolve 500 errors by registering missing admin services and updating routes ([72796b7](https://github.com/cyclonite69/shadowcheck-web/commit/72796b7f8ab62f64e06deec7169b08580ba8328f))
