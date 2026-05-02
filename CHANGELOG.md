@@ -752,6 +752,7 @@
 - **wigle-map:** defer 3D and terrain apply until style loaded ([70e7863](https://github.com/cyclonite69/shadowcheck-web/commit/70e7863ba8273f126b3e6cdd6716c246c8439e1a))
 - **wigle-page:** restore original tooltip layout, correctly populated from MV ([69b0f19](https://github.com/cyclonite69/shadowcheck-web/commit/69b0f19ab6baa4fbf1ca1258c9b20eb3916cea65)), closes [#60a5fa](https://github.com/cyclonite69/shadowcheck-web/issues/60a5fa)
 - **wigle-page:** wire recent-obs and address fields through tooltip pipeline ([a9fc072](https://github.com/cyclonite69/shadowcheck-web/commit/a9fc072b26d7f80c3f27df6eb7611604bb0fe5b6))
+- **wigle-stats:** call stats/user endpoint instead of profile/user ([d4d7dd6](https://github.com/cyclonite69/shadowcheck-web/commit/d4d7dd6d0df8f048b5a0ee3826cfaf6bf29cd881))
 - **wigle/cleanup:** delete ALL cancelled Global runs, not just a 60s window ([08e7e7f](https://github.com/cyclonite69/shadowcheck-web/commit/08e7e7f42810d148f7b0686044f6c219cc000a31))
 - **wigle/geospatial:** ensure click handlers are registered for WiGLE layers ([3e18f9f](https://github.com/cyclonite69/shadowcheck-web/commit/3e18f9fd9c388d68876ac9f6efae2f5a211a18e0))
 - **wigle/issue-1:** cluster guard + bulk-delete repository functions ([4bb576a](https://github.com/cyclonite69/shadowcheck-web/commit/4bb576a3fdc1b721025ce81cacac9115433b5588))

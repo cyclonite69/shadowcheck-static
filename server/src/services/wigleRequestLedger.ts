@@ -84,9 +84,13 @@ function assertCanRequest(kind: WigleRequestKind, priority: 'interactive' | 'bac
     throw error;
   }
 
+  // No soft limit for 'detail' — WiGLE does not publish one and we have no empirical
+  // basis for a number yet. The ledger continues logging all detail requests so we can
+  // observe real rate-limit responses over time and set a limit based on evidence.
+  if (kind === 'detail') return;
+
   const count = getCount(kind);
   const softLimit = getSoftLimit(kind);
-  const hardLimit = getHardLimit(kind);
 
   if (count >= softLimit) {
     const error: any = new Error(`WiGLE ${kind} soft limit reached (${count}/${softLimit}).`);
