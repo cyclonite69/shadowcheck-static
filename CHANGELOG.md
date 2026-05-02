@@ -135,6 +135,7 @@
 - circle on hover, tooltip on click for observation points ([e6168bf](https://github.com/cyclonite69/shadowcheck-web/commit/e6168bff6942e0f59d031ce357039466634beca8))
 - clean container migrations dir before copy to remove stale files ([91edcaf](https://github.com/cyclonite69/shadowcheck-web/commit/91edcaf8864c6b4ab947af7fdb9c2cf5024cc161))
 - clean up Gemini weather removal gaps and pending UI changes ([4c43c3a](https://github.com/cyclonite69/shadowcheck-web/commit/4c43c3a749061be947021ce7d770d332be395aaf))
+- **client:** composite keys for network rows, api tester fixes, wigle stats guard ([7d7d95a](https://github.com/cyclonite69/shadowcheck-web/commit/7d7d95ac32b00703c328f76d25054a04d8125703))
 - **client:** correct filtered pagination offset with utility tests ([1e2d403](https://github.com/cyclonite69/shadowcheck-web/commit/1e2d4039062e31f372019dddee93d819f7dcbb05))
 - **client:** resolve WiglePage variable hoisting error ([51e9c88](https://github.com/cyclonite69/shadowcheck-web/commit/51e9c8809f3246a9f35d1987ea845c70cec4ff35))
 - **client:** restore original zoom duration to 1000ms ([eb9ea73](https://github.com/cyclonite69/shadowcheck-web/commit/eb9ea73d4609a6c75d5e6bb9dd07d2726d55b777))
