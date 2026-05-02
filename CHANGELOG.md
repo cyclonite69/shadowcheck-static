@@ -1111,6 +1111,7 @@
 - upgrade Jest 29 → 30 ([d244ac5](https://github.com/cyclonite69/shadowcheck-web/commit/d244ac57898128da52b479eed46585794b07ef2c))
 - upgrade Node.js to v22 (LTS) ([1b0bde6](https://github.com/cyclonite69/shadowcheck-web/commit/1b0bde617c7e2ff35eaae7fcff2d341aca8e46f6))
 - upgrade to React 19 and Vite 7 ([97066a9](https://github.com/cyclonite69/shadowcheck-web/commit/97066a94e82bf92c2ec17475d9dcde9f44ac5f05))
+- **v3enrichment:** remove obs panel, decouple forensic preview, add multi-sort + col chooser ([420e252](https://github.com/cyclonite69/shadowcheck-web/commit/420e2520190f79c4bbe6e7a7b5657c429c5372c6))
 - **wigle/kepler:** icon buttons, point size slider, crosshair cursor, filter panel position ([41e9231](https://github.com/cyclonite69/shadowcheck-web/commit/41e9231f7c46d9a20647c2c32a839dae348b73bc))
 - **wigle:** add aggregatedLayers.ts unified layer set (Phase 3) ([09ec8e2](https://github.com/cyclonite69/shadowcheck-web/commit/09ec8e224898987e3eb28a8421e3c356baf7da1a))
 - **wigle:** add Field Data and Clustering toggles to WiGLE map toolbar ([78e2c67](https://github.com/cyclonite69/shadowcheck-web/commit/78e2c67c380aea10c25b963b3654c8a9dee48ee4))

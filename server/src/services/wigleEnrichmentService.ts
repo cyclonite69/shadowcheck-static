@@ -9,6 +9,7 @@ import logger from '../logging/logger';
 import { wigleGatewayFetch } from './wigle/wigleGateway';
 import { getEncodedWigleAuth } from './wigleRequestUtils';
 import { fetchAndImportDetail } from './wigleEnrichmentFetcher';
+import { assertCanRequest } from './wigleRequestLedger';
 import {
   getPendingEnrichmentCount,
   getEnrichmentCatalog,
@@ -33,6 +34,7 @@ export { getPendingEnrichmentCount, getEnrichmentCatalog };
 const { secretsManager } = container as any;
 
 const ENRICHMENT_DELAY_MS = 20_000;
+const MAX_CONSECUTIVE_ERRORS = 5;
 
 export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
   const run = await getImportRun(runId);
@@ -44,6 +46,7 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
    * is eligible for retry. This is intentional.
    */
   const processed = new Set<string>();
+  let consecutiveErrors = 0;
 
   logger.info(
     `[v3 Enrichment] Starting batch loop for run #${runId}${manualList ? ` (Manual: ${manualList.length} items)` : ''}`
@@ -73,9 +76,21 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
       }
 
       for (const item of batch) {
+        // Detail soft-limit check — abort before burning a quota slot
+        try {
+          assertCanRequest('detail', 'background');
+        } catch (limitErr: any) {
+          await markRunControlStatus(runId, 'paused');
+          logger.warn(
+            `[v3 Enrichment] Detail soft-limit reached. Pausing run #${runId}: ${limitErr.message}`
+          );
+          return;
+        }
+
         try {
           await fetchAndImportDetail(item.bssid, item.type);
           processed.add(item.bssid);
+          consecutiveErrors = 0;
           await incrementRunProgress(runId);
 
           if (process.env.NODE_ENV !== 'test') {
@@ -94,6 +109,15 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
           }
           logger.error(`[v3 Enrichment] Failed item ${item.bssid}: ${err.message}`);
           processed.add(item.bssid);
+          consecutiveErrors += 1;
+
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+            await markRunControlStatus(runId, 'paused');
+            logger.warn(
+              `[v3 Enrichment] Aborting run #${runId} — ${MAX_CONSECUTIVE_ERRORS} consecutive failures, possible rate limit or service outage`
+            );
+            return;
+          }
         }
       }
     }
