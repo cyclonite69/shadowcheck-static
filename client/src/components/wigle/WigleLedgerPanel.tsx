@@ -97,22 +97,23 @@ export function WigleLedgerPanel() {
   }, [hasMore, loading, load]);
 
   return (
-    <div className="border-t border-slate-700/50 bg-slate-900/80 backdrop-blur-sm">
+    <div className="border-t border-slate-600 bg-slate-900/95 backdrop-blur-sm shadow-lg">
       {/* Header / toggle */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
       >
         <span className="flex items-center gap-2">
-          <span className="text-slate-500">▶</span>
+          <span className="text-blue-400">📋</span>
           REQUEST LEDGER
           {rows.length > 0 && (
             <span className="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 font-mono">
               {rows.length}
+              {hasMore ? '+' : ''}
             </span>
           )}
         </span>
-        <span className="text-slate-600">{open ? '▲' : '▼'}</span>
+        <span className="text-slate-400 text-base">{open ? '▼' : '▲'}</span>
       </button>
 
       {open && (

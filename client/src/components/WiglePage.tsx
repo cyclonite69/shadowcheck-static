@@ -399,7 +399,9 @@ const WiglePage: React.FC = () => {
         error={mapError || dataError || kmlError}
         mapReady={mapReady}
       />
-      <WigleLedgerPanel />
+      <div className="sticky bottom-0 z-40 w-full">
+        <WigleLedgerPanel />
+      </div>
     </div>
   );
 };

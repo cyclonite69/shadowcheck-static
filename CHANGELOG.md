@@ -776,6 +776,7 @@
 - **wigle:** count field offices and resident agencies separately ([fed6b42](https://github.com/cyclonite69/shadowcheck-web/commit/fed6b42eb56edb193754d783f31b173c7083df36))
 - **wigle:** display BSSID correctly in search results ([80fc0ea](https://github.com/cyclonite69/shadowcheck-web/commit/80fc0ea9963779e53fd5fc275ec9855aafde28bb))
 - **wigle:** don't show cached address for distant WiGLE points ([707a6bb](https://github.com/cyclonite69/shadowcheck-web/commit/707a6bb986f1a704dda042b68e269e4f21d27882))
+- **wigle:** enforce stats soft limit at gateway before upstream fetch ([cb57269](https://github.com/cyclonite69/shadowcheck-web/commit/cb57269457959e324c839b41bbd19bfb13af2276))
 - **wigle:** fetch all local observations for Field Data, not BSSID-filtered ([72d222f](https://github.com/cyclonite69/shadowcheck-web/commit/72d222f1be55d037b36a64bfe40302bce0275f27))
 - **wigle:** fetch all observations for Field Data not BSSID-filtered ([6d9aa5d](https://github.com/cyclonite69/shadowcheck-web/commit/6d9aa5d52c13526b2f9bc7a007f8dac886eecd65))
 - **wigle:** field data pagination, 3D buildings refresh, and type errors ([386eeea](https://github.com/cyclonite69/shadowcheck-web/commit/386eeeab318c5b18bce23fb5b83bd9f5ab0d8286))
