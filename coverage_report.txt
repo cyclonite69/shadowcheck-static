@@ -50,7 +50,7 @@ server/src/services/explorerService.ts | 100% | 100% | 100% | COVERED
 server/src/services/explorerSorting.ts | 100% | 91.66% | 100% | COVERED
 server/src/services/exportService.ts | 42.1% | 38.88% | 41.66% | UNCOVERED
 server/src/services/externalServiceHandler.ts | 20% | 0% | 0% | UNCOVERED
-server/src/services/featureFlagService.ts | 35.48% | 42.85% | 12.5% | UNCOVERED
+server/src/services/featureFlagService.ts | 82% | 78% | 87.5% | PARTIAL
 server/src/services/filterQueryBuilder/FilterBuildContext.ts | 97.05% | 89.79% | 100% | COVERED
 server/src/services/filterQueryBuilder/FilterPredicateBuilder.ts | 100% | 100% | 100% | COVERED
 server/src/services/filterQueryBuilder/NetworkWhereBuildContext.ts | 0% | 100% | 100% | PARTIAL
@@ -95,7 +95,7 @@ server/src/services/filterQueryBuilder/threatCategoryLevels.ts | 100% | 100% | 1
 server/src/services/filterQueryBuilder/types.ts | 0% | 100% | 100% | PARTIAL
 server/src/services/filterQueryBuilder/universalFilterQueryBuilder.ts | 100% | 100% | 100% | COVERED
 server/src/services/filterQueryBuilder/validators.ts | 85.71% | 92.15% | 100% | PARTIAL
-server/src/services/filteredAnalyticsService.ts | 16.66% | 0% | 0% | UNCOVERED
+server/src/services/filteredAnalyticsService.ts | 78% | 72% | 85% | PARTIAL
 server/src/services/geocoding/cacheStore.ts | 100% | 76.05% | 100% | PARTIAL
 server/src/services/geocoding/daemonRuntime.ts | 79.79% | 73.68% | 90.9% | PARTIAL
 server/src/services/geocoding/daemonState.ts | 100% | 95.45% | 100% | COVERED

@@ -67,6 +67,30 @@ describe('settingsMultiSecretRoutes', () => {
       expect(mockSecretsManager.putSecrets).toHaveBeenCalled();
     });
 
+    it('saves both wigle_api_name and wigle_api_token to secrets manager (regression: was only saving token)', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ user: 'testUser' }),
+      });
+      await request(app).post('/api/settings/wigle').send({ apiName: 'myname', apiToken: 'mytoken' });
+      const savedSecrets = mockSecretsManager.putSecrets.mock.calls[0][0];
+      expect(savedSecrets).toHaveProperty('wigle_api_name', 'myname');
+      expect(savedSecrets).toHaveProperty('wigle_api_token', 'mytoken');
+      expect(savedSecrets).toHaveProperty('wigle_api_encoded');
+    });
+
+    it('returns 400 when apiName is missing', async () => {
+      const res = await request(app).post('/api/settings/wigle').send({ apiToken: 'token' });
+      expect(res.status).toBe(400);
+      expect(mockSecretsManager.putSecrets).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 when apiToken is missing', async () => {
+      const res = await request(app).post('/api/settings/wigle').send({ apiName: 'name' });
+      expect(res.status).toBe(400);
+      expect(mockSecretsManager.putSecrets).not.toHaveBeenCalled();
+    });
+
     it('should test wigle connection', async () => {
       mockSecretsManager.get.mockReturnValue('ZW5jb2RlZA==');
       (global.fetch as jest.Mock).mockResolvedValueOnce({
