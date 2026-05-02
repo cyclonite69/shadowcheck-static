@@ -317,7 +317,7 @@ export const NetworkTableBodyGrid = ({
 
           return (
             <NetworkTableRow
-              key={net.bssid}
+              key={`${net.bssid}-${virtualRow.index}`}
               virtualRow={virtualRow}
               net={net}
               visibleColumns={visibleColumns}

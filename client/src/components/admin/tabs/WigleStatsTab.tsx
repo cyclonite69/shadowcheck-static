@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { apiClient } from '../../../api/client';
 
@@ -84,8 +84,13 @@ export const WigleStatsTab: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const fetchInFlightRef = useRef(false);
 
   const fetchStats = async () => {
+    if (fetchInFlightRef.current) {
+      return;
+    }
+    fetchInFlightRef.current = true;
     try {
       setLoading(true);
       const response = await apiClient.get<{ success: boolean; stats: any; error?: string }>(
@@ -101,6 +106,7 @@ export const WigleStatsTab: React.FC = () => {
       setStatsError(err.message || 'API request failed');
     } finally {
       setLoading(false);
+      fetchInFlightRef.current = false;
     }
   };
 

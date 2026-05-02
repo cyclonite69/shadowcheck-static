@@ -33,7 +33,12 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   // ── Health & Core ─────────────────────────────────────────────────────────
   { category: 'Health & Core', label: 'Health', path: '/health', method: 'GET' },
   { category: 'Health & Core', label: 'API Health', path: '/api/health', method: 'GET' },
-  { category: 'Health & Core', label: 'App Settings', path: '/api/settings', method: 'GET' },
+  {
+    category: 'Health & Core',
+    label: 'App Settings (AWS)',
+    path: '/api/settings/aws',
+    method: 'GET',
+  },
   {
     category: 'Health & Core',
     label: 'Settings Inventory',
@@ -96,15 +101,18 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   { category: 'Geospatial', label: 'Home Location', path: '/api/home-location', method: 'GET' },
   {
     category: 'Geospatial',
-    label: 'Home Location Debug',
-    path: '/api/home-location/debug',
-    method: 'GET',
-  },
-  {
-    category: 'Geospatial',
     label: 'Location Markers',
     path: '/api/location-markers',
     method: 'GET',
+  },
+
+  // ── Explorer (legacy list + platinum single-network) ─────────────────────
+  {
+    category: 'Explorer',
+    label: 'Explorer Network (single)',
+    path: '/api/explorer/network/:bssid',
+    method: 'GET',
+    params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
   },
 
   // ── Networks v2 ───────────────────────────────────────────────────────────

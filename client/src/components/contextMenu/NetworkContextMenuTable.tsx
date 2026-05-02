@@ -25,9 +25,9 @@ export const NetworkContextMenuTable = ({
         </tr>
       </thead>
       <tbody>
-        {networks.map((net) => (
+        {networks.map((net, idx) => (
           <tr
-            key={net.bssid}
+            key={`${net.bssid}-${idx}`}
             onContextMenu={(e) => onContextMenu(e as MouseEvent<HTMLTableRowElement>, net.bssid)}
             className="border-b hover:bg-gray-50 cursor-context-menu"
           >

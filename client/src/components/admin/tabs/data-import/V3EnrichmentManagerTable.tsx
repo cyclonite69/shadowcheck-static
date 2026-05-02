@@ -406,9 +406,9 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
                     </td>
                   </tr>
                 )}
-                {allRows.map((row) => (
+                {allRows.map((row, idx) => (
                   <tr
-                    key={row.bssid}
+                    key={`${row.bssid}-${idx}`}
                     className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
                       activePanel?.bssid === row.bssid
                         ? 'bg-blue-500/10'

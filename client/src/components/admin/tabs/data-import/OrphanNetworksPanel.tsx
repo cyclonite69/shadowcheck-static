@@ -246,10 +246,10 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => {
+              {rows.map((row, idx) => {
                 const isActive = activeTooltip?.bssid === row.bssid;
                 return (
-                  <React.Fragment key={row.bssid}>
+                  <React.Fragment key={`${row.bssid}-${idx}`}>
                     <tr
                       className={`border-b border-slate-800/50 cursor-pointer transition-colors ${
                         isActive ? 'bg-blue-500/10' : 'hover:bg-slate-700/30'
