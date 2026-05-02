@@ -65,7 +65,10 @@ export async function getEnrichmentCatalog(options: {
       `SELECT
          v2.bssid, v2.ssid, v2.region, v2.city, v2.type, v2.firsttime, v2.lasttime,
          v3.imported_at AS last_v3_import,
-         (SELECT COUNT(*)::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid) AS v3_obs_count
+         v3.channel,
+         v3.encryption,
+         (SELECT COUNT(*)::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid) AS v3_obs_count,
+         (SELECT ROUND(AVG(o.signal))::int FROM app.wigle_v3_observations o WHERE o.netid = v2.bssid AND o.signal IS NOT NULL) AS signal
        FROM (
          SELECT DISTINCT ON (bssid) bssid, ssid, region, city, type, firsttime, lasttime
          FROM app.wigle_v2_networks_search
