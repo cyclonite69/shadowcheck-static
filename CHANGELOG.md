@@ -802,6 +802,7 @@
 - **wigle:** remove dead showFieldData from applyLayerVisibility; add cluster TODO ([234f21d](https://github.com/cyclonite69/shadowcheck-web/commit/234f21d8074a3e829723c36a3fb143084012f19c))
 - **wigle:** remove duplicate state declaration in WigleDetailTab ([9715119](https://github.com/cyclonite69/shadowcheck-web/commit/9715119b54df2396df38184dcf9776936f10b093))
 - **wigle:** remove hallucinated v3/network/search endpoint, add param validation ([dec1dab](https://github.com/cyclonite69/shadowcheck-web/commit/dec1dab071baf3e42451c2e7f4a8dafb767ee1c4))
+- **wigle:** render ledger panel as normal block below map ([7a17def](https://github.com/cyclonite69/shadowcheck-web/commit/7a17def434452d44b4f1967c2978f516f331afea))
 - **wigle:** report DB-backed import totals in investigate flow ([9a0e9b7](https://github.com/cyclonite69/shadowcheck-web/commit/9a0e9b73f77fb924835e6db5f89ec79d09866226))
 - **wigle:** resolve 500 errors in catalog filtering and single network lookups ([5f2c6bf](https://github.com/cyclonite69/shadowcheck-web/commit/5f2c6bf7ac3182e4c90e85c270539ab7e95512b4))
 - **wigle:** resolve ambiguous column references in v3 network queries ([175a974](https://github.com/cyclonite69/shadowcheck-web/commit/175a97429b4d7e73e19ae94a9c843cf9a2e26e07))
