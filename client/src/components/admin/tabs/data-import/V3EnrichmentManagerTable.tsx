@@ -212,6 +212,8 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     const placeholderNormalized = normalizeTooltipData({
       ...row,
       wigle_v3_observation_count: row.v3_obs_count,
+      wigle_first_seen: row.firsttime,
+      wigle_last_seen: row.lasttime,
     });
     const placeholderHtml =
       renderNetworkTooltip({ ...placeholderNormalized, triggerElement: tableRef.current }) ?? '';
@@ -221,7 +223,11 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     networkApi.getNetworkByBssid(row.bssid).then((mv) => {
       setMvData(mv ?? null);
       const source = mv ?? { ...row, wigle_v3_observation_count: row.v3_obs_count };
-      const normalized = normalizeTooltipData(source);
+      const normalized = normalizeTooltipData({
+        ...source,
+        wigle_first_seen: source.first_seen ?? row.firsttime,
+        wigle_last_seen: source.last_seen ?? row.lasttime,
+      });
       const fullHtml =
         renderNetworkTooltip({ ...normalized, triggerElement: tableRef.current }) ??
         placeholderHtml;
