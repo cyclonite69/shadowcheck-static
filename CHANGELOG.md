@@ -56,6 +56,7 @@
 - **admin:** pass wigleApiName and apiToken in saveWigleToken; update backlog status ([fc58923](https://github.com/cyclonite69/shadowcheck-web/commit/fc589237dac3bf626f7ce8e52db6a23e6a1590ac))
 - **admin:** register adminSiblingService and update siblings route ([c04f37b](https://github.com/cyclonite69/shadowcheck-web/commit/c04f37b31cdada1d4f006970755a5d1571a1a02c))
 - **admin:** remove over-strict AWS_REGION env var guard ([92d3b2f](https://github.com/cyclonite69/shadowcheck-web/commit/92d3b2f732c889e2ca8831865017c5e31121790d))
+- **admin:** remove wigle search api version toggle; move forensic preview above table ([034ce75](https://github.com/cyclonite69/shadowcheck-web/commit/034ce75529ddc28151861fa9031cbc5e147a5054))
 - **admin:** resolve 500 errors by registering missing admin services and updating routes ([72796b7](https://github.com/cyclonite69/shadowcheck-web/commit/72796b7f8ab62f64e06deec7169b08580ba8328f))
 - **admin:** resolve crash in JobsTab and improve data mapping ([02f8450](https://github.com/cyclonite69/shadowcheck-web/commit/02f84504120cfdb01dccb753e2c9842115f09709))
 - **admin:** resolve TypeError in WiGLE stats tab completeness report ([d0aaca3](https://github.com/cyclonite69/shadowcheck-web/commit/d0aaca3ad24fa147851f3d7bb165e3151f831283))
