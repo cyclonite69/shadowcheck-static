@@ -102,18 +102,23 @@ function assertCanRequest(kind: WigleRequestKind, priority: 'interactive' | 'bac
 
 function recordRequest(
   kind: WigleRequestKind,
-  outcome: { status?: string; duration_ms?: number; error_message?: string } = {}
+  outcome: {
+    status?: string;
+    duration_ms?: number;
+    error_message?: string;
+    http_status?: number;
+  } = {}
 ) {
   prune(kind);
   requestLedger[kind].push(Date.now());
 
-  const { status = 'success', duration_ms, error_message } = outcome;
+  const { status = 'success', duration_ms, error_message, http_status } = outcome;
 
   // Fire-and-forget — do not await; ledger performance must not degrade
   void adminQuery(
-    `INSERT INTO app.wigle_ledger_events (kind, status, duration_ms, error_message)
-     VALUES ($1, $2, $3, $4)`,
-    [kind, status, duration_ms ?? null, error_message ?? null]
+    `INSERT INTO app.wigle_ledger_events (kind, status, duration_ms, error_message, http_status)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [kind, status, duration_ms ?? null, error_message ?? null, http_status ?? null]
   ).catch((err: any) => {
     logger.warn('[WiGLE Ledger] DB write failed — in-memory state is still accurate', {
       kind,
@@ -182,18 +187,24 @@ function getCircuitBreakerStatus() {
  */
 function updateLedgerOutcome(
   kind: WigleRequestKind,
-  outcome: { status: string; duration_ms: number; error_message?: string }
+  outcome: { status: string; duration_ms: number; error_message?: string; http_status?: number }
 ) {
   void adminQuery(
     `UPDATE app.wigle_ledger_events
-     SET status = $2, duration_ms = $3, error_message = $4
+     SET status = $2, duration_ms = $3, error_message = $4, http_status = $5
      WHERE id = (
        SELECT id FROM app.wigle_ledger_events
        WHERE kind = $1
        ORDER BY requested_at DESC, id DESC
        LIMIT 1
      )`,
-    [kind, outcome.status, outcome.duration_ms, outcome.error_message ?? null]
+    [
+      kind,
+      outcome.status,
+      outcome.duration_ms,
+      outcome.error_message ?? null,
+      outcome.http_status ?? null,
+    ]
   ).catch((err: any) => {
     logger.warn('[WiGLE Ledger] Outcome update failed', {
       kind,

@@ -749,6 +749,7 @@
 - WiGLE loaded/total counts now reflect active layer toggles ([a974c34](https://github.com/cyclonite69/shadowcheck-web/commit/a974c341801be2c2011ada21ddea2ecdfaa82bb0))
 - **wigle-detail:** render forensic tooltip HTML in preview pane on observation select ([33d4f7d](https://github.com/cyclonite69/shadowcheck-web/commit/33d4f7d9e9f2713c932d2cf38b26476105208544))
 - **wigle-explorer:** remove local MV upgrade from WiGLE observation popups ([dfe8c8c](https://github.com/cyclonite69/shadowcheck-web/commit/dfe8c8c53f16f41addd159a467290c1d8e9a6d6e))
+- **wigle-ledger:** remove detail soft limit — no empirical basis for a cap yet ([ac10517](https://github.com/cyclonite69/shadowcheck-web/commit/ac1051715cfd33a0136eba27806aeb1459cfdfa8))
 - **wigle-map:** defer 3D and terrain apply until style loaded ([70e7863](https://github.com/cyclonite69/shadowcheck-web/commit/70e7863ba8273f126b3e6cdd6716c246c8439e1a))
 - **wigle-page:** restore original tooltip layout, correctly populated from MV ([69b0f19](https://github.com/cyclonite69/shadowcheck-web/commit/69b0f19ab6baa4fbf1ca1258c9b20eb3916cea65)), closes [#60a5fa](https://github.com/cyclonite69/shadowcheck-web/issues/60a5fa)
 - **wigle-page:** wire recent-obs and address fields through tooltip pipeline ([a9fc072](https://github.com/cyclonite69/shadowcheck-web/commit/a9fc072b26d7f80c3f27df6eb7611604bb0fe5b6))
