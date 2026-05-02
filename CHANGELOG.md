@@ -894,6 +894,7 @@
 - **admin:** add orphan networks infinite scroll ([7c1094e](https://github.com/cyclonite69/shadowcheck-web/commit/7c1094e6cba25e051d389a381ad36a3b8e5790cf))
 - **admin:** add quality filter application script ([26fa0a7](https://github.com/cyclonite69/shadowcheck-web/commit/26fa0a7801aa07e13a90750f31a029d2b9fe488b))
 - **admin:** add rate-limited wigle import-all ([41100c9](https://github.com/cyclonite69/shadowcheck-web/commit/41100c9621669fc58827ffb06e5511135b92f1a5))
+- **admin:** add Reload Secrets button and POST /settings/reload-secrets endpoint ([2ddf7b7](https://github.com/cyclonite69/shadowcheck-web/commit/2ddf7b7e4d42018bcef450272c415a8df496a711))
 - **admin:** add SQL file upload import from UI to EC2 ([5e55ce7](https://github.com/cyclonite69/shadowcheck-web/commit/5e55ce70f26aecabe0ac389b75ebb92f8bd622d9))
 - **admin:** center subnav and complete home location config ([391d6ff](https://github.com/cyclonite69/shadowcheck-web/commit/391d6fff01985ddcf9d049ef72c2919e5653a56f))
 - **admin:** enhance tab styling with 3D shadows and add SSO ephemeral credentials ([3b9db60](https://github.com/cyclonite69/shadowcheck-web/commit/3b9db6067fc2be4f8b1ceb9821ff7763b12e67de))
