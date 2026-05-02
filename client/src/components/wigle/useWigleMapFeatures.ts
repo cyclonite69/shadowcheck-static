@@ -158,9 +158,15 @@ export function useWigleMapFeatures({
         logDebug('[Wigle] 3D buildings error: ' + (err as Error).message);
       }
     };
-    if (!map.isStyleLoaded()) map.once('style.load', toggleBuildings);
-    else if (!map.loaded()) map.once('idle', toggleBuildings);
-    else toggleBuildings();
+    if (map.isStyleLoaded() || map.loaded()) {
+      toggleBuildings();
+      return;
+    }
+
+    map.once('style.load', toggleBuildings);
+    return () => {
+      map.off('style.load', toggleBuildings);
+    };
   }, [show3dBuildings, mapReady, mapStyle]);
 
   // Terrain
@@ -209,8 +215,14 @@ export function useWigleMapFeatures({
         logDebug('[Wigle] Terrain error: ' + (err as Error).message);
       }
     };
-    if (!map.isStyleLoaded()) map.once('style.load', toggleTerrainAction);
-    else if (!map.loaded()) map.once('idle', toggleTerrainAction);
-    else toggleTerrainAction();
+    if (map.isStyleLoaded() || map.loaded()) {
+      toggleTerrainAction();
+      return;
+    }
+
+    map.once('style.load', toggleTerrainAction);
+    return () => {
+      map.off('style.load', toggleTerrainAction);
+    };
   }, [showTerrain, mapReady, mapStyle]);
 }
