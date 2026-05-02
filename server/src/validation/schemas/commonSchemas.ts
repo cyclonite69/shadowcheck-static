@@ -11,24 +11,76 @@
  */
 export function validateString(
   value: unknown,
-  fieldName = 'Value'
+  fieldName?: string
+): {
+  valid: boolean;
+  error?: string;
+  value?: string;
+};
+export function validateString(
+  value: unknown,
+  minLength: number,
+  maxLength: number,
+  fieldName: string
+): {
+  valid: boolean;
+  error?: string;
+  value?: string;
+};
+export function validateString(
+  value: unknown,
+  fieldNameOrMin: string | number = 'Value',
+  maxLength?: number,
+  fieldName?: string
 ): {
   valid: boolean;
   error?: string;
   value?: string;
 } {
+  // Overload 1: validateString(value, fieldName)
+  if (typeof fieldNameOrMin === 'string' || fieldNameOrMin === undefined) {
+    const field = (fieldNameOrMin as string) || 'Value';
+    if (value === null || value === undefined) {
+      return { valid: false, error: `${field} is required` };
+    }
+
+    if (typeof value !== 'string') {
+      return { valid: false, error: `${field} must be a string` };
+    }
+
+    const trimmed = value.trim();
+
+    if (trimmed.length === 0) {
+      return { valid: false, error: `${field} cannot be empty` };
+    }
+
+    return { valid: true, value: trimmed };
+  }
+
+  // Overload 2: validateString(value, minLength, maxLength, fieldName)
+  const minLength = fieldNameOrMin;
+  const field = fieldName || 'Value';
+
   if (value === null || value === undefined) {
-    return { valid: false, error: `${fieldName} is required` };
+    return { valid: false, error: `${field} is required` };
   }
 
   if (typeof value !== 'string') {
-    return { valid: false, error: `${fieldName} must be a string` };
+    return { valid: false, error: `${field} must be a string` };
   }
 
   const trimmed = value.trim();
 
   if (trimmed.length === 0) {
-    return { valid: false, error: `${fieldName} cannot be empty` };
+    return { valid: false, error: `${field} cannot be empty` };
+  }
+
+  if (trimmed.length < minLength) {
+    return { valid: false, error: `${field} must be at least ${minLength} characters` };
+  }
+
+  if (maxLength !== undefined && trimmed.length > maxLength) {
+    return { valid: false, error: `${field} cannot exceed ${maxLength} characters` };
   }
 
   return { valid: true, value: trimmed };

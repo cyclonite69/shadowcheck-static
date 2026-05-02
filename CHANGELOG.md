@@ -1042,6 +1042,7 @@
 - **scoring:** add linear travel gate to threat scoring v5.2 ([44b8f80](https://github.com/cyclonite69/shadowcheck-web/commit/44b8f80d44b117a2ee46c14609eff90bd6696786))
 - **scripts:** add apply-migration.sh for dual-DB migration workflow ([9cf58f0](https://github.com/cyclonite69/shadowcheck-web/commit/9cf58f07f4f509267afb2c53a4b98da63e2e2d59))
 - **scripts:** add seed-test-db.sh runner for test databases ([32ac5af](https://github.com/cyclonite69/shadowcheck-web/commit/32ac5af4dd28e71e0e306394856519a1b0df8869))
+- **search:** fix pipe-delimited OR search for SSID filter ([befe8f7](https://github.com/cyclonite69/shadowcheck-web/commit/befe8f7eaa35b92b8d06add34ca10fc952a1dbb6))
 - **seeds:** add synthetic test data and seed runner script ([62c2bc1](https://github.com/cyclonite69/shadowcheck-web/commit/62c2bc1873e7376c8a4142b628efec9c4be63fcf))
 - **seeds:** add synthetic test data for integration tests ([ce7ea1c](https://github.com/cyclonite69/shadowcheck-web/commit/ce7ea1c9cb321021e820d880ec2119aa7bd88dd2))
 - server TS migration batches 6-7 (utils, middleware, errors) ([2b11ce0](https://github.com/cyclonite69/shadowcheck-web/commit/2b11ce04aa7b31f3af6963d1fc12ee75cc0b6a5d))
