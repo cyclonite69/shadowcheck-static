@@ -84,4 +84,55 @@ describe('wigleEnrichmentService (Pure Unit)', () => {
       expect(mockCompleteRun).toHaveBeenCalledWith(1);
     });
   });
+
+  describe('startBatchEnrichment', () => {
+    it('creates full-catalog enrichment runs with direct source/version/search metadata', async () => {
+      mockAdminQuery
+        .mockResolvedValueOnce({ rows: [{ count: 12 }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+      mockCreateImportRun.mockResolvedValue({ id: 99 });
+      mockGetImportRun.mockResolvedValue({ id: 99, status: 'completed' });
+
+      await startBatchEnrichment();
+
+      expect(mockCreateImportRun).toHaveBeenCalledWith(
+        {
+          version: 'v3',
+          source: 'v3_batch',
+          searchTerm: 'Full Catalog Enrichment',
+          resultsPerPage: 1,
+          pendingItems: 12,
+        },
+        {
+          source: 'v3_batch',
+          api_version: 'v3',
+          search_term: 'Full Catalog Enrichment',
+        }
+      );
+    });
+
+    it('creates manual enrichment runs with direct source/version/search metadata', async () => {
+      mockAdminQuery.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
+      mockCreateImportRun.mockResolvedValue({ id: 100 });
+      mockGetImportRun.mockResolvedValue({ id: 100, status: 'completed' });
+
+      await startBatchEnrichment(['AA:BB:CC:DD:EE:FF', '11:22:33:44:55:66']);
+
+      expect(mockCreateImportRun).toHaveBeenCalledWith(
+        {
+          version: 'v3',
+          source: 'v3_manual',
+          searchTerm: 'Targeted Enrichment (2 items)',
+          resultsPerPage: 1,
+          pendingItems: 2,
+        },
+        {
+          source: 'v3_manual',
+          api_version: 'v3',
+          search_term: 'Targeted Enrichment (2 items)',
+        }
+      );
+    });
+  });
 });

@@ -23,7 +23,9 @@ describe('runRepository', () => {
   describe('getRunOrThrow', () => {
     it('should throw if run not found', async () => {
       query.mockResolvedValue({ rows: [] });
-      await expect(runRepository.getRunOrThrow(999)).rejects.toThrow('WiGLE import run 999 not found');
+      await expect(runRepository.getRunOrThrow(999)).rejects.toThrow(
+        'WiGLE import run 999 not found'
+      );
     });
 
     it('should throw if database query fails', async () => {
@@ -55,6 +57,40 @@ describe('runRepository', () => {
       query.mockRejectedValue(new Error('Insert Failed'));
       await expect(runRepository.createImportRun({})).rejects.toThrow('Insert Failed');
     });
+
+    it('stores direct override metadata for enrichment runs without v2 normalization', async () => {
+      query.mockResolvedValue({ rows: [{ id: 7 }] });
+
+      await runRepository.createImportRun(
+        {
+          version: 'v3',
+          source: 'v3_batch',
+          searchTerm: 'Full Catalog Enrichment',
+          resultsPerPage: 1,
+          pendingItems: 42,
+        },
+        {
+          source: 'v3_batch',
+          api_version: 'v3',
+          search_term: 'Full Catalog Enrichment',
+        }
+      );
+
+      const [sql, params] = query.mock.calls[0];
+      expect(String(sql)).toContain('INSERT INTO app.wigle_import_runs');
+      expect(params[0]).toBe('v3_batch');
+      expect(params[1]).toBe('v3');
+      expect(params[2]).toBe('Full Catalog Enrichment');
+      expect(params[3]).toBeNull();
+      expect(JSON.parse(params[5])).toEqual({
+        version: 'v3',
+        source: 'v3_batch',
+        searchTerm: 'Full Catalog Enrichment',
+        resultsPerPage: 1,
+        pendingItems: 42,
+      });
+      expect(params[6]).toBe(1);
+    });
   });
 
   describe('markRunFailure', () => {
@@ -73,7 +109,9 @@ describe('runRepository', () => {
 
     it('should throw if update fails', async () => {
       query.mockRejectedValue(new Error('Status Update Failed'));
-      await expect(runRepository.markRunControlStatus(1, 'paused')).rejects.toThrow('Status Update Failed');
+      await expect(runRepository.markRunControlStatus(1, 'paused')).rejects.toThrow(
+        'Status Update Failed'
+      );
     });
   });
 
@@ -95,21 +133,27 @@ describe('runRepository', () => {
   describe('persistPageFailure', () => {
     it('should throw if insert fails', async () => {
       query.mockRejectedValue(new Error('Persist Failure Failed'));
-      await expect(runRepository.persistPageFailure(1, 1, 'cursor', 'msg')).rejects.toThrow('Persist Failure Failed');
+      await expect(runRepository.persistPageFailure(1, 1, 'cursor', 'msg')).rejects.toThrow(
+        'Persist Failure Failed'
+      );
     });
   });
 
   describe('listImportRuns', () => {
     it('should handle search filters and throw on error', async () => {
       query.mockRejectedValue(new Error('Query Failed'));
-      await expect(runRepository.listImportRuns({ status: 'failed', searchTerm: 'test' })).rejects.toThrow('Query Failed');
+      await expect(
+        runRepository.listImportRuns({ status: 'failed', searchTerm: 'test' })
+      ).rejects.toThrow('Query Failed');
     });
   });
 
   describe('getImportCompletenessSummary', () => {
     it('should throw if query fails', async () => {
       query.mockRejectedValue(new Error('Summary Query Failed'));
-      await expect(runRepository.getImportCompletenessSummary({ state: 'CA' })).rejects.toThrow('Summary Query Failed');
+      await expect(runRepository.getImportCompletenessSummary({ state: 'CA' })).rejects.toThrow(
+        'Summary Query Failed'
+      );
     });
   });
 
@@ -122,7 +166,9 @@ describe('runRepository', () => {
 
     it('should throw if delete fails', async () => {
       query.mockRejectedValue(new Error('Delete Failed'));
-      await expect(runRepository.bulkDeleteCancelledRunsByIds([1])).rejects.toThrow('Delete Failed');
+      await expect(runRepository.bulkDeleteCancelledRunsByIds([1])).rejects.toThrow(
+        'Delete Failed'
+      );
     });
   });
 
@@ -135,14 +181,18 @@ describe('runRepository', () => {
 
     it('should throw if query fails', async () => {
       query.mockRejectedValue(new Error('Count Failed'));
-      await expect(runRepository.countRecentCancelledByFingerprint('f')).rejects.toThrow('Count Failed');
+      await expect(runRepository.countRecentCancelledByFingerprint('f')).rejects.toThrow(
+        'Count Failed'
+      );
     });
   });
 
   describe('findGlobalCancelledClusterIds', () => {
     it('should throw if query fails', async () => {
       query.mockRejectedValue(new Error('Find Cluster Failed'));
-      await expect(runRepository.findGlobalCancelledClusterIds()).rejects.toThrow('Find Cluster Failed');
+      await expect(runRepository.findGlobalCancelledClusterIds()).rejects.toThrow(
+        'Find Cluster Failed'
+      );
     });
   });
 });

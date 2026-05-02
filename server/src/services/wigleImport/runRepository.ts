@@ -3,6 +3,7 @@ const { pool, query } = require('../../config/database');
 import {
   DEFAULT_RESULTS_PER_PAGE,
   getRequestFingerprint,
+  getRawRequestFingerprint,
   getSearchTerm,
   normalizeImportParams,
 } from './params';
@@ -105,8 +106,37 @@ const reconcileRunProgress = async (runId: number): Promise<any> => {
   }
 };
 
-const createImportRun = async (rawQuery: Record<string, unknown>) => {
+type CreateImportRunOverrides = {
+  source?: string;
+  api_version?: string;
+  search_term?: string;
+};
+
+const clampPageSize = (value: unknown): number => {
+  const parsed = Number.parseInt(String(value ?? DEFAULT_RESULTS_PER_PAGE), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_RESULTS_PER_PAGE;
+  return parsed;
+};
+
+const createImportRun = async (
+  rawQuery: Record<string, unknown>,
+  overrides: CreateImportRunOverrides = {}
+) => {
   const normalized = normalizeImportParams(rawQuery);
+  const usesDirectMetadata =
+    overrides.source !== undefined ||
+    overrides.api_version !== undefined ||
+    overrides.search_term !== undefined;
+  const requestParams = usesDirectMetadata ? { ...rawQuery } : normalized;
+  const pageSize = usesDirectMetadata
+    ? clampPageSize(rawQuery.resultsPerPage)
+    : normalized.resultsPerPage || DEFAULT_RESULTS_PER_PAGE;
+  const source = overrides.source ?? 'wigle';
+  const apiVersion = overrides.api_version ?? (normalized.version || 'v2');
+  const searchTerm = overrides.search_term ?? getSearchTerm(normalized);
+  const requestFingerprint = usesDirectMetadata
+    ? getRawRequestFingerprint(requestParams)
+    : getRequestFingerprint(normalized);
   const result = await query(
     `INSERT INTO app.wigle_import_runs (
         source,
@@ -117,15 +147,16 @@ const createImportRun = async (rawQuery: Record<string, unknown>) => {
         request_params,
         status,
         page_size
-      ) VALUES ('wigle', $1, $2, $3, $4, $5::jsonb, 'running', $6)
+      ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, 'running', $7)
       RETURNING *`,
     [
-      normalized.version || 'v2',
-      getSearchTerm(normalized),
+      source,
+      apiVersion,
+      searchTerm,
       normalized.region || null,
-      getRequestFingerprint(normalized),
-      JSON.stringify(normalized),
-      normalized.resultsPerPage || DEFAULT_RESULTS_PER_PAGE,
+      requestFingerprint,
+      JSON.stringify(requestParams),
+      pageSize,
     ]
   );
   return result.rows[0];

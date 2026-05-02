@@ -122,3 +122,6 @@ export const getSearchTerm = (query: WigleImportParams): string =>
 
 export const getRequestFingerprint = (query: WigleImportParams): string =>
   crypto.createHash('sha256').update(stableStringify(query)).digest('hex');
+
+export const getRawRequestFingerprint = (value: Record<string, unknown>): string =>
+  crypto.createHash('sha256').update(stableStringify(value)).digest('hex');
