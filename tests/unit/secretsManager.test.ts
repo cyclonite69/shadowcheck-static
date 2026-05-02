@@ -292,20 +292,40 @@ describe('SecretsManager', () => {
     expect(result).toEqual({});
   });
 
-  test('load handles non-credential keys and environment overrides', async () => {
+  test('load: WiGLE keys prefer AWS SM over env when both are set', async () => {
     secretStore = {
       db_password: 'aws_password',
       mapbox_token: 'pk.aws_token',
-      wigle_api_name: 'aws_wigle',
+      wigle_api_name: 'sm_wigle',
+      wigle_api_token: 'sm_token',
     };
     process.env.WIGLE_API_NAME = 'env_wigle';
-    
+    process.env.WIGLE_API_TOKEN = 'env_token';
+
     await secretsManager.load();
-    
-    expect(secretsManager.get('wigle_api_name')).toBe('env_wigle');
+
+    expect(secretsManager.get('wigle_api_name')).toBe('sm_wigle');
+    expect(secretsManager.get('wigle_api_token')).toBe('sm_token');
     expect(secretsManager.get('mapbox_token')).toBe('pk.aws_token');
-    
+
     delete process.env.WIGLE_API_NAME;
+    delete process.env.WIGLE_API_TOKEN;
+  });
+
+  test('load: WiGLE keys fall back to env when missing from AWS SM blob', async () => {
+    secretStore = {
+      db_password: 'aws_password',
+    };
+    process.env.WIGLE_API_NAME = 'env_wigle';
+    process.env.WIGLE_API_TOKEN = 'env_token';
+
+    await secretsManager.load();
+
+    expect(secretsManager.get('wigle_api_name')).toBe('env_wigle');
+    expect(secretsManager.get('wigle_api_token')).toBe('env_token');
+
+    delete process.env.WIGLE_API_NAME;
+    delete process.env.WIGLE_API_TOKEN;
   });
 
   test('putSecret handles AWS SM write error', async () => {

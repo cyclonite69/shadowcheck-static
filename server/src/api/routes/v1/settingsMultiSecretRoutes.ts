@@ -1,6 +1,7 @@
 export {};
 import type { Request, Response } from 'express';
 import { wigleGatewayFetch } from '../../../services/wigle/wigleGateway';
+import { getEncodedWigleAuthFromStore } from '../../../services/wigleRequestUtils';
 
 const { requireAuth } = require('../../../middleware/authMiddleware');
 const {
@@ -93,8 +94,10 @@ const registerWiGLERoutes = ({ router, secretsManager }: { router: any; secretsM
 
   router.get('/settings/wigle/test', requireAuth, async (_req: Request, res: Response) => {
     try {
-      const encoded = secretsManager.get('wigle_api_encoded');
-      if (!encoded) {
+      let encoded: string;
+      try {
+        encoded = getEncodedWigleAuthFromStore(secretsManager);
+      } catch {
         return res.json({ success: false, error: 'No credentials stored' });
       }
       const gatewayResult = await wigleGatewayFetch({

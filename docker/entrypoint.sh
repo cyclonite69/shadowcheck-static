@@ -47,6 +47,7 @@ load_runtime_secrets() {
       // Credential keys: SM always wins (never trust env placeholders for secrets).
       const credentialKeys = new Set([
         "db_password", "db_admin_password",
+        "wigle_api_name", "wigle_api_token", "wigle_api_encoded",
       ]);
       const mapping = {
         db_password: "DB_PASSWORD",

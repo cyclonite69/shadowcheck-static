@@ -74,9 +74,11 @@ function hashRecord(record: Record<string, unknown>): string {
   return sha256(JSON.stringify(normalized));
 }
 
-function getEncodedWigleAuth(): string {
-  const wigleApiName = secretsManager.get('wigle_api_name');
-  const wigleApiToken = secretsManager.get('wigle_api_token');
+type WigleAuthStore = { get: (key: string) => string | null };
+
+function getEncodedWigleAuthFromStore(store: WigleAuthStore): string {
+  const wigleApiName = store.get('wigle_api_name');
+  const wigleApiToken = store.get('wigle_api_token');
   if (!wigleApiName || !wigleApiToken) {
     throw new Error(
       'WiGLE API credentials not configured. Set wigle_api_name and wigle_api_token secrets.'
@@ -85,4 +87,14 @@ function getEncodedWigleAuth(): string {
   return Buffer.from(`${wigleApiName}:${wigleApiToken}`).toString('base64');
 }
 
-export { hashParams, hashRecord, normalizeParams, getEncodedWigleAuth };
+function getEncodedWigleAuth(): string {
+  return getEncodedWigleAuthFromStore(secretsManager);
+}
+
+export {
+  hashParams,
+  hashRecord,
+  normalizeParams,
+  getEncodedWigleAuth,
+  getEncodedWigleAuthFromStore,
+};

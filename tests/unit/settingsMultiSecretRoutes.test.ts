@@ -91,14 +91,26 @@ describe('settingsMultiSecretRoutes', () => {
       expect(mockSecretsManager.putSecrets).not.toHaveBeenCalled();
     });
 
-    it('should test wigle connection', async () => {
-      mockSecretsManager.get.mockReturnValue('ZW5jb2RlZA==');
+    it('should test wigle connection using name+token (same encoding as runtime)', async () => {
+      mockSecretsManager.get.mockImplementation((key: string) => {
+        if (key === 'wigle_api_name') return 'n';
+        if (key === 'wigle_api_token') return 't';
+        return null;
+      });
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ user: 'testUser' }),
       });
       const res = await request(app).get('/api/settings/wigle/test');
       expect(res.status).toBe(200);
+    });
+
+    it('returns no credentials when wigle name/token missing', async () => {
+      mockSecretsManager.get.mockReturnValue(null);
+      const res = await request(app).get('/api/settings/wigle/test');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('No credentials stored');
     });
   });
 

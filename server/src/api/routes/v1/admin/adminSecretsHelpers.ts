@@ -6,7 +6,7 @@ const ALL_SECRETS = [
   'db_password',
   'session_secret',
   'mapbox_token',
-  'wigle_api_key',
+  'wigle_api_name',
   'wigle_api_token',
   'opencage_api_key',
   'locationiq_api_key',

@@ -1121,6 +1121,7 @@
 - **wigle:** Phase 5 — click tooltip for aggregated observation layer ([219ffdf](https://github.com/cyclonite69/shadowcheck-web/commit/219ffdfbf46c0576d4f8a615739d9a826427b438))
 - **wigle:** render WiGLE v3 import points on map ([ae4ccc7](https://github.com/cyclonite69/shadowcheck-web/commit/ae4ccc7128cae2acae992b7bca3035472a83bef2))
 - **wigle:** replace ST_SnapToGrid with ST_ClusterDBSCAN for organic density hotspots ([809bf64](https://github.com/cyclonite69/shadowcheck-web/commit/809bf6441ec3db0d9aba061b6617795a48bddc10))
+- **wigle:** request ledger panel — migration, API endpoint, gateway instrumentation, UI ([c2ea10f](https://github.com/cyclonite69/shadowcheck-web/commit/c2ea10fc54432324f10795be5bec00271641440c))
 - **wigle:** resilient import pipeline with start-or-resume and quota handling ([56bc616](https://github.com/cyclonite69/shadowcheck-web/commit/56bc61633944cc250bff329040cea3b0180da379))
 - **wigle:** restore forensic snapshot card and improve completeness report accuracy ([80734a1](https://github.com/cyclonite69/shadowcheck-web/commit/80734a1d8135b833bd16d4f3852004dbf2c3fd43))
 - **wigle:** split header into separate Filters and Layers buttons ([8a13e0a](https://github.com/cyclonite69/shadowcheck-web/commit/8a13e0ae0ae81f8ea567ca372d8f4df32427964e))

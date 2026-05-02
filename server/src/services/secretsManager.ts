@@ -33,9 +33,15 @@ const OPTIONAL_SECRETS = [
   's3_backup_bucket',
 ];
 
-// Credential keys: AWS Secrets Manager is the sole source of truth.
+// Credential keys: AWS Secrets Manager is the sole source of truth when the blob has a value.
 // Environment variables must NEVER override these — secrets are never written to disk.
-const CREDENTIAL_SECRETS = new Set(['db_password', 'db_admin_password']);
+// WiGLE name/token match DB-style semantics: SM wins over env (see docker/entrypoint.sh).
+const CREDENTIAL_SECRETS = new Set([
+  'db_password',
+  'db_admin_password',
+  'wigle_api_name',
+  'wigle_api_token',
+]);
 
 // Secrets that should be auto-generated if missing from AWS SM.
 // DO NOT add db_password or db_admin_password here — they must always match
