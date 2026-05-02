@@ -57,6 +57,25 @@ describe('wigleClient (Deterministic Hardening)', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves the real Authorization header on outbound requests', async () => {
+    await fetchWigle({
+      kind: 'stats',
+      url: 'http://test',
+      init: { headers: { Authorization: 'Basic real-token', Accept: 'application/json' } },
+      maxRetries: 0,
+      priority: 'interactive',
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://test',
+      expect.objectContaining({
+        headers: expect.any(Headers),
+      })
+    );
+    const fetchInit = (global.fetch as jest.Mock).mock.calls[0][1];
+    expect(new Headers(fetchInit.headers).get('Authorization')).toBe('Basic real-token');
+  });
+
   it('does not deduplicate requests with different bodies', async () => {
     const p1 = fetchWigle({ kind: 'search', url: 'http://test', init: { body: 'query1' } });
     const p2 = fetchWigle({ kind: 'search', url: 'http://test', init: { body: 'query2' } });

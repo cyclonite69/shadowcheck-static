@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { apiClient } from '../../../api/client';
+import { WigleLedgerPanel } from '../../wigle/WigleLedgerPanel';
 
 const TrophyIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -344,6 +345,8 @@ export const WigleStatsTab: React.FC = () => {
           </div>
         </AdminCard>
       </div>
+
+      <WigleLedgerPanel />
     </div>
   );
 };

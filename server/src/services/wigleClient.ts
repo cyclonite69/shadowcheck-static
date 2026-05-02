@@ -51,13 +51,6 @@ function extractParams(url: string): Record<string, string> | null {
   }
 }
 
-function redactInit(init?: RequestInit): RequestInit | undefined {
-  if (!init || !init.headers) return init;
-  const headers = new Headers(init.headers as any);
-  if (headers.has('Authorization')) headers.set('Authorization', '***');
-  return { ...init, headers };
-}
-
 async function sleep(ms: number) {
   if (isTestEnv()) return;
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -141,7 +134,7 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
           // This is an intentional conservative policy — prefer over-counting to
           // under-counting to avoid WiGLE burst/ban risk. Do NOT change the logic.
           recordRequest(kind);
-          const response = await fetchWithTimeout(url, redactInit(init), timeoutMs);
+          const response = await fetchWithTimeout(url, init, timeoutMs);
 
           if (response.status === 429) {
             recordConsecutive429();

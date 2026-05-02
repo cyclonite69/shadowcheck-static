@@ -7,6 +7,7 @@ import express from 'express';
 const router = express.Router();
 const { adminQuery } = require('../../../../services/adminDbService');
 const logger = require('../../../../logging/logger');
+import { requireAdmin } from '../../../../middleware/authMiddleware';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
@@ -23,7 +24,7 @@ const MAX_LIMIT = 200;
  *   status   - all | success | error | rate_limited | skipped
  *   source   - all | import | event
  */
-router.get('/ledger', async (req: any, res: any) => {
+router.get('/ledger', requireAdmin, async (req: any, res: any) => {
   try {
     const limit = Math.min(Number(req.query.limit) || DEFAULT_LIMIT, MAX_LIMIT);
     const before: string | undefined = req.query.before as string | undefined;

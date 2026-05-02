@@ -27,7 +27,6 @@ import { useWigleDataSync } from './wigle/useWigleDataSync';
 import { useWigleAutoFetch } from './wigle/useWigleAutoFetch';
 import { useWigleMapFeatures } from './wigle/useWigleMapFeatures';
 import { useWigleResize } from './wigle/useWigleResize';
-import { WigleLedgerPanel } from './wigle/WigleLedgerPanel';
 
 const WiglePage: React.FC = () => {
   usePageFilters('wigle');
@@ -399,7 +398,6 @@ const WiglePage: React.FC = () => {
         error={mapError || dataError || kmlError}
         mapReady={mapReady}
       />
-      <WigleLedgerPanel />
     </div>
   );
 };
