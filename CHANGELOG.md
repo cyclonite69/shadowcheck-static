@@ -790,6 +790,7 @@
 - **wigle:** move Field Data and Clustering to control panel, fix Field Data render ([9cdfa8c](https://github.com/cyclonite69/shadowcheck-web/commit/9cdfa8c83d905f0e15d4a2b256ba98ba8390c460))
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
 - **wigle:** parse v3 detail response shape in live.ts ([2784909](https://github.com/cyclonite69/shadowcheck-web/commit/2784909dfad925f364d7c66adf33afc5f294d25f))
+- **wigle:** prefer secrets manager over env for api name and token ([aad8b1d](https://github.com/cyclonite69/shadowcheck-web/commit/aad8b1d34c31ae0101f674e7687884c370556455))
 - **wigle:** prevent enrichment manager rows from appearing to disappear by adding processing states ([05a5a5e](https://github.com/cyclonite69/shadowcheck-web/commit/05a5a5ed9028f2a1ba6b67b45b47876ada88861a))
 - **wigle:** propagate 429 status from ledger; add quota-reset endpoint and UI button ([8967fc9](https://github.com/cyclonite69/shadowcheck-web/commit/8967fc94eff8c5a1ceeab78848dc3cb1e8db0470))
 - **wigle:** qualify first_seen/last_seen in ON CONFLICT clause to resolve ambiguous column reference ([0bc6058](https://github.com/cyclonite69/shadowcheck-web/commit/0bc6058930f4c4e72724d76fcfe92a69108fba84))
