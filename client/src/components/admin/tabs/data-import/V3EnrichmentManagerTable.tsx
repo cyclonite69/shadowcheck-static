@@ -498,7 +498,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
         className="overflow-x-auto overflow-y-auto max-h-[36rem] rounded border border-slate-800/60 bg-slate-900/20"
       >
         <table className="w-full text-left text-[11px]">
-          <thead className="bg-slate-800/40 text-slate-500 font-bold uppercase tracking-widest border-b border-slate-800">
+          <thead className="sticky top-0 z-10 bg-slate-900 text-slate-500 font-bold uppercase tracking-widest border-b border-slate-800">
             <tr>
               {/* Checkbox — always visible */}
               <th className="px-3 py-2 w-8">
