@@ -111,8 +111,8 @@ export const adminApi = {
     return apiClient.post('/settings/mapbox-unlimited', { apiKey: token });
   },
 
-  async saveWigleToken(token: string): Promise<any> {
-    return apiClient.post('/settings/wigle', { token });
+  async saveWigleToken(apiName: string, apiToken: string): Promise<any> {
+    return apiClient.post('/settings/wigle', { apiName, apiToken });
   },
 
   async saveGoogleMapsKey(key: string): Promise<any> {

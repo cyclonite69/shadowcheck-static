@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-01)
+# 1.0.0 (2026-05-02)
 
 ### Bug Fixes
 
@@ -734,6 +734,7 @@
 - **v2:** prevent filtered query timeouts from network_tags row multiplication ([cd07c54](https://github.com/cyclonite69/shadowcheck-web/commit/cd07c548b5aa28b2f95120407a582c747190a5fc))
 - **v2:** support network_tags schema variants in filtered queries ([bd624c6](https://github.com/cyclonite69/shadowcheck-web/commit/bd624c6e2bec3807a92fa6ffc6ed2047945a982f))
 - **v2:** use fast-path eligibility for filtered count query ([eb57d6e](https://github.com/cyclonite69/shadowcheck-web/commit/eb57d6ef2355e94f8c3d89dec63e1be80eec67f5))
+- **validation:** add missing validateString overload for WiGLE credentials ([01b4308](https://github.com/cyclonite69/shadowcheck-web/commit/01b43087e6d1a23a2caa7ee023a5b3b9afac3d78))
 - weather fx and redundant header text ([4f42201](https://github.com/cyclonite69/shadowcheck-web/commit/4f42201bf63f7abe7bcf7f6c860a0636a265e009))
 - weather routes import causing server crash ([e51df81](https://github.com/cyclonite69/shadowcheck-web/commit/e51df816da5a4acdbac4ec4039b6af14a975e060))
 - WEP security encryption filter - reorder detection logic ([38ccb2a](https://github.com/cyclonite69/shadowcheck-web/commit/38ccb2a078ecaa3ec129c933b3c9a0603038843f))

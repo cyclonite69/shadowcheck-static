@@ -126,7 +126,7 @@ export const useConfiguration = () => {
   const saveWigleCredentials = async () => {
     try {
       setIsLoading(true);
-      await adminApi.saveWigleToken(wigleApiToken);
+      await adminApi.saveWigleToken(wigleApiName, wigleApiToken);
       setWigleConfigured(true);
       setSavedValues((current) => ({
         ...current,

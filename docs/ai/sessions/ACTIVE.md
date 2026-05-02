@@ -44,15 +44,17 @@ _Nothing currently locked._
 
 ## Refactor Backlog (Audit 2026-04-29)
 
-| Priority | File                                             | Issue                             | Proposed Action                                                                           |
-| -------- | ------------------------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------- |
-| 1        | client/src/components/admin/types/admin.types.ts | DEAD CODE                         | Delete — zero importers, exact duplicate of client/src/types/admin.ts                     |
-| 2        | server/src/api/routes/v1/wigle/utils.ts          | DEAD CODE + DUPLICATION           | Delete — no importers, all three functions live in wigleDetailTransforms.ts               |
-| 3        | server/src/errors/AppError.ts                    | DEAD CODE                         | Remove 10 unused subclasses; keep AppError, ValidationError, NotFoundError, DatabaseError |
-| 4        | 5 wigle service files                            | DUPLICATION (credential encoding) | Move getEncodedWigleAuth() to wigleRequestUtils.ts; replace 5 inline Buffer.from calls    |
-| 5        | server/src/services/v2Service.ts                 | ORCHESTRATOR CANDIDATE            | Extract types → v2Types.ts, SQL → v2Repository.ts, leave orchestration                    |
-| 6        | server/src/services/exportService.ts             | REPOSITORY VIOLATION              | Extract all query()/adminQuery() calls to exportRepository.ts                             |
-| 7        | server/src/services/mobileIngestService.ts       | REPOSITORY VIOLATION              | Extract 20+ adminQuery() calls to mobileIngestRepository.ts                               |
-| 8        | server/src/services/keplerService.ts             | ORCHESTRATOR CANDIDATE            | Split into keplerTransforms.ts, keplerRepository.ts, thin service                         |
-| 9        | server/src/api/routes/v1/wigle/search.ts         | THIN ROUTER VIOLATION             | Move saved-terms query to wigleSearchService.getSavedSsidTerms()                          |
-| 10       | server/src/api/routes/v1/settings.ts             | THIN ROUTER VIOLATION             | Move AWS region upsert to adminSettingsService.setAwsRegion()                             |
+All 10 items verified complete as of 2026-05-01.
+
+| Priority | File                                             | Issue                             | Status                                              |
+| -------- | ------------------------------------------------ | --------------------------------- | --------------------------------------------------- |
+| 1        | client/src/components/admin/types/admin.types.ts | DEAD CODE                         | ✅ DONE — deleted                                   |
+| 2        | server/src/api/routes/v1/wigle/utils.ts          | DEAD CODE + DUPLICATION           | ✅ DONE — deleted                                   |
+| 3        | server/src/errors/AppError.ts                    | DEAD CODE                         | ✅ DONE — only 4 classes remain                     |
+| 4        | 5 wigle service files                            | DUPLICATION (credential encoding) | ✅ DONE — canonical in wigleRequestUtils.ts         |
+| 5        | server/src/services/v2Service.ts                 | ORCHESTRATOR CANDIDATE            | ✅ DONE — v2Types.ts + v2Repository.ts extracted    |
+| 6        | server/src/services/exportService.ts             | REPOSITORY VIOLATION              | ✅ DONE — delegates to exportRepository             |
+| 7        | server/src/services/mobileIngestService.ts       | REPOSITORY VIOLATION              | ✅ DONE — delegates to mobileIngestRepository       |
+| 8        | server/src/services/keplerService.ts             | ORCHESTRATOR CANDIDATE            | ✅ DONE — keplerRepository.ts extracted             |
+| 9        | server/src/api/routes/v1/wigle/search.ts         | THIN ROUTER VIOLATION             | ✅ DONE — getSavedSsidTerms() in wigleSearchService |
+| 10       | server/src/api/routes/v1/settings.ts             | THIN ROUTER VIOLATION             | ✅ DONE — setAwsRegion() in adminSettingsService    |
