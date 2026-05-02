@@ -772,6 +772,7 @@
 - **wigle:** correct CommonJS export for validateWigleApiCredit ([2568b2b](https://github.com/cyclonite69/shadowcheck-web/commit/2568b2b6fbbdb529fa925de3a51082343eddab71))
 - **wigle:** correct import paths in hooks ([837cac3](https://github.com/cyclonite69/shadowcheck-web/commit/837cac30719bc9fa7ae54b05adf6fbe4b453b731))
 - **wigle:** correct tooltip normalization for v2/v3 record types ([37f7b75](https://github.com/cyclonite69/shadowcheck-web/commit/37f7b75f80739f5e8c42817eab0f7fc8d2136cc9))
+- **wigle:** correct user-stats URL to /api/v2/profile/user; return 503 for missing creds ([d17df77](https://github.com/cyclonite69/shadowcheck-web/commit/d17df77c3ee2a8d9f5f0e5e473069c111c996e63))
 - **wigle:** count field offices and resident agencies separately ([fed6b42](https://github.com/cyclonite69/shadowcheck-web/commit/fed6b42eb56edb193754d783f31b173c7083df36))
 - **wigle:** display BSSID correctly in search results ([80fc0ea](https://github.com/cyclonite69/shadowcheck-web/commit/80fc0ea9963779e53fd5fc275ec9855aafde28bb))
 - **wigle:** don't show cached address for distant WiGLE points ([707a6bb](https://github.com/cyclonite69/shadowcheck-web/commit/707a6bb986f1a704dda042b68e269e4f21d27882))
