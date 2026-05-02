@@ -127,6 +127,22 @@ export const WigleDetailTab: React.FC = () => {
     cancelRun,
   } = useWigleRuns({ limit: 10 });
 
+  // Derived: the enrichment run that is actively looping right now
+  const activeEnrichmentRun =
+    runs.find(
+      (r) => r.status === 'running' && (r.source === 'v3_batch' || r.source === 'v3_manual')
+    ) ?? null;
+
+  const stopEnrichment = async () => {
+    if (!activeEnrichmentRun) return;
+    try {
+      await wigleApi.cancelImportRun(activeEnrichmentRun.id);
+      await refreshRuns();
+    } catch (e: any) {
+      alert(`Failed to stop enrichment: ${e.message}`);
+    }
+  };
+
   const resumeRun = async (id: number) => {
     try {
       const data = await wigleApi.resumeEnrichment(id);
@@ -574,6 +590,28 @@ export const WigleDetailTab: React.FC = () => {
       {/* Batch Enrichment Section */}
       <AdminCard icon={DetailIcon} title="Batch v3 Enrichment" color="from-blue-500 to-indigo-600">
         <div className="space-y-4">
+          {/* Active run banner — always visible when a run is looping */}
+          {activeEnrichmentRun && (
+            <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-amber-500/40 bg-amber-500/10">
+              <div className="flex items-center gap-3">
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                  Enrichment Running
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  run #{activeEnrichmentRun.id}
+                  {activeEnrichmentRun.searchTerm ? ` · ${activeEnrichmentRun.searchTerm}` : ''}
+                </span>
+              </div>
+              <button
+                onClick={stopEnrichment}
+                disabled={actionLoading}
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white rounded text-[11px] font-black uppercase tracking-tighter transition-all active:scale-95"
+              >
+                Stop
+              </button>
+            </div>
+          )}
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm text-slate-300 font-bold">Enrich v2 Records</p>
