@@ -88,14 +88,27 @@ router.get(
   requireAdmin,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const runs = await wigleImportRunService.listImportRuns({
-        limit: req.query.limit ? Number.parseInt(String(req.query.limit), 10) : 20,
+      const limit = req.query.limit ? Number.parseInt(String(req.query.limit), 10) : 100;
+      const page = req.query.page ? Math.max(1, Number.parseInt(String(req.query.page), 10)) : 1;
+      const offset = (page - 1) * limit;
+      const result = await wigleImportRunService.listImportRuns({
+        limit,
+        offset,
         status: req.query.status ? String(req.query.status) : undefined,
         state: req.query.state ? String(req.query.state) : undefined,
         searchTerm: req.query.searchTerm ? String(req.query.searchTerm) : undefined,
         incompleteOnly: req.query.incompleteOnly === 'true',
+        sortBy: req.query.sortBy ? String(req.query.sortBy) : undefined,
+        sortDir: req.query.sortDir ? String(req.query.sortDir) : undefined,
       });
-      return res.json({ ok: true, runs });
+      return res.json({
+        ok: true,
+        runs: result.data,
+        total: result.total,
+        limit,
+        offset,
+        hasMore: offset + result.data.length < result.total,
+      });
     } catch (err: any) {
       logger.error(`[WiGLE] Import-runs list error: ${err.message}`, { error: err });
       next(err);

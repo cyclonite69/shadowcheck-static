@@ -267,13 +267,25 @@ const getRunOrThrow = async (runId: number) => {
 const listImportRuns = async (
   options: {
     limit?: number;
+    offset?: number;
     status?: string;
     state?: string;
     searchTerm?: string;
     incompleteOnly?: boolean;
+    sortBy?: string;
+    sortDir?: string;
   } = {}
 ) => {
-  const { limit = 20, status, state, searchTerm, incompleteOnly = false } = options;
+  const {
+    limit = 20,
+    offset = 0,
+    status,
+    state,
+    searchTerm,
+    incompleteOnly = false,
+    sortBy,
+    sortDir,
+  } = options;
   const params: any[] = [];
   const where: string[] = [];
 
@@ -293,16 +305,52 @@ const listImportRuns = async (
     where.push(`status IN ('running', 'paused', 'failed')`);
   }
 
-  params.push(limit);
-  const result = await query(
-    `SELECT *
-       FROM app.wigle_import_runs
-       ${where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''}
-      ORDER BY started_at DESC
-      LIMIT $${params.length}`,
-    params
-  );
-  return result.rows.map((row: any) => serializeRun(row));
+  const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+
+  // Dynamic ORDER BY with allowlist
+  const SORT_ALLOWLIST: Record<string, string> = {
+    started_at: 'started_at',
+    updated_at: 'updated_at',
+    completed_at: 'completed_at',
+    status: 'status',
+    state: 'state',
+    search_term: 'search_term',
+    rows_inserted: 'rows_inserted',
+    rows_returned: 'rows_returned',
+    pages_fetched: 'pages_fetched',
+    total_pages: 'total_pages',
+    source: 'source',
+  };
+
+  const sortKeys = (sortBy || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const sortDirs = (sortDir || '').split(',').map((s) => s.trim().toLowerCase());
+  const orderTerms: string[] = [];
+  sortKeys.forEach((key, i) => {
+    const col = SORT_ALLOWLIST[key];
+    if (!col) return;
+    const dir = sortDirs[i] === 'asc' ? 'ASC' : 'DESC';
+    orderTerms.push(`${col} ${dir}`);
+  });
+  const orderBy = orderTerms.length > 0 ? orderTerms.join(', ') : 'started_at DESC';
+
+  const dataParams = [...params, limit, offset];
+  const [dataResult, countResult] = await Promise.all([
+    query(
+      `SELECT * FROM app.wigle_import_runs ${whereClause} ORDER BY ${orderBy} LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
+    ),
+    query(`SELECT COUNT(*)::int AS total FROM app.wigle_import_runs ${whereClause}`, params),
+  ]);
+
+  return {
+    data: dataResult.rows.map((row: any) => serializeRun(row)),
+    total: countResult.rows[0]?.total || 0,
+    limit,
+    offset,
+  };
 };
 
 const getImportCompletenessSummary = async (

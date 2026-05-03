@@ -1049,6 +1049,7 @@
 - **observability:** add query performance tracking and diagnostics ([2e67c0d](https://github.com/cyclonite69/shadowcheck-web/commit/2e67c0dfc711ad929d6ad584766e742cbf74c704))
 - **orphan:** implement 'Promote to Canonical' and optimize orphan SSID search ([27b5d49](https://github.com/cyclonite69/shadowcheck-web/commit/27b5d4986ef001e2ced13eea2e0b29f18815728b))
 - **orphan:** inline tooltip on orphan network row click ([b3cbb7d](https://github.com/cyclonite69/shadowcheck-web/commit/b3cbb7db0e87f7e22e622b2c53e73f1b66a08f39))
+- **orphans:** server-side sort, column chooser, sticky headers, fix obs count display ([a9708f9](https://github.com/cyclonite69/shadowcheck-web/commit/a9708f9e37ae8356b6a7a08ff89fe3a8757f22de))
 - parse individual wigle v3 observations and display on map ([5fcd8d6](https://github.com/cyclonite69/shadowcheck-web/commit/5fcd8d6962e346a13f0f4e0a3fa5f11996456065))
 - persist WiGLE map preferences (style, terrain, 3D buildings) ([00d85d1](https://github.com/cyclonite69/shadowcheck-web/commit/00d85d172537fc993e54b1736e02ebc50f92a53f))
 - prevent concurrent ml training ([4d445e8](https://github.com/cyclonite69/shadowcheck-web/commit/4d445e8500f20c85a7a2bf53a6909589c880c760))

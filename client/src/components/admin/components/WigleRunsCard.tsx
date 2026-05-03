@@ -1,7 +1,36 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { AdminCard } from './AdminCard';
 import { formatShortDate } from '../../../utils/formatDate';
 import type { WigleImportRun } from '../../../types/admin';
+import type { SortEntry } from '../hooks/useWigleRuns';
+
+// ─── Column definitions ───────────────────────────────────────────────────────
+
+interface ColDef {
+  id: string;
+  label: string;
+  sortKey: string | null;
+  defaultVisible: boolean;
+}
+
+const COLUMNS: ColDef[] = [
+  { id: 'id', label: 'ID', sortKey: null, defaultVisible: true },
+  { id: 'target', label: 'Target', sortKey: 'search_term', defaultVisible: true },
+  { id: 'status', label: 'Status', sortKey: 'status', defaultVisible: true },
+  { id: 'progress', label: 'Progress', sortKey: null, defaultVisible: true },
+  { id: 'rows_inserted', label: 'Inserted', sortKey: 'rows_inserted', defaultVisible: true },
+  { id: 'rows_returned', label: 'Returned', sortKey: 'rows_returned', defaultVisible: false },
+  { id: 'pages_fetched', label: 'Pages', sortKey: 'pages_fetched', defaultVisible: false },
+  { id: 'total_pages', label: 'Total Pages', sortKey: 'total_pages', defaultVisible: false },
+  { id: 'source', label: 'Source', sortKey: 'source', defaultVisible: false },
+  { id: 'state', label: 'State', sortKey: 'state', defaultVisible: false },
+  { id: 'started_at', label: 'Started', sortKey: 'started_at', defaultVisible: true },
+  { id: 'completed_at', label: 'Completed', sortKey: 'completed_at', defaultVisible: false },
+  { id: 'last_active', label: 'Last Active', sortKey: 'updated_at', defaultVisible: true },
+  { id: 'actions', label: 'Actions', sortKey: null, defaultVisible: true },
+];
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
 
 const RefreshIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -18,7 +47,6 @@ const RefreshIcon = ({ size = 24, className = '' }) => (
     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
   </svg>
 );
-
 const PlayIcon = ({ size = 16 }) => (
   <svg
     viewBox="0 0 24 24"
@@ -33,7 +61,6 @@ const PlayIcon = ({ size = 16 }) => (
     <polygon points="5 3 19 12 5 21 5 3" />
   </svg>
 );
-
 const PauseIcon = ({ size = 16 }) => (
   <svg
     viewBox="0 0 24 24"
@@ -49,7 +76,6 @@ const PauseIcon = ({ size = 16 }) => (
     <rect x="14" y="4" width="4" height="16" />
   </svg>
 );
-
 const CancelIcon = ({ size = 16 }) => (
   <svg
     viewBox="0 0 24 24"
@@ -67,54 +93,252 @@ const CancelIcon = ({ size = 16 }) => (
   </svg>
 );
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface WigleRunsCardProps {
   runs: WigleImportRun[];
+  total?: number;
+  hasMore?: boolean;
   loading: boolean;
   actionLoading: boolean;
   error: string | null;
+  sortCols?: SortEntry[];
+  onSort?: (col: ColDef, e: React.MouseEvent) => void;
   onRefresh: () => void;
+  onLoadMore?: () => void;
   onResume: (id: number) => void;
   onPause: (id: number) => void;
   onCancel: (id: number) => void;
   onCleanupCluster?: () => Promise<void>;
-  limit?: number;
 }
 
 export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
   runs,
+  total = 0,
+  hasMore = false,
   loading,
   actionLoading,
   error,
+  sortCols = [],
+  onSort,
   onRefresh,
+  onLoadMore,
   onResume,
   onPause,
   onCancel,
   onCleanupCluster,
 }) => {
-  const [statusFilter, setStatusFilter] = React.useState<string>('all');
-  const [page, setPage] = React.useState(0);
-  const PAGE_SIZE = 25;
-
-  // All cancelled Global (no state) runs — any count ≥ 1 shows the cleanup button
-  const cancelledGlobalCount = runs.filter((r) => r.status === 'cancelled' && !r.state).length;
-
-  const filteredRuns = React.useMemo(
-    () =>
-      statusFilter === 'all'
-        ? runs
-        : runs.filter(
-            (r) =>
-              r.status === statusFilter ||
-              (statusFilter === 'completed' && r.status === 'completed')
-          ),
-    [runs, statusFilter]
-  );
-  const totalPages = Math.ceil(filteredRuns.length / PAGE_SIZE);
-  const pagedRuns = filteredRuns.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
+  // Column visibility
+  const [visibleCols, setVisibleCols] = React.useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('import_runs_columns');
+      if (saved) return new Set(JSON.parse(saved) as string[]);
+    } catch {}
+    return new Set(COLUMNS.filter((c) => c.defaultVisible).map((c) => c.id));
+  });
   React.useEffect(() => {
-    setPage(0);
-  }, [statusFilter]);
+    localStorage.setItem('import_runs_columns', JSON.stringify([...visibleCols]));
+  }, [visibleCols]);
+
+  const [chooserOpen, setChooserOpen] = React.useState(false);
+  const chooserRef = useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    if (!chooserOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (chooserRef.current && !chooserRef.current.contains(e.target as Node))
+        setChooserOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [chooserOpen]);
+
+  const cancelledGlobalCount = runs.filter((r) => r.status === 'cancelled' && !r.state).length;
+  const visibleColDefs = COLUMNS.filter((c) => visibleCols.has(c.id));
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !onLoadMore) return;
+    const handleScroll = () => {
+      if (!hasMore || loading) return;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop <= clientHeight + 200) onLoadMore();
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [hasMore, loading, onLoadMore]);
+
+  const renderCell = (col: ColDef, run: WigleImportRun) => {
+    switch (col.id) {
+      case 'id':
+        return (
+          <td key={col.id} className="px-3 py-2 font-mono text-slate-500">
+            #{run.id}
+          </td>
+        );
+      case 'target':
+        return (
+          <td key={col.id} className="px-3 py-2">
+            <div className="font-bold text-slate-200">
+              {run.state || 'Global'}
+              {run.searchTerm ? ` / ${run.searchTerm}` : ''}
+            </div>
+          </td>
+        );
+      case 'status':
+        return (
+          <td key={col.id} className="px-3 py-2">
+            <span
+              className={`px-1.5 py-0.5 rounded-full font-bold uppercase text-[9px] border ${
+                run.status === 'completed' && run.rowsInserted === 0
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  : run.status === 'completed'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : run.status === 'running'
+                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                      : run.status === 'failed'
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                        : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+              }`}
+              title={run.status === 'failed' && run.lastError ? run.lastError : undefined}
+            >
+              {run.status === 'completed' && run.rowsInserted === 0 ? 'completed (0)' : run.status}
+            </span>
+            {run.status === 'failed' && run.lastError && (
+              <div
+                className="mt-1 text-[9px] text-red-400/70 max-w-[160px] truncate"
+                title={run.lastError}
+              >
+                {run.lastError}
+              </div>
+            )}
+          </td>
+        );
+      case 'progress':
+        return (
+          <td key={col.id} className="px-3 py-2">
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px]">
+                <span className="text-slate-500">
+                  P{run.pagesFetched}/{run.totalPages || '?'}
+                </span>
+              </div>
+              <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 ${
+                    run.status === 'completed' && run.rowsInserted === 0
+                      ? 'bg-amber-500'
+                      : run.status === 'completed'
+                        ? 'bg-emerald-500'
+                        : run.status === 'failed'
+                          ? 'bg-red-500'
+                          : 'bg-blue-500'
+                  }`}
+                  style={{
+                    width: `${run.totalPages ? Math.min(100, (run.pagesFetched / run.totalPages) * 100) : 10}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </td>
+        );
+      case 'rows_inserted':
+        return (
+          <td key={col.id} className="px-3 py-2 text-right tabular-nums font-mono text-slate-400">
+            {run.rowsInserted.toLocaleString()}
+          </td>
+        );
+      case 'rows_returned':
+        return (
+          <td key={col.id} className="px-3 py-2 text-right tabular-nums font-mono text-slate-400">
+            {run.rowsReturned.toLocaleString()}
+          </td>
+        );
+      case 'pages_fetched':
+        return (
+          <td key={col.id} className="px-3 py-2 text-right tabular-nums text-slate-400">
+            {run.pagesFetched}
+          </td>
+        );
+      case 'total_pages':
+        return (
+          <td key={col.id} className="px-3 py-2 text-right tabular-nums text-slate-400">
+            {run.totalPages ?? '—'}
+          </td>
+        );
+      case 'source':
+        return (
+          <td key={col.id} className="px-3 py-2 text-slate-400 text-[10px]">
+            {run.source}
+          </td>
+        );
+      case 'state':
+        return (
+          <td key={col.id} className="px-3 py-2 text-slate-400">
+            {run.state || 'Global'}
+          </td>
+        );
+      case 'started_at':
+        return (
+          <td key={col.id} className="px-3 py-2 text-slate-500 whitespace-nowrap">
+            {formatShortDate(run.startedAt)}
+          </td>
+        );
+      case 'completed_at':
+        return (
+          <td key={col.id} className="px-3 py-2 text-slate-500 whitespace-nowrap">
+            {run.completedAt ? formatShortDate(run.completedAt) : '—'}
+          </td>
+        );
+      case 'last_active':
+        return (
+          <td key={col.id} className="px-3 py-2 text-slate-500 whitespace-nowrap">
+            {run.lastAttemptedAt
+              ? formatShortDate(run.lastAttemptedAt)
+              : formatShortDate(run.startedAt)}
+          </td>
+        );
+      case 'actions':
+        return (
+          <td key={col.id} className="px-3 py-2">
+            <div className="flex justify-center gap-1">
+              {(run.status === 'paused' || run.status === 'failed') && (
+                <button
+                  onClick={() => onResume(run.id)}
+                  disabled={actionLoading}
+                  className="p-1.5 text-emerald-500 hover:bg-emerald-500/20 rounded transition-all disabled:opacity-20"
+                  title="Resume"
+                >
+                  <PlayIcon />
+                </button>
+              )}
+              {run.status === 'running' && (
+                <button
+                  onClick={() => onPause(run.id)}
+                  disabled={actionLoading}
+                  className="p-1.5 text-amber-500 hover:bg-amber-500/20 rounded transition-all disabled:opacity-20"
+                  title="Pause"
+                >
+                  <PauseIcon />
+                </button>
+              )}
+              {(run.status === 'running' || run.status === 'paused' || run.status === 'failed') && (
+                <button
+                  onClick={() => onCancel(run.id)}
+                  disabled={actionLoading}
+                  className="p-1.5 text-red-500 hover:bg-red-500/20 rounded transition-all disabled:opacity-20"
+                  title="Cancel"
+                >
+                  <CancelIcon />
+                </button>
+              )}
+            </div>
+          </td>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <AdminCard
@@ -126,8 +350,48 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
         <div className="flex justify-between items-center">
           <p className="text-xs text-slate-400">
             Automated search loops. Resumable via cursor-based pagination.
+            {total > 0 && (
+              <span className="ml-2 text-slate-500">
+                ({runs.length.toLocaleString()} of {total.toLocaleString()})
+              </span>
+            )}
           </p>
           <div className="flex items-center gap-2">
+            {/* Column chooser */}
+            <div className="relative" ref={chooserRef}>
+              <button
+                onClick={() => setChooserOpen((o) => !o)}
+                className={`text-[10px] font-black uppercase tracking-tighter transition-colors ${chooserOpen ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                ⊞ Columns
+              </button>
+              {chooserOpen && (
+                <div className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-slate-700/60 bg-slate-900 shadow-xl py-1">
+                  {COLUMNS.map((col) => (
+                    <label
+                      key={col.id}
+                      className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800/60 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleCols.has(col.id)}
+                        onChange={() =>
+                          setVisibleCols((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(col.id)) next.delete(col.id);
+                            else next.add(col.id);
+                            return next;
+                          })
+                        }
+                        className="w-3 h-3 rounded bg-slate-950 border-slate-700 text-blue-600"
+                      />
+                      <span className="text-[11px] text-slate-300">{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {cancelledGlobalCount > 0 && (
               <button
                 onClick={async () => {
@@ -141,7 +405,6 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
                 }}
                 disabled={loading || actionLoading}
                 className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300 border border-red-500/30 bg-red-500/10 rounded hover:bg-red-500/20 transition-colors disabled:opacity-30"
-                title={`${cancelledGlobalCount} cancelled Global runs`}
               >
                 Clean Up ({cancelledGlobalCount})
               </button>
@@ -150,7 +413,7 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
               onClick={onRefresh}
               disabled={loading || actionLoading}
               className="p-1.5 text-slate-400 hover:text-white transition-colors disabled:opacity-30"
-              title="Refresh Runs"
+              title="Refresh"
             >
               <RefreshIcon className={loading ? 'animate-spin' : ''} size={18} />
             </button>
@@ -163,206 +426,61 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
           </div>
         )}
 
-        {/* Status filter chips */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(['all', 'completed', 'running', 'paused', 'failed', 'cancelled'] as const).map((s) => {
-            const count = s === 'all' ? runs.length : runs.filter((r) => r.status === s).length;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setStatusFilter(s)}
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border transition-colors ${
-                  statusFilter === s
-                    ? s === 'cancelled'
-                      ? 'bg-slate-500/30 text-slate-200 border-slate-500/60'
-                      : s === 'completed'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        : s === 'failed'
-                          ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                          : s === 'running'
-                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-                            : s === 'paused'
-                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                              : 'bg-slate-700 text-slate-200 border-slate-600'
-                    : 'bg-transparent text-slate-500 border-slate-700/50 hover:border-slate-600 hover:text-slate-400'
-                }`}
-              >
-                {s} {count > 0 ? `(${count})` : ''}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="overflow-x-auto rounded-lg border border-slate-700/50">
+        <div
+          ref={scrollRef}
+          className="overflow-x-auto overflow-y-auto max-h-[36rem] rounded-lg border border-slate-700/50"
+        >
           <table className="w-full text-[11px] text-left text-slate-300">
-            <thead className="bg-slate-800/50 text-slate-500 font-bold uppercase tracking-wider">
+            <thead className="sticky top-0 z-10 bg-slate-900 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-700/50">
               <tr>
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">Target</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Progress</th>
-                <th className="px-3 py-2">Last Active</th>
-                <th className="px-3 py-2 text-center">Actions</th>
+                {visibleColDefs.map((col) => {
+                  const sortIdx = sortCols.findIndex((s) => s.key === col.sortKey);
+                  const sortEntry = sortIdx !== -1 ? sortCols[sortIdx] : null;
+                  return (
+                    <th
+                      key={col.id}
+                      className={`px-3 py-2 whitespace-nowrap select-none ${col.sortKey && onSort ? 'cursor-pointer hover:text-slate-300 transition-colors' : ''}`}
+                      onClick={col.sortKey && onSort ? (e) => onSort(col, e) : undefined}
+                      title={col.sortKey ? 'Click to sort · Shift+click for multi-sort' : undefined}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {sortEntry && (
+                          <span className="text-cyan-400 font-black">
+                            {sortEntry.dir === 'asc' ? '↑' : '↓'}
+                            {sortCols.length > 1 && (
+                              <sup className="text-[8px] ml-px">{sortIdx + 1}</sup>
+                            )}
+                          </span>
+                        )}
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {pagedRuns.length === 0 && !loading && (
+              {runs.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500 italic">
+                  <td
+                    colSpan={visibleColDefs.length}
+                    className="px-3 py-6 text-center text-slate-500 italic"
+                  >
                     No recent import runs found.
                   </td>
                 </tr>
               )}
-              {pagedRuns.map((run) => (
-                <tr key={run.id} className="hover:bg-slate-700/20 group">
-                  <td className="px-3 py-2 font-mono text-slate-500">#{run.id}</td>
-                  <td className="px-3 py-2">
-                    <div className="font-bold text-slate-200">
-                      {run.state || 'Global'}
-                      {run.searchTerm ? ` / ${run.searchTerm}` : ''}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`px-1.5 py-0.5 rounded-full font-bold uppercase text-[9px] border ${
-                        run.status === 'completed' && run.rowsInserted === 0
-                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                          : run.status === 'completed'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            : run.status === 'running'
-                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                              : run.status === 'failed'
-                                ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                      }`}
-                      title={
-                        run.status === 'completed' && run.rowsInserted === 0
-                          ? 'Completed with 0 records — API quota may have been exhausted'
-                          : run.status === 'failed' && run.lastError
-                            ? run.lastError
-                            : undefined
-                      }
-                    >
-                      {run.status === 'completed' && run.rowsInserted === 0
-                        ? 'completed (0)'
-                        : run.status}
-                    </span>
-                    {run.status === 'failed' && run.lastError && (
-                      <div
-                        className="mt-1 text-[9px] text-red-400/70 max-w-[160px] truncate"
-                        title={run.lastError}
-                      >
-                        {run.lastError}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-500">
-                          P{run.pagesFetched}/{run.totalPages || '?'}
-                        </span>
-                        <span className="text-slate-400 font-mono">
-                          {run.rowsInserted.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-500 ${
-                            run.status === 'completed' && run.rowsInserted === 0
-                              ? 'bg-amber-500'
-                              : run.status === 'completed'
-                                ? 'bg-emerald-500'
-                                : run.status === 'failed'
-                                  ? 'bg-red-500'
-                                  : 'bg-blue-500'
-                          }`}
-                          style={{
-                            width: `${
-                              run.totalPages
-                                ? Math.min(100, (run.pagesFetched / run.totalPages) * 100)
-                                : 10
-                            }%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-slate-500 whitespace-nowrap">
-                    {run.lastAttemptedAt
-                      ? formatShortDate(run.lastAttemptedAt)
-                      : formatShortDate(run.startedAt)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex justify-center gap-1">
-                      {(run.status === 'paused' || run.status === 'failed') && (
-                        <button
-                          onClick={() => onResume(run.id)}
-                          disabled={actionLoading}
-                          className="p-1.5 text-emerald-500 hover:bg-emerald-500/20 rounded transition-all disabled:opacity-20"
-                          title="Resume Import"
-                        >
-                          <PlayIcon />
-                        </button>
-                      )}
-                      {run.status === 'running' && (
-                        <button
-                          onClick={() => onPause(run.id)}
-                          disabled={actionLoading}
-                          className="p-1.5 text-amber-500 hover:bg-amber-500/20 rounded transition-all disabled:opacity-20"
-                          title="Pause Import"
-                        >
-                          <PauseIcon />
-                        </button>
-                      )}
-                      {(run.status === 'running' ||
-                        run.status === 'paused' ||
-                        run.status === 'failed') && (
-                        <button
-                          onClick={() => onCancel(run.id)}
-                          disabled={actionLoading}
-                          className="p-1.5 text-red-500 hover:bg-red-500/20 rounded transition-all disabled:opacity-20"
-                          title="Cancel/Archive Run"
-                        >
-                          <CancelIcon />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+              {runs.map((run) => (
+                <tr key={run.id} className="hover:bg-slate-700/20">
+                  {visibleColDefs.map((col) => renderCell(col, run))}
                 </tr>
               ))}
             </tbody>
           </table>
+          {loading && runs.length > 0 && (
+            <div className="px-3 py-3 text-center text-[11px] text-slate-500">Loading more…</div>
+          )}
         </div>
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-[10px] text-slate-500">
-              Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filteredRuns.length)}{' '}
-              of {filteredRuns.length}
-            </span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="px-2 py-0.5 text-[10px] border border-slate-700 rounded text-slate-400 hover:text-white hover:border-slate-500 disabled:opacity-30 transition-colors"
-              >
-                ← Prev
-              </button>
-              <span className="px-2 py-0.5 text-[10px] text-slate-500">
-                {page + 1}/{totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1}
-                className="px-2 py-0.5 text-[10px] border border-slate-700 rounded text-slate-400 hover:text-white hover:border-slate-500 disabled:opacity-30 transition-colors"
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </AdminCard>
   );
