@@ -318,7 +318,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Networks v1',
-    label: 'WiGLE Observations for Network',
+    label: 'Network WiGLE Observations',
     path: '/api/networks/:bssid/wigle-observations',
     method: 'GET',
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
@@ -769,7 +769,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'WiGLE',
-    label: 'WiGLE Observations for Network',
+    label: 'WiGLE DB Observations (netid)',
     path: '/api/wigle/observations/:netid',
     method: 'GET',
     params: [{ name: 'netid', label: 'Network ID', placeholder: '00:11:22:33:44:55' }],
