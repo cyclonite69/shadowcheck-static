@@ -18,7 +18,12 @@ export async function getPendingEnrichmentCount(): Promise<number> {
   return rows[0]?.count || 0;
 }
 
-/** Browse the v2 catalog with per-BSSID v3 enrichment stats. */
+/**
+ * Browse the v2 catalog with per-BSSID v3 enrichment stats.
+ * Supports server-side multi-column sort via allowlisted sortBy/sortDir options.
+ * Falls back to lasttime DESC, bssid ASC when sortBy is empty or invalid.
+ * Returns { data, total, page, limit } for paginated consumption.
+ */
 export async function getEnrichmentCatalog(options: {
   page?: number;
   limit?: number;

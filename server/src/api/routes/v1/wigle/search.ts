@@ -83,6 +83,18 @@ router.post(
   }
 );
 
+/**
+ * GET /api/v1/wigle/search-api/import-runs
+ * Paginated list of WiGLE import runs with server-side sort.
+ * @param {number} [page=1] - Page number (1-based)
+ * @param {number} [limit=100] - Page size
+ * @param {string} [status] - Filter by status (running|paused|failed|completed|cancelled)
+ * @param {string} [state] - Filter by US state code
+ * @param {string} [searchTerm] - Filter by search term (ILIKE)
+ * @param {boolean} [incompleteOnly] - Only return running/paused/failed runs
+ * @param {string} [sortBy] - Comma-separated sort keys (started_at|updated_at|completed_at|status|state|search_term|rows_inserted|rows_returned|pages_fetched|total_pages|source)
+ * @param {string} [sortDir] - Comma-separated directions matching sortBy (asc|desc)
+ */
 router.get(
   '/search-api/import-runs',
   requireAdmin,

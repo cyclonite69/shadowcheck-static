@@ -58,6 +58,11 @@ async function recordBackfillAttempt(input: {
   );
 }
 
+/**
+ * List orphan networks with pagination and server-side sort.
+ * Falls back to moved_at DESC, bssid ASC when sortBy is empty or invalid.
+ * obs count is COALESCE(ob.observations_imported, 0) — authoritative backfill count.
+ */
 async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise<any[]> {
   const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 500);
   const offset = Math.max(Number(opts.offset) || 0, 0);

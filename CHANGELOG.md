@@ -1015,6 +1015,7 @@
 - implement threat scoring v4.0 with individual behavior and fleet correlation ([ab3684a](https://github.com/cyclonite69/shadowcheck-web/commit/ab3684af14c17d082e67e533f66d5a4e52a717e2))
 - implement zero-touch spot migration with tag discovery ([098871d](https://github.com/cyclonite69/shadowcheck-web/commit/098871d895c7b8d5cce73fda77de8b0f6f2eb37c))
 - import history with before/after metrics, backup checkbox, expandable rows ([cc9f7b0](https://github.com/cyclonite69/shadowcheck-web/commit/cc9f7b0fecc26257ce30b37a4c6dc0a42502ab9f))
+- **import-runs:** server-side sort + pagination, column chooser, sticky headers ([bdfe9ce](https://github.com/cyclonite69/shadowcheck-web/commit/bdfe9ce93bc579cb854522056b0cb94e2da42466))
 - improve signal radius circle math and add co-channel congestion ([e59965c](https://github.com/cyclonite69/shadowcheck-web/commit/e59965cdff0eeef6c1e07ed4889f16aeb37feb0c))
 - increase fleet bonus to 25 points for massive coordinated operations ([e912438](https://github.com/cyclonite69/shadowcheck-web/commit/e9124388ebbda7b01d874051968bccbd9ea580b6))
 - **infra:** add EC2 bootstrap script and fix pgAdmin connectivity ([28290db](https://github.com/cyclonite69/shadowcheck-web/commit/28290db33faee454d89644bd2c52e2eee5d09490))

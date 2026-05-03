@@ -351,6 +351,32 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     label: 'WiGLE Import Runs',
     path: '/api/wigle/search-api/import-runs',
     method: 'GET',
+    params: [
+      { name: 'limit', label: 'Limit', defaultValue: '100', type: 'number' },
+      { name: 'page', label: 'Page', defaultValue: '1', type: 'number' },
+      { name: 'status', label: 'Status', placeholder: 'running|paused|failed|completed|cancelled' },
+      { name: 'sortBy', label: 'Sort By', placeholder: 'started_at,rows_inserted,status' },
+      { name: 'sortDir', label: 'Sort Dir', placeholder: 'desc,asc' },
+    ],
+  },
+  {
+    category: 'WiGLE',
+    label: 'V3 Enrichment Catalog',
+    description:
+      'Browse v2 search catalog with per-BSSID v3 enrichment stats. Supports server-side multi-column sort.',
+    path: '/api/wigle/enrichment/catalog',
+    method: 'GET',
+    requiresAuth: true,
+    params: [
+      { name: 'page', label: 'Page', defaultValue: '1', type: 'number' },
+      { name: 'limit', label: 'Limit', defaultValue: '50', type: 'number' },
+      { name: 'ssid', label: 'SSID Filter', placeholder: 'partial match' },
+      { name: 'bssid', label: 'BSSID Filter', placeholder: 'prefix match' },
+      { name: 'city', label: 'City Filter', placeholder: 'partial match' },
+      { name: 'region', label: 'Region', placeholder: 'DC' },
+      { name: 'sortBy', label: 'Sort By', placeholder: 'lasttime,ssid,status' },
+      { name: 'sortDir', label: 'Sort Dir', placeholder: 'desc,asc' },
+    ],
   },
   {
     category: 'WiGLE',
@@ -486,6 +512,8 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       { name: 'limit', label: 'Limit', defaultValue: '100', type: 'number' },
       { name: 'offset', label: 'Offset', defaultValue: '0', type: 'number' },
       { name: 'search', label: 'Search', placeholder: 'SSID/BSSID' },
+      { name: 'sortBy', label: 'Sort By', placeholder: 'moved_at,bssid,observations_imported' },
+      { name: 'sortDir', label: 'Sort Dir', placeholder: 'desc,asc' },
     ],
   },
   {

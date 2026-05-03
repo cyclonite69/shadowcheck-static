@@ -26,7 +26,10 @@ router.get(
 
 /**
  * GET /api/v1/wigle/enrichment/catalog
- * Browse the v2 search catalog with enrichment stats.
+ * Browse the v2 search catalog with per-BSSID v3 enrichment stats.
+ * Supports server-side multi-column sort via sortBy/sortDir query params.
+ * @param {string} [sortBy] - Comma-separated sort keys (ssid|firsttime|lasttime|last_v3_import|signal|channel|encryption|status|location)
+ * @param {string} [sortDir] - Comma-separated directions matching sortBy (asc|desc). Defaults to asc.
  */
 router.get(
   '/enrichment/catalog',

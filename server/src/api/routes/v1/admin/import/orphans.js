@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { adminOrphanNetworksService } = require('../../../../../config/container');
 
+/**
+ * GET /api/admin/orphan-networks
+ * Paginated list of orphan networks with server-side sort.
+ * @param {number} [limit=50] - Page size (max 500)
+ * @param {number} [offset=0] - Pagination offset
+ * @param {string} [search] - ILIKE filter on bssid/ssid
+ * @param {string} [sortBy] - Comma-separated sort keys (bssid|ssid|moved_at|move_reason|lasttime_ms|bestlevel|unique_days|unique_locations|observations_imported|backfill_status|last_attempted_at)
+ * @param {string} [sortDir] - Comma-separated directions matching sortBy (asc|desc)
+ */
 router.get('/admin/orphan-networks', async (req, res, next) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 500);

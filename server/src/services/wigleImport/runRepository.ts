@@ -264,6 +264,11 @@ const getRunOrThrow = async (runId: number) => {
   return run;
 };
 
+/**
+ * List WiGLE import runs with pagination and server-side sort.
+ * Returns { data, total, limit, offset } for paginated consumption.
+ * Falls back to started_at DESC when sortBy is empty or invalid.
+ */
 const listImportRuns = async (
   options: {
     limit?: number;

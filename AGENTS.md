@@ -149,6 +149,41 @@ For every change, in this exact order:
 
 ---
 
+## Testing Requirements
+
+**Before any `git commit`, ALL of these must pass (in order):**
+
+1. **Lint**: `npm run lint` → zero errors
+2. **Type Check**: `npx tsc --noEmit` → no TypeScript errors
+3. **Test Suite**: `npm test` → all tests pass (70% coverage threshold enforced)
+
+**Test Coverage Standards:**
+
+- **Behavior changes** require regression tests
+- **New features** require full test coverage (70% threshold)
+- **SQL queries** require JSDoc + schema documentation
+- **New endpoints** require entry in `client/src/config/apiTestEndpoints.ts`
+
+**Test Structure:**
+
+- Unit tests: `tests/unit/` — isolated function tests, mock all dependencies
+- Integration tests: `tests/integration/` — endpoint tests with mocked database
+- Setup utilities: Import from `tests/setup.ts`
+
+**Running Tests:**
+
+```bash
+npm test                                         # All tests
+npm run test:watch                               # Watch mode
+npm run test:cov                                 # With coverage report
+npx jest tests/unit/file.test.ts                # Single file
+npx jest -t "test name pattern"                 # Tests matching pattern
+```
+
+See `docs/workflow/TESTING_STANDARDS.md` for complete testing guidelines.
+
+---
+
 ## Ten Commandments
 
 1. Secrets shall never be written to disk.

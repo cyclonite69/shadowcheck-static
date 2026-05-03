@@ -1,4 +1,4 @@
-# Active Workstreams — 2026-04-28
+# Active Workstreams — 2026-05-03
 
 Update this file manually when handing off a task or starting a new session. Agents read it at session start to avoid stepping on in-progress work.
 
@@ -6,32 +6,55 @@ Update this file manually when handing off a task or starting a new session. Age
 
 ## Current Status
 
-| Agent | Area              | Task                                                        | Status |
-| ----- | ----------------- | ----------------------------------------------------------- | ------ |
-| —     | wigle tooltip     | Phase 5 — tooltip unification for aggregated layer          | DONE   |
-| —     | docs audit        | Full docs audit + enrichment (Phase 1–4)                    | DONE   |
-| —     | wigle aggregation | Phases 1–4 bugs fixed: route order, bbox clamp, extent API  | DONE   |
-| —     | admin API testing | Endpoint registry migrated to `apiTestEndpoints.ts`         | DONE   |
-| —     | admin routes      | Route path regression; 6 pre-existing failures (BACKLOG.md) | DONE   |
+_No active workstreams. All completed as of 2026-05-03._
 
 ---
 
-## Do Not Touch
+## Standing Rules (non-negotiable)
 
-_Nothing currently locked._
+**Testing Requirements** (must pass before commit):
+
+1. Run `npm run lint` — all files must pass ESLint
+2. Run `npx tsc --noEmit` — no TypeScript errors
+3. Run `npm test` — all tests must pass (or skip only with explicit justification)
+4. **Behavior changes** require regression tests
+5. **New features** require test coverage (70% threshold enforced)
+6. **SQL changes** require JSDoc on query functions + schema docs update
+7. **New endpoints** require entry in `client/src/config/apiTestEndpoints.ts`
 
 ---
 
-## Canonical Files (new this session)
+## Recently Completed (this session — 2026-05-03)
+
+| Task                                                       | Status |
+| ---------------------------------------------------------- | ------ |
+| Server-side sort for V3 enrichment catalog                 | ✅     |
+| Server-side sort + pagination for orphan networks          | ✅     |
+| Server-side sort + pagination for WiGLE import runs        | ✅     |
+| Column chooser + sticky headers on all three tables        | ✅     |
+| Orphan obs count display fix (reads observations_imported) | ✅     |
+| Duplicate Recent Imports section removed from v3 tab       | ✅     |
+| Enrichment phantom run source/version fix + migration      | ✅     |
+| http_status logging on ledger events                       | ✅     |
+| apiTestEndpoints entries for all new routes                | ✅     |
+| JSDoc on all modified route handlers and repositories      | ✅     |
+| Schema doc created for wigle_ledger_events                 | ✅     |
+
+---
+
+## Canonical Files & Standing Documentation
 
 - **`client/src/config/apiTestEndpoints.ts`** — single source of truth for all API endpoint registry entries. Every new route MUST get an entry here before merge.
+- **`docs/workflow/TESTING_STANDARDS.md`** — unified testing standards and requirements for all agents (new this session).
+- **`AGENTS.md` § Testing Requirements** — codified testing gate before any commit (new this session).
 
 ---
 
-## Recently Completed (last 5 sessions)
+## Recently Completed (prior sessions)
 
 | Commit     | What shipped                                                                                                                                                                                 |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| —          | feat(admin-ui): V3 enrichment + orphan networks + import runs server-side sort, pagination, column chooser, sticky headers; obs count + phantom run fixes; ledger event http_status logging  |
 | —          | feat(tooltip): add WiGLE source badge, local match badge, precision warning, pattern chips to shared renderNetworkTooltip; delete dead wigleTooltipNormalizer/Renderer files                 |
 | —          | docs: full audit + enrichment — FILTERS.md pipe syntax, schema indexes/MVs/tables, API auth fix, Vite 8, admin tabs, DATABASE_RADIO_ARCHITECTURE warning, DATA_QUALITY_FILTERING orphan note |
 | `4f88b3dd` | fix(tooltip): unify WiGLE observation popup to shared renderNetworkTooltip pipeline                                                                                                          |
