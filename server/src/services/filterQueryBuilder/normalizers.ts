@@ -81,7 +81,11 @@ const splitTextFilterTokens = (value: unknown): string[] => {
 };
 
 const normalizeWildcards = (value: string): string => {
-  return value.replace(/\*/g, '%').replace(/\?/g, '_');
+  return value
+    .replace(/%/g, '\\%') // escape literal %
+    .replace(/_/g, '\\_') // escape literal _
+    .replace(/\*/g, '%') // * → wildcard %
+    .replace(/\?/g, '_'); // ? → wildcard _
 };
 
 const normalizeRadioType = (value: string): string | null => {

@@ -15,26 +15,39 @@ export function buildFastPathIdentityPredicates(ctx: FilterBuildContext): string
           ? token.substring(1).trim()
           : token.substring(4).trim()
         : token;
-      const wildcardToken = normalizeWildcards(cleanToken);
-      const pattern =
-        wildcardToken.includes('%') || wildcardToken.includes('_')
-          ? wildcardToken
-          : `%${wildcardToken}%`;
-      // Bind the pattern once and reuse the same $N placeholder in both the MV column
-      // check and the EXISTS subquery — PostgreSQL allows multiple references to the same param.
-      const p = ctx.addParam(pattern);
-      if (isNegated) {
-        // Exclude networks where current SSID OR any historical obs SSID matches the term.
-        return `(ne.ssid NOT ILIKE ${p} AND NOT EXISTS (
+      const buildAlt = (alt: string): string => {
+        const wildcardToken = normalizeWildcards(alt);
+        const pattern =
+          wildcardToken.includes('%') || wildcardToken.includes('_')
+            ? wildcardToken
+            : `%${wildcardToken}%`;
+        // Bind the pattern once and reuse the same $N placeholder in both the MV column
+        // check and the EXISTS subquery — PostgreSQL allows multiple references to the same param.
+        const p = ctx.addParam(pattern);
+        if (isNegated) {
+          // Exclude networks where current SSID OR any historical obs SSID matches the term.
+          return `(ne.ssid NOT ILIKE ${p} ESCAPE '\\' AND NOT EXISTS (
           SELECT 1 FROM app.observations o2
-          WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p}
+          WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p} ESCAPE '\\'
         ))`;
-      }
-      // Include networks where current SSID OR any historical obs SSID matches the term.
-      return `(ne.ssid ILIKE ${p} OR EXISTS (
+        }
+        // Include networks where current SSID OR any historical obs SSID matches the term.
+        return `(ne.ssid ILIKE ${p} ESCAPE '\\' OR EXISTS (
         SELECT 1 FROM app.observations o2
-        WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p}
+        WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p} ESCAPE '\\'
       ))`;
+      };
+
+      const alternatives = cleanToken
+        .split('|')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (alternatives.length <= 1) {
+        return buildAlt(alternatives[0] ?? cleanToken);
+      }
+      const altClauses = alternatives.map(buildAlt);
+      // Positive OR-group: (A OR B). Negated OR-group: NOT A AND NOT B (De Morgan).
+      return isNegated ? `(${altClauses.join(' AND ')})` : `(${altClauses.join(' OR ')})`;
     });
     where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' AND ')})`);
     ctx.addApplied('identity', 'ssid', f.ssid);
@@ -60,7 +73,7 @@ export function buildFastPathIdentityPredicates(ctx: FilterBuildContext): string
       }
 
       const pattern = isWildcard ? wildcardValue : `${wildcardValue}%`;
-      return `UPPER(ne.bssid) ${operator} ${ctx.addParam(pattern)}`;
+      return `UPPER(ne.bssid) ${operator} ${ctx.addParam(pattern)} ESCAPE '\\'`;
     });
     where.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
     ctx.addApplied('identity', 'bssid', f.bssid);

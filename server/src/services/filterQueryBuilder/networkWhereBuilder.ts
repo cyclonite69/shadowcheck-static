@@ -28,14 +28,14 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
             : `%${wildcardToken}%`;
         const p = ctx.addParam(pattern);
         if (isNegated) {
-          return `(ne.ssid NOT ILIKE ${p} AND NOT EXISTS (
+          return `(ne.ssid NOT ILIKE ${p} ESCAPE '\\' AND NOT EXISTS (
           SELECT 1 FROM app.observations o2
-          WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p}
+          WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p} ESCAPE '\\'
         ))`;
         }
-        return `(ne.ssid ILIKE ${p} OR EXISTS (
+        return `(ne.ssid ILIKE ${p} ESCAPE '\\' OR EXISTS (
         SELECT 1 FROM app.observations o2
-        WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p}
+        WHERE o2.bssid = ne.bssid AND NULLIF(o2.ssid, '') ILIKE ${p} ESCAPE '\\'
       ))`;
       };
 
@@ -75,7 +75,7 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
       }
 
       const pattern = isWildcard ? wildcardValue : `${wildcardValue}%`;
-      return `UPPER(ne.bssid) ${operator} ${ctx.addParam(pattern)}`;
+      return `UPPER(ne.bssid) ${operator} ${ctx.addParam(pattern)} ESCAPE '\\'`;
     });
     networkWhere.push(predicates.length === 1 ? predicates[0] : `(${predicates.join(' OR ')})`);
     ctx.addApplied('identity', 'bssid', f.bssid);
