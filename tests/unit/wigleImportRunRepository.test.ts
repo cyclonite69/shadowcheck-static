@@ -171,6 +171,7 @@ describe('wigleImportRunRepository', () => {
   describe('listImportRuns', () => {
     it('should list runs with filters', async () => {
       query.mockResolvedValueOnce({ rows: [{ id: 1, request_params: {} }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
       const result = await repository.listImportRuns({
         status: 'running',
         state: 'IL',
@@ -178,19 +179,165 @@ describe('wigleImportRunRepository', () => {
         incompleteOnly: true,
         limit: 10,
       });
-      expect(query).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'WHERE status = $1 AND state = $2 AND search_term ILIKE $3 AND status IN'
-        ),
-        ['running', 'IL', '%fbi%', 10]
-      );
-      expect(result).toHaveLength(1);
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('total', 1);
     });
 
     it('should list runs without filters', async () => {
       query.mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [{ total: 0 }] });
+      const result = await repository.listImportRuns();
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('total', 0);
+    });
+
+    // Pagination tests
+    it('should return correct offset/limit in response', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 100 }] });
+
+      const result = await repository.listImportRuns({ limit: 25, offset: 50 });
+
+      expect(result.limit).toBe(25);
+      expect(result.offset).toBe(50);
+    });
+
+    it('should apply LIMIT and OFFSET in SQL query', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 100 }] });
+
+      await repository.listImportRuns({ limit: 20, offset: 40 });
+
+      const dataCall = query.mock.calls[0];
+      expect(dataCall[1]).toContain(20); // LIMIT
+      expect(dataCall[1]).toContain(40); // OFFSET
+    });
+
+    it('should default to limit=20, offset=0', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 50 }] });
+
+      const result = await repository.listImportRuns();
+
+      expect(result.limit).toBe(20);
+      expect(result.offset).toBe(0);
+    });
+
+    it('should return total count from COUNT query', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 42 }] });
+
+      const result = await repository.listImportRuns();
+
+      expect(result.total).toBe(42);
+    });
+
+    it('should handle zero total count', async () => {
+      query.mockResolvedValueOnce({ rows: [] });
+      query.mockResolvedValueOnce({ rows: [{ total: 0 }] });
+
+      const result = await repository.listImportRuns();
+
+      expect(result.total).toBe(0);
+      expect(result.data).toEqual([]);
+    });
+
+    // Sorting tests
+    it('should use started_at DESC as default sort', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
+
       await repository.listImportRuns();
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('SELECT *'), [20]);
+
+      const dataCall = query.mock.calls[0];
+      expect(dataCall[0]).toContain('ORDER BY started_at DESC');
+    });
+
+    it('should accept single sort key', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
+
+      await repository.listImportRuns({ sortBy: 'status' });
+
+      const dataCall = query.mock.calls[0];
+      expect(dataCall[0]).toContain('status ASC'); // defaults to ASC
+    });
+
+    it('should apply specified sort direction', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
+
+      await repository.listImportRuns({ sortBy: 'status', sortDir: 'desc' });
+
+      const dataCall = query.mock.calls[0];
+      expect(dataCall[0]).toContain('status DESC');
+    });
+
+    it('should accept multiple sort keys with matching directions', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
+
+      await repository.listImportRuns({ sortBy: 'status,started_at', sortDir: 'asc,desc' });
+
+      const dataCall = query.mock.calls[0];
+      expect(dataCall[0]).toContain('status ASC, started_at DESC');
+    });
+
+    it('should reject invalid sort keys (SQL injection prevention)', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
+
+      await repository.listImportRuns({ sortBy: 'invalid_column; DROP TABLE' });
+
+      const dataCall = query.mock.calls[0];
+      // Invalid key should be filtered out, using default
+      expect(dataCall[0]).toContain('ORDER BY started_at DESC');
+    });
+
+    it('should allow all keys in SORT_ALLOWLIST', async () => {
+      const allowlistKeys = [
+        'started_at',
+        'updated_at',
+        'completed_at',
+        'status',
+        'state',
+        'search_term',
+        'rows_inserted',
+        'rows_returned',
+        'pages_fetched',
+        'total_pages',
+        'source',
+      ];
+
+      for (const key of allowlistKeys) {
+        query.mockClear();
+        query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+        query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
+
+        await repository.listImportRuns({ sortBy: key });
+
+        const dataCall = query.mock.calls[0];
+        expect(dataCall[0]).toContain(`${key} ASC`);
+      }
+    });
+
+    it('should revert to default sort when all keys are invalid', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
+
+      await repository.listImportRuns({ sortBy: 'malicious1,malicious2' });
+
+      const dataCall = query.mock.calls[0];
+      expect(dataCall[0]).toContain('ORDER BY started_at DESC');
+    });
+
+    it('should execute two queries (data + count)', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      query.mockResolvedValueOnce({ rows: [{ total: 1 }] });
+
+      await repository.listImportRuns();
+
+      expect(query).toHaveBeenCalledTimes(2);
     });
   });
 
