@@ -147,7 +147,10 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
               backfill_status: result.status,
               matched_netid: result.matchedNetid,
               wigle_v3_observation_count:
-                result.totalObservations ?? row.wigle_v3_observation_count,
+                result.totalObservations ??
+                row.observations_imported ??
+                row.wigle_v3_observation_count,
+              observations_imported: result.totalObservations ?? row.observations_imported,
               last_attempted_at: new Date().toISOString(),
               last_error: result.status === 'error' ? result.message : null,
             };
@@ -282,7 +285,7 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                         {row.source_device || '—'}
                       </td>
                       <td className="py-1.5 pr-3 text-right tabular-nums">
-                        {row.wigle_v3_observation_count ?? 0}
+                        {row.observations_imported ?? row.wigle_v3_observation_count ?? 0}
                       </td>
                       <td className="py-1.5 pr-3 whitespace-nowrap">{renderStatus(row)}</td>
                       <td className="py-1.5 pr-3 text-slate-400">{row.move_reason}</td>
