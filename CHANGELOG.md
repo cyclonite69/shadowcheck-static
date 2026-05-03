@@ -323,6 +323,7 @@
 - **geospatial:** make note menu detect existing notes robustly ([87331b3](https://github.com/cyclonite69/shadowcheck-web/commit/87331b3ff3dab7ce0a9b9bafb2c712e09805e184))
 - **geospatial:** merge new default columns into saved localStorage column list ([4287d6e](https://github.com/cyclonite69/shadowcheck-web/commit/4287d6ef4c613edc60a0661c152c48db3649e515))
 - **geospatial:** normalize locked viewport bounds ([d65a673](https://github.com/cyclonite69/shadowcheck-web/commit/d65a6739dec7fcb9846fcd4ecb2927f70e50ace2))
+- **geospatial:** pipe OR logic in fast path, escape literal underscore in search patterns ([fc253b9](https://github.com/cyclonite69/shadowcheck-web/commit/fc253b93111a25c3270aa17e88dd028ad80b35ab))
 - **geospatial:** pixel-align checkbox and type cells to row center ([7b6b115](https://github.com/cyclonite69/shadowcheck-web/commit/7b6b1150bafbf4a28e905bbed051fea5809b5010))
 - **geospatial:** popup always centers within map container viewport ([255dfb6](https://github.com/cyclonite69/shadowcheck-web/commit/255dfb6dfb30e8fc2d4a89eb66fa4fb5052979b8))
 - **geospatial:** portal context menu, wire Investigate, fix Notes bssid capture ([019fedd](https://github.com/cyclonite69/shadowcheck-web/commit/019feddd9e813f14ac7a526d00828d9a2f5f2eec))

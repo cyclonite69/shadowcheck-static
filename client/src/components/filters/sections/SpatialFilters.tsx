@@ -5,6 +5,27 @@
 import React from 'react';
 import { FilterSection, FilterInput } from '../../filter';
 import { NetworkFilters } from '../../../types/filters';
+import { usePinDropStore } from '../../../stores/pinDropStore';
+
+const CrosshairIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    width={14}
+    height={14}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="3" />
+    <line x1="12" y1="2" x2="12" y2="6" />
+    <line x1="12" y1="18" x2="12" y2="22" />
+    <line x1="2" y1="12" x2="6" y2="12" />
+    <line x1="18" y1="12" x2="22" y2="12" />
+  </svg>
+);
 
 interface SpatialFiltersProps {
   filters: NetworkFilters;
@@ -29,6 +50,9 @@ export const SpatialFilters: React.FC<SpatialFiltersProps> = ({
   onSetBoundingBoxViewportLock,
   onToggleFilter,
 }) => {
+  const pinDropActive = usePinDropStore((s) => s.active);
+  const startPinDrop = usePinDropStore((s) => s.start);
+  const cancelPinDrop = usePinDropStore((s) => s.cancel);
   const updateBoundingBox = (
     key: 'north' | 'south' | 'east' | 'west',
     value: number | undefined
@@ -159,7 +183,44 @@ export const SpatialFilters: React.FC<SpatialFiltersProps> = ({
         enabled={enabled.radiusFilter || false}
         onToggle={() => onToggleFilter('radiusFilter')}
         compact={isCompact}
+        labelExtra={
+          <button
+            type="button"
+            onClick={() => (pinDropActive ? cancelPinDrop() : startPinDrop())}
+            title={pinDropActive ? 'Cancel pin-drop (Esc)' : 'Click map to set center'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2px 5px',
+              borderRadius: '4px',
+              border: `1px solid ${pinDropActive ? '#06b6d4' : '#475569'}`,
+              background: pinDropActive ? 'rgba(6,182,212,0.15)' : 'transparent',
+              color: pinDropActive ? '#06b6d4' : '#94a3b8',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            aria-pressed={pinDropActive}
+          >
+            <CrosshairIcon />
+          </button>
+        }
       >
+        {pinDropActive && (
+          <div
+            style={{
+              fontSize: '11px',
+              color: '#06b6d4',
+              background: 'rgba(6,182,212,0.08)',
+              border: '1px solid rgba(6,182,212,0.25)',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              marginBottom: '6px',
+            }}
+          >
+            Click map to set center · Esc to cancel
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-2">
           <input
             type="number"

@@ -13,4 +13,5 @@ export interface FilterInputProps {
   onToggle: ChangeEventHandler<HTMLInputElement>;
   children: ReactNode;
   compact?: boolean;
+  labelExtra?: ReactNode;
 }

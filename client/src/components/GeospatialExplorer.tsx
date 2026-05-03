@@ -18,6 +18,7 @@ import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { GeospatialMapContent } from './geospatial/GeospatialMapContent';
 import { GeospatialTableContent } from './geospatial/GeospatialTableContent';
 import { GeospatialOverlayContent } from './geospatial/overlays/GeospatialOverlayContent';
+import { MapRadiusContextMenu } from './geospatial/MapRadiusContextMenu';
 
 export default function GeospatialExplorer() {
   usePageFilters('geospatial');
@@ -232,54 +233,62 @@ export default function GeospatialExplorer() {
         </>
       }
       overlays={
-        <GeospatialOverlayContent
-          state={state}
-          contextMenu={contextMenu}
-          tagLoading={tagLoading}
-          contextMenuRef={contextMenuRef}
-          handleTagAction={handleTagAction}
-          closeContextMenu={closeContextMenu}
-          openTimeFrequency={openTimeFrequency}
-          timeFreqModal={timeFreqModal}
-          openNoteModalForBssid={openNoteModalForBssid}
-          handleGenerateThreatReportPdf={handleGenerateThreatReportPdf}
-          toggleWigleForBssids={state.toggleWigleForBssids}
-          wigleObservations={wigleObservations}
-          selectedNetworks={selectedNetworks}
-          manualSiblingTarget={state.manualSiblingTarget}
-          handleMarkSiblingPair={state.handleMarkSiblingPair}
-          siblingPairLoading={state.siblingPairLoading}
-          showNoteModal={showNoteModal}
-          setShowNoteModal={setShowNoteModal}
-          selectedBssid={selectedBssid}
-          hasExistingNote={hasExistingNote}
-          noteSaving={noteSaving}
-          noteDeleting={noteDeleting}
-          noteError={noteError}
-          clearNoteError={clearNoteError}
-          noteType={noteType}
-          noteContent={noteContent}
-          noteAttachments={noteAttachments}
-          existingNoteMedia={existingNoteMedia}
-          fileInputRef={fileInputRef}
-          setNoteType={setNoteType}
-          setNoteContent={setNoteContent}
-          handleAddAttachment={handleAddAttachment}
-          removeAttachment={removeAttachment}
-          resetNoteState={resetNoteState}
-          handleSaveNote={handleSaveNote}
-          handleDeleteNote={handleDeleteNote}
-          handleDeleteExistingMedia={handleDeleteExistingMedia}
-          openExistingMedia={openExistingMedia}
-          closeTimeFrequency={closeTimeFrequency}
-          wigleLookupDialog={wigleLookupDialog}
-          handleWigleLookup={handleWigleLookup}
-          closeWigleLookupDialog={closeWigleLookupDialog}
-          clearWigleObservations={clearWigleObservations}
-          agencies={agencies}
-          agenciesLoading={agenciesLoading}
-          agenciesError={agenciesError}
-        />
+        <>
+          <GeospatialOverlayContent
+            state={state}
+            contextMenu={contextMenu}
+            tagLoading={tagLoading}
+            contextMenuRef={contextMenuRef}
+            handleTagAction={handleTagAction}
+            closeContextMenu={closeContextMenu}
+            openTimeFrequency={openTimeFrequency}
+            timeFreqModal={timeFreqModal}
+            openNoteModalForBssid={openNoteModalForBssid}
+            handleGenerateThreatReportPdf={handleGenerateThreatReportPdf}
+            toggleWigleForBssids={state.toggleWigleForBssids}
+            wigleObservations={wigleObservations}
+            selectedNetworks={selectedNetworks}
+            manualSiblingTarget={state.manualSiblingTarget}
+            handleMarkSiblingPair={state.handleMarkSiblingPair}
+            siblingPairLoading={state.siblingPairLoading}
+            showNoteModal={showNoteModal}
+            setShowNoteModal={setShowNoteModal}
+            selectedBssid={selectedBssid}
+            hasExistingNote={hasExistingNote}
+            noteSaving={noteSaving}
+            noteDeleting={noteDeleting}
+            noteError={noteError}
+            clearNoteError={clearNoteError}
+            noteType={noteType}
+            noteContent={noteContent}
+            noteAttachments={noteAttachments}
+            existingNoteMedia={existingNoteMedia}
+            fileInputRef={fileInputRef}
+            setNoteType={setNoteType}
+            setNoteContent={setNoteContent}
+            handleAddAttachment={handleAddAttachment}
+            removeAttachment={removeAttachment}
+            resetNoteState={resetNoteState}
+            handleSaveNote={handleSaveNote}
+            handleDeleteNote={handleDeleteNote}
+            handleDeleteExistingMedia={handleDeleteExistingMedia}
+            openExistingMedia={openExistingMedia}
+            closeTimeFrequency={closeTimeFrequency}
+            wigleLookupDialog={wigleLookupDialog}
+            handleWigleLookup={handleWigleLookup}
+            closeWigleLookupDialog={closeWigleLookupDialog}
+            clearWigleObservations={clearWigleObservations}
+            agencies={agencies}
+            agenciesLoading={agenciesLoading}
+            agenciesError={agenciesError}
+          />
+          <MapRadiusContextMenu
+            menu={state.radiusContextMenu}
+            onSetCenter={state.setRadiusFromContextMenu}
+            onClear={state.clearRadiusFilter}
+            onClose={state.closeRadiusContextMenu}
+          />
+        </>
       }
     />
   );

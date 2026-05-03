@@ -22,6 +22,7 @@ import { useApplyMapLayerDefaults } from './useApplyMapLayerDefaults';
 import { useMapStyleControls } from './useMapStyleControls';
 import { useResetPaginationOnFilters } from './useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './useDebouncedFilterState';
+import { useRadiusPinDrop } from './useRadiusPinDrop';
 import { logError, logDebug } from '../../../logging/clientLogger';
 import { WigleObservationsState } from './useWigleLayers';
 import { networkApi } from '../../../api/networkApi';
@@ -360,6 +361,13 @@ export const useGeospatialExplorerState = ({
     }
   };
 
+  const {
+    contextMenu: radiusContextMenu,
+    closeContextMenu: closeRadiusContextMenu,
+    setRadiusFromContextMenu,
+    clearRadiusFilter,
+  } = useRadiusPinDrop(mapReady, mapRef);
+
   const filteredNetworks = useMemo(() => {
     if (visibleSiblingGroupMap.size === 0) return networks;
     const grouped: NetworkRow[] = [];
@@ -442,5 +450,9 @@ export const useGeospatialExplorerState = ({
     manualSiblingTarget,
     handleMarkSiblingPair,
     filteredNetworks,
+    radiusContextMenu,
+    closeRadiusContextMenu,
+    setRadiusFromContextMenu,
+    clearRadiusFilter,
   };
 };

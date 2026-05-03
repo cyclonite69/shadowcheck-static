@@ -10,6 +10,7 @@ export const FilterInput: React.FC<FilterInputProps> = ({
   onToggle,
   children,
   compact = false,
+  labelExtra,
 }) => (
   <div className={`filter-panel__input ${compact ? 'space-y-1.5' : 'space-y-2'}`}>
     <label className={`flex items-center space-x-2 ${compact ? 'text-xs' : 'text-sm'}`}>
@@ -19,7 +20,8 @@ export const FilterInput: React.FC<FilterInputProps> = ({
         onChange={onToggle}
         className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500"
       />
-      <span className="filter-panel__label text-slate-300">{label}</span>
+      <span className="filter-panel__label text-slate-300 flex-1">{label}</span>
+      {labelExtra && <span onClick={(e) => e.stopPropagation()}>{labelExtra}</span>}
     </label>
     {enabled && (
       <div className={`filter-panel__input-body ${compact ? 'ml-5' : 'ml-6'}`}>{children}</div>
