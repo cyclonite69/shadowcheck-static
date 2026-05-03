@@ -303,6 +303,7 @@
 - **geospatial:** add WiGLE enrichment fields to explorer tooltip pipeline ([bb58cc4](https://github.com/cyclonite69/shadowcheck-web/commit/bb58cc4d263397717aa78ca47ff6a5b7a3dca376))
 - **geospatial:** align header offset and standardize temporal heatmap labeling ([3a7e0db](https://github.com/cyclonite69/shadowcheck-web/commit/3a7e0dbcfa042d53059b320eccdc648faf2489e8))
 - **geospatial:** correct context menu position to cursor location ([8d25de9](https://github.com/cyclonite69/shadowcheck-web/commit/8d25de9c2b51eeb6f885a92d095540f7dfa4639c))
+- **geospatial:** correct filterStore import path in MapRadiusContextMenu ([2aad8f9](https://github.com/cyclonite69/shadowcheck-web/commit/2aad8f9c245a4bfacc6ae79471937e68fd3ff5d6))
 - **geospatial:** correct relative import paths in contextMenu/actions.ts ([ef5f626](https://github.com/cyclonite69/shadowcheck-web/commit/ef5f62656ebbac9802aa23cbc1a5c79ee711d193))
 - **geospatial:** degrade filtered retry limit on repeated timeout ([5baf3e5](https://github.com/cyclonite69/shadowcheck-web/commit/5baf3e55be0bc8392f9fdb1babb6363359271b32))
 - **geospatial:** detect wildcard BSSID patterns in quick search ([ddc70bd](https://github.com/cyclonite69/shadowcheck-web/commit/ddc70bd9aac402624b5409ca801ad0d31f5085d7))

@@ -235,6 +235,75 @@ curl http://localhost:3001/api/health
 3. Set up monitoring (see `deploy/aws/docs/MONITORING.md`)
 4. Review security settings (see `SECURITY.md`)
 
+## Instance Maintenance Setup
+
+The following steps were manually configured on the current instance and must be
+repeated if the instance is ever replaced. They are **not** performed by
+`setup-instance.sh` or `deploy-complete.sh`.
+
+### Install nano
+
+`nano` is not installed by default on Amazon Linux 2023:
+
+```bash
+sudo dnf install -y nano
+```
+
+### Weekly Security Patching (systemd timer)
+
+`crontab` is not available on this instance. Use systemd timers instead.
+
+Create the service unit:
+
+```bash
+sudo tee /etc/systemd/system/security-updates.service > /dev/null << 'EOF'
+[Unit]
+Description=Weekly security updates
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'dnf update --security -y >> /var/log/security-updates.log 2>&1'
+EOF
+```
+
+Create the timer unit (runs every Sunday at 03:00 UTC):
+
+```bash
+sudo tee /etc/systemd/system/security-updates.timer > /dev/null << 'EOF'
+[Unit]
+Description=Weekly security updates timer
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+```
+
+Enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now security-updates.timer
+```
+
+Verify:
+
+```bash
+sudo systemctl status security-updates.timer
+sudo systemctl list-timers security-updates.timer
+```
+
+Logs are written to `/var/log/security-updates.log`.
+
+> **Note:** `crontab` is not available on this instance. All scheduled tasks must
+> use systemd timers.
+
+See `docs/EC2_SETUP.md` for the full maintenance reference.
+
 ## Support
 
 - Documentation: `deploy/aws/README.md`
