@@ -78,6 +78,7 @@
 - allow certs/generate-cert.sh in Docker build context ([88f20b1](https://github.com/cyclonite69/shadowcheck-web/commit/88f20b1e13aebb2f10ea252d21d7b409121fe14a))
 - altitude/sort/manufacturer issues in geospatial explorer ([6c4ee02](https://github.com/cyclonite69/shadowcheck-web/commit/6c4ee024da423bc8d87bf343424cd169e3675c29))
 - **analytics:** replace static filtered analytics with live queries ([cc27d7a](https://github.com/cyclonite69/shadowcheck-web/commit/cc27d7aa069ed16eca804fa1ef3a96362d9c1a28))
+- **api-test:** deduplicate WiGLE Observations label ([4a58703](https://github.com/cyclonite69/shadowcheck-web/commit/4a587031c16743b3cae4c3f7c84bc1ead3ec74b4))
 - **api:** align threat category filtering with computed threat level ([7118977](https://github.com/cyclonite69/shadowcheck-web/commit/7118977847f1a21cd0f783e9f476971061ee8751))
 - **api:** correct column sorting for threat, channel, and timespan ([0d33fb5](https://github.com/cyclonite69/shadowcheck-web/commit/0d33fb5c86ed419be85a706a8dbcaba7349f6674))
 - **api:** correct db-stats routing mount point ([41b9fbb](https://github.com/cyclonite69/shadowcheck-web/commit/41b9fbb291a9cafbb416eb3e462bfb8375fd3968))
