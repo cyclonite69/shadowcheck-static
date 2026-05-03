@@ -142,7 +142,7 @@ router.get('/ledger', requireAdmin, async (req: any, res: any) => {
             r.rows_inserted,
             r.pages_fetched,
             CASE WHEN r.completed_at IS NOT NULL
-              THEN EXTRACT(EPOCH FROM (r.completed_at - r.started_at))::integer * 1000
+              THEN (EXTRACT(EPOCH FROM (r.completed_at - r.started_at)) * 1000)::bigint
             END                                                             AS duration_ms,
             r.last_error                                                    AS error
           FROM app.wigle_import_runs r

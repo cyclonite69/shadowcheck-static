@@ -961,6 +961,7 @@
 - **deploy:** align grafana health check detection with other containers ([651cf90](https://github.com/cyclonite69/shadowcheck-web/commit/651cf90c30e7437a9673278fee705aa7c5256664))
 - **deploy:** self-install scs_rebuild as system-wide command on first run ([544d6e2](https://github.com/cyclonite69/shadowcheck-web/commit/544d6e2a4ba574744cf889b7e599546290e412d6))
 - Disable automatic network marker loading on geospatial page ([163ccf2](https://github.com/cyclonite69/shadowcheck-web/commit/163ccf2c0c6c2dc6c143601f09f7f468e306b8c8))
+- **ec2-setup:** install nano and security-updates timer in setup-instance.sh ([be7df3c](https://github.com/cyclonite69/shadowcheck-web/commit/be7df3c0ada36df60313eee972943b867c91489c))
 - enhance geospatial visualizations and add database migration scripts ([2403006](https://github.com/cyclonite69/shadowcheck-web/commit/24030065809df5ec9a266ea8a68549e1c3573101))
 - enhance Grafana intelligence dashboards with fleet co-occurrence and AI insights ([c6ead99](https://github.com/cyclonite69/shadowcheck-web/commit/c6ead99c9909886edf8e2db883dcf8c3c8a382cf))
 - enhance launch-shadowcheck-spot.sh with automated volume migration ([30bad0d](https://github.com/cyclonite69/shadowcheck-web/commit/30bad0d4cca8d9cf8952ce6e5ca454f285f62455))
