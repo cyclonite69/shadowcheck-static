@@ -1132,6 +1132,7 @@
 - upgrade Jest 29 → 30 ([d244ac5](https://github.com/cyclonite69/shadowcheck-web/commit/d244ac57898128da52b479eed46585794b07ef2c))
 - upgrade Node.js to v22 (LTS) ([1b0bde6](https://github.com/cyclonite69/shadowcheck-web/commit/1b0bde617c7e2ff35eaae7fcff2d341aca8e46f6))
 - upgrade to React 19 and Vite 7 ([97066a9](https://github.com/cyclonite69/shadowcheck-web/commit/97066a94e82bf92c2ec17475d9dcde9f44ac5f05))
+- **user-stats:** serve cached stats on rate-limit instead of 429 ([fbf9cb8](https://github.com/cyclonite69/shadowcheck-web/commit/fbf9cb8e6c10f42c2d242a039e90d830a815f43e))
 - **user-stats:** serve cached stats on rate-limit instead of 429 ([8e22fe9](https://github.com/cyclonite69/shadowcheck-web/commit/8e22fe9f19ccbac4e004610ea4dc69e43eb43413))
 - **v3enrichment:** remove obs panel, decouple forensic preview, add multi-sort + col chooser ([420e252](https://github.com/cyclonite69/shadowcheck-web/commit/420e2520190f79c4bbe6e7a7b5657c429c5372c6))
 - **wigle-detail:** remove Recent Imports & Resumption section from v3 tab ([c064f80](https://github.com/cyclonite69/shadowcheck-web/commit/c064f802977ca3df441fdebfcfff02e2808e901d))
