@@ -157,6 +157,7 @@ The setup script installs:
 - `tree` - Directory tree viewer
 - `ncdu` - Disk usage analyzer
 - `tmux` - Terminal multiplexer
+- `nano` - Text editor
 - `git` - Version control
 
 **Database Tools:**

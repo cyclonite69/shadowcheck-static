@@ -39,7 +39,7 @@ echo "🛠️  Installing system utilities..."
 dnf install -y \
   htop lsof strace tcpdump \
   bind-utils iproute traceroute nmap-ncat \
-  jq tree \
+  jq tree nano \
   sysstat psmisc util-linux \
   chrony tmux \
   git
@@ -246,7 +246,37 @@ else
 fi
 echo ""
 
-# 13. Display system information
+# 13. Install weekly security-update timer
+# crontab is not available on this instance — use systemd timers instead
+echo "🔒 Configuring weekly security-update timer..."
+cat > /etc/systemd/system/security-updates.service << 'EOF'
+[Unit]
+Description=Weekly security updates
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'dnf update --security -y >> /var/log/security-updates.log 2>&1'
+EOF
+
+cat > /etc/systemd/system/security-updates.timer << 'EOF'
+[Unit]
+Description=Weekly security updates timer
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now security-updates.timer
+echo "✅ security-updates.timer enabled (runs Sun 03:00 UTC, logs to /var/log/security-updates.log)"
+echo ""
+
+# 14. Display system information
 echo "📊 System Information:"
 echo "===================="
 echo "OS: $(cat /etc/system-release)"
@@ -257,7 +287,7 @@ echo "Node.js: $(node --version)"
 echo "npm: $(npm --version)"
 echo ""
 
-# 13. Display installed utilities
+# 15. Display installed utilities
 echo "🛠️  Installed Utilities:"
 echo "====================="
 echo "htop: $(htop --version 2>&1 | head -1)"
