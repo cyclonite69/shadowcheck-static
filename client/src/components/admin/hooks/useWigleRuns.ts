@@ -129,6 +129,18 @@ export const useWigleRuns = (options: { limit?: number } = {}) => {
     }
   };
 
+  const deleteRun = async (runId: number) => {
+    setActionLoading(true);
+    try {
+      await wigleApi.deleteImportRun(runId);
+      await fetchRuns({ reset: true });
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete run');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return {
     runs,
     total,
@@ -144,5 +156,6 @@ export const useWigleRuns = (options: { limit?: number } = {}) => {
     resumeRun,
     pauseRun,
     cancelRun,
+    deleteRun,
   };
 };

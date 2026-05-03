@@ -6,7 +6,22 @@ Update this file manually when handing off a task or starting a new session. Age
 
 ## Current Status
 
-_No active workstreams. All completed as of 2026-05-03._
+**In progress — 2026-05-03**: WiGLE Import Runs table fixes. Changes made, unit tests passing, lint/tsc clean. Pending: full unit-test run + commit approval.
+
+### In-Progress: `fix(import-runs)` branch changes
+
+| File                                                       | Change                                                                                                                                 |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `server/src/services/wigleImport/runRepository.ts`         | Source filter (`NOT IN v3_manual/v3_batch/v3_auto`) in `listImportRuns`; new `deleteImportRun` fn; sort direction default fixed to ASC |
+| `server/src/services/wigleImportRunService.ts`             | `deleteImportRun` imported and re-exported                                                                                             |
+| `server/src/api/routes/v1/wigle/search.ts`                 | `DELETE /search-api/import-runs/:id` endpoint added                                                                                    |
+| `client/src/api/wigleApi.ts`                               | `deleteImportRun()` client method added                                                                                                |
+| `client/src/components/admin/hooks/useWigleRuns.ts`        | `deleteRun` action added                                                                                                               |
+| `client/src/components/admin/components/WigleRunsCard.tsx` | TrashIcon + delete button (completed/cancelled/failed rows only); target cell shows search term only (no state prefix)                 |
+| `client/src/components/admin/tabs/WigleSearchTab.tsx`      | `deleteRun` + sort props wired to WigleRunsCard                                                                                        |
+| `client/src/config/apiTestEndpoints.ts`                    | Entry added for DELETE import run endpoint                                                                                             |
+
+**Next step**: Run all unit tests (`npx jest --testPathPatterns="tests/unit" --globalSetup="" --globalTeardown=""`), then show diff + commit message for approval.
 
 ---
 

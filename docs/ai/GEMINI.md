@@ -17,9 +17,11 @@ Gemini CLI does not auto-read context files. Paste this entire file at the start
 2. `package.json` — check existing deps before suggesting new ones.
 3. `docs/ai/sessions/ACTIVE.md` — active workstreams; do not touch in-progress areas.
 4. `sql/migrations/README.md` — current migration state.
-5. `docs/schema/observations-sources.md` — before querying spatial data.
-6. `docs/ai/decisions/` — scan ADRs before any architectural decision.
-7. Any file explicitly referenced in the user's prompt.
+5. `docs/DATABASE_CONNECTION.md` — DB access rules; `npm test` requires Docker; use unit-only flags locally.
+6. `docs/SSM_ACCESS.md` — EC2/SSM access; read before any DB or production operation.
+7. `docs/schema/observations-sources.md` — before querying spatial data.
+8. `docs/ai/decisions/` — scan ADRs before any architectural decision.
+9. Any file explicitly referenced in the user's prompt.
 
 ---
 

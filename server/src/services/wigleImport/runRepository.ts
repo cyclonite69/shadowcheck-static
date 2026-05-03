@@ -292,7 +292,7 @@ const listImportRuns = async (
     sortDir,
   } = options;
   const params: any[] = [];
-  const where: string[] = [];
+  const where: string[] = [`source NOT IN ('v3_manual', 'v3_batch', 'v3_auto')`];
 
   if (status) {
     params.push(status);
@@ -336,7 +336,7 @@ const listImportRuns = async (
   sortKeys.forEach((key, i) => {
     const col = SORT_ALLOWLIST[key];
     if (!col) return;
-    const dir = sortDirs[i] === 'asc' ? 'ASC' : 'DESC';
+    const dir = sortDirs[i] === 'desc' ? 'DESC' : 'ASC';
     orderTerms.push(`${col} ${dir}`);
   });
   const orderBy = orderTerms.length > 0 ? orderTerms.join(', ') : 'started_at DESC';
@@ -511,6 +511,17 @@ export const bulkDeleteCancelledRunsByIds = async (ids: number[]): Promise<numbe
     [ids]
   );
   return result.rowCount ?? 0;
+};
+
+// Hard-deletes a single import run by id; only allows completed/cancelled/failed
+export const deleteImportRun = async (id: number): Promise<boolean> => {
+  const result = await query(
+    `DELETE FROM app.wigle_import_runs
+      WHERE id = $1
+        AND status IN ('completed', 'cancelled', 'failed')`,
+    [id]
+  );
+  return (result.rowCount ?? 0) > 0;
 };
 
 export {

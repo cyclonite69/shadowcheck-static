@@ -11,8 +11,10 @@ Read these before doing anything else on any task:
 1. `package.json` — check existing deps before suggesting new ones
 2. `docs/ai/sessions/ACTIVE.md` — check active workstreams; do not touch in-progress areas
 3. `sql/migrations/README.md` — current migration state
-4. `docs/schema/observations-sources.md` — before any query touching observation/wigle data
-5. `docs/ai/decisions/` — scan ADRs before any architectural decision
+4. `docs/DATABASE_CONNECTION.md` — DB access rules; `npm test` requires Docker; use unit-only flags locally
+5. `docs/SSM_ACCESS.md` — EC2/SSM access; read before any DB or production operation
+6. `docs/schema/observations-sources.md` — before any query touching observation/wigle data
+7. `docs/ai/decisions/` — scan ADRs before any architectural decision
 
 ---
 

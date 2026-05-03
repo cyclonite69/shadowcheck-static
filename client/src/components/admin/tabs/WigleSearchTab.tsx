@@ -96,10 +96,13 @@ export const WigleSearchTab: React.FC = () => {
     loading: runsLoading,
     error: runsError,
     actionLoading,
+    sortCols: runsSortCols,
+    setSortCols: setRunsSortCols,
     refresh: refreshRuns,
     resumeRun,
     pauseRun,
     cancelRun,
+    deleteRun,
   } = useWigleRuns({ limit: 100 });
 
   const [selectedNetwork, setSelectedNetwork] = useState<any | null>(null);
@@ -665,10 +668,30 @@ export const WigleSearchTab: React.FC = () => {
         loading={runsLoading}
         actionLoading={actionLoading}
         error={runsError}
+        sortCols={runsSortCols}
+        onSort={(col, e) => {
+          if (!col.sortKey) return;
+          setRunsSortCols((prev) => {
+            const existing = prev.find((s) => s.key === col.sortKey);
+            if (e.shiftKey) {
+              if (existing) {
+                return prev.map((s) =>
+                  s.key === col.sortKey ? { ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' } : s
+                );
+              }
+              return [...prev, { key: col.sortKey!, dir: 'asc' }];
+            }
+            if (existing && prev.length === 1) {
+              return [{ key: col.sortKey!, dir: existing.dir === 'asc' ? 'desc' : 'asc' }];
+            }
+            return [{ key: col.sortKey!, dir: 'asc' }];
+          });
+        }}
         onRefresh={refreshRuns}
         onResume={resumeRun}
         onPause={pauseRun}
         onCancel={cancelRun}
+        onDelete={deleteRun}
         onCleanupCluster={async () => {
           await wigleApi.cleanupCancelledCluster();
           await refreshRuns();

@@ -361,6 +361,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'WiGLE',
+    label: 'Delete Import Run',
+    description: 'Hard-delete a completed, cancelled, or failed import run by ID.',
+    path: '/api/wigle/search-api/import-runs/:id',
+    method: 'DELETE',
+    params: [{ name: 'id', label: 'Run ID', placeholder: '123', type: 'number' }],
+  },
+  {
+    category: 'WiGLE',
     label: 'V3 Enrichment Catalog',
     description:
       'Browse v2 search catalog with per-BSSID v3 enrichment stats. Supports server-side multi-column sort.',

@@ -11,9 +11,11 @@ Read these before doing anything else on any task:
 1. `package.json` — check existing deps before suggesting new ones
 2. `docs/ai/sessions/ACTIVE.md` — check active workstreams; do not touch in-progress areas
 3. `sql/migrations/README.md` — current migration state
-4. `docs/schema/observations-sources.md` — before any query touching observation/wigle data
-5. `docs/ai/decisions/` — scan ADRs before any architectural decision
-6. Any file explicitly referenced in the prompt via `@filepath`
+4. `docs/DATABASE_CONNECTION.md` — DB access rules; `npm test` requires Docker; use unit-only flags locally
+5. `docs/SSM_ACCESS.md` — EC2/SSM access; read before any DB or production operation
+6. `docs/schema/observations-sources.md` — before any query touching observation/wigle data
+7. `docs/ai/decisions/` — scan ADRs before any architectural decision
+8. Any file explicitly referenced in the prompt via `@filepath`
 
 ---
 
@@ -36,11 +38,13 @@ npm run dev:frontend                 # Vite dev server (port 5173, hot reload)
 npm run build                        # Full build: frontend + server TypeScript → dist/
 
 # Testing
-npm test                             # All tests
+npm test                             # All tests (requires Docker DB running)
 npm run test:cov                     # With coverage (70% threshold enforced)
 npm run test:integration             # Integration tests (requires Docker DB)
 npx jest tests/unit/file.test.ts    # Single test file
 npx jest -t "test name pattern"     # Tests matching pattern
+# Unit-only (no Docker needed):
+npx jest --testPathPatterns="tests/unit" --globalSetup="" --globalTeardown=""
 
 # Linting — run before all commits
 npm run lint                         # Check ESLint issues

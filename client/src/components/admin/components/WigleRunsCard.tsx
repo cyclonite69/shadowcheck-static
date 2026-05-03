@@ -92,6 +92,24 @@ const CancelIcon = ({ size = 16 }) => (
     <line x1="15" y1="9" x2="9" y2="15" />
   </svg>
 );
+const TrashIcon = ({ size = 16 }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+  </svg>
+);
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +127,7 @@ interface WigleRunsCardProps {
   onResume: (id: number) => void;
   onPause: (id: number) => void;
   onCancel: (id: number) => void;
+  onDelete: (id: number) => void;
   onCleanupCluster?: () => Promise<void>;
 }
 
@@ -126,6 +145,7 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
   onResume,
   onPause,
   onCancel,
+  onDelete,
   onCleanupCluster,
 }) => {
   // Column visibility
@@ -179,10 +199,7 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
       case 'target':
         return (
           <td key={col.id} className="px-3 py-2">
-            <div className="font-bold text-slate-200">
-              {run.state || 'Global'}
-              {run.searchTerm ? ` / ${run.searchTerm}` : ''}
-            </div>
+            <div className="font-bold text-slate-200">{run.searchTerm || 'Global'}</div>
           </td>
         );
       case 'status':
@@ -330,6 +347,18 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
                   title="Cancel"
                 >
                   <CancelIcon />
+                </button>
+              )}
+              {(run.status === 'completed' ||
+                run.status === 'cancelled' ||
+                run.status === 'failed') && (
+                <button
+                  onClick={() => onDelete(run.id)}
+                  disabled={actionLoading}
+                  className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all disabled:opacity-20"
+                  title="Delete"
+                >
+                  <TrashIcon />
                 </button>
               )}
             </div>

@@ -219,6 +219,10 @@ export const wigleApi = {
     return apiClient.post(`/wigle/search-api/import-runs/${runId}/cancel`, {});
   },
 
+  async deleteImportRun(runId: number): Promise<any> {
+    return apiClient.delete(`/wigle/search-api/import-runs/${runId}`);
+  },
+
   // WiGLE v3 Batch Enrichment
   async getEnrichmentStats(): Promise<any> {
     return apiClient.get('/wigle/enrichment/stats');

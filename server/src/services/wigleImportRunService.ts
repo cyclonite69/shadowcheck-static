@@ -1,6 +1,7 @@
 import logger from '../logging/logger';
 import {
   completeRun,
+  deleteImportRun,
   getImportCompletenessSummary,
   getImportRun,
   getRunOrThrow,
@@ -300,4 +301,4 @@ export const bulkDeleteGlobalCancelledCluster = async (): Promise<number> => {
   return bulkDeleteCancelledRunsByIds(ids);
 };
 
-export { getImportRun, listImportRuns, validateImportQuery };
+export { deleteImportRun, getImportRun, listImportRuns, validateImportQuery };

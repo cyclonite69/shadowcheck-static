@@ -162,6 +162,31 @@ router.get(
   }
 );
 
+/**
+ * DELETE /search-api/import-runs/:id
+ * Hard-delete a completed, cancelled, or failed import run.
+ */
+router.delete(
+  '/search-api/import-runs/:id',
+  requireAdmin,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const runId = Number.parseInt(String(req.params.id), 10);
+      if (!Number.isFinite(runId))
+        return res.status(400).json({ ok: false, error: 'Invalid run id' });
+      const deleted = await wigleImportRunService.deleteImportRun(runId);
+      if (!deleted)
+        return res
+          .status(404)
+          .json({ ok: false, error: 'Run not found or not in a deletable state' });
+      return res.json({ ok: true, deleted: runId });
+    } catch (err: any) {
+      logger.error(`[WiGLE] Delete run error: ${err.message}`, { error: err });
+      next(err);
+    }
+  }
+);
+
 router.post(
   '/search-api/import-runs/resume-latest',
   requireAdmin,
