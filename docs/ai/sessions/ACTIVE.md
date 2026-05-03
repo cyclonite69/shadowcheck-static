@@ -6,22 +6,7 @@ Update this file manually when handing off a task or starting a new session. Age
 
 ## Current Status
 
-**In progress — 2026-05-03**: WiGLE Import Runs table fixes. Changes made, unit tests passing, lint/tsc clean. Pending: full unit-test run + commit approval.
-
-### In-Progress: `fix(import-runs)` branch changes
-
-| File                                                       | Change                                                                                                                                 |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `server/src/services/wigleImport/runRepository.ts`         | Source filter (`NOT IN v3_manual/v3_batch/v3_auto`) in `listImportRuns`; new `deleteImportRun` fn; sort direction default fixed to ASC |
-| `server/src/services/wigleImportRunService.ts`             | `deleteImportRun` imported and re-exported                                                                                             |
-| `server/src/api/routes/v1/wigle/search.ts`                 | `DELETE /search-api/import-runs/:id` endpoint added                                                                                    |
-| `client/src/api/wigleApi.ts`                               | `deleteImportRun()` client method added                                                                                                |
-| `client/src/components/admin/hooks/useWigleRuns.ts`        | `deleteRun` action added                                                                                                               |
-| `client/src/components/admin/components/WigleRunsCard.tsx` | TrashIcon + delete button (completed/cancelled/failed rows only); target cell shows search term only (no state prefix)                 |
-| `client/src/components/admin/tabs/WigleSearchTab.tsx`      | `deleteRun` + sort props wired to WigleRunsCard                                                                                        |
-| `client/src/config/apiTestEndpoints.ts`                    | Entry added for DELETE import run endpoint                                                                                             |
-
-**Next step**: Run all unit tests (`npx jest --testPathPatterns="tests/unit" --globalSetup="" --globalTeardown=""`), then show diff + commit message for approval.
+_No active workstreams. All completed as of 2026-05-03._
 
 ---
 
@@ -69,6 +54,7 @@ Update this file manually when handing off a task or starting a new session. Age
 
 | Commit     | What shipped                                                                                                                                                                                 |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1b7b8e8a` | fix(import-runs): filter phantom enrichment rows, add delete action, strip state prefix from target cell; context loading order updated in all agent files                                   |
 | —          | feat(admin-ui): V3 enrichment + orphan networks + import runs server-side sort, pagination, column chooser, sticky headers; obs count + phantom run fixes; ledger event http_status logging  |
 | —          | feat(tooltip): add WiGLE source badge, local match badge, precision warning, pattern chips to shared renderNetworkTooltip; delete dead wigleTooltipNormalizer/Renderer files                 |
 | —          | docs: full audit + enrichment — FILTERS.md pipe syntax, schema indexes/MVs/tables, API auth fix, Vite 8, admin tabs, DATABASE_RADIO_ARCHITECTURE warning, DATA_QUALITY_FILTERING orphan note |

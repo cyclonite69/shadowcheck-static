@@ -409,4 +409,35 @@ describe('wigleImportRunRepository', () => {
       expect(result).toBe(3);
     });
   });
+
+  describe('deleteImportRun', () => {
+    it('should return true when a deletable run is found and deleted', async () => {
+      query.mockResolvedValueOnce({ rowCount: 1 });
+      const result = await repository.deleteImportRun(42);
+      expect(result).toBe(true);
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining("status IN ('completed', 'cancelled', 'failed')"),
+        [42]
+      );
+    });
+
+    it('should return false when run does not exist or is not in a deletable status', async () => {
+      query.mockResolvedValueOnce({ rowCount: 0 });
+      const result = await repository.deleteImportRun(99);
+      expect(result).toBe(false);
+    });
+
+    it('should return false when rowCount is null', async () => {
+      query.mockResolvedValueOnce({ rowCount: null });
+      const result = await repository.deleteImportRun(7);
+      expect(result).toBe(false);
+    });
+
+    it('should pass the run id as a parameter', async () => {
+      query.mockResolvedValueOnce({ rowCount: 1 });
+      await repository.deleteImportRun(123);
+      const [, params] = query.mock.calls[0];
+      expect(params).toEqual([123]);
+    });
+  });
 });

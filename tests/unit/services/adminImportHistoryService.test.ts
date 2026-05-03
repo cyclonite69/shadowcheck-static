@@ -33,6 +33,21 @@ describe('adminImportHistoryService', () => {
       expect(metrics.networks).toBe(100);
       expect(historyAdminQuery).toHaveBeenCalledTimes(8);
     });
+
+    it('should set metric to null when a query fails and continue remaining metrics', async () => {
+      historyAdminQuery
+        .mockRejectedValueOnce(new Error('relation does not exist')) // networks fails
+        .mockResolvedValue({ rows: [{ value: '50' }] }); // rest succeed
+      const metrics = await captureImportMetrics();
+      expect(metrics.networks).toBeNull();
+      expect(metrics.observations).toBe(50);
+    });
+
+    it('should set metric to null when row value is null', async () => {
+      historyAdminQuery.mockResolvedValue({ rows: [{ value: null }] });
+      const metrics = await captureImportMetrics();
+      expect(metrics.networks).toBeNull();
+    });
   });
 
   describe('createImportHistoryEntry', () => {
@@ -50,6 +65,12 @@ describe('adminImportHistoryService', () => {
         expect.stringContaining('VALUES ($1, $2, $4, $3)'),
         ['tag', 'file.sqlite', '{}', 'pending']
       );
+    });
+
+    it('should return 0 when the insert fails', async () => {
+      historyAdminQuery.mockRejectedValueOnce(new Error('DB error'));
+      const id = await createImportHistoryEntry('tag', 'file.sqlite', {});
+      expect(id).toBe(0);
     });
   });
 
@@ -74,12 +95,22 @@ describe('adminImportHistoryService', () => {
   });
 
   describe('failImportHistory', () => {
-    it('should update history with failure details', async () => {
+    it('should update history with failure details (no duration)', async () => {
       await failImportHistory(123, 'some error');
       expect(historyAdminQuery).toHaveBeenCalledWith(
         expect.stringContaining('status'),
         expect.arrayContaining([123, 'some error'])
       );
+      // duration_s not included when omitted
+      const [, params] = historyAdminQuery.mock.calls[0];
+      expect(params).toHaveLength(2);
+    });
+
+    it('should include duration_s when provided', async () => {
+      await failImportHistory(456, 'timeout', '12.3');
+      const [sql, params] = historyAdminQuery.mock.calls[0];
+      expect(sql).toContain('duration_s');
+      expect(params).toEqual([456, '12.3', 'timeout']);
     });
   });
 
@@ -106,6 +137,12 @@ describe('adminImportHistoryService', () => {
       historyDbQuery.mockResolvedValue({ rows: [{ observations: 10, networks: 5 }] });
       const result = await getCountsHistory();
       expect(result).toEqual({ observations: 10, networks: 5 });
+    });
+
+    it('should return zero counts when rows is empty', async () => {
+      historyDbQuery.mockResolvedValue({ rows: [] });
+      const result = await getCountsHistory();
+      expect(result).toEqual({ observations: 0, networks: 0 });
     });
   });
 });
