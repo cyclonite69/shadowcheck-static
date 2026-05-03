@@ -7,7 +7,6 @@ import { wigleApi } from '../../../api/wigleApi';
 import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
 import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
 import { formatShortDate } from '../../../utils/formatDate';
-import { WigleRunsCard } from '../components/WigleRunsCard';
 import { V3EnrichmentManagerTable } from './data-import/V3EnrichmentManagerTable';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
@@ -119,12 +118,8 @@ export const WigleDetailTab: React.FC = () => {
   const {
     runs,
     loading: runsLoading,
-    error: runsError,
     actionLoading,
     refresh: refreshRuns,
-    resumeRun: _originalResume,
-    pauseRun,
-    cancelRun,
   } = useWigleRuns({ limit: 10 });
 
   // Derived: the enrichment run that is actively looping right now
@@ -140,17 +135,6 @@ export const WigleDetailTab: React.FC = () => {
       await refreshRuns();
     } catch (e: any) {
       alert(`Failed to stop enrichment: ${e.message}`);
-    }
-  };
-
-  const resumeRun = async (id: number) => {
-    try {
-      const data = await wigleApi.resumeEnrichment(id);
-      if (data?.ok) {
-        await refreshRuns();
-      }
-    } catch (e: any) {
-      alert(`Failed to resume enrichment: ${e.message}`);
     }
   };
 
@@ -674,26 +658,6 @@ export const WigleDetailTab: React.FC = () => {
           </div>
         </div>
       </AdminCard>
-
-      {/* Progress Table */}
-      {runs.some(
-        (r) =>
-          r.source === 'v3_batch' || r.source === 'v3_manual' || r.state?.includes('Enrichment')
-      ) && (
-        <WigleRunsCard
-          runs={runs.filter(
-            (r) =>
-              r.source === 'v3_batch' || r.source === 'v3_manual' || r.state?.includes('Enrichment')
-          )}
-          loading={runsLoading}
-          actionLoading={actionLoading}
-          error={runsError}
-          onRefresh={refreshRuns}
-          onResume={resumeRun}
-          onPause={pauseRun}
-          onCancel={cancelRun}
-        />
-      )}
     </div>
   );
 };

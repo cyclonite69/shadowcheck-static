@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-02)
+# 1.0.0 (2026-05-03)
 
 ### Bug Fixes
 
@@ -615,6 +615,7 @@
 - **server:** revert networks routes to load from networks.ts ([bb72257](https://github.com/cyclonite69/shadowcheck-web/commit/bb722572c4a8d9a176c55bb5d3891a9c8185efdd))
 - settings validation signatures, body fields, and WiGLE BSSID trimming ([775f1b5](https://github.com/cyclonite69/shadowcheck-web/commit/775f1b5c9beeee176843347d3f526cefcdbad330))
 - **settings:** route WiGLE credential test calls through fetchWigle to enforce rate limiting ([6ed2c3c](https://github.com/cyclonite69/shadowcheck-web/commit/6ed2c3c0b0e2456e9c72a005eff212e268727b8a))
+- **settings:** seed missing sibling_detection_job_config row ([ca381c3](https://github.com/cyclonite69/shadowcheck-web/commit/ca381c399f94cfe2c38b6244a983a7ae768a3d94))
 - **settings:** wire registerProviderSecretRoutes into settings router ([dfd00d2](https://github.com/cyclonite69/shadowcheck-web/commit/dfd00d2df70ded25441531eb907de56b745d9495))
 - Show header buttons on all pages, not just dashboard ([12048aa](https://github.com/cyclonite69/shadowcheck-web/commit/12048aa669816fcf68c61eff1e9f97511f5fdac9))
 - **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
