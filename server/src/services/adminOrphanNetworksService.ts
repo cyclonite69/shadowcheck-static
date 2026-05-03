@@ -3,6 +3,7 @@ export {};
 const { adminQuery } = require('./adminDbService');
 const wigleService = require('./wigleService');
 const logger = require('../logging/logger');
+const { escapeLikePattern } = require('../utils/escapeSQL');
 import { stripNullBytes, inferWigleEndpoint } from './wigleDetailTransforms';
 import { fetchUpstream, importObservations } from './wigleDetailService';
 
@@ -71,8 +72,11 @@ async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise
   const where: string[] = [];
 
   if (search) {
-    params.push(`%${search}%`, `%${search}%`);
-    where.push(`(o.bssid ILIKE $${params.length - 1} OR o.ssid ILIKE $${params.length})`);
+    const escapedSearch = `%${escapeLikePattern(search)}%`;
+    params.push(escapedSearch, escapedSearch);
+    where.push(
+      `(o.bssid ILIKE $${params.length - 1} ESCAPE '\\' OR o.ssid ILIKE $${params.length} ESCAPE '\\')`
+    );
   }
 
   params.push(limit);
@@ -159,8 +163,11 @@ async function getOrphanNetworkCounts(
   const where: string[] = [];
 
   if (search) {
-    params.push(`%${search}%`, `%${search}%`);
-    where.push(`(bssid ILIKE $${params.length - 1} OR ssid ILIKE $${params.length})`);
+    const escapedSearch = `%${escapeLikePattern(search)}%`;
+    params.push(escapedSearch, escapedSearch);
+    where.push(
+      `(bssid ILIKE $${params.length - 1} ESCAPE '\\' OR ssid ILIKE $${params.length} ESCAPE '\\')`
+    );
   }
 
   const sql = `

@@ -1,6 +1,7 @@
 export {};
 
 import { buildExplorerV2OrderClause, resolveLegacySortColumn } from './explorerSorting';
+import { escapeLikePattern } from '../utils/escapeSQL';
 
 const buildLegacyExplorerQuery = (opts: {
   homeLon: number | null;
@@ -18,15 +19,16 @@ const buildLegacyExplorerQuery = (opts: {
   const params: any[] = [homeLon, homeLat];
   const where: string[] = [];
   if (search) {
-    params.push(`%${search}%`, `%${search}%`);
+    const escapedSearch = `%${escapeLikePattern(search)}%`;
+    params.push(escapedSearch, escapedSearch);
     const ssidP = params.length - 1;
     const bssidP = params.length;
     where.push(
-      `(COALESCE(NULLIF(obs.ssid, ''), NULLIF(n.ssid, '')) ILIKE $${ssidP}
-       OR n.bssid ILIKE $${bssidP}
+      `(COALESCE(NULLIF(obs.ssid, ''), NULLIF(n.ssid, '')) ILIKE $${ssidP} ESCAPE '\\'
+       OR n.bssid ILIKE $${bssidP} ESCAPE '\\'
        OR EXISTS (
          SELECT 1 FROM app.observations o2
-         WHERE o2.bssid = n.bssid AND NULLIF(o2.ssid, '') ILIKE $${ssidP}
+         WHERE o2.bssid = n.bssid AND NULLIF(o2.ssid, '') ILIKE $${ssidP} ESCAPE '\\'
        ))`
     );
   }
@@ -120,16 +122,17 @@ const buildExplorerV2Query = (opts: {
   const params: any[] = [];
   const where: string[] = [];
   if (search) {
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    const escapedSearch = `%${escapeLikePattern(search)}%`;
+    params.push(escapedSearch, escapedSearch, escapedSearch, escapedSearch);
     const ssidP = params.length - 3; // first param = SSID search term
     where.push(
-      `(ssid ILIKE $${ssidP}
-        OR bssid ILIKE $${params.length - 2}
-        OR manufacturer ILIKE $${params.length - 1}
-        OR manufacturer_address ILIKE $${params.length}
+      `(ssid ILIKE $${ssidP} ESCAPE '\\'
+        OR bssid ILIKE $${params.length - 2} ESCAPE '\\'
+        OR manufacturer ILIKE $${params.length - 1} ESCAPE '\\'
+        OR manufacturer_address ILIKE $${params.length} ESCAPE '\\'
         OR EXISTS (
           SELECT 1 FROM app.observations o
-          WHERE o.bssid = mv.bssid AND NULLIF(o.ssid, '') ILIKE $${ssidP}
+          WHERE o.bssid = mv.bssid AND NULLIF(o.ssid, '') ILIKE $${ssidP} ESCAPE '\\'
         ))`
     );
   }

@@ -223,6 +223,18 @@ describe('wigleEnrichmentRepository.getEnrichmentCatalog', () => {
       expect(dataCall[1]).toContain('%MyNetwork%');
     });
 
+    it('should escape literal underscore in ssid filter', async () => {
+      container.adminDbService.adminQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] });
+
+      await getEnrichmentCatalog({ ssid: 'x_' });
+
+      const dataCall = container.adminDbService.adminQuery.mock.calls[0];
+      expect(dataCall[0]).toContain("ssid ILIKE $3 ESCAPE '\\'");
+      expect(dataCall[1]).toContain('%x\\_%');
+    });
+
     it('should filter by bssid prefix', async () => {
       container.adminDbService.adminQuery
         .mockResolvedValueOnce({ rows: [] })
@@ -274,7 +286,7 @@ describe('wigleEnrichmentRepository.getEnrichmentCatalog', () => {
 
       const dataCall = container.adminDbService.adminQuery.mock.calls[0];
       // Filter param is parameterized, so injection fails
-      expect(dataCall[1]).toContain("CA'; DROP TABLE app.wigle_v2_networks_search; --%");
+      expect(dataCall[1]).toContain("CA'; DROP TABLE app.wigle\\_v2\\_networks\\_search; --%");
     });
   });
 

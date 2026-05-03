@@ -25,4 +25,17 @@ describe('v2Queries', () => {
     const result = buildListNetworksQuery(opts);
     expect(result.sql).toContain('ORDER BY latest_time DESC');
   });
+
+  it('should escape literal underscore in search terms', () => {
+    const result = buildListNetworksQuery({
+      limit: 10,
+      offset: 0,
+      search: 'x_',
+      sort: 'observed_at',
+      order: 'DESC',
+    });
+
+    expect(result.sql).toContain("obs_latest.ssid ILIKE $1 ESCAPE '\\'");
+    expect(result.params).toEqual(['%x\\_%', '%x\\_%', 10, 0]);
+  });
 });

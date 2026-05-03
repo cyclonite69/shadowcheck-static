@@ -78,6 +78,13 @@ describe('wigle/database service', () => {
       expect(call.whereClauses.some((c: string) => c.includes('encryption'))).toBe(true);
     });
 
+    test('escapes ssid wildcard characters before building v2 filters', async () => {
+      await getWigleDatabase({ version: 'v2', ssid: 'x_' });
+      const call = repo.buildWigleV2NetworksQuery.mock.calls[0][0];
+      expect(call.whereClauses).toContain("ssid ILIKE $1 ESCAPE '\\'");
+      expect(call.queryParams).toEqual(['%x\\_%']);
+    });
+
     test('passes type filter to query builder', async () => {
       await getWigleDatabase({ version: 'v2', type: 'WiFi' });
       const call = repo.buildWigleV2NetworksQuery.mock.calls[0][0];
@@ -96,6 +103,13 @@ describe('wigle/database service', () => {
       await getWigleDatabase({ version: 'v3', ssid: 'net', bssid: 'BB', encryption: 'WPA3' });
       expect(repo.buildWigleV3NetworksQuery).toHaveBeenCalled();
       expect(repo.buildWigleV2NetworksQuery).not.toHaveBeenCalled();
+    });
+
+    test('escapes ssid wildcard characters before building v3 filters', async () => {
+      await getWigleDatabase({ version: 'v3', ssid: 'x_' });
+      const call = repo.buildWigleV3NetworksQuery.mock.calls[0][0];
+      expect(call.whereClauses).toContain("obs.ssid ILIKE $1 ESCAPE '\\'");
+      expect(call.queryParams).toEqual(['%x\\_%']);
     });
 
     test('returns total for v3 when includeTotal is true', async () => {

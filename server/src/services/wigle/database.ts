@@ -1,4 +1,5 @@
 import { query } from '../../config/database';
+import { escapeLikePattern } from '../../utils/escapeSQL';
 import {
   buildKmlBssidSummaryQuery,
   buildKmlPointsCountQuery,
@@ -109,16 +110,16 @@ export async function getWigleDatabase(
     let idx = 1;
 
     if (ssid) {
-      where.push(`obs.ssid ILIKE $${idx++}`);
-      params.push(`%${ssid}%`);
+      where.push(`obs.ssid ILIKE $${idx++} ESCAPE '\\'`);
+      params.push(`%${escapeLikePattern(ssid)}%`);
     }
     if (bssid) {
-      where.push(`obs.netid ILIKE $${idx++}`);
-      params.push(`${bssid}%`);
+      where.push(`obs.netid ILIKE $${idx++} ESCAPE '\\'`);
+      params.push(`${escapeLikePattern(bssid)}%`);
     }
     if (encryption) {
-      where.push(`obs.encryption ILIKE $${idx++}`);
-      params.push(`%${encryption}%`);
+      where.push(`obs.encryption ILIKE $${idx++} ESCAPE '\\'`);
+      params.push(`%${escapeLikePattern(encryption)}%`);
     }
 
     const rows = await getWigleV3Networks({
@@ -140,16 +141,16 @@ export async function getWigleDatabase(
     params.push(String(type).trim());
   }
   if (ssid) {
-    where.push(`ssid ILIKE $${idx++}`);
-    params.push(`%${ssid}%`);
+    where.push(`ssid ILIKE $${idx++} ESCAPE '\\'`);
+    params.push(`%${escapeLikePattern(ssid)}%`);
   }
   if (bssid) {
-    where.push(`bssid ILIKE $${idx++}`);
-    params.push(`${bssid}%`);
+    where.push(`bssid ILIKE $${idx++} ESCAPE '\\'`);
+    params.push(`${escapeLikePattern(bssid)}%`);
   }
   if (encryption) {
-    where.push(`encryption ILIKE $${idx++}`);
-    params.push(`%${encryption}%`);
+    where.push(`encryption ILIKE $${idx++} ESCAPE '\\'`);
+    params.push(`%${escapeLikePattern(encryption)}%`);
   }
 
   const rows = await getWigleV2Networks({

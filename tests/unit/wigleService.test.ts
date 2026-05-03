@@ -68,8 +68,19 @@ describe('WiGLE Service', () => {
       await searchWigleDatabase({ ssid: 'Test', limit: 10 });
 
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('ssid ILIKE'),
+        expect.stringContaining("ssid ILIKE $1 ESCAPE '\\'"),
         expect.arrayContaining(['%Test%', 10])
+      );
+    });
+
+    it('escapes literal underscore in SSID search terms', async () => {
+      mockQuery.mockResolvedValue({ rows: [{ ssid: 'x_test' }] });
+
+      await searchWigleDatabase({ ssid: 'x_', limit: 10 });
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining("ssid ILIKE $1 ESCAPE '\\'"),
+        expect.arrayContaining(['%x\\_%', 10])
       );
     });
 

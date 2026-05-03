@@ -4,6 +4,7 @@
  */
 
 import * as container from '../config/container';
+import { escapeLikePattern } from '../utils/escapeSQL';
 
 const { adminDbService } = container as any;
 const { adminQuery } = adminDbService;
@@ -43,20 +44,20 @@ export async function getEnrichmentCatalog(options: {
     const w: string[] = [];
     let idx = startIndex;
     if (options.region) {
-      filterParams.push(options.region.trim() + '%');
-      w.push(`TRIM(region) ILIKE $${idx++}`);
+      filterParams.push(`${escapeLikePattern(options.region.trim())}%`);
+      w.push(`TRIM(region) ILIKE $${idx++} ESCAPE '\\'`);
     }
     if (options.city) {
-      filterParams.push(options.city.trim() + '%');
-      w.push(`TRIM(city) ILIKE $${idx++}`);
+      filterParams.push(`${escapeLikePattern(options.city.trim())}%`);
+      w.push(`TRIM(city) ILIKE $${idx++} ESCAPE '\\'`);
     }
     if (options.ssid) {
-      filterParams.push('%' + options.ssid.trim() + '%');
-      w.push(`ssid ILIKE $${idx++}`);
+      filterParams.push(`%${escapeLikePattern(options.ssid.trim())}%`);
+      w.push(`ssid ILIKE $${idx++} ESCAPE '\\'`);
     }
     if (options.bssid) {
-      filterParams.push(options.bssid.trim() + '%');
-      w.push(`bssid ILIKE $${idx++}`);
+      filterParams.push(`${escapeLikePattern(options.bssid.trim())}%`);
+      w.push(`bssid ILIKE $${idx++} ESCAPE '\\'`);
     }
     return w.length > 0 ? `WHERE ${w.join(' AND ')}` : '';
   };

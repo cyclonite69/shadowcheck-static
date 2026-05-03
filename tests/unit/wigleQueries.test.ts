@@ -11,8 +11,17 @@ import {
 
 describe('wigle query builders', () => {
   it('builds bssid and ssid search queries with optional limit', () => {
-    expect(buildWigleSearchQuery({ bssid: 'AA:BB', limit: 10 }).sql).toContain('bssid ILIKE $1');
-    expect(buildWigleSearchQuery({ ssid: 'Test', limit: null }).sql).toContain('ssid ILIKE $1');
+    const bssidQuery = buildWigleSearchQuery({ bssid: 'AA:BB', limit: 10 });
+    const ssidQuery = buildWigleSearchQuery({ ssid: 'Test', limit: null });
+
+    expect(bssidQuery.sql).toContain("bssid ILIKE $1 ESCAPE '\\'");
+    expect(ssidQuery.sql).toContain("ssid ILIKE $1 ESCAPE '\\'");
+  });
+
+  it('escapes literal wildcard characters in wigle search patterns', () => {
+    const query = buildWigleSearchQuery({ ssid: 'x_', limit: 10 });
+
+    expect(query.queryParams).toEqual(['%x\\_%', 10]);
   });
 
   it('builds v2 network and count queries with where clauses and pagination', () => {

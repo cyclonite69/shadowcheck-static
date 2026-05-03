@@ -41,13 +41,13 @@ describe('adminOrphanNetworksService', () => {
         expect(call[1]).toContain(500);
       });
 
-      it('should enforce minimum limit of 1', async () => {
+      it('should treat limit=0 as default limit=50', async () => {
         adminQuery.mockResolvedValueOnce({ rows: [] });
 
         await listOrphanNetworks({ limit: 0 });
 
         const call = adminQuery.mock.calls[0];
-        expect(call[1]).toContain(1);
+        expect(call[1]).toContain(50);
       });
 
       it('should handle negative offset by converting to 0', async () => {
@@ -210,6 +210,16 @@ describe('adminOrphanNetworksService', () => {
         const call = adminQuery.mock.calls[0];
         expect(call[1]).toContain('%test%');
       });
+
+      it('should escape literal underscore in search string', async () => {
+        adminQuery.mockResolvedValueOnce({ rows: [] });
+
+        await listOrphanNetworks({ search: 'x_' });
+
+        const call = adminQuery.mock.calls[0];
+        expect(call[0]).toContain("o.ssid ILIKE $2 ESCAPE '\\'");
+        expect(call[1]).toContain('%x\\_%');
+      });
     });
 
     describe('observations_imported count', () => {
@@ -311,7 +321,7 @@ describe('adminOrphanNetworksService', () => {
 
         const call = adminQuery.mock.calls[0];
         // Search param is parameterized
-        expect(call[1]).toContain("%test'; DROP TABLE app.networks_orphans; --%");
+        expect(call[1]).toContain("%test'; DROP TABLE app.networks\\_orphans; --%");
       });
     });
   });

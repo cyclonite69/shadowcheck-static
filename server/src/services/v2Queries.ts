@@ -1,5 +1,6 @@
 const { CONFIG } = require('../config/database');
 const { THREAT_LEVEL_EXPR, THREAT_SCORE_EXPR } = require('./filterQueryBuilder/sqlExpressions');
+const { escapeLikePattern } = require('../utils/escapeSQL');
 
 const SORT_MAP: Record<string, string> = {
   observed_at: 'latest_time',
@@ -25,9 +26,10 @@ const buildListNetworksQuery = (opts: {
   const params: (string | number)[] = [];
   const where: string[] = [];
   if (search) {
-    params.push(`%${search}%`, `%${search}%`);
+    const escapedSearch = `%${escapeLikePattern(search)}%`;
+    params.push(escapedSearch, escapedSearch);
     where.push(
-      `(obs_latest.ssid ILIKE $${params.length - 1} OR obs_latest.bssid ILIKE $${params.length})`
+      `(obs_latest.ssid ILIKE $${params.length - 1} ESCAPE '\\' OR obs_latest.bssid ILIKE $${params.length} ESCAPE '\\')`
     );
   }
 

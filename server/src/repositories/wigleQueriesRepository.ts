@@ -1,5 +1,7 @@
 export {};
 
+const { escapeLikePattern } = require('../utils/escapeSQL');
+
 type SqlQuery = {
   sql: string;
   queryParams: any[];
@@ -38,12 +40,12 @@ const buildWigleSearchQuery = (params: {
 
   if (params.bssid) {
     sql = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime
-           FROM app.wigle_v2_networks_search WHERE bssid ILIKE $1 ORDER BY lasttime DESC`;
-    queryParams.push(`%${params.bssid}%`);
+           FROM app.wigle_v2_networks_search WHERE bssid ILIKE $1 ESCAPE '\\' ORDER BY lasttime DESC`;
+    queryParams.push(`%${escapeLikePattern(params.bssid)}%`);
   } else {
     sql = `SELECT bssid, ssid, encryption, trilat, trilong, lasttime
-           FROM app.wigle_v2_networks_search WHERE ssid ILIKE $1 ORDER BY lasttime DESC`;
-    queryParams.push(`%${params.ssid}%`);
+           FROM app.wigle_v2_networks_search WHERE ssid ILIKE $1 ESCAPE '\\' ORDER BY lasttime DESC`;
+    queryParams.push(`%${escapeLikePattern(params.ssid)}%`);
   }
 
   if (params.limit !== null) {

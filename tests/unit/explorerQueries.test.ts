@@ -42,6 +42,19 @@ describe('explorer query builders', () => {
     expect(params).toEqual(['%corp%', '%corp%', '%corp%', '%corp%', 10, 0]);
   });
 
+  it('escapes literal underscore in explorer search terms', () => {
+    const { sql, params } = buildExplorerV2Query({
+      search: 'x_',
+      sort: 'ssid',
+      order: 'asc',
+      limit: 10,
+      offset: 0,
+    });
+
+    expect(sql).toContain("ssid ILIKE $1 ESCAPE '\\'");
+    expect(params).toEqual(['%x\\_%', '%x\\_%', '%x\\_%', '%x\\_%', 10, 0]);
+  });
+
   it('builds v2 explorer query with stable distance-from-home calculation', () => {
     const { sql } = buildExplorerV2Query({
       search: '',
