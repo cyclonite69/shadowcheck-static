@@ -26,6 +26,8 @@ export async function getEnrichmentCatalog(options: {
   city?: string;
   ssid?: string;
   bssid?: string;
+  sortBy?: string;
+  sortDir?: string;
 }) {
   const page = options.page || 1;
   const limit = options.limit || 50;
@@ -60,6 +62,39 @@ export async function getEnrichmentCatalog(options: {
   filterParams.length = 0; // reset for main query
   const mainWhere = getWhere(3);
 
+  // Build dynamic ORDER BY from allowlist
+  const SORT_ALLOWLIST: Record<string, string | string[]> = {
+    ssid: 'v2.ssid',
+    firsttime: 'v2.firsttime',
+    lasttime: 'v2.lasttime',
+    last_v3_import: 'v3.imported_at',
+    signal: 'signal',
+    channel: 'v3.channel',
+    encryption: 'v3.encryption',
+    status: 'v3_obs_count',
+    location: ['v2.city', 'v2.region'],
+  };
+
+  const sortKeys = (options.sortBy || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const sortDirs = (options.sortDir || '').split(',').map((s) => s.trim().toLowerCase());
+
+  const orderTerms: string[] = [];
+  sortKeys.forEach((key, i) => {
+    const col = SORT_ALLOWLIST[key];
+    if (!col) return;
+    const dir = sortDirs[i] === 'desc' ? 'DESC' : 'ASC';
+    if (Array.isArray(col)) {
+      col.forEach((c) => orderTerms.push(`${c} ${dir}`));
+    } else {
+      orderTerms.push(`${col} ${dir}`);
+    }
+  });
+
+  const orderBy = orderTerms.length > 0 ? orderTerms.join(', ') : 'v2.lasttime DESC, v2.bssid ASC';
+
   const [dataResult, countResult] = await Promise.all([
     adminQuery(
       `SELECT
@@ -76,7 +111,7 @@ export async function getEnrichmentCatalog(options: {
          ORDER BY bssid, lasttime DESC
        ) v2
        LEFT JOIN app.wigle_v3_network_details v3 ON v3.netid = v2.bssid
-       ORDER BY v2.lasttime DESC, v2.bssid ASC
+       ORDER BY ${orderBy}
        LIMIT $1 OFFSET $2`,
       [limit, offset, ...filterParams]
     ),

@@ -486,6 +486,7 @@
 - **orphan:** improve WiGLE rate limit handling and visibility of promoted networks ([fcb64b5](https://github.com/cyclonite69/shadowcheck-web/commit/fcb64b5f12241b451d72c0d19dfd9d1de6af4557))
 - **orphan:** only set matched when WiGLE returned actual location points ([8eecde2](https://github.com/cyclonite69/shadowcheck-web/commit/8eecde2f2b3d7d26ee278631456b9f3b3da2dbda))
 - **orphan:** remove credit check gate, move Check WiGLE button to last column, drop Promoted column ([c6356bc](https://github.com/cyclonite69/shadowcheck-web/commit/c6356bcd8c4a7752b53db328ca8f2412af925f3d))
+- **orphans:** show observations_imported instead of stale wigle_v3_observation_count ([27b84e6](https://github.com/cyclonite69/shadowcheck-web/commit/27b84e657b2ef593f2774bc55b385cf4f95c6600))
 - parse security capabilities into readable labels on Kepler/WiGLE pages ([f9ad584](https://github.com/cyclonite69/shadowcheck-web/commit/f9ad58499c7307f74b671bd701dae4cdc4de5ac6))
 - pass style prop to SVG icons in DashboardPage ([9a3e1db](https://github.com/cyclonite69/shadowcheck-web/commit/9a3e1db26a909be3d21c5a2b645af077441e2387))
 - persist web certificates on EBS volume to prevent browser security warnings on move ([ec53dd1](https://github.com/cyclonite69/shadowcheck-web/commit/ec53dd1f8040e19e23186ce61052fd5108eac8a8))

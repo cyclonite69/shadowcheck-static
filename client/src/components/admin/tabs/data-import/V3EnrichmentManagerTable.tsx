@@ -253,6 +253,10 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
           city: cityFilter,
           region: regionFilter,
         });
+        if (sortCols.length > 0) {
+          params.set('sortBy', sortCols.map((s) => s.key).join(','));
+          params.set('sortDir', sortCols.map((s) => s.dir).join(','));
+        }
         const response = await wigleApi.getEnrichmentCatalog(params);
         if (response.ok) {
           const rows: EnrichmentRow[] = response.data || [];
@@ -273,7 +277,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
         setLoading(false);
       }
     },
-    [ssidFilter, bssidFilter, cityFilter, regionFilter]
+    [ssidFilter, bssidFilter, cityFilter, regionFilter, sortCols]
   );
 
   useEffect(() => {
@@ -282,7 +286,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     setHasMore(true);
     const timeout = setTimeout(() => loadPage(1, false), 300);
     return () => clearTimeout(timeout);
-  }, [ssidFilter, bssidFilter, cityFilter, regionFilter, loadPage]);
+  }, [ssidFilter, bssidFilter, cityFilter, regionFilter, sortCols, loadPage]);
 
   useEffect(() => {
     const container = tableRef.current;
@@ -350,7 +354,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
 
   // ── Derived display rows ───────────────────────────────────────────────────
 
-  const displayRows = applySortCols(allRows, sortCols);
+  const displayRows = allRows;
   const visibleColDefs = COLUMNS.filter((c) => visibleCols.has(c.id));
   // +1 for the checkbox column
   const colSpan = visibleColDefs.length + 1;

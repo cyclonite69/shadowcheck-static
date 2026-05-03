@@ -32,7 +32,7 @@ router.get(
   '/enrichment/catalog',
   requireAdmin,
   asyncHandler(async (req: Request, res: Response) => {
-    const { page, limit, region, city, ssid, bssid } = req.query;
+    const { page, limit, region, city, ssid, bssid, sortBy, sortDir } = req.query;
     const catalog = await wigleEnrichmentService.getEnrichmentCatalog({
       page: Number(page) || 1,
       limit: Number(limit) || 50,
@@ -40,6 +40,8 @@ router.get(
       city: city as string,
       ssid: ssid as string,
       bssid: bssid as string,
+      sortBy: sortBy as string,
+      sortDir: sortDir as string,
     });
     res.json({ ok: true, ...catalog });
   })
