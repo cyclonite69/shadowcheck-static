@@ -81,10 +81,22 @@ const BadgeIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 2) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 export const WigleStatsTab: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
   const fetchInFlightRef = useRef(false);
 
   const fetchStats = async () => {
@@ -94,12 +106,18 @@ export const WigleStatsTab: React.FC = () => {
     fetchInFlightRef.current = true;
     try {
       setLoading(true);
-      const response = await apiClient.get<{ success: boolean; stats: any; error?: string }>(
-        '/wigle/user-stats'
-      );
+      const response = await apiClient.get<{
+        success: boolean;
+        stats: any;
+        stale?: boolean;
+        cachedAt?: string;
+        error?: string;
+      }>('/wigle/user-stats');
       if (response?.success) {
         setStats(response.stats);
-        setStatsError(null);
+        setStale(response.stale ?? false);
+        setCachedAt(response.cachedAt ?? null);
+        if (!response.stale) setStatsError(null);
       } else {
         setStatsError(response?.error || 'Failed to fetch stats');
       }
@@ -149,7 +167,22 @@ export const WigleStatsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {statsError && (
+      {stale && cachedAt && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-amber-900/20 border border-amber-700/40 rounded-lg text-amber-400 text-xs">
+          <span className="font-bold uppercase tracking-wide">Cached</span>
+          <span className="text-amber-500/70">·</span>
+          <span>{relativeTime(cachedAt)}</span>
+          <span className="text-amber-500/70">·</span>
+          <span className="text-amber-500/60 italic truncate">{statsError}</span>
+          <button
+            onClick={fetchStats}
+            className="ml-auto px-3 py-1 bg-amber-700/40 hover:bg-amber-700/70 rounded text-amber-300 font-bold transition-colors whitespace-nowrap"
+          >
+            Refresh
+          </button>
+        </div>
+      )}
+      {statsError && !stale && (
         <div className="p-6 bg-red-900/20 border border-red-700/50 rounded-lg text-red-400">
           <h3 className="font-bold mb-2">WiGLE API Error</h3>
           <p className="text-sm">{statsError}</p>
