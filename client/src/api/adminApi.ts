@@ -210,13 +210,21 @@ export const adminApi = {
     return apiClient.get('/admin/device-sources');
   },
 
-  async getOrphanNetworks(limit = 50, search = '', offset = 0): Promise<any> {
+  async getOrphanNetworks(
+    limit = 50,
+    search = '',
+    offset = 0,
+    sortBy = '',
+    sortDir = ''
+  ): Promise<any> {
     const params = new URLSearchParams();
     params.set('limit', String(limit));
     params.set('offset', String(Math.max(offset, 0)));
     if (search.trim()) {
       params.set('search', search.trim());
     }
+    if (sortBy) params.set('sortBy', sortBy);
+    if (sortDir) params.set('sortDir', sortDir);
     return apiClient.get(`/admin/orphan-networks?${params.toString()}`);
   },
 

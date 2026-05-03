@@ -7,7 +7,15 @@ router.get('/admin/orphan-networks', async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 500);
     const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
     const search = String(req.query.search || '').trim();
-    const rows = await adminOrphanNetworksService.listOrphanNetworks({ search, limit, offset });
+    const sortBy = String(req.query.sortBy || '').trim();
+    const sortDir = String(req.query.sortDir || '').trim();
+    const rows = await adminOrphanNetworksService.listOrphanNetworks({
+      search,
+      limit,
+      offset,
+      sortBy,
+      sortDir,
+    });
     const counts = await adminOrphanNetworksService.getOrphanNetworkCounts({ search });
     res.json({
       ok: true,

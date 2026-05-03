@@ -10,6 +10,8 @@ type ListOrphanNetworksOptions = {
   search?: string;
   limit?: number;
   offset?: number;
+  sortBy?: string;
+  sortDir?: string;
 };
 
 type OrphanBackfillStatus =
@@ -71,6 +73,37 @@ async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise
   params.push(limit);
   params.push(offset);
 
+  // Dynamic ORDER BY with allowlist
+  const SORT_ALLOWLIST: Record<string, string> = {
+    bssid: 'o.bssid',
+    ssid: 'o.ssid',
+    moved_at: 'o.moved_at',
+    move_reason: 'o.move_reason',
+    lasttime_ms: 'o.lasttime_ms',
+    bestlevel: 'o.bestlevel',
+    unique_days: 'o.unique_days',
+    unique_locations: 'o.unique_locations',
+    observations_imported: 'ob.observations_imported',
+    backfill_status: 'ob.status',
+    last_attempted_at: 'ob.last_attempted_at',
+  };
+
+  const sortKeys = (opts.sortBy || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const sortDirs = (opts.sortDir || '').split(',').map((s) => s.trim().toLowerCase());
+
+  const orderTerms: string[] = [];
+  sortKeys.forEach((key, i) => {
+    const col = SORT_ALLOWLIST[key];
+    if (!col) return;
+    const dir = sortDirs[i] === 'desc' ? 'DESC' : 'ASC';
+    orderTerms.push(`${col} ${dir}`);
+  });
+
+  const orderBy = orderTerms.length > 0 ? orderTerms.join(', ') : 'o.moved_at DESC, o.bssid ASC';
+
   const sql = `
     SELECT
       o.bssid,
@@ -95,14 +128,14 @@ async function listOrphanNetworks(opts: ListOrphanNetworksOptions = {}): Promise
       COALESCE(ob.status, 'not_attempted') AS backfill_status,
       ob.matched_netid,
       ob.detail_imported,
-      ob.observations_imported,
+      COALESCE(ob.observations_imported, 0) AS observations_imported,
       ob.last_attempted_at,
       ob.last_promoted_at,
       ob.last_error
     FROM app.networks_orphans o
     LEFT JOIN app.orphan_network_backfills ob ON ob.bssid = o.bssid
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-    ORDER BY o.moved_at DESC, o.bssid ASC
+    ORDER BY ${orderBy}
     LIMIT $${params.length - 1}
     OFFSET $${params.length}
   `;

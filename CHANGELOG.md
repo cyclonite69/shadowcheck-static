@@ -966,6 +966,7 @@
 - Enhanced tooltip viewport positioning using context menu logic ([f80cf6b](https://github.com/cyclonite69/shadowcheck-web/commit/f80cf6b3f7d764dfb4ff6357ad33d889eed40dd7))
 - enrich wigle page detail with mv-backed provenance fields ([3ce7a05](https://github.com/cyclonite69/shadowcheck-web/commit/3ce7a058920ebbde16cc0a7aaa526a62849491ba))
 - **enrichment:** add active run banner with Stop button to Batch v3 Enrichment card ([1ec21d9](https://github.com/cyclonite69/shadowcheck-web/commit/1ec21d93b025f7db0673ba7121491ee8ae55919a))
+- **enrichment:** server-side multi-column sort for catalog ([2332e63](https://github.com/cyclonite69/shadowcheck-web/commit/2332e63832b0ce5ab3b9eafd0da1dd317bc2bfff))
 - **etl:** add incremental WiGLE SQLite import ([3e50cd3](https://github.com/cyclonite69/shadowcheck-web/commit/3e50cd3dab8ef57526d21fd39ea431c89c62011e))
 - **etl:** auto-refresh network computed columns in promote stage ([623cff6](https://github.com/cyclonite69/shadowcheck-web/commit/623cff692d9742c4fe98c8cb3c6031b8092dd26e))
 - **etl:** enable forensic merging and granular tracking for kismet sidecar ([60e3b33](https://github.com/cyclonite69/shadowcheck-web/commit/60e3b334442e21dc0ceb85d412aef80052ef2cbc))
