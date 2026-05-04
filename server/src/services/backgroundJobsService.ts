@@ -26,6 +26,7 @@ import {
   runBackupJob,
   runBehavioralMlScoringJob,
   runSiblingDetectionJob,
+  runSurveillanceScanJob,
 } from './backgroundJobs/runners';
 import type { BackgroundJobName } from './backgroundJobs/config';
 
@@ -127,6 +128,20 @@ class BackgroundJobsService {
           'siblingDetection',
           siblingConfig,
           () => this.runSiblingDetection(),
+          schedulerEnabled
+        );
+      }
+
+      // 5. Surveillance Scan Job
+      const surveillanceConfig = getResolvedJobConfig(configs, 'surveillanceScan');
+      if (
+        hasJobConfigChanged(this.lastConfig, 'surveillanceScan', surveillanceConfig) ||
+        this.lastSchedulerEnabled !== schedulerEnabled
+      ) {
+        this.updateJob(
+          'surveillanceScan',
+          surveillanceConfig,
+          () => this.runSurveillanceScan(),
           schedulerEnabled
         );
       }
@@ -248,6 +263,16 @@ class BackgroundJobsService {
     });
   }
 
+  static async runSurveillanceScan() {
+    if (this.runningJobIds.surveillanceScan) {
+      throw new Error('surveillance scan job already running');
+    }
+    await trackJobRun('surveillanceScan', async () => runSurveillanceScanJob(), {
+      lastConfig: this.lastConfig,
+      runningJobIds: this.runningJobIds,
+    });
+  }
+
   /**
    * Run behavioral threat scoring for all networks (v2.0 - Simple)
    * Based on mobility patterns, not user tags
@@ -299,6 +324,11 @@ class BackgroundJobsService {
 
     if (jobName === 'siblingDetection') {
       await this.runSiblingDetection(options);
+      return { jobName, status: 'completed' };
+    }
+
+    if (jobName === 'surveillanceScan') {
+      await this.runSurveillanceScan();
       return { jobName, status: 'completed' };
     }
 
