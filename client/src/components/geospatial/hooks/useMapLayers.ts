@@ -278,6 +278,87 @@ export const useMapLayers = () => {
         },
         paint: { 'text-color': '#ffffff' },
       });
+
+      // 5. Radius Filter Sources & Layers (empty until radiusFilter is set)
+      map.addSource('radius-filter-circle', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
+      map.addSource('radius-filter-line', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
+      map.addSource('radius-filter-point', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
+      map.addLayer({
+        id: 'radius-filter-fill',
+        type: 'fill',
+        source: 'radius-filter-circle',
+        paint: { 'fill-color': '#06b6d4', 'fill-opacity': 0.1 },
+      });
+
+      map.addLayer({
+        id: 'radius-filter-outline',
+        type: 'line',
+        source: 'radius-filter-circle',
+        paint: {
+          'line-color': '#06b6d4',
+          'line-width': 2,
+          'line-dasharray': [2, 2],
+          'line-opacity': 0.9,
+        },
+      });
+
+      map.addLayer({
+        id: 'radius-filter-line',
+        type: 'line',
+        source: 'radius-filter-line',
+        paint: {
+          'line-color': '#06b6d4',
+          'line-width': 1.5,
+          'line-dasharray': [3, 3],
+          'line-opacity': 0.8,
+        },
+      });
+
+      map.addLayer({
+        id: 'radius-filter-label',
+        type: 'symbol',
+        source: 'radius-filter-line',
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-size': 12,
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+          'symbol-placement': 'line',
+          'text-anchor': 'center',
+          'text-offset': [0, -1],
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': '#0e7490',
+          'text-halo-width': 1.5,
+        },
+      });
+
+      map.addLayer({
+        id: 'radius-filter-pin',
+        type: 'circle',
+        source: 'radius-filter-point',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': '#06b6d4',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.95,
+        },
+      });
     },
     []
   );

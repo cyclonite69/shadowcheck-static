@@ -23,6 +23,8 @@ import { useMapStyleControls } from './useMapStyleControls';
 import { useResetPaginationOnFilters } from './useResetPaginationOnFilters';
 import { useDebouncedFilterState } from './useDebouncedFilterState';
 import { useRadiusPinDrop } from './useRadiusPinDrop';
+import { useRadiusFilterLayer } from './useRadiusFilterLayer';
+import { useRadiusFilterPopup } from './useRadiusFilterPopup';
 import { logError, logDebug } from '../../../logging/clientLogger';
 import { WigleObservationsState } from './useWigleLayers';
 import { networkApi } from '../../../api/networkApi';
@@ -212,6 +214,8 @@ export const useGeospatialExplorerState = ({
   });
 
   useHomeLocationLayer({ mapReady, mapRef, homeLocation });
+  useRadiusFilterLayer({ mapReady, mapRef });
+  useRadiusFilterPopup({ mapReady, mapRef, mapboxRef });
 
   const { activeObservationSets, observationCount, networkLookup } = useObservationSummary({
     selectedNetworks,

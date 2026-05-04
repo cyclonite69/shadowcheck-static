@@ -229,7 +229,9 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
         (detailResponse.ok && data?.networkId && !hasObservations);
 
       if (isRateLimit) {
-        throw new Error('WiGLE API rate limit reached. Try again later.');
+        const err: any = new Error('WiGLE API rate limit reached. Try again later.');
+        err.status = 429;
+        throw err;
       }
 
       await recordBackfillAttempt({
@@ -297,14 +299,18 @@ async function backfillOrphanNetworkFromWigle(bssid: string): Promise<any> {
       failedObservations: counts.failedCount,
     };
   } catch (error: any) {
-    await recordBackfillAttempt({
-      bssid: orphan.bssid,
-      status: 'error',
-      matchedNetid: null,
-      detailImported: false,
-      observationsImported: 0,
-      lastError: error.message || 'Unknown error',
-    });
+    // Don't record a failed attempt for rate limits — leave the network's
+    // backfill state untouched so it can be retried without being marked 'error'.
+    if (error.status !== 429) {
+      await recordBackfillAttempt({
+        bssid: orphan.bssid,
+        status: 'error',
+        matchedNetid: null,
+        detailImported: false,
+        observationsImported: 0,
+        lastError: error.message || 'Unknown error',
+      });
+    }
     throw error;
   }
 }
