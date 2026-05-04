@@ -187,7 +187,9 @@ const runSurveillanceScanJob = async () => {
   const extBattOuiLiteral = FS_EXT_BATTERY_OUIS.map((o) => `'${o}'`).join(',');
   const medOuiLiteral = MED_CONF_OUIS.map((o) => `'${o}'`).join(',');
 
-  const result = await adminQuery(`
+  let result;
+  try {
+    result = await adminQuery(`
     WITH candidates AS (
 
       -- 1. High-confidence WiFi OUI (addr2/transmitter match)
@@ -263,7 +265,7 @@ const runSurveillanceScanJob = async () => {
       FROM app.networks n
       WHERE n.type IN ('E', 'B')
         AND n.ssid ~* '^(fs ext battery|flock|falcon|raven|sparrow|condor|penguin)'
-        AND n.mfgrid != 2504
+        AND (n.mfgrid IS NULL OR n.mfgrid != 2504)
 
     ),
     ranked AS (
@@ -296,6 +298,14 @@ const runSurveillanceScanJob = async () => {
       detected_at      = NOW()
     WHERE app.surveillance_detections.false_positive = FALSE
   `);
+  } catch (err: any) {
+    logger.error('[Surveillance Scan] SQL error during scan', {
+      message: err?.message,
+      detail: err?.detail,
+      code: err?.code,
+    });
+    throw err;
+  }
 
   const rowCount = result.rowCount ?? 0;
   logger.info(`[Surveillance Scan] Complete: upserted ${rowCount} surveillance detections`);

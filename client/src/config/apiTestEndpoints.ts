@@ -1420,7 +1420,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
         label: 'Job',
         defaultValue: 'mvRefresh',
         type: 'select',
-        options: ['mvRefresh', 'mlScoring', 'backup', 'siblingDetection'],
+        options: ['mvRefresh', 'mlScoring', 'backup', 'siblingDetection', 'surveillanceScan'],
       },
     ],
   },

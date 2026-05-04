@@ -125,6 +125,7 @@ async function getJobStatus(jobs: Record<string, any>) {
     mlScoring: [],
     mvRefresh: [],
     siblingDetection: [],
+    surveillanceScan: [],
   };
   rows.forEach((row: any) => {
     dbRuns[row.job_name]?.push({

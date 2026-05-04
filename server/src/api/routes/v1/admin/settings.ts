@@ -94,7 +94,11 @@ router.post('/jobs/:jobName/run', async (req: any, res: any) => {
     const { jobName } = req.params;
     const options = req.body || {};
 
-    if (!['backup', 'mlScoring', 'mvRefresh', 'siblingDetection'].includes(jobName)) {
+    if (
+      !['backup', 'mlScoring', 'mvRefresh', 'siblingDetection', 'surveillanceScan'].includes(
+        jobName
+      )
+    ) {
       return res.status(400).json({ success: false, error: 'Unsupported background job' });
     }
 
