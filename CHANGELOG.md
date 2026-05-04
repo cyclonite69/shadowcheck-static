@@ -448,6 +448,7 @@
 - migration user falls back to DB_USER when DB_ADMIN_USER unset ([1e5086c](https://github.com/cyclonite69/shadowcheck-web/commit/1e5086c6767395290f13b851728026d3ee39d23f))
 - **migration:** align v4 snapshot distance casts with live DB ([118e6ec](https://github.com/cyclonite69/shadowcheck-web/commit/118e6ec7536acd5b77280a49307879bf421fa29d))
 - **migration:** deduplicate v2/v3 source rows before FULL OUTER JOIN in wigle MV ([82d7f47](https://github.com/cyclonite69/shadowcheck-web/commit/82d7f47203f0658b5629c56913c23f36dbabc48f))
+- **migration:** ensure bluetooth table created before MV migration ([4c027ba](https://github.com/cyclonite69/shadowcheck-web/commit/4c027bae9a38ce154fa8b638d5fd8d1a204d117f))
 - **migration:** ensure bluetooth table created before MV migration ([5b21ec3](https://github.com/cyclonite69/shadowcheck-web/commit/5b21ec35c4a5acf41f999fc089ba02250bedc2b1))
 - **migration:** match existing MV schema without manufacturer_oui ([aed224e](https://github.com/cyclonite69/shadowcheck-web/commit/aed224e2a8d1b9eaaa1084c30083e3348affacdd))
 - **migration:** remove nested aggregate in stationary_confidence CTE ([c993944](https://github.com/cyclonite69/shadowcheck-web/commit/c993944227b43cf5badcbfa278807c4eddd0982a))

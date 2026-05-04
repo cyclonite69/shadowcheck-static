@@ -19,7 +19,7 @@ const DEFAULT_JOB_CONFIGS = {
   mlScoring: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: ML_SCORING_CRON },
   mvRefresh: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: MV_REFRESH_CRON },
   siblingDetection: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: '0 5 * * *' }, // Daily at 5 AM
-  surveillanceScan: { enabled: process.env.ENABLE_BACKGROUND_JOBS === 'true', cron: '0 2 * * *' }, // Daily at 2 AM
+  surveillanceScan: { enabled: true, cron: '0 2 * * *' }, // Daily at 2 AM — DB row is source of truth; default on
 };
 
 const JOB_SETTING_NAMES = Object.keys(JOB_SETTING_KEYS) as BackgroundJobName[];
