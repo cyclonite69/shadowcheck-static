@@ -283,12 +283,22 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
             {run.totalPages ?? '—'}
           </td>
         );
-      case 'source':
+      case 'source': {
+        const isBt = run.source === 'wigle_bt';
         return (
-          <td key={col.id} className="px-3 py-2 text-slate-400 text-[10px]">
-            {run.source}
+          <td key={col.id} className="px-3 py-2">
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
+                isBt
+                  ? 'bg-purple-900/40 text-purple-300 border border-purple-700/40'
+                  : 'bg-blue-900/30 text-blue-300 border border-blue-700/30'
+              }`}
+            >
+              {isBt ? 'BT' : 'WiFi'}
+            </span>
           </td>
         );
+      }
       case 'state':
         return (
           <td key={col.id} className="px-3 py-2 text-slate-400">

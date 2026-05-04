@@ -71,6 +71,21 @@ const BadgeIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const SURVEILLANCE_MFGR_PRESETS = [
+  { label: 'Raven / SoundThinking (2504)', min: 2504, max: 2504 },
+  { label: 'Flock Safety BLE (1447)', min: 1447, max: 1447 },
+  { label: 'Apple (76)', min: 76, max: 76 },
+  { label: 'Custom range', min: null, max: null },
+] as const;
+
+type BtSearchParams = {
+  namelike: string;
+  showBt: boolean;
+  showBle: boolean;
+  mfgrIdMinimum: string;
+  mfgrIdMaximum: string;
+};
+
 export const WigleSearchTab: React.FC = () => {
   const {
     apiStatus,
@@ -89,6 +104,45 @@ export const WigleSearchTab: React.FC = () => {
     totalResults,
     loadedCount,
   } = useWigleSearch();
+
+  const [searchType, setSearchType] = React.useState<'wifi' | 'bluetooth'>('wifi');
+  const [btParams, setBtParams] = React.useState<BtSearchParams>({
+    namelike: '',
+    showBt: true,
+    showBle: true,
+    mfgrIdMinimum: '',
+    mfgrIdMaximum: '',
+  });
+  const [btImportLoading, setBtImportLoading] = React.useState(false);
+  const [btImportError, setBtImportError] = React.useState<string | null>(null);
+
+  const importAllBluetooth = async () => {
+    setBtImportError(null);
+    setBtImportLoading(true);
+    try {
+      const payload: Record<string, unknown> = {
+        country: searchParams.country || 'US',
+        region: searchParams.region || undefined,
+        city: searchParams.city || undefined,
+        latrange1: searchParams.latrange1 || undefined,
+        latrange2: searchParams.latrange2 || undefined,
+        longrange1: searchParams.longrange1 || undefined,
+        longrange2: searchParams.longrange2 || undefined,
+        showBt: btParams.showBt,
+        showBle: btParams.showBle,
+      };
+      if (btParams.namelike.trim()) payload.namelike = btParams.namelike.trim();
+      if (btParams.mfgrIdMinimum.trim()) payload.mfgrIdMinimum = Number(btParams.mfgrIdMinimum);
+      if (btParams.mfgrIdMaximum.trim()) payload.mfgrIdMaximum = Number(btParams.mfgrIdMaximum);
+      const { wigleApi } = await import('../../../api/wigleApi');
+      await wigleApi.importAllBluetooth(payload);
+      await refreshRuns();
+    } catch (err: any) {
+      setBtImportError(err?.message || 'BT import failed');
+    } finally {
+      setBtImportLoading(false);
+    }
+  };
 
   const {
     runs,
@@ -282,65 +336,183 @@ export const WigleSearchTab: React.FC = () => {
         </AdminCard>
       )}
 
+      {/* Search Type toggle */}
+      <div className="flex gap-2 mb-1">
+        <button
+          onClick={() => setSearchType('wifi')}
+          className={`px-4 py-1.5 rounded text-xs font-semibold transition-colors ${
+            searchType === 'wifi'
+              ? 'bg-blue-600 text-white'
+              : 'bg-slate-800/60 text-slate-400 hover:text-white border border-slate-700/60'
+          }`}
+        >
+          WiFi
+        </button>
+        <button
+          onClick={() => setSearchType('bluetooth')}
+          className={`px-4 py-1.5 rounded text-xs font-semibold transition-colors ${
+            searchType === 'bluetooth'
+              ? 'bg-purple-600 text-white'
+              : 'bg-slate-800/60 text-slate-400 hover:text-white border border-slate-700/60'
+          }`}
+        >
+          Bluetooth / BLE
+        </button>
+      </div>
+
       {/* Network Filters | Geographic Filters — 2-column */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AdminCard
-          icon={DatabaseIcon}
-          title="Network Filters"
-          color="from-blue-500 to-blue-600"
-          compact
-        >
-          <div className="grid grid-cols-2 gap-2">
-            <div className="relative">
-              <label className="block text-xs text-slate-400 mb-1">SSID</label>
-              <input
-                ref={ssidInputRef}
-                type="text"
-                value={searchParams.ssid}
-                onChange={(e) => setSearchParams({ ...searchParams, ssid: e.target.value })}
-                onFocus={() => setSsidDropdownOpen(true)}
-                onBlur={() => setTimeout(() => setSsidDropdownOpen(false), 150)}
-                placeholder="Network name"
-                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              />
-              {ssidDropdownOpen && savedTerms.length > 0 && (
-                <div className="absolute z-20 top-full left-0 right-0 mt-0.5 bg-slate-800 border border-slate-600/60 rounded shadow-xl max-h-48 overflow-y-auto">
-                  {savedTerms.map((t) => (
-                    <div
-                      key={t.id}
-                      className="flex items-center justify-between px-2 py-1.5 hover:bg-slate-700/60 cursor-pointer group"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setSearchParams({ ...searchParams, ssid: t.term });
-                        setSsidDropdownOpen(false);
-                      }}
-                    >
-                      <span className="text-xs text-slate-200 truncate">{t.term}</span>
-                      <button
-                        type="button"
-                        onMouseDown={(e) => deleteSavedTerm(t.id, e)}
-                        className="ml-2 text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-[10px] leading-none shrink-0"
-                        title="Remove saved term"
+        {searchType === 'wifi' ? (
+          <AdminCard
+            icon={DatabaseIcon}
+            title="Network Filters"
+            color="from-blue-500 to-blue-600"
+            compact
+          >
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
+                <label className="block text-xs text-slate-400 mb-1">SSID</label>
+                <input
+                  ref={ssidInputRef}
+                  type="text"
+                  value={searchParams.ssid}
+                  onChange={(e) => setSearchParams({ ...searchParams, ssid: e.target.value })}
+                  onFocus={() => setSsidDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setSsidDropdownOpen(false), 150)}
+                  placeholder="Network name"
+                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+                {ssidDropdownOpen && savedTerms.length > 0 && (
+                  <div className="absolute z-20 top-full left-0 right-0 mt-0.5 bg-slate-800 border border-slate-600/60 rounded shadow-xl max-h-48 overflow-y-auto">
+                    {savedTerms.map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-center justify-between px-2 py-1.5 hover:bg-slate-700/60 cursor-pointer group"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setSearchParams({ ...searchParams, ssid: t.term });
+                          setSsidDropdownOpen(false);
+                        }}
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                        <span className="text-xs text-slate-200 truncate">{t.term}</span>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => deleteSavedTerm(t.id, e)}
+                          className="ml-2 text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-[10px] leading-none shrink-0"
+                          title="Remove saved term"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">BSSID</label>
+                <input
+                  type="text"
+                  value={searchParams.bssid}
+                  onChange={(e) => setSearchParams({ ...searchParams, bssid: e.target.value })}
+                  placeholder="AA:BB:CC:DD:EE:FF"
+                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+              </div>
+            </div>
+          </AdminCard>
+        ) : (
+          <AdminCard
+            icon={DatabaseIcon}
+            title="BT / BLE Filters"
+            color="from-purple-500 to-purple-600"
+            compact
+          >
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Device Name</label>
+                <input
+                  type="text"
+                  value={btParams.namelike}
+                  onChange={(e) => setBtParams({ ...btParams, namelike: e.target.value })}
+                  placeholder="Name wildcard (% = any)"
+                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Type</label>
+                <div className="flex gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={btParams.showBt}
+                      onChange={(e) => setBtParams({ ...btParams, showBt: e.target.checked })}
+                      className="accent-purple-500"
+                    />
+                    BT
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={btParams.showBle}
+                      onChange={(e) => setBtParams({ ...btParams, showBle: e.target.checked })}
+                      className="accent-purple-500"
+                    />
+                    BLE
+                  </label>
                 </div>
-              )}
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Manufacturer Preset</label>
+                <select
+                  onChange={(e) => {
+                    const idx = Number(e.target.value);
+                    const preset = SURVEILLANCE_MFGR_PRESETS[idx];
+                    if (preset && preset.min !== null) {
+                      setBtParams({
+                        ...btParams,
+                        mfgrIdMinimum: String(preset.min),
+                        mfgrIdMaximum: String(preset.max),
+                      });
+                    } else {
+                      setBtParams({ ...btParams, mfgrIdMinimum: '', mfgrIdMaximum: '' });
+                    }
+                  }}
+                  className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                  defaultValue=""
+                >
+                  <option value="">Select known range…</option>
+                  {SURVEILLANCE_MFGR_PRESETS.map((p, i) => (
+                    <option key={i} value={i}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">mfgrId Min</label>
+                  <input
+                    type="number"
+                    value={btParams.mfgrIdMinimum}
+                    onChange={(e) => setBtParams({ ...btParams, mfgrIdMinimum: e.target.value })}
+                    placeholder="e.g. 2504"
+                    className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">mfgrId Max</label>
+                  <input
+                    type="number"
+                    value={btParams.mfgrIdMaximum}
+                    onChange={(e) => setBtParams({ ...btParams, mfgrIdMaximum: e.target.value })}
+                    placeholder="e.g. 2504"
+                    className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">BSSID</label>
-              <input
-                type="text"
-                value={searchParams.bssid}
-                onChange={(e) => setSearchParams({ ...searchParams, bssid: e.target.value })}
-                placeholder="AA:BB:CC:DD:EE:FF"
-                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              />
-            </div>
-          </div>
-        </AdminCard>
+          </AdminCard>
+        )}
 
         <AdminCard
           icon={DatabaseIcon}
@@ -461,45 +633,67 @@ export const WigleSearchTab: React.FC = () => {
         <div className="md:col-span-2">
           <AdminCard icon={SearchIcon} title="Execute Search" color="from-purple-500 to-purple-600">
             <div className="space-y-3">
-              <p className="text-sm text-slate-400">
-                Search the WiGLE database using your configured parameters.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    runSearch(false);
-                    saveCurrentSsid();
-                  }}
-                  disabled={searchLoading || !apiStatus?.configured}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-sm transition-all"
-                >
-                  {searchLoading ? 'Searching...' : 'Search Only'}
-                </button>
-                <button
-                  onClick={() => {
-                    runSearch(true);
-                    saveCurrentSsid();
-                  }}
-                  disabled={searchLoading || !apiStatus?.configured}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
-                >
-                  {searchLoading ? 'Searching...' : 'Search & Import'}
-                </button>
-              </div>
-              <button
-                onClick={() => {
-                  importAllResults();
-                  saveCurrentSsid();
-                }}
-                disabled={searchLoading || !apiStatus?.configured}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 text-sm transition-all"
-              >
-                {searchLoading ? 'Running Import...' : 'Import All Pages'}
-              </button>
+              {searchType === 'wifi' ? (
+                <>
+                  <p className="text-sm text-slate-400">
+                    Search the WiGLE database using your configured parameters.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        runSearch(false);
+                        saveCurrentSsid();
+                      }}
+                      disabled={searchLoading || !apiStatus?.configured}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-sm transition-all"
+                    >
+                      {searchLoading ? 'Searching...' : 'Search Only'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        runSearch(true);
+                        saveCurrentSsid();
+                      }}
+                      disabled={searchLoading || !apiStatus?.configured}
+                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-500 hover:to-green-600 disabled:opacity-50 text-sm transition-all"
+                    >
+                      {searchLoading ? 'Searching...' : 'Search & Import'}
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => {
+                      importAllResults();
+                      saveCurrentSsid();
+                    }}
+                    disabled={searchLoading || !apiStatus?.configured}
+                    className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 text-sm transition-all"
+                  >
+                    {searchLoading ? 'Running Import...' : 'Import All Pages'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-400">
+                    Import BT/BLE devices from WiGLE using the geographic and manufacturer filters.
+                  </p>
+                  <button
+                    onClick={importAllBluetooth}
+                    disabled={btImportLoading || !apiStatus?.configured}
+                    className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-sm transition-all"
+                  >
+                    {btImportLoading ? 'Starting BT Import...' : 'Import All BT/BLE Pages'}
+                  </button>
+                  {btImportError && (
+                    <div className="text-red-400 text-sm p-2 bg-red-900/20 rounded border border-red-700/50">
+                      {btImportError}
+                    </div>
+                  )}
+                </>
+              )}
               <p className="text-xs text-slate-500">
                 Server walks all pages with paced requests and retry backoff on WiGLE rate limits.
               </p>
-              {searchError && (
+              {searchType === 'wifi' && searchError && (
                 <div className="text-red-400 text-sm p-2 bg-red-900/20 rounded border border-red-700/50">
                   {searchError}
                 </div>

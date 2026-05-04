@@ -179,10 +179,64 @@ const getWigleV3Observations = async (executor: QueryExecutor, netid: string): P
   return rows;
 };
 
+/**
+ * Upsert a single BT/BLE record from WiGLE /api/v2/bluetooth/search into
+ * app.wigle_v2_bluetooth_search.
+ * Skips rows without usable coordinates. Returns 1 on insert/update, 0 otherwise.
+ */
+const insertWigleBtSearchResult = async (executor: QueryExecutor, device: any): Promise<number> => {
+  const trilat = device.trilat ? parseFloat(device.trilat) : null;
+  const trilong = device.trilong ? parseFloat(device.trilong) : null;
+
+  if (!Number.isFinite(trilat) || !Number.isFinite(trilong)) {
+    return 0;
+  }
+
+  const mfgrid =
+    device.mfgrId !== undefined && device.mfgrId !== null ? Number(device.mfgrId) : null;
+
+  const result = await executor.query(
+    `INSERT INTO app.wigle_v2_bluetooth_search (
+      netid, name, type, trilat, trilong, location,
+      firsttime, lasttime, lastupdt, mfgrid, qos, comment,
+      city, region, country, road, housenumber, postalcode, source
+    ) VALUES (
+      $1, $2, $3, $4::numeric, $5::numeric,
+      ST_SetSRID(ST_MakePoint($5::numeric, $4::numeric), 4326),
+      $6, $7, $8, $9, $10, $11,
+      $12, $13, $14, $15, $16, $17, 'wigle_api_search'
+    ) ON CONFLICT (netid, trilat, trilong, lastupdt) DO UPDATE
+      SET lastupdt   = EXCLUDED.lastupdt,
+          mfgrid     = EXCLUDED.mfgrid,
+          updated_at = NOW()`,
+    [
+      device.netid,
+      device.name || null,
+      device.type || 'BLE',
+      trilat,
+      trilong,
+      device.firsttime,
+      device.lasttime,
+      device.lastupdt,
+      Number.isFinite(mfgrid) ? mfgrid : null,
+      device.qos || null,
+      device.comment || null,
+      device.city || null,
+      device.region || null,
+      device.country || null,
+      device.road || null,
+      device.housenumber || null,
+      device.postalcode || null,
+    ]
+  );
+  return result.rowCount || 0;
+};
+
 export {
   getWigleDetail,
   getWigleV3Observations,
   insertWigleV2SearchResult,
+  insertWigleBtSearchResult,
   importWigleV3NetworkDetail,
   importWigleV3Observation,
 };

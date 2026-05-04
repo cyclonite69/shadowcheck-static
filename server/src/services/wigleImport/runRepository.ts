@@ -524,6 +524,23 @@ export const deleteImportRun = async (id: number): Promise<boolean> => {
   return (result.rowCount ?? 0) > 0;
 };
 
+// Find the latest resumable run matching a precomputed fingerprint (used by BT import service)
+export const findRunByRawFingerprint = async (
+  fingerprint: string,
+  resumableStatuses: string[]
+): Promise<any | null> => {
+  const result = await query(
+    `SELECT *
+       FROM app.wigle_import_runs
+      WHERE request_fingerprint = $1
+        AND status = ANY($2::text[])
+      ORDER BY started_at DESC
+      LIMIT 1`,
+    [fingerprint, resumableStatuses]
+  );
+  return result.rows[0] || null;
+};
+
 export {
   completeRun,
   createImportRun,

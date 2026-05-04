@@ -4,6 +4,7 @@ import {
   importWigleV3NetworkDetail as persistWigleV3NetworkDetail,
   importWigleV3Observation as persistWigleV3Observation,
   insertWigleV2SearchResult,
+  insertWigleBtSearchResult,
 } from '../../repositories/wiglePersistenceRepository';
 import { databaseExecutor, QueryExecutor } from './shared';
 
@@ -32,4 +33,11 @@ export async function importWigleV2SearchResult(
   executor: QueryExecutor = databaseExecutor
 ): Promise<number> {
   return insertWigleV2SearchResult(executor, network);
+}
+
+export async function importWigleBtSearchResult(
+  device: any,
+  executor: QueryExecutor = databaseExecutor
+): Promise<number> {
+  return insertWigleBtSearchResult(executor, device);
 }

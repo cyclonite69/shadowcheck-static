@@ -1,12 +1,15 @@
 /**
  * WiGLE Search API Routes
- * Thin router — delegates to wigleSearchService and wigleImportRunService.
+ * Thin router — delegates to wigleSearchService, wigleImportRunService, and wigleBluetoothImportService.
  */
 
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 const router = express.Router();
-const { wigleImportRunService } = require('../../../../config/container');
+const {
+  wigleImportRunService,
+  wigleBluetoothImportService,
+} = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { validateImportQuery as validateSearchQuery } from '../../../../services/wigleImport/params';
@@ -334,6 +337,53 @@ router.delete(
       return res.json({ ok: true, deleted: id });
     } catch (err: any) {
       logger.error(`[WiGLE] Saved term delete error: ${err.message}`);
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /search-api/bt-import-start
+ * Start or resume a full paginated BT/BLE import run from WiGLE /api/v2/bluetooth/search.
+ * @param {string} [namelike] - Device name wildcard filter
+ * @param {string} [netid] - Specific BT/BLE address
+ * @param {string} [country] - ISO 3166-1 alpha-2 country code (default: US)
+ * @param {string} [region] - State/region code
+ * @param {string} [city] - City name
+ * @param {string} [latrange1] - Min latitude
+ * @param {string} [latrange2] - Max latitude
+ * @param {string} [longrange1] - Min longitude
+ * @param {string} [longrange2] - Max longitude
+ * @param {number} [mfgrIdMinimum] - WiGLE manufacturer ID range start (e.g. 2504 for Raven)
+ * @param {number} [mfgrIdMaximum] - WiGLE manufacturer ID range end
+ * @param {boolean} [showBt] - Include BT devices (default: true)
+ * @param {boolean} [showBle] - Include BLE devices (default: true)
+ * @param {number} [runId] - Resume a specific existing BT run by ID
+ */
+router.post(
+  '/search-api/bt-import-start',
+  requireAdmin,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const query = { ...req.query, ...req.body };
+
+      if (query.runId != null) {
+        const runId = Number.parseInt(String(query.runId), 10);
+        if (!Number.isFinite(runId))
+          return res.status(400).json({ ok: false, error: 'Invalid runId' });
+        const run = await wigleBluetoothImportService.resumeBluetoothImportRun(runId);
+        return res.json(buildRunImportResponse(run));
+      }
+
+      const validationError = wigleBluetoothImportService.validateBtImportQuery(query);
+      if (validationError) return res.status(400).json({ ok: false, error: validationError });
+
+      const run = await wigleBluetoothImportService.startBluetoothImportRun(query);
+      return res.json(buildRunImportResponse(run));
+    } catch (err: any) {
+      logger.error(`[WiGLE BT] Import-start error: ${err.message}`, { error: err });
+      if (err?.status === 403)
+        return res.status(403).json({ ok: false, error: err.message, code: err.code });
       next(err);
     }
   }

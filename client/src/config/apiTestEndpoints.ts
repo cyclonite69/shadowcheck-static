@@ -934,6 +934,16 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'WiGLE',
+    label: 'BT/BLE Import Start',
+    description: 'Start or resume a paginated BT/BLE import from WiGLE /api/v2/bluetooth/search',
+    path: '/api/wigle/search-api/bt-import-start',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody:
+      '{\n  "country": "US",\n  "mfgrIdMinimum": 2504,\n  "mfgrIdMaximum": 2504,\n  "showBt": true,\n  "showBle": true\n}',
+  },
+  {
+    category: 'WiGLE',
     label: 'Cluster Cleanup',
     path: '/api/wigle/search-api/import-runs/cluster-cleanup',
     method: 'DELETE',

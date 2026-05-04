@@ -187,6 +187,10 @@ export const wigleApi = {
     return apiClient.post('/wigle/search-api/import-all', params);
   },
 
+  async importAllBluetooth(params: Record<string, unknown>): Promise<any> {
+    return apiClient.post('/wigle/search-api/bt-import-start', params);
+  },
+
   async listImportRuns(params: URLSearchParams = new URLSearchParams()): Promise<any> {
     const suffix = params.toString();
     return apiClient.get(`/wigle/search-api/import-runs${suffix ? `?${suffix}` : ''}`);
