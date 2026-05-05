@@ -105,6 +105,14 @@ export function buildFastPathSupplementalPredicates(
     }
   }
 
+  if (e.surveillance && f.surveillance === true) {
+    where.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.network_tags nt_surv WHERE UPPER(nt_surv.bssid) = UPPER(ne.bssid) AND nt_surv.tags @> '["surveillance"]'::jsonb)`
+    );
+    ctx.addApplied('threat', 'surveillance', true);
+  }
+
   if (e.timeframe && f.timeframe) {
     const scope = f.temporalScope || 'observation_time';
     let timeExpr = 'ne.last_seen'; // Default for fast path

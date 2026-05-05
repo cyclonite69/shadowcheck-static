@@ -599,6 +599,7 @@
 - **routes:** add spawn error handlers to sqlite/sql/kml import routes ([d06aae5](https://github.com/cyclonite69/shadowcheck-web/commit/d06aae5ac61e67389d4e1fbb8438c5fb7cbe8468))
 - run migrations before backend starts to prevent DB_INITIALIZING 503 ([3a27d2f](https://github.com/cyclonite69/shadowcheck-web/commit/3a27d2f12b61ce7c5f74297fd626b18cef4eeca7))
 - **script:** match scs_rebuild password passing pattern ([30d66b6](https://github.com/cyclonite69/shadowcheck-web/commit/30d66b65f53a87dc71eea550a4ee55729ac98d33))
+- **scripts:** add future annotations for Python 3.9 compat ([ffc2282](https://github.com/cyclonite69/shadowcheck-web/commit/ffc228283badefe003b694ac5b2cd58b9e1e4f2e))
 - **scripts:** use admin creds for migrations ([f9df8ab](https://github.com/cyclonite69/shadowcheck-web/commit/f9df8abf40b3d19d4939609b9fc88498014ce78e))
 - **script:** use correct secrets manager key (db_password) ([41eacd4](https://github.com/cyclonite69/shadowcheck-web/commit/41eacd44ce002f75be8270b9bc89a6cacb4337f3))
 - scs_rebuild deploy errors (psql variable name, missing /sql dir) ([1e912c4](https://github.com/cyclonite69/shadowcheck-web/commit/1e912c426fb5a9df03beeefcc79ca49fcd4de2b3))
