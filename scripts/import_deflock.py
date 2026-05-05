@@ -17,6 +17,8 @@ Usage (run on EC2 via SSM):
   python3 scripts/import_deflock.py --dry-run
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
