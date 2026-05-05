@@ -9,6 +9,7 @@ export interface WigleLayerState {
   fieldOffices: boolean;
   residentAgencies: boolean;
   federalCourthouses: boolean;
+  deflockCameras: boolean;
 }
 
 function loadLayerState(): WigleLayerState {

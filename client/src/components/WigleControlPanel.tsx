@@ -110,6 +110,12 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
             onChange={() => onToggleLayer('federalCourthouses')}
             color="#f59e0b"
           />
+          <LayerToggle
+            label="Flock Cameras (DeFlock)"
+            enabled={layers.deflockCameras}
+            onChange={() => onToggleLayer('deflockCameras')}
+            color="#FF6B00"
+          />
         </div>
       </div>
 

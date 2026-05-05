@@ -62,4 +62,12 @@ export const agencyApi = {
     if (!response.ok) throw new Error('Failed to fetch federal courthouses');
     return response.json();
   },
+
+  async getDeflockCameras(): Promise<any> {
+    const response = await fetch('/api/v1/surveillance/deflock-cameras', {
+      credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to fetch DeFlock cameras');
+    return response.json();
+  },
 };

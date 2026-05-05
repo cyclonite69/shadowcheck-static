@@ -165,6 +165,13 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/federal-courthouses',
     method: 'GET',
   },
+  {
+    category: 'Surveillance',
+    label: 'DeFlock Cameras',
+    description: 'GeoJSON FeatureCollection of Flock Safety ALPR camera locations',
+    path: '/api/v1/surveillance/deflock-cameras',
+    method: 'GET',
+  },
 
   // ── Geospatial ────────────────────────────────────────────────────────────
   { category: 'Geospatial', label: 'Mapbox Token', path: '/api/mapbox-token', method: 'GET' },

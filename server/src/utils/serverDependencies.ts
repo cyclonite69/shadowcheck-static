@@ -49,6 +49,7 @@ interface RouteModules {
   mobileIngestRoutes: Router;
   agencyOfficesRoutes: Router;
   federalCourthousesRoutes: Router;
+  deflockCamerasRoutes: Router;
   networkAgenciesRoutes: Router;
 }
 
@@ -105,6 +106,7 @@ function loadRouteModules(): RouteModules {
     mobileIngestRoutes: require('../api/routes/v1/mobileIngest').default,
     agencyOfficesRoutes: require('../api/routes/v1/agencyOffices').default,
     federalCourthousesRoutes: require('../api/routes/v1/federalCourthouses').default,
+    deflockCamerasRoutes: require('../api/routes/v1/deflockCameras').default,
     networkAgenciesRoutes: require('../api/routes/v1/network-agencies'),
   };
 }

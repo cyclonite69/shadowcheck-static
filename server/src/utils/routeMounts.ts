@@ -44,6 +44,7 @@ interface ApiRouteDependencies {
   mobileIngestRoutes: Router;
   agencyOfficesRoutes: Router;
   federalCourthousesRoutes: Router;
+  deflockCamerasRoutes: Router;
   networkAgenciesRoutes: Router;
 }
 
@@ -89,6 +90,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     mobileIngestRoutes,
     agencyOfficesRoutes,
     federalCourthousesRoutes,
+    deflockCamerasRoutes,
     networkAgenciesRoutes,
   } = deps;
   // Fail closed: gate is enabled unless explicitly set to "false".
@@ -170,6 +172,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
   // Agency offices (public data - mount outside /api to avoid admin auth middleware)
   app.use('/agency-offices', agencyOfficesRoutes);
   app.use('/federal-courthouses', federalCourthousesRoutes);
+  app.use('/api/v1/surveillance/deflock-cameras', userGate, deflockCamerasRoutes);
 
   // Auth routes define their own session handling. Do not gate the mount or
   // login/session bootstrap endpoints will 401 before they can run.
