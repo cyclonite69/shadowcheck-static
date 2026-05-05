@@ -12,6 +12,8 @@ if [ ! -L /usr/local/bin/scs_rebuild ] || [ "$(readlink -f /usr/local/bin/scs_re
   fi
 fi
 
+sudo chown -R ssm-user:ssm-user /home/ssm-user/.docker 2>/dev/null || true
+
 APP_DIR="${SCS_DIR:-$HOME/shadowcheck}"
 cd "$APP_DIR"
 
