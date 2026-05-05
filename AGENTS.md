@@ -90,6 +90,15 @@ const adminDb = require('../services/adminDbService');
 
 **EC2 access**: SSM only — instance `i-06380d0c9c99f6124`, profile `shadowcheck`. Secrets from `shadowcheck/config` in Secrets Manager. Never open port 22.
 
+**CRITICAL — EC2 rebuild/deploy rule (non-negotiable)**:
+
+- ALWAYS use `scs_rebuild.sh` for any rebuild, redeploy, or container restart on EC2.
+- NEVER run: `docker build`, `docker compose build`, `docker compose up`, `docker restart`, or any raw docker deploy command on EC2.
+- `scs_rebuild.sh` protects SSL certs, EBS volumes, and permissions. Raw docker commands bypass all of this.
+- If a fix requires a rebuild: commit, push to master, then run `scs_rebuild.sh` on EC2.
+- Permitted docker commands on EC2 (read-only): `docker logs`, `docker exec` for psql/redis queries, `docker ps`, `docker inspect`.
+- These rules apply to ALL agents without exception.
+
 **Approved shell patterns**:
 
 ```bash
@@ -100,8 +109,8 @@ DB_PASS=$(aws secretsmanager get-secret-value --secret-id shadowcheck/config \
 docker exec -e PGPASSWORD=$DB_PASS shadowcheck_postgres psql \
   -U shadowcheck_admin -d shadowcheck_db -c "<SQL>"
 
-# Rebuild EC2 backend
-cd /home/ssm-user/shadowcheck && ./scs_rebuild.sh
+# Rebuild EC2 stack (the ONLY approved rebuild method)
+export HOME=/home/ssm-user && cd /home/ssm-user/shadowcheck && bash deploy/aws/scripts/scs_rebuild.sh
 ```
 
 ---

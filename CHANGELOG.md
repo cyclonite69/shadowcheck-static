@@ -143,6 +143,7 @@
 - complete sorting, performance, and crash fixes (final) ([5a6ed26](https://github.com/cyclonite69/shadowcheck-web/commit/5a6ed26bd04d5f4e57e1f7229b71cd17227ef54e))
 - comprehensive tooltip data fixes for frequency, channel, and distance units ([bf62bda](https://github.com/cyclonite69/shadowcheck-web/commit/bf62bda27a3b5baab6230f8122d7c20ef2b07566))
 - compute security type in MV instead of copying raw capabilities ([079d9c5](https://github.com/cyclonite69/shadowcheck-web/commit/079d9c5a63af59dd7f8d570b3de6b71874425dac))
+- **container:** remove circular dependency on wigleEnrichmentService ([bcbb156](https://github.com/cyclonite69/shadowcheck-web/commit/bcbb1566ff2fc4fc87fe3c81ede65db0df81fa03))
 - Convert NetworkTableHeader to CSS grid for consistent column reordering ([b9766e0](https://github.com/cyclonite69/shadowcheck-web/commit/b9766e047ec76b611a79f5d67921fb64b8b18f00))
 - Correct analytics API paths in analytics.html ([d42e779](https://github.com/cyclonite69/shadowcheck-web/commit/d42e7796643e631196bfefdc4070f7b7a9f48164))
 - Correct API paths and column names for surveillance page ([337a46c](https://github.com/cyclonite69/shadowcheck-web/commit/337a46cab0121207bba40247e993be60cedc55d3))
