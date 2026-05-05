@@ -297,6 +297,7 @@ const runSurveillanceScanJob = async () => {
       matched_signals  = EXCLUDED.matched_signals,
       detected_at      = NOW()
     WHERE app.surveillance_detections.false_positive = FALSE
+    RETURNING bssid, device_type, confidence, detection_method
   `);
   } catch (err: any) {
     logger.error('[Surveillance Scan] SQL error during scan', {
@@ -309,7 +310,47 @@ const runSurveillanceScanJob = async () => {
 
   const rowCount = result.rowCount ?? 0;
   logger.info(`[Surveillance Scan] Complete: upserted ${rowCount} surveillance detections`);
-  return { detectionCount: rowCount };
+
+  const detectedRows: Array<{
+    bssid: string;
+    device_type: string;
+    confidence: string;
+    detection_method: string;
+  }> = result.rows || [];
+  let taggedCount = 0;
+
+  if (detectedRows.length > 0) {
+    const bssids = detectedRows.map((r) => r.bssid);
+    const confidences = detectedRows.map((r) => Number(r.confidence));
+    const deviceTypes = detectedRows.map((r) => r.device_type);
+    const methods = detectedRows.map((r) => r.detection_method);
+
+    const tagResult = await adminQuery(
+      `
+      INSERT INTO app.network_tags (bssid, threat_tag, threat_confidence, notes, tags, created_by)
+      SELECT b, 'THREAT', c, 'Surveillance: ' || d || ' (' || m || ')', '["surveillance"]'::jsonb, 'surveillance_scan_job'
+      FROM unnest($1::text[], $2::numeric[], $3::text[], $4::text[]) AS t(b, c, d, m)
+      ON CONFLICT (bssid) DO UPDATE SET
+        threat_tag        = CASE WHEN app.network_tags.threat_tag = 'FALSE_POSITIVE'
+                              THEN app.network_tags.threat_tag ELSE 'THREAT' END,
+        threat_confidence = EXCLUDED.threat_confidence,
+        notes             = EXCLUDED.notes,
+        tags              = CASE
+                              WHEN COALESCE(app.network_tags.tags, '[]'::jsonb) @> '["surveillance"]'::jsonb
+                                THEN app.network_tags.tags
+                              ELSE COALESCE(app.network_tags.tags, '[]'::jsonb) || '["surveillance"]'::jsonb
+                            END,
+        updated_at        = NOW()
+      WHERE NOT COALESCE(app.network_tags.is_ignored, false)
+      `,
+      [bssids, confidences, deviceTypes, methods]
+    );
+
+    taggedCount = tagResult.rowCount ?? 0;
+    logger.info(`[Surveillance Scan] Tagged ${taggedCount} networks in network_tags`);
+  }
+
+  return { detectionCount: rowCount, taggedCount };
 };
 
 export { runBackupJob, runBehavioralMlScoringJob, runSiblingDetectionJob, runSurveillanceScanJob };
