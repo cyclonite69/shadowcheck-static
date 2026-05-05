@@ -62,7 +62,6 @@ const wigleImportRunService = require('../services/wigleImportRunService');
 const wigleBluetoothImportService = require('../services/wigleImport/wigleBluetoothImportService');
 const wigleService = require('../services/wigleService');
 const importService = require('../services/admin/importService');
-const wigleEnrichmentService = require('../services/wigleEnrichmentService');
 const databaseService = require('./database');
 
 const container = {
@@ -115,7 +114,6 @@ const container = {
   threatScoringService,
   threatReportService,
   v2Service,
-  wigleEnrichmentService,
   wigleImportService,
   wigleImportRunService,
   wigleBluetoothImportService,
