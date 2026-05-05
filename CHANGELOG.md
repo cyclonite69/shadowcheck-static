@@ -1110,6 +1110,7 @@
 - **surveillance:** density zones MV + auto-refresh after scan ([4476c11](https://github.com/cyclonite69/shadowcheck-web/commit/4476c110e3c8a8f31d9978a34faa871db4572a4a))
 - **surveillance:** density zones MV with ratio normalization + DeFlock reference table ([df603ab](https://github.com/cyclonite69/shadowcheck-web/commit/df603abf5d7a42e0f23a6a87fac07090c26481dd))
 - **surveillance:** filter chip, map surface, tooltip enrichment ([da3a7d8](https://github.com/cyclonite69/shadowcheck-web/commit/da3a7d8b85b2987b08ac84c8343f92c8a6d95f33))
+- **surveillance:** shotSpotter RF detection + zone reference layer ([c29e6c1](https://github.com/cyclonite69/shadowcheck-web/commit/c29e6c11c7f2c9af8099bda2dfffd94bfa589c8b))
 - **table:** pin key columns during horizontal scroll ([af9f9a5](https://github.com/cyclonite69/shadowcheck-web/commit/af9f9a52038a6a0331b5934aab92b5d5f2f16f84))
 - **tagging:** expose network tag fields end-to-end (Priority 1 fixes) ([69c21e0](https://github.com/cyclonite69/shadowcheck-web/commit/69c21e0edc52d6bf571009782a87c08b40a568cb))
 - **test:** add and stabilize unit tests for wigle enrichment service and client ([ad3c69b](https://github.com/cyclonite69/shadowcheck-web/commit/ad3c69b6ab8735ca1e1175eca0ff11b39065cf2e))
