@@ -91,6 +91,7 @@ export interface Filters {
   wigleV3LastImportBefore?: string;
   wigleV3LastImportAfter?: string;
   surveillance?: boolean;
+  shotspotter?: boolean;
 }
 
 export type EnabledFlags = Record<FilterKey, boolean>;

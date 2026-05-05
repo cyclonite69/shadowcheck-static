@@ -172,6 +172,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/v1/surveillance/deflock-cameras',
     method: 'GET',
   },
+  {
+    category: 'Surveillance',
+    label: 'ShotSpotter Zones',
+    description:
+      'GeoJSON FeatureCollection of ShotSpotter acoustic gunshot detection coverage zones',
+    path: '/api/v1/surveillance/shotspotter-zones',
+    method: 'GET',
+  },
 
   // ── Geospatial ────────────────────────────────────────────────────────────
   { category: 'Geospatial', label: 'Mapbox Token', path: '/api/mapbox-token', method: 'GET' },

@@ -193,6 +193,7 @@
 - **deploy:** properly pass PGPASSWORD using bash -c in docker exec ([eb6194a](https://github.com/cyclonite69/shadowcheck-web/commit/eb6194a8c290b42228cc02036cb7b5147787c2ff))
 - **deploy:** remove psql var substitution from admin init ([36709a5](https://github.com/cyclonite69/shadowcheck-web/commit/36709a5c652c7890a7bd0cdc962f4dd71b91d6b0))
 - **deploy:** restore redis in aws rebuild path ([046264b](https://github.com/cyclonite69/shadowcheck-web/commit/046264b91f87ad975ed9be1a9a3a580f13c8c64a))
+- **deploy:** self-heal buildx permissions in scs_rebuild.sh ([871c4ea](https://github.com/cyclonite69/shadowcheck-web/commit/871c4ea5af94bea88780421e541bb3a72a4a0f5b))
 - **deploy:** set NODE_ENV=production and 2GB heap in scs_rebuild ([d4de4b9](https://github.com/cyclonite69/shadowcheck-web/commit/d4de4b911cadaea60c8f2288cfad039f6c009866))
 - **deploy:** skip postgres image rebuild if already exists ([8a59622](https://github.com/cyclonite69/shadowcheck-web/commit/8a59622f5dbbe45e922e26181cc463347581adf1))
 - **deploy:** use host network for postgres image build to bypass Docker bridge HTTP block ([c5a2b6f](https://github.com/cyclonite69/shadowcheck-web/commit/c5a2b6f1d9f4aa2225155115804d246cf85d9df9))

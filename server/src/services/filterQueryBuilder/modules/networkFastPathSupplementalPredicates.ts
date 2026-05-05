@@ -113,6 +113,14 @@ export function buildFastPathSupplementalPredicates(
     ctx.addApplied('threat', 'surveillance', true);
   }
 
+  if (e.shotspotter && f.shotspotter === true) {
+    where.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.network_tags nt_shot WHERE UPPER(nt_shot.bssid) = UPPER(ne.bssid) AND nt_shot.tags @> '["shotspotter"]'::jsonb)`
+    );
+    ctx.addApplied('threat', 'shotspotter', true);
+  }
+
   if (e.timeframe && f.timeframe) {
     const scope = f.temporalScope || 'observation_time';
     let timeExpr = 'ne.last_seen'; // Default for fast path

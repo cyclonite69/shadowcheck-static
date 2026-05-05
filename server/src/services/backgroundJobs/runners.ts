@@ -178,6 +178,24 @@ const MED_CONF_OUIS = [
   'E0:4F:43',
 ];
 
+// ShotSpotter/SoundThinking acoustic sensor OUIs
+// 00:1A:2B — Sensys Networks (known acoustic sensor vendor, acquired by SoundThinking)
+// Digi International OUIs (supply embedded radios for SoundThinking infrastructure)
+const SHOTSPOTTER_OUIS = ['00:1A:2B'];
+
+// ShotSpotter/SoundThinking SSID patterns (case-insensitive)
+// Includes: SoundThinking, ShotSpotter, SST-*, SENSOR-*, SNS-*
+// Pole-mounted infra naming: [A-Z]{2,4}-\d{4,6}
+const SHOTSPOTTER_SSID_PATTERNS = [
+  /^SoundThinking/i,
+  /^ShotSpotter/i,
+  /^SST-/i,
+  /^SENSOR-/i,
+  /^SNS-/i,
+  /^acoustic/i,
+  /^[A-Z]{2,4}-\d{4,6}$/, // pole-mounted naming convention
+];
+
 const runSurveillanceScanJob = async () => {
   const { adminQuery } = require('../adminDbService');
   logger.info('[Surveillance Scan] Starting surveillance device detection scan...');
@@ -186,6 +204,7 @@ const runSurveillanceScanJob = async () => {
   const highOuiLiteral = HIGH_CONF_OUIS.map((o) => `'${o}'`).join(',');
   const extBattOuiLiteral = FS_EXT_BATTERY_OUIS.map((o) => `'${o}'`).join(',');
   const medOuiLiteral = MED_CONF_OUIS.map((o) => `'${o}'`).join(',');
+  const shotspotterOuiLiteral = SHOTSPOTTER_OUIS.map((o) => `'${o}'`).join(',');
 
   let result;
   try {
@@ -267,6 +286,25 @@ const runSurveillanceScanJob = async () => {
         AND n.ssid ~* '^(fs ext battery|flock|falcon|raven|sparrow|condor|penguin)'
         AND (n.mfgrid IS NULL OR n.mfgrid != 2504)
 
+      UNION ALL
+
+      -- 7. ShotSpotter OUI match: Sensys Networks / SoundThinking vendor
+      SELECT n.bssid, 'SHOTSPOTTER_SENSOR', 0.90::numeric, 'oui_match',
+        jsonb_build_object('oui', LEFT(n.bssid, 8), 'vendor', 'Sensys Networks / SoundThinking'), 7
+      FROM app.networks n
+      WHERE n.type = 'W' AND LEFT(n.bssid, 8) = ANY(ARRAY[${shotspotterOuiLiteral}])
+
+      UNION ALL
+
+      -- 8. ShotSpotter SSID exact: SoundThinking, ShotSpotter, SST-, SENSOR-, SNS-, acoustic prefixes
+      SELECT n.bssid, 'SHOTSPOTTER_SENSOR', 0.85::numeric, 'ssid_pattern',
+        jsonb_build_object('ssid', n.ssid, 'pattern', 'SoundThinking|ShotSpotter|SST-|SENSOR-|SNS-|acoustic'), 8
+      FROM app.networks n
+      WHERE n.type = 'W'
+        AND (n.ssid ~* '^(SoundThinking|ShotSpotter|SST-|SENSOR-|SNS-|acoustic)'
+             OR n.ssid ~ '^[A-Z]{2,4}-\d{4,6}$')
+        AND LEFT(n.bssid, 8) != ALL(ARRAY[${shotspotterOuiLiteral}])
+
     ),
     ranked AS (
       SELECT DISTINCT ON (bssid)
@@ -328,8 +366,13 @@ const runSurveillanceScanJob = async () => {
     const tagResult = await adminQuery(
       `
       INSERT INTO app.network_tags (bssid, threat_tag, threat_confidence, notes, tags, created_by)
-      SELECT b, 'THREAT', c, 'Surveillance: ' || d || ' (' || m || ')', '["surveillance"]'::jsonb, 'surveillance_scan_job'
-      FROM unnest($1::text[], $2::numeric[], $3::text[], $4::text[]) AS t(b, c, d, m)
+      SELECT b, 'THREAT', c, 'Surveillance: ' || d || ' (' || m || ')',
+        CASE
+          WHEN dt = 'SHOTSPOTTER_SENSOR' THEN '["surveillance","shotspotter"]'::jsonb
+          ELSE '["surveillance"]'::jsonb
+        END,
+        'surveillance_scan_job'
+      FROM unnest($1::text[], $2::numeric[], $3::text[], $4::text[], $5::text[]) AS t(b, c, d, m, dt)
       ON CONFLICT (bssid) DO UPDATE SET
         threat_tag        = CASE WHEN app.network_tags.threat_tag = 'FALSE_POSITIVE'
                               THEN app.network_tags.threat_tag ELSE 'THREAT' END,
@@ -338,12 +381,12 @@ const runSurveillanceScanJob = async () => {
         tags              = CASE
                               WHEN COALESCE(app.network_tags.tags, '[]'::jsonb) @> '["surveillance"]'::jsonb
                                 THEN app.network_tags.tags
-                              ELSE COALESCE(app.network_tags.tags, '[]'::jsonb) || '["surveillance"]'::jsonb
+                              ELSE COALESCE(app.network_tags.tags, '[]'::jsonb) || EXCLUDED.tags
                             END,
         updated_at        = NOW()
       WHERE NOT COALESCE(app.network_tags.is_ignored, false)
       `,
-      [bssids, confidences, deviceTypes, methods]
+      [bssids, confidences, deviceTypes, methods, deviceTypes]
     );
 
     taggedCount = tagResult.rowCount ?? 0;

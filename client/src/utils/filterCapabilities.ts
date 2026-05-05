@@ -108,6 +108,8 @@ export function createFullCapabilities(): PageFilterCapabilities {
       threatCategories: true,
       stationaryConfidenceMin: true,
       stationaryConfidenceMax: true,
+      surveillance: true,
+      shotspotter: true,
     },
   };
 }

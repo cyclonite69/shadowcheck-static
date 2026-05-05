@@ -15,6 +15,7 @@ export const DEFAULT_LAYERS = {
   residentAgencies: true,
   federalCourthouses: true,
   deflockCameras: false,
+  shotspotterZones: false,
 } as const;
 
 /**

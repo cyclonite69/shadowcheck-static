@@ -50,6 +50,7 @@ interface RouteModules {
   agencyOfficesRoutes: Router;
   federalCourthousesRoutes: Router;
   deflockCamerasRoutes: Router;
+  shotspotterZonesRoutes: Router;
   networkAgenciesRoutes: Router;
 }
 
@@ -107,6 +108,7 @@ function loadRouteModules(): RouteModules {
     agencyOfficesRoutes: require('../api/routes/v1/agencyOffices').default,
     federalCourthousesRoutes: require('../api/routes/v1/federalCourthouses').default,
     deflockCamerasRoutes: require('../api/routes/v1/deflockCameras').default,
+    shotspotterZonesRoutes: require('../api/routes/v1/shotspotterZones').default,
     networkAgenciesRoutes: require('../api/routes/v1/network-agencies'),
   };
 }
