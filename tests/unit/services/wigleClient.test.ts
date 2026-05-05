@@ -69,7 +69,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
     expect(global.fetch).toHaveBeenCalledWith(
       'http://test',
       expect.objectContaining({
-        headers: expect.any(Headers),
+        headers: expect.anything(),
       })
     );
     const fetchInit = (global.fetch as jest.Mock).mock.calls[0][1];

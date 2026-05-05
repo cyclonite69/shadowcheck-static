@@ -136,6 +136,8 @@ describe('admin/orphan-networks route', () => {
       search: 'testnet',
       limit: 25,
       offset: 50,
+      sortBy: '',
+      sortDir: '',
     });
     expect(container.adminOrphanNetworksService.getOrphanNetworkCounts).toHaveBeenCalledWith({
       search: 'testnet',

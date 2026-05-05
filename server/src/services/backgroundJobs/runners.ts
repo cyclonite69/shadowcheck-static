@@ -350,6 +350,15 @@ const runSurveillanceScanJob = async () => {
     logger.info(`[Surveillance Scan] Tagged ${taggedCount} networks in network_tags`);
   }
 
+  try {
+    await adminQuery('REFRESH MATERIALIZED VIEW CONCURRENTLY app.surveillance_density_zones');
+    logger.info('[Surveillance Scan] Refreshed surveillance_density_zones MV');
+  } catch (err: any) {
+    logger.warn('[Surveillance Scan] Could not refresh surveillance_density_zones MV', {
+      message: err?.message,
+    });
+  }
+
   return { detectionCount: rowCount, taggedCount };
 };
 

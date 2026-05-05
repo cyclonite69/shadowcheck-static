@@ -67,7 +67,7 @@ describe('BedrockService', () => {
       const mockResponse = {
         body: Buffer.from(
           JSON.stringify({
-            content: [{ text: 'Analysis: Only analysis here.' }],
+            content: [{ text: 'Analysis: Only analysis here.\nSuggestions:' }],
           })
         ),
       };
@@ -84,8 +84,6 @@ describe('BedrockService', () => {
     });
 
     it('should summarize networks correctly (internal summarizeNetworks logic)', async () => {
-      // We test this indirectly through analyzeNetworks call or we could export it if we refactor
-      // For now, verify it doesn't crash with varied data
       const networks = [
         {
           bssid: 'AA:BB',

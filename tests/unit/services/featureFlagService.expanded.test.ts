@@ -1,16 +1,16 @@
 export {};
 
-jest.mock('../../server/src/config/database', () => ({
+jest.mock('../../../server/src/config/database', () => ({
   query: jest.fn(),
 }));
 
-jest.mock('../../server/src/logging/logger', () => ({
+jest.mock('../../../server/src/logging/logger', () => ({
   warn: jest.fn(),
   error: jest.fn(),
   info: jest.fn(),
 }));
 
-const { query } = require('../../server/src/config/database');
+const { query } = require('../../../server/src/config/database');
 
 // Re-require fresh module per test to reset module-level cache state
 let featureFlagService: any;
@@ -19,13 +19,13 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.resetModules();
   // Re-require after reset so cacheLoaded resets to false
-  jest.mock('../../server/src/config/database', () => ({ query: jest.fn() }));
-  jest.mock('../../server/src/logging/logger', () => ({
+  jest.mock('../../../server/src/config/database', () => ({ query: jest.fn() }));
+  jest.mock('../../../server/src/logging/logger', () => ({
     warn: jest.fn(),
     error: jest.fn(),
     info: jest.fn(),
   }));
-  featureFlagService = require('../../server/src/services/featureFlagService');
+  featureFlagService = require('../../../server/src/services/featureFlagService');
 });
 
 describe('featureFlagService', () => {
@@ -70,7 +70,7 @@ describe('featureFlagService', () => {
 
   describe('refreshCache', () => {
     test('loads DB values into cache and returns them', async () => {
-      const { query: mockQuery } = require('../../server/src/config/database');
+      const { query: mockQuery } = require('../../../server/src/config/database');
       mockQuery.mockResolvedValueOnce({
         rows: [
           { key: 'enable_background_jobs', value: 'true' },
@@ -87,7 +87,7 @@ describe('featureFlagService', () => {
     });
 
     test('falls back to defaults when DB query fails', async () => {
-      const { query: mockQuery } = require('../../server/src/config/database');
+      const { query: mockQuery } = require('../../../server/src/config/database');
       mockQuery.mockRejectedValueOnce(new Error('DB connection failed'));
 
       const result = await featureFlagService.refreshCache();
@@ -98,7 +98,7 @@ describe('featureFlagService', () => {
     });
 
     test('coerces string "true"/"false" DB values correctly', async () => {
-      const { query: mockQuery } = require('../../server/src/config/database');
+      const { query: mockQuery } = require('../../../server/src/config/database');
       mockQuery.mockResolvedValueOnce({
         rows: [
           { key: 'simple_rule_scoring_enabled', value: 'true' },
@@ -112,7 +112,7 @@ describe('featureFlagService', () => {
     });
 
     test('after refreshCache, getFlag returns DB-loaded value', async () => {
-      const { query: mockQuery } = require('../../server/src/config/database');
+      const { query: mockQuery } = require('../../../server/src/config/database');
       mockQuery.mockResolvedValueOnce({
         rows: [{ key: 'enable_background_jobs', value: 'true' }],
       });

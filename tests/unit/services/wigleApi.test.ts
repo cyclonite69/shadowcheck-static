@@ -55,7 +55,7 @@ describe('wigle/api — getUserStats', () => {
     });
     await getUserStats();
     const callArgs = wigleGatewayFetch.mock.calls[0][0];
-    expect(callArgs.url).toBe('https://api.wigle.net/api/v2/profile/user');
+    expect(callArgs.url).toBe('https://api.wigle.net/api/v2/stats/user');
   });
 
   test('returns parsed JSON on success', async () => {

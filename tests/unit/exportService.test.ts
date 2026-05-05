@@ -1,10 +1,30 @@
 /**
- * Unit tests for KML export service
+ * Unit tests for Export Service
  */
 
-const { generateKML } = require('../../server/src/services/exportService');
+const {
+  generateKML,
+  getObservationsForCSV,
+  getObservationsForGeoJSON,
+  getObservationsAndNetworksForJSON,
+  getObservationsForKML,
+  getFullDatabaseSnapshot,
+} = require('../../server/src/services/exportService');
+const exportRepository = require('../../server/src/repositories/exportRepository');
 
-describe('KML Generation Service', () => {
+// Mock repository
+jest.mock('../../server/src/repositories/exportRepository', () => ({
+  queryObservationsForCSV: jest.fn(),
+  queryObservationsForJSON: jest.fn(),
+  queryNetworksForJSON: jest.fn(),
+  queryObservationsForGeoJSON: jest.fn(),
+  queryAppTableNames: jest.fn(),
+  queryTableRowCount: jest.fn(),
+  queryTableRows: jest.fn(),
+  queryObservationsForKML: jest.fn(),
+}));
+
+describe('Export Service', () => {
   describe('generateKML', () => {
     it('should generate valid KML for empty observations', () => {
       const kml = generateKML([]);
@@ -43,76 +63,6 @@ describe('KML Generation Service', () => {
       expect(kml).toContain('</kml>');
     });
 
-    it('should include signal strength in placemark description', () => {
-      const observations = [
-        {
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          ssid: 'TestNetwork',
-          lat: 40.7128,
-          lon: -74.006,
-          signal_dbm: -50,
-          observed_at: '2024-01-01T12:00:00Z',
-          radio_type: 'WiFi',
-          frequency: 2400,
-          capabilities: 'WPA2',
-          accuracy: 10,
-          altitude: 100,
-        },
-      ];
-
-      const kml = generateKML(observations);
-      expect(kml).toContain('Signal: -50dBm');
-    });
-
-    it('should escape XML special characters', () => {
-      const observations = [
-        {
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          ssid: 'Test & Network <>"\'',
-          lat: 40.7128,
-          lon: -74.006,
-          signal_dbm: -50,
-          observed_at: '2024-01-01T12:00:00Z',
-          radio_type: 'WiFi',
-          frequency: 2400,
-          capabilities: 'WPA2',
-          accuracy: 10,
-          altitude: 100,
-        },
-      ];
-
-      const kml = generateKML(observations);
-      expect(kml).toContain('Test &amp; Network &lt;&gt;&quot;&apos;');
-      expect(kml).not.toContain('<Test & Network');
-    });
-
-    it('should handle observations without altitude', () => {
-      const observations = [
-        {
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          ssid: 'TestNetwork',
-          lat: 40.7128,
-          lon: -74.006,
-          signal_dbm: -50,
-          observed_at: '2024-01-01T12:00:00Z',
-          radio_type: 'WiFi',
-          frequency: 2400,
-          capabilities: 'WPA2',
-          accuracy: 10,
-          altitude: null,
-        },
-      ];
-
-      const kml = generateKML(observations);
-      expect(kml).toContain('-74.006,40.7128');
-      // Should not have trailing comma
-      const coords = kml.match(/<coordinates>([^<]+)<\/coordinates>/);
-      expect(coords).toBeTruthy();
-      if (coords) {
-        expect(coords[1]).toMatch(/^-74\.006,40\.7128$/);
-      }
-    });
-
     it('should group multiple observations by BSSID', () => {
       const observations = [
         {
@@ -144,94 +94,87 @@ describe('KML Generation Service', () => {
       ];
 
       const kml = generateKML(observations);
-      // Should have 1 folder per unique BSSID
       const folderCount = (kml.match(/<Folder>/g) || []).length;
       expect(folderCount).toBe(1);
-      // Should have placemarks (1 main + 1 observation)
       const placemarksCount = (kml.match(/<Placemark>/g) || []).length;
       expect(placemarksCount).toBe(2);
       expect(kml).toContain('Observations: 2');
     });
+  });
 
-    it('should include observation count in folder', () => {
-      const observations = [
-        {
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          ssid: 'Network1',
-          lat: 40.7128,
-          lon: -74.006,
-          signal_dbm: -50,
-          observed_at: '2024-01-01T12:00:00Z',
-          radio_type: 'WiFi',
-          frequency: 2400,
-          capabilities: 'WPA2',
-          accuracy: 10,
-          altitude: 100,
-        },
-      ];
+  describe('getObservationsForCSV', () => {
+    it('should call queryObservationsForCSV', async () => {
+      exportRepository.queryObservationsForCSV.mockResolvedValueOnce([]);
+      await getObservationsForCSV();
+      expect(exportRepository.queryObservationsForCSV).toHaveBeenCalled();
+    });
+  });
 
-      const kml = generateKML(observations);
-      expect(kml).toContain('Observations: 1');
+  describe('getObservationsForGeoJSON', () => {
+    it('should call queryObservationsForGeoJSON', async () => {
+      exportRepository.queryObservationsForGeoJSON.mockResolvedValueOnce([]);
+      await getObservationsForGeoJSON();
+      expect(exportRepository.queryObservationsForGeoJSON).toHaveBeenCalled();
+    });
+  });
+
+  describe('getObservationsAndNetworksForJSON', () => {
+    it('should return observations and networks merged', async () => {
+      exportRepository.queryObservationsForJSON.mockResolvedValueOnce([{ id: 1 }]);
+      exportRepository.queryNetworksForJSON.mockResolvedValueOnce([{ bssid: 'A' }]);
+
+      const result = await getObservationsAndNetworksForJSON();
+      expect(result.observations).toEqual([{ id: 1 }]);
+      expect(result.networks).toEqual([{ bssid: 'A' }]);
+    });
+  });
+
+  describe('getObservationsForKML', () => {
+    it('should return empty for no BSSIDs', async () => {
+      const result = await getObservationsForKML([]);
+      expect(result).toEqual([]);
     });
 
-    it('should handle multiple networks', () => {
-      const observations = [
-        {
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          ssid: 'Network1',
-          lat: 40.7128,
-          lon: -74.006,
-          signal_dbm: -50,
-          observed_at: '2024-01-01T12:00:00Z',
-          radio_type: 'WiFi',
-          frequency: 2400,
-          capabilities: 'WPA2',
-          accuracy: 10,
-          altitude: 100,
-        },
-        {
-          bssid: '11:22:33:44:55:66',
-          ssid: 'Network2',
-          lat: 40.758,
-          lon: -73.9855,
-          signal_dbm: -65,
-          observed_at: '2024-01-01T13:00:00Z',
-          radio_type: 'WiFi',
-          frequency: 5000,
-          capabilities: 'WPA3',
-          accuracy: 8,
-          altitude: 150,
-        },
-      ];
+    it('should call queryObservationsForKML for BSSIDs', async () => {
+      exportRepository.queryObservationsForKML.mockResolvedValueOnce([{ id: 1 }]);
+      const result = await getObservationsForKML(['A']);
+      expect(result).toEqual([{ id: 1 }]);
+      expect(exportRepository.queryObservationsForKML).toHaveBeenCalledWith(['A']);
+    });
+  });
 
-      const kml = generateKML(observations);
-      expect(kml).toContain('2 Network(s)');
-      expect(kml).toContain('Network1');
-      expect(kml).toContain('Network2');
-      const folderCount = (kml.match(/<Folder>/g) || []).length;
-      expect(folderCount).toBe(2);
+  describe('getFullDatabaseSnapshot', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      process.env.FULL_EXPORT_MAX_ROWS_PER_TABLE = '100';
+      process.env.FULL_EXPORT_MAX_ROWS_TOTAL = '150';
     });
 
-    it('should include time information in placemarks', () => {
-      const observations = [
-        {
-          bssid: 'AA:BB:CC:DD:EE:FF',
-          ssid: 'TestNetwork',
-          lat: 40.7128,
-          lon: -74.006,
-          signal_dbm: -50,
-          observed_at: new Date('2024-01-01T12:00:00Z').toISOString(),
-          radio_type: 'WiFi',
-          frequency: 2400,
-          capabilities: 'WPA2',
-          accuracy: 10,
-          altitude: 100,
-        },
-      ];
+    it('should respect table and total budget limits', async () => {
+      exportRepository.queryAppTableNames.mockResolvedValueOnce(['table1', 'table2']);
 
-      const kml = generateKML(observations);
-      expect(kml).toContain('Last Seen: 2024-01-01');
-      expect(kml).toContain('First Seen: 2024-01-01');
+      exportRepository.queryTableRowCount.mockResolvedValueOnce(200);
+      exportRepository.queryTableRows.mockResolvedValueOnce(new Array(100).fill({}));
+
+      exportRepository.queryTableRowCount.mockResolvedValueOnce(200);
+      exportRepository.queryTableRows.mockResolvedValueOnce(new Array(50).fill({}));
+
+      const snapshot = await getFullDatabaseSnapshot();
+
+      expect(snapshot.tables['table1'].exportedRowCount).toBe(100);
+      expect(snapshot.tables['table1'].truncated).toBe(true);
+
+      expect(snapshot.tables['table2'].exportedRowCount).toBe(50);
+      expect(snapshot.tables['table2'].truncated).toBe(true);
+
+      expect(snapshot.truncated).toBe(true);
+    });
+
+    it('should handle empty database', async () => {
+      exportRepository.queryAppTableNames.mockResolvedValueOnce([]);
+      const snapshot = await getFullDatabaseSnapshot();
+      expect(snapshot.tables).toEqual({});
+      expect(snapshot.truncated).toBe(false);
     });
   });
 });

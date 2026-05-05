@@ -1,3 +1,4 @@
+export {};
 const courthouseService = require('../../../server/src/services/courthouseService');
 const courthouseRepository = require('../../../server/src/repositories/courthouseRepository');
 

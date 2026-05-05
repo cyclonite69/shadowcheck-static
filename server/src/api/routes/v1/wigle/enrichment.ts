@@ -9,7 +9,7 @@ import { requireAdmin } from '../../../../middleware/authMiddleware';
 
 const router = express.Router();
 const { asyncHandler } = require('../../../../utils/asyncHandler');
-const wigleEnrichmentService = require('../../../../services/wigleEnrichmentService');
+const { wigleEnrichmentService } = require('../../../../config/container');
 
 /**
  * GET /api/v1/wigle/enrichment/stats

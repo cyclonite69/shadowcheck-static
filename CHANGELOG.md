@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-04)
+# 1.0.0 (2026-05-05)
 
 ### Bug Fixes
 
@@ -1102,6 +1102,8 @@
 - support both WiGLE v2 and v3 search with version toggle ([e608cca](https://github.com/cyclonite69/shadowcheck-web/commit/e608cca39782a42744fa28f949953982202e0592))
 - surveillance.html uses base-components ([9eb1255](https://github.com/cyclonite69/shadowcheck-web/commit/9eb1255ba3886070e88f7821fc7693d0eceacd7e))
 - **surveillance:** add surveillance device scan background job ([bc9c6b3](https://github.com/cyclonite69/shadowcheck-web/commit/bc9c6b3480e3e46febd7f8addc99e7dedd7cd4e9))
+- **surveillance:** auto-tag network_tags after scan upsert ([ebefea4](https://github.com/cyclonite69/shadowcheck-web/commit/ebefea4254ec30d638e997b7ebdf6f6133e63644))
+- **surveillance:** filter chip, map surface, tooltip enrichment ([da3a7d8](https://github.com/cyclonite69/shadowcheck-web/commit/da3a7d8b85b2987b08ac84c8343f92c8a6d95f33))
 - **table:** pin key columns during horizontal scroll ([af9f9a5](https://github.com/cyclonite69/shadowcheck-web/commit/af9f9a52038a6a0331b5934aab92b5d5f2f16f84))
 - **tagging:** expose network tag fields end-to-end (Priority 1 fixes) ([69c21e0](https://github.com/cyclonite69/shadowcheck-web/commit/69c21e0edc52d6bf571009782a87c08b40a568cb))
 - **test:** add and stabilize unit tests for wigle enrichment service and client ([ad3c69b](https://github.com/cyclonite69/shadowcheck-web/commit/ad3c69b6ab8735ca1e1175eca0ff11b39065cf2e))

@@ -90,7 +90,7 @@ describe('wigleRequestLedger', () => {
       recordRequest('stats');
       expect(adminQuery).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO app.wigle_ledger_events'),
-        ['stats']
+        ['stats', 'success', null, null, null]
       );
     });
 

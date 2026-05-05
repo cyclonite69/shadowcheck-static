@@ -162,7 +162,8 @@ describe('runners service', () => {
 
   describe('runSiblingDetectionJob', () => {
     it('should run sibling detection with default options', async () => {
-      mockAdminDbService.adminQuery.mockResolvedValue({
+      mockAdminDbService.adminQuery.mockResolvedValueOnce({}); // SET LOCAL
+      mockAdminDbService.adminQuery.mockResolvedValueOnce({
         rows: [{ count: '5' }],
       });
 
@@ -171,12 +172,13 @@ describe('runners service', () => {
       expect(result.pairsProcessed).toBe(5);
       expect(mockAdminDbService.adminQuery).toHaveBeenCalledWith(
         expect.stringContaining('app.refresh_network_sibling_pairs'),
-        [6, 5000, 0.7, 1000, true]
+        [6, 5000, 0.7, 2000, true]
       );
     });
 
     it('should run sibling detection with custom options', async () => {
-      mockAdminDbService.adminQuery.mockResolvedValue({
+      mockAdminDbService.adminQuery.mockResolvedValueOnce({}); // SET LOCAL
+      mockAdminDbService.adminQuery.mockResolvedValueOnce({
         rows: [{ count: '10' }],
       });
 
@@ -196,7 +198,8 @@ describe('runners service', () => {
     });
 
     it('should use default values for sibling detection options', async () => {
-      mockAdminDbService.adminQuery.mockResolvedValue({
+      mockAdminDbService.adminQuery.mockResolvedValueOnce({}); // SET LOCAL
+      mockAdminDbService.adminQuery.mockResolvedValueOnce({
         rows: [{ count: '0' }],
       });
 
@@ -204,7 +207,7 @@ describe('runners service', () => {
 
       expect(mockAdminDbService.adminQuery).toHaveBeenCalledWith(
         expect.stringContaining('app.refresh_network_sibling_pairs'),
-        [6, 5000, 0.7, 1000, true]
+        [6, 5000, 0.7, 2000, true]
       );
     });
   });

@@ -1,46 +1,64 @@
 export {};
 
-jest.mock('../../server/src/config/database', () => ({ query: jest.fn() }));
-jest.mock('../../server/src/logging/logger', () => ({
+jest.mock('../../../server/src/config/database', () => ({ query: jest.fn() }));
+jest.mock('../../../server/src/logging/logger', () => ({
   warn: jest.fn(),
   error: jest.fn(),
   info: jest.fn(),
 }));
 
 // Mock v2Service.executeV2Query — the actual DB call
-jest.mock('../../server/src/services/v2Service', () => ({
+jest.mock('../../../server/src/services/v2Service', () => ({
   executeV2Query: jest.fn(),
 }));
 
 // Mock UniversalFilterQueryBuilder
-jest.mock('../../server/src/services/filterQueryBuilder', () => {
+const mockGetValidationErrors = jest.fn().mockReturnValue([]);
+const mockBuildAnalyticsQueries = jest.fn().mockReturnValue({
+  networkTypes: { sql: 'SELECT 1', params: [] },
+  signalStrength: { sql: 'SELECT 1', params: [] },
+  security: { sql: 'SELECT 1', params: [] },
+  threatDistribution: { sql: 'SELECT 1', params: [] },
+  temporalActivity: { sql: 'SELECT 1', params: [] },
+  radioTypeOverTime: { sql: 'SELECT 1', params: [] },
+  threatTrends: { sql: 'SELECT 1', params: [] },
+  topNetworks: { sql: 'SELECT 1', params: [] },
+});
+
+jest.mock('../../../server/src/services/filterQueryBuilder', () => {
   return {
     UniversalFilterQueryBuilder: jest.fn().mockImplementation(() => ({
-      getValidationErrors: jest.fn().mockReturnValue([]),
-      buildAnalyticsQueries: jest.fn().mockReturnValue({
-        networkTypes: { sql: 'SELECT 1', params: [] },
-        signalStrength: { sql: 'SELECT 1', params: [] },
-        security: { sql: 'SELECT 1', params: [] },
-        threatDistribution: { sql: 'SELECT 1', params: [] },
-        temporalActivity: { sql: 'SELECT 1', params: [] },
-        radioTypeOverTime: { sql: 'SELECT 1', params: [] },
-        threatTrends: { sql: 'SELECT 1', params: [] },
-        topNetworks: { sql: 'SELECT 1', params: [] },
-      }),
+      getValidationErrors: mockGetValidationErrors,
+      buildAnalyticsQueries: mockBuildAnalyticsQueries,
     })),
   };
 });
 
-const { getFilteredAnalytics } = require('../../server/src/services/filteredAnalyticsService');
-const v2Service = require('../../server/src/services/v2Service');
-const { UniversalFilterQueryBuilder } = require('../../server/src/services/filterQueryBuilder');
+const { getFilteredAnalytics } = require('../../../server/src/services/filteredAnalyticsService');
+const v2Service = require('../../../server/src/services/v2Service');
+const { UniversalFilterQueryBuilder } = require('../../../server/src/services/filterQueryBuilder');
 
 const emptyRows = { rows: [] };
 
 describe('filteredAnalyticsService — getFilteredAnalytics', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    UniversalFilterQueryBuilder.mockImplementation(() => ({
+      getValidationErrors: mockGetValidationErrors,
+      buildAnalyticsQueries: mockBuildAnalyticsQueries,
+    }));
     v2Service.executeV2Query.mockResolvedValue(emptyRows);
+    mockGetValidationErrors.mockReturnValue([]);
+    mockBuildAnalyticsQueries.mockReturnValue({
+      networkTypes: { sql: 'SELECT 1', params: [] },
+      signalStrength: { sql: 'SELECT 1', params: [] },
+      security: { sql: 'SELECT 1', params: [] },
+      threatDistribution: { sql: 'SELECT 1', params: [] },
+      temporalActivity: { sql: 'SELECT 1', params: [] },
+      radioTypeOverTime: { sql: 'SELECT 1', params: [] },
+      threatTrends: { sql: 'SELECT 1', params: [] },
+      topNetworks: { sql: 'SELECT 1', params: [] },
+    });
   });
 
   test('returns all expected data keys on success', async () => {
@@ -84,10 +102,7 @@ describe('filteredAnalyticsService — getFilteredAnalytics', () => {
   });
 
   test('throws when builder returns validation errors', async () => {
-    UniversalFilterQueryBuilder.mockImplementationOnce(() => ({
-      getValidationErrors: jest.fn().mockReturnValue(['invalid filter: foo']),
-      buildAnalyticsQueries: jest.fn(),
-    }));
+    mockGetValidationErrors.mockReturnValueOnce(['invalid filter: foo']);
 
     await expect(getFilteredAnalytics({ foo: 'bad' }, {})).rejects.toThrow(
       'Invalid filter payload: invalid filter: foo'

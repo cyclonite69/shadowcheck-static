@@ -1,3 +1,4 @@
+export {};
 const courthouseRepository = require('../../../server/src/repositories/courthouseRepository');
 const dbConfigCourthouse = require('../../../server/src/config/database');
 
