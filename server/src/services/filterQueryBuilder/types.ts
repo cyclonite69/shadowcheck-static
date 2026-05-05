@@ -90,6 +90,7 @@ export interface Filters {
   maxDistanceMetersMax?: number;
   wigleV3LastImportBefore?: string;
   wigleV3LastImportAfter?: string;
+  surveillance?: boolean;
 }
 
 export type EnabledFlags = Record<FilterKey, boolean>;

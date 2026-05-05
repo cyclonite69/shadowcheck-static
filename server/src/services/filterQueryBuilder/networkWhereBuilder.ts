@@ -187,6 +187,14 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
     ctx.addApplied('threat', 'stationaryConfidenceMax', f.stationaryConfidenceMax);
   }
 
+  if (e.surveillance && f.surveillance === true) {
+    networkWhere.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.network_tags nt_surv WHERE UPPER(nt_surv.bssid) = UPPER(ne.bssid) AND nt_surv.tags @> '["surveillance"]'::jsonb)`
+    );
+    ctx.addApplied('threat', 'surveillance', true);
+  }
+
   if (e.timeframe && f.timeframe) {
     if (f.timeframe.type === 'absolute') {
       if (f.timeframe.startTimestamp) {

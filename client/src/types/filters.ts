@@ -84,6 +84,9 @@ export interface NetworkFilters {
   // K. WiGLE Persistence
   wigleV3LastImportBefore?: string;
   wigleV3LastImportAfter?: string;
+
+  // L. Surveillance
+  surveillance?: boolean;
 }
 
 export type RadioType = 'W' | 'E' | 'B' | 'L' | 'G' | 'N' | '?';

@@ -348,8 +348,18 @@ export const renderNetworkTooltip = (props: any): any => {
   const displaySecurity = getSecurityDisplay();
   const showSecurity = !!displaySecurity;
 
+  const surveillanceDeviceType = (props as any).surveillance_device_type;
+  const surveillanceMethod = (props as any).surveillance_detection_method;
+
   const fieldRows = [
     isStingray ? fieldRow('SIGINT Type', 'Stingray') : '',
+    !isMissingValue(surveillanceDeviceType)
+      ? fieldRow(
+          'Surveillance Device',
+          String(surveillanceDeviceType).replace(/_/g, ' '),
+          surveillanceMethod ? `Detection: ${surveillanceMethod}` : undefined
+        )
+      : '',
     showSecurity ? fieldRow('Encryption', displaySecurity) : '',
     btDeviceLabel ? fieldRow('Device Type', btDeviceLabel) : '',
     btInfo?.bondState ? fieldRow('Bond State', btInfo.bondState) : '',

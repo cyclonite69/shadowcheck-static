@@ -134,6 +134,7 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   modelVersion: false,
   wigleV3LastImportBefore: false,
   wigleV3LastImportAfter: false,
+  surveillance: false,
 };
 
 const createDefaultPageState = (): PageFilterState => ({
@@ -265,6 +266,9 @@ export const useFilterStore = create<HardenedFilterStore>()(
           }
           if (key === 'has_notes' && pageState.filters.has_notes === undefined) {
             nextFilters = { ...pageState.filters, has_notes: true };
+          }
+          if (key === 'surveillance' && pageState.filters.surveillance === undefined) {
+            nextFilters = { ...pageState.filters, surveillance: true };
           }
         }
 

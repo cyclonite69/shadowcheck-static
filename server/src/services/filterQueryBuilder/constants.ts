@@ -66,6 +66,7 @@ export const FILTER_KEYS = [
   'maxDistanceMetersMax',
   'wigleV3LastImportBefore',
   'wigleV3LastImportAfter',
+  'surveillance',
 ] as const;
 
 export type FilterKey = (typeof FILTER_KEYS)[number];
@@ -143,4 +144,5 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'maxDistanceMetersMax',
   'wigleV3LastImportBefore',
   'wigleV3LastImportAfter',
+  'surveillance',
 ]);
