@@ -11,6 +11,10 @@ Usage (run on EC2 via SSM):
   export DB_USER=shadowcheck_admin DB_PASSWORD=<secret>
   python3 scripts/import_flock_repo.py
 
+  # EC2 usage: copy GeoJSON to /tmp/ first via S3 or scp, then:
+  # python3 /app/scripts/import_flock_repo.py \
+  #   --input /tmp/CAMERAS_WITH_NETWORK_DATA.geojson
+
   # Dry run (print first 5 rows, skip insert):
   python3 scripts/import_flock_repo.py --dry-run
 """
@@ -22,7 +26,11 @@ import json
 import os
 import sys
 
-GEOJSON_PATH = "/home/dbcooper/repos/FLOCK/CAMERAS_WITH_NETWORK_DATA.geojson"
+GEOJSON_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "../../FLOCK/CAMERAS_WITH_NETWORK_DATA.geojson"
+)
+# On EC2, override with: --input /path/to/CAMERAS_WITH_NETWORK_DATA.geojson
 BATCH_SIZE = 1000
 SOURCE = "FLOCK_REPO"
 
