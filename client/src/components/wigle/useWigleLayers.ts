@@ -11,6 +11,7 @@ export interface WigleLayerState {
   federalCourthouses: boolean;
   deflockCameras: boolean;
   shotspotterZones: boolean;
+  shotspotterSensors: boolean;
 }
 
 function loadLayerState(): WigleLayerState {

@@ -122,6 +122,12 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
             onChange={() => onToggleLayer('shotspotterZones')}
             color="#CC0000"
           />
+          <LayerToggle
+            label="ShotSpotter Sensors (WIRED Leak)"
+            enabled={layers.shotspotterSensors}
+            onChange={() => onToggleLayer('shotspotterSensors')}
+            color="#8B0000"
+          />
         </div>
       </div>
 

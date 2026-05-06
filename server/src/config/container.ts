@@ -26,6 +26,7 @@ const siblingDetectionAdminService = require('../services/admin/siblingDetection
 const agencyService = require('../services/agencyService');
 const courthouseService = require('../services/courthouseService');
 const deflockService = require('../services/deflockService');
+const shotspotterSensorsService = require('../services/shotspotterSensorsService');
 const aiInsightsService = require('../services/aiInsightsService');
 const bedrockService = require('../services/bedrockService');
 const analyticsService = require('../services/analyticsService');
@@ -84,6 +85,7 @@ const container = {
   agencyService,
   courthouseService,
   deflockService,
+  shotspotterSensorsService,
   aiInsightsService,
   bedrockService,
   analyticsService,

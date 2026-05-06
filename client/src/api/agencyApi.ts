@@ -70,4 +70,12 @@ export const agencyApi = {
     if (!response.ok) throw new Error('Failed to fetch DeFlock cameras');
     return response.json();
   },
+
+  async getShotspotterSensors(): Promise<any> {
+    const response = await fetch('/api/v1/surveillance/shotspotter-sensors', {
+      credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to fetch ShotSpotter sensors');
+    return response.json();
+  },
 };

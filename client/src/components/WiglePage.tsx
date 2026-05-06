@@ -14,6 +14,7 @@ import type { AgencyVisibility } from './hooks/useAgencyOffices';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
 import { useDeflockCameras } from './hooks/useDeflockCameras';
 import { useShotspotterZones } from './hooks/useShotspotterZones';
+import { useShotspotterSensors } from './hooks/useShotspotterSensors';
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
 import { useWigleClusterLayers } from './wigle/useWigleClusterLayers';
@@ -137,6 +138,12 @@ const WiglePage: React.FC = () => {
     layers.shotspotterZones,
     mapboxRef,
     clusteringEnabled
+  );
+  const { data: shotspotterSensorsData } = useShotspotterSensors(
+    mapRef,
+    mapReady,
+    layers.shotspotterSensors,
+    mapboxRef
   );
 
   const setMapStyle = (style: string) => {
@@ -385,7 +392,8 @@ const WiglePage: React.FC = () => {
               : 0)) +
           (layers.federalCourthouses ? (courthouseData?.features?.length ?? 0) : 0) +
           (layers.deflockCameras ? (deflockData?.features?.length ?? 0) : 0) +
-          (layers.shotspotterZones ? (shotspotterData?.features?.length ?? 0) : 0)
+          (layers.shotspotterZones ? (shotspotterData?.features?.length ?? 0) : 0) +
+          (layers.shotspotterSensors ? (shotspotterSensorsData?.features?.length ?? 0) : 0)
         }
         totalRows={
           (layers.v2 && v2Total !== null) ||

@@ -188,6 +188,13 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/networks?bwc=true',
     method: 'GET',
   },
+  {
+    category: 'Surveillance',
+    label: 'ShotSpotter Sensors',
+    description: 'GeoJSON FeatureCollection of ShotSpotter sensor locations (WIRED 2024 leak)',
+    path: '/api/v1/surveillance/shotspotter-sensors',
+    method: 'GET',
+  },
 
   // ── Geospatial ────────────────────────────────────────────────────────────
   { category: 'Geospatial', label: 'Mapbox Token', path: '/api/mapbox-token', method: 'GET' },
