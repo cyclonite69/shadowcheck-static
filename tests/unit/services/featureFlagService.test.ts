@@ -162,5 +162,92 @@ describe('featureFlagService', () => {
       await svc.refreshCache();
       expect(svc.getAllFlags().score_debug_logging).toBe(true);
     });
+
+    // ── coerceBoolean edge cases ───────────────────────────────────────────────
+
+    test('coerces uppercase "TRUE" string to true', async () => {
+      const { query } = require('../../../server/src/config/database');
+      (query as jest.Mock).mockResolvedValue({
+        rows: [{ key: 'score_debug_logging', value: 'TRUE' }],
+      });
+      await svc.refreshCache();
+      expect(svc.getFlag('score_debug_logging')).toBe(true);
+    });
+
+    test('coerces "True" (mixed case) to true', async () => {
+      const { query } = require('../../../server/src/config/database');
+      (query as jest.Mock).mockResolvedValue({
+        rows: [{ key: 'score_debug_logging', value: 'True' }],
+      });
+      await svc.refreshCache();
+      expect(svc.getFlag('score_debug_logging')).toBe(true);
+    });
+
+    test('coerces whitespace-padded "  true  " to true', async () => {
+      const { query } = require('../../../server/src/config/database');
+      (query as jest.Mock).mockResolvedValue({
+        rows: [{ key: 'score_debug_logging', value: '  true  ' }],
+      });
+      await svc.refreshCache();
+      expect(svc.getFlag('score_debug_logging')).toBe(true);
+    });
+
+    test('coerces empty string to default value', async () => {
+      const { query } = require('../../../server/src/config/database');
+      (query as jest.Mock).mockResolvedValue({
+        rows: [{ key: 'dedupe_on_scan', value: '' }],
+      });
+      await svc.refreshCache();
+      // empty string → falls back to FLAG_DEFAULTS.dedupe_on_scan = true
+      expect(svc.getFlag('dedupe_on_scan')).toBe(true);
+    });
+
+    test('coerces boolean true directly to true', async () => {
+      const { query } = require('../../../server/src/config/database');
+      (query as jest.Mock).mockResolvedValue({
+        rows: [{ key: 'score_debug_logging', value: true }],
+      });
+      await svc.refreshCache();
+      expect(svc.getFlag('score_debug_logging')).toBe(true);
+    });
+
+    test('coerces boolean false directly to false', async () => {
+      const { query } = require('../../../server/src/config/database');
+      (query as jest.Mock).mockResolvedValue({
+        rows: [{ key: 'dedupe_on_scan', value: false }],
+      });
+      await svc.refreshCache();
+      expect(svc.getFlag('dedupe_on_scan')).toBe(false);
+    });
+
+    // ── getFlag / getAllFlags post-cache-load ──────────────────────────────────
+
+    test('getFlag returns updated value after refreshCache', async () => {
+      const { query } = require('../../../server/src/config/database');
+      (query as jest.Mock).mockResolvedValue({
+        rows: [{ key: 'enable_background_jobs', value: 'true' }],
+      });
+      await svc.refreshCache();
+      expect(svc.getFlag('enable_background_jobs')).toBe(true);
+    });
+
+    test('getAllFlags returns all 9 known keys after refresh', async () => {
+      const { query } = require('../../../server/src/config/database');
+      (query as jest.Mock).mockResolvedValue({ rows: [] });
+      await svc.refreshCache();
+      const flags = svc.getAllFlags();
+      const expectedKeys = [
+        'admin_allow_docker',
+        'admin_allow_ml_training',
+        'admin_allow_ml_scoring',
+        'enable_background_jobs',
+        'simple_rule_scoring_enabled',
+        'allow_mobile_ingest_auto_process',
+        'score_debug_logging',
+        'auto_geocode_on_import',
+        'dedupe_on_scan',
+      ];
+      expectedKeys.forEach((k) => expect(flags).toHaveProperty(k));
+    });
   });
 });
