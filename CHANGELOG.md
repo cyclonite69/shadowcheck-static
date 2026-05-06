@@ -625,6 +625,7 @@
 - **server:** correct admin import route paths ([ccbf049](https://github.com/cyclonite69/shadowcheck-web/commit/ccbf0493ecfd88176dc0422d37fe963cd765f0cf))
 - **server:** guard cacheService.connect in test environment ([86f0a3d](https://github.com/cyclonite69/shadowcheck-web/commit/86f0a3d9cfba0c6cd38e0f5808ea9bc748bb017e))
 - **server:** resolve networks routes circular dependency ([b32d495](https://github.com/cyclonite69/shadowcheck-web/commit/b32d4954fb619bde2ccc046336d4efa99b437389))
+- **server:** resolve undefined route middleware crash ([7836d9c](https://github.com/cyclonite69/shadowcheck-web/commit/7836d9c569e27d4a827106d5d6cee1329c9af769))
 - **server:** revert cacheService export to CommonJS for runtime compatibility ([e32b50e](https://github.com/cyclonite69/shadowcheck-web/commit/e32b50e291fe3f5d6fad96533966a225b74af771))
 - **server:** revert networks routes to load from networks.ts ([bb72257](https://github.com/cyclonite69/shadowcheck-web/commit/bb722572c4a8d9a176c55bb5d3891a9c8185efdd))
 - settings validation signatures, body fields, and WiGLE BSSID trimming ([775f1b5](https://github.com/cyclonite69/shadowcheck-web/commit/775f1b5c9beeee176843347d3f526cefcdbad330))

@@ -22,7 +22,18 @@ const processSuccessfulBtPage = async (
     await client.query('BEGIN');
     let rowsInserted = 0;
     for (const device of results) {
-      rowsInserted += await wigleService.importWigleBtSearchResult(device, client);
+      await client.query('SAVEPOINT row_insert');
+      try {
+        rowsInserted += await wigleService.importWigleBtSearchResult(device, client);
+        await client.query('RELEASE SAVEPOINT row_insert');
+      } catch (rowErr) {
+        await client.query('ROLLBACK TO SAVEPOINT row_insert');
+        logger.warn('[WiGLE BT Import] Skipping bad row', {
+          netid: device?.netid,
+          type: device?.type,
+          error: (rowErr as Error).message,
+        });
+      }
     }
 
     const totalPages =

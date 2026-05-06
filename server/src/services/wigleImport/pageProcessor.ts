@@ -17,7 +17,17 @@ const processSuccessfulPage = async (
     await client.query('BEGIN');
     let rowsInserted = 0;
     for (const network of results) {
-      rowsInserted += await wigleService.importWigleV2SearchResult(network, client);
+      await client.query('SAVEPOINT row_insert');
+      try {
+        rowsInserted += await wigleService.importWigleV2SearchResult(network, client);
+        await client.query('RELEASE SAVEPOINT row_insert');
+      } catch (rowErr) {
+        await client.query('ROLLBACK TO SAVEPOINT row_insert');
+        logger.warn('[WiGLE Import] Skipping bad row', {
+          bssid: network?.bssid || network?.netid,
+          error: (rowErr as Error).message,
+        });
+      }
     }
 
     const totalPages =
