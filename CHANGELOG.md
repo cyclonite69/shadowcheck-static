@@ -649,7 +649,7 @@
 - **sort:** revert security sort replacements — buildOrderBy already handles it ([9f1737e](https://github.com/cyclonite69/shadowcheck-web/commit/9f1737e92b9495940bcb366680b8af7eab0c6e8c))
 - split wigle page tooltip from explorer mv ([12d19a0](https://github.com/cyclonite69/shadowcheck-web/commit/12d19a089b48f35b0a9532f039550aee89abc43d))
 - **sql:** carry runtime contract migrations into phase3 ([4e80032](https://github.com/cyclonite69/shadowcheck-web/commit/4e80032755170dfa1c9ef7d803744b680de51fca))
-- **sql:** correct column references in shotspotter sensor matches view ([c6a6c72](https://github.com/cyclonite69/shadowcheck-web/commit/c6a6c72a929fb46eeabc017c201268d8c1530275))
+- **sql:** correct column references in shotspotter sensor matches view ([e21b12a](https://github.com/cyclonite69/shadowcheck-web/commit/e21b12a5aa50623f830dabafbbd0c7323c81d886))
 - **sql:** grant geocoding cache runtime access ([1ccf78c](https://github.com/cyclonite69/shadowcheck-web/commit/1ccf78c5e3951ab881702974e80dc19837ec4447))
 - ST_ClusterDBSCAN geography type error and mapbox token error details ([8832e26](https://github.com/cyclonite69/shadowcheck-web/commit/8832e262431fbec59ac2113443558a81f3b2bb45))
 - stage locked certs before S3 backup ([4c6815d](https://github.com/cyclonite69/shadowcheck-web/commit/4c6815d5cfd6e69c2bc202f182e107f4c8e587e9))
