@@ -12,12 +12,13 @@ SELECT
   ss.state,
   ss.status,
   ST_Distance(
-    ST_SetSRID(ST_MakePoint(sd.lon, sd.lat), 4326)::geography,
+    ST_SetSRID(ST_MakePoint(n.bestlon, n.bestlat), 4326)::geography,
     ST_SetSRID(ST_MakePoint(ss.lon, ss.lat), 4326)::geography
   ) as distance_m
 FROM app.surveillance_detections sd
+JOIN app.networks n ON sd.bssid = n.bssid
 JOIN app.shotspotter_sensors ss ON ST_DWithin(
-  ST_SetSRID(ST_MakePoint(sd.lon, sd.lat), 4326)::geography,
+  ST_SetSRID(ST_MakePoint(n.bestlon, n.bestlat), 4326)::geography,
   ST_SetSRID(ST_MakePoint(ss.lon, ss.lat), 4326)::geography,
   200
 )
