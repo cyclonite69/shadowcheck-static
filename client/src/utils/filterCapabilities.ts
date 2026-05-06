@@ -110,6 +110,7 @@ export function createFullCapabilities(): PageFilterCapabilities {
       stationaryConfidenceMax: true,
       surveillance: true,
       shotspotter: true,
+      bwc: true,
     },
   };
 }

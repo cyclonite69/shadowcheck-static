@@ -59,7 +59,11 @@ const MED_CONF_OUIS = [
   'E0:4F:43',
 ];
 
-const SHOTSPOTTER_OUIS = ['00:1A:2B'];
+const SHOTSPOTTER_OUIS = ['D4:11:D6'];
+
+const AXON_OUIS = ['00:25:DF'];
+
+const MOTOROLA_BWC_OUIS = ['00:04:7D', '00:18:85', '00:1F:92', '4C:CC:34'];
 
 function sqlArray(arr: string[]): string {
   return arr.map((o) => `'${o}'`).join(',');
@@ -113,6 +117,8 @@ async function getEnrichedCandidates(
   const extBattOui = sqlArray(FS_EXT_BATTERY_OUIS);
   const medOui = sqlArray(MED_CONF_OUIS);
   const shotspotterOui = sqlArray(SHOTSPOTTER_OUIS);
+  const axonOui = sqlArray(AXON_OUIS);
+  const motorolaBwcOui = sqlArray(MOTOROLA_BWC_OUIS);
 
   const result = await adminQuery(`
     WITH candidates AS (
@@ -202,7 +208,7 @@ async function getEnrichedCandidates(
       -- 7. ShotSpotter OUI match
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
         'SHOTSPOTTER_SENSOR', 85, 'STRONG', 'oui_match',
-        jsonb_build_object('oui', LEFT(n.bssid, 8), 'vendor', 'Sensys Networks / SoundThinking'), 7
+        jsonb_build_object('oui', LEFT(n.bssid, 8), 'vendor', 'ShotSpotter Inc. / SoundThinking'), 7
       FROM app.networks n
       WHERE n.type = 'W' AND LEFT(n.bssid, 8) = ANY(ARRAY[${shotspotterOui}])
 
@@ -217,6 +223,47 @@ async function getEnrichedCandidates(
         AND (n.ssid ~* '^(SoundThinking|ShotSpotter|SST-|SENSOR-|SNS-|acoustic)'
              OR n.ssid ~ '^[A-Z]{2,4}-\\d{4,6}$')
         AND LEFT(n.bssid, 8) != ALL(ARRAY[${shotspotterOui}])
+
+      UNION ALL
+
+      -- 9. Axon body camera OUI match (WiFi + BLE)
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'AXON_BODY_CAMERA', 75, 'STRONG', 'oui_match',
+        jsonb_build_object('oui', LEFT(n.bssid, 8), 'vendor', 'Axon Enterprise'), 9
+      FROM app.networks n
+      WHERE LEFT(n.bssid, 8) = ANY(ARRAY[${axonOui}])
+
+      UNION ALL
+
+      -- 10. Motorola body-worn camera OUI match
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'MOTOROLA_BWC', 75, 'STRONG', 'oui_match',
+        jsonb_build_object('oui', LEFT(n.bssid, 8), 'vendor', 'Motorola Solutions'), 10
+      FROM app.networks n
+      WHERE LEFT(n.bssid, 8) = ANY(ARRAY[${motorolaBwcOui}])
+
+      UNION ALL
+
+      -- 11. Axon BLE manufacturer ID 0x034D
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'AXON_SIGNAL_PERIPHERAL', 80, 'STRONG', 'mfgrid_match',
+        jsonb_build_object('mfgrid', n.mfgrid, 'mfgrid_hex', '0x034D', 'ssid', n.ssid), 11
+      FROM app.networks n
+      WHERE n.type IN ('E', 'B')
+        AND n.mfgrid = 845
+        AND LEFT(n.bssid, 8) != ALL(ARRAY[${axonOui}])
+
+      UNION ALL
+
+      -- 12. Axon Signal BLE name patterns (^axon, ^taser, ^signal)
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'AXON_SIGNAL_PERIPHERAL', 80, 'STRONG', 'ble_name_pattern',
+        jsonb_build_object('ssid', n.ssid, 'pattern', '^(axon|taser|signal)'), 12
+      FROM app.networks n
+      WHERE n.type IN ('E', 'B')
+        AND n.ssid ~* '^(axon|taser|signal)'
+        AND (n.mfgrid IS NULL OR n.mfgrid != 845)
+        AND LEFT(n.bssid, 8) != ALL(ARRAY[${axonOui}])
 
     ),
     obs_stats AS (

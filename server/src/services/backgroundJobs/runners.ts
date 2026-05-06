@@ -180,6 +180,7 @@ const runSurveillanceScanJob = async () => {
       SELECT b, 'THREAT', c, 'Surveillance: ' || d || ' (' || m || ')',
         CASE
           WHEN dt = 'SHOTSPOTTER_SENSOR' THEN '["surveillance","shotspotter"]'::jsonb
+          WHEN dt IN ('AXON_BODY_CAMERA','MOTOROLA_BWC','AXON_SIGNAL_PERIPHERAL') THEN '["surveillance","bwc"]'::jsonb
           ELSE '["surveillance"]'::jsonb
         END,
         'surveillance_scan_job'

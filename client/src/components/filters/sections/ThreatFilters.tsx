@@ -64,6 +64,23 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
       </FilterInput>
 
       <FilterInput
+        label="Body-Worn Camera"
+        enabled={enabled.bwc || false}
+        onToggle={() => onToggleFilter('bwc')}
+        compact={isCompact}
+      >
+        <label className="flex items-center gap-2 text-xs text-slate-300">
+          <input
+            type="checkbox"
+            checked={filters.bwc ?? false}
+            onChange={(e) => onSetFilter('bwc', e.target.checked)}
+            className="w-4 h-4"
+          />
+          Only BWC-tagged networks
+        </label>
+      </FilterInput>
+
+      <FilterInput
         label="Threat Score Min"
         enabled={enabled.threatScoreMin || false}
         onToggle={() => onToggleFilter('threatScoreMin')}

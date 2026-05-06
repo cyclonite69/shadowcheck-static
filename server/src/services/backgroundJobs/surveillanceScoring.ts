@@ -10,6 +10,9 @@ const IMPACT_FACTORS: Record<string, number> = {
   RAVEN_GUNSHOT_DETECTOR: 1.2,
   SHOTSPOTTER_SENSOR: 1.2,
   FS_EXT_BATTERY: 1.0,
+  AXON_BODY_CAMERA: 1.0,
+  MOTOROLA_BWC: 1.0,
+  AXON_SIGNAL_PERIPHERAL: 1.1,
 };
 
 // --- Match quality bonuses (§5.2) ---

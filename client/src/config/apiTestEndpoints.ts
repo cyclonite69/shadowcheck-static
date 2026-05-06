@@ -180,6 +180,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/v1/surveillance/shotspotter-zones',
     method: 'GET',
   },
+  {
+    category: 'Surveillance',
+    label: 'BWC Detections',
+    description:
+      'Body-worn camera detections (Axon, Motorola) from surveillance scan — filter via bwc=true',
+    path: '/api/networks?bwc=true',
+    method: 'GET',
+  },
 
   // ── Geospatial ────────────────────────────────────────────────────────────
   { category: 'Geospatial', label: 'Mapbox Token', path: '/api/mapbox-token', method: 'GET' },

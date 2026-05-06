@@ -68,6 +68,7 @@ export const FILTER_KEYS = [
   'wigleV3LastImportAfter',
   'surveillance',
   'shotspotter',
+  'bwc',
 ] as const;
 
 export type FilterKey = (typeof FILTER_KEYS)[number];

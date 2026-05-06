@@ -203,6 +203,14 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
     ctx.addApplied('threat', 'shotspotter', true);
   }
 
+  if (e.bwc && f.bwc === true) {
+    networkWhere.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.network_tags nt_bwc WHERE UPPER(nt_bwc.bssid) = UPPER(ne.bssid) AND nt_bwc.tags @> '["bwc"]'::jsonb)`
+    );
+    ctx.addApplied('threat', 'bwc', true);
+  }
+
   if (e.timeframe && f.timeframe) {
     if (f.timeframe.type === 'absolute') {
       if (f.timeframe.startTimestamp) {
