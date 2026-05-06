@@ -169,6 +169,7 @@
 - **dashboard:** fallback threat cards to dashboard metrics on severity errors ([ae2b006](https://github.com/cyclonite69/shadowcheck-web/commit/ae2b006f6d38334eba935afaa69c134f7e0c7f93))
 - **dashboard:** treat all-radio selection as no-op in metrics path ([b2a1f4c](https://github.com/cyclonite69/shadowcheck-web/commit/b2a1f4ca6ae291055549c210bdb1538cbd84fb30))
 - **dashboard:** use explorer MV in filtered metrics query ([bced45d](https://github.com/cyclonite69/shadowcheck-web/commit/bced45d08522031f5bf588df2200dae0e1bea4ab))
+- **data:** add missing deflock_cameras columns + fix import path ([929a063](https://github.com/cyclonite69/shadowcheck-web/commit/929a063018ed2ccd7a6337bdb8da4b3cb7447c4c))
 - **db:** add deduplication to kismet constraints migration ([42ecd1a](https://github.com/cyclonite69/shadowcheck-web/commit/42ecd1a778fa11cfeea34e47d4c77a21a9681e86))
 - **db:** align radio_manufacturers joins with oui column ([c1fae74](https://github.com/cyclonite69/shadowcheck-web/commit/c1fae74617b3f4f1aa8b371aefafd73b8c69f7bc))
 - **db:** correct max_distance_meters using PostGIS distance ([a91e756](https://github.com/cyclonite69/shadowcheck-web/commit/a91e7561c10013a3c19ff2e8af796a429e3384a2))
