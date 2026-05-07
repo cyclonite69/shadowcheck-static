@@ -125,7 +125,8 @@ Suggestions:
     ],
   };
 
-  logger.info(`[Bedrock] Invoking ${MODEL_ID} in ${getRegion()} with ${networks.length} networks`);
+  const region = await getRegion();
+  logger.info(`[Bedrock] Invoking ${MODEL_ID} in ${region} with ${networks.length} networks`);
 
   const command = new InvokeModelCommand({
     modelId: MODEL_ID,

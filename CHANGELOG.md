@@ -941,6 +941,7 @@
 - **admin:** per-search-term coverage dropdown + V3 state filter as dropdown ([a67ff55](https://github.com/cyclonite69/shadowcheck-web/commit/a67ff5527e2bde5cda17023683d50f038fa43ec0))
 - **admin:** remove redundant API Status card from WiGLE Search tab ([e384d0d](https://github.com/cyclonite69/shadowcheck-web/commit/e384d0d4caaa1c7c8fa225c29a142c93755f5fa2))
 - **admin:** restore WiGLE import resumption UI and improve geocoding/WiGLE service reliability ([ab45092](https://github.com/cyclonite69/shadowcheck-web/commit/ab45092d119f217e19924972b7f351a217b5ec9a))
+- **admin:** sibling stats on DB Stats tab; tests; housekeeping ([861efee](https://github.com/cyclonite69/shadowcheck-web/commit/861efee2f5f6659d794372525915d4ccaf53c063))
 - **admin:** simplify job scheduling ui ([b0ce3ff](https://github.com/cyclonite69/shadowcheck-web/commit/b0ce3ffc09fcab8bb93706fdc935264d292ed5e8))
 - **admin:** V3 enrichment table tooltip moves to sticky side panel ([0978e70](https://github.com/cyclonite69/shadowcheck-web/commit/0978e70bad38f9df8dccc3c3ed2da432c5d0c49c))
 - align database stats and optimize sibling detection ([cf1bdb2](https://github.com/cyclonite69/shadowcheck-web/commit/cf1bdb2606368383317564a308839c0a22a04272))
