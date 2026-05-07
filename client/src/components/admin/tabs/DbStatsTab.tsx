@@ -139,20 +139,17 @@ export const DbStatsTab: React.FC = () => {
   }, []);
 
   const purgeSiblings = async () => {
-    if (
-      !window.confirm(
-        'Purge all 81k+ sibling pairs? The system will redetect from scratch on the next run.'
-      )
-    )
-      return;
+    if (!window.confirm('Purge all sibling pairs and start a full redetect now?')) return;
     setPurgingSiblings(true);
     try {
       await apiClient.delete('/admin/siblings/pairs');
       setSiblingStats(null);
       setSiblingByRule([]);
+      // Trigger full redetect immediately after purge
+      await apiClient.post('/admin/siblings/refresh', {});
       await fetchStats();
     } catch (err: any) {
-      window.alert(`Purge failed: ${err?.message || 'Unknown error'}`);
+      window.alert(`Purge/redetect failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setPurgingSiblings(false);
     }

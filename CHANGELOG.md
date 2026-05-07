@@ -430,6 +430,7 @@
 - inline refresh_network_locations into migration (no \i dependency) ([a1a7768](https://github.com/cyclonite69/shadowcheck-web/commit/a1a7768f281964c5e3afb83136fbfb528c03a038))
 - inline v4 function in migration for Docker deployment ([e2f459e](https://github.com/cyclonite69/shadowcheck-web/commit/e2f459e5ca131e3a24aae3a80bcbf57514d8b2eb))
 - **jobs:** add surveillance_scan to settings SQL, fix default, seed enable_background_jobs flag ([77db0c5](https://github.com/cyclonite69/shadowcheck-web/commit/77db0c5c0cf070f272abb69a3a3b4694f9355cfa))
+- **jobs:** add surveillanceScan to background_job_runs check constraint ([a0f5084](https://github.com/cyclonite69/shadowcheck-web/commit/a0f5084a9c0ad9f62a932c331a502c725b40de06))
 - kepler timeout, api testing params, threat severity counts ([2f349ac](https://github.com/cyclonite69/shadowcheck-web/commit/2f349ac383f22dc420475ed9d0b05e339b0e14b4))
 - **kepler:** debounce filter-driven data reloads ([bb2de2d](https://github.com/cyclonite69/shadowcheck-web/commit/bb2de2d442d072dee2f2e10ff1cc0a65aba30b57))
 - **kepler:** keep filters interactive during background refresh ([ec6cc74](https://github.com/cyclonite69/shadowcheck-web/commit/ec6cc74aab1b632cc70c74f0e55efbc5c1a04408))
