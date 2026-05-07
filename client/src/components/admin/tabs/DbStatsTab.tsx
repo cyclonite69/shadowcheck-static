@@ -86,19 +86,48 @@ interface DbStats {
   unused_indexes: UnusedIndex[];
 }
 
+interface SiblingStats {
+  total_pairs: number;
+  strong_pairs: number;
+  candidate_pairs: number;
+  avg_confidence: string;
+  oldest_computed_at: string | null;
+  newest_computed_at: string | null;
+}
+
+interface SiblingByRule {
+  rule: string;
+  pair_count: number;
+  avg_confidence: string;
+  last_run_at: string | null;
+}
+
 export const DbStatsTab: React.FC = () => {
   const [stats, setStats] = useState<DbStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [_error, setError] = useState<string | null>(null);
+  const [siblingStats, setSiblingStats] = useState<SiblingStats | null>(null);
+  const [siblingByRule, setSiblingByRule] = useState<SiblingByRule[]>([]);
 
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get<DbStats>('/admin/db-stats');
-      setStats(response);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch DB stats');
+      const [dbResponse, sibResponse] = await Promise.allSettled([
+        apiClient.get<DbStats>('/admin/db-stats'),
+        apiClient.get<{ ok: boolean; stats: SiblingStats; byRule: SiblingByRule[] }>(
+          '/admin/siblings/stats'
+        ),
+      ]);
+      if (dbResponse.status === 'fulfilled') {
+        setStats(dbResponse.value);
+        setError(null);
+      } else {
+        setError((dbResponse.reason as any)?.message || 'Failed to fetch DB stats');
+      }
+      if (sibResponse.status === 'fulfilled' && sibResponse.value.ok) {
+        setSiblingStats(sibResponse.value.stats);
+        setSiblingByRule(sibResponse.value.byRule);
+      }
     } finally {
       setLoading(false);
     }
@@ -379,6 +408,103 @@ export const DbStatsTab: React.FC = () => {
           color="from-orange-600 to-red-700"
         >
           {stats && renderUnusedIndexes(stats.unused_indexes)}
+        </AdminCard>
+
+        {/* Sibling Detection Stats */}
+        <AdminCard
+          title="Sibling Detection"
+          icon={ActivityIcon}
+          color="from-violet-600 to-purple-700"
+        >
+          {siblingStats ? (
+            <div className="space-y-4">
+              {/* Summary row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  {
+                    label: 'Total Pairs',
+                    value: siblingStats.total_pairs.toLocaleString(),
+                    color: 'text-violet-400',
+                  },
+                  {
+                    label: 'Strong (≥0.97)',
+                    value: siblingStats.strong_pairs.toLocaleString(),
+                    color: 'text-emerald-400',
+                  },
+                  {
+                    label: 'Candidate',
+                    value: siblingStats.candidate_pairs.toLocaleString(),
+                    color: 'text-yellow-400',
+                  },
+                  {
+                    label: 'Avg Confidence',
+                    value: siblingStats.avg_confidence,
+                    color: 'text-blue-400',
+                  },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="bg-slate-800/50 rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">
+                      {label}
+                    </div>
+                    <div className={`text-lg font-black tabular-nums ${color}`}>{value}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Last computed */}
+              {siblingStats.newest_computed_at && (
+                <div className="text-[10px] text-slate-600 italic">
+                  Last computed: {formatShortDate(siblingStats.newest_computed_at)}
+                  {siblingStats.oldest_computed_at &&
+                    siblingStats.oldest_computed_at !== siblingStats.newest_computed_at && (
+                      <> · Oldest: {formatShortDate(siblingStats.oldest_computed_at)}</>
+                    )}
+                </div>
+              )}
+              {/* By-rule breakdown */}
+              {siblingByRule.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="text-slate-500 border-b border-slate-800">
+                        <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Rule</th>
+                        <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
+                          Pairs
+                        </th>
+                        <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
+                          Avg Conf
+                        </th>
+                        <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">
+                          Last Run
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50">
+                      {siblingByRule.map((r) => (
+                        <tr key={r.rule} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="py-2 pr-4 font-mono text-violet-400 font-medium">
+                            {r.rule}
+                          </td>
+                          <td className="py-2 px-4 text-right tabular-nums text-slate-300">
+                            {r.pair_count.toLocaleString()}
+                          </td>
+                          <td className="py-2 px-4 text-right tabular-nums text-blue-400">
+                            {r.avg_confidence}
+                          </td>
+                          <td className="py-2 pl-4 text-right whitespace-nowrap text-slate-500">
+                            {r.last_run_at ? formatShortDate(r.last_run_at) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-600 italic py-4 text-center">
+              No sibling data available.
+            </div>
+          )}
         </AdminCard>
       </div>
 

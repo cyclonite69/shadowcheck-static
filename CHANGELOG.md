@@ -464,6 +464,7 @@
 - **migrations:** ignore DB_USER when selecting migration role ([90bde0a](https://github.com/cyclonite69/shadowcheck-web/commit/90bde0af5acd6f329cd780a60f5e294ab4f5cd15))
 - **migrations:** make sibling pipeline ownership-safe for precreated tables ([5871e1b](https://github.com/cyclonite69/shadowcheck-web/commit/5871e1b6131fbe2dc447dc1044ab111d3a1ddd99))
 - **migrations:** remove baselines from active path, keep in baseline_phase3 only ([5a95250](https://github.com/cyclonite69/shadowcheck-web/commit/5a952505f60d45528d7d1df45da59cc806675b73))
+- **migrations:** resolve materialized view dependency issue ([2abb68d](https://github.com/cyclonite69/shadowcheck-web/commit/2abb68d530c1b7da20b02ba3efd430f1f7a0df66))
 - **migration:** use JSONB containment for tags check in trigger ([f2d4ef9](https://github.com/cyclonite69/shadowcheck-web/commit/f2d4ef9796bf7bf494441af9cc324b939c137312))
 - **migration:** use two-stage CTE to avoid nested aggregates ([aff244b](https://github.com/cyclonite69/shadowcheck-web/commit/aff244b88f88a4568081ccf20c607d44bd04ff37))
 - **mobile-ingest:** gate auto-processing by trust provenance ([73d44c4](https://github.com/cyclonite69/shadowcheck-web/commit/73d44c4eeff8d42334930316b66f7dbdfa9c545f))
