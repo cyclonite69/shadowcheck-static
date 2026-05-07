@@ -9,7 +9,7 @@ inclusion: always
 - Node.js 22+ (see `.node-version`, `.nvmrc`)
 - PostgreSQL 18 with PostGIS 3.6
 - Redis 7 (Alpine)
-- TypeScript 5+ (strict mode)
+- TypeScript 6+ (strict mode)
 
 ## Backend
 
@@ -26,7 +26,7 @@ inclusion: always
 
 ## Frontend
 
-- React 19 + Vite 7
+- React 19 + Vite 8 (Rolldown bundler)
 - Config: `client/vite.config.ts`, root at `client/`
 - Dev server proxies `/api` and `/ws` to `localhost:3001`
 - State management: Zustand

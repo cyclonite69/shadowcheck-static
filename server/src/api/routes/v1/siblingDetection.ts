@@ -17,8 +17,6 @@ const {
 } = require('../../../services/siblingDetectionService');
 const { adminQuery } = require('../../../services/adminDbService');
 
-export {};
-
 const router = express.Router();
 
 /**

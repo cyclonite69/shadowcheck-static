@@ -54,7 +54,9 @@ shadowcheck-web/
 │
 ├── sql/
 │   ├── init/                # 00_bootstrap.sql (user/schema creation)
-│   ├── migrations/          # 10 consolidated migration files (20260216_consolidated_*)
+│   ├── migrations/          # 7 baseline_00N_*.sql files + maintenance migrations (Phase 3, applied 2026-04-16)
+│   ├── baseline_phase3/     # Phase 3 assembly artifacts (outside live runner path)
+│   ├── seeds/               # Reference data (courthouses, radio_manufacturers)
 │   └── run-migrations.sh    # Migration runner (tracks in app.schema_migrations)
 │
 ├── scripts/                 # Operational and dev scripts
@@ -121,5 +123,5 @@ shadowcheck-web/
 - Client components: PascalCase (`FilterPanel.tsx`, `AdminPage.tsx`)
 - Client API modules: camelCase (`networkApi.ts`, `authApi.ts`)
 - Tests: `*.test.ts` in `tests/` or `__tests__/` directories
-- SQL migrations: `YYYYMMDD_consolidated_NNN_description.sql`
+- SQL migrations: `YYYYMMDD_NNN_description.sql` (maintenance) or `baseline_00N_description.sql` (baseline)
 - Shell scripts: kebab-case (`scs_rebuild.sh`, `deploy-complete.sh`)

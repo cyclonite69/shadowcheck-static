@@ -69,6 +69,7 @@ interface RouteModules {
   shotspotterZonesRoutes: Router;
   shotspotterSensorsRoutes: Router;
   networkAgenciesRoutes: Router;
+  siblingDetectionRoutes: Router;
 }
 
 interface InitializeRoutesOptions {
@@ -130,6 +131,7 @@ function initializeRoutes(app: Express, options: InitializeRoutesOptions): void 
     shotspotterZonesRoutes: routes.shotspotterZonesRoutes,
     shotspotterSensorsRoutes: routes.shotspotterSensorsRoutes,
     networkAgenciesRoutes: routes.networkAgenciesRoutes,
+    siblingDetectionRoutes: routes.siblingDetectionRoutes,
   });
 
   logger.info('All routes mounted successfully');
