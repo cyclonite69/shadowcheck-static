@@ -5,13 +5,10 @@ const REFRESH_CHUNK_SQL = `
     WHERE ne.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND ($2::text IS NULL OR ne.bssid > $2)
       -- Incremental mode ($6=true): skip BSSIDs whose last_seen predates the
-      -- most recent sibling detection run. New imports (last_seen after the
-      -- last run) are always re-seeded so new siblings of existing networks
-      -- are caught. Full runs pass false.
-      AND (NOT $6::boolean OR ne.last_seen > COALESCE(
-        (SELECT MAX(computed_at) FROM app.network_sibling_pairs),
-        '1970-01-01'::timestamptz
-      ))
+      -- cutoff timestamp captured BEFORE the run started ($7). Using a
+      -- pre-run snapshot prevents batch 2+ from seeing pairs inserted by
+      -- batch 1 and incorrectly filtering out all remaining seeds.
+      AND (NOT $6::boolean OR ne.last_seen > COALESCE($7::timestamptz, '1970-01-01'::timestamptz))
     ORDER BY ne.bssid
     LIMIT $1
   ),

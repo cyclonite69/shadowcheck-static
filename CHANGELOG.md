@@ -54,6 +54,7 @@
 - **admin:** merge Configuration tab into single grid — columns now align ([dec2269](https://github.com/cyclonite69/shadowcheck-web/commit/dec22697b23c72950859932e588d0b281e13733f))
 - **admin:** move useEffect hooks before conditional return in AdminPage ([666d575](https://github.com/cyclonite69/shadowcheck-web/commit/666d575f186dbb7778bff7109b9332420d107da0))
 - **admin:** pass wigleApiName and apiToken in saveWigleToken; update backlog status ([fc58923](https://github.com/cyclonite69/shadowcheck-web/commit/fc589237dac3bf626f7ce8e52db6a23e6a1590ac))
+- **admin:** purge sibling button now triggers refresh immediately after purge ([ddbf351](https://github.com/cyclonite69/shadowcheck-web/commit/ddbf351902d669aaa0324ef41d1aa9b953301a03))
 - **admin:** register adminSiblingService and update siblings route ([c04f37b](https://github.com/cyclonite69/shadowcheck-web/commit/c04f37b31cdada1d4f006970755a5d1571a1a02c))
 - **admin:** remove over-strict AWS_REGION env var guard ([92d3b2f](https://github.com/cyclonite69/shadowcheck-web/commit/92d3b2f732c889e2ca8831865017c5e31121790d))
 - **admin:** remove wigle search api version toggle; move forensic preview above table ([034ce75](https://github.com/cyclonite69/shadowcheck-web/commit/034ce75529ddc28151861fa9031cbc5e147a5054))

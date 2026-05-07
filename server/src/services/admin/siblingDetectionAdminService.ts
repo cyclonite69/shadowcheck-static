@@ -289,6 +289,14 @@ async function runSiblingRefreshJob(
   const normalized = normalizeOptions(options);
   const started = Date.now();
 
+  // Snapshot MAX(computed_at) BEFORE the loop so incremental mode uses a
+  // stable cutoff. Without this, batch 2+ would see pairs inserted by batch 1
+  // and filter out all remaining seeds, stopping after one batch.
+  const cutoffResult = await adminQuery(
+    `SELECT MAX(computed_at) AS cutoff FROM app.network_sibling_pairs`
+  );
+  const incrementalCutoff: string | null = cutoffResult.rows[0]?.cutoff ?? null;
+
   let cursor: string | null = null;
   let batchesRun = 0;
   let seedsProcessed = 0;
@@ -307,6 +315,7 @@ async function runSiblingRefreshJob(
       normalized.maxDistanceM,
       normalized.minCandidateConf,
       normalized.incremental,
+      incrementalCutoff,
     ]);
 
     const row = result.rows[0] || {};
