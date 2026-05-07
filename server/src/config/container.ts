@@ -59,6 +59,7 @@ const secretsManager = require('../services/secretsManager').default;
 const threatScoringService = require('../services/threatScoringService');
 const threatReportService = require('../services/threatReportService');
 const v2Service = require('../services/v2Service');
+const wigleEnrichmentService = require('../services/wigleEnrichmentService');
 const wigleImportService = require('../services/wigleImportService');
 const wigleImportRunService = require('../services/wigleImportRunService');
 const wigleBluetoothImportService = require('../services/wigleImport/wigleBluetoothImportService');
@@ -118,6 +119,7 @@ const container = {
   threatScoringService,
   threatReportService,
   v2Service,
+  wigleEnrichmentService,
   wigleImportService,
   wigleImportRunService,
   wigleBluetoothImportService,
