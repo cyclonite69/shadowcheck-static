@@ -17,6 +17,24 @@ sudo chown -R ssm-user:ssm-user /home/ssm-user/.docker 2>/dev/null || true
 APP_DIR="${SCS_DIR:-$HOME/shadowcheck}"
 cd "$APP_DIR"
 
+# ── Repo freshness gate ──────────────────────────────────────────
+echo "[preflight] Checking repo is current with origin/master..."
+git fetch origin master --quiet
+LOCAL=$(git rev-parse HEAD)
+REMOTE=$(git rev-parse origin/master)
+if [ "$LOCAL" != "$REMOTE" ]; then
+  echo ""
+  echo "❌ ABORT: Local repo is behind origin/master."
+  echo "   Local:  $LOCAL"
+  echo "   Remote: $REMOTE"
+  echo "   Run: git pull origin master"
+  echo "   Then rerun scs_rebuild.sh"
+  echo ""
+  exit 1
+fi
+echo "✅ Repo is current ($(git rev-parse --short HEAD))"
+# ────────────────────────────────────────────────────────────────
+
 # Config file for persistent settings
 SCS_ENV="$HOME/.shadowcheck-env"
 ENABLE_GRAFANA_MONITORING="${ENABLE_GRAFANA_MONITORING:-true}"

@@ -636,6 +636,7 @@
 - **settings:** seed missing sibling_detection_job_config row ([ca381c3](https://github.com/cyclonite69/shadowcheck-web/commit/ca381c399f94cfe2c38b6244a983a7ae768a3d94))
 - **settings:** wire registerProviderSecretRoutes into settings router ([dfd00d2](https://github.com/cyclonite69/shadowcheck-web/commit/dfd00d2df70ded25441531eb907de56b745d9495))
 - Show header buttons on all pages, not just dashboard ([12048aa](https://github.com/cyclonite69/shadowcheck-web/commit/12048aa669816fcf68c61eff1e9f97511f5fdac9))
+- **sibling-detection:** fix adminDbService import causing startup crash ([44829ef](https://github.com/cyclonite69/shadowcheck-web/commit/44829ef1fd3ebec19a7ee2694c16c6812cfe71f5))
 - **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
 - **sibling:** purge fleet-fleet cross-unit pairs + guard refresh against re-creation ([496cfa5](https://github.com/cyclonite69/shadowcheck-web/commit/496cfa5028630c4e63f9ceb80464d13bac0d0208))
 - **sibling:** refresh function now respects not_sibling manual overrides ([4e38540](https://github.com/cyclonite69/shadowcheck-web/commit/4e38540fc2b982e76aadc9eabbdb309250c9e9db))
