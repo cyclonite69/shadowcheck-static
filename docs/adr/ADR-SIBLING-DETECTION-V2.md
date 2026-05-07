@@ -100,11 +100,50 @@ downgrades. Existing pairs are not modified or deleted.
 
 ---
 
-## Production Thresholds
+---
+
+## Modalities Added (2026-05-07 — second pass)
+
+### xfinity_sig_v1
+
+**Logic:** Octets 2–5 identical (`SUBSTRING(bssid, 4, 11)`) while octet 1 and/or
+octet 6 differ. Xfinity/Commscope/Arris gateways assign the same middle 4 octets
+to all radios; the first octet varies for LA-bit virtual interfaces and the last
+octet increments per radio/SSID.  
+**Confidence:** 1.0 fixed (hardware signature match is deterministic).  
+**Sources:** `app.observations` (WiFi-filtered) UNION `app.wigle_v3_observations`.  
+**Harness result (run_1778155295, limit=2000, source=both):** 971 detections,
+avg_conf=1.000, 25 matched existing, 47 new, max 10 candidates per seed.  
+**Example:** `A4:01:DE:7C:D2:CA` ↔ `16:01:DE:7C:D2:CB` — middle=`01:DE:7C:D2`,
+first octet LA-bit variant, last octet delta 1.
+
+---
+
+## Modality Rejected (2026-05-07 — second pass)
+
+### fleet_unit
+
+**Harness result (run_1778155302, limit=2000, source=both):** 8 detections,
+avg_conf=1.000, 0 matched existing, 0 new.
+
+The 0 matched_existing and 0 new flags indicate the 8 pairs exist in neither the
+existing 584 heuristic pairs nor as novel detections corroborated by any other
+method. The example pair `26:BC:EC:09:2F:56 → 26:BC:EC:24:5A:9A` has no visible
+PAS/MDT SSID pattern — the harness may be matching on a different code path.
+With only 8 detections and zero structural corroboration, this does not meet the
+integration bar. The dataset likely contains very few PAS/MDT fleet SSIDs.
+
+**Required before integration:** Verify the dataset contains PAS/MDT SSIDs; if not,
+this modality is correct but inapplicable to this operator's data.
+
+---
+
+## Production Thresholds (updated)
 
 ```
 MAC_INCREMENT_MAX_DELTA   = 4      (conf 0.85 for ≤2, conf 0.70 for 3–4)
 BAND_PAIR_MAX_DIST_M      = 20.0
 BAND_PAIR_MAX_MAC_DIST    = 2
 BAND_PAIR_CONFIDENCE      = 0.95 (fixed)
+XFINITY_SIG_CONFIDENCE    = 1.0  (fixed — hardware signature is deterministic)
 ```

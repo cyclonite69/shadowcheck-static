@@ -12,6 +12,7 @@ const { asyncHandler } = require('../../../utils/asyncHandler');
 const {
   detectMacIncrement,
   detectBandPair,
+  detectXfinitySignature,
   persistSiblingPairs,
 } = require('../../../services/siblingDetectionService');
 const { adminQuery } = require('../../../services/adminDbService');
@@ -26,7 +27,7 @@ const router = express.Router();
  * Trigger a detection run for one or both modalities.
  *
  * Body:
- *   modality: 'mac_increment' | 'band_pair' | 'all'
+ *   modality: 'mac_increment' | 'band_pair' | 'xfinity_sig' | 'all'
  *   limit?:   number  — max seed rows per modality (default 5000)
  *
  * Returns a summary of pairs detected and inserted/updated per modality.
@@ -37,10 +38,10 @@ router.post(
     const modality: string = req.body?.modality || 'all';
     const limit: number = Number(req.body?.limit) || 5000;
 
-    if (!['mac_increment', 'band_pair', 'all'].includes(modality)) {
+    if (!['mac_increment', 'band_pair', 'xfinity_sig', 'all'].includes(modality)) {
       return res.status(400).json({
         ok: false,
-        error: 'modality must be one of: mac_increment, band_pair, all',
+        error: 'modality must be one of: mac_increment, band_pair, xfinity_sig, all',
       });
     }
 
@@ -60,6 +61,14 @@ router.post(
       const summary = await persistSiblingPairs(pairs);
       results.band_pair = summary;
       logger.info('[SiblingDetection] band_pair complete', summary);
+    }
+
+    if (modality === 'xfinity_sig' || modality === 'all') {
+      logger.info('[SiblingDetection] Starting xfinity_sig run', { limit });
+      const pairs = await detectXfinitySignature(limit);
+      const summary = await persistSiblingPairs(pairs);
+      results.xfinity_sig = summary;
+      logger.info('[SiblingDetection] xfinity_sig complete', summary);
     }
 
     res.json({ ok: true, results });

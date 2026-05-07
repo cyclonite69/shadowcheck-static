@@ -282,4 +282,85 @@ async function persistSiblingPairs(pairs: SiblingPair[]): Promise<DetectionSumma
   };
 }
 
-module.exports = { detectMacIncrement, detectBandPair, persistSiblingPairs };
+/**
+ * Detect Xfinity/Comcast AP siblings via hardware middle-octet signature.
+ *
+ * Algorithm:
+ *   - Sources: app.observations (WiFi-filtered) UNION app.wigle_v3_observations
+ *   - Match: octets 2–5 identical (SUBSTRING(bssid, 4, 11) = ':XX:XX:XX:XX')
+ *     while octet 1 and/or octet 6 differ. Xfinity/Commscope/Arris hardware
+ *     assigns the same middle 4 octets to all radios on a gateway; the first
+ *     octet varies for LA-bit virtual interfaces and the last octet increments
+ *     per radio/SSID.
+ *   - Confidence: 1.0 fixed (hardware signature match is deterministic)
+ *   - Rule name: 'xfinity_sig_v1'
+ *
+ * Validated in harness run_1778155295 (xfinity_sig, limit=2000, source=both):
+ *   971 detections, avg_conf=1.000, 25 matched existing, 47 new, max 10 per seed.
+ *   Example: A4:01:DE:7C:D2:CA ↔ 16:01:DE:7C:D2:CB (middle=01:DE:7C:D2,
+ *   first octet LA-bit variant, last octet delta 1).
+ *
+ * @param limit - Max seed BSSIDs per source table (default 5000)
+ * @returns Array of candidate SiblingPair objects (not yet persisted)
+ */
+async function detectXfinitySignature(limit = 5000): Promise<SiblingPair[]> {
+  const sql = `
+    WITH combined AS (
+      SELECT DISTINCT bssid, ssid, radio_frequency AS frequency
+      FROM app.observations
+      WHERE radio_frequency BETWEEN 2412 AND 5825
+        AND bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      LIMIT $1
+
+      UNION ALL
+
+      SELECT DISTINCT netid AS bssid, ssid, frequency
+      FROM app.wigle_v3_observations
+      WHERE frequency BETWEEN 2412 AND 5825
+        AND netid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      LIMIT $1
+    ),
+    pairs AS (
+      SELECT
+        LEAST(a.bssid, b.bssid)    AS bssid1,
+        GREATEST(a.bssid, b.bssid) AS bssid2,
+        a.ssid                     AS ssid1,
+        b.ssid                     AS ssid2,
+        a.frequency                AS frequency1,
+        b.frequency                AS frequency2
+      FROM combined a
+      JOIN combined b
+        -- Middle 4 octets identical: chars 4–14 of 'XX:XX:XX:XX:XX:XX'
+        ON SUBSTRING(a.bssid, 4, 11) = SUBSTRING(b.bssid, 4, 11)
+       AND a.bssid < b.bssid
+        -- At least one of first or last octet must differ
+       AND (
+         SPLIT_PART(a.bssid, ':', 1) <> SPLIT_PART(b.bssid, ':', 1)
+         OR SPLIT_PART(a.bssid, ':', 6) <> SPLIT_PART(b.bssid, ':', 6)
+       )
+    )
+    SELECT DISTINCT ON (bssid1, bssid2)
+      bssid1,
+      bssid2,
+      'xfinity_sig_v1'             AS rule,
+      1.0                          AS confidence,
+      NULL::int                    AS d_last_octet,
+      ssid1,
+      ssid2,
+      frequency1,
+      frequency2,
+      NULL::double precision       AS distance_m
+    FROM pairs
+    ORDER BY bssid1, bssid2
+  `;
+
+  const result = await adminQuery(sql, [limit]);
+  return result.rows as SiblingPair[];
+}
+
+module.exports = {
+  detectMacIncrement,
+  detectBandPair,
+  detectXfinitySignature,
+  persistSiblingPairs,
+};
