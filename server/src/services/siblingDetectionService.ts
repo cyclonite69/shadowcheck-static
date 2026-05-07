@@ -11,7 +11,8 @@
 
 export {};
 
-const { adminQuery } = require('./adminDbService');
+const adminQuery = (text: string, params: unknown[] = []) =>
+  require('../config/container').adminDbService.adminQuery(text, params);
 
 export interface SiblingPair {
   bssid1: string;

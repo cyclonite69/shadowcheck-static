@@ -457,6 +457,7 @@
 - **migration:** drop/recreate wigle_v2_radio_search view around ALTER COLUMN type ([1257c96](https://github.com/cyclonite69/shadowcheck-web/commit/1257c96acaed3a3bfba3522a2c14d8c2788fede2))
 - **migration:** ensure bluetooth table created before MV migration ([4c027ba](https://github.com/cyclonite69/shadowcheck-web/commit/4c027bae9a38ce154fa8b638d5fd8d1a204d117f))
 - **migration:** ensure bluetooth table created before MV migration ([5b21ec3](https://github.com/cyclonite69/shadowcheck-web/commit/5b21ec35c4a5acf41f999fc089ba02250bedc2b1))
+- **migration:** explicitly drop wigle_v2_radio_search before ALTER COLUMN type ([d6387dc](https://github.com/cyclonite69/shadowcheck-web/commit/d6387dcaba404a5743462809030602ab29a9b443))
 - **migration:** match existing MV schema without manufacturer_oui ([aed224e](https://github.com/cyclonite69/shadowcheck-web/commit/aed224e2a8d1b9eaaa1084c30083e3348affacdd))
 - **migration:** remove nested aggregate in stationary_confidence CTE ([c993944](https://github.com/cyclonite69/shadowcheck-web/commit/c993944227b43cf5badcbfa278807c4eddd0982a))
 - **migrations:** default runner to shadowcheck_admin role ([a84957d](https://github.com/cyclonite69/shadowcheck-web/commit/a84957d9851fba6e6dc02ada67f02aaea36a8eb8))
