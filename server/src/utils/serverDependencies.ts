@@ -53,6 +53,7 @@ interface RouteModules {
   shotspotterZonesRoutes: Router;
   shotspotterSensorsRoutes: Router;
   networkAgenciesRoutes: Router;
+  siblingDetectionRoutes: Router;
 }
 
 /**
@@ -112,6 +113,7 @@ function loadRouteModules(): RouteModules {
     shotspotterZonesRoutes: require('../api/routes/v1/shotspotterZones').default,
     shotspotterSensorsRoutes: require('../api/routes/v1/shotspotterSensors').default,
     networkAgenciesRoutes: require('../api/routes/v1/network-agencies'),
+    siblingDetectionRoutes: require('../api/routes/v1/siblingDetection'),
   };
 }
 

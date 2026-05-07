@@ -48,6 +48,7 @@ interface ApiRouteDependencies {
   shotspotterZonesRoutes: Router;
   shotspotterSensorsRoutes: Router;
   networkAgenciesRoutes: Router;
+  siblingDetectionRoutes: Router;
 }
 
 /**
@@ -96,6 +97,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
     shotspotterZonesRoutes,
     shotspotterSensorsRoutes,
     networkAgenciesRoutes,
+    siblingDetectionRoutes,
   } = deps;
   // Fail closed: gate is enabled unless explicitly set to "false".
   const apiGateEnabled =
@@ -205,6 +207,9 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
 
   // Network agencies (nearest agencies to network observations)
   app.use('/api/networks', userGate, networkAgenciesRoutes);
+
+  // Sibling detection — mac_increment and band_pair modalities
+  app.use('/api', adminGate, siblingDetectionRoutes);
 
   // Admin-page/system routes
   app.use('/api', adminGate, mlRoutes);
