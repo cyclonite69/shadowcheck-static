@@ -10,6 +10,7 @@ const TOGGLE_LABELS: Record<JobKey, string> = {
   mlScoring: 'Enable ML Scoring',
   mvRefresh: 'Enable Refresh',
   siblingDetection: 'Enable Discovery',
+  surveillanceScan: 'Enable Scan',
 };
 
 const SAVE_LABELS: Record<JobKey, string> = {
@@ -17,6 +18,7 @@ const SAVE_LABELS: Record<JobKey, string> = {
   mlScoring: 'Save Scoring Config',
   mvRefresh: 'Save Refresh Config',
   siblingDetection: 'Save Discovery Config',
+  surveillanceScan: 'Save Scan Config',
 };
 
 const RUN_LABELS: Record<JobKey, string> = {
@@ -24,6 +26,7 @@ const RUN_LABELS: Record<JobKey, string> = {
   mlScoring: 'Run Scoring Now',
   mvRefresh: 'Run Refresh Now',
   siblingDetection: 'Discover Siblings Now',
+  surveillanceScan: 'Run Scan Now',
 };
 
 const TOGGLE_CLASSES: Record<JobKey, string> = {
@@ -31,6 +34,7 @@ const TOGGLE_CLASSES: Record<JobKey, string> = {
   mlScoring: 'bg-blue-500',
   mvRefresh: 'bg-purple-500',
   siblingDetection: 'bg-orange-500',
+  surveillanceScan: 'bg-red-500',
 };
 
 const SAVE_CLASSES: Record<JobKey, string> = {
@@ -38,6 +42,7 @@ const SAVE_CLASSES: Record<JobKey, string> = {
   mlScoring: 'bg-blue-600 hover:bg-blue-500',
   mvRefresh: 'bg-purple-600 hover:bg-purple-500',
   siblingDetection: 'bg-orange-600 hover:bg-orange-500',
+  surveillanceScan: 'bg-red-600 hover:bg-red-500',
 };
 
 export function JobCard({

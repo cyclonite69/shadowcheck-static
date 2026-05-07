@@ -411,12 +411,19 @@ async function getSiblingStatsByRule(): Promise<any[]> {
   return rows;
 }
 
+async function purgeSiblingPairs(): Promise<{ deleted: number }> {
+  const result = await adminQuery('TRUNCATE app.network_sibling_pairs');
+  logger.info('[Siblings] Purged all sibling pairs');
+  return { deleted: result.rowCount ?? 0 };
+}
+
 module.exports = {
   startSiblingRefresh,
   getSiblingRefreshStatus,
   getSiblingStats,
   getSiblingStatsByRule,
   runSiblingRefreshJob,
+  purgeSiblingPairs,
 };
 
 export {};

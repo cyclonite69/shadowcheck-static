@@ -108,6 +108,7 @@ export const DbStatsTab: React.FC = () => {
   const [_error, setError] = useState<string | null>(null);
   const [siblingStats, setSiblingStats] = useState<SiblingStats | null>(null);
   const [siblingByRule, setSiblingByRule] = useState<SiblingByRule[]>([]);
+  const [purgingSiblings, setPurgingSiblings] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -136,6 +137,26 @@ export const DbStatsTab: React.FC = () => {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  const purgeSiblings = async () => {
+    if (
+      !window.confirm(
+        'Purge all 81k+ sibling pairs? The system will redetect from scratch on the next run.'
+      )
+    )
+      return;
+    setPurgingSiblings(true);
+    try {
+      await apiClient.delete('/admin/siblings/pairs');
+      setSiblingStats(null);
+      setSiblingByRule([]);
+      await fetchStats();
+    } catch (err: any) {
+      window.alert(`Purge failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setPurgingSiblings(false);
+    }
+  };
 
   const getTablesByCategory = (category: string) => {
     if (!stats) return [];
@@ -505,6 +526,16 @@ export const DbStatsTab: React.FC = () => {
               No sibling data available.
             </div>
           )}
+          {/* Purge button — always visible */}
+          <div className="pt-3 border-t border-slate-800/50 flex justify-end">
+            <button
+              onClick={purgeSiblings}
+              disabled={purgingSiblings}
+              className="px-3 py-1.5 text-xs font-semibold rounded bg-red-900/60 hover:bg-red-800/80 text-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {purgingSiblings ? 'Purging…' : 'Purge & Full Redetect'}
+            </button>
+          </div>
         </AdminCard>
       </div>
 

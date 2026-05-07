@@ -186,4 +186,14 @@ router.get('/admin/siblings/stats', async (req: any, res: any) => {
   }
 });
 
+router.delete('/admin/siblings/pairs', async (req: any, res: any) => {
+  try {
+    const result = await siblingDetectionAdminService.purgeSiblingPairs();
+    res.json({ ok: true, deleted: result.deleted });
+  } catch (err: any) {
+    logger.error('[Siblings] Failed to purge pairs', { error: err?.message });
+    res.status(500).json({ ok: false, error: err?.message || 'Failed to purge sibling pairs' });
+  }
+});
+
 module.exports = router;
