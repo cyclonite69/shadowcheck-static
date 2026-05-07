@@ -13,6 +13,8 @@ const IMPACT_FACTORS: Record<string, number> = {
   AXON_BODY_CAMERA: 1.0,
   MOTOROLA_BWC: 1.0,
   AXON_SIGNAL_PERIPHERAL: 1.1,
+  BT_IMAGING_DEVICE: 0.9,
+  DEI_BWC: 1.0,
 };
 
 // --- Match quality bonuses (§5.2) ---

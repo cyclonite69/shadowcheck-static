@@ -172,8 +172,11 @@ router.get('/admin/siblings/refresh/status', (req: any, res: any) => {
 
 router.get('/admin/siblings/stats', async (req: any, res: any) => {
   try {
-    const stats = await siblingDetectionAdminService.getSiblingStats();
-    res.json({ ok: true, stats });
+    const [stats, byRule] = await Promise.all([
+      siblingDetectionAdminService.getSiblingStats(),
+      siblingDetectionAdminService.getSiblingStatsByRule(),
+    ]);
+    res.json({ ok: true, stats, byRule });
   } catch (err: any) {
     logger.error('[Siblings] Failed to load stats', { error: err?.message });
     res.status(500).json({

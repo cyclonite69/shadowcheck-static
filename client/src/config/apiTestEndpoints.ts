@@ -1676,21 +1676,4 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
 
   // ── Sibling Detection ──────────────────────────────────────────────────────
-  {
-    category: 'Sibling Detection',
-    label: 'Run Detection',
-    description: 'Trigger mac_increment or band_pair sibling detection run',
-    path: '/api/sibling-detection/run',
-    method: 'POST',
-    requiresAuth: true,
-    defaultBody: '{\n  "modality": "all",\n  "limit": 5000\n}',
-  },
-  {
-    category: 'Sibling Detection',
-    label: 'Detection Stats',
-    description: 'Counts by rule and avg confidence for detection_pipeline_v2 pairs',
-    path: '/api/sibling-detection/stats',
-    method: 'GET',
-    requiresAuth: true,
-  },
 ];

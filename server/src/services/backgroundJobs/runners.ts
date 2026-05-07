@@ -96,27 +96,31 @@ const runSiblingDetectionJob = async (options: any = {}) => {
   const { adminQuery } = require('../adminDbService');
   logger.info('[Sibling Detection Job] Starting sibling radio discovery...');
 
-  const maxOctetDelta = options.max_octet_delta || 6;
-  const maxDistanceM = options.max_distance_m || 5000;
-  const minCandidateConf = options.min_candidate_conf || 0.7;
-  // Cap scheduled runs at 2000 seeds to prevent timeout; manual runs can override
-  const seedLimit = options.seed_limit !== undefined ? options.seed_limit : 2000;
-  const incremental = options.incremental !== undefined ? options.incremental : true;
+  const { runSiblingRefreshJob } = require('../admin/siblingDetectionAdminService');
 
-  // Set 10-minute timeout for this specific job (overrides pool's 5-minute default)
-  await adminQuery("SET LOCAL statement_timeout = '10min'");
+  // Set a generous timeout — the chunked loop can take a while on large datasets.
+  // This applies to the connection used by the job, not the app pool.
+  await adminQuery("SET LOCAL statement_timeout = '30min'");
 
-  const result = await adminQuery(
-    'SELECT app.refresh_network_sibling_pairs($1, $2, $3, 0.92, $4, $5) as count',
-    [maxOctetDelta, maxDistanceM, minCandidateConf, seedLimit, incremental]
-  );
+  const result = await runSiblingRefreshJob({
+    batchSize: options.batch_size || 250,
+    maxOctetDelta: options.max_octet_delta || 6,
+    maxDistanceM: options.max_distance_m || 1500,
+    minCandidateConf: options.min_candidate_conf || 0.9,
+    maxBatches: options.max_batches ?? null,
+    // Scheduled runs are incremental — only process BSSIDs not yet in sibling_pairs.
+    // Manual runs (options.incremental explicitly false) do a full pass.
+    incremental: options.incremental !== undefined ? options.incremental : true,
+  });
 
-  const count = parseInt(result.rows[0]?.count || '0');
-  logger.info(`[Sibling Detection Job] Complete: Identified/updated ${count} sibling pairs`);
+  logger.info('[Sibling Detection Job] Complete', result);
 
   return {
-    pairsProcessed: count,
-    parameters: { maxOctetDelta, maxDistanceM, minCandidateConf, seedLimit, incremental },
+    pairsProcessed: result.rowsUpserted,
+    seedsProcessed: result.seedsProcessed,
+    batchesRun: result.batchesRun,
+    executionTimeMs: result.executionTimeMs,
+    completed: result.completed,
   };
 };
 

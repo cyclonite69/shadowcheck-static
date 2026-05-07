@@ -4,6 +4,14 @@ const REFRESH_CHUNK_SQL = `
     FROM app.api_network_explorer_mv ne
     WHERE ne.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND ($2::text IS NULL OR ne.bssid > $2)
+      -- Incremental mode ($6=true): skip BSSIDs whose last_seen predates the
+      -- most recent sibling detection run. New imports (last_seen after the
+      -- last run) are always re-seeded so new siblings of existing networks
+      -- are caught. Full runs pass false.
+      AND (NOT $6::boolean OR ne.last_seen > COALESCE(
+        (SELECT MAX(computed_at) FROM app.network_sibling_pairs),
+        '1970-01-01'::timestamptz
+      ))
     ORDER BY ne.bssid
     LIMIT $1
   ),
@@ -224,4 +232,15 @@ const SIBLING_STATS_SQL = `
   FROM app.network_sibling_pairs
 `;
 
-export { REFRESH_CHUNK_SQL, SIBLING_STATS_SQL };
+const SIBLING_STATS_BY_RULE_SQL = `
+  SELECT
+    rule,
+    COUNT(*)::int                              AS pair_count,
+    ROUND(AVG(confidence)::numeric, 3)         AS avg_confidence,
+    MAX(computed_at)                           AS last_run_at
+  FROM app.network_sibling_pairs
+  GROUP BY rule
+  ORDER BY pair_count DESC
+`;
+
+export { REFRESH_CHUNK_SQL, SIBLING_STATS_SQL, SIBLING_STATS_BY_RULE_SQL };

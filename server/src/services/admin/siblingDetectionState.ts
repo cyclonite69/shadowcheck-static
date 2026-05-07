@@ -5,6 +5,7 @@ type SiblingRefreshOptions = {
   minCandidateConf?: number;
   minStrongConf?: number;
   maxBatches?: number | null;
+  incremental?: boolean;
 };
 
 type SiblingRefreshResult = {
@@ -39,6 +40,7 @@ const DEFAULTS: Required<SiblingRefreshOptions> = {
   minCandidateConf: 0.9,
   minStrongConf: 0.97,
   maxBatches: null,
+  incremental: false,
 };
 
 const state: SiblingRefreshStatus = {
@@ -73,6 +75,7 @@ function normalizeOptions(options: SiblingRefreshOptions = {}): Required<Sibling
       options.maxBatches === null || options.maxBatches === undefined
         ? null
         : Math.floor(clampNumber(options.maxBatches, 1, 1, 100000)),
+    incremental: options.incremental ?? DEFAULTS.incremental,
   };
 }
 

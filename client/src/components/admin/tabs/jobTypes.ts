@@ -4,7 +4,7 @@ export interface JobConfig {
   [key: string]: any;
 }
 
-export type JobKey = 'backup' | 'mlScoring' | 'mvRefresh' | 'siblingDetection';
+export type JobKey = 'backup' | 'mlScoring' | 'mvRefresh' | 'siblingDetection' | 'surveillanceScan';
 export type ScheduleMode = 'hourly' | 'daily' | 'weekly';
 
 export interface ScheduleFormState {
@@ -45,6 +45,7 @@ export const JOB_SETTING_KEYS: Record<JobKey, string> = {
   mlScoring: 'ml_scoring_job_config',
   mvRefresh: 'mv_refresh_job_config',
   siblingDetection: 'sibling_detection_job_config',
+  surveillanceScan: 'surveillance_scan_job_config',
 };
 
 export const DEFAULT_CONFIGS: Record<JobKey, JobConfig> = {
@@ -60,6 +61,7 @@ export const DEFAULT_CONFIGS: Record<JobKey, JobConfig> = {
     seed_limit: 2000,
     incremental: true,
   },
+  surveillanceScan: { enabled: true, cron: '0 2 * * *' },
 };
 
 export const DEFAULT_SCHEDULES: Record<JobKey, ScheduleFormState> = {
@@ -67,6 +69,7 @@ export const DEFAULT_SCHEDULES: Record<JobKey, ScheduleFormState> = {
   mlScoring: { mode: 'hourly', time: '00:00', intervalHours: '4', dayOfWeek: '1' },
   mvRefresh: { mode: 'daily', time: '04:30', intervalHours: '4', dayOfWeek: '1' },
   siblingDetection: { mode: 'daily', time: '05:00', intervalHours: '4', dayOfWeek: '1' },
+  surveillanceScan: { mode: 'daily', time: '02:00', intervalHours: '4', dayOfWeek: '1' },
 };
 
 export const WEEKDAY_OPTIONS = [

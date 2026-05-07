@@ -66,6 +66,9 @@ router.post(
       if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
       }
+      if (err?.status === 409) {
+        return res.status(409).json({ ok: false, error: err.message, code: 'ENRICHMENT_CONFLICT' });
+      }
       next(err);
     }
   }

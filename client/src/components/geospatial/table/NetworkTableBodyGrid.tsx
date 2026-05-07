@@ -35,6 +35,7 @@ interface NetworkTableBodyGridProps {
   hasMore: boolean;
   onLoadMore: () => void;
   onHorizontalScroll?: (scrollLeft: number) => void;
+  quickSearch?: string;
 }
 
 export const NetworkTableBodyGrid = ({
@@ -59,6 +60,7 @@ export const NetworkTableBodyGrid = ({
   hasMore,
   onLoadMore,
   onHorizontalScroll,
+  quickSearch = '',
 }: NetworkTableBodyGridProps) => {
   // Sibling grouping driven by DB results from network_siblings_effective (via siblingGroupMap prop).
   // Only includes networks visible in the current page; singletons (one visible member) are dropped.
@@ -159,9 +161,11 @@ export const NetworkTableBodyGrid = ({
     [patternGroups, onSelectGroup, onSelectExclusive, filteredNetworks]
   );
 
-  // Filter out collapsed sibling rows (keep parent)
+  // Filter out collapsed sibling rows (keep parent).
+  // When a search is active, bypass collapse entirely so search results are never hidden.
   const displayNetworks = React.useMemo(() => {
-    if (patternGroups.groupMap.size === 0) return sortedDisplayNetworks;
+    if (patternGroups.groupMap.size === 0 || quickSearch.trim().length > 0)
+      return sortedDisplayNetworks;
     return sortedDisplayNetworks.filter((net) => {
       const bssid = (net.bssid ?? '').toUpperCase();
       const groupId = patternGroups.groupMap.get(bssid);
@@ -173,7 +177,7 @@ export const NetworkTableBodyGrid = ({
       const members = patternGroups.groupMembers.get(groupId) ?? [];
       return bssid === members[0];
     });
-  }, [sortedDisplayNetworks, patternGroups, collapseAllActive, collapsedGroups]);
+  }, [sortedDisplayNetworks, patternGroups, collapseAllActive, collapsedGroups, quickSearch]);
 
   // Reduced overscan from 10 → 5 to render fewer off-screen rows and improve performance
   // This significantly reduces DOM nodes and render work during scrolling

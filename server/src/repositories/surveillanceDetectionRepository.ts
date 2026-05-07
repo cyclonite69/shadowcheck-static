@@ -61,7 +61,7 @@ const MED_CONF_OUIS = [
 
 const SHOTSPOTTER_OUIS = ['D4:11:D6'];
 
-const AXON_OUIS = ['00:25:DF'];
+const AXON_OUIS = ['00:25:DF', '08:FB:EA', '54:78:C9', '70:F7:54', 'B8:13:32'];
 
 const MOTOROLA_BWC_OUIS = ['00:04:7D', '00:18:85', '00:1F:92', '4C:CC:34'];
 
@@ -264,6 +264,111 @@ async function getEnrichedCandidates(
         AND n.ssid ~* '^(axon|taser|signal)'
         AND (n.mfgrid IS NULL OR n.mfgrid != 845)
         AND LEFT(n.bssid, 8) != ALL(ARRAY[${axonOui}])
+
+      UNION ALL
+
+      -- 13. Body-worn camera officer assignment SSID: X_[initial][surname]
+      -- Pattern: X_ prefix + one letter initial + surname (letters only, no numbers/spaces).
+      -- Observed on Axon body cams assigned to officers (e.g. X_grodriguez, X_jsmith).
+      -- Confidence is STRONG — this is a highly specific naming convention not used by
+      -- consumer devices. Classified as AXON_BODY_CAMERA regardless of OUI since the
+      -- SSID pattern is the primary evidence. When a BLE service UUID is also present
+      -- on the same row, base_likelihood is boosted to 92 (UUID corroborates the SSID).
+      -- Once the UUID value is confirmed from captured devices, add it as a standalone
+      -- high-confidence tier using the service_uuid values surfaced in matched_signals.
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'AXON_BODY_CAMERA',
+        CASE WHEN n.service IS NOT NULL AND n.service != '' THEN 92 ELSE 82 END,
+        CASE WHEN n.service IS NOT NULL AND n.service != '' THEN 'EXACT' ELSE 'STRONG' END,
+        'ssid_pattern',
+        jsonb_build_object('ssid', n.ssid, 'pattern', '^X_[A-Za-z][A-Za-z]+$', 'note', 'officer_assignment_ssid', 'service_uuid', n.service), 13
+      FROM app.networks n
+      WHERE n.ssid ~ '^X_[A-Za-z][A-Za-z]+$'
+
+      UNION ALL
+
+      -- 14. Axon body cam BLE service UUID 0xFFA1 (confirmed from captured devices).
+      -- Full UUID: 0000ffa1-0000-1000-8000-00805f9b34fb
+      -- Present on Axon BLE advertisements that don't match the X_ SSID pattern
+      -- (e.g. devices not yet assigned to an officer, or advertising under a different name).
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'AXON_BODY_CAMERA', 88, 'EXACT', 'uuid_match',
+        jsonb_build_object('service_uuid', n.service, 'uuid_short', '0xFFA1', 'note', 'axon_ble_service'), 14
+      FROM app.networks n
+      WHERE n.type IN ('E', 'B')
+        AND n.service = '0000ffa1-0000-1000-8000-00805f9b34fb'
+        AND LEFT(n.bssid, 8) != ALL(ARRAY[${axonOui}])
+
+      UNION ALL
+
+      -- 15. Axon body cam CoD fingerprint: 0x1F00 (Uncategorized, no service class).
+      -- Confirmed from 23 captured Axon body cams — every one reports CoD 0x1F00.
+      -- Consumer BT devices always declare a proper major class; 0x1F00 on a known
+      -- Axon OUI is a strong corroborating signal. On an unknown OUI it is a weak
+      -- indicator (many cheap BT modules also ship with 0x1F00 as a default).
+      -- Only fires when OUI is confirmed Axon AND no X_ SSID (those are already
+      -- caught by tier 13 at higher confidence).
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'AXON_BODY_CAMERA', 78, 'STRONG', 'cod_fingerprint',
+        jsonb_build_object('cod_hex', '0x1F00', 'cod_int', o.radio_frequency,
+          'note', 'uncategorized_no_service_class_axon_oui'), 15
+      FROM app.networks n
+      JOIN app.observations o ON n.bssid = o.bssid AND o.radio_frequency = 7936
+      WHERE n.type IN ('E', 'B')
+        AND LEFT(n.bssid, 8) = ANY(ARRAY[${axonOui}])
+        AND (n.ssid IS NULL OR n.ssid !~ '^X_[A-Za-z][A-Za-z]+$')
+
+      UNION ALL
+
+      -- 16. Bluetooth imaging device: CoD major class 0x06 (Imaging), minor 0x20 (Camera).
+      -- Full CoD: 0x0680 = 1664 decimal. These are devices that honestly self-identify
+      -- as Bluetooth cameras — dashcams, security cameras, body-worn cameras from vendors
+      -- other than Axon. Confidence is moderate (STRONG) since CoD is self-reported and
+      -- could be spoofed, but combined with location/behavioral data it is meaningful.
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'BT_IMAGING_DEVICE', 70, 'STRONG', 'cod_imaging',
+        jsonb_build_object('cod_hex', '0x0680', 'cod_int', o.radio_frequency,
+          'major_class', 'Imaging', 'minor_class', 'Camera'), 16
+      FROM app.networks n
+      JOIN app.observations o ON n.bssid = o.bssid AND o.radio_frequency = 1664
+      WHERE n.type IN ('E', 'B')
+
+      UNION ALL
+
+      -- 17. Unknown vendor body cam SSID pattern: DEI-[digits]
+      -- 41 devices confirmed in dataset. All BLE (type E/B), all randomized MACs,
+      -- all report CoD 0x1F00 (same deliberate obfuscation as Axon body cams).
+      -- SSID encodes a serial number (e.g. DEI-9577469, range ~1.2M–9.8M observed).
+      -- Vendor attribution: "DEI" prefix is unconfirmed — no public documentation
+      -- links this naming convention to a specific manufacturer. Possible candidates
+      -- include Digital Ally (FirstVu line) or other LE body cam vendors.
+      -- The randomized MACs + 0x1F00 CoD + proprietary UUID pattern is consistent
+      -- with purpose-built law enforcement surveillance equipment.
+      -- Confidence boosted to EXACT when the proprietary service UUID is also present.
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'DEI_BWC',
+        CASE WHEN n.service = 'b4520100-a308-4e56-8a52-536c2ad07147' THEN 92 ELSE 84 END,
+        CASE WHEN n.service = 'b4520100-a308-4e56-8a52-536c2ad07147' THEN 'EXACT' ELSE 'STRONG' END,
+        'ssid_pattern',
+        jsonb_build_object('ssid', n.ssid, 'pattern', '^DEI-[0-9]+$',
+          'note', 'digital_ally_serial', 'service_uuid', n.service), 17
+      FROM app.networks n
+      WHERE n.ssid ~ '^DEI-[0-9]+$'
+
+      UNION ALL
+
+      -- 18. DEI- body cam service UUID (confirmed exclusive to DEI- devices in dataset).
+      -- UUID: b4520100-a308-4e56-8a52-536c2ad07147
+      -- Not registered in any public BLE/GATT database — proprietary vendor UUID.
+      -- Catches devices not advertising the DEI- SSID at time of capture.
+      SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
+        'DEI_BWC', 90, 'EXACT', 'uuid_match',
+        jsonb_build_object('service_uuid', n.service,
+          'note', 'dei_ble_service_uuid'), 18
+      FROM app.networks n
+      WHERE n.type IN ('E', 'B')
+        AND n.service = 'b4520100-a308-4e56-8a52-536c2ad07147'
+        AND (n.ssid IS NULL OR n.ssid !~ '^DEI-[0-9]+$')
 
     ),
     obs_stats AS (

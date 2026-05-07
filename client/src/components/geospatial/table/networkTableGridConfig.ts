@@ -13,6 +13,8 @@ export const NETWORK_TABLE_COLUMN_WIDTHS: Record<string, number> = {
   frequency: 90,
   channel: 80,
   timespanDays: 100,
+  lastSeen: 120,
+  firstSeen: 120,
   manufacturer: 120,
   all_tags: 120,
   wigle_v3_observation_count: 90,

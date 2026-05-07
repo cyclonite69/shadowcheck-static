@@ -10,7 +10,7 @@ import {
 } from './jobTypes';
 import { normalizeJobConfig } from './jobUtils';
 import { JobCard } from './JobCard';
-import { ClockIcon, ActivityIcon, RefreshIcon, ShareIcon } from './JobIcons';
+import { ClockIcon, ActivityIcon, RefreshIcon, ShareIcon, EyeIcon } from './JobIcons';
 
 const JOB_CARDS = [
   {
@@ -33,6 +33,13 @@ const JOB_CARDS = [
     title: 'Sibling Detection',
     color: 'from-orange-500 to-amber-600',
     accentClass: 'focus:ring-orange-500/40',
+  },
+  {
+    jobKey: 'surveillanceScan' as const,
+    icon: EyeIcon,
+    title: 'Surveillance Scan',
+    color: 'from-red-500 to-rose-600',
+    accentClass: 'focus:ring-red-500/40',
   },
   {
     jobKey: 'mvRefresh' as const,
@@ -85,6 +92,10 @@ export const JobsTab: React.FC = () => {
           siblingDetection: normalizeJobConfig(
             findValue('sibling_detection_job_config'),
             DEFAULT_CONFIGS.siblingDetection
+          ),
+          surveillanceScan: normalizeJobConfig(
+            findValue('surveillance_scan_job_config'),
+            DEFAULT_CONFIGS.surveillanceScan
           ),
         });
       }
@@ -156,6 +167,7 @@ export const JobsTab: React.FC = () => {
     mlScoring: configs.mlScoring || DEFAULT_CONFIGS.mlScoring,
     mvRefresh: configs.mvRefresh || DEFAULT_CONFIGS.mvRefresh,
     siblingDetection: configs.siblingDetection || DEFAULT_CONFIGS.siblingDetection,
+    surveillanceScan: configs.surveillanceScan || DEFAULT_CONFIGS.surveillanceScan,
   };
 
   return (

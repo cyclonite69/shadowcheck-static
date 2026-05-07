@@ -1,5 +1,9 @@
 const logger = require('../../logging/logger');
-import { REFRESH_CHUNK_SQL, SIBLING_STATS_SQL } from './siblingDetectionQueries';
+import {
+  REFRESH_CHUNK_SQL,
+  SIBLING_STATS_SQL,
+  SIBLING_STATS_BY_RULE_SQL,
+} from './siblingDetectionQueries';
 
 // Four additional rule classes derived from manual ground truth analysis.
 // Run once per refresh after the chunked REFRESH_CHUNK_SQL loop, as a single
@@ -46,6 +50,17 @@ const EXTRA_RULES_SQL = `
       -- broadcast xfinitywifi on one BSSID and a different SSID on another,
       -- with the same last 4 octets and a different first octet. The MAC
       -- pattern is the evidence; the SSID is incidental.
+      -- Require both networks to have location data and be within 200m to
+      -- prevent false positives from coincidentally matching middle octets
+      -- across unrelated devices (e.g. Azure Wave / GreatLakesMobile).
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) < 200
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -291,6 +306,7 @@ async function runSiblingRefreshJob(
       normalized.maxOctetDelta,
       normalized.maxDistanceM,
       normalized.minCandidateConf,
+      normalized.incremental,
     ]);
 
     const row = result.rows[0] || {};
@@ -390,10 +406,16 @@ async function getSiblingStats(): Promise<any> {
   return rows[0] || {};
 }
 
+async function getSiblingStatsByRule(): Promise<any[]> {
+  const { rows } = await adminQuery(SIBLING_STATS_BY_RULE_SQL);
+  return rows;
+}
+
 module.exports = {
   startSiblingRefresh,
   getSiblingRefreshStatus,
   getSiblingStats,
+  getSiblingStatsByRule,
   runSiblingRefreshJob,
 };
 

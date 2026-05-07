@@ -176,6 +176,7 @@ export const NetworkExplorerSection = ({
         hasMore={hasMore}
         onLoadMore={onLoadMore}
         onHorizontalScroll={setTableScrollLeft}
+        quickSearch={quickSearch}
       />
 
       <MapStatusBar
