@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-06)
+# 1.0.0 (2026-05-07)
 
 ### Bug Fixes
 
@@ -453,6 +453,8 @@
 - migration user falls back to DB_USER when DB_ADMIN_USER unset ([1e5086c](https://github.com/cyclonite69/shadowcheck-web/commit/1e5086c6767395290f13b851728026d3ee39d23f))
 - **migration:** align v4 snapshot distance casts with live DB ([118e6ec](https://github.com/cyclonite69/shadowcheck-web/commit/118e6ec7536acd5b77280a49307879bf421fa29d))
 - **migration:** deduplicate v2/v3 source rows before FULL OUTER JOIN in wigle MV ([82d7f47](https://github.com/cyclonite69/shadowcheck-web/commit/82d7f47203f0658b5629c56913c23f36dbabc48f))
+- **migration:** drop api_wigle_networks_mv + wigle_v2_radio_search before ALTER COLUMN type ([17ce599](https://github.com/cyclonite69/shadowcheck-web/commit/17ce599cced16a0d9f184d8ae1930465fd365034))
+- **migration:** drop/recreate wigle_v2_radio_search view around ALTER COLUMN type ([1257c96](https://github.com/cyclonite69/shadowcheck-web/commit/1257c96acaed3a3bfba3522a2c14d8c2788fede2))
 - **migration:** ensure bluetooth table created before MV migration ([4c027ba](https://github.com/cyclonite69/shadowcheck-web/commit/4c027bae9a38ce154fa8b638d5fd8d1a204d117f))
 - **migration:** ensure bluetooth table created before MV migration ([5b21ec3](https://github.com/cyclonite69/shadowcheck-web/commit/5b21ec35c4a5acf41f999fc089ba02250bedc2b1))
 - **migration:** match existing MV schema without manufacturer_oui ([aed224e](https://github.com/cyclonite69/shadowcheck-web/commit/aed224e2a8d1b9eaaa1084c30083e3348affacdd))
@@ -854,6 +856,7 @@
 - **wigle:** use bssid field for v3 rows in field data fetch ([5acc4aa](https://github.com/cyclonite69/shadowcheck-web/commit/5acc4aa81920fdd423ad5f673a4cde2f77486682))
 - **wigle:** use CTE proportional count distribution for exact totals with DBSCAN sampling ([1c3a906](https://github.com/cyclonite69/shadowcheck-web/commit/1c3a906886822373560cdf8a3be3ff49bad8c88f))
 - **wigle:** validate API credit before making orphan lookup requests ([3bfb952](https://github.com/cyclonite69/shadowcheck-web/commit/3bfb9524d35ef4522cc15ae7a3ca9e216042505a))
+- **wigle:** widen varchar column + prevent single-row abort ([01a0225](https://github.com/cyclonite69/shadowcheck-web/commit/01a02259c55bc66fdb8aaf5fac1dd9b935071ab7))
 - **wigle:** wire field data into Mapbox cluster source ([87facec](https://github.com/cyclonite69/shadowcheck-web/commit/87facec08bda30aba20931d2a0efed3423e79b09))
 - **wigle:** wire field data source into cluster toggle ([f75f30d](https://github.com/cyclonite69/shadowcheck-web/commit/f75f30dbf2e31c7e8c87e8dcde627f9939ce8f0e))
 - **wigle:** wire kmlFeatureCollection to source.setData in KML sync effect ([e9168e8](https://github.com/cyclonite69/shadowcheck-web/commit/e9168e833ca08ab15724228ec5ff25485013125c))
@@ -1096,6 +1099,7 @@
 - **seeds:** add synthetic test data for integration tests ([ce7ea1c](https://github.com/cyclonite69/shadowcheck-web/commit/ce7ea1c9cb321021e820d880ec2119aa7bd88dd2))
 - server TS migration batches 6-7 (utils, middleware, errors) ([2b11ce0](https://github.com/cyclonite69/shadowcheck-web/commit/2b11ce04aa7b31f3af6963d1fc12ee75cc0b6a5d))
 - show radius label centered inside hover signal circle ([63737e5](https://github.com/cyclonite69/shadowcheck-web/commit/63737e59504822c9ab1d6b1e856a70edffeeea57))
+- **sibling-detection:** add mac_increment and band_pair modalities alongside existing detection ([4c39920](https://github.com/cyclonite69/shadowcheck-web/commit/4c399201f7b01b0acf689bbc44edfa969b738b7a))
 - **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
 - **siblings:** add middle_octets_sequential rule for multi-BSSID APs ([888cb80](https://github.com/cyclonite69/shadowcheck-web/commit/888cb800028988e491cd01accc1fba857b09bd59))
 - **siblings:** show linked pairs in explorer ([97206d8](https://github.com/cyclonite69/shadowcheck-web/commit/97206d8e46174f0fcf888d807de5086056958f83))

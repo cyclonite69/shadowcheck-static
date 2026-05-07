@@ -60,16 +60,10 @@ c AS (
       ELSE NULL
     END AS distance_m,
     CASE 
-      WHEN t.ssid IS NOT NULL AND n.ssid IS NOT NULL AND t.ssid <> '' AND n.ssid <> '' AND lower(t.ssid) = lower(n.ssid) THEN 'ssid_exact'
-      WHEN t.ssid IS NOT NULL AND n.ssid IS NOT NULL AND t.ssid <> '' AND n.ssid <> '' AND lower(t.ssid) LIKE lower(n.ssid) || '%' THEN 'ssid_prefix_target'
-      WHEN t.ssid IS NOT NULL AND n.ssid IS NOT NULL AND t.ssid <> '' AND n.ssid <> '' AND lower(n.ssid) LIKE lower(t.ssid) || '%' THEN 'ssid_prefix_sibling'
       WHEN (t.ssid IS NULL OR t.ssid = '') AND (n.ssid IS NULL OR n.ssid = '') THEN 'empty_ssid_match'
       ELSE 'mac_only_match'
     END AS rule,
     CASE 
-      WHEN t.ssid IS NOT NULL AND n.ssid IS NOT NULL AND t.ssid <> '' AND n.ssid <> '' AND lower(t.ssid) = lower(n.ssid) THEN 0.85
-      WHEN t.ssid IS NOT NULL AND n.ssid IS NOT NULL AND t.ssid <> '' AND n.ssid <> '' AND lower(t.ssid) LIKE lower(n.ssid) || '%' THEN 0.70
-      WHEN t.ssid IS NOT NULL AND n.ssid IS NOT NULL AND t.ssid <> '' AND n.ssid <> '' AND lower(n.ssid) LIKE lower(t.ssid) || '%' THEN 0.70
       WHEN (t.ssid IS NULL OR t.ssid = '') AND (n.ssid IS NULL OR n.ssid = '') THEN 0.40
       ELSE 0.30
     END AS base_confidence
@@ -78,6 +72,7 @@ c AS (
     ON upper(n.bssid) <> upper(t.bssid)
     AND upper(split_part(n.bssid, ':', 1)) = t.o1
     AND upper(split_part(n.bssid, ':', 2)) = t.o2
+    AND n.frequency BETWEEN 2412 AND 5825
 )
 SELECT 
   target_bssid, sibling_bssid, target_ssid, sibling_ssid,
@@ -197,7 +192,9 @@ BEGIN
     frequency2 = EXCLUDED.frequency2,
     distance_m = EXCLUDED.distance_m,
     quality_scope = EXCLUDED.quality_scope,
-    computed_at = EXCLUDED.computed_at;
+    computed_at = EXCLUDED.computed_at
+  WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    AND network_sibling_pairs.source IS DISTINCT FROM 'detection_pipeline_v2';
 
   GET DIAGNOSTICS v_rowcount = ROW_COUNT;
   RETURN v_rowcount;
