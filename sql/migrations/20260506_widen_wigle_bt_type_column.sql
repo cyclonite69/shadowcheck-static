@@ -10,8 +10,9 @@
 
 SET search_path TO app, public;
 
--- Drop both dependents (CASCADE removes wigle_v2_radio_search too)
+-- Drop both dependents explicitly
 DROP MATERIALIZED VIEW IF EXISTS app.api_wigle_networks_mv CASCADE;
+DROP VIEW IF EXISTS app.wigle_v2_radio_search;
 
 ALTER TABLE app.wigle_v2_bluetooth_search
   ALTER COLUMN type TYPE TEXT;

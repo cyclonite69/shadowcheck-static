@@ -1100,6 +1100,7 @@
 - server TS migration batches 6-7 (utils, middleware, errors) ([2b11ce0](https://github.com/cyclonite69/shadowcheck-web/commit/2b11ce04aa7b31f3af6963d1fc12ee75cc0b6a5d))
 - show radius label centered inside hover signal circle ([63737e5](https://github.com/cyclonite69/shadowcheck-web/commit/63737e59504822c9ab1d6b1e856a70edffeeea57))
 - **sibling-detection:** add mac_increment and band_pair modalities alongside existing detection ([4c39920](https://github.com/cyclonite69/shadowcheck-web/commit/4c399201f7b01b0acf689bbc44edfa969b738b7a))
+- **sibling-detection:** add xfinity_sig modality (fleet_unit rejected, 0 detections) ([eb1ef34](https://github.com/cyclonite69/shadowcheck-web/commit/eb1ef3404e9ba79216310eb4f80b6bd3cdb90701))
 - **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
 - **siblings:** add middle_octets_sequential rule for multi-BSSID APs ([888cb80](https://github.com/cyclonite69/shadowcheck-web/commit/888cb800028988e491cd01accc1fba857b09bd59))
 - **siblings:** show linked pairs in explorer ([97206d8](https://github.com/cyclonite69/shadowcheck-web/commit/97206d8e46174f0fcf888d807de5086056958f83))
