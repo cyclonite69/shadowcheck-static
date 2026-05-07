@@ -3,11 +3,11 @@
  * All adminQuery data access for the v3 batch enrichment pipeline.
  */
 
-import * as container from '../config/container';
 import { escapeLikePattern } from '../utils/escapeSQL';
 
-const { adminDbService } = container as any;
-const { adminQuery } = adminDbService;
+function adminQuery(text: string, params: any[] = []) {
+  return require('../config/container').adminDbService.adminQuery(text, params);
+}
 
 const BATCH_SIZE = 100;
 
