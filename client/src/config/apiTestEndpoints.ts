@@ -1557,6 +1557,13 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Analysis',
+    label: 'Sibling Pairs Purge',
+    path: '/api/admin/siblings/pairs',
+    method: 'DELETE',
+    requiresAuth: true,
+  },
+  {
+    category: 'Admin Analysis',
     label: 'Sibling Linked',
     path: '/api/admin/siblings/linked/:bssid',
     method: 'GET',

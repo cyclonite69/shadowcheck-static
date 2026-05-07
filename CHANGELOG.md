@@ -937,6 +937,7 @@
 - **admin:** add SQL file upload import from UI to EC2 ([5e55ce7](https://github.com/cyclonite69/shadowcheck-web/commit/5e55ce70f26aecabe0ac389b75ebb92f8bd622d9))
 - **admin:** center subnav and complete home location config ([391d6ff](https://github.com/cyclonite69/shadowcheck-web/commit/391d6fff01985ddcf9d049ef72c2919e5653a56f))
 - **admin:** enhance tab styling with 3D shadows and add SSO ephemeral credentials ([3b9db60](https://github.com/cyclonite69/shadowcheck-web/commit/3b9db6067fc2be4f8b1ceb9821ff7763b12e67de))
+- **admin:** fix surveillance scan job card; sibling purge endpoint + button + test ([cae0b7f](https://github.com/cyclonite69/shadowcheck-web/commit/cae0b7fdf436ea80b47b6586d6bb9a5f062d3aa8))
 - **admin:** infinite scroll + column redesign on WiGLE Search results table ([125abe3](https://github.com/cyclonite69/shadowcheck-web/commit/125abe39f795eae162c6f52b8af2fe1243cf5e68))
 - **admin:** make API test tab data-driven via config ([c459fbf](https://github.com/cyclonite69/shadowcheck-web/commit/c459fbfadcac2308393cb9c90c203dd36d1a1731))
 - **admin:** per-search-term coverage dropdown + V3 state filter as dropdown ([a67ff55](https://github.com/cyclonite69/shadowcheck-web/commit/a67ff5527e2bde5cda17023683d50f038fa43ec0))
