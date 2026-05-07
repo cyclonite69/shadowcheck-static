@@ -20,6 +20,9 @@
 -- with a ";10" suffix in capabilities (class code 10 = 0x000A = BLE). Classic BT
 -- uses other class codes or "Misc". Network type E = BLE, B = Bluetooth.
 
+-- Drop dependent views first to avoid "cannot drop materialized view ... because other objects depend on it"
+DROP VIEW IF EXISTS app.surveillance_deflock_matches CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS app.surveillance_density_zones CASCADE;
 DROP MATERIALIZED VIEW IF EXISTS app.api_network_explorer_mv;
 
 CREATE MATERIALIZED VIEW app.api_network_explorer_mv AS
@@ -271,3 +274,137 @@ CREATE INDEX IF NOT EXISTS idx_api_network_explorer_mv_ignored
 GRANT SELECT ON app.api_network_explorer_mv TO shadowcheck_user;
 GRANT SELECT ON app.api_network_explorer_mv TO grafana_reader;
 GRANT SELECT ON app.api_network_explorer_mv TO PUBLIC;
+
+-- Recreate dependent views that were dropped earlier
+CREATE OR REPLACE VIEW app.surveillance_deflock_matches AS
+SELECT
+  sd.bssid,
+  sd.device_type,
+  sd.confidence,
+  sd.detection_method,
+  ne.lat  AS network_lat,
+  ne.lon  AS network_lon,
+  dc.id   AS deflock_camera_id,
+  dc.lat  AS deflock_lat,
+  dc.lon  AS deflock_lon,
+  dc.city,
+  dc.state,
+  dc.source,
+  ROUND(ST_Distance(
+    ST_SetSRID(ST_MakePoint(COALESCE(ne.centroid_lon, ne.lon),
+                            COALESCE(ne.centroid_lat, ne.lat)), 4326)::geography,
+    ST_SetSRID(ST_MakePoint(dc.lon, dc.lat), 4326)::geography
+  )::numeric, 1)                                                       AS distance_m
+FROM app.surveillance_detections sd
+JOIN app.api_network_explorer_mv ne
+  ON UPPER(ne.bssid) = UPPER(sd.bssid)
+JOIN app.deflock_cameras dc
+  ON ST_DWithin(
+    ST_SetSRID(ST_MakePoint(COALESCE(ne.centroid_lon, ne.lon),
+                            COALESCE(ne.centroid_lat, ne.lat)), 4326)::geography,
+    ST_SetSRID(ST_MakePoint(dc.lon, dc.lat), 4326)::geography,
+    100
+  )
+WHERE sd.false_positive = FALSE
+ORDER BY distance_m;
+
+CREATE MATERIALIZED VIEW app.surveillance_density_zones AS
+WITH surveillance_located AS (
+  SELECT
+    sd.bssid,
+    sd.device_type,
+    sd.confidence,
+    sd.false_positive,
+    COALESCE(ne.centroid_lat, ne.lat)                              AS lat,
+    COALESCE(ne.centroid_lon, ne.lon)                              AS lon,
+    COALESCE(ne.observations, 0)                                   AS observations,
+    COALESCE(
+      EXTRACT(EPOCH FROM (ne.last_seen - ne.first_seen)) / 86400.0,
+      0
+    )                                                              AS persistence_days
+  FROM app.surveillance_detections sd
+  JOIN app.api_network_explorer_mv ne
+    ON UPPER(ne.bssid) = UPPER(sd.bssid)
+  WHERE sd.false_positive = FALSE
+    AND COALESCE(ne.centroid_lat, ne.lat) IS NOT NULL
+),
+all_networks_gridded AS (
+  SELECT
+    ST_SnapToGrid(
+      ST_SetSRID(ST_MakePoint(
+        COALESCE(ne.centroid_lon, ne.lon),
+        COALESCE(ne.centroid_lat, ne.lat)
+      ), 4326),
+      0.002
+    )                             AS cell,
+    COUNT(DISTINCT ne.bssid)      AS total_networks
+  FROM app.api_network_explorer_mv ne
+  WHERE COALESCE(ne.centroid_lat, ne.lat) IS NOT NULL
+  GROUP BY 1
+),
+surveillance_gridded AS (
+  SELECT
+    ST_SnapToGrid(
+      ST_SetSRID(ST_MakePoint(lon, lat), 4326),
+      0.002
+    )                                                              AS cell,
+    COUNT(DISTINCT bssid)                                          AS device_count,
+    array_agg(DISTINCT device_type ORDER BY device_type)           AS device_types,
+    ROUND(AVG(confidence)::numeric, 2)                             AS avg_confidence,
+    SUM(observations)                                              AS total_observations,
+    ROUND(AVG(persistence_days)::numeric, 1)                       AS avg_persistence_days,
+    ROUND(LEAST(
+        COUNT(DISTINCT bssid)                    * 30.0
+      + LEAST(SUM(observations) / 10.0, 20.0)
+      + LEAST(AVG(persistence_days) / 30.0 * 50.0, 50.0),
+      100.0
+    )::numeric, 1)                                                 AS density_weight
+  FROM surveillance_located
+  GROUP BY 1
+),
+joined AS (
+  SELECT
+    ST_Y(sg.cell)                                                  AS zone_lat,
+    ST_X(sg.cell)                                                  AS zone_lon,
+    ST_SetSRID(sg.cell, 4326)                                      AS geom,
+    sg.device_count,
+    sg.device_types,
+    sg.avg_confidence,
+    sg.total_observations,
+    sg.avg_persistence_days,
+    an.total_networks,
+    ROUND((sg.device_count::numeric /
+      NULLIF(an.total_networks, 0) * 100), 2)                      AS surveillance_ratio,
+    sg.density_weight
+  FROM surveillance_gridded sg
+  JOIN all_networks_gridded an ON an.cell = sg.cell
+)
+SELECT
+  row_number() OVER (ORDER BY density_weight DESC)                 AS id,
+  zone_lat,
+  zone_lon,
+  geom,
+  device_count,
+  device_types,
+  avg_confidence,
+  total_observations,
+  avg_persistence_days,
+  total_networks,
+  surveillance_ratio,
+  density_weight,
+  NOW()                                                            AS refreshed_at
+FROM joined
+ORDER BY density_weight DESC;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_surveillance_density_zones_id ON app.surveillance_density_zones (id);
+CREATE INDEX IF NOT EXISTS idx_surveillance_density_zones_geom ON app.surveillance_density_zones USING GIST (geom);
+CREATE INDEX IF NOT EXISTS idx_surveillance_density_zones_weight ON app.surveillance_density_zones (density_weight DESC);
+CREATE INDEX IF NOT EXISTS idx_surveillance_density_zones_ratio ON app.surveillance_density_zones (surveillance_ratio DESC);
+
+GRANT SELECT ON app.surveillance_deflock_matches TO shadowcheck_user;
+GRANT SELECT ON app.surveillance_deflock_matches TO grafana_reader;
+GRANT SELECT ON app.surveillance_deflock_matches TO PUBLIC;
+
+GRANT SELECT ON app.surveillance_density_zones TO shadowcheck_user;
+GRANT SELECT ON app.surveillance_density_zones TO grafana_reader;
+GRANT SELECT ON app.surveillance_density_zones TO PUBLIC;

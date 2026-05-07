@@ -1120,6 +1120,7 @@
 - surveillance.html uses base-components ([9eb1255](https://github.com/cyclonite69/shadowcheck-web/commit/9eb1255ba3886070e88f7821fc7693d0eceacd7e))
 - **surveillance:** add surveillance device scan background job ([bc9c6b3](https://github.com/cyclonite69/shadowcheck-web/commit/bc9c6b3480e3e46febd7f8addc99e7dedd7cd4e9))
 - **surveillance:** auto-tag network_tags after scan upsert ([ebefea4](https://github.com/cyclonite69/shadowcheck-web/commit/ebefea4254ec30d638e997b7ebdf6f6133e63644))
+- **surveillance:** body cam detection tiers 13-18, sibling pipeline overhaul, BLE MV fix ([4915a78](https://github.com/cyclonite69/shadowcheck-web/commit/4915a78b9f81e6471fb823c661c14c0806e05db8))
 - **surveillance:** bwc tiers + shotspotter sensor import + oui fix ([bf5e0a6](https://github.com/cyclonite69/shadowcheck-web/commit/bf5e0a655d9d19ca9744e3f8f800c577d2637ad6))
 - **surveillance:** density zones MV + auto-refresh after scan ([4476c11](https://github.com/cyclonite69/shadowcheck-web/commit/4476c110e3c8a8f31d9978a34faa871db4572a4a))
 - **surveillance:** density zones MV with ratio normalization + DeFlock reference table ([df603ab](https://github.com/cyclonite69/shadowcheck-web/commit/df603abf5d7a42e0f23a6a87fac07090c26481dd))
