@@ -81,6 +81,23 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
       </FilterInput>
 
       <FilterInput
+        label="Flock / ALPR Camera"
+        enabled={enabled.flock || false}
+        onToggle={() => onToggleFilter('flock')}
+        compact={isCompact}
+      >
+        <label className="flex items-center gap-2 text-xs text-slate-300">
+          <input
+            type="checkbox"
+            checked={filters.flock ?? false}
+            onChange={(e) => onSetFilter('flock', e.target.checked)}
+            className="w-4 h-4"
+          />
+          Only Flock/Raven-tagged networks
+        </label>
+      </FilterInput>
+
+      <FilterInput
         label="Threat Score Min"
         enabled={enabled.threatScoreMin || false}
         onToggle={() => onToggleFilter('threatScoreMin')}

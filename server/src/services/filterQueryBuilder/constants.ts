@@ -69,6 +69,7 @@ export const FILTER_KEYS = [
   'surveillance',
   'shotspotter',
   'bwc',
+  'flock',
 ] as const;
 
 export type FilterKey = (typeof FILTER_KEYS)[number];

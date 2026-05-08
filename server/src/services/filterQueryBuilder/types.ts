@@ -93,6 +93,7 @@ export interface Filters {
   surveillance?: boolean;
   shotspotter?: boolean;
   bwc?: boolean;
+  flock?: boolean;
 }
 
 export type EnabledFlags = Record<FilterKey, boolean>;

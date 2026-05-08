@@ -89,6 +89,7 @@ export interface NetworkFilters {
   surveillance?: boolean;
   shotspotter?: boolean;
   bwc?: boolean;
+  flock?: boolean;
 }
 
 export type RadioType = 'W' | 'E' | 'B' | 'L' | 'G' | 'N' | '?';

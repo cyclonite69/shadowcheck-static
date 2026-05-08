@@ -211,6 +211,14 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
     ctx.addApplied('threat', 'bwc', true);
   }
 
+  if (e.flock && f.flock === true) {
+    networkWhere.push(
+      // eslint-disable-next-line quotes
+      `EXISTS (SELECT 1 FROM app.network_tags nt_flock WHERE UPPER(nt_flock.bssid) = UPPER(ne.bssid) AND nt_flock.tags @> '["flock"]'::jsonb)`
+    );
+    ctx.addApplied('threat', 'flock', true);
+  }
+
   if (e.timeframe && f.timeframe) {
     if (f.timeframe.type === 'absolute') {
       if (f.timeframe.startTimestamp) {
