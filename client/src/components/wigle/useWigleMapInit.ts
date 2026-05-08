@@ -9,6 +9,7 @@ import type * as mapboxglType from 'mapbox-gl';
 import { wigleApi } from '../../api/wigleApi';
 import { logDebug } from '../../logging/clientLogger';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
+import { createCirclePolygon } from '../../utils/mapHelpers';
 
 interface UseWigleMapInitProps {
   mapContainerRef: MutableRefObject<HTMLDivElement | null>;
@@ -17,6 +18,7 @@ interface UseWigleMapInitProps {
   v2FCRef: MutableRefObject<any>;
   v3FCRef: MutableRefObject<any>;
   mapStyle: string;
+  homeLocation: { center: [number, number]; radius: number };
   setMapSize: (size: { width: number; height: number }) => void;
   setTokenStatus: (status: 'idle' | 'ok' | 'error') => void;
   setError: (error: string | null) => void;
@@ -34,6 +36,7 @@ export const useWigleMapInit = ({
   v2FCRef,
   v3FCRef,
   mapStyle,
+  homeLocation,
   setMapSize,
   setTokenStatus,
   setError,
@@ -115,6 +118,63 @@ export const useWigleMapInit = ({
 
           ensureAllLayers();
           attachClickHandlersCallback();
+
+          // Home location sources & layers
+          map.addSource('home-location-point', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  geometry: { type: 'Point', coordinates: homeLocation.center },
+                  properties: { title: 'Home' },
+                },
+              ],
+            },
+          });
+          map.addSource('home-location-circle', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [createCirclePolygon(homeLocation.center, homeLocation.radius)],
+            },
+          });
+          map.addLayer({
+            id: 'home-circle-fill',
+            type: 'fill',
+            source: 'home-location-circle',
+            paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
+          });
+          map.addLayer({
+            id: 'home-circle-outline',
+            type: 'line',
+            source: 'home-location-circle',
+            paint: { 'line-color': '#10b981', 'line-width': 2, 'line-opacity': 0.8 },
+          });
+          map.addLayer({
+            id: 'home-dot',
+            type: 'circle',
+            source: 'home-location-point',
+            paint: {
+              'circle-radius': 8,
+              'circle-color': '#10b981',
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#ffffff',
+            },
+          });
+          map.addLayer({
+            id: 'home-marker',
+            type: 'symbol',
+            source: 'home-location-point',
+            layout: {
+              'text-field': 'H',
+              'text-size': 14,
+              'text-anchor': 'center',
+              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            },
+            paint: { 'text-color': '#ffffff' },
+          });
 
           const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
           if (v2Src) v2Src.setData((v2FCRef.current || EMPTY_FEATURE_COLLECTION) as any);

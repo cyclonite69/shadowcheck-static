@@ -1,5 +1,5 @@
 import { usePageFilters } from '../hooks/usePageFilters';
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { AppHeader } from './AppHeader';
@@ -30,6 +30,9 @@ import { useWigleDataSync } from './wigle/useWigleDataSync';
 import { useWigleAutoFetch } from './wigle/useWigleAutoFetch';
 import { useWigleMapFeatures } from './wigle/useWigleMapFeatures';
 import { useWigleResize } from './wigle/useWigleResize';
+import { useHomeLocationLayer } from './geospatial/hooks/useHomeLocationLayer';
+import { locationApi } from '../api/locationApi';
+import { DEFAULT_HOME_RADIUS } from '../constants/network';
 
 const WiglePage: React.FC = () => {
   usePageFilters('wigle');
@@ -61,6 +64,24 @@ const WiglePage: React.FC = () => {
 
   const [mapError, setError] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [homeLocation, setHomeLocation] = useState<{ center: [number, number]; radius: number }>({
+    center: [-98.5795, 39.8283],
+    radius: DEFAULT_HOME_RADIUS,
+  });
+
+  useEffect(() => {
+    locationApi
+      .getHomeLocation()
+      .then((data) => {
+        if (data?.latitude && data?.longitude) {
+          setHomeLocation({
+            center: [data.longitude, data.latitude],
+            radius: data.radius || DEFAULT_HOME_RADIUS,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 960 : false
   );
@@ -199,6 +220,7 @@ const WiglePage: React.FC = () => {
     v2FCRef,
     v3FCRef,
     mapStyle,
+    homeLocation,
     setMapSize,
     setTokenStatus,
     setError,
@@ -208,6 +230,7 @@ const WiglePage: React.FC = () => {
     attachClickHandlersCallback,
     updateAllClusterColorsCallback,
   });
+  useHomeLocationLayer({ mapReady, mapRef, homeLocation });
   useWigleFieldData({
     mapRef,
     mapReady,
@@ -423,6 +446,11 @@ const WiglePage: React.FC = () => {
         mapContainerRef={mapContainerRef}
         error={mapError || dataError || kmlError}
         mapReady={mapReady}
+        mapRef={mapRef}
+        mapboxRef={mapboxRef}
+        homeLocation={homeLocation}
+        v2Rows={v2Rows}
+        v3Rows={v3Rows}
       />
     </div>
   );
