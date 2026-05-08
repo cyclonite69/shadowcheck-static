@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-07)
+# 1.0.0 (2026-05-08)
 
 ### Bug Fixes
 
@@ -230,6 +230,7 @@
 - **enrichment:** abort loop on consecutive errors and detail soft-limit ([aa59865](https://github.com/cyclonite69/shadowcheck-web/commit/aa59865b4e0354883fb271db82e20f253ea4501d))
 - **enrichment:** add DB-based concurrency guard to prevent overlapping enrichment loops ([a6cf990](https://github.com/cyclonite69/shadowcheck-web/commit/a6cf99051e8e1bd6921c5af0c3117a51aed5e29d))
 - **enrichment:** add signal, channel, encryption to catalog query ([827ca9e](https://github.com/cyclonite69/shadowcheck-web/commit/827ca9e7e908c67ab6d1ebaa04869f30979376eb))
+- **enrichment:** force-clear stuck running enrichment run ([75b08e1](https://github.com/cyclonite69/shadowcheck-web/commit/75b08e177397cb04d065620ed4ccb5c9403bc71b))
 - **enrichment:** store correct run metadata, restore guard, migrate phantom rows ([5979ab5](https://github.com/cyclonite69/shadowcheck-web/commit/5979ab517f833671e97eeaaf13942aa97432a052))
 - Ensure all tooltip sections display properly ([9e0868d](https://github.com/cyclonite69/shadowcheck-web/commit/9e0868d34822b3697b20ef608bc285303be20a51))
 - ensure security labels always use extended versions (WPA2-P, WPA3-P) and update tests ([4147bda](https://github.com/cyclonite69/shadowcheck-web/commit/4147bda09efa4dbaa46955b506d47c22054c4213))
@@ -1011,6 +1012,7 @@
 - **filter:** add pipe OR syntax to SSID filter (fbi|surveillance) ([fb44b56](https://github.com/cyclonite69/shadowcheck-web/commit/fb44b56d032ba0fb68b638c5c61910f492eea08e))
 - **filter:** enable WiGLE observation and import date filters universally across all pages ([11c3109](https://github.com/cyclonite69/shadowcheck-web/commit/11c3109b7feaff4165212975507113dbb734b901))
 - **filters:** add first/last seen scopes, bssid wildcards, and ssid exclusions ([aaa405b](https://github.com/cyclonite69/shadowcheck-web/commit/aaa405be421e706061eafd00ee4307077f1f842c))
+- **filters:** add per-category surveillance filters (flock, bwc, shotspotter) ([7d404e0](https://github.com/cyclonite69/shadowcheck-web/commit/7d404e0e7e054d2113f2129f354eb032c72c1cd3))
 - **filters:** comprehensive universal filter expansion for MV columns and geocoding ([248ad05](https://github.com/cyclonite69/shadowcheck-web/commit/248ad0528f7de86b73d42151c29eca99cbd87ed1))
 - **filters:** finalize universal filter synchronization and documentation ([9f7882b](https://github.com/cyclonite69/shadowcheck-web/commit/9f7882bc29a37cd910000a6d049dd8be6fc95b48))
 - **filters:** support comma-separated identity values ([17c9de3](https://github.com/cyclonite69/shadowcheck-web/commit/17c9de3444cbf147e4e029a634e697bb02c77977))
@@ -1182,6 +1184,7 @@
 - **wigle:** add DeFlock camera toggle layer to map ([37941e7](https://github.com/cyclonite69/shadowcheck-web/commit/37941e724f30d5b750d8b4140f84451b84e8bdf8))
 - **wigle:** add Field Data and Clustering toggles to WiGLE map toolbar ([78e2c67](https://github.com/cyclonite69/shadowcheck-web/commit/78e2c67c380aea10c25b963b3654c8a9dee48ee4))
 - **wigle:** add GET /api/wigle/observations/aggregated endpoint (Phase 1) ([0b43249](https://github.com/cyclonite69/shadowcheck-web/commit/0b43249fc62b099660eadb7837f067c2fe934e1e))
+- **wigle:** add Home and Fit-to-Bounds buttons to WiGLE map ([2f4f656](https://github.com/cyclonite69/shadowcheck-web/commit/2f4f656f3889a4f4db12d56761c2bde1c7864b1e))
 - **wigle:** add KML self-enrichment endpoint and wire tooltip async update ([2f80845](https://github.com/cyclonite69/shadowcheck-web/commit/2f8084588824b6e3978a9f615ebf2a7c0ed7b9df))
 - **wigle:** add manual BSSID selection to v3 enrichment feature ([605c11d](https://github.com/cyclonite69/shadowcheck-web/commit/605c11dfffe880525e707a3a6e96b38d7c473a8a))
 - **wigle:** add observations/extent endpoint and Fit Bounds button ([35fdddc](https://github.com/cyclonite69/shadowcheck-web/commit/35fdddcc93b7a78d768b68c7ed2eac5ad96bd6a7))
