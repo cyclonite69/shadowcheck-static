@@ -19,6 +19,7 @@ import {
   incrementRunProgress,
   getRunStatus,
   resetRunForResume,
+  forceClearRun,
   refreshWigleNetworksMv,
 } from '../repositories/wigleEnrichmentRepository';
 import {
@@ -241,4 +242,13 @@ export async function validateWigleApiCredit() {
     logger.error('[WiGLE] Error checking API credit:', err);
     return { hasCredit: true, message: 'Credit check unavailable (proceeding with request)' };
   }
+}
+
+/** Force a stuck 'running' enrichment run to 'failed' so a new run can start. */
+export async function forceClearEnrichmentRun(runId: number): Promise<{ cleared: boolean }> {
+  const cleared = await forceClearRun(runId);
+  if (cleared) {
+    logger.warn(`[v3 Enrichment] Force-cleared stuck run #${runId}`);
+  }
+  return { cleared };
 }

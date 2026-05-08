@@ -202,6 +202,16 @@ export async function getRunStatus(runId: number): Promise<string | null> {
 }
 
 /** Reset a run to 'running' and clear last_error (for resume). Returns the updated row. */
+/** Force a stuck 'running' run to 'failed' so a new run can start. */
+export async function forceClearRun(runId: number): Promise<boolean> {
+  const { rowCount } = await adminQuery(
+    `UPDATE app.wigle_import_runs SET status = 'failed', last_error = 'Force-cleared by admin'
+     WHERE id = $1 AND status = 'running'`,
+    [runId]
+  );
+  return (rowCount ?? 0) > 0;
+}
+
 export async function resetRunForResume(runId: number): Promise<any | null> {
   const { rows } = await adminQuery(
     `UPDATE app.wigle_import_runs SET status = 'running', last_error = NULL WHERE id = $1 RETURNING *`,

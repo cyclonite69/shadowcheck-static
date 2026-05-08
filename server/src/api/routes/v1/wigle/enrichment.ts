@@ -87,4 +87,19 @@ router.post(
   })
 );
 
+/**
+ * POST /api/v1/wigle/enrichment/force-clear/:runId
+ * Force a stuck 'running' enrichment run to 'failed' so a new run can start.
+ */
+router.post(
+  '/enrichment/force-clear/:runId',
+  requireAdmin,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { cleared } = await wigleEnrichmentService.forceClearEnrichmentRun(
+      Number(req.params.runId)
+    );
+    res.json({ ok: true, cleared });
+  })
+);
+
 export default router;

@@ -244,6 +244,10 @@ export const wigleApi = {
     return apiClient.post(`/wigle/enrichment/resume/${runId}`, {});
   },
 
+  async forceClearEnrichmentRun(runId: number): Promise<any> {
+    return apiClient.post(`/wigle/enrichment/force-clear/${runId}`, {});
+  },
+
   // WiGLE Detail
   async getWigleObservations(netid: string): Promise<any> {
     return apiClient.get(`/wigle/observations/${encodeURIComponent(netid)}`);

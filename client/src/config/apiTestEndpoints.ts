@@ -1026,6 +1026,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'WiGLE',
+    label: 'V3 Enrichment Force-Clear Stuck Run',
+    path: '/api/wigle/enrichment/force-clear/:runId',
+    method: 'POST',
+    requiresAuth: true,
+    params: [{ name: 'runId', label: 'Run ID', placeholder: '116', type: 'number' }],
+  },
+  {
+    category: 'WiGLE',
     label: 'WiGLE Import v3',
     path: '/api/wigle/import/v3',
     method: 'POST',

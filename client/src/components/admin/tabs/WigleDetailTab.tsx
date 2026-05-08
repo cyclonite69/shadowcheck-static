@@ -153,23 +153,48 @@ export const WigleDetailTab: React.FC = () => {
     void loadEnrichmentStats();
   }, []);
 
-  const handleStartEnrichment = async () => {
+  const handleEnrichmentConflict = async (
+    err: any,
+    retry: (bssids?: string[]) => Promise<void>,
+    bssids?: string[]
+  ) => {
+    if (err?.status !== 409) {
+      alert(`Failed to start enrichment: ${err.message}`);
+      return;
+    }
+    const match = String(err.message).match(/#(\d+)/);
+    const stuckRunId = match ? Number(match[1]) : null;
+    const label = stuckRunId ? `Run #${stuckRunId} is stuck` : 'An enrichment run is stuck';
+    if (!window.confirm(`${label} (status: running). Force-clear it and start a new run?`)) return;
     try {
-      const bssids = isManualMode
-        ? manualBssids
-            .split(/[\n,]/)
-            .map((s) => s.trim())
-            .filter((s) => s.length > 5)
-        : undefined;
+      if (stuckRunId) await wigleApi.forceClearEnrichmentRun(stuckRunId);
+      await retry(bssids);
+    } catch (e2: any) {
+      alert(`Failed after force-clear: ${e2.message}`);
+    }
+  };
 
-      const data = await wigleApi.startEnrichment(bssids);
+  const handleStartEnrichment = async () => {
+    const bssids = isManualMode
+      ? manualBssids
+          .split(/[\n,]/)
+          .map((s) => s.trim())
+          .filter((s) => s.length > 5)
+      : undefined;
+
+    const doStart = async (b?: string[]) => {
+      const data = await wigleApi.startEnrichment(b);
       if (data?.ok) {
         await refreshRuns();
         void loadEnrichmentStats();
         if (isManualMode) setManualBssids('');
       }
+    };
+
+    try {
+      await doStart(bssids);
     } catch (e: any) {
-      alert(`Failed to start enrichment: ${e.message}`);
+      await handleEnrichmentConflict(e, doStart, bssids);
     }
   };
 
@@ -633,10 +658,17 @@ export const WigleDetailTab: React.FC = () => {
             {isManualMode ? (
               <V3EnrichmentManagerTable
                 onEnrich={async (bssids) => {
-                  const data = await wigleApi.startEnrichment(bssids);
-                  if (data?.ok) {
-                    await refreshRuns();
-                    void loadEnrichmentStats();
+                  const doStart = async (b?: string[]) => {
+                    const data = await wigleApi.startEnrichment(b);
+                    if (data?.ok) {
+                      await refreshRuns();
+                      void loadEnrichmentStats();
+                    }
+                  };
+                  try {
+                    await doStart(bssids);
+                  } catch (e: any) {
+                    await handleEnrichmentConflict(e, doStart, bssids);
                   }
                 }}
                 onSelect={(bssid) => {
