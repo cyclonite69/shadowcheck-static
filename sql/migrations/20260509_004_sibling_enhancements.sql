@@ -63,36 +63,37 @@ RETURNS void LANGUAGE sql AS $func$
     profile_updated_at      = now()
   FROM (
     SELECT
-      upper(substring(bssid1, 1, 8)) AS oui,
-      (SELECT manufacturer FROM app.radio_manufacturers
-       WHERE upper(prefix) = upper(substring(nsp.bssid1, 1, 8))
-         AND bit_length = 24 LIMIT 1) AS vendor_name,
+      upper(substring(nsp.bssid1, 1, 8)) AS oui,
+      rm.manufacturer AS vendor_name,
       COUNT(*)::integer AS sibling_pair_count,
-      array_agg(DISTINCT rule) AS sibling_rules_observed,
-      ROUND(AVG(d_last_octet)::numeric, 2) AS typical_last_octet_delta,
-      MIN(d_last_octet)::text || '-' || MAX(d_last_octet)::text AS typical_delta_range,
+      array_agg(DISTINCT nsp.rule) AS sibling_rules_observed,
+      ROUND(AVG(nsp.d_last_octet)::numeric, 2) AS typical_last_octet_delta,
+      MIN(nsp.d_last_octet)::text || '-' || MAX(nsp.d_last_octet)::text AS typical_delta_range,
       CASE
-        WHEN ROUND(COUNT(*) FILTER (WHERE rule = 'last_octet_sequential')::numeric / COUNT(*), 2) > 0.6
+        WHEN ROUND(COUNT(*) FILTER (WHERE nsp.rule = 'last_octet_sequential')::numeric / COUNT(*), 2) > 0.6
           THEN 'sequential_last'
-        WHEN ROUND(COUNT(*) FILTER (WHERE rule = 'middle_octets_sequential')::numeric / COUNT(*), 2) > 0.6
+        WHEN ROUND(COUNT(*) FILTER (WHERE nsp.rule = 'middle_octets_sequential')::numeric / COUNT(*), 2) > 0.6
           THEN 'sequential_middle'
-        WHEN ROUND(COUNT(*) FILTER (WHERE rule IN ('last_octet_sequential','middle_octets_sequential'))::numeric / COUNT(*), 2) > 0.6
+        WHEN ROUND(COUNT(*) FILTER (WHERE nsp.rule IN ('last_octet_sequential','middle_octets_sequential'))::numeric / COUNT(*), 2) > 0.6
           THEN 'sequential_both'
-        WHEN ROUND(COUNT(*) FILTER (WHERE rule = 'ssid_exact_sequential')::numeric / COUNT(*), 2) > 0.6
+        WHEN ROUND(COUNT(*) FILTER (WHERE nsp.rule = 'ssid_exact_sequential')::numeric / COUNT(*), 2) > 0.6
           THEN 'ssid_keyed'
         ELSE 'unknown'
       END AS allocation_pattern,
       CASE
-        WHEN ROUND(COUNT(*) FILTER (WHERE frequency1 IS NOT NULL AND frequency2 IS NOT NULL AND frequency1 != frequency2)::numeric / NULLIF(COUNT(*) FILTER (WHERE frequency1 IS NOT NULL AND frequency2 IS NOT NULL), 0), 2) > 0.6
+        WHEN ROUND(COUNT(*) FILTER (WHERE nsp.frequency1 IS NOT NULL AND nsp.frequency2 IS NOT NULL AND nsp.frequency1 != nsp.frequency2)::numeric / NULLIF(COUNT(*) FILTER (WHERE nsp.frequency1 IS NOT NULL AND nsp.frequency2 IS NOT NULL), 0), 2) > 0.6
           THEN 'dual_band'
-        WHEN ROUND(COUNT(*) FILTER (WHERE frequency1 IS NOT NULL AND frequency2 IS NOT NULL AND frequency1 = frequency2)::numeric / NULLIF(COUNT(*) FILTER (WHERE frequency1 IS NOT NULL AND frequency2 IS NOT NULL), 0), 2) > 0.6
+        WHEN ROUND(COUNT(*) FILTER (WHERE nsp.frequency1 IS NOT NULL AND nsp.frequency2 IS NOT NULL AND nsp.frequency1 = nsp.frequency2)::numeric / NULLIF(COUNT(*) FILTER (WHERE nsp.frequency1 IS NOT NULL AND nsp.frequency2 IS NOT NULL), 0), 2) > 0.6
           THEN 'same_band_multi_channel'
         ELSE 'unknown'
       END AS band_pairing_pattern,
-      ROUND(AVG(confidence)::numeric, 3) AS sibling_confidence_avg
+      ROUND(AVG(nsp.confidence)::numeric, 3) AS sibling_confidence_avg
     FROM app.network_sibling_pairs nsp
-    WHERE d_last_octet IS NOT NULL
-    GROUP BY upper(substring(bssid1, 1, 8))
+    LEFT JOIN app.radio_manufacturers rm
+      ON upper(rm.prefix) = upper(substring(nsp.bssid1, 1, 8))
+      AND rm.bit_length = 24
+    WHERE nsp.d_last_octet IS NOT NULL
+    GROUP BY upper(substring(nsp.bssid1, 1, 8)), rm.manufacturer
   ) p
   WHERE og.oui = p.oui;
 
@@ -105,37 +106,38 @@ RETURNS void LANGUAGE sql AS $func$
     sibling_confidence_avg, profile_updated_at
   )
   SELECT
-    upper(substring(bssid1, 1, 8)) AS oui,
-    (SELECT manufacturer FROM app.radio_manufacturers
-     WHERE upper(prefix) = upper(substring(nsp.bssid1, 1, 8))
-       AND bit_length = 24 LIMIT 1) AS vendor_name,
+    upper(substring(nsp.bssid1, 1, 8)) AS oui,
+    rm.manufacturer AS vendor_name,
     0 AS device_count,
     COUNT(*)::integer AS sibling_pair_count,
-    array_agg(DISTINCT rule) AS sibling_rules_observed,
-    ROUND(AVG(d_last_octet)::numeric, 2) AS typical_last_octet_delta,
-    MIN(d_last_octet)::text || '-' || MAX(d_last_octet)::text AS typical_delta_range,
+    array_agg(DISTINCT nsp.rule) AS sibling_rules_observed,
+    ROUND(AVG(nsp.d_last_octet)::numeric, 2) AS typical_last_octet_delta,
+    MIN(nsp.d_last_octet)::text || '-' || MAX(nsp.d_last_octet)::text AS typical_delta_range,
     CASE
-      WHEN ROUND(COUNT(*) FILTER (WHERE rule = 'last_octet_sequential')::numeric / COUNT(*), 2) > 0.6
+      WHEN ROUND(COUNT(*) FILTER (WHERE nsp.rule = 'last_octet_sequential')::numeric / COUNT(*), 2) > 0.6
         THEN 'sequential_last'
-      WHEN ROUND(COUNT(*) FILTER (WHERE rule = 'middle_octets_sequential')::numeric / COUNT(*), 2) > 0.6
+      WHEN ROUND(COUNT(*) FILTER (WHERE nsp.rule = 'middle_octets_sequential')::numeric / COUNT(*), 2) > 0.6
         THEN 'sequential_middle'
-      WHEN ROUND(COUNT(*) FILTER (WHERE rule IN ('last_octet_sequential','middle_octets_sequential'))::numeric / COUNT(*), 2) > 0.6
+      WHEN ROUND(COUNT(*) FILTER (WHERE nsp.rule IN ('last_octet_sequential','middle_octets_sequential'))::numeric / COUNT(*), 2) > 0.6
         THEN 'sequential_both'
-      WHEN ROUND(COUNT(*) FILTER (WHERE rule = 'ssid_exact_sequential')::numeric / COUNT(*), 2) > 0.6
+      WHEN ROUND(COUNT(*) FILTER (WHERE nsp.rule = 'ssid_exact_sequential')::numeric / COUNT(*), 2) > 0.6
         THEN 'ssid_keyed'
       ELSE 'unknown'
     END AS allocation_pattern,
     CASE
-      WHEN ROUND(COUNT(*) FILTER (WHERE frequency1 IS NOT NULL AND frequency2 IS NOT NULL AND frequency1 != frequency2)::numeric / NULLIF(COUNT(*) FILTER (WHERE frequency1 IS NOT NULL AND frequency2 IS NOT NULL), 0), 2) > 0.6
+      WHEN ROUND(COUNT(*) FILTER (WHERE nsp.frequency1 IS NOT NULL AND nsp.frequency2 IS NOT NULL AND nsp.frequency1 != nsp.frequency2)::numeric / NULLIF(COUNT(*) FILTER (WHERE nsp.frequency1 IS NOT NULL AND nsp.frequency2 IS NOT NULL), 0), 2) > 0.6
         THEN 'dual_band'
-      WHEN ROUND(COUNT(*) FILTER (WHERE frequency1 IS NOT NULL AND frequency2 IS NOT NULL AND frequency1 = frequency2)::numeric / NULLIF(COUNT(*) FILTER (WHERE frequency1 IS NOT NULL AND frequency2 IS NOT NULL), 0), 2) > 0.6
+      WHEN ROUND(COUNT(*) FILTER (WHERE nsp.frequency1 IS NOT NULL AND nsp.frequency2 IS NOT NULL AND nsp.frequency1 = nsp.frequency2)::numeric / NULLIF(COUNT(*) FILTER (WHERE nsp.frequency1 IS NOT NULL AND nsp.frequency2 IS NOT NULL), 0), 2) > 0.6
         THEN 'same_band_multi_channel'
       ELSE 'unknown'
     END AS band_pairing_pattern,
-    ROUND(AVG(confidence)::numeric, 3) AS sibling_confidence_avg,
+    ROUND(AVG(nsp.confidence)::numeric, 3) AS sibling_confidence_avg,
     now() AS profile_updated_at
   FROM app.network_sibling_pairs nsp
-  WHERE d_last_octet IS NOT NULL
-  GROUP BY upper(substring(bssid1, 1, 8))
+  LEFT JOIN app.radio_manufacturers rm
+    ON upper(rm.prefix) = upper(substring(nsp.bssid1, 1, 8))
+    AND rm.bit_length = 24
+  WHERE nsp.d_last_octet IS NOT NULL
+  GROUP BY upper(substring(nsp.bssid1, 1, 8)), rm.manufacturer
   ON CONFLICT (oui) DO NOTHING;
 $func$;

@@ -981,6 +981,7 @@
 - Complete SQLite import, fix API queries, security audit ([9b839b4](https://github.com/cyclonite69/shadowcheck-web/commit/9b839b4c5e602a0b2291c64654b5b18095cbf62b))
 - complete TypeScript migration - filterQueryBuilder services ([3da9bdb](https://github.com/cyclonite69/shadowcheck-web/commit/3da9bdb7082595076c1f61c50e3c8d3ad0d99c56))
 - convert first batch of JS files to TypeScript ([b084387](https://github.com/cyclonite69/shadowcheck-web/commit/b08438705d048f403f4524fec8496d85032a36d3))
+- corroborating_rules, OUI sibling profiling, vendor name population ([d65468e](https://github.com/cyclonite69/shadowcheck-web/commit/d65468e10de2734f70e48c1fe455f69f5ff5c808))
 - **dashboard:** add header with brand, hamburger, and filter toggle ([2544087](https://github.com/cyclonite69/shadowcheck-web/commit/25440870558d2373712970703ee2c64debe7682f))
 - **data:** flock repo import script (178k cameras) ([8b3c4f5](https://github.com/cyclonite69/shadowcheck-web/commit/8b3c4f51b4c8fc8b31ef85bcd76f2bb74ad1aef7))
 - **data:** harden kml import and add anchor points migration ([85a7366](https://github.com/cyclonite69/shadowcheck-web/commit/85a7366c33e4595083b2b2b5ea81ff9cc49f821c))
