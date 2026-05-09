@@ -11,13 +11,13 @@ import {
 const EXTRA_RULES_SQL = `
   WITH upper_rotation AS (
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, distance_m, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at
     )
     SELECT
       LEAST(a.bssid, b.bssid),
       GREATEST(a.bssid, b.bssid),
       'upper_octet_rotation',
-      0.95,
+      LEAST(1.000, 0.95),
       CASE
         WHEN COALESCE(a.bestlat, a.lastlat) IS NOT NULL
           AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
@@ -29,6 +29,8 @@ const EXTRA_RULES_SQL = `
         )
         ELSE NULL
       END,
+      'o2-o5',
+      'strong',
       'default',
       now()
     FROM app.networks a
@@ -65,6 +67,8 @@ const EXTRA_RULES_SQL = `
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
           distance_m  = EXCLUDED.distance_m,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
@@ -72,15 +76,17 @@ const EXTRA_RULES_SQL = `
   ),
   ssid_anchor AS (
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, ssid1, ssid2, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, ssid1, ssid2, matched_octets, pair_strength, quality_scope, computed_at
     )
     SELECT
       LEAST(a.bssid, b.bssid),
       GREATEST(a.bssid, b.bssid),
       'ssid_anchor',
-      0.97,
+      LEAST(1.000, 0.97),
       a.ssid,
       b.ssid,
+      'o1-o4+ssid',
+      'strong',
       'default',
       now()
     FROM app.networks a
@@ -108,6 +114,8 @@ const EXTRA_RULES_SQL = `
           confidence  = EXCLUDED.confidence,
           ssid1       = EXCLUDED.ssid1,
           ssid2       = EXCLUDED.ssid2,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
@@ -115,19 +123,21 @@ const EXTRA_RULES_SQL = `
   ),
   cross_oui_ssid AS (
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, matched_octets, pair_strength, quality_scope, computed_at
     )
     SELECT
       LEAST(a.bssid, b.bssid),
       GREATEST(a.bssid, b.bssid),
       'cross_oui_ssid_exact',
-      0.88,
+      LEAST(1.000, 0.88),
       a.ssid,
       b.ssid,
       ST_Distance(
         ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
         ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
       ),
+      'ssid+proximity',
+      'candidate',
       'default',
       now()
     FROM app.networks a
@@ -163,6 +173,8 @@ const EXTRA_RULES_SQL = `
           ssid1       = EXCLUDED.ssid1,
           ssid2       = EXCLUDED.ssid2,
           distance_m  = EXCLUDED.distance_m,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
@@ -174,13 +186,13 @@ const EXTRA_RULES_SQL = `
     -- from high-volume manufacturers (e.g. TP-Link) that happen to share an OUI.
     -- Distance is stored as metadata but NOT used as a gate.
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, distance_m, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at
     )
     SELECT
       LEAST(a.bssid, b.bssid),
       GREATEST(a.bssid, b.bssid),
       'same_oui_proximity',
-      0.93,
+      LEAST(1.000, 0.93),
       CASE
         WHEN COALESCE(a.bestlat, a.lastlat) IS NOT NULL
           AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
@@ -192,6 +204,8 @@ const EXTRA_RULES_SQL = `
         )
         ELSE NULL
       END,
+      'o1-o4',
+      'strong',
       'default',
       now()
     FROM app.networks a
@@ -215,6 +229,8 @@ const EXTRA_RULES_SQL = `
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
           distance_m  = EXCLUDED.distance_m,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
@@ -228,6 +244,7 @@ const EXTRA_RULES_SQL = `
     UPDATE app.network_sibling_pairs p
     SET rule        = 'manual_confirmed',
         confidence  = 1.0,
+        pair_strength = 'verified',
         quality_scope = 'manual',
         computed_at = now()
     FROM app.network_sibling_overrides o

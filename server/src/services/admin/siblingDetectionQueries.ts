@@ -29,7 +29,8 @@ const REFRESH_CHUNK_SQL = `
       sibling_ssid AS ssid2,
       frequency_target AS frequency1,
       frequency_sibling AS frequency2,
-      distance_m
+      distance_m,
+      matched_octets
     FROM hits
     ORDER BY LEAST(seed_bssid, sibling_bssid), GREATEST(seed_bssid, sibling_bssid), confidence DESC
   ),
@@ -110,7 +111,8 @@ const REFRESH_CHUNK_SQL = `
       -- Deterministic rules bypass all penalty logic — their confidence is ground truth.
       -- Applying fleet-SSID partner/family penalties to last_octet_sequential rows was
       -- killing the 31 confirmed mdt/unit pairs (1.000 → below 0.90 threshold).
-      CASE WHEN s.rule IN ('last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential') THEN s.confidence
+      -- LEAST(1.000) enforced here to prevent overflow from any bonus stacking.
+      LEAST(1.000, CASE WHEN s.rule IN ('last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential') THEN s.confidence
       ELSE GREATEST(0, (
         s.confidence
         - s.distance_penalty
@@ -153,14 +155,15 @@ const REFRESH_CHUNK_SQL = `
             ELSE 0
           END
       ))
-      END AS final_conf,
+      END) AS final_conf,
       s.d_last_octet,
       s.d_third_octet,
       s.ssid1,
       s.ssid2,
       s.frequency1,
       s.frequency2,
-      s.distance_m
+      s.distance_m,
+      s.matched_octets
     FROM scored s
     LEFT JOIN partner_stats ps1 ON ps1.radio_bssid = s.bssid1
     LEFT JOIN partner_stats ps2 ON ps2.radio_bssid = s.bssid2
@@ -171,7 +174,7 @@ const REFRESH_CHUNK_SQL = `
       bssid1, bssid2, rule, confidence,
       d_last_octet, d_third_octet, ssid1, ssid2,
       frequency1, frequency2, distance_m,
-      quality_scope, computed_at
+      matched_octets, pair_strength, quality_scope, computed_at
     )
     SELECT
       f.bssid1,
@@ -185,6 +188,12 @@ const REFRESH_CHUNK_SQL = `
       f.frequency1,
       f.frequency2,
       f.distance_m,
+      f.matched_octets,
+      CASE
+        WHEN f.rule = 'manual_confirmed' THEN 'verified'
+        WHEN f.final_conf >= 0.95 THEN 'strong'
+        ELSE 'candidate'
+      END,
       'default',
       now()
     FROM final_pairs f
@@ -207,6 +216,8 @@ const REFRESH_CHUNK_SQL = `
       frequency1 = EXCLUDED.frequency1,
       frequency2 = EXCLUDED.frequency2,
       distance_m = EXCLUDED.distance_m,
+      matched_octets = EXCLUDED.matched_octets,
+      pair_strength = EXCLUDED.pair_strength,
       quality_scope = EXCLUDED.quality_scope,
       computed_at = EXCLUDED.computed_at
     RETURNING 1

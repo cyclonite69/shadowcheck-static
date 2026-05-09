@@ -595,6 +595,7 @@
 - restore grafana_reader and shadowcheck_user grants after MV drop/recreate ([2527161](https://github.com/cyclonite69/shadowcheck-web/commit/2527161eb303f53a6eb9508743ba6ada89e9934a))
 - restore Home Proximity to scoring engine and fix ML suppression ([611cd13](https://github.com/cyclonite69/shadowcheck-web/commit/611cd1389d4ff167515c6e63c8f95d9fd7462759))
 - restore hover signal circle on Mapbox Standard style ([77ecee5](https://github.com/cyclonite69/shadowcheck-web/commit/77ecee5e068c65dc42bc37711756e6fbc6bc3d56))
+- restore missing map control buttons on WiGLE page ([588c953](https://github.com/cyclonite69/shadowcheck-web/commit/588c95343cc5bf98d90645e22b4b3659ab0d5fb5))
 - restore observation wires after map style change ([9210efd](https://github.com/cyclonite69/shadowcheck-web/commit/9210efd047b10bf0a012d827b50e61bcc457cfd4))
 - restore PgAdmin SSL and force host-mode networking ([0f61fff](https://github.com/cyclonite69/shadowcheck-web/commit/0f61fff74fd916ff33f7835bbe19671a8a733064))
 - restore WiGLE point rendering and fix disabled toolbar button for multiple selections ([70e5110](https://github.com/cyclonite69/shadowcheck-web/commit/70e5110a6b785faa3ee29bbfa9ff755204116f49))
