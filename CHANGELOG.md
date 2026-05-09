@@ -18,6 +18,7 @@
 - add digitalSignature to cert keyUsage for ECDHE compatibility ([7d2c439](https://github.com/cyclonite69/shadowcheck-web/commit/7d2c43945a6811750d321b96cf38252a00140ed8))
 - Add events.mapbox.com to CSP connect-src to allow telemetry ([1e060c5](https://github.com/cyclonite69/shadowcheck-web/commit/1e060c53b8dd35fb8c58cd64d23544c83f87de03))
 - add GRANT permissions to api_network_explorer_mv migration ([03bff59](https://github.com/cyclonite69/shadowcheck-web/commit/03bff59f2e62befd04cbb8f6e2ca48d59498574f))
+- add long-running pool for sibling detection — removes 60s timeout ([8c40440](https://github.com/cyclonite69/shadowcheck-web/commit/8c404400b78f265a91d2c653e535943317a70154))
 - add manufacturer/address/oui compat columns to radio_manufacturers ([65cdcc6](https://github.com/cyclonite69/shadowcheck-web/commit/65cdcc6cd81defa0150b8514c981e231b5cc38c1))
 - Add Mapbox GL JS and null check for refresh-btn in geospatial ([62463ae](https://github.com/cyclonite69/shadowcheck-web/commit/62463aed1c37fffcc4d3e0d4afaa342ebb9bc71d))
 - add MEDIUM as alias for MED in threat level config ([37c7fad](https://github.com/cyclonite69/shadowcheck-web/commit/37c7fad74cc208525406e7541cb758e11a55487c))

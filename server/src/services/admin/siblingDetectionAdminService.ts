@@ -12,7 +12,7 @@ const EXTRA_RULES_SQL = `
   WITH upper_rotation AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
-      run_max_octet_delta, run_id, run_min_confidence
+      run_id
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -23,7 +23,7 @@ const EXTRA_RULES_SQL = `
         WHEN COALESCE(a.bestlat, a.lastlat) IS NOT NULL
           AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
           AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-          AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+          AND COALESCE(b.bestlon, b.bestlon) IS NOT NULL
         THEN ST_Distance(
           ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
           ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
@@ -34,9 +34,7 @@ const EXTRA_RULES_SQL = `
       'candidate',
       'default',
       now(),
-      NULL,
-      $1::integer,
-      $2::numeric
+      $1::integer
     FROM app.networks a
     JOIN app.networks b
       ON SUBSTRING(b.bssid, 7) = SUBSTRING(a.bssid, 7)
@@ -62,10 +60,10 @@ const EXTRA_RULES_SQL = `
       AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
       AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
       AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlon, b.bestlon) IS NOT NULL
       AND ST_Distance(
         ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.bestlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
       ) < 200
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
@@ -75,16 +73,14 @@ const EXTRA_RULES_SQL = `
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at,
-          run_max_octet_delta = EXCLUDED.run_max_octet_delta,
-          run_id = EXCLUDED.run_id,
-          run_min_confidence = EXCLUDED.run_min_confidence
+          run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
   ssid_anchor AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, ssid1, ssid2, matched_octets, pair_strength, quality_scope, computed_at,
-      run_max_octet_delta, run_id, run_min_confidence
+      run_id
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -97,9 +93,7 @@ const EXTRA_RULES_SQL = `
       'candidate',
       'default',
       now(),
-      NULL,
-      $1::integer,
-      $2::numeric
+      $1::integer
     FROM app.networks a
     JOIN app.networks b
       ON b.ssid = a.ssid
@@ -133,16 +127,14 @@ const EXTRA_RULES_SQL = `
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at,
-          run_max_octet_delta = EXCLUDED.run_max_octet_delta,
-          run_id = EXCLUDED.run_id,
-          run_min_confidence = EXCLUDED.run_min_confidence
+          run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
   cross_oui_ssid AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
-      run_max_octet_delta, run_id, run_min_confidence
+      run_id
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -159,9 +151,7 @@ const EXTRA_RULES_SQL = `
       'candidate',
       'default',
       now(),
-      NULL,
-      $1::integer,
-      $2::numeric
+      $1::integer
     FROM app.networks a
     JOIN app.networks b
       ON b.ssid = a.ssid
@@ -203,9 +193,7 @@ const EXTRA_RULES_SQL = `
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at,
-          run_max_octet_delta = EXCLUDED.run_max_octet_delta,
-          run_id = EXCLUDED.run_id,
-          run_min_confidence = EXCLUDED.run_min_confidence
+          run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
@@ -216,7 +204,7 @@ const EXTRA_RULES_SQL = `
     -- Distance is stored as metadata but NOT used as a gate.
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
-      run_max_octet_delta, run_id, run_min_confidence
+      run_id
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -238,12 +226,7 @@ const EXTRA_RULES_SQL = `
       'candidate',
       'default',
       now(),
-      ABS(
-        ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
-        ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
-      ),
-      $1::integer,
-      $2::numeric
+      $1::integer
     FROM app.networks a
     JOIN app.networks b
       -- First 4 octets identical (11 chars: "XX:XX:XX:XX")
@@ -269,9 +252,7 @@ const EXTRA_RULES_SQL = `
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at,
-          run_max_octet_delta = EXCLUDED.run_max_octet_delta,
-          run_id = EXCLUDED.run_id,
-          run_min_confidence = EXCLUDED.run_min_confidence
+          run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
@@ -452,9 +433,9 @@ async function runSiblingRefreshJob(
   const finalStatus = completed ? 'completed' : 'truncated';
   await adminQuery(
     `UPDATE app.sibling_runs
-     SET completed_at = now(), status = $1, networks_scanned = $2, pairs_inserted = $3
+     SET completed_at = now(), status = $1, networks_scanned = $2, pairs_inserted = $3, pairs_updated = $5
      WHERE id = $4`,
-    [finalStatus, seedsProcessed, rowsUpserted, runId]
+    [finalStatus, seedsProcessed, rowsUpserted, runId, rowsUpserted]
   );
 
   await longRunningAdminQuery('SELECT app.refresh_oui_sibling_profiles()');
@@ -468,6 +449,7 @@ async function runSiblingRefreshJob(
     lastCursor: cursor,
     executionTimeMs: Date.now() - started,
     completed,
+    sibling_run_id: runId,
   };
 }
 
@@ -494,6 +476,10 @@ async function startSiblingRefresh(
 
   logger.info('[Siblings] Starting sibling refresh job', state.options);
 
+  // Capture runMode for use in .then()/.catch() blocks
+  const capturedRunMode =
+    state.options.maxBatches !== null ? 'test' : state.options.incremental ? 'incremental' : 'full';
+
   // Write to background_job_runs BEFORE async job starts
   try {
     await adminQuery(
@@ -512,9 +498,25 @@ async function startSiblingRefresh(
       logger.info('[Siblings] Sibling refresh job completed', result);
       // Mark background_job_runs as completed
       adminQuery(
-        `UPDATE app.background_job_runs SET status = $1, finished_at = now() 
+        `UPDATE app.background_job_runs 
+         SET status = $1, finished_at = now(), 
+             details = jsonb_build_object(
+               'pairs_inserted', $5,
+               'networks_scanned', $6,
+               'run_mode', $7,
+               'sibling_run_id', $8
+             )
          WHERE job_name = $2 AND status = $3 ORDER BY id DESC LIMIT 1`,
-        ['completed', 'siblingDetection', 'running']
+        [
+          'completed',
+          'siblingDetection',
+          'running',
+          null, // unused param placeholder
+          result.rowsUpserted,
+          result.seedsProcessed,
+          capturedRunMode,
+          result.sibling_run_id,
+        ]
       ).catch((err: any) => {
         logger.error('[Siblings] Failed to update background job run to completed', {
           error: err?.message,
@@ -525,15 +527,41 @@ async function startSiblingRefresh(
       state.lastError = err?.message || 'Unknown error';
       logger.error('[Siblings] Sibling refresh job failed', { error: err?.message });
       // Mark background_job_runs as failed
+      // Query for the most recent sibling_runs id that was running
       adminQuery(
-        `UPDATE app.background_job_runs SET status = $1, finished_at = now(), error = $2
-         WHERE job_name = $3 AND status = $4 ORDER BY id DESC LIMIT 1`,
-        ['failed', err?.message || 'Unknown error', 'siblingDetection', 'running']
-      ).catch((err: any) => {
-        logger.error('[Siblings] Failed to update background job run to failed', {
-          error: err?.message,
+        `SELECT id FROM app.sibling_runs 
+         WHERE status = 'running' 
+         ORDER BY id DESC LIMIT 1`
+      )
+        .then((runResult: any) => {
+          const siblingRunId = runResult.rows[0]?.id || null;
+          adminQuery(
+            `UPDATE app.background_job_runs 
+           SET status = $1, finished_at = now(), error = $2,
+               details = jsonb_build_object(
+                 'run_mode', $5,
+                 'sibling_run_id', $6
+               )
+           WHERE job_name = $3 AND status = $4 ORDER BY id DESC LIMIT 1`,
+            [
+              'failed',
+              err?.message || 'Unknown error',
+              'siblingDetection',
+              'running',
+              capturedRunMode,
+              siblingRunId,
+            ]
+          ).catch((err: any) => {
+            logger.error('[Siblings] Failed to update background job run to failed', {
+              error: err?.message,
+            });
+          });
+        })
+        .catch((err: any) => {
+          logger.error('[Siblings] Failed to query sibling_runs for failed job', {
+            error: err?.message,
+          });
         });
-      });
     })
     .finally(() => {
       state.running = false;

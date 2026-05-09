@@ -16,6 +16,7 @@ type SiblingRefreshResult = {
   lastCursor: string | null;
   executionTimeMs: number;
   completed: boolean;
+  sibling_run_id: number | null;
 };
 
 type SiblingRefreshStatus = {

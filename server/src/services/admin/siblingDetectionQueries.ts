@@ -183,7 +183,7 @@ const REFRESH_CHUNK_SQL = `
       d_last_octet, d_third_octet, ssid1, ssid2,
       frequency1, frequency2, distance_m,
       matched_octets, pair_strength, quality_scope, computed_at,
-      run_max_octet_delta, run_id, run_min_confidence,
+      run_id,
       corroborating_rules
     )
     SELECT
@@ -207,13 +207,7 @@ const REFRESH_CHUNK_SQL = `
       END,
       'default',
       now(),
-      CASE
-        WHEN f.rule = 'middle_octets_sequential' THEN GREATEST(f.d_last_octet, f.d_third_octet)
-        WHEN f.rule IN ('last_octet_sequential', 'ssid_exact_sequential') THEN f.d_last_octet
-        ELSE NULL
-      END,
       $8::integer,
-      $9::numeric,
       f.corroborating_rules
     FROM final_pairs f
     -- Skip pairs blocked by manual not_sibling overrides
@@ -239,9 +233,7 @@ const REFRESH_CHUNK_SQL = `
       pair_strength = EXCLUDED.pair_strength,
       quality_scope = EXCLUDED.quality_scope,
       computed_at = EXCLUDED.computed_at,
-      run_max_octet_delta = EXCLUDED.run_max_octet_delta,
       run_id = EXCLUDED.run_id,
-      run_min_confidence = EXCLUDED.run_min_confidence,
       corroborating_rules = array(
         SELECT DISTINCT unnest(
           network_sibling_pairs.corroborating_rules || EXCLUDED.corroborating_rules
