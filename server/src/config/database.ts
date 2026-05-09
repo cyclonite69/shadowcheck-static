@@ -66,11 +66,46 @@ pool.on('error', (err: Error) => {
   logger.error(`Unexpected error on idle client: ${err.message}`, { error: err });
 });
 
+// Long-running query pool for admin batch jobs (sibling detection, etc.)
+// No statement timeout, lower concurrency to prevent resource starvation
+const longRunningPool = new Pool({
+  user: DB_USER,
+  password: secretsManager.getOrThrow('db_password'),
+  host: DB_HOST,
+  port: DB_PORT,
+  database: DB_NAME,
+  max: 3, // Low concurrency for long-running jobs
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 30000,
+  statement_timeout: 0, // No timeout — for long-running admin jobs only
+  application_name: `${DB_APP_NAME}_long_running`,
+  options: `-c search_path=${DB_SEARCH_PATH}`,
+  ssl:
+    process.env.DB_SSL === 'true'
+      ? {
+          rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+          ca: process.env.DB_SSL_CA || undefined,
+        }
+      : false,
+});
+
+// Long-running pool error handler
+longRunningPool.on('error', (err: Error) => {
+  logger.error('Long-running pool error', { error: err.message });
+});
+
 /**
  * Query wrapper without retries (fail fast for visibility)
  */
 async function query(text: string, params: unknown[] = []): Promise<QueryResult> {
   return pool.query(text, params);
+}
+
+/**
+ * Long-running query wrapper for admin batch operations (no statement timeout)
+ */
+async function longRunningQuery(text: string, params: unknown[] = []): Promise<QueryResult> {
+  return longRunningPool.query(text, params);
 }
 
 /**
@@ -93,5 +128,5 @@ async function closePool(): Promise<void> {
   logger.info('Database pool closed');
 }
 
-export { pool, query, testConnection, closePool, CONFIG };
+export { pool, longRunningPool, query, longRunningQuery, testConnection, closePool, CONFIG };
 export {};

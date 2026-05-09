@@ -339,6 +339,9 @@ import {
 const adminQuery = (text: string, params: any[] = []) =>
   require('../../config/container').adminDbService.adminQuery(text, params);
 
+const longRunningAdminQuery = (text: string, params: any[] = []) =>
+  require('../../config/container').adminDbService.longRunningAdminQuery(text, params);
+
 async function runSiblingRefreshJob(
   options: SiblingRefreshOptions = {}
 ): Promise<SiblingRefreshResult> {
@@ -389,7 +392,7 @@ async function runSiblingRefreshJob(
       completed = false;
       break;
     }
-    const result: any = await adminQuery(REFRESH_CHUNK_SQL, [
+    const result: any = await longRunningAdminQuery(REFRESH_CHUNK_SQL, [
       normalized.batchSize,
       cursor,
       normalized.maxOctetDelta,
@@ -432,7 +435,10 @@ async function runSiblingRefreshJob(
     }
   }
 
-  const extraResult: any = await adminQuery(EXTRA_RULES_SQL, [runId, normalized.minCandidateConf]);
+  const extraResult: any = await longRunningAdminQuery(EXTRA_RULES_SQL, [
+    runId,
+    normalized.minCandidateConf,
+  ]);
   const extraRow = extraResult.rows[0] || {};
   logger.info('[Siblings] Extra rules complete', {
     upper_rotation: extraRow.upper_rotation_count,
@@ -451,7 +457,7 @@ async function runSiblingRefreshJob(
     [finalStatus, seedsProcessed, rowsUpserted, runId]
   );
 
-  await adminQuery('SELECT app.refresh_oui_sibling_profiles()');
+  await longRunningAdminQuery('SELECT app.refresh_oui_sibling_profiles()');
   logger.info('[Siblings] OUI sibling profiles refreshed');
 
   return {

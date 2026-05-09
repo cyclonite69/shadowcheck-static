@@ -9,6 +9,7 @@ const mockLogger = {
 jest.mock('../../server/src/config/container', () => ({
   adminDbService: {
     adminQuery: (...args: any[]) => mockAdminQuery(...args),
+    longRunningAdminQuery: (...args: any[]) => mockAdminQuery(...args),
   },
 }));
 
