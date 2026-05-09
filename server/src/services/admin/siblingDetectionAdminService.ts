@@ -11,7 +11,8 @@ import {
 const EXTRA_RULES_SQL = `
   WITH upper_rotation AS (
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
+      octet_delta_max
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -30,9 +31,10 @@ const EXTRA_RULES_SQL = `
         ELSE NULL
       END,
       'o2-o5',
-      'strong',
+      'candidate',
       'default',
-      now()
+      now(),
+      NULL
     FROM app.networks a
     JOIN app.networks b
       ON SUBSTRING(b.bssid, 7) = SUBSTRING(a.bssid, 7)
@@ -70,13 +72,15 @@ const EXTRA_RULES_SQL = `
           matched_octets = EXCLUDED.matched_octets,
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
-          computed_at = EXCLUDED.computed_at
+          computed_at = EXCLUDED.computed_at,
+          octet_delta_max = EXCLUDED.octet_delta_max
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
   ssid_anchor AS (
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, ssid1, ssid2, matched_octets, pair_strength, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, ssid1, ssid2, matched_octets, pair_strength, quality_scope, computed_at,
+      octet_delta_max
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -86,9 +90,10 @@ const EXTRA_RULES_SQL = `
       a.ssid,
       b.ssid,
       'o1-o4+ssid',
-      'strong',
+      'candidate',
       'default',
-      now()
+      now(),
+      NULL
     FROM app.networks a
     JOIN app.networks b
       ON b.ssid = a.ssid
@@ -107,7 +112,10 @@ const EXTRA_RULES_SQL = `
       -- for high-cardinality shared SSIDs. Deterministic MAC rules handle these.
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
         'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-        'mtasmartbus','kajeetsmartbus','somguest','somiot'
+        'mtasmartbus','kajeetsmartbus','somguest','somiot',
+        'eduroam','attwifi','googlesb','_google',
+        'boingohotspot','boingowireless','optimumwifi','cablewifi',
+        'spectrumwifi','twcwifi'
       )
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
@@ -117,13 +125,15 @@ const EXTRA_RULES_SQL = `
           matched_octets = EXCLUDED.matched_octets,
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
-          computed_at = EXCLUDED.computed_at
+          computed_at = EXCLUDED.computed_at,
+          octet_delta_max = EXCLUDED.octet_delta_max
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
   cross_oui_ssid AS (
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, matched_octets, pair_strength, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
+      octet_delta_max
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -139,7 +149,8 @@ const EXTRA_RULES_SQL = `
       'ssid+proximity',
       'candidate',
       'default',
-      now()
+      now(),
+      NULL
     FROM app.networks a
     JOIN app.networks b
       ON b.ssid = a.ssid
@@ -157,7 +168,10 @@ const EXTRA_RULES_SQL = `
       -- Fleet SSIDs are not valid evidence for cross_oui_ssid_exact.
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
         'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-        'mtasmartbus','kajeetsmartbus','somguest','somiot'
+        'mtasmartbus','kajeetsmartbus','somguest','somiot',
+        'eduroam','attwifi','googlesb','_google',
+        'boingohotspot','boingowireless','optimumwifi','cablewifi',
+        'spectrumwifi','twcwifi'
       )
       AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
       AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
@@ -176,7 +190,8 @@ const EXTRA_RULES_SQL = `
           matched_octets = EXCLUDED.matched_octets,
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
-          computed_at = EXCLUDED.computed_at
+          computed_at = EXCLUDED.computed_at,
+          octet_delta_max = EXCLUDED.octet_delta_max
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
@@ -186,7 +201,8 @@ const EXTRA_RULES_SQL = `
     -- from high-volume manufacturers (e.g. TP-Link) that happen to share an OUI.
     -- Distance is stored as metadata but NOT used as a gate.
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
+      octet_delta_max
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -205,9 +221,13 @@ const EXTRA_RULES_SQL = `
         ELSE NULL
       END,
       'o1-o4',
-      'strong',
+      'candidate',
       'default',
-      now()
+      now(),
+      ABS(
+        ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
+        ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
+      )
     FROM app.networks a
     JOIN app.networks b
       -- First 4 octets identical (11 chars: "XX:XX:XX:XX")
@@ -232,7 +252,8 @@ const EXTRA_RULES_SQL = `
           matched_octets = EXCLUDED.matched_octets,
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
-          computed_at = EXCLUDED.computed_at
+          computed_at = EXCLUDED.computed_at,
+          octet_delta_max = EXCLUDED.octet_delta_max
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),

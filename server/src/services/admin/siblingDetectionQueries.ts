@@ -47,7 +47,10 @@ const REFRESH_CHUNK_SQL = `
       (
         lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) IN (
           'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-          'mtasmartbus','kajeetsmartbus','somguest','somiot'
+          'mtasmartbus','kajeetsmartbus','somguest','somiot',
+          'eduroam','attwifi','googlesb','_google',
+          'boingohotspot','boingowireless','optimumwifi','cablewifi',
+          'spectrumwifi','twcwifi'
         )
       ) AS ssid_common,
       -- Distance is NOT a penalty: mobile/vehicle-mounted radios appear at
@@ -174,7 +177,8 @@ const REFRESH_CHUNK_SQL = `
       bssid1, bssid2, rule, confidence,
       d_last_octet, d_third_octet, ssid1, ssid2,
       frequency1, frequency2, distance_m,
-      matched_octets, pair_strength, quality_scope, computed_at
+      matched_octets, pair_strength, quality_scope, computed_at,
+      octet_delta_max
     )
     SELECT
       f.bssid1,
@@ -191,11 +195,17 @@ const REFRESH_CHUNK_SQL = `
       f.matched_octets,
       CASE
         WHEN f.rule = 'manual_confirmed' THEN 'verified'
-        WHEN f.final_conf >= 0.95 THEN 'strong'
-        ELSE 'candidate'
+        WHEN f.final_conf = 1.000 THEN 'strong'
+        WHEN f.final_conf >= 0.85 THEN 'candidate'
+        ELSE 'weak'
       END,
       'default',
-      now()
+      now(),
+      CASE
+        WHEN f.rule = 'middle_octets_sequential' THEN GREATEST(f.d_last_octet, f.d_third_octet)
+        WHEN f.rule IN ('last_octet_sequential', 'ssid_exact_sequential') THEN f.d_last_octet
+        ELSE NULL
+      END
     FROM final_pairs f
     -- Skip pairs blocked by manual not_sibling overrides
     LEFT JOIN app.network_sibling_overrides nso
@@ -219,7 +229,8 @@ const REFRESH_CHUNK_SQL = `
       matched_octets = EXCLUDED.matched_octets,
       pair_strength = EXCLUDED.pair_strength,
       quality_scope = EXCLUDED.quality_scope,
-      computed_at = EXCLUDED.computed_at
+      computed_at = EXCLUDED.computed_at,
+      octet_delta_max = EXCLUDED.octet_delta_max
     RETURNING 1
   )
   SELECT
