@@ -102,9 +102,22 @@ router.post('/jobs/:jobName/run', async (req: any, res: any) => {
       return res.status(400).json({ success: false, error: 'Unsupported background job' });
     }
 
-    // UI stores batch size as seed_limit; backend expects batchSize
-    if (jobName === 'siblingDetection' && options.seed_limit != null && options.batchSize == null) {
-      options.batchSize = options.seed_limit;
+    // Convert UI form field names (snake_case) to options (both formats supported)
+    if (jobName === 'siblingDetection') {
+      // UI stores batch size as seed_limit
+      if (options.seed_limit != null && options.batchSize == null) {
+        options.batchSize = options.seed_limit;
+      }
+      // Map snake_case field names if present (fallback for direct config)
+      if (options.max_octet_delta != null && options.maxOctetDelta == null) {
+        options.maxOctetDelta = options.max_octet_delta;
+      }
+      if (options.max_distance_m != null && options.maxDistanceM == null) {
+        options.maxDistanceM = options.max_distance_m;
+      }
+      if (options.min_candidate_conf != null && options.minCandidateConf == null) {
+        options.minCandidateConf = options.min_candidate_conf;
+      }
     }
     const result = await backgroundJobsService.startJobNow(jobName, options);
     const status = await backgroundJobsService.getJobStatus();

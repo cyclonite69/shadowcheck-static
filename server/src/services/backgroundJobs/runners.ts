@@ -102,12 +102,22 @@ const runSiblingDetectionJob = async (options: any = {}) => {
   // This applies to the connection used by the job, not the app pool.
   await adminQuery("SET LOCAL statement_timeout = '30min'");
 
+  // Handle both snake_case (from config) and camelCase (from API)
+  const batchSize = options.batch_size ?? options.batchSize ?? 250;
+  const maxOctetDelta = options.max_octet_delta ?? options.maxOctetDelta ?? 6;
+  const maxDistanceM = options.max_distance_m ?? options.maxDistanceM ?? 1500;
+  const minCandidateConf = options.min_candidate_conf ?? options.minCandidateConf ?? 0.9;
+  const maxBatches = options.max_batches ?? options.maxBatches ?? null;
+  // seed_limit is UI form field for batch size
+  const seedLimitBatchSize = options.seed_limit ?? null;
+  const finalBatchSize = seedLimitBatchSize ?? batchSize;
+
   const result = await runSiblingRefreshJob({
-    batchSize: options.batch_size || 250,
-    maxOctetDelta: options.max_octet_delta || 6,
-    maxDistanceM: options.max_distance_m || 1500,
-    minCandidateConf: options.min_candidate_conf || 0.9,
-    maxBatches: options.max_batches ?? null,
+    batchSize: finalBatchSize,
+    maxOctetDelta,
+    maxDistanceM,
+    minCandidateConf,
+    maxBatches,
     // Scheduled runs are incremental — only process BSSIDs not yet in sibling_pairs.
     // Manual runs (options.incremental explicitly false) do a full pass.
     incremental: options.incremental !== undefined ? options.incremental : true,

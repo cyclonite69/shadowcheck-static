@@ -488,14 +488,46 @@ async function startSiblingRefresh(
 
   logger.info('[Siblings] Starting sibling refresh job', state.options);
 
+  // Write to background_job_runs BEFORE async job starts
+  try {
+    await adminQuery(
+      `INSERT INTO app.background_job_runs (job_name, status, cron, started_at, details)
+       VALUES ($1, $2, $3, now(), $4)`,
+      ['siblingDetection', 'running', null, JSON.stringify(state.options)]
+    );
+    logger.info('[Siblings] Background job run record created');
+  } catch (err: any) {
+    logger.error('[Siblings] Failed to create background job run record', { error: err?.message });
+  }
+
   runSiblingRefreshJob(state.options)
     .then((result) => {
       state.lastResult = result;
       logger.info('[Siblings] Sibling refresh job completed', result);
+      // Mark background_job_runs as completed
+      adminQuery(
+        `UPDATE app.background_job_runs SET status = $1, finished_at = now() 
+         WHERE job_name = $2 AND status = $3 ORDER BY id DESC LIMIT 1`,
+        ['completed', 'siblingDetection', 'running']
+      ).catch((err: any) => {
+        logger.error('[Siblings] Failed to update background job run to completed', {
+          error: err?.message,
+        });
+      });
     })
     .catch((err: any) => {
       state.lastError = err?.message || 'Unknown error';
       logger.error('[Siblings] Sibling refresh job failed', { error: err?.message });
+      // Mark background_job_runs as failed
+      adminQuery(
+        `UPDATE app.background_job_runs SET status = $1, finished_at = now(), error = $2
+         WHERE job_name = $3 AND status = $4 ORDER BY id DESC LIMIT 1`,
+        ['failed', err?.message || 'Unknown error', 'siblingDetection', 'running']
+      ).catch((err: any) => {
+        logger.error('[Siblings] Failed to update background job run to failed', {
+          error: err?.message,
+        });
+      });
     })
     .finally(() => {
       state.running = false;
@@ -518,23 +550,37 @@ async function getSiblingStatsByRule(): Promise<any[]> {
 /**
  * Reconcile in-memory sibling job state with the database.
  * If in-memory says NOT running but DB has a stale 'running' row,
- * mark it failed and return that reconciled status.
+ * mark it failed with reason 'Interrupted by container restart'.
  */
 async function reconcileSiblingState(): Promise<void> {
   if (!state.running) {
-    // Check if there's a stale 'running' row in the DB (e.g., from a container restart)
-    const result = await adminQuery(
+    // Check if there's a stale 'running' row in background_job_runs
+    const bgResult = await adminQuery(
+      `SELECT id FROM app.background_job_runs WHERE job_name = $1 AND status = $2 ORDER BY id DESC LIMIT 1`,
+      ['siblingDetection', 'running']
+    );
+    if (bgResult.rows.length > 0) {
+      logger.warn('[Siblings] Found stale running row in background_job_runs; marking failed', {
+        id: bgResult.rows[0].id,
+      });
+      await adminQuery(
+        `UPDATE app.background_job_runs SET status = $1, finished_at = now(), error = $2 WHERE job_name = $3 AND status = $4`,
+        ['failed', 'Interrupted by container restart', 'siblingDetection', 'running']
+      );
+    }
+
+    // Also check sibling_runs
+    const siblingResult = await adminQuery(
       `SELECT id FROM app.sibling_runs WHERE status = $1 ORDER BY id DESC LIMIT 1`,
       ['running']
     );
-    if (result.rows.length > 0) {
-      const staleRunId = result.rows[0].id;
-      logger.warn('[Siblings] Found stale running row in DB; marking failed', {
-        runId: staleRunId,
+    if (siblingResult.rows.length > 0) {
+      logger.warn('[Siblings] Found stale running row in sibling_runs; marking failed', {
+        id: siblingResult.rows[0].id,
       });
       await adminQuery(
-        `UPDATE app.sibling_runs SET status = $1, completed_at = now() WHERE id = $2`,
-        ['failed', staleRunId]
+        `UPDATE app.sibling_runs SET status = $1, completed_at = now() WHERE status = $2`,
+        ['failed', 'running']
       );
     }
   }
@@ -544,25 +590,43 @@ async function cancelSiblingRefresh(): Promise<{ accepted: boolean; message: str
   // First reconcile DB state
   await reconcileSiblingState();
 
-  if (!state.running) {
-    // Check if there's a running row in DB that we need to cancel
-    const result = await adminQuery(
-      `SELECT id FROM app.sibling_runs WHERE status = $1 ORDER BY id DESC LIMIT 1`,
-      ['running']
-    );
-    if (result.rows.length > 0) {
-      const runId = result.rows[0].id;
-      await adminQuery(
-        `UPDATE app.sibling_runs SET status = $1, completed_at = now() WHERE id = $2`,
-        ['failed', runId]
-      );
-      return { accepted: true, message: 'Cleared stale run from database' };
-    }
-    return { accepted: false, message: 'No job is currently running' };
+  const dbUpdates: string[] = [];
+
+  if (state.running) {
+    // In-memory job is running — set cancel flag and update both tables
+    state.cancelRequested = true;
+    dbUpdates.push('in-memory job cancelled');
   }
 
-  state.cancelRequested = true;
-  return { accepted: true, message: 'Cancel requested — job will stop after current batch' };
+  // ALWAYS check and update background_job_runs
+  const bgJobResult = await adminQuery(
+    `UPDATE app.background_job_runs SET status = $1, finished_at = now(), error = $2
+     WHERE job_name = $3 AND status = $4 RETURNING id`,
+    ['failed', 'Cancelled by operator', 'siblingDetection', 'running']
+  );
+  if (bgJobResult.rowCount && bgJobResult.rowCount > 0) {
+    dbUpdates.push(`background_job_runs updated (${bgJobResult.rowCount} row)`);
+  }
+
+  // ALWAYS check and update sibling_runs
+  const siblingResult = await adminQuery(
+    `UPDATE app.sibling_runs SET status = $1, completed_at = now()
+     WHERE status = $2 RETURNING id`,
+    ['failed', 'running']
+  );
+  if (siblingResult.rowCount && siblingResult.rowCount > 0) {
+    dbUpdates.push(`sibling_runs updated (${siblingResult.rowCount} row)`);
+  }
+
+  // Return success if anything changed (in-memory flag or DB rows)
+  if (state.running || dbUpdates.length > 1) {
+    return {
+      accepted: true,
+      message: `Job cancelled. Updates: ${dbUpdates.join(', ')}`,
+    };
+  }
+
+  return { accepted: false, message: 'No job is currently running' };
 }
 
 async function purgeSiblingPairs(): Promise<{ deleted: number }> {
@@ -571,10 +635,44 @@ async function purgeSiblingPairs(): Promise<{ deleted: number }> {
   return { deleted: result.rowCount ?? 0 };
 }
 
+/**
+ * Get reconciled sibling refresh status — checks both in-memory state and DB.
+ * Auto-fixes stale DB rows if in-memory says NOT running.
+ * Never returns 'running' unless in-memory state confirms it.
+ */
+async function getSiblingRefreshStatusReconciled(): Promise<SiblingRefreshStatus> {
+  // First reconcile DB state with in-memory
+  await reconcileSiblingState();
+
+  // If in-memory says running, trust it
+  if (state.running) {
+    return getSiblingRefreshStatus();
+  }
+
+  // In-memory is NOT running — verify DB doesn't have stale running rows
+  const bgRunning = await adminQuery(
+    `SELECT id FROM app.background_job_runs WHERE job_name = $1 AND status = $2 LIMIT 1`,
+    ['siblingDetection', 'running']
+  );
+
+  const siblingRunning = await adminQuery(
+    `SELECT id FROM app.sibling_runs WHERE status = $1 LIMIT 1`,
+    ['running']
+  );
+
+  // If we find any stale running rows, they were auto-fixed by reconcileSiblingState above
+  if (bgRunning.rows.length > 0 || siblingRunning.rows.length > 0) {
+    logger.info('[Siblings] Stale running rows were auto-fixed during reconciliation');
+  }
+
+  return getSiblingRefreshStatus();
+}
+
 module.exports = {
   startSiblingRefresh,
   cancelSiblingRefresh,
   getSiblingRefreshStatus,
+  getSiblingRefreshStatusReconciled,
   getSiblingStats,
   getSiblingStatsByRule,
   runSiblingRefreshJob,

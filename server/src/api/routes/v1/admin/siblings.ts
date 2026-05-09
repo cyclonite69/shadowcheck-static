@@ -169,7 +169,7 @@ router.post('/admin/siblings/cancel', async (req: any, res: any) => {
 
 router.get('/admin/siblings/refresh/status', async (req: any, res: any) => {
   try {
-    const status = siblingDetectionAdminService.getSiblingRefreshStatus();
+    const status = await siblingDetectionAdminService.getSiblingRefreshStatusReconciled();
     res.json({ ok: true, status });
   } catch (err: any) {
     logger.error('[Siblings] Failed to load refresh status', { error: err?.message });
