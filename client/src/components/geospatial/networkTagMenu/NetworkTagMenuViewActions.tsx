@@ -10,8 +10,17 @@ export const NetworkTagMenuViewActions = ({
   hasExistingNote,
   isAdmin,
   tagLoading,
+  onViewDetectionEvidence,
 }: NetworkTagMenuViewActionProps) => (
   <>
+    {onViewDetectionEvidence && (
+      <NetworkTagMenuActionButton
+        label="🛡️ View Detection Evidence"
+        onClick={onViewDetectionEvidence}
+        textColor="#a78bfa"
+        hoverBackground="#475569"
+      />
+    )}
     <NetworkTagMenuActionButton
       label="Generate Threat Report (PDF)"
       onClick={onGenerateThreatReport}

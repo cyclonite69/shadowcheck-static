@@ -6,7 +6,28 @@ import {
   getRawRequestFingerprint,
   getSearchTerm,
   normalizeImportParams,
+  buildSearchParams,
+  type WigleImportParams,
 } from './params';
+
+/**
+ * Convert URLSearchParams to a plain object for JSON serialization.
+ */
+function urlSearchParamsToObject(params: URLSearchParams): Record<string, any> {
+  const obj: Record<string, any> = {};
+  params.forEach((value, key) => {
+    if (obj[key]) {
+      if (Array.isArray(obj[key])) {
+        obj[key].push(value);
+      } else {
+        obj[key] = [obj[key], value];
+      }
+    } else {
+      obj[key] = value;
+    }
+  });
+  return obj;
+}
 import { serializeRun } from './serialization';
 
 const getRunRow = async (runId: number) => {
@@ -127,11 +148,15 @@ const createImportRun = async (
     overrides.source !== undefined ||
     overrides.api_version !== undefined ||
     overrides.search_term !== undefined;
-  const requestParams = usesDirectMetadata ? { ...rawQuery } : normalized;
+
+  // Build the EXACT params that will be sent to WiGLE API
+  const urlParams = buildSearchParams(normalized as WigleImportParams, null);
+  const requestParams = urlSearchParamsToObject(urlParams);
+
   const pageSize = usesDirectMetadata
     ? clampPageSize(rawQuery.resultsPerPage)
     : normalized.resultsPerPage || DEFAULT_RESULTS_PER_PAGE;
-  const source = overrides.source ?? 'wigle';
+  const source = overrides.source ?? 'wigle_v2';
   const apiVersion = overrides.api_version ?? (normalized.version || 'v2');
   const searchTerm = overrides.search_term ?? getSearchTerm(normalized);
   const requestFingerprint = usesDirectMetadata

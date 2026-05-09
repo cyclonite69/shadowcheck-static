@@ -30,6 +30,25 @@ export interface SearchError {
 }
 
 /**
+ * Convert URLSearchParams to a plain object for JSON serialization.
+ */
+function urlSearchParamsToObject(params: URLSearchParams): Record<string, any> {
+  const obj: Record<string, any> = {};
+  params.forEach((value, key) => {
+    if (obj[key]) {
+      if (Array.isArray(obj[key])) {
+        obj[key].push(value);
+      } else {
+        obj[key] = [obj[key], value];
+      }
+    } else {
+      obj[key] = value;
+    }
+  });
+  return obj;
+}
+
+/**
  * Execute a WiGLE search and optionally import results into the local DB.
  */
 export async function searchWigle(
@@ -84,11 +103,80 @@ export async function searchWigle(
 
   let importedCount = 0;
   let importErrors: Array<{ bssid: string; error: string }> = [];
+  let runId: number | null = null;
 
   if (shouldImport && results.length > 0) {
     logger.info(`[WiGLE] Importing ${results.length} results to database...`);
-    ({ importedCount, importErrors } = await importSearchResults(results));
-    logger.info(`[WiGLE] Import complete: ${importedCount}/${results.length} networks imported`);
+
+    // Create a wigle_import_runs record to track this quick search + import
+    // Store the exact API params sent to WiGLE
+    const requestParams = urlSearchParamsToObject(params);
+    const searchTerm = query.ssid || query.bssid || query.city || query.country || '';
+
+    const { query: dbQuery } = require('../config/database');
+    const runResult = await dbQuery(
+      `INSERT INTO app.wigle_import_runs (
+        source,
+        api_version,
+        search_term,
+        state,
+        request_params,
+        status,
+        page_size,
+        started_at
+      ) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, now())
+      RETURNING id`,
+      [
+        'wigle_v2',
+        'v2',
+        searchTerm,
+        query.region || null,
+        JSON.stringify(requestParams),
+        'running',
+        query.resultsPerPage || 100,
+      ]
+    );
+
+    if (runResult.rows && runResult.rows.length > 0) {
+      runId = runResult.rows[0].id;
+    }
+
+    try {
+      ({ importedCount, importErrors } = await importSearchResults(results));
+      logger.info(`[WiGLE] Import complete: ${importedCount}/${results.length} networks imported`);
+
+      // Mark run as completed
+      if (runId) {
+        await dbQuery(
+          `UPDATE app.wigle_import_runs
+           SET status = $1,
+               rows_inserted = $2,
+               rows_returned = $3,
+               pages_fetched = 1,
+               total_pages = 1,
+               api_total_results = $4,
+               completed_at = now()
+           WHERE id = $5`,
+          [
+            importErrors.length === 0 ? 'completed' : 'completed_with_errors',
+            importedCount,
+            results.length,
+            data.totalResults || results.length,
+            runId,
+          ]
+        );
+      }
+    } catch (importError: any) {
+      // Mark run as failed if import fails
+      if (runId) {
+        await dbQuery(
+          `UPDATE app.wigle_import_runs
+           SET status = $1, last_error = $2, completed_at = now() WHERE id = $3`,
+          ['failed', importError.message, runId]
+        );
+      }
+      throw importError;
+    }
   }
 
   return {
