@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-08)
+# 1.0.0 (2026-05-09)
 
 ### Bug Fixes
 
@@ -602,6 +602,7 @@
 - return single closest agency per BSSID, not all agencies in radius ([4253e6b](https://github.com/cyclonite69/shadowcheck-web/commit/4253e6bae8eff1c5d0b336b1f3245eefa83d477c))
 - return value in authMiddleware handlers; lint-fix networkSlowPathBuilder ([a6f956a](https://github.com/cyclonite69/shadowcheck-web/commit/a6f956a9e79cd788f1fb61989fc2fd995eed1973))
 - rewrite refresh_network_locations to use CTE for per-BSSID bounds ([4254999](https://github.com/cyclonite69/shadowcheck-web/commit/42549991503ec203195280d386cb305d14f009a2))
+- rewrite surveillance filters to join through surveillance_detections ([9bf7edf](https://github.com/cyclonite69/shadowcheck-web/commit/9bf7edf9fe064358d698fcd7960154f319ae8309))
 - right-click on open context menu immediately closes it ([038ab0b](https://github.com/cyclonite69/shadowcheck-web/commit/038ab0bd13e77dd49e1e327f9faa84bb89bc1d8c))
 - robust data exports with loading states and optimized backend queries ([da81141](https://github.com/cyclonite69/shadowcheck-web/commit/da81141653212285abe1140763f036580a453fad))
 - robust Mapbox Standard 3D building and terrain support ([10e636f](https://github.com/cyclonite69/shadowcheck-web/commit/10e636fcd2667dd380292c872b9519adc8ac7900))

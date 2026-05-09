@@ -33,6 +33,7 @@ import { useWigleResize } from './wigle/useWigleResize';
 import { useHomeLocationLayer } from './geospatial/hooks/useHomeLocationLayer';
 import { locationApi } from '../api/locationApi';
 import { DEFAULT_HOME_RADIUS } from '../constants/network';
+import { fitBoundsWithZoomInset } from '../utils/geospatial/mapViewUtils';
 
 const WiglePage: React.FC = () => {
   usePageFilters('wigle');
@@ -371,6 +372,93 @@ const WiglePage: React.FC = () => {
                 {icon}
               </button>
             ))}
+            {/* Fit to bounds */}
+            <button
+              className="nav-icon-btn"
+              title="Fit to bounds"
+              disabled={v2Rows.length === 0 && v3Rows.length === 0}
+              onClick={() => {
+                const mapboxgl = mapboxRef.current;
+                if (!mapRef.current || !mapboxgl) return;
+                const allRows = [...v2Rows, ...v3Rows];
+                const coords = allRows
+                  .map((r: any) => {
+                    const lat = r.trilat ?? r.lat ?? r.latitude;
+                    const lon = r.trilong ?? r.trilon ?? r.lon ?? r.longitude;
+                    return lat != null && lon != null ? ([lon, lat] as [number, number]) : null;
+                  })
+                  .filter((c): c is [number, number] => c !== null);
+                if (coords.length === 0) return;
+                const bounds = coords.reduce(
+                  (b, c) => b.extend(c),
+                  new (mapboxgl as any).LngLatBounds(coords[0], coords[0])
+                );
+                fitBoundsWithZoomInset(mapRef.current, bounds, { padding: 80 });
+              }}
+              style={{
+                height: '24px',
+                width: '28px',
+                borderRadius: '5px',
+                border: '0.5px solid rgba(255,255,255,0.10)',
+                background: 'rgba(255,255,255,0.03)',
+                color:
+                  v2Rows.length === 0 && v3Rows.length === 0
+                    ? 'rgba(255,255,255,0.15)'
+                    : 'rgba(255,255,255,0.4)',
+                cursor: v2Rows.length === 0 && v3Rows.length === 0 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: v2Rows.length === 0 && v3Rows.length === 0 ? 0.4 : 1,
+              }}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 14 14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <polyline points="1,4 1,1 4,1" />
+                <polyline points="10,1 13,1 13,4" />
+                <polyline points="13,10 13,13 10,13" />
+                <polyline points="4,13 1,13 1,10" />
+              </svg>
+            </button>
+            {/* Fly home */}
+            <button
+              className="nav-icon-btn"
+              title="Fly home"
+              onClick={() => {
+                if (!mapRef.current) return;
+                mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 });
+              }}
+              style={{
+                height: '24px',
+                width: '28px',
+                borderRadius: '5px',
+                border: '0.5px solid rgba(255,255,255,0.10)',
+                background: 'rgba(255,255,255,0.03)',
+                color: 'rgba(255,255,255,0.4)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 14 14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M2 7L7 2L12 7" />
+                <path d="M3 7V12H6V9H8V12H11V7" />
+              </svg>
+            </button>
           </>
         }
       />
@@ -447,7 +535,6 @@ const WiglePage: React.FC = () => {
         error={mapError || dataError || kmlError}
         mapReady={mapReady}
         mapRef={mapRef}
-        mapboxRef={mapboxRef}
         homeLocation={homeLocation}
         v2Rows={v2Rows}
         v3Rows={v3Rows}
