@@ -382,7 +382,6 @@ async function runSiblingRefreshJob(
       normalized.incremental,
       incrementalCutoff,
       runId,
-      normalized.minCandidateConf,
     ]);
 
     const row = result.rows[0] || {};

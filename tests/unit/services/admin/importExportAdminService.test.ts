@@ -1,10 +1,10 @@
 export {};
 
-const { 
-  getBackupData, 
-  exportMLTrainingData, 
-  getImportCounts: getCountsImportExport, 
-  truncateAllData 
+const {
+  getBackupData,
+  exportMLTrainingData,
+  getImportCounts: getCountsImportExport,
+  truncateAllData,
 } = require('../../../../server/src/services/admin/importExportAdminService');
 
 jest.mock('../../../../server/src/config/container', () => ({
@@ -30,6 +30,11 @@ describe('importExportAdminService', () => {
       expect(databaseService.query).toHaveBeenCalledTimes(3);
       expect(result).toEqual({ networks: [], observations: [], tags: [] });
     });
+
+    it('should propagate database error', async () => {
+      databaseService.query.mockRejectedValueOnce(new Error('DB Error'));
+      await expect(getBackupData()).rejects.toThrow('DB Error');
+    });
   });
 
   describe('exportMLTrainingData', () => {
@@ -37,6 +42,11 @@ describe('importExportAdminService', () => {
       databaseService.query.mockResolvedValue({ rows: [{ bssid: 'AA' }] });
       const result = await exportMLTrainingData();
       expect(result).toEqual([{ bssid: 'AA' }]);
+    });
+
+    it('should propagate database error', async () => {
+      databaseService.query.mockRejectedValueOnce(new Error('DB Error'));
+      await expect(exportMLTrainingData()).rejects.toThrow('DB Error');
     });
   });
 
@@ -47,6 +57,11 @@ describe('importExportAdminService', () => {
         .mockResolvedValueOnce({ rows: [{ count: '5' }] });
       const result = await getCountsImportExport();
       expect(result).toEqual({ observations: 10, networks: 5 });
+    });
+
+    it('should propagate database error', async () => {
+      databaseService.query.mockRejectedValueOnce(new Error('DB Error'));
+      await expect(getCountsImportExport()).rejects.toThrow('DB Error');
     });
   });
 
@@ -59,6 +74,11 @@ describe('importExportAdminService', () => {
         expect.stringContaining('TRUNCATE TABLE app.observations'),
         []
       );
+    });
+
+    it('should propagate database error', async () => {
+      adminDbService.adminQuery.mockRejectedValueOnce(new Error('DB Error'));
+      await expect(truncateAllData()).rejects.toThrow('DB Error');
     });
   });
 });
