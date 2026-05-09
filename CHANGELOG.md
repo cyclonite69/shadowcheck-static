@@ -450,6 +450,7 @@
 - make entrypoint gracefully fall back to existing env credentials ([c8421bc](https://github.com/cyclonite69/shadowcheck-web/commit/c8421bc77bb61351181d6f275db41f9f660f1cef))
 - make globals backup optional to ensure data backup stability ([a1a09d7](https://github.com/cyclonite69/shadowcheck-web/commit/a1a09d70bf76010295bfda7cbd7eaf7504d77a66))
 - make Grafana config universal for local and EC2 ([0cbd1f2](https://github.com/cyclonite69/shadowcheck-web/commit/0cbd1f2fc4ae8184bb044673753b64e00da7a9de))
+- make octet_delta_max rename idempotent in migration 003 ([a0aeeda](https://github.com/cyclonite69/shadowcheck-web/commit/a0aeeda8dd9657b466173d40710847cefebe8d8c))
 - make pgadmin health check non-fatal and add cert migration logic ([67e119c](https://github.com/cyclonite69/shadowcheck-web/commit/67e119c05b939d8c7fe1095e13e4cc4a4ed1f63d))
 - Mapbox Standard fog config and 3D toggle race condition ([e9f2c2f](https://github.com/cyclonite69/shadowcheck-web/commit/e9f2c2f15d63e90493cd2f712f707f103fbf7788))
 - **map:** render federal courthouses via API and remove duplicate kepler zoom control ([6b38b5d](https://github.com/cyclonite69/shadowcheck-web/commit/6b38b5d79d2dedb55fc046421559d5580070e8b3))

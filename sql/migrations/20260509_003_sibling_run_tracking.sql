@@ -33,6 +33,11 @@ BEGIN
     WHERE table_schema = 'app'
       AND table_name = 'network_sibling_pairs'
       AND column_name = 'octet_delta_max'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'app'
+      AND table_name = 'network_sibling_pairs'
+      AND column_name = 'run_max_octet_delta'
   ) THEN
     ALTER TABLE app.network_sibling_pairs
       RENAME COLUMN octet_delta_max TO run_max_octet_delta;
