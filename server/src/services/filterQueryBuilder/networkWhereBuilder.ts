@@ -190,7 +190,7 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   if (e.surveillance && f.surveillance === true) {
     networkWhere.push(
       // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.network_tags nt_surv WHERE UPPER(nt_surv.bssid) = UPPER(ne.bssid) AND nt_surv.tags @> '["surveillance"]'::jsonb)`
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid)`
     );
     ctx.addApplied('threat', 'surveillance', true);
   }
@@ -198,7 +198,7 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   if (e.shotspotter && f.shotspotter === true) {
     networkWhere.push(
       // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.network_tags nt_shot WHERE UPPER(nt_shot.bssid) = UPPER(ne.bssid) AND nt_shot.tags @> '["shotspotter"]'::jsonb)`
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type = 'SHOTSPOTTER_SENSOR')`
     );
     ctx.addApplied('threat', 'shotspotter', true);
   }
@@ -206,7 +206,7 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   if (e.bwc && f.bwc === true) {
     networkWhere.push(
       // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.network_tags nt_bwc WHERE UPPER(nt_bwc.bssid) = UPPER(ne.bssid) AND nt_bwc.tags @> '["bwc"]'::jsonb)`
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('AXON_BODY_CAMERA', 'MOTOROLA_BWC', 'AXON_SIGNAL_PERIPHERAL', 'DEI_BWC', 'BT_IMAGING_DEVICE'))`
     );
     ctx.addApplied('threat', 'bwc', true);
   }
@@ -214,7 +214,7 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
   if (e.flock && f.flock === true) {
     networkWhere.push(
       // eslint-disable-next-line quotes
-      `EXISTS (SELECT 1 FROM app.network_tags nt_flock WHERE UPPER(nt_flock.bssid) = UPPER(ne.bssid) AND nt_flock.tags @> '["flock"]'::jsonb)`
+      `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('FLOCK_SAFETY_CAMERA', 'RAVEN_GUNSHOT_DETECTOR', 'FS_EXT_BATTERY'))`
     );
     ctx.addApplied('threat', 'flock', true);
   }

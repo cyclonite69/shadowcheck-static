@@ -47,7 +47,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
       </FilterInput>
 
       <FilterInput
-        label="ShotSpotter Zone"
+        label="ShotSpotter Sensor"
         enabled={enabled.shotspotter || false}
         onToggle={() => onToggleFilter('shotspotter')}
         compact={isCompact}
@@ -59,7 +59,7 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
             onChange={(e) => onSetFilter('shotspotter', e.target.checked)}
             className="w-4 h-4"
           />
-          Only networks in ShotSpotter zones
+          Only ShotSpotter sensor networks
         </label>
       </FilterInput>
 
