@@ -7,6 +7,7 @@ import { NetworkTagMenuHeader } from './NetworkTagMenuHeader';
 import { NetworkTagMenuLoading } from './NetworkTagMenuLoading';
 import { NetworkTagMenuStatus } from './NetworkTagMenuStatus';
 import { NetworkTagMenuViewActions } from './NetworkTagMenuViewActions';
+import { DetectionEvidenceModal } from './DetectionEvidenceModal';
 
 interface NetworkTagMenuProps {
   visible: boolean;
@@ -60,6 +61,7 @@ export const NetworkTagMenu = ({
 }: NetworkTagMenuProps) => {
   const { isAdmin } = useAuth();
   const [menuSize, setMenuSize] = useState({ width: 200, height: 0 });
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
 
   useLayoutEffect(() => {
     if (!visible || !contextMenuRef.current) return;
@@ -109,50 +111,62 @@ export const NetworkTagMenu = ({
   const clampedX = Math.min(Math.max(8, x), maxX);
   const clampedY = Math.min(Math.max(8, y), maxY);
 
-  return createPortal(
-    <div
-      ref={contextMenuRef}
-      style={{
-        position: 'fixed',
-        top: clampedY,
-        left: clampedX,
-        zIndex: 10000,
-        background: '#1e293b',
-        border: '1px solid #475569',
-        borderRadius: '8px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-        minWidth: '200px',
-        maxHeight: 'calc(100vh - 20px)',
-        overflowX: 'hidden',
-        overflowY: 'auto',
-      }}
-    >
-      <NetworkTagMenuHeader network={network} />
-      <NetworkTagMenuStatus tag={tag} />
-      <div style={{ padding: '4px 0' }}>
-        {isAdmin && (
-          <NetworkTagMenuAdminActions
-            tag={tag}
-            tagLoading={tagLoading}
-            onTagAction={onTagAction}
-            manualSiblingTarget={manualSiblingTarget}
-            onMarkSiblingPair={onMarkSiblingPair}
-            siblingPairLoading={siblingPairLoading}
-          />
-        )}
-        <NetworkTagMenuViewActions
-          onGenerateThreatReport={onGenerateThreatReport}
-          onTimeFrequency={onTimeFrequency}
-          onMapWigleObservations={onMapWigleObservations}
-          wigleObservationsLoading={wigleObservationsLoading}
-          onAddNote={onAddNote}
-          hasExistingNote={hasExistingNote}
-          isAdmin={isAdmin}
-          tagLoading={tagLoading}
+  return (
+    <>
+      {createPortal(
+        <div
+          ref={contextMenuRef}
+          style={{
+            position: 'fixed',
+            top: clampedY,
+            left: clampedX,
+            zIndex: 10000,
+            background: '#1e293b',
+            border: '1px solid #475569',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+            minWidth: '200px',
+            maxHeight: 'calc(100vh - 20px)',
+            overflowX: 'hidden',
+            overflowY: 'auto',
+          }}
+        >
+          <NetworkTagMenuHeader network={network} />
+          <NetworkTagMenuStatus tag={tag} />
+          <div style={{ padding: '4px 0' }}>
+            {isAdmin && (
+              <NetworkTagMenuAdminActions
+                tag={tag}
+                tagLoading={tagLoading}
+                onTagAction={onTagAction}
+                manualSiblingTarget={manualSiblingTarget}
+                onMarkSiblingPair={onMarkSiblingPair}
+                siblingPairLoading={siblingPairLoading}
+              />
+            )}
+            <NetworkTagMenuViewActions
+              onGenerateThreatReport={onGenerateThreatReport}
+              onTimeFrequency={onTimeFrequency}
+              onMapWigleObservations={onMapWigleObservations}
+              wigleObservationsLoading={wigleObservationsLoading}
+              onAddNote={onAddNote}
+              hasExistingNote={hasExistingNote}
+              isAdmin={isAdmin}
+              tagLoading={tagLoading}
+              onViewDetectionEvidence={() => setShowEvidenceModal(true)}
+            />
+          </div>
+          {tagLoading && <NetworkTagMenuLoading />}
+        </div>,
+        document.body
+      )}
+      {showEvidenceModal && (
+        <DetectionEvidenceModal
+          bssid={network.bssid}
+          ssid={network.ssid}
+          onClose={() => setShowEvidenceModal(false)}
         />
-      </div>
-      {tagLoading && <NetworkTagMenuLoading />}
-    </div>,
-    document.body
+      )}
+    </>
   );
 };

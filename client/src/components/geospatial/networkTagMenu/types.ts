@@ -24,4 +24,5 @@ export interface NetworkTagMenuViewActionProps {
   hasExistingNote: boolean;
   isAdmin: boolean;
   tagLoading: boolean;
+  onViewDetectionEvidence?: () => void;
 }

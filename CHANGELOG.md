@@ -684,6 +684,7 @@
 - Standardize headers across all pages to match admin.html template ([33c43da](https://github.com/cyclonite69/shadowcheck-web/commit/33c43da03201542aea84c86e360e8d4798afb8a8))
 - support IMDSv2 for deploy config discovery ([057996a](https://github.com/cyclonite69/shadowcheck-web/commit/057996a115bb32d22a746bd9e90a9449cc4a70d9))
 - surveillance filter hierarchy, count fix, detection evidence panel ([90c49cd](https://github.com/cyclonite69/shadowcheck-web/commit/90c49cdfd0b1a16796e20d5a32186f430640ffb2))
+- surveillance tag assignment and detection evidence panel ([bdfadac](https://github.com/cyclonite69/shadowcheck-web/commit/bdfadac390a8e5f7c60af5fe77b2b9cf96603608))
 - **surveillance:** debug and fix scan job execution pipeline end to end ([04ee68c](https://github.com/cyclonite69/shadowcheck-web/commit/04ee68c7c0daad60d8ee59f699211565a7b2b864))
 - switch Bedrock model to Claude 3.5 Haiku ([82d67bb](https://github.com/cyclonite69/shadowcheck-web/commit/82d67bb04bbde0632e5b849836e5dcbdd10b8096))
 - switch Bedrock model to Claude Sonnet 4 inference profile ([4bd6575](https://github.com/cyclonite69/shadowcheck-web/commit/4bd65759e4316f59ae92c65ab309be148f360441))
