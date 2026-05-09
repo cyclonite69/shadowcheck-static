@@ -50,8 +50,9 @@ const REFRESH_CHUNK_SQL = `
           'mtasmartbus','kajeetsmartbus','somguest','somiot',
           'eduroam','attwifi','googlesb','_google',
           'boingohotspot','boingowireless','optimumwifi','cablewifi',
-          'spectrumwifi','twcwifi'
+          'spectrumwifi','twcwifi','masimo'
         )
+        OR lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) LIKE 'hmc%'
       ) AS ssid_common,
       -- Distance is NOT a penalty: mobile/vehicle-mounted radios appear at
       -- different locations on different passes and may never be co-located.
@@ -178,7 +179,7 @@ const REFRESH_CHUNK_SQL = `
       d_last_octet, d_third_octet, ssid1, ssid2,
       frequency1, frequency2, distance_m,
       matched_octets, pair_strength, quality_scope, computed_at,
-      octet_delta_max
+      run_max_octet_delta, run_id, run_min_confidence
     )
     SELECT
       f.bssid1,
@@ -205,7 +206,9 @@ const REFRESH_CHUNK_SQL = `
         WHEN f.rule = 'middle_octets_sequential' THEN GREATEST(f.d_last_octet, f.d_third_octet)
         WHEN f.rule IN ('last_octet_sequential', 'ssid_exact_sequential') THEN f.d_last_octet
         ELSE NULL
-      END
+      END,
+      $8::integer,
+      $9::numeric
     FROM final_pairs f
     -- Skip pairs blocked by manual not_sibling overrides
     LEFT JOIN app.network_sibling_overrides nso
@@ -230,7 +233,9 @@ const REFRESH_CHUNK_SQL = `
       pair_strength = EXCLUDED.pair_strength,
       quality_scope = EXCLUDED.quality_scope,
       computed_at = EXCLUDED.computed_at,
-      octet_delta_max = EXCLUDED.octet_delta_max
+      run_max_octet_delta = EXCLUDED.run_max_octet_delta,
+      run_id = EXCLUDED.run_id,
+      run_min_confidence = EXCLUDED.run_min_confidence
     RETURNING 1
   )
   SELECT

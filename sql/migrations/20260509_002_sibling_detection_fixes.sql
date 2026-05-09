@@ -151,10 +151,11 @@ ssid_exact_sequential AS (
     AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT IN (
       'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
       'mtasmartbus','kajeetsmartbus','somguest','somiot',
-      'eduroam','attwifi','attwifi','googlesb','_google',
+      'eduroam','attwifi','googlesb','_google',
       'boingohotspot','boingowireless','optimumwifi','cablewifi',
-      'spectrumwifi','twcwifi'
+      'spectrumwifi','twcwifi','masimo'
     )
+    AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
     -- Exclude pairs already captured by sequential_siblings (o5 matches, delta 1-3)
     -- ssid_exact_sequential fires when o5 also matches but delta is 1-2 — already
     -- covered by sequential_siblings. Exclude to avoid duplicates.
@@ -279,10 +280,11 @@ c AS (
     AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT IN (
       'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
       'mtasmartbus','kajeetsmartbus','somguest','somiot',
-      'eduroam','attwifi','attwifi','googlesb','_google',
+      'eduroam','attwifi','googlesb','_google',
       'boingohotspot','boingowireless','optimumwifi','cablewifi',
-      'spectrumwifi','twcwifi'
+      'spectrumwifi','twcwifi','masimo'
     )
+    AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
 ),
 probabilistic AS (
   SELECT

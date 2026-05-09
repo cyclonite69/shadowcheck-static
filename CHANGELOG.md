@@ -226,6 +226,7 @@
 - eliminate manual nginx reload + auto-run migrations on container start ([2436d40](https://github.com/cyclonite69/shadowcheck-web/commit/2436d4014802fc33f53a807d61c0f5de074896ab))
 - enable manufacturer and max_distance_meters sorting in network filter ([0cc9633](https://github.com/cyclonite69/shadowcheck-web/commit/0cc96334dc33eaf3a9624f062caef362db0f2822))
 - enable PgAdmin Docker controls and mount Podman socket in backend ([7c71eae](https://github.com/cyclonite69/shadowcheck-web/commit/7c71eae173542e7f0d81854f8e4ca74ee0bb9d89))
+- enforce o1-o5 in ssid_exact_sequential, expand fleet exclusions, audit trail cols ([71ef8cd](https://github.com/cyclonite69/shadowcheck-web/commit/71ef8cd1ea29ed8c98013e175e8dd94d344f17d2))
 - enforce strict SSL key permissions in deploy-postgres.sh ([7d64561](https://github.com/cyclonite69/shadowcheck-web/commit/7d645616012800f4c08b0241419980aa09d31117))
 - **enrichment:** abort loop on consecutive errors and detail soft-limit ([aa59865](https://github.com/cyclonite69/shadowcheck-web/commit/aa59865b4e0354883fb271db82e20f253ea4501d))
 - **enrichment:** add DB-based concurrency guard to prevent overlapping enrichment loops ([a6cf990](https://github.com/cyclonite69/shadowcheck-web/commit/a6cf99051e8e1bd6921c5af0c3117a51aed5e29d))

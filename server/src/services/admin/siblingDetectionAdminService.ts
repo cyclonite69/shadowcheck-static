@@ -12,7 +12,7 @@ const EXTRA_RULES_SQL = `
   WITH upper_rotation AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
-      octet_delta_max
+      run_max_octet_delta, run_id, run_min_confidence
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -34,7 +34,9 @@ const EXTRA_RULES_SQL = `
       'candidate',
       'default',
       now(),
-      NULL
+      NULL,
+      $1::integer,
+      $2::numeric
     FROM app.networks a
     JOIN app.networks b
       ON SUBSTRING(b.bssid, 7) = SUBSTRING(a.bssid, 7)
@@ -73,14 +75,16 @@ const EXTRA_RULES_SQL = `
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at,
-          octet_delta_max = EXCLUDED.octet_delta_max
+          run_max_octet_delta = EXCLUDED.run_max_octet_delta,
+          run_id = EXCLUDED.run_id,
+          run_min_confidence = EXCLUDED.run_min_confidence
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
   ssid_anchor AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, ssid1, ssid2, matched_octets, pair_strength, quality_scope, computed_at,
-      octet_delta_max
+      run_max_octet_delta, run_id, run_min_confidence
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -93,7 +97,9 @@ const EXTRA_RULES_SQL = `
       'candidate',
       'default',
       now(),
-      NULL
+      NULL,
+      $1::integer,
+      $2::numeric
     FROM app.networks a
     JOIN app.networks b
       ON b.ssid = a.ssid
@@ -115,8 +121,9 @@ const EXTRA_RULES_SQL = `
         'mtasmartbus','kajeetsmartbus','somguest','somiot',
         'eduroam','attwifi','googlesb','_google',
         'boingohotspot','boingowireless','optimumwifi','cablewifi',
-        'spectrumwifi','twcwifi'
+        'spectrumwifi','twcwifi','masimo'
       )
+      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -126,14 +133,16 @@ const EXTRA_RULES_SQL = `
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at,
-          octet_delta_max = EXCLUDED.octet_delta_max
+          run_max_octet_delta = EXCLUDED.run_max_octet_delta,
+          run_id = EXCLUDED.run_id,
+          run_min_confidence = EXCLUDED.run_min_confidence
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
   cross_oui_ssid AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
-      octet_delta_max
+      run_max_octet_delta, run_id, run_min_confidence
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -150,7 +159,9 @@ const EXTRA_RULES_SQL = `
       'candidate',
       'default',
       now(),
-      NULL
+      NULL,
+      $1::integer,
+      $2::numeric
     FROM app.networks a
     JOIN app.networks b
       ON b.ssid = a.ssid
@@ -171,8 +182,9 @@ const EXTRA_RULES_SQL = `
         'mtasmartbus','kajeetsmartbus','somguest','somiot',
         'eduroam','attwifi','googlesb','_google',
         'boingohotspot','boingowireless','optimumwifi','cablewifi',
-        'spectrumwifi','twcwifi'
+        'spectrumwifi','twcwifi','masimo'
       )
+      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
       AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
       AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
       AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
@@ -191,7 +203,9 @@ const EXTRA_RULES_SQL = `
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at,
-          octet_delta_max = EXCLUDED.octet_delta_max
+          run_max_octet_delta = EXCLUDED.run_max_octet_delta,
+          run_id = EXCLUDED.run_id,
+          run_min_confidence = EXCLUDED.run_min_confidence
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
@@ -202,7 +216,7 @@ const EXTRA_RULES_SQL = `
     -- Distance is stored as metadata but NOT used as a gate.
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
-      octet_delta_max
+      run_max_octet_delta, run_id, run_min_confidence
     )
     SELECT
       LEAST(a.bssid, b.bssid),
@@ -227,7 +241,9 @@ const EXTRA_RULES_SQL = `
       ABS(
         ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
         ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
-      )
+      ),
+      $1::integer,
+      $2::numeric
     FROM app.networks a
     JOIN app.networks b
       -- First 4 octets identical (11 chars: "XX:XX:XX:XX")
@@ -253,7 +269,9 @@ const EXTRA_RULES_SQL = `
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
           computed_at = EXCLUDED.computed_at,
-          octet_delta_max = EXCLUDED.octet_delta_max
+          run_max_octet_delta = EXCLUDED.run_max_octet_delta,
+          run_id = EXCLUDED.run_id,
+          run_min_confidence = EXCLUDED.run_min_confidence
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
   ),
@@ -327,6 +345,26 @@ async function runSiblingRefreshJob(
   const normalized = normalizeOptions(options);
   const started = Date.now();
 
+  // Determine run_mode from options
+  const runMode =
+    normalized.maxBatches !== null ? 'test' : normalized.incremental ? 'incremental' : 'full';
+
+  // Create a sibling_runs row to track this refresh
+  const runInsert = await adminQuery(
+    `INSERT INTO app.sibling_runs
+       (run_mode, max_octet_delta, min_confidence, batch_size, max_batches)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
+    [
+      runMode,
+      normalized.maxOctetDelta,
+      normalized.minCandidateConf,
+      normalized.batchSize,
+      normalized.maxBatches,
+    ]
+  );
+  const runId: number = runInsert.rows[0].id;
+
   // Snapshot MAX(computed_at) BEFORE the loop so incremental mode uses a
   // stable cutoff. Without this, batch 2+ would see pairs inserted by batch 1
   // and filter out all remaining seeds, stopping after one batch.
@@ -354,6 +392,8 @@ async function runSiblingRefreshJob(
       normalized.minCandidateConf,
       normalized.incremental,
       incrementalCutoff,
+      runId,
+      normalized.minCandidateConf,
     ]);
 
     const row = result.rows[0] || {};
@@ -387,7 +427,7 @@ async function runSiblingRefreshJob(
     }
   }
 
-  const extraResult: any = await adminQuery(EXTRA_RULES_SQL, []);
+  const extraResult: any = await adminQuery(EXTRA_RULES_SQL, [runId, normalized.minCandidateConf]);
   const extraRow = extraResult.rows[0] || {};
   logger.info('[Siblings] Extra rules complete', {
     upper_rotation: extraRow.upper_rotation_count,
@@ -397,6 +437,14 @@ async function runSiblingRefreshJob(
     manual_boost: extraRow.manual_boost_count,
     manual_insert: extraRow.manual_insert_count,
   });
+
+  const finalStatus = completed ? 'completed' : 'truncated';
+  await adminQuery(
+    `UPDATE app.sibling_runs
+     SET completed_at = now(), status = $1, networks_scanned = $2, pairs_inserted = $3
+     WHERE id = $4`,
+    [finalStatus, seedsProcessed, rowsUpserted, runId]
+  );
 
   return {
     success: true,
