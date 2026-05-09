@@ -446,6 +446,9 @@ async function runSiblingRefreshJob(
     [finalStatus, seedsProcessed, rowsUpserted, runId]
   );
 
+  await adminQuery('SELECT app.refresh_oui_sibling_profiles()');
+  logger.info('[Siblings] OUI sibling profiles refreshed');
+
   return {
     success: true,
     batchesRun,

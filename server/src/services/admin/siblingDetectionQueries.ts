@@ -18,21 +18,24 @@ const REFRESH_CHUNK_SQL = `
     CROSS JOIN LATERAL app.find_sibling_radios(s.bssid, $3, $4) r
   ),
   dedup AS (
-    SELECT DISTINCT ON (LEAST(seed_bssid, sibling_bssid), GREATEST(seed_bssid, sibling_bssid))
+    SELECT
       LEAST(seed_bssid, sibling_bssid) AS bssid1,
       GREATEST(seed_bssid, sibling_bssid) AS bssid2,
-      rule,
-      confidence,
-      d_last_octet,
-      d_third_octet,
-      target_ssid AS ssid1,
-      sibling_ssid AS ssid2,
-      frequency_target AS frequency1,
-      frequency_sibling AS frequency2,
-      distance_m,
-      matched_octets
+      (array_agg(rule ORDER BY confidence DESC))[1] AS rule,
+      MAX(confidence) AS confidence,
+      (array_agg(d_last_octet ORDER BY confidence DESC))[1] AS d_last_octet,
+      (array_agg(d_third_octet ORDER BY confidence DESC))[1] AS d_third_octet,
+      (array_agg(target_ssid ORDER BY confidence DESC))[1] AS ssid1,
+      (array_agg(sibling_ssid ORDER BY confidence DESC))[1] AS ssid2,
+      (array_agg(frequency_target ORDER BY confidence DESC))[1] AS frequency1,
+      (array_agg(frequency_sibling ORDER BY confidence DESC))[1] AS frequency2,
+      (array_agg(distance_m ORDER BY confidence DESC))[1] AS distance_m,
+      (array_agg(matched_octets ORDER BY confidence DESC))[1] AS matched_octets,
+      array_agg(DISTINCT rule) AS corroborating_rules
     FROM hits
-    ORDER BY LEAST(seed_bssid, sibling_bssid), GREATEST(seed_bssid, sibling_bssid), confidence DESC
+    GROUP BY
+      LEAST(seed_bssid, sibling_bssid),
+      GREATEST(seed_bssid, sibling_bssid)
   ),
   scored AS (
     SELECT
@@ -167,7 +170,8 @@ const REFRESH_CHUNK_SQL = `
       s.frequency1,
       s.frequency2,
       s.distance_m,
-      s.matched_octets
+      s.matched_octets,
+      s.corroborating_rules
     FROM scored s
     LEFT JOIN partner_stats ps1 ON ps1.radio_bssid = s.bssid1
     LEFT JOIN partner_stats ps2 ON ps2.radio_bssid = s.bssid2
@@ -179,7 +183,8 @@ const REFRESH_CHUNK_SQL = `
       d_last_octet, d_third_octet, ssid1, ssid2,
       frequency1, frequency2, distance_m,
       matched_octets, pair_strength, quality_scope, computed_at,
-      run_max_octet_delta, run_id, run_min_confidence
+      run_max_octet_delta, run_id, run_min_confidence,
+      corroborating_rules
     )
     SELECT
       f.bssid1,
@@ -208,7 +213,8 @@ const REFRESH_CHUNK_SQL = `
         ELSE NULL
       END,
       $8::integer,
-      $9::numeric
+      $9::numeric,
+      f.corroborating_rules
     FROM final_pairs f
     -- Skip pairs blocked by manual not_sibling overrides
     LEFT JOIN app.network_sibling_overrides nso
@@ -235,7 +241,12 @@ const REFRESH_CHUNK_SQL = `
       computed_at = EXCLUDED.computed_at,
       run_max_octet_delta = EXCLUDED.run_max_octet_delta,
       run_id = EXCLUDED.run_id,
-      run_min_confidence = EXCLUDED.run_min_confidence
+      run_min_confidence = EXCLUDED.run_min_confidence,
+      corroborating_rules = array(
+        SELECT DISTINCT unnest(
+          network_sibling_pairs.corroborating_rules || EXCLUDED.corroborating_rules
+        )
+      )
     RETURNING 1
   )
   SELECT
