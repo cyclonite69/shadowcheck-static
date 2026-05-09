@@ -550,6 +550,7 @@
 - rename MapLayersToggle.tsx to useMapLayersToggle.ts to match hook naming convention and fix build ([dac8d2b](https://github.com/cyclonite69/shadowcheck-web/commit/dac8d2b973c652ddd514b41bf993b9a92df5f7a5))
 - render firstSeen/lastSeen columns via formatShortDate in Geospatial Explorer ([aeb6ad1](https://github.com/cyclonite69/shadowcheck-web/commit/aeb6ad12f76dd7d689c4c423b0278e65133dd95e))
 - repair MapToolbar div mismatch, constrain search bar widths ([6094cc4](https://github.com/cyclonite69/shadowcheck-web/commit/6094cc419d37e346aabfbb11d0ec441481d92d8c))
+- replace correlated subquery with LEFT JOIN in refresh_oui_sibling_profiles ([a65df3f](https://github.com/cyclonite69/shadowcheck-web/commit/a65df3f56d70c1956913dcfc6a1cf9683235c6a6))
 - replace hardcoded 40/5000 with CONFIG constants in v2 routes ([88dcb87](https://github.com/cyclonite69/shadowcheck-web/commit/88dcb8766868108c9887789d031e73f00ed327e6))
 - replace remaining updateHistory calls with direct adminDbService queries ([854abd0](https://github.com/cyclonite69/shadowcheck-web/commit/854abd073e91ba5d5969fbc6d6b412c740cd6de6))
 - replace shadowcheck_postgres_ssl with shadowcheck_postgres in scs_rebuild.sh ([f16bc06](https://github.com/cyclonite69/shadowcheck-web/commit/f16bc06ba517f51d1129d8958e100806f91efb39))

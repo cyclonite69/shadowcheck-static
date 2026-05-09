@@ -26,8 +26,18 @@ ALTER TABLE app.network_sibling_pairs
 
 -- Rename octet_delta_max to run_max_octet_delta to clarify it stores
 -- the run parameter ceiling, not the observed delta.
-ALTER TABLE app.network_sibling_pairs
-  RENAME COLUMN octet_delta_max TO run_max_octet_delta;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'app'
+      AND table_name = 'network_sibling_pairs'
+      AND column_name = 'octet_delta_max'
+  ) THEN
+    ALTER TABLE app.network_sibling_pairs
+      RENAME COLUMN octet_delta_max TO run_max_octet_delta;
+  END IF;
+END $$;
 
 -- Store the run min_confidence threshold as a per-row audit column.
 ALTER TABLE app.network_sibling_pairs
