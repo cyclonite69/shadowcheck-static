@@ -515,13 +515,52 @@ async function getSiblingStatsByRule(): Promise<any[]> {
   return rows;
 }
 
-function cancelSiblingRefresh(): { accepted: boolean; message: string } {
+/**
+ * Reconcile in-memory sibling job state with the database.
+ * If in-memory says NOT running but DB has a stale 'running' row,
+ * mark it failed and return that reconciled status.
+ */
+async function reconcileSiblingState(): Promise<void> {
   if (!state.running) {
-    // Also clear any stuck in-memory state from a previous crashed run
-    state.running = false;
-    state.cancelRequested = false;
+    // Check if there's a stale 'running' row in the DB (e.g., from a container restart)
+    const result = await adminQuery(
+      `SELECT id FROM app.sibling_runs WHERE status = $1 ORDER BY id DESC LIMIT 1`,
+      ['running']
+    );
+    if (result.rows.length > 0) {
+      const staleRunId = result.rows[0].id;
+      logger.warn('[Siblings] Found stale running row in DB; marking failed', {
+        runId: staleRunId,
+      });
+      await adminQuery(
+        `UPDATE app.sibling_runs SET status = $1, completed_at = now() WHERE id = $2`,
+        ['failed', staleRunId]
+      );
+    }
+  }
+}
+
+async function cancelSiblingRefresh(): Promise<{ accepted: boolean; message: string }> {
+  // First reconcile DB state
+  await reconcileSiblingState();
+
+  if (!state.running) {
+    // Check if there's a running row in DB that we need to cancel
+    const result = await adminQuery(
+      `SELECT id FROM app.sibling_runs WHERE status = $1 ORDER BY id DESC LIMIT 1`,
+      ['running']
+    );
+    if (result.rows.length > 0) {
+      const runId = result.rows[0].id;
+      await adminQuery(
+        `UPDATE app.sibling_runs SET status = $1, completed_at = now() WHERE id = $2`,
+        ['failed', runId]
+      );
+      return { accepted: true, message: 'Cleared stale run from database' };
+    }
     return { accepted: false, message: 'No job is currently running' };
   }
+
   state.cancelRequested = true;
   return { accepted: true, message: 'Cancel requested — job will stop after current batch' };
 }
@@ -540,6 +579,7 @@ module.exports = {
   getSiblingStatsByRule,
   runSiblingRefreshJob,
   purgeSiblingPairs,
+  reconcileSiblingState,
 };
 
 export {};
