@@ -61,6 +61,7 @@ export function JobCard({
   onSave,
   onRunNow,
   onRefresh,
+  onCancel,
 }: {
   jobKey: JobKey;
   config: JobConfig;
@@ -77,6 +78,7 @@ export function JobCard({
   onSave: () => void;
   onRunNow: () => void;
   onRefresh: () => void;
+  onCancel?: () => void;
 }) {
   return (
     <AdminCard icon={icon} title={title} color={color}>
@@ -132,6 +134,15 @@ export function JobCard({
         >
           {running === jobKey ? 'Running...' : RUN_LABELS[jobKey]}
         </button>
+
+        {onCancel && status?.currentRun?.status === 'running' && (
+          <button
+            onClick={onCancel}
+            className="w-full rounded-lg border border-red-700 bg-red-900/40 py-2 text-sm font-medium text-red-300 transition-colors hover:border-red-500 hover:bg-red-800/50"
+          >
+            Cancel Job
+          </button>
+        )}
       </div>
     </AdminCard>
   );

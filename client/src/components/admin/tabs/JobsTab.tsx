@@ -127,6 +127,15 @@ export const JobsTab: React.FC = () => {
     }
   };
 
+  const handleCancelSiblings = async () => {
+    try {
+      await apiClient.post<any>('/admin/siblings/cancel', {});
+      await fetchJobStatus();
+    } catch (err: any) {
+      alert(`Failed to cancel job: ${err.message}`);
+    }
+  };
+
   const handleRunNow = async (key: JobKey) => {
     setRunning(key);
     try {
@@ -212,6 +221,7 @@ export const JobsTab: React.FC = () => {
             onSave={() => handleUpdate(jobKey)}
             onRunNow={() => handleRunNow(jobKey)}
             onRefresh={fetchJobStatus}
+            onCancel={jobKey === 'siblingDetection' ? handleCancelSiblings : undefined}
           />
         ))}
       </div>

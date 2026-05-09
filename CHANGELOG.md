@@ -664,6 +664,7 @@
 - **siblings:** tighten same_oui_proximity to 4-octet match ([30b6145](https://github.com/cyclonite69/shadowcheck-web/commit/30b6145d7bba8ebd71838f30db40f0284d6d2c0c)), closes [hi#volume](https://github.com/hi/issues/volume)
 - **siblings:** tighten ssid_anchor to 4-octet match ([1a94207](https://github.com/cyclonite69/shadowcheck-web/commit/1a94207ddc2fbe89dc23f7df92196bfd326a089a))
 - **siblings:** use manual links for explorer ([87cd493](https://github.com/cyclonite69/shadowcheck-web/commit/87cd4935d5410578505fb53509a1ec5cb475fb52))
+- skip octet_delta_max rename if run_max_octet_delta already exists ([aee16e2](https://github.com/cyclonite69/shadowcheck-web/commit/aee16e21394993e495f87b78e9a253a681bd2baa))
 - skip postgres restart when SSL cert paths unchanged ([2c6cef7](https://github.com/cyclonite69/shadowcheck-web/commit/2c6cef77de3a80751b4be11f4f53446cf1822240))
 - **sort:** revert security sort replacements — buildOrderBy already handles it ([9f1737e](https://github.com/cyclonite69/shadowcheck-web/commit/9f1737e92b9495940bcb366680b8af7eab0c6e8c))
 - split wigle page tooltip from explorer mv ([12d19a0](https://github.com/cyclonite69/shadowcheck-web/commit/12d19a089b48f35b0a9532f039550aee89abc43d))

@@ -380,6 +380,11 @@ async function runSiblingRefreshJob(
   let completed = true;
 
   while (true) {
+    if (state.cancelRequested) {
+      completed = false;
+      logger.info('[Siblings] Cancel requested — stopping batch loop');
+      break;
+    }
     if (normalized.maxBatches !== null && batchesRun >= normalized.maxBatches) {
       completed = false;
       break;
@@ -468,6 +473,7 @@ async function startSiblingRefresh(
   }
 
   state.running = true;
+  state.cancelRequested = false;
   state.startedAt = new Date().toISOString();
   state.finishedAt = null;
   state.lastError = null;
@@ -509,6 +515,17 @@ async function getSiblingStatsByRule(): Promise<any[]> {
   return rows;
 }
 
+function cancelSiblingRefresh(): { accepted: boolean; message: string } {
+  if (!state.running) {
+    // Also clear any stuck in-memory state from a previous crashed run
+    state.running = false;
+    state.cancelRequested = false;
+    return { accepted: false, message: 'No job is currently running' };
+  }
+  state.cancelRequested = true;
+  return { accepted: true, message: 'Cancel requested — job will stop after current batch' };
+}
+
 async function purgeSiblingPairs(): Promise<{ deleted: number }> {
   const result = await adminQuery('TRUNCATE app.network_sibling_pairs');
   logger.info('[Siblings] Purged all sibling pairs');
@@ -517,6 +534,7 @@ async function purgeSiblingPairs(): Promise<{ deleted: number }> {
 
 module.exports = {
   startSiblingRefresh,
+  cancelSiblingRefresh,
   getSiblingRefreshStatus,
   getSiblingStats,
   getSiblingStatsByRule,

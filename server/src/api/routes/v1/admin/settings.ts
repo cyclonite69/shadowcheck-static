@@ -102,6 +102,10 @@ router.post('/jobs/:jobName/run', async (req: any, res: any) => {
       return res.status(400).json({ success: false, error: 'Unsupported background job' });
     }
 
+    // UI stores batch size as seed_limit; backend expects batchSize
+    if (jobName === 'siblingDetection' && options.seed_limit != null && options.batchSize == null) {
+      options.batchSize = options.seed_limit;
+    }
     const result = await backgroundJobsService.startJobNow(jobName, options);
     const status = await backgroundJobsService.getJobStatus();
     res.json({ success: true, result, ...status });

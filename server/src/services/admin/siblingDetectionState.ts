@@ -43,8 +43,9 @@ const DEFAULTS: Required<SiblingRefreshOptions> = {
   incremental: false,
 };
 
-const state: SiblingRefreshStatus = {
+const state: SiblingRefreshStatus & { cancelRequested: boolean } = {
   running: false,
+  cancelRequested: false,
   startedAt: null,
   finishedAt: null,
   options: null,

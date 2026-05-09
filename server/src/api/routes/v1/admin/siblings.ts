@@ -157,6 +157,16 @@ router.post('/admin/siblings/refresh', async (req: any, res: any) => {
   }
 });
 
+router.post('/admin/siblings/cancel', (req: any, res: any) => {
+  try {
+    const result = siblingDetectionAdminService.cancelSiblingRefresh();
+    res.status(result.accepted ? 200 : 409).json({ ok: result.accepted, message: result.message });
+  } catch (err: any) {
+    logger.error('[Siblings] Failed to cancel refresh', { error: err?.message });
+    res.status(500).json({ ok: false, error: err?.message || 'Failed to cancel sibling refresh' });
+  }
+});
+
 router.get('/admin/siblings/refresh/status', (req: any, res: any) => {
   try {
     const status = siblingDetectionAdminService.getSiblingRefreshStatus();
