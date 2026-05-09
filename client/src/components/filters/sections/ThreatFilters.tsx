@@ -21,127 +21,72 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
   filters,
   enabled,
   isCompact,
-  controlClass,
   listLayoutClass,
   listItemTextClass,
   onSetFilter,
   onToggleFilter,
 }) => {
   return (
-    <FilterSection title="Threat Level" compact={isCompact}>
+    <FilterSection title="Threat Intelligence" compact={isCompact}>
+      {/* 1. Surveillance Umbrella Toggle */}
       <FilterInput
-        label="Surveillance Device"
+        label="Surveillance"
         enabled={enabled.surveillance || false}
         onToggle={() => onToggleFilter('surveillance')}
         compact={isCompact}
       >
-        <label className="flex items-center gap-2 text-xs text-slate-300">
-          <input
-            type="checkbox"
-            checked={filters.surveillance ?? false}
-            onChange={(e) => onSetFilter('surveillance', e.target.checked)}
-            className="w-4 h-4"
-          />
-          Only surveillance-tagged networks
-        </label>
+        <div className={listLayoutClass}>
+          <div className="space-y-2">
+            <p className="text-[11px] text-slate-400">
+              Shows networks detected in the surveillance catalog.
+            </p>
+
+            {/* Device Type Sub-filters */}
+            <div className="space-y-1.5 pt-1 border-t border-slate-700/50">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={filters.flock ?? false}
+                  onChange={(e) => onSetFilter('flock', e.target.checked)}
+                  className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
+                />
+                <span className={`${listItemTextClass} text-slate-300`}>Flock Safety / ALPR</span>
+              </label>
+
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={filters.bwc ?? false}
+                  onChange={(e) => onSetFilter('bwc', e.target.checked)}
+                  className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
+                />
+                <span className={`${listItemTextClass} text-slate-300`}>Body Worn Camera</span>
+              </label>
+
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={filters.shotspotter ?? false}
+                  onChange={(e) => onSetFilter('shotspotter', e.target.checked)}
+                  className="filter-panel__checkbox rounded border-slate-600 bg-slate-800 text-blue-500"
+                />
+                <span className={`${listItemTextClass} text-slate-300`}>ShotSpotter Sensor</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </FilterInput>
 
+      {/* 2. Threat Level (Computed) */}
       <FilterInput
-        label="ShotSpotter Sensor"
-        enabled={enabled.shotspotter || false}
-        onToggle={() => onToggleFilter('shotspotter')}
-        compact={isCompact}
-      >
-        <label className="flex items-center gap-2 text-xs text-slate-300">
-          <input
-            type="checkbox"
-            checked={filters.shotspotter ?? false}
-            onChange={(e) => onSetFilter('shotspotter', e.target.checked)}
-            className="w-4 h-4"
-          />
-          Only ShotSpotter sensor networks
-        </label>
-      </FilterInput>
-
-      <FilterInput
-        label="Body-Worn Camera"
-        enabled={enabled.bwc || false}
-        onToggle={() => onToggleFilter('bwc')}
-        compact={isCompact}
-      >
-        <label className="flex items-center gap-2 text-xs text-slate-300">
-          <input
-            type="checkbox"
-            checked={filters.bwc ?? false}
-            onChange={(e) => onSetFilter('bwc', e.target.checked)}
-            className="w-4 h-4"
-          />
-          Only BWC-tagged networks
-        </label>
-      </FilterInput>
-
-      <FilterInput
-        label="Flock / ALPR Camera"
-        enabled={enabled.flock || false}
-        onToggle={() => onToggleFilter('flock')}
-        compact={isCompact}
-      >
-        <label className="flex items-center gap-2 text-xs text-slate-300">
-          <input
-            type="checkbox"
-            checked={filters.flock ?? false}
-            onChange={(e) => onSetFilter('flock', e.target.checked)}
-            className="w-4 h-4"
-          />
-          Only Flock/Raven-tagged networks
-        </label>
-      </FilterInput>
-
-      <FilterInput
-        label="Threat Score Min"
-        enabled={enabled.threatScoreMin || false}
-        onToggle={() => onToggleFilter('threatScoreMin')}
-        compact={isCompact}
-      >
-        <input
-          type="number"
-          value={filters.threatScoreMin ?? ''}
-          onChange={(e) => onSetFilter('threatScoreMin', parseFloat(e.target.value))}
-          placeholder="0"
-          step="1"
-          min="0"
-          max="100"
-          className={controlClass}
-        />
-      </FilterInput>
-
-      <FilterInput
-        label="Threat Score Max"
-        enabled={enabled.threatScoreMax || false}
-        onToggle={() => onToggleFilter('threatScoreMax')}
-        compact={isCompact}
-      >
-        <input
-          type="number"
-          value={filters.threatScoreMax ?? ''}
-          onChange={(e) => onSetFilter('threatScoreMax', parseFloat(e.target.value))}
-          placeholder="100"
-          step="1"
-          min="0"
-          max="100"
-          className={controlClass}
-        />
-      </FilterInput>
-
-      <FilterInput
-        label="Threat Level (Computed)"
+        label="Threat Level"
         enabled={enabled.threatCategories || false}
         onToggle={() => onToggleFilter('threatCategories')}
         compact={isCompact}
       >
         <div className="space-y-2">
           <p className="text-[11px] text-slate-400">
-            Uses computed final threat level (CRITICAL/HIGH/MED/LOW/NONE), not manual tags.
+            Uses computed final threat level (CRITICAL/HIGH/MED/LOW/NONE).
           </p>
           <div className={listLayoutClass}>
             {(['critical', 'high', 'medium', 'low', 'none'] as ThreatCategory[]).map((cat) => (
@@ -165,44 +110,44 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
         </div>
       </FilterInput>
 
+      {/* 3. Stationary Confidence */}
       <FilterInput
-        label="Stationary Confidence Min"
-        enabled={enabled.stationaryConfidenceMin || false}
-        onToggle={() => onToggleFilter('stationaryConfidenceMin')}
+        label="Stationary Confidence"
+        enabled={enabled.stationaryConfidenceMin || enabled.stationaryConfidenceMax}
+        onToggle={() => {
+          onToggleFilter('stationaryConfidenceMin');
+          onToggleFilter('stationaryConfidenceMax');
+        }}
         compact={isCompact}
       >
-        <input
-          type="number"
-          value={filters.stationaryConfidenceMin ?? ''}
-          onChange={(e) => onSetFilter('stationaryConfidenceMin', parseFloat(e.target.value))}
-          placeholder="0.0"
-          step="0.1"
-          min="0"
-          max="1"
-          className={controlClass}
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={filters.stationaryConfidenceMin ?? ''}
+            onChange={(e) => onSetFilter('stationaryConfidenceMin', parseFloat(e.target.value))}
+            placeholder="Min (0.0)"
+            step="0.1"
+            min="0"
+            max="1"
+            className="w-full rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-200"
+          />
+          <span className="text-slate-500">to</span>
+          <input
+            type="number"
+            value={filters.stationaryConfidenceMax ?? ''}
+            onChange={(e) => onSetFilter('stationaryConfidenceMax', parseFloat(e.target.value))}
+            placeholder="Max (1.0)"
+            step="0.1"
+            min="0"
+            max="1"
+            className="w-full rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-200"
+          />
+        </div>
       </FilterInput>
 
+      {/* 4. Threat Score Range (Rule-based) */}
       <FilterInput
-        label="Stationary Confidence Max"
-        enabled={enabled.stationaryConfidenceMax || false}
-        onToggle={() => onToggleFilter('stationaryConfidenceMax')}
-        compact={isCompact}
-      >
-        <input
-          type="number"
-          value={filters.stationaryConfidenceMax ?? ''}
-          onChange={(e) => onSetFilter('stationaryConfidenceMax', parseFloat(e.target.value))}
-          placeholder="1.0"
-          step="0.1"
-          min="0"
-          max="1"
-          className={controlClass}
-        />
-      </FilterInput>
-
-      <FilterInput
-        label="Rule-Based Score Range"
+        label="Rule-Based Score"
         enabled={enabled.ruleBasedScoreMin || enabled.ruleBasedScoreMax}
         onToggle={() => {
           onToggleFilter('ruleBasedScoreMin');
@@ -215,126 +160,71 @@ export const ThreatFilters: React.FC<ThreatFiltersProps> = ({
             type="number"
             value={filters.ruleBasedScoreMin ?? ''}
             onChange={(e) => onSetFilter('ruleBasedScoreMin', parseFloat(e.target.value))}
-            placeholder="Min (0)"
-            className={controlClass}
+            placeholder="Min"
+            className="w-full rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-200"
           />
           <span className="text-slate-500">to</span>
           <input
             type="number"
             value={filters.ruleBasedScoreMax ?? ''}
             onChange={(e) => onSetFilter('ruleBasedScoreMax', parseFloat(e.target.value))}
-            placeholder="Max (100)"
-            className={controlClass}
+            placeholder="Max"
+            className="w-full rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-200"
           />
         </div>
       </FilterInput>
 
+      {/* 5. ML Model Filters */}
       <FilterInput
-        label="ML Threat Score Range"
-        enabled={enabled.mlThreatScoreMin || enabled.mlThreatScoreMax}
+        label="ML Threat Model"
+        enabled={enabled.mlThreatScoreMin || enabled.mlThreatScoreMax || enabled.modelVersion}
         onToggle={() => {
           onToggleFilter('mlThreatScoreMin');
           onToggleFilter('mlThreatScoreMax');
+          onToggleFilter('modelVersion');
         }}
         compact={isCompact}
       >
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            value={filters.mlThreatScoreMin ?? ''}
-            onChange={(e) => onSetFilter('mlThreatScoreMin', parseFloat(e.target.value))}
-            placeholder="Min (0)"
-            className={controlClass}
-          />
-          <span className="text-slate-500">to</span>
-          <input
-            type="number"
-            value={filters.mlThreatScoreMax ?? ''}
-            onChange={(e) => onSetFilter('mlThreatScoreMax', parseFloat(e.target.value))}
-            placeholder="Max (100)"
-            className={controlClass}
-          />
-        </div>
-      </FilterInput>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={filters.mlThreatScoreMin ?? ''}
+              onChange={(e) => onSetFilter('mlThreatScoreMin', parseFloat(e.target.value))}
+              placeholder="Min Score"
+              className="w-full rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-200"
+            />
+            <span className="text-slate-500">to</span>
+            <input
+              type="number"
+              value={filters.mlThreatScoreMax ?? ''}
+              onChange={(e) => onSetFilter('mlThreatScoreMax', parseFloat(e.target.value))}
+              placeholder="Max"
+              className="w-full rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-200"
+            />
+          </div>
 
-      <FilterInput
-        label="ML Evidence Weight Range"
-        enabled={enabled.mlWeightMin || enabled.mlWeightMax}
-        onToggle={() => {
-          onToggleFilter('mlWeightMin');
-          onToggleFilter('mlWeightMax');
-        }}
-        compact={isCompact}
-      >
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            value={filters.mlWeightMin ?? ''}
-            onChange={(e) => onSetFilter('mlWeightMin', parseFloat(e.target.value))}
-            placeholder="Min (0)"
-            className={controlClass}
-          />
-          <span className="text-slate-500">to</span>
-          <input
-            type="number"
-            value={filters.mlWeightMax ?? ''}
-            onChange={(e) => onSetFilter('mlWeightMax', parseFloat(e.target.value))}
-            placeholder="Max"
-            className={controlClass}
-          />
+          <div>
+            <input
+              type="text"
+              value={(filters.modelVersion ?? []).join(', ')}
+              onChange={(e) =>
+                onSetFilter(
+                  'modelVersion',
+                  e.target.value
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                )
+              }
+              placeholder="Model version(s)..."
+              className="w-full rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-200"
+            />
+            <p className="mt-1 text-[10px] text-slate-500 italic">
+              Comma-separated e.g. 1.0.0, legacy
+            </p>
+          </div>
         </div>
-      </FilterInput>
-
-      <FilterInput
-        label="ML Model Boost Range"
-        enabled={enabled.mlBoostMin || enabled.mlBoostMax}
-        onToggle={() => {
-          onToggleFilter('mlBoostMin');
-          onToggleFilter('mlBoostMax');
-        }}
-        compact={isCompact}
-      >
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            value={filters.mlBoostMin ?? ''}
-            onChange={(e) => onSetFilter('mlBoostMin', parseFloat(e.target.value))}
-            placeholder="Min"
-            className={controlClass}
-          />
-          <span className="text-slate-500">to</span>
-          <input
-            type="number"
-            value={filters.mlBoostMax ?? ''}
-            onChange={(e) => onSetFilter('mlBoostMax', parseFloat(e.target.value))}
-            placeholder="Max"
-            className={controlClass}
-          />
-        </div>
-      </FilterInput>
-
-      <FilterInput
-        label="ML Model Version"
-        enabled={enabled.modelVersion || false}
-        onToggle={() => onToggleFilter('modelVersion')}
-        compact={isCompact}
-      >
-        <input
-          type="text"
-          value={(filters.modelVersion ?? []).join(', ')}
-          onChange={(e) =>
-            onSetFilter(
-              'modelVersion',
-              e.target.value
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean)
-            )
-          }
-          placeholder="e.g. 1.0.0, legacy..."
-          className={controlClass}
-        />
-        <p className="mt-1 text-[10px] text-slate-500">Comma-separated versions.</p>
       </FilterInput>
     </FilterSection>
   );

@@ -35,6 +35,7 @@ const adminSecretsRoutes = require('./admin/secrets');
 const adminImportRoutes = require('./admin/import');
 const adminMaintenanceRoutes = require('./admin/maintenance');
 const adminSiblingsRoutes = require('./admin/siblings');
+const adminDetectionEvidenceRoutes = require('./admin/detectionEvidence');
 const adminDataQualityRoutes = require('./dataQuality').default;
 const adminDbStatsRoutes = require('./admin/dbStats').default;
 
@@ -74,7 +75,8 @@ router.use('/admin/aws', adminAwsInstancesRoutes);
 router.use(adminImportRoutes);
 router.use(adminMaintenanceRoutes);
 router.use(adminSiblingsRoutes);
-router.use('/admin/data-quality', adminDataQualityRoutes);
+router.use(adminDetectionEvidenceRoutes);
+router.use(adminDataQualityRoutes);
 router.use('/admin/db-stats', adminDbStatsRoutes);
 
 // GET /api/observations/check-duplicates/:bssid - Check for duplicate observations

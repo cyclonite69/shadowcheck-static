@@ -1633,6 +1633,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Analysis',
+    label: 'Detection Evidence',
+    path: '/api/admin/networks/:bssid/detection-evidence',
+    method: 'GET',
+    requiresAuth: true,
+    params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:14:3E:4A:67:A0' }],
+  },
+  {
+    category: 'Admin Analysis',
     label: 'Network Media',
     path: '/api/admin/network-media/:bssid',
     method: 'GET',
