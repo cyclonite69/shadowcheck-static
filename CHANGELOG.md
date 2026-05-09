@@ -537,6 +537,7 @@
 - Remove duplicate closing brace causing syntax error ([dc64786](https://github.com/cyclonite69/shadowcheck-web/commit/dc647867e5605852c562def1cb04cb926b90f716))
 - Remove duplicate main div breaking layout on all pages ([f0ea6a8](https://github.com/cyclonite69/shadowcheck-web/commit/f0ea6a8ba428039f71cef76a45544914c1e9242b))
 - Remove duplicate mainGrid declaration ([5762f6b](https://github.com/cyclonite69/shadowcheck-web/commit/5762f6b45bb25ccc913a551f4908ab710b84dc08))
+- remove duplicate parameter from REFRESH_CHUNK_SQL call ([df045e7](https://github.com/cyclonite69/shadowcheck-web/commit/df045e74ddb254c2f779f161af52d7990b9d17d9))
 - remove duplicate Security filter section and add missing Data Quality filters ([b0a784a](https://github.com/cyclonite69/shadowcheck-web/commit/b0a784acfb1cd4a87bb143dff6f2e3d0dc944c2e))
 - Remove hardcoded passwords from test files, use secretsManager ([1451db6](https://github.com/cyclonite69/shadowcheck-web/commit/1451db630af94aea13cc814c5ecd52ef68b7ce3a))
 - remove incorrect .default from networksRoutes import ([c311bea](https://github.com/cyclonite69/shadowcheck-web/commit/c311bea6edbb21deaf218bf40e2ceb272f9c0e69))

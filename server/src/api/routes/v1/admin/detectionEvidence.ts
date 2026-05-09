@@ -33,18 +33,20 @@ router.get('/admin/networks/:bssid/detection-evidence', async (req: any, res: an
 
     const { rows } = await query(
       `SELECT
-         device_type,
-         confidence,
-         threat_score,
-         detected_at,
-         detection_method,
-         matched_signals,
-         false_positive,
-         fp_reason,
-         notes
-       FROM app.surveillance_detections
-       WHERE bssid = $1
-       ORDER BY detected_at DESC`,
+          sd.device_type,
+          sd.confidence,
+          sd.threat_score,
+          sd.detected_at,
+          sd.detection_method,
+          sd.matched_signals,
+          sd.false_positive,
+          sd.fp_reason,
+          sd.notes,
+          nt.tags
+        FROM app.surveillance_detections sd
+        LEFT JOIN app.network_tags nt ON nt.bssid = sd.bssid
+        WHERE sd.bssid = $1
+        ORDER BY sd.detected_at DESC`,
       [bssid.toUpperCase()]
     );
 

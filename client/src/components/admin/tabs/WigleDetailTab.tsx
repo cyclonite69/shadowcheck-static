@@ -43,6 +43,24 @@ const DetailIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+/**
+ * Convert device_type enum to human-readable label
+ */
+const formatDeviceType = (deviceType: string): string => {
+  const typeMap: Record<string, string> = {
+    FLOCK_SAFETY_CAMERA: 'Flock Safety Camera',
+    RAVEN_GUNSHOT_DETECTOR: 'Raven Gunshot Detector',
+    FS_EXT_BATTERY: 'Flock External Battery',
+    AXON_BODY_CAMERA: 'Axon Body Camera',
+    MOTOROLA_BWC: 'Motorola Body Camera',
+    AXON_SIGNAL_PERIPHERAL: 'Axon Signal Peripheral',
+    DEI_BWC: 'Body Worn Camera (DEI)',
+    BT_IMAGING_DEVICE: 'BT Imaging Device',
+    SHOTSPOTTER_SENSOR: 'ShotSpotter Sensor',
+  };
+  return typeMap[deviceType] || deviceType.replace(/_/g, ' ');
+};
+
 export const WigleDetailTab: React.FC = () => {
   const [netid, setNetid] = useState('');
   const [detailType, setDetailType] = useState<WigleDetailType>('wifi');
@@ -620,7 +638,7 @@ export const WigleDetailTab: React.FC = () => {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded text-[10px] font-bold uppercase tracking-wider">
-                                {det.device_type?.replace(/_/g, ' ')}
+                                {formatDeviceType(det.device_type)}
                               </span>
                               {det.false_positive && (
                                 <span className="px-2 py-0.5 bg-red-500/20 text-red-300 border border-red-500/30 rounded text-[10px] font-bold uppercase tracking-wider">
@@ -699,6 +717,28 @@ export const WigleDetailTab: React.FC = () => {
                             {det.fp_reason}
                           </div>
                         )}
+
+                        {det.tags &&
+                          typeof det.tags === 'object' &&
+                          Object.keys(det.tags).length > 0 && (
+                            <div>
+                              <div className="text-[10px] text-slate-500 uppercase font-bold mb-1.5">
+                                Tags
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(Array.isArray(det.tags) ? det.tags : Object.keys(det.tags)).map(
+                                  (tag: string, tIdx: number) => (
+                                    <span
+                                      key={tIdx}
+                                      className="px-2 py-0.5 bg-slate-700/40 text-slate-300 rounded text-[10px] font-mono border border-slate-600/50"
+                                    >
+                                      {tag}
+                                    </span>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )}
                       </div>
                     ))}
                   </div>
