@@ -81,6 +81,7 @@ describe('siblingDetectionAdminService', () => {
     // Logic should handle missing rows by using {}
     const result = await service.runSiblingRefreshJob();
     expect(result.seedsProcessed).toBe(0);
+    expect(mockAdminQuery.mock.calls[3][1]).toEqual([1]);
   });
 
   it('honors maxBatches and returns completed=false when truncated', async () => {

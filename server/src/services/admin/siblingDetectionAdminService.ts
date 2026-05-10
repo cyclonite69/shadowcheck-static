@@ -415,10 +415,7 @@ async function runSiblingRefreshJob(
     }
   }
 
-  const extraResult: any = await longRunningAdminQuery(EXTRA_RULES_SQL, [
-    runId,
-    normalized.minCandidateConf,
-  ]);
+  const extraResult: any = await longRunningAdminQuery(EXTRA_RULES_SQL, [runId]);
   const extraRow = extraResult.rows[0] || {};
   logger.info('[Siblings] Extra rules complete', {
     upper_rotation: extraRow.upper_rotation_count,
