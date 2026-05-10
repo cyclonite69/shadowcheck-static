@@ -515,7 +515,6 @@ export const renderNetworkTooltip = (props: any): any => {
       ? `<details style="border-top:1px solid rgba(255,255,255,0.08);">
     <summary style="cursor:pointer;list-style:none;padding:5px 12px;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);user-select:none;">&#x25BC; Timestamps</summary>
     <div style="padding:6px 12px 8px;background:rgba(255,255,255,0.02);">
-      ${!isWigleOrigin && !isMissingValue(props.number) && obsTotal > 0 && Number(props.number) <= obsTotal ? `<div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px;">OBS #${normalizeDisplay(props.number)} of ${obsTotal}</div>` : ''}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
         ${
           !isMissingValue(props.first_seen)
