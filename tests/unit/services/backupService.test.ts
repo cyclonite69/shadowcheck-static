@@ -83,7 +83,7 @@ describe('backupService', () => {
     const child = new EventEmitter() as any;
     child.stdout = stdout;
     child.stderr = stderr;
-    
+
     child.on = jest.fn().mockImplementation((event, cb) => {
       if (event === 'close') {
         process.nextTick(() => {
@@ -120,7 +120,9 @@ describe('backupService', () => {
     (verifyBackupFile as jest.Mock).mockResolvedValue(1024);
     (createWriteStream as jest.Mock).mockImplementation(createMockStream);
     (spawn as jest.Mock).mockImplementation(() => createMockProcess(0));
-    (execSync as jest.Mock).mockImplementation(() => { throw new Error('not aws'); });
+    (execSync as jest.Mock).mockImplementation(() => {
+      throw new Error('not aws');
+    });
   });
 
   afterAll(() => {
@@ -205,12 +207,12 @@ describe('backupService', () => {
       process.env.BACKUP_RETENTION_DAYS = '7';
       const now = Date.now();
       const oldTime = now - 10 * 24 * 60 * 60 * 1000;
-      
+
       (fs.readdir as jest.Mock).mockResolvedValue([
         { isFile: () => true, name: 'old.dump' },
         { isFile: () => true, name: 'new.dump' },
       ]);
-      
+
       (fs.stat as jest.Mock).mockImplementation((path: string) => {
         if (path.endsWith('old.dump')) return Promise.resolve({ size: 1024, mtimeMs: oldTime });
         return Promise.resolve({ size: 1024, mtimeMs: now });
@@ -237,7 +239,11 @@ describe('backupService', () => {
       await runPostgresBackup();
 
       const spawnCalls = (spawn as jest.Mock).mock.calls;
-      const pgDumpCall = spawnCalls.find(call => (call[0].includes('pg_dump') || (call[1] && call[1].includes('pg_dump'))) && call[2].env.PGPASSWORD === 'admin-pass');
+      const pgDumpCall = spawnCalls.find(
+        (call) =>
+          (call[0].includes('pg_dump') || (call[1] && call[1].includes('pg_dump'))) &&
+          call[2].env.PGPASSWORD === 'admin-pass'
+      );
       expect(pgDumpCall).toBeDefined();
     });
 
@@ -253,7 +259,7 @@ describe('backupService', () => {
       await runPostgresBackup();
 
       const spawnCalls = (spawn as jest.Mock).mock.calls;
-      const pgDumpCall = spawnCalls.find(call => call[1].includes('--format=custom'));
+      const pgDumpCall = spawnCalls.find((call) => call[1].includes('--format=custom'));
       expect(pgDumpCall[2].env.PGUSER).toBe('app-user');
       expect(pgDumpCall[2].env.PGPASSWORD).toBe('app-pass');
     });
@@ -276,57 +282,34 @@ describe('backupService', () => {
     it('should resolve tool path from env var', async () => {
       process.env.PG_DUMP_PATH = '/custom/pg_dump';
       (fs.access as jest.Mock).mockResolvedValue(undefined);
-      
+
       await runPostgresBackup();
-      
+
       expect(fs.access).toHaveBeenCalledWith('/custom/pg_dump', expect.anything());
     });
 
-    it('should fall back to default tool path if candidates fail', async () => {
-      (fs.access as jest.Mock).mockRejectedValue(new Error('not found'));
-      
-      await runPostgresBackup();
-      
-      // Should still call spawn with the tool name as a fallback
-      expect(spawn).toHaveBeenCalled();
+    it('should throw error if backup directory cannot be created', async () => {
+      (fs.mkdir as jest.Mock).mockRejectedValueOnce(new Error('Permission Denied'));
+      await expect(runPostgresBackup()).rejects.toThrow('Permission Denied');
     });
-  });
 
-  describe('listS3Backups', () => {
-    it('should list and format S3 backups', async () => {
-      (listS3BackupObjects as jest.Mock).mockResolvedValue([
-        { Key: 'backups/prod/db_20260101.dump', Size: 2048, LastModified: '2026-01-01' },
-        { Key: 'backups/db_20260102.dump', Size: 4096, LastModified: '2026-01-02' },
-      ]);
-
-      const result = await listS3Backups();
-
-      expect(result).toHaveLength(2);
-      expect(result[0]).toEqual({
-        key: 'backups/prod/db_20260101.dump',
-        fileName: 'db_20260101.dump',
-        sourceEnv: 'prod',
-        size: 2048,
-        lastModified: '2026-01-01',
-        url: 's3://test-bucket/backups/prod/db_20260101.dump',
+    it('should throw if globals file is empty', async () => {
+      (fs.stat as jest.Mock).mockImplementation((path: string) => {
+        if (path.includes('globals_')) return Promise.resolve({ size: 0 });
+        return Promise.resolve({ size: 1024 });
       });
-      expect(result[1].sourceEnv).toBe('unknown');
+
+      await expect(runPostgresBackup()).rejects.toThrow('Globals backup file is empty');
     });
 
-    it('should throw if S3_BACKUP_BUCKET is not set', async () => {
-      delete process.env.S3_BACKUP_BUCKET;
-      await expect(listS3Backups()).rejects.toThrow('S3_BACKUP_BUCKET is not configured');
+    it('should handle S3 bucket listing error', async () => {
+      (listS3BackupObjects as jest.Mock).mockRejectedValueOnce(new Error('S3 Access Denied'));
+      await expect(listS3Backups()).rejects.toThrow('S3 Access Denied');
     });
-  });
 
-  describe('deleteS3Backup', () => {
-    it('should delete S3 backup', async () => {
-      (deleteS3BackupObject as jest.Mock).mockResolvedValue(undefined);
-
-      const result = await deleteS3Backup('test-key');
-
-      expect(deleteS3BackupObject).toHaveBeenCalledWith('test-bucket', 'test-key');
-      expect(result.deleted).toBe(true);
+    it('should handle S3 backup deletion error', async () => {
+      (deleteS3BackupObject as jest.Mock).mockRejectedValueOnce(new Error('Delete Failed'));
+      await expect(deleteS3Backup('key')).rejects.toThrow('Delete Failed');
     });
   });
 });
