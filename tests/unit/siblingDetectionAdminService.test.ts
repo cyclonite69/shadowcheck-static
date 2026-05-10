@@ -46,16 +46,12 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({
         rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }],
       })
-      .mockResolvedValueOnce({
-        rows: [
-          {
-            upper_rotation_count: 0,
-            ssid_anchor_count: 0,
-            cross_oui_count: 0,
-            same_oui_proximity_count: 0,
-          },
-        ],
-      })
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
       .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
 
@@ -74,7 +70,12 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({ rows: [{ id: 1 }] }) // Insert run
       .mockResolvedValueOnce({ rows: [{ cutoff: '2026-05-09' }] }) // Get cutoff
       .mockResolvedValueOnce({ rows: [] }) // REFRESH_CHUNK_SQL
-      .mockResolvedValueOnce({ rows: [] }) // EXTRA_RULES
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
       .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
 
@@ -91,16 +92,12 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({
         rows: [{ seed_count: 3, upserted_count: 2, next_cursor: 'AA:AA:AA:AA:AA:03' }],
       })
-      .mockResolvedValueOnce({
-        rows: [
-          {
-            upper_rotation_count: 0,
-            ssid_anchor_count: 0,
-            cross_oui_count: 0,
-            same_oui_proximity_count: 0,
-          },
-        ],
-      })
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
       .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
 
@@ -133,16 +130,12 @@ describe('siblingDetectionAdminService', () => {
           rows: [{ seed_count: 2, upserted_count: 1, next_cursor: 'AA:BB:CC:DD:EE:02' }],
         })
         .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              upper_rotation_count: 3,
-              ssid_anchor_count: 1,
-              cross_oui_count: 0,
-              same_oui_proximity_count: 0,
-            },
-          ],
-        })
+        .mockResolvedValueOnce({ rows: [{ count: 3 }] }) // upper_rotation
+        .mockResolvedValueOnce({ rows: [{ count: 1 }] }) // ssid_anchor
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
         .mockResolvedValueOnce({ rowCount: 1 }) // Update run
         .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
 
@@ -162,16 +155,12 @@ describe('siblingDetectionAdminService', () => {
         .mockResolvedValueOnce({ rows: [{ id: 1 }] }) // Insert run
         .mockResolvedValueOnce({ rows: [{ cutoff: '2026-05-09' }] }) // Get cutoff
         .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              upper_rotation_count: 0,
-              ssid_anchor_count: 0,
-              cross_oui_count: 0,
-              same_oui_proximity_count: 0,
-            },
-          ],
-        })
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
         .mockResolvedValueOnce({ rowCount: 1 }) // Update run
         .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
 
@@ -189,16 +178,12 @@ describe('siblingDetectionAdminService', () => {
         .mockResolvedValueOnce({ rows: [{ id: 1 }] }) // Insert run
         .mockResolvedValueOnce({ rows: [{ cutoff: '2026-05-09' }] }) // Get cutoff
         .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
-        .mockResolvedValueOnce({
-          rows: [
-            {
-              upper_rotation_count: 0,
-              ssid_anchor_count: 0,
-              cross_oui_count: 0,
-              same_oui_proximity_count: 5,
-            },
-          ],
-        })
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
+        .mockResolvedValueOnce({ rows: [{ count: 5 }] }) // same_oui_proximity
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
         .mockResolvedValueOnce({ rowCount: 1 }) // Update run
         .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
 

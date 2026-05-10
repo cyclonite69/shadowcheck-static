@@ -5,11 +5,11 @@ import {
   SIBLING_STATS_BY_RULE_SQL,
 } from './siblingDetectionQueries';
 
-// Four additional rule classes derived from manual ground truth analysis.
-// Run once per refresh after the chunked REFRESH_CHUNK_SQL loop, as a single
-// full-table pass. ON CONFLICT only upgrades confidence, never downgrades.
-const EXTRA_RULES_SQL = `
-  WITH upper_rotation AS (
+// Extra rules run as separate statements to avoid PostgreSQL's
+// "ON CONFLICT DO UPDATE command cannot affect row a second time" crash
+// when overlapping pairs match multiple rules within a single command.
+const EXTRA_RULE_UPPER_ROTATION = `
+  WITH inserted AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
       run_id
@@ -41,7 +41,6 @@ const EXTRA_RULES_SQL = `
      AND SUBSTRING(b.bssid, 1, 5) <> SUBSTRING(a.bssid, 1, 5)
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
-    -- Skip pairs blocked by manual not_sibling overrides
     LEFT JOIN app.network_sibling_overrides nso
       ON nso.bssid1 = LEAST(a.bssid, b.bssid)
      AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
@@ -49,14 +48,6 @@ const EXTRA_RULES_SQL = `
      AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
-      -- upper_octet_rotation is a pure MAC-based rule — SSID is irrelevant.
-      -- Do NOT exclude fleet SSIDs here: a multi-BSSID AP (e.g. Xfinity) may
-      -- broadcast xfinitywifi on one BSSID and a different SSID on another,
-      -- with the same last 4 octets and a different first octet. The MAC
-      -- pattern is the evidence; the SSID is incidental.
-      -- Require both networks to have location data and be within 200m to
-      -- prevent false positives from coincidentally matching middle octets
-      -- across unrelated devices (e.g. Azure Wave / GreatLakesMobile).
       AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
       AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
       AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
@@ -75,9 +66,13 @@ const EXTRA_RULES_SQL = `
           computed_at = EXCLUDED.computed_at,
           run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
-    RETURNING bssid1, bssid2
-  ),
-  ssid_anchor AS (
+    RETURNING 1
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_SSID_ANCHOR = `
+  WITH inserted AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, ssid1, ssid2, matched_octets, pair_strength, quality_scope, computed_at,
       run_id
@@ -108,8 +103,6 @@ const EXTRA_RULES_SQL = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
-      -- Fleet SSIDs are not valid evidence for ssid_anchor — SSID alone is meaningless
-      -- for high-cardinality shared SSIDs. Deterministic MAC rules handle these.
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
         'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
         'mtasmartbus','kajeetsmartbus','somguest','somiot',
@@ -129,9 +122,13 @@ const EXTRA_RULES_SQL = `
           computed_at = EXCLUDED.computed_at,
           run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
-    RETURNING bssid1, bssid2
-  ),
-  cross_oui_ssid AS (
+    RETURNING 1
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_CROSS_OUI_SSID = `
+  WITH inserted AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
       run_id
@@ -166,7 +163,6 @@ const EXTRA_RULES_SQL = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
-      -- Fleet SSIDs are not valid evidence for cross_oui_ssid_exact.
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
         'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
         'mtasmartbus','kajeetsmartbus','somguest','somiot',
@@ -183,12 +179,6 @@ const EXTRA_RULES_SQL = `
         ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
         ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
       ) < 200
-      -- Exclude pairs already handled by upper_rotation in this command
-      AND NOT EXISTS (
-        SELECT 1 FROM upper_rotation ur
-        WHERE ur.bssid1 = LEAST(a.bssid, b.bssid)
-          AND ur.bssid2 = GREATEST(a.bssid, b.bssid)
-      )
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -202,12 +192,12 @@ const EXTRA_RULES_SQL = `
           run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
-  ),
-  same_oui_proximity AS (
-    -- OUI+1 match: same first 4 octets, last octet delta 1–6.
-    -- Requires 4 octets (not just OUI) to avoid chaining unrelated devices
-    -- from high-volume manufacturers (e.g. TP-Link) that happen to share an OUI.
-    -- Distance is stored as metadata but NOT used as a gate.
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_SAME_OUI_PROXIMITY = `
+  WITH inserted AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
       run_id
@@ -235,7 +225,6 @@ const EXTRA_RULES_SQL = `
       $1::integer
     FROM app.networks a
     JOIN app.networks b
-      -- First 4 octets identical (11 chars: "XX:XX:XX:XX")
       ON SUBSTRING(b.bssid, 1, 11) = SUBSTRING(a.bssid, 1, 11)
      AND ABS(
            ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
@@ -250,12 +239,6 @@ const EXTRA_RULES_SQL = `
      AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
-      -- Exclude pairs already handled by ssid_anchor in this command
-      AND NOT EXISTS (
-        SELECT 1 FROM ssid_anchor sa
-        WHERE sa.bssid1 = LEAST(a.bssid, b.bssid)
-          AND sa.bssid2 = GREATEST(a.bssid, b.bssid)
-      )
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -267,12 +250,12 @@ const EXTRA_RULES_SQL = `
           run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
     RETURNING 1
-  ),
-  -- Manual sibling overrides are the authoritative baseline.
-  -- Any heuristic pair that the operator has confirmed as a sibling gets
-  -- upgraded to confidence 1.0 and rule 'manual_confirmed'. This ensures
-  -- manual selections survive future refresh runs at full confidence.
-  manual_boost AS (
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_MANUAL_BOOST = `
+  WITH updated AS (
     UPDATE app.network_sibling_pairs p
     SET rule        = 'manual_confirmed',
         confidence  = 1.0,
@@ -286,11 +269,12 @@ const EXTRA_RULES_SQL = `
       AND o.is_active = true
       AND p.confidence < 1.0
     RETURNING 1
-  ),
-  -- Also insert manual sibling pairs that no heuristic rule has created yet.
-  -- This ensures the operator's confirmed pairs are always in network_sibling_pairs
-  -- and not just in the effective view.
-  manual_insert AS (
+  )
+  SELECT COUNT(*)::int AS count FROM updated
+`;
+
+const EXTRA_RULE_MANUAL_INSERT = `
+  WITH inserted AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, quality_scope, computed_at
     )
@@ -312,13 +296,7 @@ const EXTRA_RULES_SQL = `
       WHERE network_sibling_pairs.confidence < 1.0
     RETURNING 1
   )
-  SELECT
-    (SELECT COUNT(*)::int FROM upper_rotation)     AS upper_rotation_count,
-    (SELECT COUNT(*)::int FROM ssid_anchor)        AS ssid_anchor_count,
-    (SELECT COUNT(*)::int FROM cross_oui_ssid)     AS cross_oui_count,
-    (SELECT COUNT(*)::int FROM same_oui_proximity) AS same_oui_proximity_count,
-    (SELECT COUNT(*)::int FROM manual_boost)       AS manual_boost_count,
-    (SELECT COUNT(*)::int FROM manual_insert)      AS manual_insert_count
+  SELECT COUNT(*)::int AS count FROM inserted
 `;
 import {
   getSiblingRefreshStatus,
@@ -427,15 +405,19 @@ async function runSiblingRefreshJob(
     }
   }
 
-  const extraResult: any = await longRunningAdminQuery(EXTRA_RULES_SQL, [runId]);
-  const extraRow = extraResult.rows[0] || {};
+  const upperRes: any = await longRunningAdminQuery(EXTRA_RULE_UPPER_ROTATION, [runId]);
+  const ssidRes: any = await longRunningAdminQuery(EXTRA_RULE_SSID_ANCHOR, [runId]);
+  const crossRes: any = await longRunningAdminQuery(EXTRA_RULE_CROSS_OUI_SSID, [runId]);
+  const proximityRes: any = await longRunningAdminQuery(EXTRA_RULE_SAME_OUI_PROXIMITY, [runId]);
+  const boostRes: any = await longRunningAdminQuery(EXTRA_RULE_MANUAL_BOOST, []);
+  const insertRes: any = await longRunningAdminQuery(EXTRA_RULE_MANUAL_INSERT, []);
   logger.info('[Siblings] Extra rules complete', {
-    upper_rotation: extraRow.upper_rotation_count,
-    ssid_anchor: extraRow.ssid_anchor_count,
-    cross_oui: extraRow.cross_oui_count,
-    same_oui_proximity: extraRow.same_oui_proximity_count,
-    manual_boost: extraRow.manual_boost_count,
-    manual_insert: extraRow.manual_insert_count,
+    upper_rotation: Number(upperRes.rows[0]?.count || 0),
+    ssid_anchor: Number(ssidRes.rows[0]?.count || 0),
+    cross_oui: Number(crossRes.rows[0]?.count || 0),
+    same_oui_proximity: Number(proximityRes.rows[0]?.count || 0),
+    manual_boost: Number(boostRes.rows[0]?.count || 0),
+    manual_insert: Number(insertRes.rows[0]?.count || 0),
   });
 
   const finalStatus = completed ? 'completed' : 'truncated';
