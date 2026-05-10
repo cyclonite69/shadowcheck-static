@@ -157,6 +157,14 @@ describe('AdminUsersService', () => {
       expect(lastCall[1]).toEqual(['newuser', 'new@example.com', h_pwd, 'user']);
     });
 
+    it('should throw if bcrypt hashing fails', async () => {
+      (bcrypt.hash as jest.Mock).mockRejectedValueOnce(new Error('Hashing failed'));
+
+      await expect(adminUsersService.createAppUser('u', 'e', 'p')).rejects.toThrow(
+        'Hashing failed'
+      );
+    });
+
     it('should throw other database errors', async () => {
       (bcrypt.hash as jest.Mock).mockResolvedValueOnce(h_pwd);
       (adminQuery as jest.Mock).mockRejectedValueOnce(new Error('DB error'));
@@ -320,6 +328,14 @@ describe('AdminUsersService', () => {
       const user = await adminUsersService.resetAppUserPassword(999, pwd);
 
       expect(user).toBeNull();
+    });
+
+    it('should throw if bcrypt hashing fails', async () => {
+      (bcrypt.hash as jest.Mock).mockRejectedValueOnce(new Error('Hashing failed'));
+
+      await expect(adminUsersService.resetAppUserPassword(1, pwd)).rejects.toThrow(
+        'Hashing failed'
+      );
     });
 
     it('should throw other database errors', async () => {

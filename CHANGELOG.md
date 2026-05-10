@@ -940,6 +940,7 @@
 - add viewport-static pin mode and improved tether line geometry ([68e8e3c](https://github.com/cyclonite69/shadowcheck-web/commit/68e8e3cf9163d94fffaae232d35aa1d2d63cc237))
 - Add Weather FX system to GeospatialExplorer with real-time atmospheric effects ([4f014e8](https://github.com/cyclonite69/shadowcheck-web/commit/4f014e87b407d2efdab9ba392086a4337d3cdc0b))
 - add WiGLE crowdsourced observations overlay to geospatial map ([b2bccf2](https://github.com/cyclonite69/shadowcheck-web/commit/b2bccf20dce3eb30cc5e5bbc46b5f07d8e5268ce))
+- add WiGLE import tables and unused index totals to DB Stats page ([ad4e603](https://github.com/cyclonite69/shadowcheck-web/commit/ad4e6033ffca8382f34ddfb28cc622f25d03d682))
 - add wigle networks MV, spatial bounding-box helpers, and enrichment refresh hook ([de6a122](https://github.com/cyclonite69/shadowcheck-web/commit/de6a1228b483398fc25a193733c01bca7cc91fcc))
 - **admin-ui:** add Users tab for user management ([11c20e0](https://github.com/cyclonite69/shadowcheck-web/commit/11c20e0a8c9fc852c49910fe290d16ab2ea3db82))
 - admin.html uses base-components ([4a67a2f](https://github.com/cyclonite69/shadowcheck-web/commit/4a67a2f7ab38422d85d011bb951381f372ba76e8))
