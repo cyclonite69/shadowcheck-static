@@ -75,7 +75,7 @@ const EXTRA_RULES_SQL = `
           computed_at = EXCLUDED.computed_at,
           run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
-    RETURNING 1
+    RETURNING bssid1, bssid2
   ),
   ssid_anchor AS (
     INSERT INTO app.network_sibling_pairs (
@@ -129,7 +129,7 @@ const EXTRA_RULES_SQL = `
           computed_at = EXCLUDED.computed_at,
           run_id = EXCLUDED.run_id
       WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
-    RETURNING 1
+    RETURNING bssid1, bssid2
   ),
   cross_oui_ssid AS (
     INSERT INTO app.network_sibling_pairs (
@@ -183,6 +183,12 @@ const EXTRA_RULES_SQL = `
         ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
         ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
       ) < 200
+      -- Exclude pairs already handled by upper_rotation in this command
+      AND NOT EXISTS (
+        SELECT 1 FROM upper_rotation ur
+        WHERE ur.bssid1 = LEAST(a.bssid, b.bssid)
+          AND ur.bssid2 = GREATEST(a.bssid, b.bssid)
+      )
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -244,6 +250,12 @@ const EXTRA_RULES_SQL = `
      AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
+      -- Exclude pairs already handled by ssid_anchor in this command
+      AND NOT EXISTS (
+        SELECT 1 FROM ssid_anchor sa
+        WHERE sa.bssid1 = LEAST(a.bssid, b.bssid)
+          AND sa.bssid2 = GREATEST(a.bssid, b.bssid)
+      )
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
