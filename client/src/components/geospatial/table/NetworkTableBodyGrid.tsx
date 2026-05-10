@@ -101,38 +101,89 @@ export const NetworkTableBodyGrid = ({
     return { groupMap, groupMembers };
   }, [filteredNetworks, siblingGroupMap]);
 
+  // Cache previous sortedDisplayNetworks to detect pagination vs filter/sort
+  const prevSortedRef = React.useRef<NetworkRow[]>([]);
+
   // Re-order filteredNetworks so siblings are consecutive (lowest octet = parent, first)
+  // CRITICAL: Only append new items when pagination happens to preserve scroll position
   const sortedDisplayNetworks = React.useMemo(() => {
     const { groupMap, groupMembers } = patternGroups;
-    if (groupMap.size === 0) return filteredNetworks;
+    if (groupMap.size === 0) {
+      prevSortedRef.current = filteredNetworks;
+      return filteredNetworks;
+    }
 
     const netByBssid = new Map<string, NetworkRow>();
     for (const net of filteredNetworks) {
       if (net.bssid) netByBssid.set(net.bssid.toUpperCase(), net);
     }
 
-    const placed = new Set<string>();
-    const result: NetworkRow[] = [];
+    // Check if this is pagination (only new items added at end) vs filter change (array replaced)
+    const isPagination =
+      prevSortedRef.current.length > 0 &&
+      prevSortedRef.current.length < filteredNetworks.length &&
+      prevSortedRef.current.every((item, idx) => item.bssid === filteredNetworks[idx]?.bssid);
 
-    for (const net of filteredNetworks) {
-      const bssid = (net.bssid ?? '').toUpperCase();
-      if (placed.has(bssid)) continue;
-      const groupId = groupMap.get(bssid);
-      if (groupId) {
-        for (const memberBssid of groupMembers.get(groupId) ?? []) {
-          if (placed.has(memberBssid)) continue;
-          const member = netByBssid.get(memberBssid);
-          if (member) {
-            result.push(member);
-            placed.add(memberBssid);
+    let result: NetworkRow[];
+
+    if (isPagination) {
+      // Pagination: keep existing sorted items, only process new items
+      result = [...prevSortedRef.current];
+      const placed = new Set<string>();
+
+      // Mark all existing items as placed
+      for (const item of result) {
+        if (item.bssid) placed.add(item.bssid.toUpperCase());
+      }
+
+      // Only add new items starting from where we left off
+      for (let i = prevSortedRef.current.length; i < filteredNetworks.length; i++) {
+        const net = filteredNetworks[i];
+        if (!net.bssid) continue;
+        const bssid = net.bssid.toUpperCase();
+        if (placed.has(bssid)) continue;
+
+        const groupId = groupMap.get(bssid);
+        if (groupId) {
+          for (const memberBssid of groupMembers.get(groupId) ?? []) {
+            if (placed.has(memberBssid)) continue;
+            const member = netByBssid.get(memberBssid);
+            if (member) {
+              result.push(member);
+              placed.add(memberBssid);
+            }
           }
+        } else {
+          result.push(net);
+          placed.add(bssid);
         }
-      } else {
-        result.push(net);
-        placed.add(bssid);
+      }
+    } else {
+      // Filter/sort change: rebuild entire sorted list
+      const placed = new Set<string>();
+      result = [];
+
+      for (const net of filteredNetworks) {
+        const bssid = (net.bssid ?? '').toUpperCase();
+        if (placed.has(bssid)) continue;
+        const groupId = groupMap.get(bssid);
+        if (groupId) {
+          for (const memberBssid of groupMembers.get(groupId) ?? []) {
+            if (placed.has(memberBssid)) continue;
+            const member = netByBssid.get(memberBssid);
+            if (member) {
+              result.push(member);
+              placed.add(memberBssid);
+            }
+          }
+        } else {
+          result.push(net);
+          placed.add(bssid);
+        }
       }
     }
 
+    prevSortedRef.current = result;
     return result;
   }, [filteredNetworks, patternGroups]);
 

@@ -432,9 +432,9 @@ async function runSiblingRefreshJob(
   const finalStatus = completed ? 'completed' : 'truncated';
   await adminQuery(
     `UPDATE app.sibling_runs
-     SET completed_at = now(), status = $1, networks_scanned = $2, pairs_inserted = $3, pairs_updated = $5
+     SET completed_at = now(), status = $1, networks_scanned = $2, pairs_inserted = $3, pairs_updated = $3
      WHERE id = $4`,
-    [finalStatus, seedsProcessed, rowsUpserted, runId, rowsUpserted]
+    [finalStatus, seedsProcessed, rowsUpserted, runId]
   );
 
   await longRunningAdminQuery('SELECT app.refresh_oui_sibling_profiles()');
@@ -500,17 +500,16 @@ async function startSiblingRefresh(
         `UPDATE app.background_job_runs 
          SET status = $1, finished_at = now(), 
              details = jsonb_build_object(
-               'pairs_inserted', $5,
-               'networks_scanned', $6,
-               'run_mode', $7,
-               'sibling_run_id', $8
+               'pairs_inserted', $4,
+               'networks_scanned', $5,
+               'run_mode', $6,
+               'sibling_run_id', $7
              )
          WHERE job_name = $2 AND status = $3 ORDER BY id DESC LIMIT 1`,
         [
           'completed',
           'siblingDetection',
           'running',
-          null, // unused param placeholder
           result.rowsUpserted,
           result.seedsProcessed,
           capturedRunMode,
@@ -538,15 +537,14 @@ async function startSiblingRefresh(
             `UPDATE app.background_job_runs 
            SET status = $1, finished_at = now(), error = $2,
                details = jsonb_build_object(
-                 'run_mode', $5,
-                 'sibling_run_id', $6
+                 'run_mode', $4,
+                 'sibling_run_id', $5
                )
-           WHERE job_name = $3 AND status = $4 ORDER BY id DESC LIMIT 1`,
+           WHERE job_name = $3 AND status = 'running' ORDER BY id DESC LIMIT 1`,
             [
               'failed',
               err?.message || 'Unknown error',
               'siblingDetection',
-              'running',
               capturedRunMode,
               siblingRunId,
             ]
