@@ -78,12 +78,18 @@ interface UnusedIndex {
   size_bytes: string;
 }
 
+interface UnusedIndexSummary {
+  count: number;
+  total_mb: number;
+}
+
 interface DbStats {
   total_db_size: string;
   tables: TableStat[];
   categories: Record<string, string[]>;
   materialized_views: MVStat[];
   unused_indexes: UnusedIndex[];
+  unused_indexes_summary?: UnusedIndexSummary;
 }
 
 interface SiblingStats {
@@ -277,42 +283,51 @@ export const DbStatsTab: React.FC = () => {
     </div>
   );
 
-  const renderUnusedIndexes = (indexes: UnusedIndex[]) => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs text-left border-collapse">
-        <thead>
-          <tr className="text-slate-500 border-b border-slate-800">
-            <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Index Name</th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider">Table</th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Size</th>
-            <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">Scans</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800/50">
-          {indexes.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="py-8 text-center text-slate-600 italic">
-                No unused indexes detected.
-              </td>
+  const renderUnusedIndexes = (indexes: UnusedIndex[], summary?: UnusedIndexSummary) => (
+    <div>
+      {summary && summary.count > 0 && (
+        <div className="mb-4 p-3 bg-red-950/30 border border-red-900/50 rounded-lg">
+          <p className="text-sm font-medium text-red-300">
+            {summary.count} index{summary.count !== 1 ? 'es' : ''} · {summary.total_mb} MB wasted
+          </p>
+        </div>
+      )}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs text-left border-collapse">
+          <thead>
+            <tr className="text-slate-500 border-b border-slate-800">
+              <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Index Name</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider">Table</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Size</th>
+              <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">Scans</th>
             </tr>
-          ) : (
-            indexes.map((idx) => (
-              <tr key={idx.index_name} className="hover:bg-slate-800/30 transition-colors">
-                <td className="py-2 pr-4 font-mono text-orange-400 font-medium">
-                  {idx.index_name}
-                </td>
-                <td className="py-2 px-4 font-mono text-slate-500">{idx.table_name}</td>
-                <td className="py-2 px-4 text-right tabular-nums text-slate-400 font-medium">
-                  {idx.size_pretty}
-                </td>
-                <td className="py-2 pl-4 text-right tabular-nums text-red-400 font-bold">
-                  {idx.scan_count}
+          </thead>
+          <tbody className="divide-y divide-slate-800/50">
+            {indexes.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-slate-600 italic">
+                  No unused indexes detected.
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              indexes.map((idx) => (
+                <tr key={idx.index_name} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="py-2 pr-4 font-mono text-orange-400 font-medium">
+                    {idx.index_name}
+                  </td>
+                  <td className="py-2 px-4 font-mono text-slate-500">{idx.table_name}</td>
+                  <td className="py-2 px-4 text-right tabular-nums text-slate-400 font-medium">
+                    {idx.size_pretty}
+                  </td>
+                  <td className="py-2 pl-4 text-right tabular-nums text-red-400 font-bold">
+                    {idx.scan_count}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -425,7 +440,7 @@ export const DbStatsTab: React.FC = () => {
           icon={TrendingUpIcon}
           color="from-orange-600 to-red-700"
         >
-          {stats && renderUnusedIndexes(stats.unused_indexes)}
+          {stats && renderUnusedIndexes(stats.unused_indexes, stats.unused_indexes_summary)}
         </AdminCard>
 
         {/* Sibling Detection Stats */}

@@ -67,6 +67,23 @@ describe('adminOrphanNetworksService', () => {
       const result = await listOrphanNetworks({ search: 'query' });
       expect(result.length).toBe(1);
     });
+
+    it('should handle empty results', async () => {
+      adminQuery.mockResolvedValueOnce({ rows: [] });
+      const result = await listOrphanNetworks();
+      expect(result.length).toBe(0);
+    });
+
+    it('should propagate database error', async () => {
+      adminQuery.mockRejectedValueOnce(new Error('DB Error'));
+      await expect(listOrphanNetworks()).rejects.toThrow('DB Error');
+    });
+
+    it('should handle invalid sort parameters', async () => {
+      adminQuery.mockResolvedValueOnce({ rows: [] });
+      const result = await listOrphanNetworks({ sortBy: 'invalid', sortDir: 'invalid' });
+      expect(result.length).toBe(0);
+    });
   });
 
   describe('getOrphanNetworkCounts', () => {
@@ -80,6 +97,17 @@ describe('adminOrphanNetworksService', () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ total: 2 }] });
       const result = await getOrphanNetworkCounts({ search: 'query' });
       expect(result.total).toBe(2);
+    });
+
+    it('should return 0 when no records found', async () => {
+      adminQuery.mockResolvedValueOnce({ rows: [{ total: 0 }] });
+      const result = await getOrphanNetworkCounts();
+      expect(result.total).toBe(0);
+    });
+
+    it('should propagate database error', async () => {
+      adminQuery.mockRejectedValueOnce(new Error('DB Error'));
+      await expect(getOrphanNetworkCounts()).rejects.toThrow('DB Error');
     });
   });
 

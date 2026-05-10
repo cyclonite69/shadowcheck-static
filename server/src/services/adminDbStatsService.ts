@@ -42,7 +42,14 @@ export async function getDetailedDatabaseStats(): Promise<any> {
         'network_sibling_pairs',
         'network_sibling_overrides',
       ],
-      wigle: ['wigle_v2_networks_search', 'wigle_v3_network_details', 'wigle_v3_observations'],
+      wigle: [
+        'wigle_v2_networks_search',
+        'wigle_v2_bluetooth_search',
+        'wigle_v3_network_details',
+        'wigle_v3_observations',
+        'wigle_import_runs',
+        'wigle_import_run_pages',
+      ],
       kismet: [
         'kismet_devices',
         'kismet_packets',
@@ -78,8 +85,8 @@ export async function getDetailedDatabaseStats(): Promise<any> {
       ORDER BY m.matviewname ASC
     `);
 
-    // 5. Get Unused Index Report
-    const { rows: unusedIndexes } = await adminQuery(`
+    // 5. Get Unused Index Report with summary totals
+    const { rows: unusedIndexes, rows: rawUnusedIndexes } = await adminQuery(`
       SELECT 
         schemaname || '.' || relname as table_name,
         indexrelname as index_name,
@@ -94,6 +101,13 @@ export async function getDetailedDatabaseStats(): Promise<any> {
       ORDER BY pg_relation_size(indexrelid) DESC
     `);
 
+    // Calculate unused index totals
+    const unusedIndexCount = rawUnusedIndexes.length;
+    const unusedIndexTotalBytes = rawUnusedIndexes.reduce((sum: number, idx: any) => {
+      return sum + parseInt(idx.size_bytes, 10);
+    }, 0);
+    const unusedIndexTotalMb = (unusedIndexTotalBytes / (1024 * 1024)).toFixed(1);
+
     return {
       success: true,
       total_db_size: totalDbSize,
@@ -101,6 +115,10 @@ export async function getDetailedDatabaseStats(): Promise<any> {
       categories,
       materialized_views: mvStats,
       unused_indexes: unusedIndexes,
+      unused_indexes_summary: {
+        count: unusedIndexCount,
+        total_mb: parseFloat(unusedIndexTotalMb),
+      },
     };
   } catch (e: any) {
     logger.error('Failed to fetch detailed DB stats', { error: e.message });
