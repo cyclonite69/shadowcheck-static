@@ -1,6 +1,11 @@
 import { normalizeTooltipData } from '../../client/src/utils/geospatial/tooltipDataNormalizer';
+import { renderNetworkTooltip } from '../../client/src/utils/geospatial/renderNetworkTooltip';
 
 describe('normalizeTooltipData', () => {
+  const mockTriggerElement = {
+    getBoundingClientRect: () => ({ width: 100, height: 100, top: 0, left: 0 }),
+  };
+
   it('normalizes mixed aliases into canonical tooltip fields', () => {
     const normalized = normalizeTooltipData({
       netid: 'AA:BB:CC:DD:EE:FF',
@@ -51,5 +56,78 @@ describe('normalizeTooltipData', () => {
     expect(normalized.channel).toBe(1);
     expect(normalized.distance_from_home_km).toBeCloseTo(10.9535, 4);
     expect(normalized.max_distance_km).toBeCloseTo(10.7397, 4);
+  });
+
+  it('prioritizes WiGLE timestamps when wigle_source is present', () => {
+    const normalized = normalizeTooltipData({
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      wigle_source: 'wigle-v3',
+      time: '2026-05-01T01:00:00Z',
+      timestamp: '2026-05-01T02:00:00Z',
+      observed_at: '2026-05-01T03:00:00Z',
+      first_seen: '2026-04-01T00:00:00Z',
+      firsttime: '2026-04-10T00:00:00Z',
+      wigle_v3_first_seen: '2026-04-11T00:00:00Z',
+      last_seen: '2026-05-02T00:00:00Z',
+      lasttime: '2026-05-10T00:00:00Z',
+      lastupdt: '2026-05-09T00:00:00Z',
+    });
+
+    expect(normalized.time).toBe('2026-05-10T00:00:00Z');
+    expect(normalized.first_seen).toBe('2026-04-10T00:00:00Z');
+    expect(normalized.last_seen).toBe('2026-05-10T00:00:00Z');
+  });
+
+  it('treats zero home distance values as missing', () => {
+    expect(
+      normalizeTooltipData({
+        bssid: 'AA:BB:CC:DD:EE:FF',
+        distance_from_home_km: 0,
+      }).distance_from_home_km
+    ).toBeNull();
+
+    expect(
+      normalizeTooltipData({
+        bssid: 'AA:BB:CC:DD:EE:FF',
+        distance_from_home_meters: 0,
+      }).distance_from_home_km
+    ).toBeNull();
+
+    expect(
+      normalizeTooltipData({
+        bssid: 'AA:BB:CC:DD:EE:FF',
+        distance_from_home: 0,
+      }).distance_from_home_km
+    ).toBeNull();
+  });
+
+  it('renders channel and frequency in a single Channel row', () => {
+    const html = renderNetworkTooltip({
+      ssid: 'Test',
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      channel: 1,
+      frequency: 2412,
+      band: '2.4 GHz',
+      triggerElement: mockTriggerElement,
+    });
+
+    expect(html).toContain('Channel');
+    expect(html).toContain('1 (2.4 GHz) · 2412 MHz');
+    expect(html).not.toContain('>Frequency<');
+  });
+
+  it('suppresses OBS numbering for WiGLE-origin tooltips', () => {
+    const html = renderNetworkTooltip({
+      ssid: 'WiGLE AP',
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      wigle_source: 'wigle-v3',
+      observation_count: 30,
+      number: 75,
+      time: '2026-05-01T12:00:00Z',
+      last_seen: '2026-05-01T12:00:00Z',
+      triggerElement: mockTriggerElement,
+    });
+
+    expect(html).not.toContain('OBS #75 of 30');
   });
 });

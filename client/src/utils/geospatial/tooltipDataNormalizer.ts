@@ -59,13 +59,13 @@ function freqToBand(freq: number): string {
 
 function normalizeDistanceFromHomeKm(raw: AnyRecord): number | null {
   const explicitKm = toNumberOrNull(raw.distance_from_home_km);
-  if (explicitKm !== null) return explicitKm;
+  if (explicitKm !== null && explicitKm > 0) return explicitKm;
 
   const meters = toNumberOrNull(raw.distance_from_home_meters ?? raw.distance_from_home_m);
-  if (meters !== null) return meters / 1000.0;
+  if (meters !== null && meters > 0) return meters / 1000.0;
 
   const ambiguous = toNumberOrNull(raw.distance_from_home);
-  if (ambiguous === null) return null;
+  if (ambiguous === null || ambiguous === 0) return null;
 
   // Older payloads sometimes expose this field in meters despite the generic name.
   return ambiguous > 1000 ? ambiguous / 1000.0 : ambiguous;
@@ -112,6 +112,7 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
   const obsCount = wigleObsCount !== null ? wigleObsCount : localObsCount;
 
   const wigleSource = raw.wigle_source ? raw.wigle_source : raw.observed_at ? 'wigle-v3' : null;
+  const isWigleOrigin = Boolean(raw.wigle_source);
 
   const accuracy = toNumberOrNull(pickFirst(raw.accuracy, raw.acc));
   const explicitQuality = toNumberOrNull(pickFirst(raw.quality_score, raw.data_quality));
@@ -177,26 +178,21 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     local_observation_count: isWigleV2 ? null : localObsCount,
     wigle_observation_count: isWigleV2 ? null : wigleObsCount,
     timespan_days: isWigleV2 ? null : toNumberOrNull(raw.timespan_days),
-    time: pickFirst(raw.time, raw.timestamp, raw.observed_at, raw.lasttime),
-    first_seen: isWigleV2
-      ? pickFirst(raw.wigle_v2_firsttime, raw.firsttime)
-      : pickFirst(
-          raw.first_seen,
-          raw.wigle_v3_first_seen,
-          raw.firsttime,
-          raw.first,
-          raw.observed_at
-        ),
-    last_seen: isWigleV2
-      ? pickFirst(raw.wigle_v2_lasttime, raw.lasttime)
-      : pickFirst(
-          raw.last_seen,
-          raw.wigle_v3_last_seen,
+    time: isWigleOrigin
+      ? pickFirst(raw.lasttime, raw.lastupdt, raw.time, raw.timestamp, raw.observed_at)
+      : pickFirst(raw.time, raw.timestamp, raw.observed_at, raw.lasttime),
+    first_seen: isWigleOrigin
+      ? pickFirst(raw.firsttime, raw.wigle_v3_first_seen, raw.wigle_v2_firsttime, raw.first_seen)
+      : pickFirst(raw.first_seen, raw.firsttime, raw.first, raw.observed_at),
+    last_seen: isWigleOrigin
+      ? pickFirst(
           raw.lasttime,
-          raw.last,
           raw.lastupdt,
-          raw.observed_at
-        ),
+          raw.wigle_v3_last_seen,
+          raw.wigle_v2_lasttime,
+          raw.last_seen
+        )
+      : pickFirst(raw.last_seen, raw.lasttime, raw.last, raw.lastupdt, raw.observed_at),
     wigle_last_updated: isWigleV2
       ? pickFirst(raw.wigle_v2_lastupdt, raw.lastupdt)
       : pickFirst(raw.lastupdt, raw.last_update, raw.observed_at),
