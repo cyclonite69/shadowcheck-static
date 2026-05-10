@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-09)
+# 1.0.0 (2026-05-10)
 
 ### Bug Fixes
 
@@ -792,6 +792,7 @@
 - weather fx and redundant header text ([4f42201](https://github.com/cyclonite69/shadowcheck-web/commit/4f42201bf63f7abe7bcf7f6c860a0636a265e009))
 - weather routes import causing server crash ([e51df81](https://github.com/cyclonite69/shadowcheck-web/commit/e51df816da5a4acdbac4ec4039b6af14a975e060))
 - WEP security encryption filter - reorder detection logic ([38ccb2a](https://github.com/cyclonite69/shadowcheck-web/commit/38ccb2a078ecaa3ec129c933b3c9a0603038843f))
+- wigle import audit trail — store exact api query, fix untracked insert path ([a6fea5a](https://github.com/cyclonite69/shadowcheck-web/commit/a6fea5afcd8738b25f28772be0604b50e6fc4de8))
 - WiGLE loaded/total counts now reflect active layer toggles ([a974c34](https://github.com/cyclonite69/shadowcheck-web/commit/a974c341801be2c2011ada21ddea2ecdfaa82bb0))
 - **wigle-detail:** render forensic tooltip HTML in preview pane on observation select ([33d4f7d](https://github.com/cyclonite69/shadowcheck-web/commit/33d4f7d9e9f2713c932d2cf38b26476105208544))
 - **wigle-explorer:** remove local MV upgrade from WiGLE observation popups ([dfe8c8c](https://github.com/cyclonite69/shadowcheck-web/commit/dfe8c8c53f16f41addd159a467290c1d8e9a6d6e))
@@ -905,7 +906,6 @@
 - add co-occurrence test script with manufacturer join ([01e4078](https://github.com/cyclonite69/shadowcheck-web/commit/01e407805cc58f508cfb5f07d5056ea3c14a1100))
 - add comprehensive schema documentation generator ([603a9d8](https://github.com/cyclonite69/shadowcheck-web/commit/603a9d867b1056c372c5cc8ccdd2b504dd1000de))
 - add database security separation and fix signal circle zoom scaling ([7eaea28](https://github.com/cyclonite69/shadowcheck-web/commit/7eaea28b34e4cc68e9f306fc46eee40bd3c168c8))
-- add detection evidence to network right-click context menu ([9dd6e99](https://github.com/cyclonite69/shadowcheck-web/commit/9dd6e99ce967fc2cd1a77cb33174021a13ff1d6b))
 - Add embedded SSM console and fix Weather FX system ([b70ccef](https://github.com/cyclonite69/shadowcheck-web/commit/b70ccef3d1c63bded8ce43e5400a4bb999a50591))
 - add embedded SSM terminal, Mapbox Directions integration, and fix S3 bucket ([c024c2d](https://github.com/cyclonite69/shadowcheck-web/commit/c024c2d2131bbfba5bb6e71411710e913b7ab509))
 - add extended timeframe duration options ([d85f5ec](https://github.com/cyclonite69/shadowcheck-web/commit/d85f5ece893c50c605b7e9667d1aaf14ec3a5d95))
