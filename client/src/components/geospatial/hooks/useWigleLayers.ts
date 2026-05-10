@@ -49,7 +49,19 @@ type WigleLayerProps = {
   wigleObservations?: WigleObservationsState;
   isViewportLocked?: boolean;
   onOpenContextMenu?: (e: any, network: any) => void;
+  homeLat?: number | null;
+  homeLon?: number | null;
 };
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export const useWigleLayers = ({
   mapReady,
@@ -60,6 +72,8 @@ export const useWigleLayers = ({
   wigleObservations,
   isViewportLocked = false,
   onOpenContextMenu,
+  homeLat,
+  homeLon,
 }: WigleLayerProps) => {
   const onOpenContextMenuRef = useRef(onOpenContextMenu);
   const networkLookupRef = useRef(networkLookup);
@@ -131,7 +145,10 @@ export const useWigleLayers = ({
         encryption: props.encryption ?? null,
         altitude: props.altitude ?? null,
         accuracy: props.accuracy ?? null,
-        distance_from_home_meters: props.distance_from_our_center_m ?? null,
+        distance_from_home_km:
+          homeLat != null && homeLon != null
+            ? haversineKm(homeLat, homeLon, coords[1], coords[0])
+            : null,
         number: props.number ?? null,
         threat_score: matched ? (props.threat_score ?? null) : null,
         threat_level: matched ? (props.threat_level ?? null) : null,

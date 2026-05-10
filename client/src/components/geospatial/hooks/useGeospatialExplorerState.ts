@@ -270,6 +270,8 @@ export const useGeospatialExplorerState = ({
     isViewportLocked: effectiveViewportLock,
     onOpenContextMenu,
     showNetworkSummaries,
+    homeLat: homeLocation.center[1],
+    homeLon: homeLocation.center[0],
   });
 
   const { toggle3DBuildings, toggleTerrain, add3DBuildings, is3DBuildingsAvailable } =

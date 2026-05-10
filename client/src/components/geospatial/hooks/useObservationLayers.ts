@@ -22,6 +22,8 @@ type ObservationLayerProps = {
   isViewportLocked?: boolean;
   onOpenContextMenu?: (e: any, network: any) => void;
   showNetworkSummaries?: boolean;
+  homeLat?: number | null;
+  homeLon?: number | null;
 };
 
 /**
@@ -50,6 +52,8 @@ export const useObservationLayers = (props: ObservationLayerProps) => {
     wigleObservations: props.wigleObservations,
     isViewportLocked: props.isViewportLocked,
     onOpenContextMenu: props.onOpenContextMenu,
+    homeLat: props.homeLat,
+    homeLon: props.homeLon,
   });
 
   // 3. Network summary markers (centroid/weighted)
