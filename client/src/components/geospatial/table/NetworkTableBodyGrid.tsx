@@ -250,7 +250,7 @@ export const NetworkTableBodyGrid = ({
     const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
 
     // Load more when 80% scrolled
-    if (scrollPercentage > 0.8) {
+    if (scrollPercentage > 0.8 && hasMore && !isLoadingMore) {
       onLoadMore();
     }
   };
