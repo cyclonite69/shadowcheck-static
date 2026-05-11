@@ -29,6 +29,9 @@ export type WigleObservation = {
   encryption?: string | null;
   altitude?: number | null;
   accuracy?: number | null;
+  firsttime?: number | string | null;
+  lasttime?: number | string | null;
+  lastupdt?: number | string | null;
   source: 'matched' | 'wigle_unique' | string;
   distance_from_our_center_m: number | null;
   bssid?: string; // For batch mode - to color by network
@@ -306,6 +309,9 @@ export const useWigleLayers = ({
             encryption: obs.encryption ?? null,
             altitude: obs.altitude ?? null,
             accuracy: obs.accuracy ?? null,
+            firsttime: obs.firsttime ?? null,
+            lasttime: obs.lasttime ?? null,
+            lastupdt: obs.lastupdt ?? null,
             source: obs.source,
             distance_from_our_center_m: obs.distance_from_our_center_m,
             number: index + 1,
