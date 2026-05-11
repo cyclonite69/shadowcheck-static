@@ -89,7 +89,7 @@
     "pg": "8.20.0",
     "preact": "10.29.1",
     "react": "19.2.5",
-    "react-dom": "19.2.5",
+    "react-dom": "19.2.6",
     "react-is": "19.2.5",
     "react-router-dom": "7.14.2",
     "react-window": "2.2.7",
