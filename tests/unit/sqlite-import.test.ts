@@ -54,6 +54,7 @@ jest.mock('../../etl/load/sqlite/insertObservations', () => ({
 }));
 jest.mock('../../etl/load/sqlite/networkReconciliation', () => ({
   upsertNetworks: jest.fn(),
+  recomputeBestPositions: jest.fn(),
   backfillMissingNetworksFromObservations: jest.fn(),
   moveOrphanNetworksToHoldingTable: jest.fn(),
 }));

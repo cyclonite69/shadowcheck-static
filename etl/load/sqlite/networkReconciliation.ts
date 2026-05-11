@@ -42,13 +42,12 @@ export async function upsertNetworks(
         `
         INSERT INTO app.networks (
           bssid, ssid, type, frequency, capabilities, service, rcois, mfgrid,
-          lasttime_ms, lastlat, lastlon, bestlevel, bestlat, bestlon
+          lasttime_ms, lastlat, lastlon
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (bssid) DO UPDATE SET
           ssid = COALESCE(NULLIF(EXCLUDED.ssid, ''), app.networks.ssid),
           frequency = COALESCE(NULLIF(EXCLUDED.frequency, 0), app.networks.frequency),
-          bestlevel = GREATEST(EXCLUDED.bestlevel, app.networks.bestlevel),
           lasttime_ms = GREATEST(EXCLUDED.lasttime_ms, app.networks.lasttime_ms),
           lastlat = CASE WHEN EXCLUDED.lasttime_ms > app.networks.lasttime_ms THEN EXCLUDED.lastlat ELSE app.networks.lastlat END,
           lastlon = CASE WHEN EXCLUDED.lasttime_ms > app.networks.lasttime_ms THEN EXCLUDED.lastlon ELSE app.networks.lastlon END
@@ -65,9 +64,6 @@ export async function upsertNetworks(
           network?.lasttime || 0,
           network?.lastlat || 0,
           network?.lastlon || 0,
-          network?.bestlevel || 0,
-          network?.bestlat || 0,
-          network?.bestlon || 0,
         ]
       );
       upserted++;
@@ -111,8 +107,8 @@ export async function backfillMissingNetworksFromObservations(
         COALESCE(radio_rcois, '') AS rcois,
         COALESCE(mfgrid, 0) AS mfgrid,
         COALESCE(time_ms, observed_at_ms, (EXTRACT(EPOCH FROM time) * 1000)::bigint) AS lasttime_ms,
-        COALESCE(lat, 0) AS lastlat,
-        COALESCE(lon, 0) AS lastlon
+        lat AS lastlat,
+        lon AS lastlon
       FROM new_obs
       ORDER BY
         UPPER(bssid),
@@ -121,9 +117,9 @@ export async function backfillMissingNetworksFromObservations(
     best AS (
       SELECT DISTINCT ON (UPPER(bssid))
         UPPER(bssid) AS bssid,
-        COALESCE(level, 0) AS bestlevel,
-        COALESCE(lat, 0) AS bestlat,
-        COALESCE(lon, 0) AS bestlon
+        level AS bestlevel,
+        lat AS bestlat,
+        lon AS bestlon
       FROM new_obs
       ORDER BY
         UPPER(bssid),
@@ -159,6 +155,34 @@ export async function backfillMissingNetworksFromObservations(
   );
 
   console.log(`   Backfilled ${result.rowCount?.toLocaleString() || 0} missing network(s)`);
+}
+
+export async function recomputeBestPositions(pool: Pool): Promise<void> {
+  console.log('\n📍 Recomputing best positions from core observations...');
+
+  const result = await pool.query(`
+    UPDATE app.networks n SET
+      bestlevel = sub.bestlevel,
+      bestlat = sub.bestlat,
+      bestlon = sub.bestlon
+    FROM (
+      SELECT DISTINCT ON (bssid)
+        bssid,
+        level AS bestlevel,
+        lat AS bestlat,
+        lon AS bestlon
+      FROM app.observations
+      WHERE lat IS NOT NULL AND lon IS NOT NULL
+        AND lat != 0 AND lon != 0
+      ORDER BY bssid, level DESC NULLS LAST, time DESC NULLS LAST
+    ) sub
+    WHERE n.bssid = sub.bssid
+      AND (n.bestlat IS DISTINCT FROM sub.bestlat
+        OR n.bestlon IS DISTINCT FROM sub.bestlon
+        OR n.bestlevel IS DISTINCT FROM sub.bestlevel)
+  `);
+
+  console.log(`   Updated ${result.rowCount?.toLocaleString() || 0} network(s)`);
 }
 
 export async function moveOrphanNetworksToHoldingTable(pool: Pool): Promise<void> {

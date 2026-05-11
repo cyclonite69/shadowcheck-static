@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-10)
+# 1.0.0 (2026-05-11)
 
 ### Bug Fixes
 
@@ -17,6 +17,7 @@
 - add defensive logging for unknown threat levels in ThreatBadge ([98cf7e5](https://github.com/cyclonite69/shadowcheck-web/commit/98cf7e5358121a19cfc02b0f5fc985ac6ced995a))
 - add digitalSignature to cert keyUsage for ECDHE compatibility ([7d2c439](https://github.com/cyclonite69/shadowcheck-web/commit/7d2c43945a6811750d321b96cf38252a00140ed8))
 - Add events.mapbox.com to CSP connect-src to allow telemetry ([1e060c5](https://github.com/cyclonite69/shadowcheck-web/commit/1e060c53b8dd35fb8c58cd64d23544c83f87de03))
+- add firsttime/lasttime/lastupdt to wigle geojson feature properties ([6cb3029](https://github.com/cyclonite69/shadowcheck-web/commit/6cb30295e53ce1d38b5530e59bb379c1298fa796))
 - add GRANT permissions to api_network_explorer_mv migration ([03bff59](https://github.com/cyclonite69/shadowcheck-web/commit/03bff59f2e62befd04cbb8f6e2ca48d59498574f))
 - add long-running pool for sibling detection — removes 60s timeout ([8c40440](https://github.com/cyclonite69/shadowcheck-web/commit/8c404400b78f265a91d2c653e535943317a70154))
 - add manufacturer/address/oui compat columns to radio_manufacturers ([65cdcc6](https://github.com/cyclonite69/shadowcheck-web/commit/65cdcc6cd81defa0150b8514c981e231b5cc38c1))
@@ -487,6 +488,7 @@
 - mount writable backups volume in AWS API containers ([c90396d](https://github.com/cyclonite69/shadowcheck-web/commit/c90396d6556f06d670ce629cd5ea462853a5ead3))
 - multiple bug fixes across admin, WiGLE, and agencies features ([59b8f65](https://github.com/cyclonite69/shadowcheck-web/commit/59b8f65b82da8b5d7ec8d1c70e5677f6e855ccb7))
 - network summary markers not rendering due to layer initialization bug ([f8ecc30](https://github.com/cyclonite69/shadowcheck-web/commit/f8ecc300cf0a0b8410d6df2c97e401a278410dd6))
+- network tooltip — merge channel/freq, fix WiGLE timestamps, remove dupe obs, fix home 0m ([827915d](https://github.com/cyclonite69/shadowcheck-web/commit/827915df50a72a7e831fe72c5b0241e378888fa8)), closes [#N](https://github.com/cyclonite69/shadowcheck-web/issues/N)
 - Networks explorer - add checkboxes, type icons, fix fields ([7f679dc](https://github.com/cyclonite69/shadowcheck-web/commit/7f679dc4ed1e7993e58854f24750603ab874232d))
 - Networks Explorer field mapping + view aggregates + schema cleanup ([aaec682](https://github.com/cyclonite69/shadowcheck-web/commit/aaec68212258270a5ea8960fc2cc0151e64854fd))
 - networks explorer infinite scroll fires repeatedly on every scroll event ([f3a20ad](https://github.com/cyclonite69/shadowcheck-web/commit/f3a20ad91716e00c40af6afd2b34b0df09f3a9f9))
@@ -802,6 +804,8 @@
 - WEP security encryption filter - reorder detection logic ([38ccb2a](https://github.com/cyclonite69/shadowcheck-web/commit/38ccb2a078ecaa3ec129c933b3c9a0603038843f))
 - wigle import audit trail — store exact api query, fix untracked insert path ([a6fea5a](https://github.com/cyclonite69/shadowcheck-web/commit/a6fea5afcd8738b25f28772be0604b50e6fc4de8))
 - WiGLE loaded/total counts now reflect active layer toggles ([a974c34](https://github.com/cyclonite69/shadowcheck-web/commit/a974c341801be2c2011ada21ddea2ecdfaa82bb0))
+- wigle popup home distance via haversine, channel/frequency passthrough ([c15e745](https://github.com/cyclonite69/shadowcheck-web/commit/c15e7450ac90fa876578bba69c1a2f7eaabebc3c))
+- wigle tooltip timestamps — use firsttime/lasttime from feature props ([3ac9a02](https://github.com/cyclonite69/shadowcheck-web/commit/3ac9a0293ff6d8ade9434b5fbee984e5425c7352)), closes [#N](https://github.com/cyclonite69/shadowcheck-web/issues/N)
 - **wigle-detail:** render forensic tooltip HTML in preview pane on observation select ([33d4f7d](https://github.com/cyclonite69/shadowcheck-web/commit/33d4f7d9e9f2713c932d2cf38b26476105208544))
 - **wigle-explorer:** remove local MV upgrade from WiGLE observation popups ([dfe8c8c](https://github.com/cyclonite69/shadowcheck-web/commit/dfe8c8c53f16f41addd159a467290c1d8e9a6d6e))
 - **wigle-ledger:** remove detail soft limit — no empirical basis for a cap yet ([ac10517](https://github.com/cyclonite69/shadowcheck-web/commit/ac1051715cfd33a0136eba27806aeb1459cfdfa8))

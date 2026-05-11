@@ -24,6 +24,7 @@ import { insertBatch } from './sqlite/insertObservations';
 import {
   upsertNetworks,
   backfillMissingNetworksFromObservations,
+  recomputeBestPositions,
   moveOrphanNetworksToHoldingTable,
 } from './sqlite/networkReconciliation';
 import type { SqliteLocationRow, SqliteNetworkRow, ImportSummary } from './sqlite/types';
@@ -117,6 +118,7 @@ class IncrementalImporter {
         CONFIG.DEBUG
       );
       await this.importNewObservations();
+      await recomputeBestPositions(this.pool);
       await backfillMissingNetworksFromObservations(this.pool, this.sourceTag, this.latestTimeMs);
       await moveOrphanNetworksToHoldingTable(this.pool);
       await this.refreshMaterializedViews();
