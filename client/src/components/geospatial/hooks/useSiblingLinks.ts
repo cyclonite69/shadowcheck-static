@@ -88,7 +88,11 @@ export const useSiblingLinks = ({
           const b = String(edge?.bssid_b || '')
             .trim()
             .toUpperCase();
-          if (!visibleSet.has(a) || !visibleSet.has(b) || a === b) continue;
+          if (a === b) continue;
+          // Include all sibling edges returned by backend, regardless of table visibility.
+          // This allows grouping of siblings even if some are filtered/paged out.
+          if (!adjacency.has(a)) adjacency.set(a, new Set());
+          if (!adjacency.has(b)) adjacency.set(b, new Set());
           adjacency.get(a)?.add(b);
           adjacency.get(b)?.add(a);
         }
