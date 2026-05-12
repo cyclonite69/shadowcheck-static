@@ -136,17 +136,41 @@ describe('BackgroundJobsService', () => {
     });
   });
 
-  describe('shutdown', () => {
-    it('should cancel all jobs and reset initialization state', () => {
+  describe('scheduler toggling', () => {
+    it('should cancel existing jobs when scheduler is disabled', async () => {
       const mockJob = { cancel: jest.fn() };
-      BackgroundJobsService.jobs = { job1: mockJob };
-      BackgroundJobsService.initialized = true;
+      BackgroundJobsService.jobs = { backup: mockJob };
+      mockFeatureFlagService.getFlag.mockReturnValue(false);
 
-      BackgroundJobsService.shutdown();
+      await BackgroundJobsService.rescheduleJobs();
 
       expect(mockJob.cancel).toHaveBeenCalled();
-      expect(BackgroundJobsService.initialized).toBe(false);
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('All jobs cancelled'));
+      expect(mockSchedule.scheduleJob).not.toHaveBeenCalled();
+    });
+
+    it('should reschedule jobs when scheduler is re-enabled', async () => {
+      BackgroundJobsService.lastSchedulerEnabled = false;
+      mockFeatureFlagService.getFlag.mockReturnValue(true);
+
+      await BackgroundJobsService.rescheduleJobs();
+
+      expect(mockSchedule.scheduleJob).toHaveBeenCalled();
+    });
+  });
+
+  describe('error handling in runJobNow', () => {
+    it('should log an error and not throw when manual startJobNow fails', async () => {
+      // Simulate failure in a job run
+      mockJobRunRepository.trackJobRun.mockRejectedValueOnce(new Error('Job failed'));
+
+      const result = await BackgroundJobsService.startJobNow('backup');
+
+      expect(result.status).toBe('started');
+      // Allow time for the promise to be caught
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Manual background run failed for backup: Job failed')
+      );
     });
   });
 
@@ -175,6 +199,20 @@ describe('BackgroundJobsService', () => {
       await expect(BackgroundJobsService.runJobNow('invalid' as any)).rejects.toThrow(
         'Unsupported background job: invalid'
       );
+    });
+  });
+
+  describe('shutdown', () => {
+    it('should cancel all jobs and reset initialization state', () => {
+      const mockJob = { cancel: jest.fn() };
+      BackgroundJobsService.jobs = { job1: mockJob };
+      BackgroundJobsService.initialized = true;
+
+      BackgroundJobsService.shutdown();
+
+      expect(mockJob.cancel).toHaveBeenCalled();
+      expect(BackgroundJobsService.initialized).toBe(false);
+      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('All jobs cancelled'));
     });
   });
 });
