@@ -2,7 +2,7 @@
 -- Fixes applied:
 -- 1. Add matched_octets column for audit trail
 -- 2. find_sibling_radios: filter n.type = 'W' in all CTEs (excludes 993 BT/BLE devices)
--- 3. find_sibling_radios: exclude locally administered MACs from all sequential rules
+-- 3. find_sibling_radios: LA-MAC exclusion removed — ISP APs use LA-MACs legitimately
 -- 4. find_sibling_radios: remove ssid_exact/ssid_prefix_* from probabilistic CTE
 -- 5. find_sibling_radios: populate d_third_octet for middle_octets_sequential
 -- 6. find_sibling_radios: add matched_octets to return type
@@ -53,7 +53,6 @@ WITH t AS (
   LIMIT 1
 ),
 -- Deterministic rule 1: first 5 octets identical, last octet delta 1–3.
--- Excludes locally administered MACs (randomized) on both sides.
 sequential_siblings AS (
   SELECT
     t.bssid AS target_bssid,
@@ -84,9 +83,6 @@ sequential_siblings AS (
   JOIN app.networks n
     ON upper(n.bssid) <> upper(t.bssid)
     AND n.type = 'W'
-    -- Exclude locally administered (randomized) MACs on both sides
-    AND (get_byte(decode(replace(n.bssid, ':', ''), 'hex'), 0) & 2) = 0
-    AND (get_byte(decode(replace(t.bssid, ':', ''), 'hex'), 0) & 2) = 0
     AND upper(split_part(n.bssid, ':', 1)) = t.o1
     AND upper(split_part(n.bssid, ':', 2)) = t.o2
     AND upper(split_part(n.bssid, ':', 3)) = t.o3
@@ -99,7 +95,6 @@ sequential_siblings AS (
 ),
 -- Deterministic rule 2: identical SSID, last octet delta 1–2.
 -- Fleet SSIDs require same first 4 octets (same OUI block).
--- Excludes locally administered MACs on both sides.
 ssid_exact_sequential AS (
   SELECT
     t.bssid AS target_bssid,
@@ -137,9 +132,6 @@ ssid_exact_sequential AS (
   JOIN app.networks n
     ON upper(n.bssid) <> upper(t.bssid)
     AND n.type = 'W'
-    -- Exclude locally administered (randomized) MACs on both sides
-    AND (get_byte(decode(replace(n.bssid, ':', ''), 'hex'), 0) & 2) = 0
-    AND (get_byte(decode(replace(t.bssid, ':', ''), 'hex'), 0) & 2) = 0
     AND t.ssid IS NOT NULL AND t.ssid <> ''
     AND n.ssid IS NOT NULL AND n.ssid <> ''
     AND lower(n.ssid) = lower(t.ssid)
@@ -150,9 +142,21 @@ ssid_exact_sequential AS (
     -- Fleet SSIDs require same first 4 octets (same OUI block).
     AND (
       lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT IN (
-        'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-        'mtasmartbus','kajeetsmartbus','somguest','somiot'
+        'greatlakesmobile','mdt','mtasmartbus','kajeetsmartbus',
+        'xfinitywifi','xfinity','xfinitymobile',
+        'eduroam','attwifi',
+        'optimumwifi','cablewifi','spectrumwifi','twcwifi',
+        'boingohotspot','boingowireless',
+        'googlesb','_google',
+        'hurleyguest','hmcpsk','hmcbio','hmcguest',
+        'mguest','mflint',
+        'masimo','ppm',
+        'somiot','somguest',
+        'seos','paxar',
+        'mychevrolet','onstar','mybuick','mycadillac','mygmc',
+        'lebosecoloriisoundlink'
       )
+      AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
       OR (
         upper(split_part(n.bssid, ':', 1)) = t.o1
         AND upper(split_part(n.bssid, ':', 2)) = t.o2
@@ -173,7 +177,6 @@ ssid_exact_sequential AS (
 -- Covers multi-BSSID APs (e.g. Xfinity/Commscope) that broadcast multiple SSIDs
 -- across bands with the same middle octets but varying first and last octets.
 -- Example: 8C:61:A3:7C:BD:08 ↔ CE:61:A3:7C:BD:09.
--- Excludes locally administered MACs on both sides.
 middle_octets_sequential AS (
   SELECT
     t.bssid AS target_bssid,
@@ -208,9 +211,6 @@ middle_octets_sequential AS (
   JOIN app.networks n
     ON upper(n.bssid) <> upper(t.bssid)
     AND n.type = 'W'
-    -- Exclude locally administered (randomized) MACs on both sides
-    AND (get_byte(decode(replace(n.bssid, ':', ''), 'hex'), 0) & 2) = 0
-    AND (get_byte(decode(replace(t.bssid, ':', ''), 'hex'), 0) & 2) = 0
     -- First octet must differ
     AND upper(split_part(n.bssid, ':', 1)) <> t.o1
     -- Octets 2–5 must be identical
@@ -284,9 +284,21 @@ c AS (
     )
     -- Fleet SSIDs never enter the probabilistic path.
     AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT IN (
-      'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-      'mtasmartbus','kajeetsmartbus','somguest','somiot'
+      'greatlakesmobile','mdt','mtasmartbus','kajeetsmartbus',
+      'xfinitywifi','xfinity','xfinitymobile',
+      'eduroam','attwifi',
+      'optimumwifi','cablewifi','spectrumwifi','twcwifi',
+      'boingohotspot','boingowireless',
+      'googlesb','_google',
+      'hurleyguest','hmcpsk','hmcbio','hmcguest',
+      'mguest','mflint',
+      'masimo','ppm',
+      'somiot','somguest',
+      'seos','paxar',
+      'mychevrolet','onstar','mybuick','mycadillac','mygmc',
+      'lebosecoloriisoundlink'
     )
+    AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
 ),
 probabilistic AS (
   SELECT

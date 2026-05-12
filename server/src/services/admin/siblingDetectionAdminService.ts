@@ -4,6 +4,7 @@ import {
   SIBLING_STATS_SQL,
   SIBLING_STATS_BY_RULE_SQL,
 } from './siblingDetectionQueries';
+import { FLEET_SSID_SQL_LIST } from './siblingDetectionConstants';
 
 // Extra rules run as separate statements to avoid PostgreSQL's
 // "ON CONFLICT DO UPDATE command cannot affect row a second time" crash
@@ -74,7 +75,7 @@ const EXTRA_RULE_UPPER_ROTATION = `
 const EXTRA_RULE_SSID_ANCHOR = `
   WITH inserted AS (
     INSERT INTO app.network_sibling_pairs (
-      bssid1, bssid2, rule, confidence, ssid1, ssid2, matched_octets, pair_strength, quality_scope, computed_at,
+      bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
       run_id
     )
     SELECT
@@ -84,6 +85,10 @@ const EXTRA_RULE_SSID_ANCHOR = `
       LEAST(1.000, 0.97),
       a.ssid,
       b.ssid,
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ),
       'o1-o4+ssid',
       'candidate',
       'default',
@@ -103,19 +108,22 @@ const EXTRA_RULE_SSID_ANCHOR = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
-      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
-        'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-        'mtasmartbus','kajeetsmartbus','somguest','somiot',
-        'eduroam','attwifi','googlesb','_google',
-        'boingohotspot','boingowireless','optimumwifi','cablewifi',
-        'spectrumwifi','twcwifi','masimo'
-      )
+      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) <= 500
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
           ssid1       = EXCLUDED.ssid1,
           ssid2       = EXCLUDED.ssid2,
+          distance_m  = EXCLUDED.distance_m,
           matched_octets = EXCLUDED.matched_octets,
           pair_strength = EXCLUDED.pair_strength,
           quality_scope = EXCLUDED.quality_scope,
@@ -163,13 +171,7 @@ const EXTRA_RULE_CROSS_OUI_SSID = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
-      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (
-        'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-        'mtasmartbus','kajeetsmartbus','somguest','somiot',
-        'eduroam','attwifi','googlesb','_google',
-        'boingohotspot','boingowireless','optimumwifi','cablewifi',
-        'spectrumwifi','twcwifi','masimo'
-      )
+      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
       AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
       AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
@@ -239,6 +241,321 @@ const EXTRA_RULE_SAME_OUI_PROXIMITY = `
      AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          distance_m  = EXCLUDED.distance_m,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at,
+          run_id = EXCLUDED.run_id
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_OCTET4_ROTATION_64 = `
+  WITH inserted AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
+      run_id
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'octet4_rotation_64',
+      LEAST(1.000, 0.92),
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ),
+      'o1-o3+o5-o6',
+      'candidate',
+      'default',
+      now(),
+      $1::integer
+    FROM app.networks a
+    JOIN app.networks b
+      ON SUBSTRING(b.bssid, 1, 8) = SUBSTRING(a.bssid, 1, 8)
+     AND ABS(
+           ('x' || SUBSTRING(b.bssid, 10, 2))::bit(8)::int -
+           ('x' || SUBSTRING(a.bssid, 10, 2))::bit(8)::int
+         ) = 64
+     AND SUBSTRING(b.bssid, 13) = SUBSTRING(a.bssid, 13)
+     AND b.bssid > a.bssid
+     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
+    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND nso.bssid1 IS NULL
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) <= 300
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          distance_m  = EXCLUDED.distance_m,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at,
+          run_id = EXCLUDED.run_id
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_CISCO_QUAD_RADIO = `
+  WITH candidates AS (
+    SELECT
+      n.bssid,
+      SUBSTRING(n.bssid, 1, 14) AS prefix5,
+      ('x' || SUBSTRING(n.bssid, 16, 2))::bit(8)::int AS last_octet,
+      COALESCE(n.bestlat, n.lastlat) AS lat,
+      COALESCE(n.bestlon, n.lastlon) AS lon
+    FROM app.networks n
+    WHERE n.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+  ),
+  quad_bases AS (
+    SELECT DISTINCT c.prefix5, c.last_octet AS base_n
+    FROM candidates c
+    JOIN candidates c1 ON c1.prefix5 = c.prefix5 AND c1.last_octet = c.last_octet + 1
+    JOIN candidates c4 ON c4.prefix5 = c.prefix5 AND c4.last_octet = c.last_octet + 4
+    JOIN candidates c5 ON c5.prefix5 = c.prefix5 AND c5.last_octet = c.last_octet + 5
+  ),
+  quad_members AS (
+    SELECT q.prefix5, q.base_n, c.bssid, c.lat, c.lon
+    FROM quad_bases q
+    JOIN candidates c ON c.prefix5 = q.prefix5
+      AND c.last_octet IN (q.base_n, q.base_n + 1, q.base_n + 4, q.base_n + 5)
+  ),
+  inserted AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
+      run_id
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'cisco_quad_radio',
+      LEAST(1.000, 0.93),
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(a.lon, a.lat), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(b.lon, b.lat), 4326)::geography
+      ),
+      'o1-o5+quad',
+      'candidate',
+      'default',
+      now(),
+      $1::integer
+    FROM quad_members a
+    JOIN quad_members b
+      ON a.prefix5 = b.prefix5
+     AND a.base_n = b.base_n
+     AND b.bssid > a.bssid
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
+    WHERE nso.bssid1 IS NULL
+      AND a.lat IS NOT NULL AND a.lon IS NOT NULL
+      AND b.lat IS NOT NULL AND b.lon IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(a.lon, a.lat), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(b.lon, b.lat), 4326)::geography
+      ) <= 200
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          distance_m  = EXCLUDED.distance_m,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at,
+          run_id = EXCLUDED.run_id
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_GENESEE_COUNTY = `
+  WITH inserted AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
+      run_id
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'genesee_county_wide_sequential',
+      LEAST(1.000, 0.95),
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ),
+      'o1-o5',
+      'candidate',
+      'default',
+      now(),
+      $1::integer
+    FROM app.networks a
+    JOIN app.networks b
+      ON SUBSTRING(b.bssid, 1, 14) = SUBSTRING(a.bssid, 1, 14)
+     AND ABS(
+           ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
+           ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
+         ) BETWEEN 1 AND 15
+     AND b.bssid > a.bssid
+     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
+    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND SUBSTRING(a.bssid, 1, 8) IN ('24:D7:9C', 'C8:28:E5')
+      AND nso.bssid1 IS NULL
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) <= 500
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          distance_m  = EXCLUDED.distance_m,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at,
+          run_id = EXCLUDED.run_id
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_TARGET_RETAIL = `
+  WITH inserted AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
+      run_id
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'target_retail_sequential',
+      LEAST(1.000, 0.93),
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ),
+      'o1-o5',
+      'candidate',
+      'default',
+      now(),
+      $1::integer
+    FROM app.networks a
+    JOIN app.networks b
+      ON SUBSTRING(b.bssid, 1, 14) = SUBSTRING(a.bssid, 1, 14)
+     AND ABS(
+           ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
+           ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
+         ) BETWEEN 1 AND 5
+     AND b.bssid > a.bssid
+     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
+    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND SUBSTRING(a.bssid, 1, 8) = '54:A2:74'
+      AND nso.bssid1 IS NULL
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) <= 300
+    ON CONFLICT (bssid1, bssid2) DO UPDATE
+      SET rule        = EXCLUDED.rule,
+          confidence  = EXCLUDED.confidence,
+          distance_m  = EXCLUDED.distance_m,
+          matched_octets = EXCLUDED.matched_octets,
+          pair_strength = EXCLUDED.pair_strength,
+          quality_scope = EXCLUDED.quality_scope,
+          computed_at = EXCLUDED.computed_at,
+          run_id = EXCLUDED.run_id
+      WHERE EXCLUDED.confidence > network_sibling_pairs.confidence
+    RETURNING 1
+  )
+  SELECT COUNT(*)::int AS count FROM inserted
+`;
+
+const EXTRA_RULE_RGLIDE_WIDE = `
+  WITH inserted AS (
+    INSERT INTO app.network_sibling_pairs (
+      bssid1, bssid2, rule, confidence, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
+      run_id
+    )
+    SELECT
+      LEAST(a.bssid, b.bssid),
+      GREATEST(a.bssid, b.bssid),
+      'rglide_wide_sequential',
+      LEAST(1.000, 0.88),
+      ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ),
+      'o1-o5',
+      'candidate',
+      'default',
+      now(),
+      $1::integer
+    FROM app.networks a
+    JOIN app.networks b
+      ON SUBSTRING(b.bssid, 1, 14) = SUBSTRING(a.bssid, 1, 14)
+     AND ABS(
+           ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
+           ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
+         ) BETWEEN 1 AND 13
+     AND b.bssid > a.bssid
+     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = LEAST(a.bssid, b.bssid)
+     AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
+    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND SUBSTRING(a.bssid, 1, 8) = '30:57:8E'
+      AND nso.bssid1 IS NULL
+      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
+      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
+      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
+      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
+      AND ST_Distance(
+        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+      ) <= 300
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -409,6 +726,11 @@ async function runSiblingRefreshJob(
   const ssidRes: any = await longRunningAdminQuery(EXTRA_RULE_SSID_ANCHOR, [runId]);
   const crossRes: any = await longRunningAdminQuery(EXTRA_RULE_CROSS_OUI_SSID, [runId]);
   const proximityRes: any = await longRunningAdminQuery(EXTRA_RULE_SAME_OUI_PROXIMITY, [runId]);
+  const octet4Res: any = await longRunningAdminQuery(EXTRA_RULE_OCTET4_ROTATION_64, [runId]);
+  const ciscoQuadRes: any = await longRunningAdminQuery(EXTRA_RULE_CISCO_QUAD_RADIO, [runId]);
+  const geneseeRes: any = await longRunningAdminQuery(EXTRA_RULE_GENESEE_COUNTY, [runId]);
+  const targetRes: any = await longRunningAdminQuery(EXTRA_RULE_TARGET_RETAIL, [runId]);
+  const rglideRes: any = await longRunningAdminQuery(EXTRA_RULE_RGLIDE_WIDE, [runId]);
   const boostRes: any = await longRunningAdminQuery(EXTRA_RULE_MANUAL_BOOST, []);
   const insertRes: any = await longRunningAdminQuery(EXTRA_RULE_MANUAL_INSERT, []);
   logger.info('[Siblings] Extra rules complete', {
@@ -416,6 +738,11 @@ async function runSiblingRefreshJob(
     ssid_anchor: Number(ssidRes.rows[0]?.count || 0),
     cross_oui: Number(crossRes.rows[0]?.count || 0),
     same_oui_proximity: Number(proximityRes.rows[0]?.count || 0),
+    octet4_rotation_64: Number(octet4Res.rows[0]?.count || 0),
+    cisco_quad_radio: Number(ciscoQuadRes.rows[0]?.count || 0),
+    genesee_county: Number(geneseeRes.rows[0]?.count || 0),
+    target_retail: Number(targetRes.rows[0]?.count || 0),
+    rglide_wide: Number(rglideRes.rows[0]?.count || 0),
     manual_boost: Number(boostRes.rows[0]?.count || 0),
     manual_insert: Number(insertRes.rows[0]?.count || 0),
   });

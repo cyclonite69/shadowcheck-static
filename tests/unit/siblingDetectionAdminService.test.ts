@@ -50,6 +50,11 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
@@ -74,6 +79,11 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
@@ -96,6 +106,11 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
+      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
@@ -134,6 +149,11 @@ describe('siblingDetectionAdminService', () => {
         .mockResolvedValueOnce({ rows: [{ count: 1 }] }) // ssid_anchor
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
         .mockResolvedValueOnce({ rowCount: 1 }) // Update run
@@ -159,6 +179,11 @@ describe('siblingDetectionAdminService', () => {
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
         .mockResolvedValueOnce({ rowCount: 1 }) // Update run
@@ -182,6 +207,11 @@ describe('siblingDetectionAdminService', () => {
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
         .mockResolvedValueOnce({ rows: [{ count: 5 }] }) // same_oui_proximity
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
+        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
         .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
         .mockResolvedValueOnce({ rowCount: 1 }) // Update run

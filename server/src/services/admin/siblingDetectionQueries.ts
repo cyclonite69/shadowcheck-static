@@ -1,3 +1,5 @@
+import { FLEET_SSID_SQL_LIST } from './siblingDetectionConstants';
+
 const REFRESH_CHUNK_SQL = `
   WITH seeds AS (
     SELECT ne.bssid
@@ -48,13 +50,7 @@ const REFRESH_CHUNK_SQL = `
         lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-z0-9]+', '', 'g'))
       ) AS ssid_same,
       (
-        lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) IN (
-          'greatlakesmobile','mdt','xfinitywifi','xfinitymobile',
-          'mtasmartbus','kajeetsmartbus','somguest','somiot',
-          'eduroam','attwifi','googlesb','_google',
-          'boingohotspot','boingowireless','optimumwifi','cablewifi',
-          'spectrumwifi','twcwifi','masimo'
-        )
+        lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) IN (${FLEET_SSID_SQL_LIST})
         OR lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) LIKE 'hmc%'
       ) AS ssid_common,
       -- Distance is NOT a penalty: mobile/vehicle-mounted radios appear at
