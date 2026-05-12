@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { networkApi } from '../../../api/networkApi';
+import { mapApiRowToNetwork } from '../../../utils/networkDataTransformation';
 import { logError } from '../../../logging/clientLogger';
 import { NetworkRow } from '../../../types/network';
 
@@ -18,6 +19,8 @@ export const useSiblingLinks = ({
   const [visibleSiblingGroupMap, setVisibleSiblingGroupMap] = useState<Map<string, string>>(
     new Map()
   );
+  const [missingSiblingNetworks, setMissingSiblingNetworks] = useState<NetworkRow[]>([]);
+  const prevMissingKeyRef = useRef('');
 
   useEffect(() => {
     if (!isAdmin || !selectedAnchorBssid) {
@@ -59,6 +62,8 @@ export const useSiblingLinks = ({
   useEffect(() => {
     if (!isAdmin || networks.length === 0) {
       setVisibleSiblingGroupMap(new Map());
+      setMissingSiblingNetworks([]);
+      prevMissingKeyRef.current = '';
       return;
     }
 
@@ -125,11 +130,37 @@ export const useSiblingLinks = ({
           for (const bssid of component) groupMap.set(bssid, groupId);
         }
 
+        const missing: string[] = [];
+        for (const bssid of groupMap.keys()) {
+          if (!visibleSet.has(bssid)) missing.push(bssid);
+        }
+
         setVisibleSiblingGroupMap(groupMap);
+
+        const missingKey = missing.sort().join(',');
+        if (missingKey !== prevMissingKeyRef.current) {
+          prevMissingKeyRef.current = missingKey;
+          if (missing.length > 0) {
+            try {
+              const rows = await Promise.all(missing.map((b) => networkApi.getNetworkByBssid(b)));
+              if (!cancelled) {
+                setMissingSiblingNetworks(
+                  rows.filter(Boolean).map((r, i) => mapApiRowToNetwork(r, 50000 + i))
+                );
+              }
+            } catch {
+              if (!cancelled) setMissingSiblingNetworks([]);
+            }
+          } else {
+            setMissingSiblingNetworks([]);
+          }
+        }
       } catch (error) {
         if (!cancelled) {
           logError('Failed to load visible sibling groups', error);
           setVisibleSiblingGroupMap(new Map());
+          setMissingSiblingNetworks([]);
+          prevMissingKeyRef.current = '';
         }
       }
     };
@@ -140,5 +171,10 @@ export const useSiblingLinks = ({
     };
   }, [isAdmin, networks]);
 
-  return { linkedSiblingBssids, visibleSiblingGroupMap, setLinkedSiblingBssids };
+  return {
+    linkedSiblingBssids,
+    visibleSiblingGroupMap,
+    setLinkedSiblingBssids,
+    missingSiblingNetworks,
+  };
 };

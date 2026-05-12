@@ -101,7 +101,12 @@ export default function GeospatialExplorer() {
   } = useObservations(selectedNetworks, { useFilters: true });
 
   // Sibling Links
-  const { linkedSiblingBssids, visibleSiblingGroupMap, setLinkedSiblingBssids } = useSiblingLinks({
+  const {
+    linkedSiblingBssids,
+    visibleSiblingGroupMap,
+    setLinkedSiblingBssids,
+    missingSiblingNetworks,
+  } = useSiblingLinks({
     isAdmin,
     selectedAnchorBssid: selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null,
     networks,
@@ -124,6 +129,7 @@ export default function GeospatialExplorer() {
     linkedSiblingBssids,
     setLinkedSiblingBssids,
     visibleSiblingGroupMap,
+    missingSiblingNetworks,
     contextMenuNetwork: contextMenu.network,
     onOpenContextMenu: openContextMenu,
     locationMode,

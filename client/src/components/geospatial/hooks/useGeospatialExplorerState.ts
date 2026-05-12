@@ -52,6 +52,7 @@ interface UseGeospatialExplorerStateProps {
   linkedSiblingBssids: Set<string>;
   setLinkedSiblingBssids: React.Dispatch<React.SetStateAction<Set<string>>>;
   visibleSiblingGroupMap: globalThis.Map<string, string>;
+  missingSiblingNetworks?: NetworkRow[];
   contextMenuNetwork?: NetworkRow | null;
   onOpenContextMenu: (e: any, network: any) => void;
   locationMode: string;
@@ -75,6 +76,7 @@ export const useGeospatialExplorerState = ({
   linkedSiblingBssids,
   setLinkedSiblingBssids,
   visibleSiblingGroupMap,
+  missingSiblingNetworks,
   contextMenuNetwork,
   onOpenContextMenu,
   locationMode,
@@ -374,11 +376,20 @@ export const useGeospatialExplorerState = ({
     clearRadiusFilter,
   } = useRadiusPinDrop(mapReady, mapRef);
 
+  const missingSiblings = missingSiblingNetworks ?? [];
+
   const filteredNetworks = useMemo(() => {
-    if (visibleSiblingGroupMap.size === 0) return networks;
+    let allNetworks = networks;
+    if (missingSiblings.length > 0) {
+      const loaded = new Set(networks.map((n) => n.bssid?.toUpperCase()));
+      const extras = missingSiblings.filter((n) => n.bssid && !loaded.has(n.bssid.toUpperCase()));
+      if (extras.length > 0) allNetworks = [...networks, ...extras];
+    }
+
+    if (visibleSiblingGroupMap.size === 0) return allNetworks;
     const grouped: NetworkRow[] = [];
     const emitted = new Set<string>();
-    for (const net of networks) {
+    for (const net of allNetworks) {
       const gid = visibleSiblingGroupMap.get(net.bssid);
       if (!gid) {
         grouped.push(net);
@@ -386,12 +397,12 @@ export const useGeospatialExplorerState = ({
       }
       if (emitted.has(gid)) continue;
       emitted.add(gid);
-      networks
+      allNetworks
         .filter((n) => visibleSiblingGroupMap.get(n.bssid) === gid)
         .forEach((n) => grouped.push(n));
     }
     return grouped;
-  }, [networks, visibleSiblingGroupMap]);
+  }, [networks, missingSiblings, visibleSiblingGroupMap]);
 
   return {
     mapHeight,
