@@ -35,6 +35,8 @@ interface NetworkTagMenuProps {
   } | null;
   onMarkSiblingPair?: () => void;
   siblingPairLoading?: boolean;
+  selectedCount?: number;
+  onBatchInvestigate?: () => void;
   onClose?: () => void;
 }
 
@@ -57,6 +59,8 @@ export const NetworkTagMenu = ({
   manualSiblingTarget,
   onMarkSiblingPair,
   siblingPairLoading,
+  selectedCount,
+  onBatchInvestigate,
   onClose,
 }: NetworkTagMenuProps) => {
   const { isAdmin } = useAuth();
@@ -142,6 +146,8 @@ export const NetworkTagMenu = ({
                 manualSiblingTarget={manualSiblingTarget}
                 onMarkSiblingPair={onMarkSiblingPair}
                 siblingPairLoading={siblingPairLoading}
+                selectedCount={selectedCount}
+                onBatchInvestigate={onBatchInvestigate}
               />
             )}
             <NetworkTagMenuViewActions

@@ -13,6 +13,8 @@ export interface NetworkTagMenuAdminActionProps {
   } | null;
   onMarkSiblingPair?: () => void;
   siblingPairLoading?: boolean;
+  selectedCount?: number;
+  onBatchInvestigate?: () => void;
 }
 
 export interface NetworkTagMenuViewActionProps {

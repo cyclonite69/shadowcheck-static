@@ -813,6 +813,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'WiGLE',
+    label: 'WiGLE Batch Detail & Import',
+    path: '/api/wigle/detail/batch',
+    method: 'POST',
+    params: [],
+    defaultBody: '{\n  "bssids": ["00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF"],\n  "import": true\n}',
+  },
+  {
+    category: 'WiGLE',
     label: 'WiGLE Detail & Import',
     path: '/api/wigle/detail/:netid',
     method: 'POST',

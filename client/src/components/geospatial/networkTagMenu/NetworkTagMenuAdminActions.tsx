@@ -16,6 +16,8 @@ export const NetworkTagMenuAdminActions = ({
   manualSiblingTarget,
   onMarkSiblingPair,
   siblingPairLoading,
+  selectedCount,
+  onBatchInvestigate,
 }: NetworkTagMenuAdminActionProps) => (
   <>
     <NetworkTagMenuActionButton
@@ -62,6 +64,15 @@ export const NetworkTagMenuAdminActions = ({
       activeBackground={tag?.threat_tag === 'INVESTIGATE' ? 'rgba(59, 130, 246, 0.2)' : undefined}
       hoverBackground="rgba(59, 130, 246, 0.3)"
     />
+    {(selectedCount ?? 0) >= 2 && onBatchInvestigate && (
+      <NetworkTagMenuActionButton
+        label={`🌐 Import WiGLE for ${selectedCount} selected`}
+        onClick={onBatchInvestigate}
+        disabled={tagLoading}
+        textColor="#818cf8"
+        hoverBackground="rgba(129, 140, 248, 0.2)"
+      />
+    )}
     {manualSiblingTarget && onMarkSiblingPair && (
       <NetworkTagMenuActionButton
         label={manualSiblingText(

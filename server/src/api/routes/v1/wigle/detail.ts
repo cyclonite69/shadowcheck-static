@@ -16,6 +16,69 @@ interface FileUploadRequest extends Request {
 }
 
 /**
+ * POST /detail/batch - Fetch and optionally import WiGLE v3 detail for multiple BSSIDs
+ */
+router.post(
+  '/detail/batch',
+  requireAdmin,
+  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { bssids, import: shouldImport } = req.body;
+
+    if (!Array.isArray(bssids) || bssids.length === 0) {
+      return res.status(400).json({ ok: false, error: 'bssids array is required' });
+    }
+
+    const MAX_BATCH = 50;
+    const cleanBssids = bssids
+      .filter((b: unknown): b is string => typeof b === 'string' && b.trim().length > 0)
+      .map((b: string) => b.trim().toUpperCase())
+      .slice(0, MAX_BATCH);
+
+    if (cleanBssids.length === 0) {
+      return res.status(400).json({ ok: false, error: 'No valid BSSIDs provided' });
+    }
+
+    const results: Array<{
+      bssid: string;
+      success: boolean;
+      importedObservations?: number;
+      error?: string;
+    }> = [];
+
+    for (const bssid of cleanBssids) {
+      try {
+        const result = await fetchOrImportDetail(bssid, 'wifi', shouldImport === true);
+        if (result.ok) {
+          results.push({
+            bssid,
+            success: true,
+            importedObservations: result.importedObservations,
+          });
+        } else {
+          results.push({ bssid, success: false, error: result.error });
+        }
+      } catch (err: any) {
+        results.push({ bssid, success: false, error: err?.message || 'Unknown error' });
+      }
+    }
+
+    const succeeded = results.filter((r) => r.success).length;
+    const totalImported = results.reduce((sum, r) => sum + (r.importedObservations || 0), 0);
+
+    res.json({
+      ok: true,
+      results,
+      summary: {
+        total: cleanBssids.length,
+        succeeded,
+        failed: cleanBssids.length - succeeded,
+        totalImported,
+      },
+    });
+  })
+);
+
+/**
  * POST /detail/:netid - Fetch WiGLE v3 WiFi detail and optionally import
  */
 router.post(

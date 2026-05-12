@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-11)
+# 1.0.0 (2026-05-12)
 
 ### Bug Fixes
 
@@ -147,6 +147,7 @@
 - **client:** restore original zoom duration to 1000ms ([eb9ea73](https://github.com/cyclonite69/shadowcheck-web/commit/eb9ea73d4609a6c75d5e6bb9dd07d2726d55b777))
 - complete sorting, performance, and crash fixes (final) ([5a6ed26](https://github.com/cyclonite69/shadowcheck-web/commit/5a6ed26bd04d5f4e57e1f7229b71cd17227ef54e))
 - comprehensive tooltip data fixes for frequency, channel, and distance units ([bf62bda](https://github.com/cyclonite69/shadowcheck-web/commit/bf62bda27a3b5baab6230f8122d7c20ef2b07566))
+- compute bestlat/bestlon exclusively from core observations, not WiGLE crowd-sourced data ([5975dd0](https://github.com/cyclonite69/shadowcheck-web/commit/5975dd05f0c93a65dd7f64689d4d1c375add8aaf))
 - compute security type in MV instead of copying raw capabilities ([079d9c5](https://github.com/cyclonite69/shadowcheck-web/commit/079d9c5a63af59dd7f8d570b3de6b71874425dac))
 - **container:** remove circular dependency on wigleEnrichmentService ([bcbb156](https://github.com/cyclonite69/shadowcheck-web/commit/bcbb1566ff2fc4fc87fe3c81ede65db0df81fa03))
 - Convert NetworkTableHeader to CSS grid for consistent column reordering ([b9766e0](https://github.com/cyclonite69/shadowcheck-web/commit/b9766e047ec76b611a79f5d67921fb64b8b18f00))
@@ -1147,6 +1148,7 @@
 - show radius label centered inside hover signal circle ([63737e5](https://github.com/cyclonite69/shadowcheck-web/commit/63737e59504822c9ab1d6b1e856a70edffeeea57))
 - **sibling-detection:** add mac_increment and band_pair modalities alongside existing detection ([4c39920](https://github.com/cyclonite69/shadowcheck-web/commit/4c399201f7b01b0acf689bbc44edfa969b738b7a))
 - **sibling-detection:** add xfinity_sig modality (fleet_unit rejected, 0 detections) ([eb1ef34](https://github.com/cyclonite69/shadowcheck-web/commit/eb1ef3404e9ba79216310eb4f80b6bd3cdb90701))
+- **sibling:** add 5 detection rules, remove LA-MAC exclusion, consolidate fleet SSIDs ([bdb5829](https://github.com/cyclonite69/shadowcheck-web/commit/bdb5829c82491fe6ee910f30aff8d7aca1b81bde))
 - **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
 - **siblings:** add middle_octets_sequential rule for multi-BSSID APs ([888cb80](https://github.com/cyclonite69/shadowcheck-web/commit/888cb800028988e491cd01accc1fba857b09bd59))
 - **siblings:** show linked pairs in explorer ([97206d8](https://github.com/cyclonite69/shadowcheck-web/commit/97206d8e46174f0fcf888d807de5086056958f83))

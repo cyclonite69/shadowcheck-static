@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { GeospatialOverlays } from './GeospatialOverlays';
 import { WigleLookupDialog } from '../modals/WigleLookupDialog';
+import { BatchWigleLookupDialog } from '../modals/BatchWigleLookupDialog';
 import { WigleObservationsPanel } from '../panels/WigleObservationsPanel';
 import { NearestAgenciesPanel } from '../panels/NearestAgenciesPanel';
 
@@ -102,101 +103,122 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
   agencies,
   agenciesLoading,
   agenciesError,
-}) => (
-  <>
-    <GeospatialOverlays
-      contextMenu={contextMenu}
-      tagLoading={tagLoading}
-      contextMenuRef={contextMenuRef}
-      onTagAction={handleTagAction}
-      onCloseContextMenu={closeContextMenu}
-      onOpenTimeFrequency={() => {
-        const n = contextMenu.network;
-        if (n) {
-          openTimeFrequency({
-            bssid: String(n.bssid || ''),
-            ssid: String(n.ssid || ''),
-          });
-        }
-        closeContextMenu();
-      }}
-      onOpenNote={() => {
-        const bssid = contextMenu.network?.bssid || '';
-        closeContextMenu();
-        void openNoteModalForBssid(bssid);
-      }}
-      hasExistingNote={hasExistingNote && selectedBssid === contextMenu.network?.bssid}
-      onGenerateThreatReport={handleGenerateThreatReportPdf}
-      onMapWigleObservations={() => {
-        const selectedBssids = Array.from(selectedNetworks);
-        const contextBssid = contextMenu.network?.bssid;
-        const targetBssids =
-          contextBssid && selectedBssids.includes(contextBssid)
-            ? selectedBssids
-            : contextBssid
-              ? [contextBssid]
-              : selectedBssids;
-        toggleWigleForBssids(targetBssids);
-        closeContextMenu();
-      }}
-      wigleObservationsLoading={wigleObservations.loading}
-      manualSiblingTarget={manualSiblingTarget}
-      onMarkSiblingPair={handleMarkSiblingPair}
-      siblingPairLoading={siblingPairLoading}
-      showNoteModal={showNoteModal}
-      isEditNoteMode={hasExistingNote}
-      selectedBssid={selectedBssid}
-      noteSaving={noteSaving}
-      noteDeleting={noteDeleting}
-      noteError={noteError}
-      noteType={noteType}
-      noteContent={noteContent}
-      noteAttachments={noteAttachments}
-      existingNoteMedia={existingNoteMedia}
-      fileInputRef={fileInputRef}
-      onNoteTypeChange={setNoteType}
-      onNoteContentChange={setNoteContent}
-      onAddAttachment={handleAddAttachment}
-      onRemoveAttachment={removeAttachment}
-      onOpenExistingMedia={openExistingMedia}
-      onDeleteExistingMedia={handleDeleteExistingMedia}
-      onCloseNoteOverlay={() => {
-        clearNoteError();
-        setShowNoteModal(false);
-      }}
-      onCloseNote={resetNoteState}
-      onCancelNote={resetNoteState}
-      onDeleteNote={handleDeleteNote}
-      onSaveNote={handleSaveNote}
-      timeFreqModal={timeFreqModal}
-      onCloseTimeFrequency={closeTimeFrequency}
-    />
-    <WigleLookupDialog
-      visible={wigleLookupDialog.visible}
-      network={wigleLookupDialog.network}
-      loading={wigleLookupDialog.loading}
-      result={wigleLookupDialog.result}
-      onLookup={handleWigleLookup}
-      onClose={closeWigleLookupDialog}
-    />
-    <WigleObservationsPanel
-      bssid={wigleObservations.bssid}
-      bssids={wigleObservations.bssids}
-      loading={wigleObservations.loading}
-      error={wigleObservations.error}
-      stats={wigleObservations.stats}
-      batchStats={wigleObservations.batchStats}
-      onClose={clearWigleObservations}
-    />
-    {state.showAgenciesPanel && (
-      <NearestAgenciesPanel
-        agencies={agencies}
-        loading={agenciesLoading}
-        error={agenciesError}
-        networkCount={selectedNetworks.size}
+}) => {
+  const [batchDialogBssids, setBatchDialogBssids] = useState<string[]>([]);
+
+  const handleBatchInvestigate = useCallback(() => {
+    setBatchDialogBssids(Array.from(selectedNetworks));
+    closeContextMenu();
+  }, [selectedNetworks, closeContextMenu]);
+
+  const handleBatchComplete = useCallback(() => {
+    toggleWigleForBssids(batchDialogBssids);
+  }, [batchDialogBssids, toggleWigleForBssids]);
+
+  return (
+    <>
+      <GeospatialOverlays
+        contextMenu={contextMenu}
+        tagLoading={tagLoading}
+        contextMenuRef={contextMenuRef}
+        onTagAction={handleTagAction}
+        onCloseContextMenu={closeContextMenu}
+        onOpenTimeFrequency={() => {
+          const n = contextMenu.network;
+          if (n) {
+            openTimeFrequency({
+              bssid: String(n.bssid || ''),
+              ssid: String(n.ssid || ''),
+            });
+          }
+          closeContextMenu();
+        }}
+        onOpenNote={() => {
+          const bssid = contextMenu.network?.bssid || '';
+          closeContextMenu();
+          void openNoteModalForBssid(bssid);
+        }}
+        hasExistingNote={hasExistingNote && selectedBssid === contextMenu.network?.bssid}
+        onGenerateThreatReport={handleGenerateThreatReportPdf}
+        onMapWigleObservations={() => {
+          const selectedBssids = Array.from(selectedNetworks);
+          const contextBssid = contextMenu.network?.bssid;
+          const targetBssids =
+            contextBssid && selectedBssids.includes(contextBssid)
+              ? selectedBssids
+              : contextBssid
+                ? [contextBssid]
+                : selectedBssids;
+          toggleWigleForBssids(targetBssids);
+          closeContextMenu();
+        }}
+        wigleObservationsLoading={wigleObservations.loading}
+        manualSiblingTarget={manualSiblingTarget}
+        onMarkSiblingPair={handleMarkSiblingPair}
+        siblingPairLoading={siblingPairLoading}
+        selectedCount={selectedNetworks.size}
+        onBatchInvestigate={handleBatchInvestigate}
+        showNoteModal={showNoteModal}
+        isEditNoteMode={hasExistingNote}
+        selectedBssid={selectedBssid}
+        noteSaving={noteSaving}
+        noteDeleting={noteDeleting}
+        noteError={noteError}
+        noteType={noteType}
+        noteContent={noteContent}
+        noteAttachments={noteAttachments}
+        existingNoteMedia={existingNoteMedia}
+        fileInputRef={fileInputRef}
+        onNoteTypeChange={setNoteType}
+        onNoteContentChange={setNoteContent}
+        onAddAttachment={handleAddAttachment}
+        onRemoveAttachment={removeAttachment}
+        onOpenExistingMedia={openExistingMedia}
+        onDeleteExistingMedia={handleDeleteExistingMedia}
+        onCloseNoteOverlay={() => {
+          clearNoteError();
+          setShowNoteModal(false);
+        }}
+        onCloseNote={resetNoteState}
+        onCancelNote={resetNoteState}
+        onDeleteNote={handleDeleteNote}
+        onSaveNote={handleSaveNote}
+        timeFreqModal={timeFreqModal}
+        onCloseTimeFrequency={closeTimeFrequency}
       />
-    )}
-  </>
-);
+      <WigleLookupDialog
+        visible={wigleLookupDialog.visible}
+        network={wigleLookupDialog.network}
+        loading={wigleLookupDialog.loading}
+        result={wigleLookupDialog.result}
+        onLookup={handleWigleLookup}
+        onClose={closeWigleLookupDialog}
+      />
+      <WigleObservationsPanel
+        bssid={wigleObservations.bssid}
+        bssids={wigleObservations.bssids}
+        loading={wigleObservations.loading}
+        error={wigleObservations.error}
+        stats={wigleObservations.stats}
+        batchStats={wigleObservations.batchStats}
+        onClose={clearWigleObservations}
+      />
+      {state.showAgenciesPanel && (
+        <NearestAgenciesPanel
+          agencies={agencies}
+          loading={agenciesLoading}
+          error={agenciesError}
+          networkCount={selectedNetworks.size}
+        />
+      )}
+      <BatchWigleLookupDialog
+        visible={batchDialogBssids.length > 0}
+        bssids={batchDialogBssids}
+        onComplete={handleBatchComplete}
+        onClose={() => setBatchDialogBssids([])}
+      />
+    </>
+  );
+};
 
 export const GeospatialOverlayContent = React.memo(GeospatialOverlayContentComponent);

@@ -33,6 +33,8 @@ interface GeospatialOverlaysProps {
   } | null;
   onMarkSiblingPair?: () => void;
   siblingPairLoading?: boolean;
+  selectedCount?: number;
+  onBatchInvestigate?: () => void;
   showNoteModal: boolean;
   isEditNoteMode: boolean;
   selectedBssid: string;
@@ -74,6 +76,8 @@ export const GeospatialOverlays = ({
   manualSiblingTarget,
   onMarkSiblingPair,
   siblingPairLoading,
+  selectedCount,
+  onBatchInvestigate,
   showNoteModal,
   isEditNoteMode,
   selectedBssid,
@@ -120,6 +124,8 @@ export const GeospatialOverlays = ({
         manualSiblingTarget={manualSiblingTarget}
         onMarkSiblingPair={onMarkSiblingPair}
         siblingPairLoading={siblingPairLoading}
+        selectedCount={selectedCount}
+        onBatchInvestigate={onBatchInvestigate}
         onClose={onCloseContextMenu}
       />
 

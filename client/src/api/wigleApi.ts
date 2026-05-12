@@ -281,6 +281,19 @@ export const wigleApi = {
     }
   },
 
+  async batchImportWigleDetail(bssids: string[]): Promise<{
+    ok: boolean;
+    results: Array<{
+      bssid: string;
+      success: boolean;
+      importedObservations?: number;
+      error?: string;
+    }>;
+    summary: { total: number; succeeded: number; failed: number; totalImported: number };
+  }> {
+    return apiClient.post('/wigle/detail/batch', { bssids, import: true });
+  },
+
   async importWigleV3(formData: FormData): Promise<any> {
     return apiClient.post('/wigle/import/v3', formData);
   },
