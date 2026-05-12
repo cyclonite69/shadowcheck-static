@@ -507,6 +507,50 @@ The system utilizes a sophisticated SQL-based scoring engine (`calculate_threat_
 - **Temporal Gating**: Observations with invalid timestamps (before Jan 1, 2000) are rejected at import time. This is a data quality gate to prevent broken Kismet exports and device clock bugs (1900/1970 epoch placeholders) from corrupting the dataset. Historical observation data with valid timestamps is retained indefinitely.
 - **Statistical Significance**: Requires at least 2 distinct location sightings to calculate a score.
 
+### Sibling Detection & Grouping
+
+Siblings are different radios (BSSIDs) on the same physical AP. Detecting siblings is critical because:
+
+1. **False positive prevention**: Without sibling detection, thousands of independent Xfinity hotspots get grouped as one "family"
+2. **Threat scoring**: Fleet bonus only applies to true multi-radio APs, not independent devices
+3. **Geospatial analysis**: Siblings always co-locate; identifying them reduces location uncertainty
+
+**Detection Ruleset** (as of May 2026):
+
+The sibling detection system uses 12 rules split into two categories:
+
+**SSID-Based Rules** (fleet SSID filters apply):
+
+- `ssid_anchor` — Same SSID + same OUI (first 4 octets)
+- `ssid_exact_sequential` — Identical SSIDs + sequential BSSIDs
+- `cross_oui_ssid_exact` — Same SSID + different OUI
+- `same_oui_proximity` — Same SSID + same OUI + geospatial proximity
+
+**MAC-Pattern Rules** (fleet SSID filters do NOT apply):
+
+- `middle_octets_sequential` — Middle octets identical, last octet sequential
+- `upper_octet_rotation` — OUI octets form rotation pattern (e.g., AA:BB:CC vs CC:BB:AA)
+- `last_octet_sequential` — Last octet sequential (delta 1-3)
+- `octet4_rotation_64` — Octet 4 rotates by 64
+- `cisco_quad_radio` — Cisco quad-radio AP pattern
+- `genesee_county_wide_sequential` — Specific geographic sequential pattern
+- `target_retail_sequential` — Target retail chain sequential pattern
+- `rglide_wide_sequential` — Riverglide provider sequential pattern
+
+**Key Design Principle** (commit ca765d76, May 12, 2026):
+
+Fleet SSID filters (e.g., `xfinitywifi`, `hurleyguest`, `masimo`) now apply **only to SSID-based rules**. MAC-pattern rules detect based on hardware structure alone; SSID content is irrelevant. Example: undertaker (`8C:61:A3:7C:BD:08`) and xfinitywifi (`9E:61:A3:7C:BD:09`) are siblings via `middle_octets_sequential` despite different SSIDs — both are radios on the same Commscope AP.
+
+**Implementation**:
+
+- Function: `app.find_sibling_radios(bssid, confidence_threshold, distance_threshold)` in `sql/migrations/20260509_sibling_detection_overhaul.sql`
+- Service: `server/src/services/admin/siblingDetectionAdminService.ts` (SSID-based rules)
+- Query: `server/src/services/admin/siblingDetectionQueries.ts` (MAC-pattern rules via `REFRESH_CHUNK_SQL`)
+- Results: Stored in `app.network_sibling_pairs` table
+- Frontend: Rendered in GeospatialExplorer sibling group UI via `useSiblingLinks.ts` hook
+
+---
+
 ## Security Architecture
 
 ### Authentication & Authorization
