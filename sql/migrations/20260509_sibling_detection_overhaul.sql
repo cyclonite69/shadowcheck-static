@@ -282,23 +282,6 @@ c AS (
         ('x' || t.o6)::bit(8)::int
       ) BETWEEN 1 AND 2
     )
-    -- Fleet SSIDs never enter the probabilistic path.
-    AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT IN (
-      'greatlakesmobile','mdt','mtasmartbus','kajeetsmartbus',
-      'xfinitywifi','xfinity','xfinitymobile',
-      'eduroam','attwifi',
-      'optimumwifi','cablewifi','spectrumwifi','twcwifi',
-      'boingohotspot','boingowireless',
-      'googlesb','_google',
-      'hurleyguest','hmcpsk','hmcbio','hmcguest',
-      'mguest','mflint',
-      'masimo','ppm',
-      'somiot','somguest',
-      'seos','paxar',
-      'mychevrolet','onstar','mybuick','mycadillac','mygmc',
-      'lebosecoloriisoundlink'
-    )
-    AND lower(regexp_replace(coalesce(t.ssid, ''), '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
 ),
 probabilistic AS (
   SELECT
