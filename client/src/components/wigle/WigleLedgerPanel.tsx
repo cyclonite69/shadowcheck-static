@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { wigleApi, type LedgerRow } from '../../api/wigleApi';
 
 const STATUS_FILTERS = ['all', 'success', 'error', 'rate_limited', 'skipped'] as const;

@@ -135,6 +135,9 @@ const defaultEnabled: Record<keyof NetworkFilters, boolean> = {
   wigleV3LastImportBefore: false,
   wigleV3LastImportAfter: false,
   surveillance: false,
+  shotspotter: false,
+  bwc: false,
+  flock: false,
 };
 
 const createDefaultPageState = (): PageFilterState => ({
@@ -269,6 +272,15 @@ export const useFilterStore = create<HardenedFilterStore>()(
           }
           if (key === 'surveillance' && pageState.filters.surveillance === undefined) {
             nextFilters = { ...pageState.filters, surveillance: true };
+          }
+          if (key === 'shotspotter' && pageState.filters.shotspotter === undefined) {
+            nextFilters = { ...pageState.filters, shotspotter: true };
+          }
+          if (key === 'bwc' && pageState.filters.bwc === undefined) {
+            nextFilters = { ...pageState.filters, bwc: true };
+          }
+          if (key === 'flock' && pageState.filters.flock === undefined) {
+            nextFilters = { ...pageState.filters, flock: true };
           }
         }
 

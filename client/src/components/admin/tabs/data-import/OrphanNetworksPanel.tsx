@@ -48,11 +48,6 @@ type SortEntry = { key: string; dir: 'asc' | 'desc' };
 
 const PAGE_SIZE = 100;
 
-const formatCoords = (lat: number | null, lon: number | null) => {
-  if (lat == null || lon == null) return '—';
-  return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-};
-
 export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [rows, setRows] = useState<OrphanNetworkRow[]>([]);
   const [total, setTotal] = useState(0);

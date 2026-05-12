@@ -865,13 +865,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/wigle/ledger',
     method: 'GET',
     params: [
-      { name: 'limit', defaultValue: '50', placeholder: '50' },
+      { name: 'limit', label: 'Limit', defaultValue: '50', placeholder: '50' },
       {
         name: 'status',
+        label: 'Status',
         defaultValue: 'all',
         placeholder: 'all|success|error|rate_limited|skipped',
       },
-      { name: 'source', defaultValue: 'all', placeholder: 'all|import|event' },
+      { name: 'source', label: 'Source', defaultValue: 'all', placeholder: 'all|import|event' },
     ],
   },
   {

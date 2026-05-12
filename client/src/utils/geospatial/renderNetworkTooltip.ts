@@ -248,7 +248,6 @@ export const renderNetworkTooltip = (props: any): any => {
   const lon = props.lon ?? props.longitude ?? props.trilong;
   const ssid = normalizeDisplay(props.ssid);
   const bssid = normalizeDisplay(props.bssid || props.netid);
-  const obsTotal = Number(props.observation_count) || 0;
 
   const signalFill = Number.isFinite(rssi) ? clamp(((rssi - -90) / 60) * 100, 0, 100) : 0;
   const signalColor = !Number.isFinite(rssi)

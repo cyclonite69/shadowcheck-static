@@ -162,10 +162,10 @@ export const useShotspotterZones = (
 
 export function ensureShotspotterLayers(map: Map, data: ShotspotterZonesGeoJSON) {
   if (!map.getSource('shotspotter-zones')) {
-    map.addSource('shotspotter-zones', { type: 'geojson', data });
+    map.addSource('shotspotter-zones', { type: 'geojson', data: data as any });
   } else {
-    const source = map.getSource('shotspotter-zones') as mapboxgl.GeoJSONSource;
-    source.setData(data);
+    const source = map.getSource('shotspotter-zones') as any;
+    if (source.setData) source.setData(data as any);
   }
 
   if (!map.getLayer('shotspotter-fill')) {

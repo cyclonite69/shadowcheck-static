@@ -47,7 +47,6 @@ interface EnrichmentRow {
 
 interface V3EnrichmentManagerTableProps {
   onEnrich: (bssids: string[]) => Promise<void>;
-  onSelect: (bssid: string) => void;
   isLoading: boolean;
 }
 
@@ -97,7 +96,6 @@ function applySortCols(rows: EnrichmentRow[], sortCols: SortEntry[]): Enrichment
 
 export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> = ({
   onEnrich,
-  onSelect: _onSelect,
   isLoading: actionLoading,
 }) => {
   const [allRows, setAllRows] = useState<EnrichmentRow[]>([]);
@@ -126,8 +124,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     loading: boolean;
   } | null>(null);
   const [mvData, setMvData] = useState<any | null>(null);
-  const [activeRow, setActiveRow] = useState<EnrichmentRow | null>(null);
-  const [basePanelHtml, setBasePanelHtml] = useState<string>('');
 
   // Multi-column sort
   const [sortCols, setSortCols] = useState<SortEntry[]>([]);
@@ -200,13 +196,10 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   const handleRowClick = (row: EnrichmentRow) => {
     if (activePanel?.bssid === row.bssid) {
       setActivePanel(null);
-      setActiveRow(null);
       setMvData(null);
-      setBasePanelHtml('');
       return;
     }
 
-    setActiveRow(row);
     setMvData(null);
 
     const placeholderNormalized = normalizeTooltipData({
@@ -217,7 +210,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     });
     const placeholderHtml =
       renderNetworkTooltip({ ...placeholderNormalized, triggerElement: tableRef.current }) ?? '';
-    setBasePanelHtml(placeholderHtml);
     setActivePanel({ bssid: row.bssid, html: placeholderHtml, loading: true });
 
     networkApi.getNetworkByBssid(row.bssid).then((mv) => {
@@ -231,7 +223,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
       const fullHtml =
         renderNetworkTooltip({ ...normalized, triggerElement: tableRef.current }) ??
         placeholderHtml;
-      setBasePanelHtml(fullHtml);
       setActivePanel((current) => {
         if (!current || current.bssid !== row.bssid) return current;
         return { bssid: row.bssid, html: fullHtml, loading: false };
