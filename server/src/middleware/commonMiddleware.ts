@@ -44,16 +44,11 @@ function mountCommonMiddleware(app: Express, options: CommonMiddlewareOptions): 
   // Rate limiting
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000,
+    max: 50000,
     message: 'Too many requests from this IP, please try again after 15 minutes',
     skip: (req: any) => {
       const ip = req.ip || req.socket.remoteAddress || '';
-      return (
-        ip === '127.0.0.1' ||
-        ip === '::1' ||
-        ip.startsWith('172.31.') ||
-        (req as any).user?.role === 'admin'
-      );
+      return ip === '127.0.0.1' || ip === '::1' || ip.startsWith('172.31.') || ip.startsWith('10.');
     },
   });
   app.use('/api/', apiLimiter);

@@ -674,6 +674,7 @@
 - **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
 - **sibling:** purge fleet-fleet cross-unit pairs + guard refresh against re-creation ([496cfa5](https://github.com/cyclonite69/shadowcheck-web/commit/496cfa5028630c4e63f9ceb80464d13bac0d0208))
 - **sibling:** refresh function now respects not_sibling manual overrides ([4e38540](https://github.com/cyclonite69/shadowcheck-web/commit/4e38540fc2b982e76aadc9eabbdb309250c9e9db))
+- **siblings:** add campus-wide fleet SSIDs to exclusion list ([58bd978](https://github.com/cyclonite69/shadowcheck-web/commit/58bd9789564ab386e86b6c09881476e95e50347e))
 - **siblings:** deterministic rule bypass + fleet SSID purge ([c2f03c6](https://github.com/cyclonite69/shadowcheck-web/commit/c2f03c6efb3dfab09579bde05fcc2cf468408041)), closes [hi#cardinality](https://github.com/hi/issues/cardinality)
 - **siblings:** manual pairs as baseline + fix upper_octet_rotation SSID exclusion ([504626a](https://github.com/cyclonite69/shadowcheck-web/commit/504626a70dd208f1c2564a65c95236bf46953f0d))
 - **siblings:** only show link badge for real links ([4e66e64](https://github.com/cyclonite69/shadowcheck-web/commit/4e66e64ef2ae61aa524b3fee5e63fbdccf2c8bbd))
