@@ -37,6 +37,9 @@ const FLEET_SSIDS = [
   'mycadillac',
   'mygmc',
   'lebosecoloriisoundlink',
+  'fact',
+  'ccguest',
+  'ccinternal',
 ] as const;
 
 const FLEET_SSID_SQL_LIST = FLEET_SSIDS.map((s) => `'${s}'`).join(',');

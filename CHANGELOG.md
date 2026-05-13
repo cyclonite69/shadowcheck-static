@@ -679,6 +679,7 @@
 - **siblings:** only show link badge for real links ([4e66e64](https://github.com/cyclonite69/shadowcheck-web/commit/4e66e64ef2ae61aa524b3fee5e63fbdccf2c8bbd))
 - **siblings:** penalize common SSID long-distance false positives ([5bb903e](https://github.com/cyclonite69/shadowcheck-web/commit/5bb903e97fa0639f4fc980878eebf791c3d0749f))
 - **siblings:** remove distance as penalty/gate; fix BT/BLE first-2-octet false siblings ([713a61a](https://github.com/cyclonite69/shadowcheck-web/commit/713a61a44a23b7a78f1430c7d24f1a830ce0ae38))
+- **siblings:** restore LA-MAC exclusion for middle_octets_sequential ([1044da0](https://github.com/cyclonite69/shadowcheck-web/commit/1044da02035cfdf4644885467db0ab06d3231dc0))
 - **siblings:** snapshot incremental cutoff before loop to prevent batch 2+ starvation ([e7df70f](https://github.com/cyclonite69/shadowcheck-web/commit/e7df70fb3fa3f61d4ce5a5b21250de754d3d221d))
 - **siblings:** support legacy sibling table schema without pair_strength ([a51b918](https://github.com/cyclonite69/shadowcheck-web/commit/a51b9186c4ed831cb930ac0f908e74fac39a8a6e))
 - **siblings:** tighten false-positive rules + respect not_sibling overrides ([740f420](https://github.com/cyclonite69/shadowcheck-web/commit/740f4202503f95e7f6a9a906e7421a6a7a086dee))
