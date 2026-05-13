@@ -184,11 +184,9 @@ middle_octets_sequential AS (
   JOIN app.networks n
     ON upper(n.bssid) <> upper(t.bssid)
     AND n.type = 'W'
-    -- At least one side must be non-locally-administered
-    AND (
-      (get_byte(decode(replace(n.bssid, ':', ''), 'hex'), 0) & 2) = 0
-      OR (get_byte(decode(replace(t.bssid, ':', ''), 'hex'), 0) & 2) = 0
-    )
+    -- Exclude locally administered (randomized) MACs on both sides
+    AND (get_byte(decode(replace(n.bssid, ':', ''), 'hex'), 0) & 2) = 0
+    AND (get_byte(decode(replace(t.bssid, ':', ''), 'hex'), 0) & 2) = 0
     AND upper(split_part(n.bssid, ':', 2)) = t.o2
     AND upper(split_part(n.bssid, ':', 3)) = t.o3
     AND upper(split_part(n.bssid, ':', 4)) = t.o4

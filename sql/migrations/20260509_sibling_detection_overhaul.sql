@@ -211,18 +211,21 @@ middle_octets_sequential AS (
   JOIN app.networks n
     ON upper(n.bssid) <> upper(t.bssid)
     AND n.type = 'W'
-    -- First octet must differ
-    AND upper(split_part(n.bssid, ':', 1)) <> t.o1
-    -- Octets 2–5 must be identical
-    AND upper(split_part(n.bssid, ':', 2)) = t.o2
-    AND upper(split_part(n.bssid, ':', 3)) = t.o3
-    AND upper(split_part(n.bssid, ':', 4)) = t.o4
-    AND upper(split_part(n.bssid, ':', 5)) = t.o5
-    -- Last octet delta 0–3
-    AND ABS(
-      ('x' || upper(split_part(n.bssid, ':', 6)))::bit(8)::int -
-      ('x' || t.o6)::bit(8)::int
-    ) BETWEEN 0 AND 3
+  -- Exclude locally administered (randomized) MACs on both sides
+  AND (get_byte(decode(replace(n.bssid, ':', ''), 'hex'), 0) & 2) = 0
+  AND (get_byte(decode(replace(t.bssid, ':', ''), 'hex'), 0) & 2) = 0
+  -- First octet must differ
+  AND upper(split_part(n.bssid, ':', 1)) <> t.o1
+  -- Octets 2–5 must be identical
+  AND upper(split_part(n.bssid, ':', 2)) = t.o2
+  AND upper(split_part(n.bssid, ':', 3)) = t.o3
+  AND upper(split_part(n.bssid, ':', 4)) = t.o4
+  AND upper(split_part(n.bssid, ':', 5)) = t.o5
+  -- Last octet delta 0–3
+  AND ABS(
+    ('x' || upper(split_part(n.bssid, ':', 6)))::bit(8)::int -
+    ('x' || t.o6)::bit(8)::int
+  ) BETWEEN 0 AND 3
 ),
 -- Probabilistic candidates: require first 4 octets identical.
 -- Only fires for empty_ssid_match and mac_only_match.
