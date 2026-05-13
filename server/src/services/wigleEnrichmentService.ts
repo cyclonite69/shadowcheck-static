@@ -108,12 +108,17 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
             logger.warn(`[v3 Enrichment] WiGLE blocked/throttled. Pausing run #${runId}`);
             return;
           }
-          logger.error(`[v3 Enrichment] Failed item ${item.bssid}: ${err.message}`);
+          logger.error(
+            `[v3 Enrichment] Failed item ${item.bssid} in run #${runId}: ${err.message}`
+          );
           processed.add(item.bssid);
           consecutiveErrors += 1;
 
           if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-            await markRunControlStatus(runId, 'paused');
+            await markRunFailure(
+              runId,
+              `${MAX_CONSECUTIVE_ERRORS} consecutive failures, possible rate limit or service outage`
+            );
             logger.warn(
               `[v3 Enrichment] Aborting run #${runId} — ${MAX_CONSECUTIVE_ERRORS} consecutive failures, possible rate limit or service outage`
             );

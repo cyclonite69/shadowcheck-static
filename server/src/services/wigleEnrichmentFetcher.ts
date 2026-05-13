@@ -7,6 +7,7 @@ import * as container from '../config/container';
 import { wigleGatewayFetch } from './wigle/wigleGateway';
 import { getEncodedWigleAuth } from './wigleRequestUtils';
 import { inferWigleEndpoint } from './wigleDetailTransforms';
+import { importObservations } from './wigleDetailService';
 
 const { wigleService, secretsManager } = container as any;
 
@@ -81,24 +82,8 @@ export async function fetchAndImportDetail(
     location_clusters: JSON.stringify(data.locationClusters || []),
   });
 
-  let obsCount = 0;
-  if (Array.isArray(data.locationClusters)) {
-    for (const cluster of data.locationClusters) {
-      if (!Array.isArray(cluster.locations)) continue;
-      for (const loc of cluster.locations) {
-        try {
-          const inserted = await wigleService.importWigleV3Observation(
-            data.networkId,
-            loc,
-            loc.ssid || cluster.clusterSsid || data.name
-          );
-          obsCount += inserted;
-        } catch {
-          // Continue on individual observation failure
-        }
-      }
-    }
-  }
+  const counts = await importObservations(data.networkId, data.locationClusters);
+  const obsCount = counts.newCount;
 
   return { bssid, obsCount };
 }
