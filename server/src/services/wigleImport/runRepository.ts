@@ -1,4 +1,5 @@
 const { pool, query } = require('../../config/database');
+const adminDbService = require('../adminDbService');
 
 import {
   DEFAULT_RESULTS_PER_PAGE,
@@ -162,7 +163,7 @@ const createImportRun = async (
   const requestFingerprint = usesDirectMetadata
     ? getRawRequestFingerprint(requestParams)
     : getRequestFingerprint(normalized);
-  const result = await query(
+  const result = await adminDbService.query(
     `INSERT INTO app.wigle_import_runs (
         source,
         api_version,
@@ -205,7 +206,7 @@ const findLatestResumableRun = async (
 };
 
 const markRunFailure = async (runId: number, message: string) => {
-  const result = await query(
+  const result = await adminDbService.query(
     `UPDATE app.wigle_import_runs
         SET status = 'failed',
             last_error = $2,
@@ -219,7 +220,7 @@ const markRunFailure = async (runId: number, message: string) => {
 };
 
 const markRunControlStatus = async (runId: number, status: 'paused' | 'cancelled') => {
-  const result = await query(
+  const result = await adminDbService.query(
     `UPDATE app.wigle_import_runs
         SET status = $2,
             last_attempted_at = NOW(),
@@ -234,7 +235,7 @@ const markRunControlStatus = async (runId: number, status: 'paused' | 'cancelled
 };
 
 const resumeRunState = async (runId: number) => {
-  const result = await query(
+  const result = await adminDbService.query(
     `UPDATE app.wigle_import_runs
         SET status = 'running',
             last_error = NULL,
@@ -248,7 +249,7 @@ const resumeRunState = async (runId: number) => {
 };
 
 const completeRun = async (runId: number, note?: string) => {
-  const result = await query(
+  const result = await adminDbService.query(
     `UPDATE app.wigle_import_runs
         SET status = 'completed',
             completed_at = NOW(),
@@ -267,7 +268,7 @@ const persistPageFailure = async (
   requestCursor: string | null,
   errorMessage: string
 ) => {
-  await query(
+  await adminDbService.query(
     `INSERT INTO app.wigle_import_run_pages (
         run_id, page_number, request_cursor, success, error_message, fetched_at, updated_at
       ) VALUES ($1, $2, $3, FALSE, $4, NOW(), NOW())
@@ -529,7 +530,7 @@ export const findGlobalCancelledClusterIds = async (): Promise<number[]> => {
 // Hard-deletes cancelled runs by ID array; returns count deleted
 export const bulkDeleteCancelledRunsByIds = async (ids: number[]): Promise<number> => {
   if (ids.length === 0) return 0;
-  const result = await query(
+  const result = await adminDbService.query(
     `DELETE FROM app.wigle_import_runs
       WHERE id = ANY($1::bigint[])
         AND status = 'cancelled'`,
@@ -540,7 +541,7 @@ export const bulkDeleteCancelledRunsByIds = async (ids: number[]): Promise<numbe
 
 // Hard-deletes a single import run by id; only allows completed/cancelled/failed
 export const deleteImportRun = async (id: number): Promise<boolean> => {
-  const result = await query(
+  const result = await adminDbService.query(
     `DELETE FROM app.wigle_import_runs
       WHERE id = $1
         AND status IN ('completed', 'cancelled', 'failed')`,
