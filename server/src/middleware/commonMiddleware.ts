@@ -48,7 +48,12 @@ function mountCommonMiddleware(app: Express, options: CommonMiddlewareOptions): 
     message: 'Too many requests from this IP, please try again after 15 minutes',
     skip: (req: any) => {
       const ip = req.ip || req.socket.remoteAddress || '';
-      return ip === '127.0.0.1' || ip === '::1' || ip.startsWith('172.31.');
+      return (
+        ip === '127.0.0.1' ||
+        ip === '::1' ||
+        ip.startsWith('172.31.') ||
+        (req as any).user?.role === 'admin'
+      );
     },
   });
   app.use('/api/', apiLimiter);
