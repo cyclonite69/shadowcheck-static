@@ -132,7 +132,7 @@
 - **backup:** restrict admin pg_dump to app/public schemas by default ([8a18d26](https://github.com/cyclonite69/shadowcheck-web/commit/8a18d261682b10c7e08ad63b8263016e069d90cf))
 - **backup:** run admin UI backups with DB admin credentials ([102ae23](https://github.com/cyclonite69/shadowcheck-web/commit/102ae2385195ae52ed8b49553c59a098c60d4a94))
 - **baseline:** resolve view dependency and column reference issues in baselines 005-006 ([c29400a](https://github.com/cyclonite69/shadowcheck-web/commit/c29400a7cb015a4958c54e9ef2767373e554a888))
-- batch v3 enrichment import — restore error logging and observation tracking ([c487cfd](https://github.com/cyclonite69/shadowcheck-web/commit/c487cfd2346b1417cf7ccbb3b9da00bb2371065c))
+- batch v3 enrichment import — restore error logging and observation tracking ([bef60c0](https://github.com/cyclonite69/shadowcheck-web/commit/bef60c078f37e7ad5f1ecfa0721c27390590913f))
 - **bedrock:** add inference-profile ARN to IAM policy; fix missing await on getRegion log ([78c3103](https://github.com/cyclonite69/shadowcheck-web/commit/78c310311d462db5562e6b931021839e0132267d))
 - **build:** add weatherRoutes to RouteModules interface in routesInit ([f93e043](https://github.com/cyclonite69/shadowcheck-web/commit/f93e0431a0e4bf30cd641c11fe727dfde676217f))
 - **build:** scope server ts types to node ([9798a6a](https://github.com/cyclonite69/shadowcheck-web/commit/9798a6a527a314eebf488d95f1601f9a7d6f3cff))
