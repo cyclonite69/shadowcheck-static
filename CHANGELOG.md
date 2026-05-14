@@ -790,6 +790,7 @@
 - update PgAdmin URL to use HTTPS and dynamic hostname ([709e960](https://github.com/cyclonite69/shadowcheck-web/commit/709e9601c01f91d4555af829998cb789a5855a9f))
 - update WiGLE search to use v3 API and support GET/POST ([810ae94](https://github.com/cyclonite69/shadowcheck-web/commit/810ae948a225c76451a0f7d4f3623ace6ea3bd49))
 - upgrade to Claude Haiku 4.5 (latest Haiku via Bedrock inference profile) ([ce8ffef](https://github.com/cyclonite69/shadowcheck-web/commit/ce8ffef0cb8dde12221e570c142a4d8ad70a8a51))
+- use adminQuery instead of query in wigle import run repository ([997161f](https://github.com/cyclonite69/shadowcheck-web/commit/997161f93e94b107ce87aa4de637cb0c9ef55346))
 - use correct column name 'level' from observations table (aliased as signal) ([81a2964](https://github.com/cyclonite69/shadowcheck-web/commit/81a2964ff81ed0c9431fdc6e6ac4f1522fa241a9))
 - use correct column names from radio_manufacturers table ([9af297e](https://github.com/cyclonite69/shadowcheck-web/commit/9af297e1c9e4934bf4c067188230bc3b041531c7))
 - use full network grid on geospatial page (like networks.html) ([3c3f579](https://github.com/cyclonite69/shadowcheck-web/commit/3c3f5792f61f0d2ff7dfe34bcae9227dc0c5d93d))

@@ -46,9 +46,25 @@ router.post(
       error?: string;
     }> = [];
 
-    // Batch query network types from DB
+    // Batch query network types from DB (networks first, then observations as fallback)
     const { rows: networkTypes } = await query(
-      `SELECT DISTINCT ON (bssid) bssid, type FROM app.networks WHERE bssid = ANY($1::text[])`,
+      `
+      SELECT DISTINCT ON (bssid) bssid, type FROM app.networks WHERE bssid = ANY($1::text[])
+      UNION ALL
+      SELECT DISTINCT ON (bssid) bssid,
+        CASE LOWER(COALESCE(NULLIF(radio_type, ''), 'wifi'))
+          WHEN 'wifi' THEN 'W'
+          WHEN 'bluetooth' THEN 'B'
+          WHEN 'ble' THEN 'E'
+          WHEN 'lte' THEN 'L'
+          WHEN 'gsm' THEN 'G'
+          WHEN 'nr' THEN 'N'
+          ELSE 'W'
+        END as type
+      FROM app.observations
+      WHERE bssid = ANY($1::text[])
+        AND bssid NOT IN (SELECT bssid FROM app.networks WHERE bssid = ANY($1::text[]))
+      `,
       [cleanBssids]
     );
     const typeMap = new Map(networkTypes.map((r: any) => [r.bssid, r.type as string]));
