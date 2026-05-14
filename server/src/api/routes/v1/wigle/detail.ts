@@ -45,9 +45,17 @@ router.post(
       error?: string;
     }> = [];
 
+    // Batch query network types from DB
+    const { rows: networkTypes } = await require('../../../config/database').query(
+      `SELECT DISTINCT ON (bssid) bssid, type FROM app.networks WHERE bssid = ANY($1::text[])`,
+      [cleanBssids]
+    );
+    const typeMap = new Map(networkTypes.map((r: any) => [r.bssid, r.type as string]));
+
     for (const bssid of cleanBssids) {
       try {
-        const result = await fetchOrImportDetail(bssid, 'wifi', shouldImport === true);
+        const networkType = (typeMap.get(bssid) as string) || 'wifi'; // Default to wifi if not found
+        const result = await fetchOrImportDetail(bssid, networkType, shouldImport === true);
         if (result.ok) {
           results.push({
             bssid,
