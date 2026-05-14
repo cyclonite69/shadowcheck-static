@@ -10,6 +10,7 @@ import { fetchOrImportDetail, importDetailFromJson } from '../../../../services/
 
 const router = express.Router();
 const { asyncHandler } = require('../../../../utils/asyncHandler');
+const { query } = require('../../../../config/database');
 
 interface FileUploadRequest extends Request {
   files?: Record<string, { data: Buffer; name: string; [key: string]: unknown }>;
@@ -46,7 +47,7 @@ router.post(
     }> = [];
 
     // Batch query network types from DB
-    const { rows: networkTypes } = await require('../../../config/database').query(
+    const { rows: networkTypes } = await query(
       `SELECT DISTINCT ON (bssid) bssid, type FROM app.networks WHERE bssid = ANY($1::text[])`,
       [cleanBssids]
     );
