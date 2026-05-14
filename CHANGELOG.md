@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-13)
+# 1.0.0 (2026-05-14)
 
 ### Bug Fixes
 
@@ -132,7 +132,8 @@
 - **backup:** restrict admin pg_dump to app/public schemas by default ([8a18d26](https://github.com/cyclonite69/shadowcheck-web/commit/8a18d261682b10c7e08ad63b8263016e069d90cf))
 - **backup:** run admin UI backups with DB admin credentials ([102ae23](https://github.com/cyclonite69/shadowcheck-web/commit/102ae2385195ae52ed8b49553c59a098c60d4a94))
 - **baseline:** resolve view dependency and column reference issues in baselines 005-006 ([c29400a](https://github.com/cyclonite69/shadowcheck-web/commit/c29400a7cb015a4958c54e9ef2767373e554a888))
-- batch v3 enrichment import — restore error logging and observation tracking ([bef60c0](https://github.com/cyclonite69/shadowcheck-web/commit/bef60c078f37e7ad5f1ecfa0721c27390590913f))
+- batch v3 enrichment import — restore error logging and observation tracking ([9cebeea](https://github.com/cyclonite69/shadowcheck-web/commit/9cebeeadd71881132e508ebbcfea53ff8dae654f))
+- batch v3 enrichment import — restore error logging and observation tracking ([c487cfd](https://github.com/cyclonite69/shadowcheck-web/commit/c487cfd2346b1417cf7ccbb3b9da00bb2371065c))
 - **bedrock:** add inference-profile ARN to IAM policy; fix missing await on getRegion log ([78c3103](https://github.com/cyclonite69/shadowcheck-web/commit/78c310311d462db5562e6b931021839e0132267d))
 - **build:** add weatherRoutes to RouteModules interface in routesInit ([f93e043](https://github.com/cyclonite69/shadowcheck-web/commit/f93e0431a0e4bf30cd641c11fe727dfde676217f))
 - **build:** scope server ts types to node ([9798a6a](https://github.com/cyclonite69/shadowcheck-web/commit/9798a6a527a314eebf488d95f1601f9a7d6f3cff))
@@ -162,6 +163,7 @@
 - correct mapbox proxy streaming ([4697c73](https://github.com/cyclonite69/shadowcheck-web/commit/4697c730f40eca692f82a55f191b88c8b9b9b87c))
 - Correct Mapbox token endpoint path and secret name ([3d9c3cf](https://github.com/cyclonite69/shadowcheck-web/commit/3d9c3cf7e0915a7ac3ddec09542aeca01e53e21b))
 - correct ml route import path in admin.ts ([5292bbd](https://github.com/cyclonite69/shadowcheck-web/commit/5292bbd75b998c1958ebfb0a835c668c69ab4ced))
+- correct module path in batch detail import endpoint ([9de4f05](https://github.com/cyclonite69/shadowcheck-web/commit/9de4f059cc12e66a827e941e8aac96c2773c5b98))
 - correct MV column names to match application code ([39a1d59](https://github.com/cyclonite69/shadowcheck-web/commit/39a1d5907c63935e2db1cf7b11a0ffbea7a18a07))
 - Correct path to ml-trainer.js module ([3d7c36d](https://github.com/cyclonite69/shadowcheck-web/commit/3d7c36d9c860bf45abf7e75bf9a9d62c50979481))
 - correct permissions for persistent web certs directory ([b1fa882](https://github.com/cyclonite69/shadowcheck-web/commit/b1fa8822d6bb2e164494748e25bb04353e884f52))
@@ -238,6 +240,7 @@
 - **enrichment:** add signal, channel, encryption to catalog query ([827ca9e](https://github.com/cyclonite69/shadowcheck-web/commit/827ca9e7e908c67ab6d1ebaa04869f30979376eb))
 - **enrichment:** force-clear stuck running enrichment run ([75b08e1](https://github.com/cyclonite69/shadowcheck-web/commit/75b08e177397cb04d065620ed4ccb5c9403bc71b))
 - **enrichment:** store correct run metadata, restore guard, migrate phantom rows ([5979ab5](https://github.com/cyclonite69/shadowcheck-web/commit/5979ab517f833671e97eeaaf13942aa97432a052))
+- **enrichment:** use admin connection for WiGLE detail imports ([68ee533](https://github.com/cyclonite69/shadowcheck-web/commit/68ee5337679e56817db8841da6b2769ae5dd25a5))
 - Ensure all tooltip sections display properly ([9e0868d](https://github.com/cyclonite69/shadowcheck-web/commit/9e0868d34822b3697b20ef608bc285303be20a51))
 - ensure security labels always use extended versions (WPA2-P, WPA3-P) and update tests ([4147bda](https://github.com/cyclonite69/shadowcheck-web/commit/4147bda09efa4dbaa46955b506d47c22054c4213))
 - **etl:** call upsertNetworks() in incremental import, add network repair script ([180bce0](https://github.com/cyclonite69/shadowcheck-web/commit/180bce0ced722c9a066d70a1b7e980f769de67b0))
@@ -321,6 +324,7 @@
 - **geospatial:** correct filterStore import path in MapRadiusContextMenu ([2aad8f9](https://github.com/cyclonite69/shadowcheck-web/commit/2aad8f9c245a4bfacc6ae79471937e68fd3ff5d6))
 - **geospatial:** correct relative import paths in contextMenu/actions.ts ([ef5f626](https://github.com/cyclonite69/shadowcheck-web/commit/ef5f62656ebbac9802aa23cbc1a5c79ee711d193))
 - **geospatial:** degrade filtered retry limit on repeated timeout ([5baf3e5](https://github.com/cyclonite69/shadowcheck-web/commit/5baf3e55be0bc8392f9fdb1babb6363359271b32))
+- **geospatial:** detect network type for batch BT/BLE imports ([3ac141b](https://github.com/cyclonite69/shadowcheck-web/commit/3ac141b43653650da3d076cc7cf02efb8802a343))
 - **geospatial:** detect wildcard BSSID patterns in quick search ([ddc70bd](https://github.com/cyclonite69/shadowcheck-web/commit/ddc70bd9aac402624b5409ca801ad0d31f5085d7))
 - **geospatial:** disable automatic viewport tilting when enabling 3D/terrain ([1432bec](https://github.com/cyclonite69/shadowcheck-web/commit/1432beceb2db5be9c3d6e38a6ff1fa48e97bb138))
 - **geospatial:** disable horizontal sticky columns to keep grid aligned ([100e7f6](https://github.com/cyclonite69/shadowcheck-web/commit/100e7f624b374d03461aff54a464b2073091d815))
