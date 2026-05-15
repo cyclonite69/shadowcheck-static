@@ -35,6 +35,7 @@ import {
   DEFAULT_HOME_RADIUS,
 } from '../../../constants/network';
 import { NetworkRow } from '../../../types/network';
+import { expandNetworksForSiblingSearch } from '../utils/siblingGroupGraph';
 
 interface UseGeospatialExplorerStateProps {
   selectedNetworks: Set<string>;
@@ -378,31 +379,16 @@ export const useGeospatialExplorerState = ({
 
   const missingSiblings = missingSiblingNetworks ?? [];
 
-  const filteredNetworks = useMemo(() => {
-    let allNetworks = networks;
-    if (missingSiblings.length > 0) {
-      const loaded = new Set(networks.map((n) => n.bssid?.toUpperCase()));
-      const extras = missingSiblings.filter((n) => n.bssid && !loaded.has(n.bssid.toUpperCase()));
-      if (extras.length > 0) allNetworks = [...networks, ...extras];
-    }
-
-    if (visibleSiblingGroupMap.size === 0) return allNetworks;
-    const grouped: NetworkRow[] = [];
-    const emitted = new Set<string>();
-    for (const net of allNetworks) {
-      const gid = visibleSiblingGroupMap.get(net.bssid);
-      if (!gid) {
-        grouped.push(net);
-        continue;
-      }
-      if (emitted.has(gid)) continue;
-      emitted.add(gid);
-      allNetworks
-        .filter((n) => visibleSiblingGroupMap.get(n.bssid) === gid)
-        .forEach((n) => grouped.push(n));
-    }
-    return grouped;
-  }, [networks, missingSiblings, visibleSiblingGroupMap]);
+  const filteredNetworks = useMemo(
+    () =>
+      expandNetworksForSiblingSearch(
+        networks,
+        missingSiblings,
+        visibleSiblingGroupMap,
+        quickSearch
+      ),
+    [networks, missingSiblings, visibleSiblingGroupMap, quickSearch]
+  );
 
   return {
     mapHeight,

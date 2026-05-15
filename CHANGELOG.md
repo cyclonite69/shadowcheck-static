@@ -337,6 +337,7 @@
 * **geospatial:** enable right-click context menu on map networks ([63d5e6c](https://github.com/cyclonite69/shadowcheck-web/commit/63d5e6cda5003f3e86a3f214747c72e43e41503a))
 * **geospatial:** enforce cell width constraints in network grid ([07799a5](https://github.com/cyclonite69/shadowcheck-web/commit/07799a57fb7f5ecaf26be3c10615f0932f4600f6))
 * **geospatial:** enforce investigate tagging during WiGLE lookup flow ([ae0a306](https://github.com/cyclonite69/shadowcheck-web/commit/ae0a3065c4622485141376d040eaefb4781b11af))
+* **geospatial:** expand sibling groups on quick search ([f50186c](https://github.com/cyclonite69/shadowcheck-web/commit/f50186cb569381d2b30e46f0a8a33bbd8501a9b7))
 * **geospatial:** fix empty WiGLE observations tooltip stats ([7a17a40](https://github.com/cyclonite69/shadowcheck-web/commit/7a17a405802b77697ba88fa8e8221f77e80dfb47))
 * **geospatial:** guard against undefined observations in useWigleLayers data-sync effect ([a5414da](https://github.com/cyclonite69/shadowcheck-web/commit/a5414da948f48162ff66ea221ca02fb88e922b5f))
 * **geospatial:** guard layer toggles until map style loads ([2cf9aca](https://github.com/cyclonite69/shadowcheck-web/commit/2cf9acab5c31c1008933e4720f794bb6a846a5be))
