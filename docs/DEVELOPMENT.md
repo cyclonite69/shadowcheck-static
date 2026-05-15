@@ -57,7 +57,7 @@ The following rules are immutable constraints of the development environment:
 5.  **Authentication**: Authentication is session-based using Redis.
 6.  **API Format**: All API responses use JSON.
 7.  **Database**: The system requires PostgreSQL 18+ with PostGIS.
-8.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 7.
+8.  **Frontend Framework**: The frontend is built exclusively with React 19 and Vite 8.
 9.  **Threat Scoring**: Threat scoring utilizes multi-factor analysis with immutable weights per version.
 
 ## Infrastructure Data Quality & Enrichment

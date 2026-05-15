@@ -51,7 +51,7 @@ npm run build                 # Frontend + server → dist/
 npm run dev                   # Nodemon backend (port 3001)
 npm run dev:frontend          # Vite dev server (port 5173)
 npm test                      # Jest suite
-npm run test:cov              # With coverage (70% threshold)
+npm run test:cov                     # With coverage (60% threshold)
 npm run lint                  # ESLint
 npm run lint:fix              # Auto-fix
 npm run lint:boundaries       # Verify no client→server imports

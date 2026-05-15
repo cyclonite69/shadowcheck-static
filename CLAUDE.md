@@ -89,9 +89,9 @@ Repositories can be mocked in tests.
 ### Key backend files
 
 - `server/server.ts` — Express entry point; all routes mounted here
-- `server/src/config/database.js` — `query()` function (read-only `shadowcheck_user`)
-- `server/src/services/adminDbService.js` — Write operations (`shadowcheck_admin`)
-- `server/src/errors/AppError.js` — Consistent error responses
+- `server/src/config/database.ts` — `query()` function (read-only `shadowcheck_user`)
+- `server/src/services/adminDbService.ts` — Write operations (`shadowcheck_admin`)
+- `server/src/errors/AppError.ts` — Consistent error responses
 
 ### Key frontend files
 
@@ -130,7 +130,7 @@ Backend converts filters to SQL via `server/src/services/filterQueryBuilder/`.
 ### Threat scoring
 
 Networks scored on: seen at home AND away (+40 pts), distance range >200m (+25 pts),
-multiple days (+5–15 pts), observation count (+5–10 pts). Threshold: ≥40 points = threat.
+multiple days (+5–15 pts), observation count (+5–10 pts). Threshold: ≥40 (default) points = threat (defined in `server/src/config/database.ts`:L34).
 
 ---
 
@@ -210,7 +210,7 @@ Stop, show the plan, and wait for explicit "yes" before:
 
 ### Kepler endpoints
 
-- No default pagination limits on `/api/kepler/data`, `/api/kepler/observations`, `/api/kepler/networks`
+- No default pagination limits (Kepler endpoints accept limit/offset parameters)
 - Use timeouts (120s) instead of caps
 
 ### Tailwind CSS

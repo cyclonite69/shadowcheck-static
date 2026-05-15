@@ -189,11 +189,11 @@ parallel execution by spawning multiple `generalist` subagents.
 - NEVER run DDL against `shadowcheck_db` without explicit approval
 - Always use `-v ON_ERROR_STOP=1` on every psql execution
 - Always connect as `shadowcheck_admin` — not `postgres`
-- **SQL**: Only in `server/src/repositories/`. Never in routes or services. Parameterized queries only — no string concatenation.
+- **SQL**: New query logic should be added to server/src/repositories/ where possible. Existing SQL in server/src/services/ follows established patterns (notably filterQueryBuilder/ for dynamic query construction) — match the nearest file's approach rather than introducing new patterns.
 
 ### Packages
 
-- **Pinning:** All dependencies in `package.json` MUST be pinned to exact versions (no `^` or `~`).
+- **Pinning:** Dependencies in package.json use a mix of exact pins and caret (^) range versions.
 - **Sequential Upgrades:** Dependencies MUST be upgraded one at a time. Each change must be tested and verified working before any other dependency is modified.
 - NEVER run `npm audit fix --force`
 - NEVER run `npm install <package>` without checking `package.json` first

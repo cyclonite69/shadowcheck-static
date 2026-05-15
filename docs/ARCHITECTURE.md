@@ -81,7 +81,7 @@ Diagrams currently live in the wiki Mermaid blocks and this document. No version
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Middleware Stack                                     │   │
-│  │  • CORS + Rate Limiting (1000 req/15min via Redis)    │   │
+│  │  • CORS + Rate Limiting (50000 req/15min via Redis)    │   │
 │  │  • Security Headers (CSP, X-Frame-Options)           │   │
 │  │  • HTTPS Redirect (configurable)                     │   │
 │  │  • Request Body Size Limiting (10MB)                 │   │

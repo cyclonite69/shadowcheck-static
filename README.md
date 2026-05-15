@@ -60,7 +60,7 @@ solely to demonstrate system capabilities at scale.
 - **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**.
 - **Geospatial Explorer:** Unified map-based exploration with integrated network table, forensic overlays, and timeline views.
 - **Infrastructure Datasets:** 56 FBI Field Offices, 334 Resident Agencies, and 357 Federal Courthouses with 100% PostGIS coordinate coverage for geospatial correlation. In the operator's case study dataset, 566,400+ location records across 173,326+ unique networks are present — demonstrating the system's capability to handle large-scale wardriving datasets at production volume. Your dataset will vary based on your own collected observations.
-- **Threat Detection:** ML-powered identification of surveillance devices and anomalies with multiple algorithms and automated scoring boosts.
+- **Threat Detection**: ML-powered identification of surveillance devices using Logistic Regression, with additional algorithm support planned.
 - **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations.
 - **Address Enrichment:** Multi-API venue and geocoded address identification (OpenCage, LocationIQ, Abstract, Overpass).
 - **Device Classification:** Standardized OUI-to-vendor resolution (74k+ records) with behavioral profiling and integrated manufacturer info.
@@ -129,7 +129,7 @@ Security enforcement now includes:
 - **Threat Score Caching**: Redis caches threat scores at 5-minute intervals.
 - **Analytics Caching**: Redis caches analytics aggregations.
 - **Session Management**: Redis handles session storage.
-- **Rate Limiting**: Redis backend enforces 1000 req/15min per IP.
+- **Rate Limiting**: Redis backend enforces 50000 req/15min per IP.
 
 ✅ **Data Integrity Fixes**
 
@@ -283,7 +283,7 @@ Use the example env files to keep local dev separate from AWS/deployed settings:
 Local Docker behavior:
 
 - `docker compose up -d` starts a local `postgres` service and uses `DB_HOST=postgres` by default
-- `docker compose up -d` also starts the backend API on `127.0.0.1:3001` and the frontend on `http://127.0.0.1:8080`
+- `docker compose up -d` also starts the backend API on `127.0.0.1:3001` and the frontend on `http://127.0.0.1:5173`
 - No `.env` file is required for container-to-container DB connectivity
 - PostgreSQL data is stored in the local `postgres_data` volume
 - Preferred local secrets path: export `AWS_PROFILE=shadowcheck-sso`,

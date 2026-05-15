@@ -38,7 +38,7 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 **Frontend:**
 
 - React 19 (TypeScript)
-- Vite 7 build system
+- Vite 8 build system
 - Tailwind CSS v4
 - Mapbox GL JS / Deck.gl
 - Zustand state management

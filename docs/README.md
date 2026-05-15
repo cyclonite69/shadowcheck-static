@@ -8,7 +8,7 @@ The wiki in `.github/wiki/` is the primary source for diagram-heavy documentatio
 - **Secrets**: AWS Secrets Manager only (no secrets on disk).
 - **Runtime**: Node.js 22 + npm 11 (LTS).
 - **Data stack**: PostgreSQL 18 + PostGIS, Redis 7.
-- **Frontend**: React 19 + Vite 7 (TypeScript).
+- **Frontend**: React 19 + Vite 8 (TypeScript).
 - **Backend**: Express 4 + TypeScript services/repositories.
 
 ## Doc Rules

@@ -31,7 +31,7 @@
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - PostgreSQL 18+ with PostGIS
 - Git
 
@@ -77,7 +77,6 @@ psql -d shadowcheck -c "CREATE EXTENSION postgis;"
 
 ```bash
 npm test                 # Run all tests
-npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests only
 ```
 
