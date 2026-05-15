@@ -101,8 +101,42 @@ async function getNetworkSiblingLinksBatch(bssids: string[]): Promise<
   return result.rows;
 }
 
+/**
+ * Full connected component for a seed BSSID in network_siblings_effective (undirected).
+ * Used when search filters the network list so page-local edge union is incomplete.
+ */
+async function getSiblingComponentBssids(seedBssid: string): Promise<string[]> {
+  const seed = String(seedBssid || '')
+    .trim()
+    .toUpperCase();
+  if (!seed) return [];
+
+  const result = await adminQuery(
+    `
+      WITH RECURSIVE
+      seed AS (SELECT $1::text AS bssid),
+      edges AS (
+        SELECT upper(bssid1) AS a, upper(bssid2) AS b
+        FROM app.network_siblings_effective
+      ),
+      comp AS (
+        SELECT (SELECT bssid FROM seed) AS bssid
+        UNION
+        SELECT CASE WHEN e.a = c.bssid THEN e.b ELSE e.a END
+        FROM comp c
+        JOIN edges e ON e.a = c.bssid OR e.b = c.bssid
+      )
+      SELECT bssid FROM comp ORDER BY bssid
+    `,
+    [seed]
+  );
+
+  return result.rows.map((row: { bssid: string }) => String(row.bssid).trim().toUpperCase());
+}
+
 module.exports = {
   setNetworkSiblingOverride,
   getNetworkSiblingLinks,
   getNetworkSiblingLinksBatch,
+  getSiblingComponentBssids,
 };

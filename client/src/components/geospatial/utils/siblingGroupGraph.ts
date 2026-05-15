@@ -79,6 +79,45 @@ function lastOctet(bssid: string): number {
 /**
  * Display grouping from canonical siblingGroupMap only — no intersection with visible rows.
  */
+/**
+ * Merge one or more DB component BSSID lists into a single group map (union overlapping components).
+ */
+export function mergeSiblingComponentsIntoGroupMap(components: string[][]): Map<string, string> {
+  const groupMap = new Map<string, string>();
+  let groupCounter = 1;
+
+  const assignGroup = (members: string[], preferredGid?: string) => {
+    const gid = preferredGid ?? `S${groupCounter++}`;
+    for (const bssid of members) groupMap.set(bssid, gid);
+    return gid;
+  };
+
+  for (const raw of components) {
+    const members = raw.map((b) => normalizeBssid(b)).filter(Boolean);
+    if (members.length < 2) continue;
+
+    const existingGids = new Set(
+      members.map((b) => groupMap.get(b)).filter((g): g is string => Boolean(g))
+    );
+
+    if (existingGids.size === 0) {
+      assignGroup(members);
+      continue;
+    }
+
+    const gid = [...existingGids][0];
+    assignGroup(members, gid);
+    for (const otherGid of existingGids) {
+      if (otherGid === gid) continue;
+      for (const [bssid, mapped] of groupMap) {
+        if (mapped === otherGid) groupMap.set(bssid, gid);
+      }
+    }
+  }
+
+  return groupMap;
+}
+
 export function buildPatternGroupsFromCanonicalMap(
   siblingGroupMap: Map<string, string>
 ): PatternGroupsResult {

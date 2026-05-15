@@ -37,8 +37,11 @@ import {
 import { NetworkRow } from '../../../types/network';
 import { expandNetworksForSiblingSearch } from '../utils/siblingGroupGraph';
 import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
+import { useSiblingLinks } from './useSiblingLinks';
 
 interface UseGeospatialExplorerStateProps {
+  isAdmin: boolean;
+  selectedAnchorBssid: string | null;
   selectedNetworks: Set<string>;
   networks: NetworkRow[];
   observationsByBssid: any;
@@ -51,11 +54,6 @@ interface UseGeospatialExplorerStateProps {
   loadWigleObservations: (network: NetworkRow) => void;
   loadBatchWigleObservations: (bssids: string[]) => void;
   closeContextMenu: () => void;
-  linkedSiblingBssids: Set<string>;
-  setLinkedSiblingBssids: React.Dispatch<React.SetStateAction<Set<string>>>;
-  visibleSiblingGroupMap: globalThis.Map<string, string>;
-  missingSiblingNetworks?: NetworkRow[];
-  hydrationFailedBssids?: string[];
   contextMenuNetwork?: NetworkRow | null;
   onOpenContextMenu: (e: any, network: any) => void;
   locationMode: string;
@@ -64,6 +62,8 @@ interface UseGeospatialExplorerStateProps {
 }
 
 export const useGeospatialExplorerState = ({
+  isAdmin,
+  selectedAnchorBssid,
   selectedNetworks,
   networks,
   observationsByBssid,
@@ -76,11 +76,6 @@ export const useGeospatialExplorerState = ({
   loadWigleObservations,
   loadBatchWigleObservations,
   closeContextMenu,
-  linkedSiblingBssids,
-  setLinkedSiblingBssids,
-  visibleSiblingGroupMap,
-  missingSiblingNetworks,
-  hydrationFailedBssids = [],
   contextMenuNetwork,
   onOpenContextMenu,
   locationMode,
@@ -92,6 +87,19 @@ export const useGeospatialExplorerState = ({
   const [containerHeight, setContainerHeight] = useState<number>(800);
   const [embeddedView, setEmbeddedView] = useState<'street-view' | 'earth' | null>(null);
   const [quickSearch, setQuickSearch] = useState('');
+
+  const {
+    linkedSiblingBssids,
+    visibleSiblingGroupMap,
+    setLinkedSiblingBssids,
+    missingSiblingNetworks,
+    hydrationFailedBssids,
+  } = useSiblingLinks({
+    isAdmin,
+    selectedAnchorBssid,
+    networks,
+    quickSearch,
+  });
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [homeButtonActive, setHomeButtonActive] = useState(false);
@@ -500,6 +508,9 @@ export const useGeospatialExplorerState = ({
     filteredNetworks,
     unresolvedSearchBssids,
     hydrationFailedBssids,
+    linkedSiblingBssids,
+    visibleSiblingGroupMap,
+    setLinkedSiblingBssids,
     radiusContextMenu,
     closeRadiusContextMenu,
     setRadiusFromContextMenu,

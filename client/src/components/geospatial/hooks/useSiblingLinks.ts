@@ -6,6 +6,7 @@ import { NetworkRow } from '../../../types/network';
 import {
   addUndirectedEdge,
   buildSiblingGroupMap,
+  mergeSiblingComponentsIntoGroupMap,
   normalizeBssid,
   serializeGroupMap,
 } from '../utils/siblingGroupGraph';
@@ -15,12 +16,15 @@ interface UseSiblingLinksProps {
   isAdmin: boolean;
   selectedAnchorBssid: string | null;
   networks: NetworkRow[];
+  /** When set, load full DB components (not page-local edge union). */
+  quickSearch?: string;
 }
 
 export const useSiblingLinks = ({
   isAdmin,
   selectedAnchorBssid,
   networks,
+  quickSearch = '',
 }: UseSiblingLinksProps) => {
   const [linkedSiblingBssids, setLinkedSiblingBssids] = useState<Set<string>>(new Set());
   const [visibleSiblingGroupMap, setVisibleSiblingGroupMap] = useState<Map<string, string>>(
@@ -77,6 +81,70 @@ export const useSiblingLinks = ({
           .map((network) => normalizeBssid(network.bssid))
           .filter(Boolean);
         const visibleSet = new Set(visibleBssids);
+        const hasSearch = quickSearch.trim().length > 0;
+
+        if (hasSearch && visibleBssids.length > 0) {
+          const componentResults = await Promise.all(
+            visibleBssids.map((bssid) => networkApi.getSiblingComponentBssids(bssid))
+          );
+          if (cancelled) return;
+
+          const components = componentResults.map((r) =>
+            Array.isArray(r?.bssids) ? r.bssids.map((b: string) => normalizeBssid(b)) : []
+          );
+          const groupMap = mergeSiblingComponentsIntoGroupMap(components);
+          const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid));
+
+          logSiblingTopology('useSiblingLinks.searchComponent', {
+            quickSearch: quickSearch.trim(),
+            visibleBssids,
+            componentSizes: componentSizesFromGroupMap(groupMap),
+            graphMapSize: groupMap.size,
+            missingHydrationBssids: missing,
+          });
+
+          setVisibleSiblingGroupMap(groupMap);
+
+          const hydrationKey = `${serializeGroupMap(groupMap)}::${missing.sort().join(',')}`;
+          if (hydrationKey === prevHydrationKeyRef.current) return;
+          prevHydrationKeyRef.current = hydrationKey;
+
+          if (missing.length > 0) {
+            try {
+              const rows = await Promise.all(missing.map((b) => networkApi.getNetworkByBssid(b)));
+              if (!cancelled) {
+                const hydrated: NetworkRow[] = [];
+                const failed: string[] = [];
+                for (let i = 0; i < missing.length; i++) {
+                  const row = rows[i];
+                  if (row) {
+                    hydrated.push(mapApiRowToNetwork(row, 50000 + i));
+                  } else {
+                    failed.push(missing[i]);
+                  }
+                }
+                setMissingSiblingNetworks(hydrated);
+                setHydrationFailedBssids(failed);
+                logSiblingTopology('useSiblingLinks.hydration', {
+                  requested: missing.length,
+                  successCount: hydrated.length,
+                  failedBssids: failed,
+                  hydratedBssids: hydrated.map((n) => normalizeBssid(n.bssid)),
+                });
+              }
+            } catch {
+              if (!cancelled) {
+                setMissingSiblingNetworks([]);
+                setHydrationFailedBssids(missing);
+              }
+            }
+          } else {
+            setMissingSiblingNetworks([]);
+            setHydrationFailedBssids([]);
+          }
+          return;
+        }
+
         const adjacency = new Map<string, Set<string>>();
 
         for (const bssid of visibleSet) adjacency.set(bssid, new Set());
@@ -176,7 +244,7 @@ export const useSiblingLinks = ({
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, networks]);
+  }, [isAdmin, networks, quickSearch]);
 
   return {
     linkedSiblingBssids,

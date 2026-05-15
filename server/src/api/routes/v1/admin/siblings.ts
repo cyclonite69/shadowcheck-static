@@ -91,6 +91,39 @@ router.get('/admin/siblings/linked/:bssid', async (req: any, res: any) => {
   }
 });
 
+/**
+ * GET /api/admin/siblings/component/:bssid
+ * Full DB connected component for group-aware search expansion.
+ */
+router.get('/admin/siblings/component/:bssid', async (req: any, res: any) => {
+  try {
+    const bssid = String(req.params?.bssid || '')
+      .trim()
+      .toUpperCase();
+
+    if (!bssid) {
+      return res.status(400).json({
+        ok: false,
+        error: 'BSSID is required',
+      });
+    }
+
+    const bssids = await adminSiblingService.getSiblingComponentBssids(bssid);
+    res.json({
+      ok: true,
+      seed: bssid,
+      bssids,
+      size: bssids.length,
+    });
+  } catch (err: any) {
+    logger.error('[Siblings] Failed to load sibling component', { error: err?.message });
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Failed to load sibling component',
+    });
+  }
+});
+
 router.post('/admin/siblings/linked-batch', async (req: any, res: any) => {
   try {
     const rawBssids = Array.isArray(req.body?.bssids) ? req.body.bssids : [];

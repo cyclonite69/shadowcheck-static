@@ -3,6 +3,7 @@ import {
   buildPatternGroupsFromCanonicalMap,
   buildSiblingGroupMap,
   expandNetworksForSiblingSearch,
+  mergeSiblingComponentsIntoGroupMap,
 } from '../../client/src/components/geospatial/utils/siblingGroupGraph';
 import type { NetworkRow } from '../../client/src/types/network';
 
@@ -22,6 +23,18 @@ describe('siblingGroupGraph', () => {
       const groupMap = buildSiblingGroupMap(visible, adjacency);
       expect(groupMap.get('BE:61:A3:7C:BD:09')).toBe(groupMap.get('AA:BB:CC:DD:EE:01'));
       expect(groupMap.size).toBe(3);
+    });
+  });
+
+  describe('mergeSiblingComponentsIntoGroupMap', () => {
+    it('merges overlapping DB components into one group id', () => {
+      const map = mergeSiblingComponentsIntoGroupMap([
+        ['8C:61:A3:7C:BD:08', '8C:61:A3:7C:BD:09'],
+        ['8C:61:A3:7C:BD:09', 'BE:61:A3:7C:BD:09'],
+      ]);
+      expect(map.get('8C:61:A3:7C:BD:08')).toBe(map.get('BE:61:A3:7C:BD:09'));
+      expect(map.get('8C:61:A3:7C:BD:09')).toBe(map.get('BE:61:A3:7C:BD:09'));
+      expect(new Set(map.values()).size).toBe(1);
     });
   });
 

@@ -1589,6 +1589,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Analysis',
+    label: 'Sibling Component',
+    path: '/api/admin/siblings/component/:bssid',
+    method: 'GET',
+    requiresAuth: true,
+    params: [{ name: 'bssid', label: 'BSSID', placeholder: '8C:61:A3:7C:BD:08' }],
+  },
+  {
+    category: 'Admin Analysis',
     label: 'OUI Groups',
     path: '/api/admin/oui/groups',
     method: 'GET',

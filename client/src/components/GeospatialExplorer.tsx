@@ -11,7 +11,6 @@ import { useNetworkContextMenu } from './geospatial/hooks/useNetworkContextMenu'
 import { useNetworkNotes } from './geospatial/hooks/useNetworkNotes';
 import { useNetworkSelection } from './geospatial/hooks/useNetworkSelection';
 import { useTimeFrequencyModal } from './geospatial/hooks/useTimeFrequencyModal';
-import { useSiblingLinks } from './geospatial/hooks/useSiblingLinks';
 import { useGeospatialExplorerState } from './geospatial/hooks/useGeospatialExplorerState';
 import { useAgencyLayer } from '../hooks/useAgencyLayer';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
@@ -100,21 +99,12 @@ export default function GeospatialExplorer() {
     renderBudget,
   } = useObservations(selectedNetworks, { useFilters: true });
 
-  // Sibling Links
-  const {
-    linkedSiblingBssids,
-    visibleSiblingGroupMap,
-    setLinkedSiblingBssids,
-    missingSiblingNetworks,
-    hydrationFailedBssids,
-  } = useSiblingLinks({
-    isAdmin,
-    selectedAnchorBssid: selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null,
-    networks,
-  });
+  const selectedAnchorBssid = selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null;
 
   // Orchestrator State (Hook-based)
   const state = useGeospatialExplorerState({
+    isAdmin,
+    selectedAnchorBssid,
     selectedNetworks,
     networks,
     observationsByBssid,
@@ -127,11 +117,6 @@ export default function GeospatialExplorer() {
     loadWigleObservations,
     loadBatchWigleObservations,
     closeContextMenu,
-    linkedSiblingBssids,
-    setLinkedSiblingBssids,
-    visibleSiblingGroupMap,
-    missingSiblingNetworks,
-    hydrationFailedBssids,
     contextMenuNetwork: contextMenu.network,
     onOpenContextMenu: openContextMenu,
     locationMode,
@@ -224,8 +209,8 @@ export default function GeospatialExplorer() {
             allSelected={allSelected}
             someSelected={someSelected}
             selectedNetworks={selectedNetworks}
-            linkedSiblingBssids={linkedSiblingBssids}
-            visibleSiblingGroupMap={visibleSiblingGroupMap}
+            linkedSiblingBssids={state.linkedSiblingBssids}
+            visibleSiblingGroupMap={state.visibleSiblingGroupMap}
             selectNetworkExclusive={selectNetworkExclusive}
             onSelectGroup={selectNetworkGroup}
             onOpenContextMenu={openContextMenu}
