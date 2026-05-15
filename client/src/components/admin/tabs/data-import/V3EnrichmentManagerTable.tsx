@@ -2,8 +2,6 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { wigleApi } from '../../../../api/wigleApi';
 import { networkApi } from '../../../../api/networkApi';
 import { formatShortDate } from '../../../../utils/formatDate';
-import { renderNetworkTooltip } from '../../../../utils/geospatial/renderNetworkTooltip';
-import { normalizeTooltipData } from '../../../../utils/geospatial/tooltipDataNormalizer';
 import { US_STATES } from '../../../../constants/network';
 
 // ─── Column definitions ───────────────────────────────────────────────────────
@@ -47,6 +45,7 @@ interface EnrichmentRow {
 
 interface V3EnrichmentManagerTableProps {
   onEnrich: (bssids: string[]) => Promise<void>;
+  onSelect?: (bssid: string) => void;
   isLoading: boolean;
 }
 
@@ -96,6 +95,7 @@ function applySortCols(rows: EnrichmentRow[], sortCols: SortEntry[]): Enrichment
 
 export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> = ({
   onEnrich,
+  onSelect,
   isLoading: actionLoading,
 }) => {
   const [allRows, setAllRows] = useState<EnrichmentRow[]>([]);
@@ -116,14 +116,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   const [bssidFilter, setBssidFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
-
-  // Forensic preview
-  const [activePanel, setActivePanel] = useState<{
-    bssid: string;
-    html: string;
-    loading: boolean;
-  } | null>(null);
-  const [mvData, setMvData] = useState<any | null>(null);
 
   // Multi-column sort
   const [sortCols, setSortCols] = useState<SortEntry[]>([]);
@@ -157,15 +149,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     return () => document.removeEventListener('mousedown', handler);
   }, [chooserOpen]);
 
-  // Escape closes forensic panel
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActivePanel(null);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // ── Sort header click ──────────────────────────────────────────────────────
 
   const handleSortClick = (col: ColDef, e: React.MouseEvent) => {
@@ -191,43 +174,11 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     });
   };
 
-  // ── Forensic preview ───────────────────────────────────────────────────────
+  // ── Selection ──────────────────────────────────────────────────────────────
 
   const handleRowClick = (row: EnrichmentRow) => {
-    if (activePanel?.bssid === row.bssid) {
-      setActivePanel(null);
-      setMvData(null);
-      return;
-    }
-
-    setMvData(null);
-
-    const placeholderNormalized = normalizeTooltipData({
-      ...row,
-      wigle_v3_observation_count: row.v3_obs_count,
-      wigle_first_seen: row.firsttime,
-      wigle_last_seen: row.lasttime,
-    });
-    const placeholderHtml =
-      renderNetworkTooltip({ ...placeholderNormalized, triggerElement: tableRef.current }) ?? '';
-    setActivePanel({ bssid: row.bssid, html: placeholderHtml, loading: true });
-
-    networkApi.getNetworkByBssid(row.bssid).then((mv) => {
-      setMvData(mv ?? null);
-      const source = mv ?? { ...row, wigle_v3_observation_count: row.v3_obs_count };
-      const normalized = normalizeTooltipData({
-        ...source,
-        wigle_first_seen: source.first_seen ?? row.firsttime,
-        wigle_last_seen: source.last_seen ?? row.lasttime,
-      });
-      const fullHtml =
-        renderNetworkTooltip({ ...normalized, triggerElement: tableRef.current }) ??
-        placeholderHtml;
-      setActivePanel((current) => {
-        if (!current || current.bssid !== row.bssid) return current;
-        return { bssid: row.bssid, html: fullHtml, loading: false };
-      });
-    });
+    toggleSelect(row.bssid);
+    if (onSelect) onSelect(row.bssid);
   };
 
   // ── Data loading ───────────────────────────────────────────────────────────
@@ -466,32 +417,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
         </button>
       </div>
 
-      {/* Forensic Preview — fixed-height container so table never shifts */}
-      <div style={{ minHeight: activePanel ? undefined : 0 }}>
-        {activePanel && (
-          <div className="mb-3 rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-sm shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/60">
-              <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
-                {activePanel.loading ? 'Loading forensic data…' : 'Forensic Preview'}
-              </span>
-              <button
-                onClick={() => setActivePanel(null)}
-                className="text-slate-500 hover:text-slate-200 transition-colors text-sm leading-none"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="flex justify-center p-6 bg-slate-950/30">
-              <div
-                className="scale-[0.92] origin-top"
-                dangerouslySetInnerHTML={{ __html: activePanel.html }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Table */}
       <div
         ref={tableRef}
@@ -564,11 +489,7 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
               <tr
                 key={`${row.bssid}-${idx}`}
                 className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
-                  activePanel?.bssid === row.bssid
-                    ? 'bg-blue-500/10'
-                    : selected.has(row.bssid)
-                      ? 'bg-blue-500/10'
-                      : ''
+                  selected.has(row.bssid) ? 'bg-blue-500/10' : ''
                 } ${processingBssids.has(row.bssid) ? 'opacity-60 cursor-wait' : ''}`}
                 onClick={() => handleRowClick(row)}
               >
