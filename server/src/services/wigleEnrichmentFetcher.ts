@@ -9,8 +9,6 @@ import { getEncodedWigleAuth } from './wigleRequestUtils';
 import { inferWigleEndpoint } from './wigleDetailTransforms';
 import { importObservations } from './wigleDetailService';
 
-const { wigleService, secretsManager } = container as any;
-
 /**
  * Fetch v3 detail for a single BSSID from the WiGLE API and import it into the DB.
  * Returns null if the network was not found (404).
@@ -20,6 +18,8 @@ export async function fetchAndImportDetail(
   bssid: string,
   type: string
 ): Promise<{ bssid: string; obsCount: number } | null> {
+  const { wigleService, secretsManager } = container as any;
+
   const wigleApiName = secretsManager.get('wigle_api_name');
   const wigleApiToken = secretsManager.get('wigle_api_token');
   if (!wigleApiName || !wigleApiToken) throw new Error('WiGLE API credentials not configured');

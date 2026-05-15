@@ -558,6 +558,7 @@
 - remove duplicate parameter from REFRESH_CHUNK_SQL call ([df045e7](https://github.com/cyclonite69/shadowcheck-web/commit/df045e74ddb254c2f779f161af52d7990b9d17d9))
 - remove duplicate Security filter section and add missing Data Quality filters ([b0a784a](https://github.com/cyclonite69/shadowcheck-web/commit/b0a784acfb1cd4a87bb143dff6f2e3d0dc944c2e))
 - remove fleet SSID filter from MAC-pattern sibling detection rules ([ca765d7](https://github.com/cyclonite69/shadowcheck-web/commit/ca765d76f2858bb5faad537c0e7359f597cfefb0))
+- remove forensic preview from batch v3 enrichment table ([8d36678](https://github.com/cyclonite69/shadowcheck-web/commit/8d3667841df33ce74026be0d36cc9a801991a65c))
 - Remove hardcoded passwords from test files, use secretsManager ([1451db6](https://github.com/cyclonite69/shadowcheck-web/commit/1451db630af94aea13cc814c5ecd52ef68b7ce3a))
 - remove incorrect .default from networksRoutes import ([c311bea](https://github.com/cyclonite69/shadowcheck-web/commit/c311bea6edbb21deaf218bf40e2ceb272f9c0e69))
 - Remove N/A values from tooltip with better data handling ([007e805](https://github.com/cyclonite69/shadowcheck-web/commit/007e80542c42f5134a0a2c6236ecde4f58aa87d5))
