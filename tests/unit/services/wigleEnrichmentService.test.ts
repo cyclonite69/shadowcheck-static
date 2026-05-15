@@ -41,6 +41,7 @@ jest.mock('../../../server/src/services/wigleRequestUtils', () => ({
   getEncodedWigleAuth: jest.fn(() => 'bW9jazptb2Nr'),
 }));
 jest.mock('../../../server/src/config/container', () => ({
+  __esModule: true,
   adminDbService: { adminQuery: mockAdminQuery },
   wigleService: {
     importWigleV3NetworkDetail: jest.fn(),

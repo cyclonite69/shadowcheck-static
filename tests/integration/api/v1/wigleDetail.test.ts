@@ -4,6 +4,14 @@ import express from 'express';
 const mockFetchOrImportDetail = jest.fn();
 const mockImportDetailFromJson = jest.fn();
 
+// Mock services
+const mockWigleEnrichmentService = {
+  getPendingEnrichmentCount: jest.fn(),
+  getEnrichmentCatalog: jest.fn(),
+  startBatchEnrichment: jest.fn(),
+  resumeEnrichment: jest.fn(),
+};
+
 // Mock container
 const mockContainer = {
   wigleService: {
@@ -13,14 +21,7 @@ const mockContainer = {
     importWigleV3Observation: jest.fn(),
     getWigleObservations: jest.fn(),
   },
-};
-
-// Mock services
-const mockWigleEnrichmentService = {
-  getPendingEnrichmentCount: jest.fn(),
-  getEnrichmentCatalog: jest.fn(),
-  startBatchEnrichment: jest.fn(),
-  resumeEnrichment: jest.fn(),
+  wigleEnrichmentService: mockWigleEnrichmentService,
 };
 
 // Mock dependencies

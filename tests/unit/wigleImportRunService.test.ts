@@ -58,6 +58,7 @@ const dbState: {
 };
 
 const mockQuery = jest.fn();
+const mockAdminQuery = jest.fn();
 const mockPoolConnect = jest.fn();
 const mockSecretGet = jest.fn();
 const mockImportWigleV2SearchResult = jest.fn();
@@ -72,6 +73,10 @@ jest.mock('../../server/src/config/database', () => ({
   pool: {
     connect: (...args: any[]) => mockPoolConnect(...args),
   },
+}));
+
+jest.mock('../../server/src/services/adminDbService', () => ({
+  adminQuery: (...args: any[]) => mockAdminQuery(...args),
 }));
 
 jest.mock('../../server/src/services/secretsManager', () => ({
@@ -103,7 +108,14 @@ const pageSummaryForRun = (runId: number) => {
 const executeSql = async (sql: string, params: any[] = []) => {
   const normalized = sql.replace(/\s+/g, ' ').trim();
 
-  if (normalized === 'BEGIN' || normalized === 'COMMIT' || normalized === 'ROLLBACK') {
+  if (
+    normalized === 'BEGIN' ||
+    normalized === 'COMMIT' ||
+    normalized === 'ROLLBACK' ||
+    normalized.startsWith('SAVEPOINT') ||
+    normalized.startsWith('RELEASE SAVEPOINT') ||
+    normalized.startsWith('ROLLBACK TO SAVEPOINT')
+  ) {
     return { rows: [], rowCount: 0 };
   }
 
@@ -346,6 +358,7 @@ beforeEach(() => {
   dbState.nextPageId = 1;
   dbState.insertedKeys = new Set<string>();
   mockQuery.mockReset();
+  mockAdminQuery.mockReset();
   mockPoolConnect.mockReset();
   mockSecretGet.mockReset();
   mockImportWigleV2SearchResult.mockReset();
@@ -354,6 +367,7 @@ beforeEach(() => {
   require('../../server/src/services/wigleRequestLedger').resetQuotaLedger();
 
   mockQuery.mockImplementation((sql: string, params?: any[]) => executeSql(sql, params));
+  mockAdminQuery.mockImplementation((sql: string, params?: any[]) => executeSql(sql, params));
   mockPoolConnect.mockResolvedValue({
     query: (sql: string, params?: any[]) => executeSql(sql, params),
     release: jest.fn(),

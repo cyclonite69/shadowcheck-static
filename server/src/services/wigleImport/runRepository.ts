@@ -2,51 +2,18 @@ const { pool, query } = require('../../config/database');
 const adminDbService = require('../adminDbService');
 
 import {
-  DEFAULT_RESULTS_PER_PAGE,
-  getRequestFingerprint,
-  getRawRequestFingerprint,
-  getSearchTerm,
-  normalizeImportParams,
-  buildSearchParams,
-  type WigleImportParams,
-} from './params';
-
-/**
- * Convert URLSearchParams to a plain object for JSON serialization.
- */
-function urlSearchParamsToObject(params: URLSearchParams): Record<string, any> {
-  const obj: Record<string, any> = {};
-  params.forEach((value, key) => {
-    if (obj[key]) {
-      if (Array.isArray(obj[key])) {
-        obj[key].push(value);
-      } else {
-        obj[key] = [obj[key], value];
-      }
-    } else {
-      obj[key] = value;
-    }
-  });
-  return obj;
-}
+  buildCreateImportRunInput,
+  type CreateImportRunOverrides,
+} from './mappers/buildCreateImportRunInput';
+import {
+  countRecentCancelledByFingerprint,
+  findGlobalCancelledClusterIds,
+  findLatestResumableRun,
+  findRunByRawFingerprint,
+  getRunPages,
+  getRunRow,
+} from './repositories/runReadRepository';
 import { serializeRun } from './serialization';
-
-const getRunRow = async (runId: number) => {
-  const result = await query('SELECT * FROM app.wigle_import_runs WHERE id = $1', [runId]);
-  return result.rows[0] || null;
-};
-
-const getRunPages = async (runId: number, limit = 50) => {
-  const result = await query(
-    `SELECT *
-       FROM app.wigle_import_run_pages
-      WHERE run_id = $1
-      ORDER BY page_number DESC
-      LIMIT $2`,
-    [runId, limit]
-  );
-  return result.rows;
-};
 
 const reconcileRunProgress = async (runId: number): Promise<any> => {
   const client = await pool.connect();
@@ -128,41 +95,11 @@ const reconcileRunProgress = async (runId: number): Promise<any> => {
   }
 };
 
-type CreateImportRunOverrides = {
-  source?: string;
-  api_version?: string;
-  search_term?: string;
-};
-
-const clampPageSize = (value: unknown): number => {
-  const parsed = Number.parseInt(String(value ?? DEFAULT_RESULTS_PER_PAGE), 10);
-  if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_RESULTS_PER_PAGE;
-  return parsed;
-};
-
 const createImportRun = async (
   rawQuery: Record<string, unknown>,
   overrides: CreateImportRunOverrides = {}
 ) => {
-  const normalized = normalizeImportParams(rawQuery);
-  const usesDirectMetadata =
-    overrides.source !== undefined ||
-    overrides.api_version !== undefined ||
-    overrides.search_term !== undefined;
-
-  // Build the EXACT params that will be sent to WiGLE API
-  const urlParams = buildSearchParams(normalized as WigleImportParams, null);
-  const requestParams = urlSearchParamsToObject(urlParams);
-
-  const pageSize = usesDirectMetadata
-    ? clampPageSize(rawQuery.resultsPerPage)
-    : normalized.resultsPerPage || DEFAULT_RESULTS_PER_PAGE;
-  const source = overrides.source ?? 'wigle_v2';
-  const apiVersion = overrides.api_version ?? (normalized.version || 'v2');
-  const searchTerm = overrides.search_term ?? getSearchTerm(normalized);
-  const requestFingerprint = usesDirectMetadata
-    ? getRawRequestFingerprint(requestParams)
-    : getRequestFingerprint(normalized);
+  const input = buildCreateImportRunInput(rawQuery, overrides);
   const result = await adminDbService.adminQuery(
     `INSERT INTO app.wigle_import_runs (
         source,
@@ -176,33 +113,16 @@ const createImportRun = async (
       ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, 'running', $7)
       RETURNING *`,
     [
-      source,
-      apiVersion,
-      searchTerm,
-      normalized.region || null,
-      requestFingerprint,
-      JSON.stringify(requestParams),
-      pageSize,
+      input.source,
+      input.apiVersion,
+      input.searchTerm,
+      input.state,
+      input.requestFingerprint,
+      JSON.stringify(input.requestParams),
+      input.pageSize,
     ]
   );
   return result.rows[0];
-};
-
-const findLatestResumableRun = async (
-  rawQuery: Record<string, unknown>,
-  resumableStatuses: string[]
-) => {
-  const normalized = normalizeImportParams(rawQuery);
-  const result = await query(
-    `SELECT *
-       FROM app.wigle_import_runs
-      WHERE request_fingerprint = $1
-        AND status = ANY($2::text[])
-      ORDER BY started_at DESC
-      LIMIT 1`,
-    [getRequestFingerprint(normalized), resumableStatuses]
-  );
-  return result.rows[0] || null;
 };
 
 const markRunFailure = async (runId: number, message: string) => {
@@ -498,35 +418,6 @@ const getLatestResumableImportRun = async (
   return getImportRun(Number(run.id));
 };
 
-// Returns count of cancelled runs with the same fingerprint created within windowSeconds
-export const countRecentCancelledByFingerprint = async (
-  fingerprint: string,
-  windowSeconds = 60
-): Promise<number> => {
-  const result = await query(
-    `SELECT COUNT(*)::int AS count
-       FROM app.wigle_import_runs
-      WHERE request_fingerprint = $1
-        AND status = 'cancelled'
-        AND started_at > NOW() - ($2 * INTERVAL '1 second')`,
-    [fingerprint, windowSeconds]
-  );
-  return result.rows[0]?.count ?? 0;
-};
-
-// Finds IDs of cancelled Global (state IS NULL) runs that cluster within windowSeconds of each other
-// Returns IDs of ALL cancelled Global (state IS NULL) runs — no time-window restriction.
-export const findGlobalCancelledClusterIds = async (): Promise<number[]> => {
-  const result = await query(
-    `SELECT id
-       FROM app.wigle_import_runs
-      WHERE status = 'cancelled'
-        AND state IS NULL
-      ORDER BY started_at`
-  );
-  return result.rows.map((r: any) => Number(r.id));
-};
-
 // Hard-deletes cancelled runs by ID array; returns count deleted
 export const bulkDeleteCancelledRunsByIds = async (ids: number[]): Promise<number> => {
   if (ids.length === 0) return 0;
@@ -550,27 +441,13 @@ export const deleteImportRun = async (id: number): Promise<boolean> => {
   return (result.rowCount ?? 0) > 0;
 };
 
-// Find the latest resumable run matching a precomputed fingerprint (used by BT import service)
-export const findRunByRawFingerprint = async (
-  fingerprint: string,
-  resumableStatuses: string[]
-): Promise<any | null> => {
-  const result = await query(
-    `SELECT *
-       FROM app.wigle_import_runs
-      WHERE request_fingerprint = $1
-        AND status = ANY($2::text[])
-      ORDER BY started_at DESC
-      LIMIT 1`,
-    [fingerprint, resumableStatuses]
-  );
-  return result.rows[0] || null;
-};
-
 export {
+  countRecentCancelledByFingerprint,
   completeRun,
   createImportRun,
+  findGlobalCancelledClusterIds,
   findLatestResumableRun,
+  findRunByRawFingerprint,
   getImportRun,
   getImportCompletenessSummary,
   getLatestResumableImportRun,

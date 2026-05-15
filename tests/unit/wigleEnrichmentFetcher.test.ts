@@ -7,6 +7,7 @@ import * as container from '../../server/src/config/container';
 import { wigleGatewayFetch } from '../../server/src/services/wigle/wigleGateway';
 import { getEncodedWigleAuth } from '../../server/src/services/wigleRequestUtils';
 import { inferWigleEndpoint } from '../../server/src/services/wigleDetailTransforms';
+import { importObservations } from '../../server/src/services/wigleDetailService';
 
 jest.mock('../../server/src/config/container', () => ({
   wigleService: {
@@ -21,6 +22,9 @@ jest.mock('../../server/src/config/container', () => ({
 jest.mock('../../server/src/services/wigle/wigleGateway');
 jest.mock('../../server/src/services/wigleRequestUtils');
 jest.mock('../../server/src/services/wigleDetailTransforms');
+jest.mock('../../server/src/services/wigleDetailService', () => ({
+  importObservations: jest.fn(),
+}));
 
 describe('wigleEnrichmentFetcher', () => {
   const bssid = 'AA:BB:CC:DD:EE:FF';
@@ -101,13 +105,17 @@ describe('wigleEnrichmentFetcher', () => {
     });
 
     wigleService.importWigleV3NetworkDetail.mockResolvedValue(undefined);
-    wigleService.importWigleV3Observation.mockResolvedValue(1);
+    (importObservations as jest.Mock).mockResolvedValue({
+      newCount: 2,
+      totalCount: 2,
+      failedCount: 0,
+    });
 
     const result = await fetchAndImportDetail(bssid, type);
 
     expect(result).toEqual({ bssid, obsCount: 2 });
     expect(wigleService.importWigleV3NetworkDetail).toHaveBeenCalled();
-    expect(wigleService.importWigleV3Observation).toHaveBeenCalledTimes(2);
+    expect(importObservations).toHaveBeenCalledWith(bssid, mockData.locationClusters);
   });
 
   it('continues if individual observation import fails', async () => {
@@ -131,9 +139,11 @@ describe('wigleEnrichmentFetcher', () => {
     });
 
     wigleService.importWigleV3NetworkDetail.mockResolvedValue(undefined);
-    wigleService.importWigleV3Observation
-      .mockResolvedValueOnce(1)
-      .mockRejectedValueOnce(new Error('Failed'));
+    (importObservations as jest.Mock).mockResolvedValue({
+      newCount: 1,
+      totalCount: 2,
+      failedCount: 1,
+    });
 
     const result = await fetchAndImportDetail(bssid, type);
 

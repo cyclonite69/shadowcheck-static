@@ -53,6 +53,11 @@ export async function startBatchEnrichment(bssids?: string[]) {
   );
 
   await setRunTotalItems(run.id, pending);
-  void runEnrichmentLoop(run.id, bssids);
+  void runEnrichmentLoop(run.id, bssids).catch((error: unknown) => {
+    logger.error('[v3 Enrichment] Background run failed to start cleanly', {
+      runId: run.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
   return run;
 }

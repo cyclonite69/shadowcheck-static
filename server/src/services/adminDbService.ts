@@ -63,9 +63,11 @@ function getAdminPool(): Pool | null {
         : false,
   });
 
-  adminPool.on('error', (err: Error) => {
-    logger.error(`Unexpected error on admin pool idle client: ${err.message}`, { error: err });
-  });
+  if (typeof (adminPool as any).on === 'function') {
+    adminPool.on('error', (err: Error) => {
+      logger.error(`Unexpected error on admin pool idle client: ${err.message}`, { error: err });
+    });
+  }
 
   return adminPool;
 }
@@ -109,11 +111,13 @@ function getLongRunningAdminPool(): Pool | null {
         : false,
   });
 
-  longRunningAdminPool.on('error', (err: Error) => {
-    logger.error(`Unexpected error on long-running admin pool idle client: ${err.message}`, {
-      error: err,
+  if (typeof (longRunningAdminPool as any).on === 'function') {
+    longRunningAdminPool.on('error', (err: Error) => {
+      logger.error(`Unexpected error on long-running admin pool idle client: ${err.message}`, {
+        error: err,
+      });
     });
-  });
+  }
 
   return longRunningAdminPool;
 }

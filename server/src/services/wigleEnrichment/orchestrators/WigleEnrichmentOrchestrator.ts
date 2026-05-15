@@ -66,6 +66,9 @@ export class WigleEnrichmentOrchestrator {
    */
   async run(runId: number, manualList?: string[]) {
     const run = await this.deps.getImportRun(runId);
+    if (!run) {
+      throw new Error(`WiGLE enrichment run ${runId} not found`);
+    }
     if (run.status === 'completed' || run.status === 'cancelled') {
       return run;
     }

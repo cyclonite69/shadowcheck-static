@@ -73,6 +73,8 @@ jest.mock('../../../server/src/api/routes/v1/mobileIngest', () => mockRoute);
 jest.mock('../../../server/src/api/routes/v1/agencyOffices', () => mockRoute);
 jest.mock('../../../server/src/api/routes/v1/federalCourthouses', () => mockRoute);
 jest.mock('../../../server/src/api/routes/v1/deflockCameras', () => mockRoute);
+jest.mock('../../../server/src/api/routes/v1/shotspotterZones', () => mockRoute);
+jest.mock('../../../server/src/api/routes/v1/shotspotterSensors', () => mockRoute);
 jest.mock('../../../server/src/api/routes/v1/network-agencies', () => mockRouteModule);
 
 describe('serverDependencies', () => {

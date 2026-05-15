@@ -31,6 +31,10 @@ jest.mock('../../../../server/src/services/backgroundJobs/mlBehavioralScoring', 
   scoreBehavioralThreats: jest.fn(),
 }));
 
+jest.mock('../../../../server/src/services/admin/siblingDetectionAdminService', () => ({
+  runSiblingRefreshJob: jest.fn(),
+}));
+
 import {
   runBackupJob,
   runBehavioralMlScoringJob,
@@ -43,6 +47,7 @@ const mockNetworkTagService = require('../../../../server/src/services/networkTa
 const mockOUIGroupingService = require('../../../../server/src/services/ouiGroupingService');
 const mockAdminDbService = require('../../../../server/src/services/adminDbService');
 const mockMlBehavioralScoring = require('../../../../server/src/services/backgroundJobs/mlBehavioralScoring');
+const mockSiblingDetectionAdminService = require('../../../../server/src/services/admin/siblingDetectionAdminService');
 
 describe('runners service', () => {
   beforeEach(() => {
@@ -163,23 +168,35 @@ describe('runners service', () => {
   describe('runSiblingDetectionJob', () => {
     it('should run sibling detection with default options', async () => {
       mockAdminDbService.adminQuery.mockResolvedValueOnce({}); // SET LOCAL
-      mockAdminDbService.adminQuery.mockResolvedValueOnce({
-        rows: [{ count: '5' }],
+      mockSiblingDetectionAdminService.runSiblingRefreshJob.mockResolvedValue({
+        rowsUpserted: 5,
+        seedsProcessed: 7,
+        batchesRun: 1,
+        executionTimeMs: 123,
+        completed: true,
       });
 
       const result = await runSiblingDetectionJob();
 
       expect(result.pairsProcessed).toBe(5);
-      expect(mockAdminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('app.refresh_network_sibling_pairs'),
-        [6, 5000, 0.7, 2000, true]
-      );
+      expect(mockSiblingDetectionAdminService.runSiblingRefreshJob).toHaveBeenCalledWith({
+        batchSize: 250,
+        maxOctetDelta: 6,
+        maxDistanceM: 1500,
+        minCandidateConf: 0.9,
+        maxBatches: null,
+        incremental: true,
+      });
     });
 
     it('should run sibling detection with custom options', async () => {
       mockAdminDbService.adminQuery.mockResolvedValueOnce({}); // SET LOCAL
-      mockAdminDbService.adminQuery.mockResolvedValueOnce({
-        rows: [{ count: '10' }],
+      mockSiblingDetectionAdminService.runSiblingRefreshJob.mockResolvedValue({
+        rowsUpserted: 10,
+        seedsProcessed: 12,
+        batchesRun: 2,
+        executionTimeMs: 456,
+        completed: true,
       });
 
       const result = await runSiblingDetectionJob({
@@ -191,23 +208,38 @@ describe('runners service', () => {
       });
 
       expect(result.pairsProcessed).toBe(10);
-      expect(mockAdminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('app.refresh_network_sibling_pairs'),
-        [4, 2000, 0.8, 500, false]
-      );
+      expect(mockSiblingDetectionAdminService.runSiblingRefreshJob).toHaveBeenCalledWith({
+        batchSize: 500,
+        maxOctetDelta: 4,
+        maxDistanceM: 2000,
+        minCandidateConf: 0.8,
+        maxBatches: null,
+        incremental: false,
+      });
     });
 
     it('should use default values for sibling detection options', async () => {
       mockAdminDbService.adminQuery.mockResolvedValueOnce({}); // SET LOCAL
-      mockAdminDbService.adminQuery.mockResolvedValueOnce({
-        rows: [{ count: '0' }],
+      mockSiblingDetectionAdminService.runSiblingRefreshJob.mockResolvedValue({
+        rowsUpserted: 0,
+        seedsProcessed: 0,
+        batchesRun: 0,
+        executionTimeMs: 50,
+        completed: false,
       });
 
       await runSiblingDetectionJob({});
 
+      expect(mockSiblingDetectionAdminService.runSiblingRefreshJob).toHaveBeenCalledWith({
+        batchSize: 250,
+        maxOctetDelta: 6,
+        maxDistanceM: 1500,
+        minCandidateConf: 0.9,
+        maxBatches: null,
+        incremental: true,
+      });
       expect(mockAdminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('app.refresh_network_sibling_pairs'),
-        [6, 5000, 0.7, 2000, true]
+        "SET LOCAL statement_timeout = '30min'"
       );
     });
   });

@@ -68,6 +68,7 @@ const dbState: {
 };
 
 const mockQuery = jest.fn();
+const mockAdminQuery = jest.fn();
 const mockPoolConnect = jest.fn();
 const mockSecretGet = jest.fn();
 const mockImportWigleV2SearchResult = jest.fn();
@@ -77,6 +78,10 @@ jest.mock('../../server/src/config/database', () => ({
   pool: {
     connect: (...args: any[]) => mockPoolConnect(...args),
   },
+}));
+
+jest.mock('../../server/src/services/adminDbService', () => ({
+  adminQuery: (...args: any[]) => mockAdminQuery(...args),
 }));
 
 jest.mock('../../server/src/services/secretsManager', () => ({
@@ -423,12 +428,14 @@ beforeEach(() => {
   dbState.nextPageId = 1;
   dbState.insertedKeys = new Set<string>();
   mockQuery.mockReset();
+  mockAdminQuery.mockReset();
   mockPoolConnect.mockReset();
   mockSecretGet.mockReset();
   mockImportWigleV2SearchResult.mockReset();
   global.fetch = jest.fn() as any;
 
   mockQuery.mockImplementation((sql: string, params?: any[]) => executeSql(sql, params));
+  mockAdminQuery.mockImplementation((sql: string, params?: any[]) => executeSql(sql, params));
   mockPoolConnect.mockResolvedValue({
     query: (sql: string, params?: any[]) => executeSql(sql, params),
     release: jest.fn(),

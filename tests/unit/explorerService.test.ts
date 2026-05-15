@@ -175,7 +175,7 @@ describe('Explorer Service', () => {
     });
 
     it('should return null if network not found', async () => {
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
       const result = await require('../../server/src/services/explorerService').getNetworkByBssid(
         'NOT:FOUND'
       );

@@ -5,20 +5,32 @@ const mockPoolOn = jest.fn();
 const mockPoolEnd = jest.fn();
 
 jest.mock('pg', () => ({
+  __esModule: true,
   Pool: jest.fn().mockImplementation(() => ({
     query: mockPoolQuery,
     on: mockPoolOn,
     end: mockPoolEnd,
   })),
+  default: {
+    Pool: jest.fn().mockImplementation(() => ({
+      query: mockPoolQuery,
+      on: mockPoolOn,
+      end: mockPoolEnd,
+    })),
+  },
 }));
+
+const mockLoggerError = jest.fn();
+const mockLoggerWarn = jest.fn();
+const mockLoggerInfo = jest.fn();
 
 jest.mock('../../../server/src/config/loadEnv', () => ({}));
 
 jest.mock('../../../server/src/logging/logger', () => ({
-  error: jest.fn(),
-  warn: jest.fn(),
-  info: jest.fn(),
-  default: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
+  error: mockLoggerError,
+  warn: mockLoggerWarn,
+  info: mockLoggerInfo,
+  default: { error: mockLoggerError, warn: mockLoggerWarn, info: mockLoggerInfo },
 }));
 
 const mockSecretsGet = jest.fn();
@@ -27,20 +39,19 @@ jest.mock('../../../server/src/services/secretsManager', () => ({
   default: { get: mockSecretsGet },
 }));
 
-import { Pool } from 'pg';
+function getMockPoolCtor(): jest.Mock {
+  return require('pg').Pool as jest.Mock;
+}
 
-// Each test uses isolateModules to get a fresh module with a clean pool singleton.
+// Each test uses resetModules to get a fresh module with a clean pool singleton.
 function loadFresh() {
-  let mod: any;
-  jest.isolateModules(() => {
-    mod = require('../../../server/src/services/adminDbService');
-  });
-  return mod;
+  jest.resetModules();
+  return require('../../../server/src/services/adminDbService');
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (Pool as unknown as jest.Mock).mockClear();
+  getMockPoolCtor().mockClear();
 });
 
 describe('adminDbService — getAdminPool', () => {
@@ -53,7 +64,7 @@ describe('adminDbService — getAdminPool', () => {
     const pool = getAdminPool();
 
     expect(pool).not.toBeNull();
-    expect(Pool).toHaveBeenCalledWith(
+    expect(getMockPoolCtor()).toHaveBeenCalledWith(
       expect.objectContaining({ password: 'test-admin-pass' }) // gitleaks:allow
     );
     delete process.env.DB_ADMIN_PASSWORD;
@@ -68,7 +79,7 @@ describe('adminDbService — getAdminPool', () => {
     const pool = getAdminPool();
 
     expect(pool).not.toBeNull();
-    expect(Pool).toHaveBeenCalledWith(
+    expect(getMockPoolCtor()).toHaveBeenCalledWith(
       expect.objectContaining({ password: 'sm-admin-pass' }) // gitleaks:allow
     );
   });
@@ -114,7 +125,7 @@ describe('adminDbService — getAdminPool', () => {
     const pool2 = getAdminPool();
 
     expect(pool1).toBe(pool2);
-    expect(Pool).toHaveBeenCalledTimes(1);
+    expect(getMockPoolCtor()).toHaveBeenCalledTimes(1);
     delete process.env.DB_ADMIN_PASSWORD;
   });
 });

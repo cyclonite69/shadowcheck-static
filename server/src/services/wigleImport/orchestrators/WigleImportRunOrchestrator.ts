@@ -23,7 +23,7 @@ export class WigleImportRunOrchestrator {
    */
   async execute(runId: number) {
     const encodedAuth = getEncodedWigleAuth();
-    let run = await reconcileRunProgress(runId);
+    let run = (await reconcileRunProgress(runId)) ?? (await getRunOrThrow(runId));
 
     if (run.status === 'completed' || run.status === 'cancelled') {
       return run;

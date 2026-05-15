@@ -33,7 +33,8 @@ export async function validateWigleApiCredit() {
       if (gatewayResult.status === 401) {
         return { hasCredit: false, message: 'Invalid WiGLE API key' };
       }
-      return { hasCredit: false, message: gatewayResult.error };
+      logger.error('[WiGLE] API credit check failed:', gatewayResult.error);
+      return { hasCredit: true, message: 'Credit check unavailable (proceeding with request)' };
     }
 
     const response = gatewayResult.response;

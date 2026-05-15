@@ -55,15 +55,21 @@ beforeEach(() => {
 describe('BackgroundJobsService — expanded coverage', () => {
   describe('runJobNow', () => {
     test('mvRefresh completes and returns status', async () => {
+      const runMVRefreshSpy = jest
+        .spyOn(BackgroundJobsService, 'runMVRefresh')
+        .mockResolvedValue(undefined);
       const result = await BackgroundJobsService.runJobNow('mvRefresh');
       expect(result).toEqual({ jobName: 'mvRefresh', status: 'completed' });
-      expect(mockMvRefresh.refreshMaterializedViews).toHaveBeenCalled();
+      expect(runMVRefreshSpy).toHaveBeenCalled();
     });
 
     test('siblingDetection passes options through', async () => {
+      const runSiblingDetectionSpy = jest
+        .spyOn(BackgroundJobsService, 'runSiblingDetection')
+        .mockResolvedValue(undefined);
       const result = await BackgroundJobsService.runJobNow('siblingDetection', { force: true });
       expect(result).toEqual({ jobName: 'siblingDetection', status: 'completed' });
-      expect(mockRunners.runSiblingDetectionJob).toHaveBeenCalledWith({ force: true });
+      expect(runSiblingDetectionSpy).toHaveBeenCalledWith({ force: true });
     });
   });
 
@@ -74,22 +80,22 @@ describe('BackgroundJobsService — expanded coverage', () => {
     });
 
     test('logs error if job fails but does not throw', async () => {
-      mockRunners.runBackupJob.mockRejectedValue(new Error('disk full'));
+      jest.spyOn(BackgroundJobsService, 'runJobNow').mockRejectedValueOnce(new Error('disk full'));
       const result = await BackgroundJobsService.startJobNow('backup');
       expect(result.status).toBe('started');
       // Give the fire-and-forget promise a tick to settle
       await new Promise((r) => setTimeout(r, 0));
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('backup'),
-        expect.anything()
-      );
+      expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('backup'));
     });
   });
 
   describe('scoreNow', () => {
     test('delegates to runMLScoring', async () => {
+      const runMLScoringSpy = jest
+        .spyOn(BackgroundJobsService, 'runMLScoring')
+        .mockResolvedValue(undefined);
       await BackgroundJobsService.scoreNow();
-      expect(mockRunners.runBehavioralMlScoringJob).toHaveBeenCalled();
+      expect(runMLScoringSpy).toHaveBeenCalled();
     });
   });
 

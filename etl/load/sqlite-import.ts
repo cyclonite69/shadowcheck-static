@@ -14,13 +14,21 @@
 
 import * as fs from 'fs';
 import { Pool } from 'pg';
-import sqlite3 from 'sqlite3';
 import '../loadEnv';
-import * as path from 'path';
 
-import { validateAndEnrich } from './sqlite/validateAndEnrich';
+import { parseIncrementalImportCliArgs } from './sqlite/cli';
+import { importObservationRows } from './sqlite/importObservations';
+import { runImportPreflight } from './sqlite/preflight';
 import { ensureDeviceSource, ensureNetworksOrphansTable } from './sqlite/schemaSetup';
-import { insertBatch } from './sqlite/insertObservations';
+import { SqliteImportReader } from './sqlite/reader';
+import {
+  buildImportSummary,
+  logImportBanner,
+  logNoNewRecords,
+  logProgressComplete,
+  printImportSummary,
+  writeImportProgress,
+} from './sqlite/reporting';
 import {
   upsertNetworks,
   backfillMissingNetworksFromObservations,
@@ -71,6 +79,7 @@ class IncrementalImporter {
   private sqliteFile: string;
   private sourceTag: string;
   private pool: Pool;
+  private readonly sqliteReader: SqliteImportReader;
   private networkCache: Map<string, SqliteNetworkRow> = new Map();
 
   private totalInSqlite = 0;
@@ -86,16 +95,12 @@ class IncrementalImporter {
     this.sqliteFile = sqliteFile;
     this.sourceTag = sourceTag;
     this.pool = new Pool(CONFIG.DB_CONFIG);
+    this.sqliteReader = new SqliteImportReader(sqliteFile);
     this.startTime = Date.now();
   }
 
   async start(): Promise<ImportSummary> {
-    console.log('\n📦 INCREMENTAL IMPORT - WiGLE SQLite');
-    console.log('━'.repeat(60));
-    console.log(`📁 Source: ${this.sqliteFile}`);
-    console.log(`🏷️  Source tag: ${this.sourceTag}`);
-    console.log(`📦 Batch size: ${CONFIG.BATCH_SIZE}`);
-    console.log(`🐛 Debug: ${CONFIG.DEBUG ? 'ON' : 'OFF'}\n`);
+    logImportBanner(this.sqliteFile, this.sourceTag, CONFIG.BATCH_SIZE, CONFIG.DEBUG);
 
     try {
       await this.validateInputs();
@@ -103,7 +108,7 @@ class IncrementalImporter {
       await this.countRecords();
 
       if (this.toImport === 0) {
-        console.log('\n✅ Database is up to date - no new records to import.');
+        logNoNewRecords();
         return this.getSummary();
       }
 
@@ -122,7 +127,7 @@ class IncrementalImporter {
       await backfillMissingNetworksFromObservations(this.pool, this.sourceTag, this.latestTimeMs);
       await moveOrphanNetworksToHoldingTable(this.pool);
       await this.refreshMaterializedViews();
-      this.printSummary();
+      printImportSummary(this.getSummary());
 
       return this.getSummary();
     } catch (error) {
@@ -138,53 +143,27 @@ class IncrementalImporter {
   }
 
   private getSummary(): ImportSummary {
-    const duration = (Date.now() - this.startTime) / 1000;
-    const speed = this.imported > 0 ? Math.round(this.imported / duration) : 0;
-    return {
+    return buildImportSummary({
       imported: this.imported,
       failed: this.failed,
-      durationS: duration,
-      speed,
       errors: this.errors,
-    };
+      startTime: this.startTime,
+    });
   }
 
   private async validateInputs(): Promise<void> {
     console.log('🔍 Validating inputs...');
 
-    if (!fs.existsSync(this.sqliteFile)) {
-      throw new Error(`SQLite file not found: ${this.sqliteFile}`);
-    }
-
-    if (!this.sourceTag || !/^[a-zA-Z0-9_-]+$/.test(this.sourceTag)) {
-      throw new Error('Source tag must be alphanumeric with underscores/hyphens only');
-    }
-
-    try {
-      const result = await this.pool.query('SELECT NOW() as now, current_user as user');
-      console.log(`✅ PostgreSQL connected as ${result.rows[0].user}`);
-    } catch (error) {
-      const err = error as Error;
-      throw new Error(`PostgreSQL connection failed: ${err.message}`);
-    }
-
-    await new Promise<void>((resolve, reject) => {
-      const db = new (sqlite3.verbose().Database)(this.sqliteFile, sqlite3.OPEN_READONLY);
-      db.get(
-        'SELECT COUNT(*) as count FROM sqlite_master WHERE type="table" AND name="location"',
-        (err: Error | null, row: { count: number }) => {
-          db.close();
-          if (err) {
-            reject(new Error(`SQLite error: ${err.message}`));
-          } else if (row.count === 0) {
-            reject(new Error('SQLite database missing "location" table'));
-          } else {
-            console.log('✅ SQLite schema validated');
-            resolve();
-          }
-        }
-      );
+    const preflight = await runImportPreflight({
+      sqliteFile: this.sqliteFile,
+      sourceTag: this.sourceTag,
+      pool: this.pool,
+      sqliteReader: this.sqliteReader,
+      existsSync: fs.existsSync,
     });
+
+    console.log(`✅ PostgreSQL connected as ${preflight.postgresUser}`);
+    console.log('✅ SQLite schema validated');
   }
 
   private async getLatestImportedTime(): Promise<void> {
@@ -208,30 +187,8 @@ class IncrementalImporter {
   private async countRecords(): Promise<void> {
     console.log('\n📊 Counting records...');
 
-    this.totalInSqlite = await new Promise<number>((resolve, reject) => {
-      const db = new (sqlite3.verbose().Database)(this.sqliteFile, sqlite3.OPEN_READONLY);
-      db.get(
-        'SELECT COUNT(*) as count FROM location',
-        (err: Error | null, row: { count: number }) => {
-          db.close();
-          if (err) reject(err);
-          else resolve(row.count);
-        }
-      );
-    });
-
-    this.alreadyImported = await new Promise<number>((resolve, reject) => {
-      const db = new (sqlite3.verbose().Database)(this.sqliteFile, sqlite3.OPEN_READONLY);
-      db.get(
-        'SELECT COUNT(*) as count FROM location WHERE time <= ?',
-        [this.latestTimeMs],
-        (err: Error | null, row: { count: number }) => {
-          db.close();
-          if (err) reject(err);
-          else resolve(row.count);
-        }
-      );
-    });
+    this.totalInSqlite = await this.sqliteReader.countLocations();
+    this.alreadyImported = await this.sqliteReader.countLocationsAtOrBefore(this.latestTimeMs);
 
     this.toImport = this.totalInSqlite - this.alreadyImported;
 
@@ -243,93 +200,40 @@ class IncrementalImporter {
   private async loadNetworkCache(): Promise<void> {
     console.log('\n📡 Loading network metadata...');
 
-    await new Promise<void>((resolve, reject) => {
-      const db = new (sqlite3.verbose().Database)(this.sqliteFile, sqlite3.OPEN_READONLY);
-      db.all('SELECT * FROM network', (err: Error | null, rows: SqliteNetworkRow[]) => {
-        db.close();
-        if (err) {
-          reject(err);
-          return;
-        }
-        for (const row of rows) {
-          this.networkCache.set(row.bssid.toUpperCase(), row);
-        }
-        console.log(`   Loaded ${this.networkCache.size.toLocaleString()} networks`);
-        resolve();
-      });
-    });
+    this.networkCache = await this.sqliteReader.loadNetworkCache();
+    console.log(`   Loaded ${this.networkCache.size.toLocaleString()} networks`);
   }
 
   private async importNewObservations(): Promise<void> {
     console.log('\n⚡ Importing new observations...');
 
-    const rows = await new Promise<SqliteLocationRow[]>((resolve, reject) => {
-      const db = new (sqlite3.verbose().Database)(this.sqliteFile, sqlite3.OPEN_READONLY);
-      db.all(
-        `SELECT * FROM location WHERE time > ? ORDER BY time ASC`,
-        [this.latestTimeMs],
-        (err: Error | null, rows: SqliteLocationRow[]) => {
-          db.close();
-          if (err) reject(err);
-          else resolve(rows || []);
-        }
-      );
-    });
+    const rows = await this.sqliteReader.fetchNewObservations(this.latestTimeMs);
 
     console.log(`   Fetched ${rows.length.toLocaleString()} records from SQLite`);
 
-    const startTime = Date.now();
-    type ValidObs = NonNullable<ReturnType<typeof validateAndEnrich>>;
-    let validBatch: ValidObs[] = [];
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const validated = validateAndEnrich(row, this.networkCache, this.sourceTag, this.errors);
-
-      if (!validated) {
-        this.failed++;
-        continue;
-      }
-
-      validBatch.push(validated);
-
-      if (validBatch.length >= CONFIG.BATCH_SIZE) {
-        try {
-          const result = await insertBatch(this.pool, validBatch, CONFIG.DEBUG);
-          this.imported += result.inserted;
-          this.failed += result.failed;
-          this.errors.push(...result.errors);
-        } catch (error) {
-          const e = error as Error;
-          this.errors.push(`Batch insert error: ${e.message}`);
-          if (CONFIG.DEBUG) {
-            console.error(`\n   Batch error: ${e.message}`);
-          }
-        }
-        validBatch = [];
-
-        const elapsed = (Date.now() - startTime) / 1000;
-        const speed = elapsed > 0 ? Math.round(this.imported / elapsed) : 0;
-        const percent = Math.round(((i + 1) / rows.length) * 100);
-        process.stdout.write(
-          `\r   Progress: ${this.imported.toLocaleString()}/${rows.length.toLocaleString()} (${percent}%) | ${speed.toLocaleString()} rec/s`
+    const result = await importObservationRows({
+      rows,
+      networkCache: this.networkCache,
+      sourceTag: this.sourceTag,
+      pool: this.pool,
+      batchSize: CONFIG.BATCH_SIZE,
+      debug: CONFIG.DEBUG,
+      initialImported: this.imported,
+      onProgress: (progress) => {
+        writeImportProgress(
+          progress.imported,
+          progress.totalRows,
+          progress.startTime,
+          progress.processedRows
         );
-      }
-    }
+      },
+    });
 
-    if (validBatch.length > 0) {
-      try {
-        const result = await insertBatch(this.pool, validBatch, CONFIG.DEBUG);
-        this.imported += result.inserted;
-        this.failed += result.failed;
-        this.errors.push(...result.errors);
-      } catch (error) {
-        const e = error as Error;
-        this.errors.push(`Final batch error: ${e.message}`);
-      }
-    }
+    this.imported += result.imported;
+    this.failed += result.failed;
+    this.errors.push(...result.errors);
 
-    console.log(''); // newline after progress
+    logProgressComplete();
   }
 
   private async refreshMaterializedViews(): Promise<void> {
@@ -346,96 +250,24 @@ class IncrementalImporter {
       console.warn(`   ⚠️ MV refresh failed: ${err.message}`);
     }
   }
-
-  private printSummary(): void {
-    const duration = (Date.now() - this.startTime) / 1000;
-    const speed = this.imported > 0 ? Math.round(this.imported / duration) : 0;
-
-    console.log(`\n${'━'.repeat(60)}`);
-    console.log('✅ INCREMENTAL IMPORT COMPLETE!\n');
-    console.log(`⏱️  Duration: ${duration.toFixed(1)}s`);
-    console.log(`📈 Speed: ${speed.toLocaleString()} records/second`);
-    console.log(`✔️  Imported: ${this.imported.toLocaleString()}`);
-    console.log(`❌ Failed: ${this.failed.toLocaleString()}`);
-
-    if (this.errors.length > 0) {
-      console.log('\n⚠️  Sample errors (first 5):');
-      this.errors.slice(0, 5).forEach((err, i) => {
-        console.log(`   ${i + 1}. ${err}`);
-      });
-    }
-
-    console.log(`${'━'.repeat(60)}\n`);
-  }
-}
-
-// ============================================================================
-// CLI
-// ============================================================================
-
-function sanitizeSourceTag(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 50);
-}
-
-function deriveSourceTag(sqliteFile: string): string {
-  const base = path.basename(sqliteFile, path.extname(sqliteFile));
-  const tag = sanitizeSourceTag(base);
-  return tag || 'wigle_import';
 }
 
 if (require.main === module) {
-  const args = process.argv.slice(2);
+  const parseResult = parseIncrementalImportCliArgs(process.argv.slice(2));
 
-  if (args.length < 1) {
-    const scriptName = path.basename(process.argv[1]);
-    console.log(`
-Usage: npx tsx ${scriptName} <sqlite_file> [source_tag]
-
-Arguments:
-  sqlite_file   Path to WiGLE SQLite backup file
-  source_tag    Optional unique identifier for this data source (defaults to filename)
-
-Examples:
-  npx tsx ${scriptName} ~/Downloads/backup.sqlite s22_backup
-  npx tsx ${scriptName} /path/to/wigle.sqlite
-
-Environment:
-  DB_HOST       PostgreSQL host (default: 127.0.0.1)
-  DB_PORT       PostgreSQL port (default: 5432)
-  DB_NAME       Database name (default: shadowcheck_db)
-  DB_ADMIN_USER Admin user (default: shadowcheck_admin)
-  DB_ADMIN_PASSWORD  Admin password
-  DEBUG         Set to 'true' for verbose output
-`);
+  if (!parseResult.ok) {
+    if (parseResult.stream === 'stdout') {
+      console.log(parseResult.message);
+    } else {
+      console.error(parseResult.message);
+    }
     process.exit(1);
   }
 
-  const [sqliteFile, sourceTagArg] = args;
-
-  if (!fs.existsSync(sqliteFile)) {
-    console.error(`❌ File not found: ${sqliteFile}`);
-    process.exit(1);
-  }
-
-  const selectedTag =
-    sourceTagArg ||
-    process.env.IMPORT_SOURCE_TAG ||
-    process.env.SOURCE_TAG ||
-    deriveSourceTag(sqliteFile);
-  const sourceTag = sanitizeSourceTag(selectedTag);
-
-  if (!sourceTag) {
-    console.error('❌ source_tag could not be derived; provide it explicitly.');
-    process.exit(1);
-  }
-
-  const importer = new IncrementalImporter(sqliteFile, sourceTag);
+  const importer = new IncrementalImporter(
+    parseResult.request.sqliteFile,
+    parseResult.request.sourceTag
+  );
   importer.start().catch((error) => {
     console.error('Fatal error:', error);
     process.exit(1);

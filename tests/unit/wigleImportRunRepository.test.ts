@@ -14,7 +14,12 @@ jest.mock('../../server/src/config/database', () => {
   };
 });
 
+jest.mock('../../server/src/services/adminDbService', () => ({
+  adminQuery: jest.fn(),
+}));
+
 const { query, pool } = require('../../server/src/config/database');
+const { adminQuery } = require('../../server/src/services/adminDbService');
 
 describe('wigleImportRunRepository', () => {
   beforeEach(() => {
@@ -24,11 +29,11 @@ describe('wigleImportRunRepository', () => {
   describe('createImportRun', () => {
     it('should insert a new run and return the result', async () => {
       const mockRun = { id: 1, status: 'running' };
-      query.mockResolvedValueOnce({ rows: [mockRun] });
+      adminQuery.mockResolvedValueOnce({ rows: [mockRun] });
 
       const result = await repository.createImportRun({ ssid: 'test-ssid' });
 
-      expect(query).toHaveBeenCalledWith(
+      expect(adminQuery).toHaveBeenCalledWith(
         expect.any(String),
         expect.arrayContaining(['v2', 'test-ssid', null])
       );
@@ -85,11 +90,11 @@ describe('wigleImportRunRepository', () => {
   describe('markRunFailure', () => {
     it('should update run status to failed', async () => {
       const mockRun = { id: 1, status: 'failed' };
-      query.mockResolvedValueOnce({ rows: [mockRun] });
+      adminQuery.mockResolvedValueOnce({ rows: [mockRun] });
 
       const result = await repository.markRunFailure(1, 'error message');
 
-      expect(query).toHaveBeenCalledWith(expect.any(String), [1, 'error message']);
+      expect(adminQuery).toHaveBeenCalledWith(expect.any(String), [1, 'error message']);
       expect(result).toEqual(mockRun);
     });
   });
@@ -97,11 +102,11 @@ describe('wigleImportRunRepository', () => {
   describe('markRunControlStatus', () => {
     it('should update run status to paused', async () => {
       const mockRun = { id: 1, status: 'paused' };
-      query.mockResolvedValueOnce({ rows: [mockRun] });
+      adminQuery.mockResolvedValueOnce({ rows: [mockRun] });
 
       const result = await repository.markRunControlStatus(1, 'paused');
 
-      expect(query).toHaveBeenCalledWith(expect.any(String), [1, 'paused']);
+      expect(adminQuery).toHaveBeenCalledWith(expect.any(String), [1, 'paused']);
       expect(result).toEqual(mockRun);
     });
   });
@@ -109,11 +114,11 @@ describe('wigleImportRunRepository', () => {
   describe('resumeRunState', () => {
     it('should resume a run', async () => {
       const mockRun = { id: 1, status: 'running' };
-      query.mockResolvedValueOnce({ rows: [mockRun] });
+      adminQuery.mockResolvedValueOnce({ rows: [mockRun] });
 
       const result = await repository.resumeRunState(1);
 
-      expect(query).toHaveBeenCalledWith(expect.any(String), [1]);
+      expect(adminQuery).toHaveBeenCalledWith(expect.any(String), [1]);
       expect(result).toEqual(mockRun);
     });
   });
@@ -121,11 +126,11 @@ describe('wigleImportRunRepository', () => {
   describe('completeRun', () => {
     it('should complete a run', async () => {
       const mockRun = { id: 1, status: 'completed' };
-      query.mockResolvedValueOnce({ rows: [mockRun] });
+      adminQuery.mockResolvedValueOnce({ rows: [mockRun] });
 
       const result = await repository.completeRun(1, 'finished well');
 
-      expect(query).toHaveBeenCalledWith(expect.any(String), [1, 'finished well']);
+      expect(adminQuery).toHaveBeenCalledWith(expect.any(String), [1, 'finished well']);
       expect(result).toEqual(mockRun);
     });
   });
@@ -159,9 +164,9 @@ describe('wigleImportRunRepository', () => {
 
   describe('persistPageFailure', () => {
     it('should insert or update page failure', async () => {
-      query.mockResolvedValueOnce({ rowCount: 1 });
+      adminQuery.mockResolvedValueOnce({ rowCount: 1 });
       await repository.persistPageFailure(1, 2, 'cursor', 'error');
-      expect(query).toHaveBeenCalledWith(
+      expect(adminQuery).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO app.wigle_import_run_pages'),
         [1, 2, 'cursor', 'error']
       );
@@ -399,44 +404,44 @@ describe('wigleImportRunRepository', () => {
     it('should return 0 for empty IDs', async () => {
       const result = await repository.bulkDeleteCancelledRunsByIds([]);
       expect(result).toBe(0);
-      expect(query).not.toHaveBeenCalled();
+      expect(adminQuery).not.toHaveBeenCalled();
     });
 
     it('should delete runs and return rowCount', async () => {
-      query.mockResolvedValueOnce({ rowCount: 3 });
+      adminQuery.mockResolvedValueOnce({ rowCount: 3 });
       const result = await repository.bulkDeleteCancelledRunsByIds([1, 2, 3]);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM'), [[1, 2, 3]]);
+      expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM'), [[1, 2, 3]]);
       expect(result).toBe(3);
     });
   });
 
   describe('deleteImportRun', () => {
     it('should return true when a deletable run is found and deleted', async () => {
-      query.mockResolvedValueOnce({ rowCount: 1 });
+      adminQuery.mockResolvedValueOnce({ rowCount: 1 });
       const result = await repository.deleteImportRun(42);
       expect(result).toBe(true);
-      expect(query).toHaveBeenCalledWith(
+      expect(adminQuery).toHaveBeenCalledWith(
         expect.stringContaining("status IN ('completed', 'cancelled', 'failed')"),
         [42]
       );
     });
 
     it('should return false when run does not exist or is not in a deletable status', async () => {
-      query.mockResolvedValueOnce({ rowCount: 0 });
+      adminQuery.mockResolvedValueOnce({ rowCount: 0 });
       const result = await repository.deleteImportRun(99);
       expect(result).toBe(false);
     });
 
     it('should return false when rowCount is null', async () => {
-      query.mockResolvedValueOnce({ rowCount: null });
+      adminQuery.mockResolvedValueOnce({ rowCount: null });
       const result = await repository.deleteImportRun(7);
       expect(result).toBe(false);
     });
 
     it('should pass the run id as a parameter', async () => {
-      query.mockResolvedValueOnce({ rowCount: 1 });
+      adminQuery.mockResolvedValueOnce({ rowCount: 1 });
       await repository.deleteImportRun(123);
-      const [, params] = query.mock.calls[0];
+      const [, params] = adminQuery.mock.calls[0];
       expect(params).toEqual([123]);
     });
   });

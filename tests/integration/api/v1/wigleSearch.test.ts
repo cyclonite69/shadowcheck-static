@@ -96,6 +96,7 @@ describe('WiGLE Search API v1', () => {
     });
 
     it('should import results when requested', async () => {
+      const db = require('../../../../server/src/config/database');
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -106,6 +107,7 @@ describe('WiGLE Search API v1', () => {
       });
 
       mockContainer.wigleService.importWigleV2SearchResult.mockResolvedValue(1);
+      db.query.mockResolvedValueOnce({ rows: [{ id: 1 }] }).mockResolvedValueOnce({ rowCount: 1 });
 
       const res = await request(app).post('/api/v1/wigle/search-api?import=true').send({
         ssid: 'TestNet',
@@ -154,9 +156,10 @@ describe('WiGLE Search API v1', () => {
 
   describe('GET /search-api/import-runs', () => {
     it('should list import runs', async () => {
-      mockContainer.wigleImportRunService.listImportRuns.mockResolvedValue([
-        { id: 1, status: 'completed' },
-      ]);
+      mockContainer.wigleImportRunService.listImportRuns.mockResolvedValue({
+        data: [{ id: 1, status: 'completed' }],
+        total: 1,
+      });
 
       const res = await request(app).get('/api/v1/wigle/search-api/import-runs');
 

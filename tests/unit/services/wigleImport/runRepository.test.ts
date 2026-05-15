@@ -1,4 +1,5 @@
 const { pool, query } = require('../../../../server/src/config/database');
+const { adminQuery } = require('../../../../server/src/services/adminDbService');
 import * as runRepository from '../../../../server/src/services/wigleImport/runRepository';
 
 jest.mock('../../../../server/src/config/database', () => ({
@@ -6,6 +7,10 @@ jest.mock('../../../../server/src/config/database', () => ({
     connect: jest.fn(),
   },
   query: jest.fn(),
+}));
+
+jest.mock('../../../../server/src/services/adminDbService', () => ({
+  adminQuery: jest.fn(),
 }));
 
 describe('runRepository', () => {
@@ -54,12 +59,12 @@ describe('runRepository', () => {
 
   describe('createImportRun', () => {
     it('should throw if insert fails', async () => {
-      query.mockRejectedValue(new Error('Insert Failed'));
+      adminQuery.mockRejectedValue(new Error('Insert Failed'));
       await expect(runRepository.createImportRun({})).rejects.toThrow('Insert Failed');
     });
 
     it('stores direct override metadata for enrichment runs without v2 normalization', async () => {
-      query.mockResolvedValue({ rows: [{ id: 7 }] });
+      adminQuery.mockResolvedValue({ rows: [{ id: 7 }] });
 
       await runRepository.createImportRun(
         {
@@ -76,7 +81,7 @@ describe('runRepository', () => {
         }
       );
 
-      const [sql, params] = query.mock.calls[0];
+      const [sql, params] = adminQuery.mock.calls[0];
       expect(String(sql)).toContain('INSERT INTO app.wigle_import_runs');
       expect(params[0]).toBe('v3_batch');
       expect(params[1]).toBe('v3');
@@ -95,20 +100,20 @@ describe('runRepository', () => {
 
   describe('markRunFailure', () => {
     it('should throw if update fails', async () => {
-      query.mockRejectedValue(new Error('Update Failed'));
+      adminQuery.mockRejectedValue(new Error('Update Failed'));
       await expect(runRepository.markRunFailure(1, 'error')).rejects.toThrow('Update Failed');
     });
   });
 
   describe('markRunControlStatus', () => {
     it('should return null if no run updated', async () => {
-      query.mockResolvedValue({ rows: [] });
+      adminQuery.mockResolvedValue({ rows: [] });
       const result = await runRepository.markRunControlStatus(1, 'paused');
       expect(result).toBeNull();
     });
 
     it('should throw if update fails', async () => {
-      query.mockRejectedValue(new Error('Status Update Failed'));
+      adminQuery.mockRejectedValue(new Error('Status Update Failed'));
       await expect(runRepository.markRunControlStatus(1, 'paused')).rejects.toThrow(
         'Status Update Failed'
       );
@@ -117,7 +122,7 @@ describe('runRepository', () => {
 
   describe('resumeRunState', () => {
     it('should return null if no run updated', async () => {
-      query.mockResolvedValue({ rows: [] });
+      adminQuery.mockResolvedValue({ rows: [] });
       const result = await runRepository.resumeRunState(1);
       expect(result).toBeNull();
     });
@@ -125,14 +130,14 @@ describe('runRepository', () => {
 
   describe('completeRun', () => {
     it('should throw if update fails', async () => {
-      query.mockRejectedValue(new Error('Complete Update Failed'));
+      adminQuery.mockRejectedValue(new Error('Complete Update Failed'));
       await expect(runRepository.completeRun(1)).rejects.toThrow('Complete Update Failed');
     });
   });
 
   describe('persistPageFailure', () => {
     it('should throw if insert fails', async () => {
-      query.mockRejectedValue(new Error('Persist Failure Failed'));
+      adminQuery.mockRejectedValue(new Error('Persist Failure Failed'));
       await expect(runRepository.persistPageFailure(1, 1, 'cursor', 'msg')).rejects.toThrow(
         'Persist Failure Failed'
       );
@@ -165,7 +170,7 @@ describe('runRepository', () => {
     });
 
     it('should throw if delete fails', async () => {
-      query.mockRejectedValue(new Error('Delete Failed'));
+      adminQuery.mockRejectedValue(new Error('Delete Failed'));
       await expect(runRepository.bulkDeleteCancelledRunsByIds([1])).rejects.toThrow(
         'Delete Failed'
       );
