@@ -136,6 +136,26 @@ describe('WiGLE Enrichment Service', () => {
       expect(writeRepo.incrementRunProgress).toHaveBeenCalledWith(runId);
     });
 
+    it('fetches all remaining targeted BSSIDs in one batch (up to manual limit)', async () => {
+      const manual = ['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02', 'AA:BB:CC:DD:EE:03'];
+      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
+      (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');
+      (readRepo.getNextEnrichmentBatch as jest.Mock<any>)
+        .mockResolvedValueOnce([
+          { bssid: manual[0], type: 'W' },
+          { bssid: manual[1], type: 'W' },
+          { bssid: manual[2], type: 'W' },
+        ])
+        .mockResolvedValue([]);
+      (fetchAndImportDetail as jest.Mock<any>).mockResolvedValue({ bssid: 'x', obsCount: 1 });
+
+      await runEnrichmentLoop(runId, manual);
+
+      expect(readRepo.getNextEnrichmentBatch).toHaveBeenCalledWith(3, manual);
+      expect(fetchAndImportDetail).toHaveBeenCalledTimes(3);
+      expect(runRepo.completeRun).toHaveBeenCalledWith(runId);
+    });
+
     it('should mark manual run failed when every targeted BSSID fails', async () => {
       (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
       (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');

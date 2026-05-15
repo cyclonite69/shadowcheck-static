@@ -15,6 +15,9 @@ import {
 
 const ENRICHMENT_DELAY_MS = 20_000;
 const MAX_CONSECUTIVE_ERRORS = 5;
+/** Catalog backlog: small SQL pages. Targeted selection: fetch all remaining BSSIDs per loop. */
+const CATALOG_FETCH_LIMIT = 20;
+const MANUAL_FETCH_LIMIT = 100;
 
 type EnrichmentBatchItem = {
   bssid: string;
@@ -117,9 +120,14 @@ export class WigleEnrichmentOrchestrator {
 
   private async loadNextBatch(attempted: Set<string>, manualList?: string[]) {
     const activeManualList = manualList
-      ? manualList.filter((bssid) => !attempted.has(bssid))
+      ? manualList.filter((bssid) => !attempted.has(bssid.toUpperCase()))
       : undefined;
-    return this.deps.getNextEnrichmentBatch(5, activeManualList);
+
+    const limit = activeManualList
+      ? Math.min(activeManualList.length, MANUAL_FETCH_LIMIT)
+      : CATALOG_FETCH_LIMIT;
+
+    return this.deps.getNextEnrichmentBatch(limit, activeManualList);
   }
 
   private async finishRun(
@@ -189,8 +197,9 @@ export class WigleEnrichmentOrchestrator {
       if (result === null) {
         throw new Error(`WiGLE has no v3 detail for ${item.bssid}`);
       }
-      attempted.add(item.bssid);
-      succeeded.add(item.bssid);
+      const normalizedBssid = item.bssid.toUpperCase();
+      attempted.add(normalizedBssid);
+      succeeded.add(normalizedBssid);
       state.setConsecutiveErrors(0);
       await this.deps.incrementRunProgress(runId);
 
@@ -207,7 +216,7 @@ export class WigleEnrichmentOrchestrator {
 
       const message = err?.message || String(err);
       logger.error(`[v3 Enrichment] Failed item ${item.bssid} in run #${runId}: ${message}`);
-      attempted.add(item.bssid);
+      attempted.add(item.bssid.toUpperCase());
       state.setLastFailureMessage(message);
 
       const nextErrorCount = state.consecutiveErrors + 1;

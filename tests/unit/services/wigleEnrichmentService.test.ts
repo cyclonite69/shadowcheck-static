@@ -157,6 +157,16 @@ describe('wigleEnrichmentService (Pure Unit)', () => {
       await expect(startBatchEnrichment([])).rejects.toThrow('No networks found in v2 catalog');
     });
 
+    it('throws 400 when more than 100 targeted BSSIDs are submitted', async () => {
+      const tooMany = Array.from(
+        { length: 101 },
+        (_, i) => `AA:BB:CC:DD:EE:${String(i).padStart(2, '0')}`
+      );
+      const err: any = await startBatchEnrichment(tooMany).catch((e: any) => e);
+      expect(err.status).toBe(400);
+      expect(err.message).toContain('100');
+    });
+
     it('throws 409 when an enrichment run is already active', async () => {
       mockAdminQuery
         .mockResolvedValueOnce({ rows: [{ count: 5 }] }) // getPendingEnrichmentCount

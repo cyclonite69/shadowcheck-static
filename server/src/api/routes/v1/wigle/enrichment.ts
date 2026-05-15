@@ -64,6 +64,9 @@ router.post(
       const run = await wigleEnrichmentService.startBatchEnrichment(bssids);
       res.json({ ok: true, run: serializeRun(run) });
     } catch (err: any) {
+      if (err?.status === 400) {
+        return res.status(400).json({ ok: false, error: err.message });
+      }
       if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
       }

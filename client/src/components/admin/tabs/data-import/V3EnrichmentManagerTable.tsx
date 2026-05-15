@@ -55,6 +55,12 @@ interface V3EnrichmentManagerTableProps {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Matches server MAX_TARGETED_ENRICHMENT_BATCH */
+const MAX_TARGETED_SELECTION = 100;
+const ENRICHMENT_MS_PER_BSSID = 25_000;
+
+const enrichmentWaitMs = (count: number) => 60_000 + count * ENRICHMENT_MS_PER_BSSID;
+
 /** Poll import run until it leaves `running` or times out. */
 async function waitForEnrichmentRunOutcome(
   runId: number,
@@ -94,7 +100,7 @@ function enrichmentOutcomeMessage(outcome: {
   if (outcome.status === 'completed') {
     return {
       type: 'info',
-      text: 'Enrichment run completed. Refresh the catalog if status still shows Pending.',
+      text: 'Enrichment run completed. Refresh the catalog to see updated forensics.',
     };
   }
   return null;
@@ -303,13 +309,22 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     if (selected.size === allRows.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(allRows.map((r) => r.bssid)));
+      const capped = allRows.slice(0, MAX_TARGETED_SELECTION).map((r) => r.bssid);
+      setSelected(new Set(capped));
     }
   };
 
   const handleEnrichSelected = async () => {
     const toProcess = Array.from(selected);
     if (toProcess.length === 0) return;
+
+    if (toProcess.length > MAX_TARGETED_SELECTION) {
+      setStatusMessage({
+        type: 'error',
+        text: `Select at most ${MAX_TARGETED_SELECTION} networks per run (selected ${toProcess.length}).`,
+      });
+      return;
+    }
 
     setProcessingBssids((prev) => new Set([...Array.from(prev), ...toProcess]));
     setSelected(new Set());
@@ -327,14 +342,29 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
       if (immediate) {
         setStatusMessage(immediate);
       } else if (runId) {
-        const outcome = await waitForEnrichmentRunOutcome(runId);
+        setStatusMessage({
+          type: 'info',
+          text: `Enriching ${toProcess.length} network(s) in run #${runId} (~20s between WiGLE detail calls).`,
+        });
+        const outcome = await waitForEnrichmentRunOutcome(
+          runId,
+          enrichmentWaitMs(toProcess.length)
+        );
         if (outcome) {
           const message = enrichmentOutcomeMessage(outcome);
-          if (message) setStatusMessage(message);
+          if (message) {
+            setStatusMessage({
+              ...message,
+              text:
+                outcome.status === 'completed'
+                  ? `Finished enriching ${toProcess.length} network(s). ${message.text}`
+                  : message.text,
+            });
+          }
         } else {
           setStatusMessage({
             type: 'info',
-            text: `Enrichment run #${runId} is still running (20s delay per BSSID). Watch the run banner above.`,
+            text: `Run #${runId} is still processing ${toProcess.length} network(s). Watch the run banner above.`,
           });
         }
       }
@@ -467,13 +497,19 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
           </div>
         </div>
 
-        <button
-          onClick={handleEnrichSelected}
-          disabled={selected.size === 0 || actionLoading}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-lg shadow-blue-500/20"
-        >
-          Enrich Selected ({selected.size})
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={handleEnrichSelected}
+            disabled={selected.size === 0 || actionLoading}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded text-[10px] font-black uppercase tracking-tighter transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+          >
+            Enrich Selected ({selected.size})
+          </button>
+          <span className="text-[9px] text-slate-500 max-w-[220px] text-right leading-tight">
+            Check multiple rows, or use the header box to select all loaded (max{' '}
+            {MAX_TARGETED_SELECTION} per run).
+          </span>
+        </div>
       </div>
 
       {/* Table */}
