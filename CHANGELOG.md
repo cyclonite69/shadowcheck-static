@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-14)
+# 1.0.0 (2026-05-15)
 
 ### Bug Fixes
 
@@ -877,6 +877,7 @@
 - **wigle:** move assertCanRequest pre-loop, document conservative quota policy ([83a95d7](https://github.com/cyclonite69/shadowcheck-web/commit/83a95d7518b3d00b66b8b210e5fbdbdc6f982c39))
 - **wigle:** move Field Data and Clustering to control panel, fix Field Data render ([9cdfa8c](https://github.com/cyclonite69/shadowcheck-web/commit/9cdfa8c83d905f0e15d4a2b256ba98ba8390c460))
 - **wigle:** move ledger panel and preserve outbound auth header ([2437005](https://github.com/cyclonite69/shadowcheck-web/commit/24370058adc137b9da58d93365a8666f7ca63c1c))
+- **wigle:** normalize network type in batch detail import ([69d3340](https://github.com/cyclonite69/shadowcheck-web/commit/69d3340c9980284af417e51e461421351a3cc4d9))
 - WiglePage setError undefined - add missing map error state ([f6eba9e](https://github.com/cyclonite69/shadowcheck-web/commit/f6eba9eca76d40461424d3d7fbc1e3cb69404b3d))
 - **wigle:** parse v3 detail response shape in live.ts ([2784909](https://github.com/cyclonite69/shadowcheck-web/commit/2784909dfad925f364d7c66adf33afc5f294d25f))
 - **wigle:** prefer secrets manager over env for api name and token ([aad8b1d](https://github.com/cyclonite69/shadowcheck-web/commit/aad8b1d34c31ae0101f674e7687884c370556455))

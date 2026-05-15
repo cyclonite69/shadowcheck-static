@@ -65,8 +65,14 @@ export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
       const batch = await getNextEnrichmentBatch(5, activeManualList);
 
       if (batch.length === 0) {
-        await completeRun(runId);
-        logger.info(`[v3 Enrichment] Completed run #${runId}`);
+        if (manualList && processed.size === 0) {
+          await markRunFailure(runId, 'No matching networks found in catalog for provided BSSIDs');
+          logger.warn(`[v3 Enrichment] Manual run #${runId} failed: No matching networks found`);
+        } else {
+          await completeRun(runId);
+          logger.info(`[v3 Enrichment] Completed run #${runId}`);
+        }
+
         try {
           await refreshWigleNetworksMv();
           logger.info('[v3 Enrichment] Refreshed api_wigle_networks_mv');

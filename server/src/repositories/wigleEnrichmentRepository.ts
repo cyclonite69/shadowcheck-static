@@ -136,13 +136,14 @@ export async function getNextEnrichmentBatch(
   manualList?: string[]
 ): Promise<any[]> {
   if (manualList && manualList.length > 0) {
+    const normalizedList = manualList.map((b) => b.trim().toUpperCase());
     const { rows } = await adminQuery(
       `SELECT DISTINCT ON (bssid) bssid, type
        FROM app.wigle_v2_networks_search
-       WHERE bssid = ANY($2::text[])
+       WHERE TRIM(UPPER(bssid)) = ANY($2::text[])
        ORDER BY bssid, lasttime DESC
        LIMIT $1`,
-      [limit, manualList]
+      [limit, normalizedList]
     );
     return rows;
   }
