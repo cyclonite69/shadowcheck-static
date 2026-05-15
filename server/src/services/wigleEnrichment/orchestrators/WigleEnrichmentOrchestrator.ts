@@ -2,11 +2,10 @@ import logger from '../../../logging/logger';
 import { fetchAndImportDetail } from '../../wigleEnrichmentFetcher';
 import { assertCanRequest } from '../../wigleRequestLedger';
 import {
-  getNextEnrichmentBatch,
-  getRunStatus,
   incrementRunProgress,
   refreshWigleNetworksMv,
 } from '../../../repositories/wigleEnrichmentRepository';
+import { getNextEnrichmentBatch, getRunStatus } from '../repositories/enrichmentReadRepository';
 import {
   completeRun,
   getImportRun,

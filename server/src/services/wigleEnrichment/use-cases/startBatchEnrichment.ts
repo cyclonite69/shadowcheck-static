@@ -1,9 +1,9 @@
 import logger from '../../../logging/logger';
+import { setRunTotalItems } from '../../../repositories/wigleEnrichmentRepository';
 import {
   getActiveEnrichmentRunId,
   getPendingEnrichmentCount,
-  setRunTotalItems,
-} from '../../../repositories/wigleEnrichmentRepository';
+} from '../repositories/enrichmentReadRepository';
 import { createImportRun } from '../../wigleImport/runRepository';
 import { runEnrichmentLoop } from './runEnrichmentLoop';
 

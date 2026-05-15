@@ -25,7 +25,7 @@ import {
 import { getWigleDetail } from '../../server/src/services/wigle/detail';
 import {
   importWigleV3NetworkDetail,
-  importWigleV3Observation,
+  importWigleV3ObservationRow,
 } from '../../server/src/services/wigle/persistence';
 
 jest.mock('../../server/src/logging/logger');
@@ -132,30 +132,31 @@ describe('wigleDetailService', () => {
         {
           clusterSsid: 'SSID1',
           locations: [
-            { lat: 1, lon: 2 },
-            { lat: 3, lon: 4 },
+            { latitude: '1', longitude: '2', time: '2026-01-01T00:00:00Z' },
+            { latitude: '3', longitude: '4', time: '2026-01-02T00:00:00Z' },
           ],
         },
       ];
-      (importWigleV3Observation as jest.Mock).mockResolvedValue(1);
-      (stripNullBytes as jest.Mock).mockImplementation((s) => s);
+      (importWigleV3ObservationRow as jest.Mock).mockResolvedValue(1);
 
       const result = await importObservations(netid, locationClusters);
 
       expect(result).toEqual({ newCount: 2, totalCount: 2, failedCount: 0 });
-      expect(importWigleV3Observation).toHaveBeenCalledTimes(2);
+      expect(importWigleV3ObservationRow).toHaveBeenCalledTimes(2);
     });
 
     it('handles partial failures', async () => {
       const locationClusters = [
         {
-          locations: [{ ssid: 'S1' }, { ssid: 'S2' }],
+          locations: [
+            { ssid: 'S1', latitude: '1', longitude: '2', time: '2026-01-01T00:00:00Z' },
+            { ssid: 'S2', latitude: '3', longitude: '4', time: '2026-01-02T00:00:00Z' },
+          ],
         },
       ];
-      (importWigleV3Observation as jest.Mock)
+      (importWigleV3ObservationRow as jest.Mock)
         .mockResolvedValueOnce(1)
         .mockRejectedValueOnce(new Error('DB Error'));
-      (stripNullBytes as jest.Mock).mockImplementation((s) => s);
 
       const result = await importObservations(netid, locationClusters);
 

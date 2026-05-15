@@ -104,11 +104,27 @@ const importWigleV3NetworkDetail = async (executor: QueryExecutor, data: any): P
   );
 };
 
-const importWigleV3Observation = async (
+type WigleV3ObservationInsertRow = {
+  netid: string;
+  latitude: number;
+  longitude: number;
+  altitude: number | null;
+  accuracy: number | null;
+  signal: number | null;
+  observed_at: string;
+  last_update: string | null;
+  ssid: string | null;
+  frequency: number | null;
+  channel: number | null;
+  encryption: string | null;
+  noise: number | null;
+  snr: number | null;
+  month: string | null;
+};
+
+const importWigleV3ObservationRow = async (
   executor: QueryExecutor,
-  netid: string,
-  loc: any,
-  ssid: string | null
+  row: WigleV3ObservationInsertRow
 ): Promise<number> => {
   const result = await executor.query(
     `INSERT INTO app.wigle_v3_observations (
@@ -120,21 +136,21 @@ const importWigleV3Observation = async (
       ST_SetSRID(ST_MakePoint($3, $2), 4326)
     ) ON CONFLICT DO NOTHING`,
     [
-      netid,
-      parseFloat(loc.latitude),
-      parseFloat(loc.longitude),
-      parseFloat(loc.alt) || null,
-      parseFloat(loc.accuracy) || null,
-      parseInt(loc.signal) || null,
-      loc.time,
-      loc.lastupdt,
-      ssid,
-      parseInt(loc.frequency) || null,
-      parseInt(loc.channel) || null,
-      loc.encryptionValue,
-      parseInt(loc.noise) || null,
-      parseInt(loc.snr) || null,
-      loc.month,
+      row.netid,
+      row.latitude,
+      row.longitude,
+      row.altitude,
+      row.accuracy,
+      row.signal,
+      row.observed_at,
+      row.last_update,
+      row.ssid,
+      row.frequency,
+      row.channel,
+      row.encryption,
+      row.noise,
+      row.snr,
+      row.month,
     ]
   );
   return result.rowCount || 0;
@@ -238,5 +254,5 @@ export {
   insertWigleV2SearchResult,
   insertWigleBtSearchResult,
   importWigleV3NetworkDetail,
-  importWigleV3Observation,
+  importWigleV3ObservationRow,
 };

@@ -8,6 +8,10 @@ import { wigleGatewayFetch } from './wigle/wigleGateway';
 import { getEncodedWigleAuth } from './wigleRequestUtils';
 import { inferWigleEndpoint } from './wigleDetailTransforms';
 import { importObservations } from './wigleDetailService';
+import {
+  mapV3ApiDetailToNetworkDetail,
+  normalizeMacAddress,
+} from './wigleEnrichment/mappers/enrichmentMapper';
 
 /**
  * Fetch v3 detail for a single BSSID from the WiGLE API and import it into the DB.
@@ -62,28 +66,16 @@ export async function fetchAndImportDetail(
     });
   }
 
-  const data = (await response.json()) as any;
+  const data = (await response.json()) as Record<string, unknown>;
   if (!data?.networkId) return null;
 
-  await wigleService.importWigleV3NetworkDetail({
-    netid: data.networkId,
-    name: data.name,
-    type: data.type,
-    comment: data.comment,
-    ssid: data.locationClusters?.[0]?.clusterSsid || data.name,
-    trilat: data.trilateratedLatitude,
-    trilon: data.trilateratedLongitude,
-    encryption: data.encryption,
-    channel: data.channel,
-    first_seen: data.firstSeen,
-    last_seen: data.lastSeen,
-    last_update: data.lastUpdate,
-    street_address: JSON.stringify(data.streetAddress || null),
-    location_clusters: JSON.stringify(data.locationClusters || []),
-  });
+  const networkDetail = mapV3ApiDetailToNetworkDetail(data);
+  await wigleService.importWigleV3NetworkDetail(networkDetail);
 
-  const counts = await importObservations(data.networkId, data.locationClusters);
+  const locationClusters = Array.isArray(data.locationClusters) ? data.locationClusters : [];
+  const counts = await importObservations(networkDetail.netid, locationClusters);
   const obsCount = counts.newCount;
+  const normalizedBssid = normalizeMacAddress(bssid) || networkDetail.netid;
 
-  return { bssid, obsCount };
+  return { bssid: normalizedBssid, obsCount };
 }

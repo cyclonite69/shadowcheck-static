@@ -15,7 +15,11 @@ import {
 } from './wigleDetailTransforms';
 import { getRecentWigleDetailImport, getWigleObservations } from './wigle/database';
 import { getWigleDetail } from './wigle/detail';
-import { importWigleV3NetworkDetail, importWigleV3Observation } from './wigle/persistence';
+import {
+  mapV3ApiDetailObservationRows,
+  mapV3ApiDetailToNetworkDetail,
+} from './wigleEnrichment/mappers/enrichmentMapper';
+import { importWigleV3NetworkDetail, importWigleV3ObservationRow } from './wigle/persistence';
 
 export interface DetailResult {
   ok: true;
@@ -143,21 +147,15 @@ export async function importObservations(
     totalCount = 0,
     failedCount = 0;
 
-  for (const cluster of locationClusters) {
-    if (!Array.isArray(cluster.locations)) continue;
-    for (const loc of cluster.locations) {
-      totalCount++;
-      try {
-        const ssidToUse =
-          loc.ssid && loc.ssid !== '?' && loc.ssid !== ''
-            ? loc.ssid
-            : cluster.clusterSsid || loc.ssid;
-        const inserted = await importWigleV3Observation(netid, loc, stripNullBytes(ssidToUse));
-        newCount += inserted;
-      } catch (err: any) {
-        failedCount++;
-        logger.error(`[WiGLE] Failed to import observation for ${netid}: ${err.message}`);
-      }
+  const observationRows = mapV3ApiDetailObservationRows(netid, locationClusters);
+  for (const row of observationRows) {
+    totalCount++;
+    try {
+      const inserted = await importWigleV3ObservationRow(row);
+      newCount += inserted;
+    } catch (err: any) {
+      failedCount++;
+      logger.error(`[WiGLE] Failed to import observation for ${netid}: ${err.message}`);
     }
   }
 
@@ -240,29 +238,10 @@ export async function fetchOrImportDetail(
   if (shouldImport && data.networkId) {
     logger.info(`[WiGLE] Importing detail for ${netid} to database...`);
 
-    await importWigleV3NetworkDetail({
-      netid: data.networkId,
-      name: stripNullBytes(data.name),
-      type: data.type,
-      comment: stripNullBytes(data.comment),
-      ssid: stripNullBytes(data.locationClusters?.[0]?.clusterSsid || data.name),
-      trilat: data.trilateratedLatitude,
-      trilon: data.trilateratedLongitude,
-      encryption: stripNullBytes(data.encryption),
-      channel: data.channel,
-      bcninterval: data.bcninterval,
-      freenet: stripNullBytes(data.freenet),
-      dhcp: stripNullBytes(data.dhcp),
-      paynet: stripNullBytes(data.paynet),
-      qos: data.bestClusterWiGLEQoS,
-      first_seen: data.firstSeen,
-      last_seen: data.lastSeen,
-      last_update: data.lastUpdate,
-      street_address: JSON.stringify(data.streetAddress),
-      location_clusters: JSON.stringify(data.locationClusters),
-    });
+    const networkDetail = mapV3ApiDetailToNetworkDetail(data);
+    await importWigleV3NetworkDetail(networkDetail);
 
-    const counts = await importObservations(data.networkId, data.locationClusters);
+    const counts = await importObservations(networkDetail.netid, data.locationClusters);
     newObservations = counts.newCount;
     attemptedObservations = counts.totalCount;
     failedObservations = counts.failedCount;
@@ -294,33 +273,14 @@ export async function importDetailFromJson(
 ): Promise<Omit<DetailResult, 'imported' | 'cached'>> {
   logger.info(`[WiGLE] Importing v3 detail for ${data.networkId} from file...`);
 
-  await importWigleV3NetworkDetail({
-    netid: data.networkId,
-    name: stripNullBytes(data.name),
-    type: data.type,
-    comment: stripNullBytes(data.comment),
-    ssid: stripNullBytes(data.locationClusters?.[0]?.clusterSsid || data.name),
-    trilat: data.trilateratedLatitude,
-    trilon: data.trilateratedLongitude,
-    encryption: stripNullBytes(data.encryption),
-    channel: data.channel,
-    bcninterval: data.bcninterval,
-    freenet: stripNullBytes(data.freenet),
-    dhcp: stripNullBytes(data.dhcp),
-    paynet: stripNullBytes(data.paynet),
-    qos: data.bestClusterWiGLEQoS,
-    first_seen: data.firstSeen,
-    last_seen: data.lastSeen,
-    last_update: data.lastUpdate,
-    street_address: JSON.stringify(data.streetAddress),
-    location_clusters: JSON.stringify(data.locationClusters),
-  });
+  const networkDetail = mapV3ApiDetailToNetworkDetail(data);
+  await importWigleV3NetworkDetail(networkDetail);
 
-  const counts = await importObservations(data.networkId, data.locationClusters);
-  const snapshot = await getWigleObservations(data.networkId, 1, 0);
+  const counts = await importObservations(networkDetail.netid, data.locationClusters);
+  const snapshot = await getWigleObservations(networkDetail.netid, 1, 0);
 
   logger.info(
-    `[WiGLE] Imported ${counts.newCount} new observations (${snapshot.total} total, ${counts.totalCount} attempted, ${counts.failedCount} failed) for ${data.networkId}`
+    `[WiGLE] Imported ${counts.newCount} new observations (${snapshot.total} total, ${counts.totalCount} attempted, ${counts.failedCount} failed) for ${networkDetail.netid}`
   );
 
   return {

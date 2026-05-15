@@ -1,8 +1,6 @@
 import logger from '../../../logging/logger';
-import {
-  getActiveEnrichmentRunId,
-  resetRunForResume,
-} from '../../../repositories/wigleEnrichmentRepository';
+import { resetRunForResume } from '../../../repositories/wigleEnrichmentRepository';
+import { getActiveEnrichmentRunId } from '../repositories/enrichmentReadRepository';
 import { runEnrichmentLoop } from './runEnrichmentLoop';
 
 /**
