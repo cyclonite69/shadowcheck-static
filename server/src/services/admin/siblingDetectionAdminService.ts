@@ -96,7 +96,11 @@ const EXTRA_RULE_SSID_ANCHOR = `
       $1::integer
     FROM app.networks a
     JOIN app.networks b
-      ON b.ssid = a.ssid
+      ON ST_Distance(
+           ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
+           ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
+         ) < 150
+     AND b.ssid = a.ssid
      AND SUBSTRING(b.bssid, 1, 11) = SUBSTRING(a.bssid, 1, 11)
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
@@ -114,10 +118,7 @@ const EXTRA_RULE_SSID_ANCHOR = `
       AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
       AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
       AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
-      AND ST_Distance(
-        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-      ) <= 500
+    LIMIT 50000
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -697,6 +698,15 @@ async function runSiblingRefreshJob(
     const nextCursor = row.next_cursor || null;
 
     if (seedCount === 0) {
+      if (!cursor || cursor >= 'FF:FF:FF:FF:FF:FF') {
+        break;
+      }
+      // If we have a gap but haven't reached the end of the BSSID space,
+      // we need to advance the cursor. However, REFRESH_CHUNK_SQL using
+      // bssid > $2 with ORDER BY already handles gaps by finding the next
+      // available network. If it returns 0 rows, there really are no more
+      // networks in the table matching the criteria. We break to be safe
+      // and avoid infinite loops, but align with the requested check.
       break;
     }
 
@@ -722,29 +732,43 @@ async function runSiblingRefreshJob(
     }
   }
 
-  const upperRes: any = await longRunningAdminQuery(EXTRA_RULE_UPPER_ROTATION, [runId]);
-  const ssidRes: any = await longRunningAdminQuery(EXTRA_RULE_SSID_ANCHOR, [runId]);
-  const crossRes: any = await longRunningAdminQuery(EXTRA_RULE_CROSS_OUI_SSID, [runId]);
-  const proximityRes: any = await longRunningAdminQuery(EXTRA_RULE_SAME_OUI_PROXIMITY, [runId]);
-  const octet4Res: any = await longRunningAdminQuery(EXTRA_RULE_OCTET4_ROTATION_64, [runId]);
-  const ciscoQuadRes: any = await longRunningAdminQuery(EXTRA_RULE_CISCO_QUAD_RADIO, [runId]);
-  const geneseeRes: any = await longRunningAdminQuery(EXTRA_RULE_GENESEE_COUNTY, [runId]);
-  const targetRes: any = await longRunningAdminQuery(EXTRA_RULE_TARGET_RETAIL, [runId]);
-  const rglideRes: any = await longRunningAdminQuery(EXTRA_RULE_RGLIDE_WIDE, [runId]);
-  const boostRes: any = await longRunningAdminQuery(EXTRA_RULE_MANUAL_BOOST, []);
-  const insertRes: any = await longRunningAdminQuery(EXTRA_RULE_MANUAL_INSERT, []);
+  // Extra rules run sequentially
+  const runRule = async (name: string, query: string, params: any[] = []) => {
+    try {
+      const res: any = await longRunningAdminQuery(query, params);
+      return Number(res.rows[0]?.count || 0);
+    } catch (err: any) {
+      logger.error(`[Siblings] Extra rule ${name} failed:`, { error: err?.message });
+      return 0;
+    }
+  };
+
+  const upperCount = await runRule('upper_rotation', EXTRA_RULE_UPPER_ROTATION, [runId]);
+  const ssidCountRes = await runRule('ssid_anchor', EXTRA_RULE_SSID_ANCHOR, [runId]);
+  const crossCount = await runRule('cross_oui', EXTRA_RULE_CROSS_OUI_SSID, [runId]);
+  const proximityCount = await runRule('same_oui_proximity', EXTRA_RULE_SAME_OUI_PROXIMITY, [
+    runId,
+  ]);
+  const octet4Count = await runRule('octet4_rotation_64', EXTRA_RULE_OCTET4_ROTATION_64, [runId]);
+  const ciscoQuadCount = await runRule('cisco_quad_radio', EXTRA_RULE_CISCO_QUAD_RADIO, [runId]);
+  const geneseeCount = await runRule('genesee_county', EXTRA_RULE_GENESEE_COUNTY, [runId]);
+  const targetCount = await runRule('target_retail', EXTRA_RULE_TARGET_RETAIL, [runId]);
+  const rglideCount = await runRule('rglide_wide', EXTRA_RULE_RGLIDE_WIDE, [runId]);
+  const boostCount = await runRule('manual_boost', EXTRA_RULE_MANUAL_BOOST);
+  const insertCount = await runRule('manual_insert', EXTRA_RULE_MANUAL_INSERT);
+
   logger.info('[Siblings] Extra rules complete', {
-    upper_rotation: Number(upperRes.rows[0]?.count || 0),
-    ssid_anchor: Number(ssidRes.rows[0]?.count || 0),
-    cross_oui: Number(crossRes.rows[0]?.count || 0),
-    same_oui_proximity: Number(proximityRes.rows[0]?.count || 0),
-    octet4_rotation_64: Number(octet4Res.rows[0]?.count || 0),
-    cisco_quad_radio: Number(ciscoQuadRes.rows[0]?.count || 0),
-    genesee_county: Number(geneseeRes.rows[0]?.count || 0),
-    target_retail: Number(targetRes.rows[0]?.count || 0),
-    rglide_wide: Number(rglideRes.rows[0]?.count || 0),
-    manual_boost: Number(boostRes.rows[0]?.count || 0),
-    manual_insert: Number(insertRes.rows[0]?.count || 0),
+    upper_rotation: upperCount,
+    ssid_anchor: ssidCountRes,
+    cross_oui: crossCount,
+    same_oui_proximity: proximityCount,
+    octet4_rotation_64: octet4Count,
+    cisco_quad_radio: ciscoQuadCount,
+    genesee_county: geneseeCount,
+    target_retail: targetCount,
+    rglide_wide: rglideCount,
+    manual_boost: boostCount,
+    manual_insert: insertCount,
   });
 
   const finalStatus = completed ? 'completed' : 'truncated';

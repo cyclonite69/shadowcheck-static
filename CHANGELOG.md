@@ -1150,6 +1150,7 @@
 - refactor Kepler page with modular UI and hidden sidebar ([44b6936](https://github.com/cyclonite69/shadowcheck-web/commit/44b69369d3363af90829df4b104b07bb79147d0b))
 - refine WiglePage and AdminPage with consistent styling ([7963f75](https://github.com/cyclonite69/shadowcheck-web/commit/7963f7587092c1bf7c38b6247b9e388cb0a65062))
 - remove all artificial limits on infinite scroll lists ([e69287a](https://github.com/cyclonite69/shadowcheck-web/commit/e69287a3e0a013b11b8f42cbc114abe09a10dbf3))
+- remove forensic preview from v3 enrichment table ([f05e5b6](https://github.com/cyclonite69/shadowcheck-web/commit/f05e5b625fb976ff3aba081f2b0e9e37a41f5ec3))
 - **reports:** add behavioral context and persistence timeline ([b1a1157](https://github.com/cyclonite69/shadowcheck-web/commit/b1a115719cb256508e2b943aceb029fdaed3488b))
 - **reports:** add Google Maps and Street View links to away events ([70f3331](https://github.com/cyclonite69/shadowcheck-web/commit/70f3331ed6e422dbb000fa851c1f1fb7095d8373))
 - **reports:** add pdfkit dependency for PDF threat reports ([7f3c3d8](https://github.com/cyclonite69/shadowcheck-web/commit/7f3c3d86aa2205b5c02b36722259e0dc4a29488c))
