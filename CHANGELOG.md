@@ -191,6 +191,7 @@
 - **db:** preserve network_entries column order ([0a83ea5](https://github.com/cyclonite69/shadowcheck-web/commit/0a83ea5f77b5bc4c32aaf50bb64afe890e177edb))
 - **db:** repair sibling pipeline legacy schema and overrides bootstrap ([01e5470](https://github.com/cyclonite69/shadowcheck-web/commit/01e5470ccc78ca8e9df93531ccc32c3df434be56))
 - default to shadowcheck-sso profile in launch-shadowcheck-spot.sh ([c5ee70c](https://github.com/cyclonite69/shadowcheck-web/commit/c5ee70ceb64c3f535bac6ae9acdcceca919e3c8d))
+- defer container destructuring in wigleEnrichmentFetcher to call time ([e788283](https://github.com/cyclonite69/shadowcheck-web/commit/e788283224b58f12c7b25f7e0bcca8e46efa509c))
 - **deploy:** add DB_ADMIN_USER to backend env so entrypoint migrations use shadowcheck_admin ([be01e1b](https://github.com/cyclonite69/shadowcheck-web/commit/be01e1bfa12fd0ecbcdde6ca3f9d1e21d0acda62))
 - **deploy:** align public health checks ([698dec0](https://github.com/cyclonite69/shadowcheck-web/commit/698dec0fe66c7a048b05be494c820bb28afb0585))
 - **deploy:** copy scripts directory to backend production image ([3e15909](https://github.com/cyclonite69/shadowcheck-web/commit/3e15909c5082eda5fb1f65c3f1e012a2873c79ab))

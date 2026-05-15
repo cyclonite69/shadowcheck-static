@@ -32,12 +32,11 @@ import {
 
 export { getPendingEnrichmentCount, getEnrichmentCatalog };
 
-const { secretsManager } = container as any;
-
 const ENRICHMENT_DELAY_MS = 20_000;
 const MAX_CONSECUTIVE_ERRORS = 5;
 
 export async function runEnrichmentLoop(runId: number, manualList?: string[]) {
+  const { secretsManager } = container as any;
   const run = await getImportRun(runId);
   if (run.status === 'completed' || run.status === 'cancelled') return run;
 
@@ -212,6 +211,7 @@ export async function resumeEnrichment(runId: number) {
  * Validates that the WiGLE API key has remaining credit.
  */
 export async function validateWigleApiCredit() {
+  const { secretsManager } = container as any;
   try {
     const wigleApiName = secretsManager.get('wigle_api_name');
     const wigleApiToken = secretsManager.get('wigle_api_token');
