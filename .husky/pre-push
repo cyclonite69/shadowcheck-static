@@ -1,17 +1,3 @@
 #!/bin/sh
-# Regenerate CHANGELOG + LOC metrics and fold them into the commit being pushed.
-# Without the amend step, files are only staged locally and never reach origin.
-set -e
-
-npm run changelog
-git add CHANGELOG.md
-if ! git diff --cached --quiet; then
-  git commit --amend --no-edit --no-verify
-fi
-
-# Run metrics after amend so the embedded SHA matches the pushed commit.
-npm run metrics
-git add docs/metrics/lines-of-code.md
-if ! git diff --cached --quiet; then
-  git commit --amend --no-edit --no-verify
-fi
+# Generated docs are folded into each commit via .husky/post-commit (sync-generated-docs.sh).
+# Do not regenerate here — amending during pre-push does not update the pushed ref.

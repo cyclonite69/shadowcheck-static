@@ -1,0 +1,2 @@
+#!/bin/sh
+bash scripts/hooks/sync-generated-docs.sh
