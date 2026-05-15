@@ -676,6 +676,7 @@
 - sibling detection cancel works end to end ([0486230](https://github.com/cyclonite69/shadowcheck-web/commit/0486230af9a46220eaaff98232cea33ab5b76324))
 - sibling detection extra rules parameter binding ([61e65e7](https://github.com/cyclonite69/shadowcheck-web/commit/61e65e786b647facab4ad2ffbc168656c398e1af))
 - sibling detection EXTRA_RULES_SQL double-row ON CONFLICT crash ([b71d1f2](https://github.com/cyclonite69/shadowcheck-web/commit/b71d1f28e7ecc671b47bdef85126987e7bac911f))
+- sibling detection job reliability ([16137b0](https://github.com/cyclonite69/shadowcheck-web/commit/16137b0eacbac7cb5e4f8457024d81bac12a502f))
 - sibling detection job state sync after restart ([f603e88](https://github.com/cyclonite69/shadowcheck-web/commit/f603e88c7b90227c049f5a3bd1a5006708eb98ab))
 - sibling detection parameter binding crash ([14d2739](https://github.com/cyclonite69/shadowcheck-web/commit/14d27398166da51cd043fde1b9075ed3b7f20f1d))
 - sibling detection startup parameter binding crash ([eb0906c](https://github.com/cyclonite69/shadowcheck-web/commit/eb0906cef26f56011864052538ac5215fb5a3475))

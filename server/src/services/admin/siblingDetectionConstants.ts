@@ -40,6 +40,7 @@ const FLEET_SSIDS = [
   'fact',
   'ccguest',
   'ccinternal',
+  'pasrig',
 ] as const;
 
 const FLEET_SSID_SQL_LIST = FLEET_SSIDS.map((s) => `'${s}'`).join(',');
