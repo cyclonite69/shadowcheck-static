@@ -194,8 +194,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
   // ── Forensic preview ───────────────────────────────────────────────────────
 
   const handleRowClick = (row: EnrichmentRow) => {
-    toggleSelect(row.bssid);
-
     if (activePanel?.bssid === row.bssid) {
       setActivePanel(null);
       setMvData(null);
