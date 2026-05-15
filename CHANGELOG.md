@@ -499,6 +499,7 @@
 - **monitoring:** source grafana db password from aws env ([d455890](https://github.com/cyclonite69/shadowcheck-web/commit/d45589062d22e57819e0e7b95e410ea5ea00b009))
 - mount nginx.conf in frontend to enable API proxying ([366c20d](https://github.com/cyclonite69/shadowcheck-web/commit/366c20d4ff9323784f8446b446924704ebc9bad9))
 - mount writable backups volume in AWS API containers ([c90396d](https://github.com/cyclonite69/shadowcheck-web/commit/c90396d6556f06d670ce629cd5ea462853a5ead3))
+- move secretsManager destructuring inside all affected functions ([ce1700e](https://github.com/cyclonite69/shadowcheck-web/commit/ce1700e2ad4b041a937e9baf2979637db0353130))
 - multiple bug fixes across admin, WiGLE, and agencies features ([59b8f65](https://github.com/cyclonite69/shadowcheck-web/commit/59b8f65b82da8b5d7ec8d1c70e5677f6e855ccb7))
 - network summary markers not rendering due to layer initialization bug ([f8ecc30](https://github.com/cyclonite69/shadowcheck-web/commit/f8ecc300cf0a0b8410d6df2c97e401a278410dd6))
 - network tooltip — merge channel/freq, fix WiGLE timestamps, remove dupe obs, fix home 0m ([827915d](https://github.com/cyclonite69/shadowcheck-web/commit/827915df50a72a7e831fe72c5b0241e378888fa8)), closes [#N](https://github.com/cyclonite69/shadowcheck-web/issues/N)
