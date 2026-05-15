@@ -7,11 +7,8 @@ import {
 } from './networkTableGridConfig';
 import { NetworkTableRow } from './NetworkTableRow';
 import { mixBssidColors } from '../../../utils/wigle/colors';
-
-function getLastOctet(bssid: string): number {
-  const parts = bssid.split(':');
-  return parseInt(parts[parts.length - 1] ?? '00', 16);
-}
+import { buildPatternGroupsFromCanonicalMap } from '../utils/siblingGroupGraph';
+import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -62,44 +59,17 @@ export const NetworkTableBodyGrid = ({
   onHorizontalScroll,
   quickSearch = '',
 }: NetworkTableBodyGridProps) => {
-  // Sibling grouping driven by DB results from network_siblings_effective (via siblingGroupMap prop).
-  // Only includes networks visible in the current page; singletons (one visible member) are dropped.
+  // Canonical membership from siblingGroupMap; row presence is a render concern only.
   const patternGroups = React.useMemo(() => {
-    const groupMap = new Map<string, string>(); // bssid (upper) → groupId
-    const groupMembers = new Map<string, string[]>(); // groupId → sorted bssids (upper)
-
-    if (siblingGroupMap.size === 0) return { groupMap, groupMembers };
-
-    const visibleBssids = new Set<string>();
-    for (const net of filteredNetworks) {
-      if (net.bssid) visibleBssids.add(net.bssid.toUpperCase());
-    }
-
-    siblingGroupMap.forEach((groupId, bssid) => {
-      const bssidUpper = bssid.toUpperCase();
-      if (!visibleBssids.has(bssidUpper)) return;
-      groupMap.set(bssidUpper, groupId);
-      const arr = groupMembers.get(groupId) ?? [];
-      arr.push(bssidUpper);
-      groupMembers.set(groupId, arr);
+    const groups = buildPatternGroupsFromCanonicalMap(siblingGroupMap);
+    logSiblingTopology('patternGroups', {
+      canonicalMapSize: siblingGroupMap.size,
+      groupMapSize: groups.groupMap.size,
+      groupCount: groups.groupMembers.size,
+      componentSizes: componentSizesFromGroupMap(groups.groupMap),
     });
-
-    const singletons: string[] = [];
-    groupMembers.forEach((members, groupId) => {
-      if (members.length < 2) {
-        singletons.push(groupId);
-      } else {
-        members.sort((a, b) => getLastOctet(a) - getLastOctet(b));
-      }
-    });
-    for (const groupId of singletons) {
-      const members = groupMembers.get(groupId)!;
-      groupMap.delete(members[0]);
-      groupMembers.delete(groupId);
-    }
-
-    return { groupMap, groupMembers };
-  }, [filteredNetworks, siblingGroupMap]);
+    return groups;
+  }, [siblingGroupMap]);
 
   // Cache previous sortedDisplayNetworks to detect pagination vs filter/sort
   const prevSortedRef = React.useRef<NetworkRow[]>([]);
@@ -229,6 +199,39 @@ export const NetworkTableBodyGrid = ({
       return bssid === members[0];
     });
   }, [sortedDisplayNetworks, patternGroups, collapseAllActive, collapsedGroups, quickSearch]);
+
+  const prevRenderLogKey = React.useRef('');
+  React.useEffect(() => {
+    const rowBssids = new Set(
+      filteredNetworks.map((n) => (n.bssid ?? '').toUpperCase()).filter(Boolean)
+    );
+    const membersMissingRows: string[] = [];
+    patternGroups.groupMap.forEach((_gid, bssid) => {
+      if (!rowBssids.has(bssid)) membersMissingRows.push(bssid);
+    });
+
+    const key = [
+      filteredNetworks.length,
+      sortedDisplayNetworks.length,
+      displayNetworks.length,
+      membersMissingRows.join(','),
+    ].join('|');
+    if (key === prevRenderLogKey.current) return;
+    prevRenderLogKey.current = key;
+
+    logSiblingTopology('renderPipeline.table', {
+      filteredNetworksCount: filteredNetworks.length,
+      sortedDisplayNetworksCount: sortedDisplayNetworks.length,
+      displayNetworksCount: displayNetworks.length,
+      canonicalGroupMapSize: patternGroups.groupMap.size,
+      membersMissingRows,
+    });
+  }, [
+    filteredNetworks,
+    sortedDisplayNetworks.length,
+    displayNetworks.length,
+    patternGroups.groupMap,
+  ]);
 
   // Reduced overscan from 10 → 5 to render fewer off-screen rows and improve performance
   // This significantly reduces DOM nodes and render work during scrolling

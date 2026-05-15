@@ -1,5 +1,6 @@
 import {
   addUndirectedEdge,
+  buildPatternGroupsFromCanonicalMap,
   buildSiblingGroupMap,
   expandNetworksForSiblingSearch,
 } from '../../client/src/components/geospatial/utils/siblingGroupGraph';
@@ -24,6 +25,20 @@ describe('siblingGroupGraph', () => {
     });
   });
 
+  describe('buildPatternGroupsFromCanonicalMap', () => {
+    it('keeps all canonical members even when only one row is hydrated', () => {
+      const canonical = new Map<string, string>([
+        ['8C:61:A3:7C:BD:08', 'S1'],
+        ['BE:61:A3:7C:BD:09', 'S1'],
+      ]);
+      const { groupMap, groupMembers } = buildPatternGroupsFromCanonicalMap(canonical);
+      expect(groupMap.size).toBe(2);
+      expect(groupMembers.get('S1')).toEqual(
+        expect.arrayContaining(['8C:61:A3:7C:BD:08', 'BE:61:A3:7C:BD:09'])
+      );
+    });
+  });
+
   describe('expandNetworksForSiblingSearch', () => {
     const groupMap = new Map<string, string>([
       ['8C:61:A3:7C:BD:08', 'S1'],
@@ -38,7 +53,7 @@ describe('siblingGroupGraph', () => {
       ];
       const missing = [row('BE:61:A3:7C:BD:09', 'Xfinity')];
 
-      const expanded = expandNetworksForSiblingSearch(
+      const { networks: expanded, unresolvedBssids } = expandNetworksForSiblingSearch(
         searchResults,
         missing,
         groupMap,
@@ -48,6 +63,8 @@ describe('siblingGroupGraph', () => {
       const bssids = expanded.map((n) => n.bssid?.toUpperCase());
       expect(bssids).toContain('BE:61:A3:7C:BD:09');
       expect(bssids).toContain('8C:61:A3:7C:BD:08');
+      expect(unresolvedBssids).toEqual(expect.arrayContaining(['9E:61:A3:7C:BD:09']));
+      expect(unresolvedBssids).not.toContain('BE:61:A3:7C:BD:09');
     });
 
     it('expands from Xfinity search hit to undertaker siblings', () => {
@@ -57,7 +74,12 @@ describe('siblingGroupGraph', () => {
         row('9E:61:A3:7C:BD:09', 'undertaker'),
       ];
 
-      const expanded = expandNetworksForSiblingSearch(searchResults, missing, groupMap, 'Xfinity');
+      const { networks: expanded } = expandNetworksForSiblingSearch(
+        searchResults,
+        missing,
+        groupMap,
+        'Xfinity'
+      );
 
       const bssids = expanded.map((n) => n.bssid?.toUpperCase());
       expect(bssids).toContain('8C:61:A3:7C:BD:08');
@@ -68,7 +90,12 @@ describe('siblingGroupGraph', () => {
       const searchResults = [row('8C:61:A3:7C:BD:08', 'undertaker')];
       const missing = [row('BE:61:A3:7C:BD:09', 'Xfinity')];
 
-      const expanded = expandNetworksForSiblingSearch(searchResults, missing, groupMap, '');
+      const { networks: expanded } = expandNetworksForSiblingSearch(
+        searchResults,
+        missing,
+        groupMap,
+        ''
+      );
 
       expect(expanded.map((n) => n.bssid?.toUpperCase())).toContain('BE:61:A3:7C:BD:09');
     });

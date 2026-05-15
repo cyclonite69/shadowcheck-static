@@ -9,6 +9,7 @@ import {
   normalizeBssid,
   serializeGroupMap,
 } from '../utils/siblingGroupGraph';
+import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 
 interface UseSiblingLinksProps {
   isAdmin: boolean;
@@ -26,6 +27,7 @@ export const useSiblingLinks = ({
     new Map()
   );
   const [missingSiblingNetworks, setMissingSiblingNetworks] = useState<NetworkRow[]>([]);
+  const [hydrationFailedBssids, setHydrationFailedBssids] = useState<string[]>([]);
   const prevHydrationKeyRef = useRef('');
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export const useSiblingLinks = ({
     if (!isAdmin || networks.length === 0) {
       setVisibleSiblingGroupMap(new Map());
       setMissingSiblingNetworks([]);
+      setHydrationFailedBssids([]);
       prevHydrationKeyRef.current = '';
       return;
     }
@@ -86,7 +89,7 @@ export const useSiblingLinks = ({
           addUndirectedEdge(adjacency, edge?.bssid_a, edge?.bssid_b);
         }
 
-        // Full star per search hit — batch OR-query can miss transitive/off-filter siblings.
+        // Full star per visible row — batch OR-query can miss transitive/off-filter siblings.
         const anchorResults = await Promise.all(
           visibleBssids.map((bssid) => networkApi.getNetworkSiblingLinks(bssid))
         );
@@ -100,8 +103,17 @@ export const useSiblingLinks = ({
           }
         }
 
+        const edgeCount = [...adjacency.values()].reduce((sum, s) => sum + s.size, 0) / 2;
         const groupMap = buildSiblingGroupMap(visibleSet, adjacency);
         const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid));
+
+        logSiblingTopology('useSiblingLinks', {
+          visibleBssids,
+          edgeCount,
+          graphMapSize: groupMap.size,
+          componentSizes: componentSizesFromGroupMap(groupMap),
+          missingHydrationBssids: missing,
+        });
 
         setVisibleSiblingGroupMap(groupMap);
 
@@ -113,21 +125,48 @@ export const useSiblingLinks = ({
           try {
             const rows = await Promise.all(missing.map((b) => networkApi.getNetworkByBssid(b)));
             if (!cancelled) {
-              setMissingSiblingNetworks(
-                rows.filter(Boolean).map((r, i) => mapApiRowToNetwork(r, 50000 + i))
-              );
+              const hydrated: NetworkRow[] = [];
+              const failed: string[] = [];
+              for (let i = 0; i < missing.length; i++) {
+                const row = rows[i];
+                if (row) {
+                  hydrated.push(mapApiRowToNetwork(row, 50000 + i));
+                } else {
+                  failed.push(missing[i]);
+                }
+              }
+              setMissingSiblingNetworks(hydrated);
+              setHydrationFailedBssids(failed);
+
+              logSiblingTopology('useSiblingLinks.hydration', {
+                requested: missing.length,
+                successCount: hydrated.length,
+                failedBssids: failed,
+                hydratedBssids: hydrated.map((n) => normalizeBssid(n.bssid)),
+              });
             }
           } catch {
-            if (!cancelled) setMissingSiblingNetworks([]);
+            if (!cancelled) {
+              setMissingSiblingNetworks([]);
+              setHydrationFailedBssids(missing);
+              logSiblingTopology('useSiblingLinks.hydration', {
+                requested: missing.length,
+                successCount: 0,
+                failedBssids: missing,
+                error: 'batch hydration threw',
+              });
+            }
           }
         } else {
           setMissingSiblingNetworks([]);
+          setHydrationFailedBssids([]);
         }
       } catch (error) {
         if (!cancelled) {
           logError('Failed to load visible sibling groups', error);
           setVisibleSiblingGroupMap(new Map());
           setMissingSiblingNetworks([]);
+          setHydrationFailedBssids([]);
           prevHydrationKeyRef.current = '';
         }
       }
@@ -144,5 +183,6 @@ export const useSiblingLinks = ({
     visibleSiblingGroupMap,
     setLinkedSiblingBssids,
     missingSiblingNetworks,
+    hydrationFailedBssids,
   };
 };

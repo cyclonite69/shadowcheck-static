@@ -106,6 +106,7 @@ export default function GeospatialExplorer() {
     visibleSiblingGroupMap,
     setLinkedSiblingBssids,
     missingSiblingNetworks,
+    hydrationFailedBssids,
   } = useSiblingLinks({
     isAdmin,
     selectedAnchorBssid: selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null,
@@ -130,6 +131,7 @@ export default function GeospatialExplorer() {
     setLinkedSiblingBssids,
     visibleSiblingGroupMap,
     missingSiblingNetworks,
+    hydrationFailedBssids,
     contextMenuNetwork: contextMenu.network,
     onOpenContextMenu: openContextMenu,
     locationMode,
@@ -235,6 +237,8 @@ export default function GeospatialExplorer() {
             observationsTotal={observationsTotal ?? 0}
             renderBudgetExceeded={renderBudgetExceeded}
             renderBudget={renderBudget ?? 0}
+            hydrationFailedBssids={state.hydrationFailedBssids}
+            unresolvedSearchBssids={state.unresolvedSearchBssids}
           />
         </>
       }

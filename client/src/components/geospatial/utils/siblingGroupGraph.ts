@@ -66,6 +66,53 @@ export function serializeGroupMap(groupMap: Map<string, string>): string {
     .join('|');
 }
 
+export interface PatternGroupsResult {
+  groupMap: Map<string, string>;
+  groupMembers: Map<string, string[]>;
+}
+
+function lastOctet(bssid: string): number {
+  const parts = bssid.split(':');
+  return parseInt(parts[parts.length - 1] ?? '00', 16);
+}
+
+/**
+ * Display grouping from canonical siblingGroupMap only — no intersection with visible rows.
+ */
+export function buildPatternGroupsFromCanonicalMap(
+  siblingGroupMap: Map<string, string>
+): PatternGroupsResult {
+  const groupMap = new Map<string, string>();
+  const groupMembers = new Map<string, string[]>();
+
+  if (siblingGroupMap.size === 0) return { groupMap, groupMembers };
+
+  for (const [bssid, groupId] of siblingGroupMap) {
+    const bssidUpper = normalizeBssid(bssid);
+    if (!bssidUpper) continue;
+    groupMap.set(bssidUpper, groupId);
+    const arr = groupMembers.get(groupId) ?? [];
+    arr.push(bssidUpper);
+    groupMembers.set(groupId, arr);
+  }
+
+  for (const [groupId, members] of groupMembers) {
+    if (members.length >= 2) {
+      members.sort((a, b) => lastOctet(a) - lastOctet(b));
+    } else {
+      for (const m of members) groupMap.delete(m);
+      groupMembers.delete(groupId);
+    }
+  }
+
+  return { groupMap, groupMembers };
+}
+
+export interface ExpandSiblingSearchResult {
+  networks: NetworkRow[];
+  unresolvedBssids: string[];
+}
+
 /**
  * When a quick-search is active, include every member of a sibling group if any member
  * matched the API filter (present in `searchResultNetworks`).
@@ -75,7 +122,7 @@ export function expandNetworksForSiblingSearch(
   missingSiblingNetworks: NetworkRow[],
   visibleSiblingGroupMap: Map<string, string>,
   quickSearch: string
-): NetworkRow[] {
+): ExpandSiblingSearchResult {
   const searchHits = new Set(
     searchResultNetworks.map((n) => normalizeBssid(n.bssid)).filter(Boolean)
   );
@@ -109,6 +156,13 @@ export function expandNetworksForSiblingSearch(
     if (!hasSearch || includeBssids.has(bssid)) byBssid.set(bssid, net);
   }
 
+  const unresolvedBssids: string[] = [];
+  for (const bssid of includeBssids) {
+    if (!byBssid.has(bssid)) unresolvedBssids.push(bssid);
+  }
+
+  let networks: NetworkRow[];
+
   if (!hasSearch) {
     let allNetworks = searchResultNetworks;
     if (missingSiblingNetworks.length > 0) {
@@ -118,17 +172,20 @@ export function expandNetworksForSiblingSearch(
       );
       if (extras.length > 0) allNetworks = [...searchResultNetworks, ...extras];
     }
-    return regroupSiblingNetworks(allNetworks, visibleSiblingGroupMap);
+    networks = regroupSiblingNetworks(allNetworks, visibleSiblingGroupMap);
+  } else {
+    const expanded: NetworkRow[] = [];
+    for (const bssid of includeBssids) {
+      const row = byBssid.get(bssid);
+      if (row) expanded.push(row);
+    }
+    networks =
+      visibleSiblingGroupMap.size === 0
+        ? expanded
+        : regroupSiblingNetworks(expanded, visibleSiblingGroupMap);
   }
 
-  const expanded: NetworkRow[] = [];
-  for (const bssid of includeBssids) {
-    const row = byBssid.get(bssid);
-    if (row) expanded.push(row);
-  }
-
-  if (visibleSiblingGroupMap.size === 0) return expanded;
-  return regroupSiblingNetworks(expanded, visibleSiblingGroupMap);
+  return { networks, unresolvedBssids };
 }
 
 export function regroupSiblingNetworks(

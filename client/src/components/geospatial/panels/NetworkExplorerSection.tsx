@@ -55,6 +55,8 @@ interface NetworkExplorerSectionProps {
   renderBudgetExceeded: boolean;
   renderBudget: number | null;
   loadingObservations: boolean;
+  hydrationFailedBssids?: string[];
+  unresolvedSearchBssids?: string[];
 }
 
 export const NetworkExplorerSection = ({
@@ -102,7 +104,10 @@ export const NetworkExplorerSection = ({
   renderBudgetExceeded,
   renderBudget,
   loadingObservations,
+  hydrationFailedBssids = [],
+  unresolvedSearchBssids = [],
 }: NetworkExplorerSectionProps) => {
+  const topologyMismatch = hydrationFailedBssids.length > 0 || unresolvedSearchBssids.length > 0;
   const [tableScrollLeft, setTableScrollLeft] = React.useState(0);
 
   const [collapseAllActive, setCollapseAllActive] = useState(false);
@@ -143,6 +148,27 @@ export const NetworkExplorerSection = ({
         allCollapsed={collapseAllActive}
         onToggleSiblingGroups={handleToggleSiblingGroups}
       />
+
+      {import.meta.env.DEV && topologyMismatch && (
+        <div className="mx-2 mb-1 rounded border border-amber-600/50 bg-amber-950/40 px-2 py-1 text-[10px] text-amber-200">
+          Sibling topology mismatch — graph {siblingGroupMap?.size ?? 0} member(s), rendered{' '}
+          {filteredNetworks.length} row(s).
+          {hydrationFailedBssids.length > 0 && (
+            <span className="block">
+              Hydration failed ({hydrationFailedBssids.length}):{' '}
+              {hydrationFailedBssids.slice(0, 4).join(', ')}
+              {hydrationFailedBssids.length > 4 ? '…' : ''}
+            </span>
+          )}
+          {unresolvedSearchBssids.length > 0 && (
+            <span className="block">
+              Unresolved in search expansion ({unresolvedSearchBssids.length}):{' '}
+              {unresolvedSearchBssids.slice(0, 4).join(', ')}
+              {unresolvedSearchBssids.length > 4 ? '…' : ''}
+            </span>
+          )}
+        </div>
+      )}
 
       <NetworkTableHeaderGrid
         visibleColumns={visibleColumns}

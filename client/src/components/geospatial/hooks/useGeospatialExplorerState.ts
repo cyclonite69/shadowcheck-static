@@ -36,6 +36,7 @@ import {
 } from '../../../constants/network';
 import { NetworkRow } from '../../../types/network';
 import { expandNetworksForSiblingSearch } from '../utils/siblingGroupGraph';
+import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 
 interface UseGeospatialExplorerStateProps {
   selectedNetworks: Set<string>;
@@ -54,6 +55,7 @@ interface UseGeospatialExplorerStateProps {
   setLinkedSiblingBssids: React.Dispatch<React.SetStateAction<Set<string>>>;
   visibleSiblingGroupMap: globalThis.Map<string, string>;
   missingSiblingNetworks?: NetworkRow[];
+  hydrationFailedBssids?: string[];
   contextMenuNetwork?: NetworkRow | null;
   onOpenContextMenu: (e: any, network: any) => void;
   locationMode: string;
@@ -78,6 +80,7 @@ export const useGeospatialExplorerState = ({
   setLinkedSiblingBssids,
   visibleSiblingGroupMap,
   missingSiblingNetworks,
+  hydrationFailedBssids = [],
   contextMenuNetwork,
   onOpenContextMenu,
   locationMode,
@@ -379,7 +382,7 @@ export const useGeospatialExplorerState = ({
 
   const missingSiblings = missingSiblingNetworks ?? [];
 
-  const filteredNetworks = useMemo(
+  const expansionResult = useMemo(
     () =>
       expandNetworksForSiblingSearch(
         networks,
@@ -389,6 +392,48 @@ export const useGeospatialExplorerState = ({
       ),
     [networks, missingSiblings, visibleSiblingGroupMap, quickSearch]
   );
+  const filteredNetworks = expansionResult.networks;
+  const unresolvedSearchBssids = expansionResult.unresolvedBssids;
+
+  const prevPipelineLogKey = useRef('');
+  useEffect(() => {
+    const key = [
+      quickSearch,
+      networks.length,
+      filteredNetworks.length,
+      visibleSiblingGroupMap.size,
+      unresolvedSearchBssids.join(','),
+      hydrationFailedBssids.join(','),
+    ].join('|');
+    if (key === prevPipelineLogKey.current) return;
+    prevPipelineLogKey.current = key;
+
+    logSiblingTopology('expandNetworksForSiblingSearch', {
+      quickSearch: quickSearch.trim() || '(none)',
+      searchHitCount: networks.length,
+      includeBssidCount: visibleSiblingGroupMap.size,
+      hydratedRowCount: filteredNetworks.length,
+      expandedRowCount: filteredNetworks.length,
+      unresolvedBssids: unresolvedSearchBssids,
+      graphMapSize: visibleSiblingGroupMap.size,
+      componentSizes: componentSizesFromGroupMap(visibleSiblingGroupMap),
+    });
+    logSiblingTopology('renderPipeline', {
+      apiNetworkCount: networks.length,
+      filteredNetworksCount: filteredNetworks.length,
+      graphMapSize: visibleSiblingGroupMap.size,
+      hydrationFailedBssids,
+      unresolvedSearchBssids,
+      quickSearch: quickSearch.trim() || '(none)',
+    });
+  }, [
+    quickSearch,
+    networks.length,
+    filteredNetworks.length,
+    visibleSiblingGroupMap.size,
+    unresolvedSearchBssids,
+    hydrationFailedBssids,
+  ]);
 
   return {
     mapHeight,
@@ -453,6 +498,8 @@ export const useGeospatialExplorerState = ({
     manualSiblingTarget,
     handleMarkSiblingPair,
     filteredNetworks,
+    unresolvedSearchBssids,
+    hydrationFailedBssids,
     radiusContextMenu,
     closeRadiusContextMenu,
     setRadiusFromContextMenu,
