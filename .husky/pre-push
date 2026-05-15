@@ -1,3 +1,17 @@
+#!/bin/sh
+# Regenerate CHANGELOG + LOC metrics and fold them into the commit being pushed.
+# Without the amend step, files are only staged locally and never reach origin.
+set -e
+
 npm run changelog
 git add CHANGELOG.md
-npm run metrics && git add docs/metrics/lines-of-code.md
+if ! git diff --cached --quiet; then
+  git commit --amend --no-edit --no-verify
+fi
+
+# Run metrics after amend so the embedded SHA matches the pushed commit.
+npm run metrics
+git add docs/metrics/lines-of-code.md
+if ! git diff --cached --quiet; then
+  git commit --amend --no-edit --no-verify
+fi
