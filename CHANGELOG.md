@@ -260,6 +260,7 @@
 - export SECRET_JSON and eval'd secrets in entrypoint.sh ([77cde6b](https://github.com/cyclonite69/shadowcheck-web/commit/77cde6b5c914b888b5bee0d5823007dd0168d29d))
 - expose public pattern bonus in threat details ([5681bcd](https://github.com/cyclonite69/shadowcheck-web/commit/5681bcdfc8e54f3619ee3c97380be75898f7f94c))
 - fall back to lastlat/lastlon when bestlat/bestlon is default (0,0) ([d2b7458](https://github.com/cyclonite69/shadowcheck-web/commit/d2b745895898b7b6da8e81a096638b83bc4addc4))
+- fallback to observations for network type detection in batch import ([ef1b8ec](https://github.com/cyclonite69/shadowcheck-web/commit/ef1b8ec672ff6d7d38ed6354f91b2bf3401be0e0))
 - fetch missing sibling network rows for complete group display ([52ede25](https://github.com/cyclonite69/shadowcheck-web/commit/52ede251ec698bd717ec137095f2fb3cde83417d))
 - filter only enabled flags ([c60e526](https://github.com/cyclonite69/shadowcheck-web/commit/c60e526cf82f79fe2ce0f16a723a5b9b79b943f2))
 - **filter-query:** warn on slow-path threat window fallback ([925712c](https://github.com/cyclonite69/shadowcheck-web/commit/925712c1dcac8207f7b77e73e4716a39fdf1aa7e))

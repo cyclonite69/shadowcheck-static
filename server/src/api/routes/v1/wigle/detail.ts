@@ -7,6 +7,7 @@ import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { requireAdmin } from '../../../../middleware/authMiddleware';
 import { fetchOrImportDetail, importDetailFromJson } from '../../../../services/wigleDetailService';
+import { inferWigleEndpoint } from '../../../../services/wigleDetailTransforms';
 
 const router = express.Router();
 const { asyncHandler } = require('../../../../utils/asyncHandler');
@@ -46,24 +47,13 @@ router.post(
       error?: string;
     }> = [];
 
-    // Batch query network types from DB (networks first, then observations as fallback)
+    // Batch query network types from DB
     const { rows: networkTypes } = await query(
       `
-      SELECT DISTINCT ON (bssid) bssid, type FROM app.networks WHERE bssid = ANY($1::text[])
-      UNION ALL
-      SELECT DISTINCT ON (bssid) bssid,
-        CASE LOWER(COALESCE(NULLIF(radio_type, ''), 'wifi'))
-          WHEN 'wifi' THEN 'W'
-          WHEN 'bluetooth' THEN 'B'
-          WHEN 'ble' THEN 'E'
-          WHEN 'lte' THEN 'L'
-          WHEN 'gsm' THEN 'G'
-          WHEN 'nr' THEN 'N'
-          ELSE 'W'
-        END as type
-      FROM app.observations
+      SELECT DISTINCT ON (bssid) bssid, type 
+      FROM app.networks 
       WHERE bssid = ANY($1::text[])
-        AND bssid NOT IN (SELECT bssid FROM app.networks WHERE bssid = ANY($1::text[]))
+      ORDER BY bssid, type
       `,
       [cleanBssids]
     );
@@ -71,7 +61,7 @@ router.post(
 
     for (const bssid of cleanBssids) {
       try {
-        const networkType = (typeMap.get(bssid) as string) || 'wifi'; // Default to wifi if not found
+        const networkType = inferWigleEndpoint(typeMap.get(bssid) as string);
         const result = await fetchOrImportDetail(bssid, networkType, shouldImport === true);
         if (result.ok) {
           results.push({
