@@ -42,10 +42,62 @@ interface EnrichmentRow {
   encryption?: string | null;
 }
 
+type EnrichmentStartResponse = {
+  ok?: boolean;
+  run?: { id?: number; status?: string; lastError?: string | null };
+};
+
 interface V3EnrichmentManagerTableProps {
-  onEnrich: (bssids: string[]) => Promise<void>;
+  onEnrich: (bssids: string[]) => Promise<EnrichmentStartResponse | void>;
   onSelect?: (bssid: string) => void;
   isLoading: boolean;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Poll import run until it leaves `running` or times out. */
+async function waitForEnrichmentRunOutcome(
+  runId: number,
+  maxWaitMs = 90_000
+): Promise<{ status: string; lastError?: string | null } | null> {
+  const deadline = Date.now() + maxWaitMs;
+  while (Date.now() < deadline) {
+    const data = await wigleApi.getImportRun(runId);
+    const run = (data as { run?: { status?: string; lastError?: string | null } })?.run;
+    if (!run?.status || run.status === 'running') {
+      await sleep(2000);
+      continue;
+    }
+    return { status: run.status, lastError: run.lastError ?? null };
+  }
+  return null;
+}
+
+function enrichmentOutcomeMessage(outcome: {
+  status: string;
+  lastError?: string | null;
+}): { type: 'error' | 'info'; text: string } | null {
+  if (outcome.status === 'paused') {
+    return {
+      type: 'error',
+      text:
+        outcome.lastError ||
+        'WiGLE daily quota exhausted or detail limit reached. Resume the run when quota resets.',
+    };
+  }
+  if (outcome.status === 'failed') {
+    return {
+      type: 'error',
+      text: outcome.lastError || 'Enrichment run failed. Check server logs or import runs.',
+    };
+  }
+  if (outcome.status === 'completed') {
+    return {
+      type: 'info',
+      text: 'Enrichment run completed. Refresh the catalog if status still shows Pending.',
+    };
+  }
+  return null;
 }
 
 type SortEntry = { key: string; dir: 'asc' | 'desc' };
@@ -264,24 +316,39 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
     setStatusMessage(null);
 
     try {
-      const response: any = await onEnrich(toProcess);
-      if (response?.run?.status === 'paused') {
-        setStatusMessage({
-          type: 'error',
-          text: 'WiGLE Daily Quota Exhausted. Run has been paused and will need to be resumed later.',
-        });
+      const response = (await onEnrich(toProcess)) as EnrichmentStartResponse | void;
+      const runId = response?.run?.id;
+      const immediate = response?.run?.status
+        ? enrichmentOutcomeMessage({
+            status: response.run.status,
+            lastError: response.run.lastError,
+          })
+        : null;
+      if (immediate) {
+        setStatusMessage(immediate);
+      } else if (runId) {
+        const outcome = await waitForEnrichmentRunOutcome(runId);
+        if (outcome) {
+          const message = enrichmentOutcomeMessage(outcome);
+          if (message) setStatusMessage(message);
+        } else {
+          setStatusMessage({
+            type: 'info',
+            text: `Enrichment run #${runId} is still running (20s delay per BSSID). Watch the run banner above.`,
+          });
+        }
       }
       setTimeout(() => loadPage(1, false), 2000);
     } catch (e: any) {
-      setStatusMessage({ type: 'error', text: e.message || 'Failed to start enrichment' });
+      if (e?.status !== 409) {
+        setStatusMessage({ type: 'error', text: e.message || 'Failed to start enrichment' });
+      }
     } finally {
-      setTimeout(() => {
-        setProcessingBssids((prev) => {
-          const next = new Set(prev);
-          toProcess.forEach((b) => next.delete(b));
-          return next;
-        });
-      }, 5000);
+      setProcessingBssids((prev) => {
+        const next = new Set(prev);
+        toProcess.forEach((b) => next.delete(b));
+        return next;
+      });
     }
   };
 

@@ -10,6 +10,7 @@ import { requireAdmin } from '../../../../middleware/authMiddleware';
 const router = express.Router();
 const { asyncHandler } = require('../../../../utils/asyncHandler');
 const { wigleEnrichmentService } = require('../../../../config/container');
+const { serializeRun } = require('../../../../services/wigleImport/serialization');
 
 /**
  * GET /api/v1/wigle/enrichment/stats
@@ -61,7 +62,7 @@ router.post(
     try {
       const { bssids } = req.body;
       const run = await wigleEnrichmentService.startBatchEnrichment(bssids);
-      res.json({ ok: true, run });
+      res.json({ ok: true, run: serializeRun(run) });
     } catch (err: any) {
       if (err?.status === 403) {
         return res.status(403).json({ ok: false, error: err.message, code: err.code });

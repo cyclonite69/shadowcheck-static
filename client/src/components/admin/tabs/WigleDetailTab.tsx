@@ -192,24 +192,27 @@ export const WigleDetailTab: React.FC = () => {
     void loadEnrichmentStats();
   }, []);
 
-  const handleEnrichmentConflict = async (
+  const handleEnrichmentConflict = async <T,>(
     err: any,
-    retry: (bssids?: string[]) => Promise<void>,
+    retry: (bssids?: string[]) => Promise<T>,
     bssids?: string[]
-  ) => {
+  ): Promise<T | undefined> => {
     if (err?.status !== 409) {
       alert(`Failed to start enrichment: ${err.message}`);
-      return;
+      return undefined;
     }
     const match = String(err.message).match(/#(\d+)/);
     const stuckRunId = match ? Number(match[1]) : null;
     const label = stuckRunId ? `Run #${stuckRunId} is stuck` : 'An enrichment run is stuck';
-    if (!window.confirm(`${label} (status: running). Force-clear it and start a new run?`)) return;
+    if (!window.confirm(`${label} (status: running). Force-clear it and start a new run?`)) {
+      return undefined;
+    }
     try {
       if (stuckRunId) await wigleApi.forceClearEnrichmentRun(stuckRunId);
-      await retry(bssids);
+      return await retry(bssids);
     } catch (e2: any) {
       alert(`Failed after force-clear: ${e2.message}`);
+      throw e2;
     }
   };
 
@@ -830,11 +833,12 @@ export const WigleDetailTab: React.FC = () => {
                       await refreshRuns();
                       void loadEnrichmentStats();
                     }
+                    return data;
                   };
                   try {
-                    await doStart(bssids);
+                    return await doStart(bssids);
                   } catch (e: any) {
-                    await handleEnrichmentConflict(e, doStart, bssids);
+                    return (await handleEnrichmentConflict(e, doStart, bssids)) ?? undefined;
                   }
                 }}
                 onSelect={(bssid) => {

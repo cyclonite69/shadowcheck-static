@@ -72,8 +72,10 @@ export class WigleEnrichmentOrchestrator {
       return run;
     }
 
-    const processed = new Set<string>();
+    const attempted = new Set<string>();
+    const succeeded = new Set<string>();
     let consecutiveErrors = 0;
+    let lastFailureMessage: string | null = null;
 
     logger.info(
       `[v3 Enrichment] Starting batch loop for run #${runId}${manualList ? ` (Manual: ${manualList.length} items)` : ''}`
@@ -87,16 +89,19 @@ export class WigleEnrichmentOrchestrator {
           return;
         }
 
-        const batch = await this.loadNextBatch(processed, manualList);
+        const batch = await this.loadNextBatch(attempted, manualList);
         if (batch.length === 0) {
-          return this.finishRun(runId, processed, manualList);
+          return this.finishRun(runId, { attempted, succeeded, manualList, lastFailureMessage });
         }
 
         for (const item of batch) {
-          const shouldStop = await this.processBatchItem(runId, item, processed, {
+          const shouldStop = await this.processBatchItem(runId, item, attempted, succeeded, {
             consecutiveErrors,
             setConsecutiveErrors: (value) => {
               consecutiveErrors = value;
+            },
+            setLastFailureMessage: (message) => {
+              lastFailureMessage = message;
             },
           });
           if (shouldStop) {
@@ -110,20 +115,41 @@ export class WigleEnrichmentOrchestrator {
     }
   }
 
-  private async loadNextBatch(processed: Set<string>, manualList?: string[]) {
+  private async loadNextBatch(attempted: Set<string>, manualList?: string[]) {
     const activeManualList = manualList
-      ? manualList.filter((bssid) => !processed.has(bssid))
+      ? manualList.filter((bssid) => !attempted.has(bssid))
       : undefined;
     return this.deps.getNextEnrichmentBatch(5, activeManualList);
   }
 
-  private async finishRun(runId: number, processed: Set<string>, manualList?: string[]) {
-    if (manualList && processed.size === 0) {
-      await this.deps.markRunFailure(
-        runId,
-        'No matching networks found in catalog for provided BSSIDs'
-      );
-      logger.warn(`[v3 Enrichment] Manual run #${runId} failed: No matching networks found`);
+  private async finishRun(
+    runId: number,
+    state: {
+      attempted: Set<string>;
+      succeeded: Set<string>;
+      manualList?: string[];
+      lastFailureMessage: string | null;
+    }
+  ) {
+    const { attempted, succeeded, manualList, lastFailureMessage } = state;
+
+    if (manualList) {
+      if (attempted.size === 0) {
+        await this.deps.markRunFailure(
+          runId,
+          'No matching networks found in catalog for provided BSSIDs'
+        );
+        logger.warn(`[v3 Enrichment] Manual run #${runId} failed: No matching networks found`);
+      } else if (succeeded.size === 0) {
+        await this.deps.markRunFailure(
+          runId,
+          lastFailureMessage || 'All targeted BSSIDs failed to enrich'
+        );
+        logger.warn(`[v3 Enrichment] Manual run #${runId} failed: ${lastFailureMessage}`);
+      } else {
+        await this.deps.completeRun(runId);
+        logger.info(`[v3 Enrichment] Completed run #${runId}`);
+      }
     } else {
       await this.deps.completeRun(runId);
       logger.info(`[v3 Enrichment] Completed run #${runId}`);
@@ -140,10 +166,12 @@ export class WigleEnrichmentOrchestrator {
   private async processBatchItem(
     runId: number,
     item: EnrichmentBatchItem,
-    processed: Set<string>,
+    attempted: Set<string>,
+    succeeded: Set<string>,
     state: {
       consecutiveErrors: number;
       setConsecutiveErrors: (value: number) => void;
+      setLastFailureMessage: (message: string) => void;
     }
   ) {
     try {
@@ -157,8 +185,12 @@ export class WigleEnrichmentOrchestrator {
     }
 
     try {
-      await this.deps.fetchAndImportDetail(item.bssid, item.type);
-      processed.add(item.bssid);
+      const result = await this.deps.fetchAndImportDetail(item.bssid, item.type);
+      if (result === null) {
+        throw new Error(`WiGLE has no v3 detail for ${item.bssid}`);
+      }
+      attempted.add(item.bssid);
+      succeeded.add(item.bssid);
       state.setConsecutiveErrors(0);
       await this.deps.incrementRunProgress(runId);
 
@@ -173,8 +205,10 @@ export class WigleEnrichmentOrchestrator {
         return true;
       }
 
-      logger.error(`[v3 Enrichment] Failed item ${item.bssid} in run #${runId}: ${err.message}`);
-      processed.add(item.bssid);
+      const message = err?.message || String(err);
+      logger.error(`[v3 Enrichment] Failed item ${item.bssid} in run #${runId}: ${message}`);
+      attempted.add(item.bssid);
+      state.setLastFailureMessage(message);
 
       const nextErrorCount = state.consecutiveErrors + 1;
       state.setConsecutiveErrors(nextErrorCount);

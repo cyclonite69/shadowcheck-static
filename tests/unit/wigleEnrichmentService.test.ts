@@ -136,6 +136,26 @@ describe('WiGLE Enrichment Service', () => {
       expect(writeRepo.incrementRunProgress).toHaveBeenCalledWith(runId);
     });
 
+    it('should mark manual run failed when every targeted BSSID fails', async () => {
+      (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
+      (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');
+      (readRepo.getNextEnrichmentBatch as jest.Mock<any>)
+        .mockResolvedValueOnce([{ bssid: 'FA:D0:0E:A3:42:21', type: 'W' }])
+        .mockResolvedValue([]);
+      (fetchAndImportDetail as jest.Mock<any>).mockRejectedValue(
+        new Error('WiGLE has no v3 detail for FA:D0:0E:A3:42:21')
+      );
+
+      await runEnrichmentLoop(runId, ['FA:D0:0E:A3:42:21']);
+
+      expect(writeRepo.incrementRunProgress).not.toHaveBeenCalled();
+      expect(runRepo.markRunFailure).toHaveBeenCalledWith(
+        runId,
+        'WiGLE has no v3 detail for FA:D0:0E:A3:42:21'
+      );
+      expect(runRepo.completeRun).not.toHaveBeenCalled();
+    });
+
     it('should pause run if WiGLE rate limit is reached (429)', async () => {
       (runRepo.getImportRun as jest.Mock<any>).mockResolvedValue({ status: 'running' });
       (readRepo.getRunStatus as jest.Mock<any>).mockResolvedValue('running');

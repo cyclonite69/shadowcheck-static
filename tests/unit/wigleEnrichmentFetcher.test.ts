@@ -3,150 +3,72 @@
  */
 
 import { fetchAndImportDetail } from '../../server/src/services/wigleEnrichmentFetcher';
-import * as container from '../../server/src/config/container';
-import { wigleGatewayFetch } from '../../server/src/services/wigle/wigleGateway';
-import { getEncodedWigleAuth } from '../../server/src/services/wigleRequestUtils';
+import { fetchOrImportDetail } from '../../server/src/services/wigleDetailService';
 import { inferWigleEndpoint } from '../../server/src/services/wigleDetailTransforms';
-import { importObservations } from '../../server/src/services/wigleDetailService';
 
-jest.mock('../../server/src/config/container', () => ({
-  wigleService: {
-    importWigleV3NetworkDetail: jest.fn(),
-    importWigleV3Observation: jest.fn(),
-  },
-  secretsManager: {
-    get: jest.fn(),
-  },
+jest.mock('../../server/src/services/wigleDetailService', () => ({
+  fetchOrImportDetail: jest.fn(),
 }));
 
-jest.mock('../../server/src/services/wigle/wigleGateway');
-jest.mock('../../server/src/services/wigleRequestUtils');
-jest.mock('../../server/src/services/wigleDetailTransforms');
-jest.mock('../../server/src/services/wigleDetailService', () => ({
-  importObservations: jest.fn(),
+jest.mock('../../server/src/services/wigleDetailTransforms', () => ({
+  inferWigleEndpoint: jest.fn(),
 }));
 
 describe('wigleEnrichmentFetcher', () => {
   const bssid = 'AA:BB:CC:DD:EE:FF';
-  const type = 'wifi';
-  const { wigleService, secretsManager } = container as any;
+  const type = 'W';
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (inferWigleEndpoint as jest.Mock).mockReturnValue('wifi');
   });
 
-  it('throws error if credentials are not configured', async () => {
-    secretsManager.get.mockReturnValue(null);
-
-    await expect(fetchAndImportDetail(bssid, type)).rejects.toThrow(
-      'WiGLE API credentials not configured'
-    );
-  });
-
-  it('returns null if WiGLE returns 404 (via gateway result)', async () => {
-    secretsManager.get.mockReturnValue('val');
-    (wigleGatewayFetch as jest.Mock).mockResolvedValue({
+  it('returns null when fetchOrImportDetail reports 404', async () => {
+    (fetchOrImportDetail as jest.Mock).mockResolvedValue({
       ok: false,
       status: 404,
-      error: 'Not Found',
+      error: 'Network not found',
     });
 
     const result = await fetchAndImportDetail(bssid, type);
     expect(result).toBeNull();
+    expect(fetchOrImportDetail).toHaveBeenCalledWith(bssid, 'wifi', true);
   });
 
-  it('returns null if WiGLE returns 404 (via response status)', async () => {
-    secretsManager.get.mockReturnValue('val');
-    (wigleGatewayFetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      response: {
-        ok: false,
-        status: 404,
-      },
-    });
-
-    const result = await fetchAndImportDetail(bssid, type);
-    expect(result).toBeNull();
-  });
-
-  it('throws error on other API failures', async () => {
-    secretsManager.get.mockReturnValue('val');
-    (wigleGatewayFetch as jest.Mock).mockResolvedValue({
+  it('throws on non-404 API failures', async () => {
+    (fetchOrImportDetail as jest.Mock).mockResolvedValue({
       ok: false,
       status: 500,
       error: 'Internal Server Error',
     });
 
-    await expect(fetchAndImportDetail(bssid, type)).rejects.toThrow('WiGLE API failed (500)');
+    await expect(fetchAndImportDetail(bssid, type)).rejects.toThrow('Internal Server Error');
   });
 
-  it('fetches and imports detail successfully', async () => {
-    const mockData = {
-      networkId: bssid,
-      name: 'TestNet',
-      locationClusters: [
-        {
-          clusterSsid: 'SSID1',
-          locations: [{ ssid: 'S1' }, { ssid: 'S2' }],
-        },
-      ],
-    };
-
-    secretsManager.get.mockReturnValue('val');
-    (inferWigleEndpoint as jest.Mock).mockReturnValue('wifi');
-    (getEncodedWigleAuth as jest.Mock).mockReturnValue('auth');
-    (wigleGatewayFetch as jest.Mock).mockResolvedValue({
+  it('delegates successful imports to fetchOrImportDetail', async () => {
+    (fetchOrImportDetail as jest.Mock).mockResolvedValue({
       ok: true,
-      response: {
-        ok: true,
-        status: 200,
-        json: async () => mockData,
-      },
-    });
-
-    wigleService.importWigleV3NetworkDetail.mockResolvedValue(undefined);
-    (importObservations as jest.Mock).mockResolvedValue({
-      newCount: 2,
-      totalCount: 2,
-      failedCount: 0,
+      data: { networkId: bssid },
+      imported: true,
+      cached: false,
+      importedObservations: 3,
     });
 
     const result = await fetchAndImportDetail(bssid, type);
-
-    expect(result).toEqual({ bssid, obsCount: 2 });
-    expect(wigleService.importWigleV3NetworkDetail).toHaveBeenCalled();
-    expect(importObservations).toHaveBeenCalledWith(bssid, mockData.locationClusters);
+    expect(result).toEqual({ bssid, obsCount: 3 });
   });
 
-  it('continues if individual observation import fails', async () => {
-    const mockData = {
-      networkId: bssid,
-      locationClusters: [
-        {
-          locations: [{}, {}],
-        },
-      ],
-    };
-
-    secretsManager.get.mockReturnValue('val');
-    (wigleGatewayFetch as jest.Mock).mockResolvedValue({
+  it('treats cached/deduplicated detail as success with zero new observations', async () => {
+    (fetchOrImportDetail as jest.Mock).mockResolvedValue({
       ok: true,
-      response: {
-        ok: true,
-        status: 200,
-        json: async () => mockData,
-      },
-    });
-
-    wigleService.importWigleV3NetworkDetail.mockResolvedValue(undefined);
-    (importObservations as jest.Mock).mockResolvedValue({
-      newCount: 1,
-      totalCount: 2,
-      failedCount: 1,
+      data: { networkId: bssid },
+      imported: false,
+      cached: true,
+      deduplicated: true,
+      importedObservations: 0,
     });
 
     const result = await fetchAndImportDetail(bssid, type);
-
-    expect(result).toEqual({ bssid, obsCount: 1 });
+    expect(result).toEqual({ bssid, obsCount: 0 });
   });
 });
