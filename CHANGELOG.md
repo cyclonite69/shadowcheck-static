@@ -33,6 +33,7 @@
 - Add null checks for search-input and threat-filter ([861fcaa](https://github.com/cyclonite69/shadowcheck-web/commit/861fcaa89613a80ce36e6554bbb643471433eff6))
 - add offset/pagination support to observations endpoint ([4e9407d](https://github.com/cyclonite69/shadowcheck-web/commit/4e9407d20ac79a14e8eaf4c4940be2a88de3f53f)), closes [hi#observation](https://github.com/hi/issues/observation)
 - add optimizeDeps for React bundling ([b3db593](https://github.com/cyclonite69/shadowcheck-web/commit/b3db5936ace0c764a09762d68321deba1576d645))
+- add pasrig to fleet SSID exclusion list ([dd6fab8](https://github.com/cyclonite69/shadowcheck-web/commit/dd6fab82a77d0ded36b083de26de1c43fdbe3205))
 - Add proper grid layout and height for map panel ([3186d2e](https://github.com/cyclonite69/shadowcheck-web/commit/3186d2ef4085b61787e30e16bb6e067f6515f3bd))
 - Add status indicator to index.html header ([5eb32b8](https://github.com/cyclonite69/shadowcheck-web/commit/5eb32b8530bf4dd53f7aa88cd3bd95f5c3c0cf67))
 - add wigle page server contract and purge remaining app-side mv joins ([9e64c66](https://github.com/cyclonite69/shadowcheck-web/commit/9e64c66673450dd842bf924228a34e9ae11a06bb))

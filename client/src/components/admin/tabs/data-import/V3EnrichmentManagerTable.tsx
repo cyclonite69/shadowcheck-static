@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { wigleApi } from '../../../../api/wigleApi';
-import { networkApi } from '../../../../api/networkApi';
 import { formatShortDate } from '../../../../utils/formatDate';
 import { US_STATES } from '../../../../constants/network';
 
@@ -172,13 +171,6 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
         return []; // desc → clear
       }
     });
-  };
-
-  // ── Selection ──────────────────────────────────────────────────────────────
-
-  const handleRowClick = (row: EnrichmentRow) => {
-    toggleSelect(row.bssid);
-    if (onSelect) onSelect(row.bssid);
   };
 
   // ── Data loading ───────────────────────────────────────────────────────────
@@ -488,10 +480,9 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
             {displayRows.map((row, idx) => (
               <tr
                 key={`${row.bssid}-${idx}`}
-                className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${
+                className={`hover:bg-blue-500/5 transition-colors ${
                   selected.has(row.bssid) ? 'bg-blue-500/10' : ''
                 } ${processingBssids.has(row.bssid) ? 'opacity-60 cursor-wait' : ''}`}
-                onClick={() => handleRowClick(row)}
               >
                 {/* Checkbox cell — always visible */}
                 <td
