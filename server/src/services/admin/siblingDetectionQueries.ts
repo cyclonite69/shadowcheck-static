@@ -1,4 +1,4 @@
-import { FLEET_SSID_SQL_LIST } from './siblingDetectionConstants';
+import { FLEET_SSID_SQL_LIST, SIBLING_SCORING } from './siblingDetectionConstants';
 
 /** Inserted between `hits` and `dedup` when pair audit is enabled. */
 const HIT_COMPETITION_CTE = `
@@ -68,11 +68,8 @@ const REFRESH_CHUNK_SQL_CORE = `
     SELECT ne.bssid
     FROM app.api_network_explorer_mv ne
     WHERE ne.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      __TARGET_FILTER_SLOT__
       AND ($2::text IS NULL OR ne.bssid > $2)
-      -- Incremental mode ($6=true): skip BSSIDs whose last_seen predates the
-      -- cutoff timestamp captured BEFORE the run started ($7). Using a
-      -- pre-run snapshot prevents batch 2+ from seeing pairs inserted by
-      -- batch 1 and incorrectly filtering out all remaining seeds.
       AND (NOT $6::boolean OR ne.last_seen > COALESCE($7::timestamptz, '1970-01-01'::timestamptz))
     ORDER BY ne.bssid
     LIMIT $1
@@ -136,9 +133,6 @@ const REFRESH_CHUNK_SQL_CORE = `
         lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) IN (${FLEET_SSID_SQL_LIST})
         OR lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) LIKE 'hmc%'
       ) AS ssid_common,
-      -- Distance is NOT a penalty: mobile/vehicle-mounted radios appear at
-      -- different locations on different passes and may never be co-located.
-      -- Stored as metadata only.
       0 AS distance_penalty
     FROM dedup d
   ),
@@ -147,17 +141,9 @@ const REFRESH_CHUNK_SQL_CORE = `
       radio_bssid,
       COUNT(*) FILTER (WHERE ssid_same AND ssid_common) AS common_partner_count
     FROM (
-      SELECT
-        s.bssid1 AS radio_bssid,
-        s.ssid_same,
-        s.ssid_common
-      FROM scored s
+      SELECT s.bssid1 AS radio_bssid, s.ssid_same, s.ssid_common FROM scored s
       UNION ALL
-      SELECT
-        s.bssid2 AS radio_bssid,
-        s.ssid_same,
-        s.ssid_common
-      FROM scored s
+      SELECT s.bssid2 AS radio_bssid, s.ssid_same, s.ssid_common FROM scored s
     ) radio_pairs
     GROUP BY radio_bssid
   ),
@@ -167,25 +153,12 @@ const REFRESH_CHUNK_SQL_CORE = `
       family_pairs.family_pair_count,
       COUNT(*) AS family_radio_count
     FROM (
-      SELECT DISTINCT
-        s.n1 AS ssid_norm,
-        s.bssid1 AS radio_bssid
-      FROM scored s
-      WHERE s.ssid_same AND s.ssid_common AND s.n1 <> ''
+      SELECT DISTINCT s.n1 AS ssid_norm, s.bssid1 AS radio_bssid FROM scored s WHERE s.ssid_same AND s.ssid_common AND s.n1 <> ''
       UNION
-      SELECT DISTINCT
-        s.n1 AS ssid_norm,
-        s.bssid2 AS radio_bssid
-      FROM scored s
-      WHERE s.ssid_same AND s.ssid_common AND s.n1 <> ''
+      SELECT DISTINCT s.n1 AS ssid_norm, s.bssid2 AS radio_bssid FROM scored s WHERE s.ssid_same AND s.ssid_common AND s.n1 <> ''
     ) family_nodes
     JOIN (
-      SELECT
-        s.n1 AS ssid_norm,
-        COUNT(*) AS family_pair_count
-      FROM scored s
-      WHERE s.ssid_same AND s.ssid_common AND s.n1 <> ''
-      GROUP BY s.n1
+      SELECT s.n1 AS ssid_norm, COUNT(*) AS family_pair_count FROM scored s WHERE s.ssid_same AND s.ssid_common AND s.n1 <> '' GROUP BY s.n1
     ) family_pairs ON family_pairs.ssid_norm = family_nodes.ssid_norm
     GROUP BY family_nodes.ssid_norm, family_pairs.family_pair_count
   ),
@@ -194,38 +167,22 @@ const REFRESH_CHUNK_SQL_CORE = `
       s.bssid1,
       s.bssid2,
       s.rule,
-      -- Deterministic rules bypass all penalty logic — their confidence is ground truth.
-      -- Applying fleet-SSID partner/family penalties to last_octet_sequential rows was
-      -- killing the 31 confirmed mdt/unit pairs (1.000 → below 0.90 threshold).
-      -- LEAST(1.000) enforced here to prevent overflow from any bonus stacking.
       LEAST(1.000, CASE WHEN s.rule IN ('last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential') THEN s.confidence
       ELSE GREATEST(0, (
         s.confidence
         - s.distance_penalty
         + CASE
             WHEN s.n1 <> '' AND s.n2 <> ''
-             AND (s.n1 = s.n2 OR s.n1 LIKE s.n2 || '%' OR s.n2 LIKE s.n1 || '%') THEN 0.07
+             AND (s.n1 = s.n2 OR s.n1 LIKE s.n2 || '%' OR s.n2 LIKE s.n1 || '%') THEN ${SIBLING_SCORING.SSID_FUZZY_MATCH_BONUS}
             ELSE 0
           END
         - CASE
             WHEN s.ssid_same AND s.ssid_common THEN
               CASE
-                WHEN GREATEST(
-                  COALESCE(ps1.common_partner_count, 0),
-                  COALESCE(ps2.common_partner_count, 0)
-                ) >= 12 THEN 0.55
-                WHEN GREATEST(
-                  COALESCE(ps1.common_partner_count, 0),
-                  COALESCE(ps2.common_partner_count, 0)
-                ) >= 8 THEN 0.40
-                WHEN GREATEST(
-                  COALESCE(ps1.common_partner_count, 0),
-                  COALESCE(ps2.common_partner_count, 0)
-                ) >= 5 THEN 0.25
-                WHEN GREATEST(
-                  COALESCE(ps1.common_partner_count, 0),
-                  COALESCE(ps2.common_partner_count, 0)
-                ) >= 3 THEN 0.12
+                WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[0]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[0]}
+                WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[1]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[1]}
+                WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[2]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[2]}
+                WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[3]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[3]}
                 ELSE 0
               END
             ELSE 0
@@ -233,9 +190,9 @@ const REFRESH_CHUNK_SQL_CORE = `
         - CASE
             WHEN s.ssid_same AND s.ssid_common THEN
               CASE
-                WHEN COALESCE(fs.family_radio_count, 0) >= 18 THEN 0.25
-                WHEN COALESCE(fs.family_radio_count, 0) >= 10 THEN 0.15
-                WHEN COALESCE(fs.family_radio_count, 0) >= 6 THEN 0.08
+                WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[0]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[0]}
+                WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[1]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[1]}
+                WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[2]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[2]}
                 ELSE 0
               END
             ELSE 0
@@ -257,7 +214,11 @@ const REFRESH_CHUNK_SQL_CORE = `
     LEFT JOIN family_stats fs ON fs.ssid_norm = s.n1
   ),__PAIR_AUDIT_SLOT__
   upserted AS (
-    INSERT INTO app.network_sibling_pairs (
+    __UPSERT_LOGIC_SLOT__
+  )
+__FINAL_SELECT__`;
+
+const UPSERT_LOGIC_PROD = `INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence,
       d_last_octet, d_third_octet, ssid1, ssid2,
       frequency1, frequency2, distance_m,
@@ -266,17 +227,9 @@ const REFRESH_CHUNK_SQL_CORE = `
       corroborating_rules
     )
     SELECT
-      f.bssid1,
-      f.bssid2,
-      f.rule,
-      f.final_conf,
-      f.d_last_octet,
-      f.d_third_octet,
-      f.ssid1,
-      f.ssid2,
-      f.frequency1,
-      f.frequency2,
-      f.distance_m,
+      f.bssid1, f.bssid2, f.rule, f.final_conf,
+      f.d_last_octet, f.d_third_octet, f.ssid1, f.ssid2,
+      f.frequency1, f.frequency2, f.distance_m,
       f.matched_octets,
       CASE
         WHEN f.rule = 'manual_confirmed' THEN 'verified'
@@ -284,19 +237,11 @@ const REFRESH_CHUNK_SQL_CORE = `
         WHEN f.final_conf >= 0.85 THEN 'candidate'
         ELSE 'weak'
       END,
-      'default',
-      now(),
-      $8::integer,
-      f.corroborating_rules
+      'default', now(), $8::integer, f.corroborating_rules
     FROM final_pairs f
-    -- Skip pairs blocked by manual not_sibling overrides
     LEFT JOIN app.network_sibling_overrides nso
-      ON nso.bssid1 = f.bssid1
-     AND nso.bssid2 = f.bssid2
-     AND nso.relation = 'not_sibling'
-     AND nso.is_active = true
-    WHERE f.final_conf >= $5
-      AND nso.bssid1 IS NULL
+      ON nso.bssid1 = f.bssid1 AND nso.bssid2 = f.bssid2 AND nso.relation = 'not_sibling' AND nso.is_active = true
+    WHERE f.final_conf >= $5 AND nso.bssid1 IS NULL
     ON CONFLICT (bssid1, bssid2) DO UPDATE
     SET
       rule = EXCLUDED.rule,
@@ -314,29 +259,17 @@ const REFRESH_CHUNK_SQL_CORE = `
       computed_at = EXCLUDED.computed_at,
       run_id = EXCLUDED.run_id,
       corroborating_rules = array(
-        SELECT DISTINCT unnest(
-          network_sibling_pairs.corroborating_rules || EXCLUDED.corroborating_rules
-        )
+        SELECT DISTINCT unnest(network_sibling_pairs.corroborating_rules || EXCLUDED.corroborating_rules)
       )
     WHERE
-      -- Allow update only if incoming confidence is higher OR
-      -- incoming rule is deterministic and current is probabilistic.
       EXCLUDED.confidence > network_sibling_pairs.confidence
       OR (
-        EXCLUDED.rule IN (
-          'last_octet_sequential',
-          'ssid_exact_sequential',
-          'middle_octets_sequential'
-        )
-        AND network_sibling_pairs.rule NOT IN (
-          'last_octet_sequential',
-          'ssid_exact_sequential',
-          'middle_octets_sequential'
-        )
+        EXCLUDED.rule IN ('last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
+        AND network_sibling_pairs.rule NOT IN ('last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
       )
-    RETURNING 1
-  )
-__FINAL_SELECT__`;
+    RETURNING 1`;
+
+const UPSERT_LOGIC_READONLY = `SELECT 0::int AS affected WHERE FALSE`;
 
 const FINAL_SELECT_BASE = `  SELECT
     (SELECT COUNT(*)::int FROM seeds) AS seed_count,
@@ -365,20 +298,31 @@ const FINAL_SELECT_AUDIT = `  SELECT
     ) AS debug_audit_events`;
 
 /**
- * Forensic batch SQL for sibling refresh. When `pairAudit` is true, also returns `debug_audit_events`
- * (jsonb array) on each batch row. Enable via `SIBLING_REFRESH_PAIR_AUDIT=1` on the server only;
- * remove after investigation — extra joins and aggregation per batch.
+ * Forensic batch SQL for sibling refresh.
+ * Supports true read-only simulation via `options.readOnly`.
+ * Supports targeting specific BSSIDs via `options.targetBssids` (uses $9).
  */
-function buildRefreshChunkSql(options: { pairAudit: boolean }): string {
+function buildRefreshChunkSql(
+  options: {
+    pairAudit?: boolean;
+    readOnly?: boolean;
+    targetBssids?: boolean;
+  } = {}
+): string {
   const hitSlot = options.pairAudit ? HIT_COMPETITION_CTE : '';
   const auditSlot = options.pairAudit ? PAIR_REFRESH_AUDIT_CTE : '';
+  const upsertLogic = options.readOnly ? UPSERT_LOGIC_READONLY : UPSERT_LOGIC_PROD;
   const finalSelect = options.pairAudit ? FINAL_SELECT_AUDIT : FINAL_SELECT_BASE;
+  const targetSlot = options.targetBssids ? 'AND ne.bssid = ANY($9::text[])' : '';
+
   return REFRESH_CHUNK_SQL_CORE.replace('__HIT_COMPETITION_SLOT__', hitSlot)
     .replace('__PAIR_AUDIT_SLOT__', auditSlot)
-    .replace('__FINAL_SELECT__', finalSelect);
+    .replace('__UPSERT_LOGIC_SLOT__', upsertLogic)
+    .replace('__FINAL_SELECT__', finalSelect)
+    .replace('__TARGET_FILTER_SLOT__', targetSlot);
 }
 
-const REFRESH_CHUNK_SQL = buildRefreshChunkSql({ pairAudit: false });
+const REFRESH_CHUNK_SQL = buildRefreshChunkSql({ pairAudit: false, readOnly: false });
 
 const SIBLING_STATS_SQL = `
   SELECT

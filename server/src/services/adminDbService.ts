@@ -137,6 +137,32 @@ async function adminQuery(text: string, params: any[] = []): Promise<QueryResult
 }
 
 /**
+ * Forensic-grade read-only query wrapper.
+ * Enforces READ ONLY transaction state and executes a ROLLBACK at the end.
+ * Guaranteed to prevent mutations at the database engine level.
+ */
+async function forensicQuery(text: string, params: any[] = []): Promise<QueryResult<any>> {
+  const pool = getAdminPool();
+  if (!pool) {
+    throw new Error('Admin database pool not initialized (check DB_ADMIN_PASSWORD)');
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SET TRANSACTION READ ONLY');
+    const result = await client.query(text, params);
+    await client.query('ROLLBACK');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Long-running administrative query wrapper (no statement timeout)
  * Use for batch operations like sibling detection that may take extended time
  * @param {string} text - SQL query
@@ -168,10 +194,18 @@ async function closeAdminPool() {
   }
 }
 
-export { adminQuery, longRunningAdminQuery, getAdminPool, getLongRunningAdminPool, closeAdminPool };
+export {
+  adminQuery,
+  forensicQuery,
+  longRunningAdminQuery,
+  getAdminPool,
+  getLongRunningAdminPool,
+  closeAdminPool,
+};
 
 export default {
   adminQuery,
+  forensicQuery,
   longRunningAdminQuery,
   getAdminPool,
   getLongRunningAdminPool,
