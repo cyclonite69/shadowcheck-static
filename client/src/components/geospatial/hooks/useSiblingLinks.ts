@@ -84,14 +84,17 @@ export const useSiblingLinks = ({
         const hasSearch = quickSearch.trim().length > 0;
 
         if (hasSearch && visibleBssids.length > 0) {
-          const componentResults = await Promise.all(
-            visibleBssids.map((bssid) => networkApi.getSiblingComponentBssids(bssid))
-          );
+          // Fix performance regression: only fetch the full component for the primary search hit (anchor).
+          // Search results are already filtered; we treat the first result as the anchor for expansion.
+          const anchorBssid = visibleBssids[0];
+          const componentResult = await networkApi.getSiblingComponentBssids(anchorBssid);
           if (cancelled) return;
 
-          const components = componentResults.map((r) =>
-            Array.isArray(r?.bssids) ? r.bssids.map((b: string) => normalizeBssid(b)) : []
-          );
+          const components = [
+            Array.isArray(componentResult?.bssids)
+              ? componentResult.bssids.map((b: string) => normalizeBssid(b))
+              : [],
+          ];
           const groupMap = mergeSiblingComponentsIntoGroupMap(components);
           const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid));
 
