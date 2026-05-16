@@ -33,6 +33,7 @@ export const useSiblingLinks = ({
   const [missingSiblingNetworks, setMissingSiblingNetworks] = useState<NetworkRow[]>([]);
   const [hydrationFailedBssids, setHydrationFailedBssids] = useState<string[]>([]);
   const prevHydrationKeyRef = useRef('');
+  const lastAnchorBssidRef = useRef('');
 
   useEffect(() => {
     if (!isAdmin || !selectedAnchorBssid) {
@@ -71,6 +72,7 @@ export const useSiblingLinks = ({
       setMissingSiblingNetworks([]);
       setHydrationFailedBssids([]);
       prevHydrationKeyRef.current = '';
+      lastAnchorBssidRef.current = '';
       return;
     }
 
@@ -81,12 +83,30 @@ export const useSiblingLinks = ({
           .map((network) => normalizeBssid(network.bssid))
           .filter(Boolean);
         const visibleSet = new Set(visibleBssids);
-        const hasSearch = quickSearch.trim().length > 0;
+        const searchStr = quickSearch.trim().toLowerCase();
+        const hasSearch = searchStr.length > 0;
 
         if (hasSearch && visibleBssids.length > 0) {
-          // Fix performance regression: only fetch the full component for the primary search hit (anchor).
-          // Search results are already filtered; we treat the first result as the anchor for expansion.
-          const anchorBssid = visibleBssids[0];
+          // Fix A: Filter networks by quickSearch to find the TRUE search hits.
+          // The anchor must come from the filtered set, not the general page row list.
+          const searchHits = networks.filter(
+            (n) =>
+              n.ssid?.toLowerCase().includes(searchStr) || n.bssid.toLowerCase().includes(searchStr)
+          );
+
+          if (searchHits.length === 0) {
+            setVisibleSiblingGroupMap(new Map());
+            setMissingSiblingNetworks([]);
+            return;
+          }
+
+          const anchorBssid = normalizeBssid(searchHits[0].bssid);
+          if (!anchorBssid) return;
+
+          // Fix B: Guard against repeat calls if the anchor hasn't changed.
+          if (anchorBssid === lastAnchorBssidRef.current) return;
+          lastAnchorBssidRef.current = anchorBssid;
+
           const componentResult = await networkApi.getSiblingComponentBssids(anchorBssid);
           if (cancelled) return;
 
