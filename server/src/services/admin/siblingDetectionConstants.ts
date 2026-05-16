@@ -43,6 +43,23 @@ const FLEET_SSIDS = [
   'pasrig',
   'msamobile',
   'lapeeremsmobile',
+  'msetup',
+  'hiltonhonors',
+  'meijervendor',
+  'meijerwifi',
+  'meijercorp',
+  'meijerconnect',
+  'red5',
+  'mprotek',
+  'msunet',
+  'msunetguest',
+  'msuchm',
+  'regentswireless',
+  'dpssregents',
+  'costcomemberwifi',
+  'cvwifi',
+  'cwifi',
+  'mott',
 ] as const;
 
 const FLEET_SSID_SQL_LIST = FLEET_SSIDS.map((s) => `'${s}'`).join(',');

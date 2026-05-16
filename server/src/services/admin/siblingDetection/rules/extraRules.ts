@@ -240,6 +240,7 @@ const EXTRA_RULE_SAME_OUI_PROXIMITY = `
      AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
+      AND (a.ssid IS NOT NULL AND a.ssid != '' OR b.ssid IS NOT NULL AND b.ssid != '')
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
