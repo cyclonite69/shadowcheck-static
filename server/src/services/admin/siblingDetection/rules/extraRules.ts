@@ -47,14 +47,6 @@ const EXTRA_RULE_UPPER_ROTATION = `
      AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
-      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
-      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
-      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-      AND COALESCE(b.bestlon, b.bestlon) IS NOT NULL
-      AND ST_Distance(
-        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.bestlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-      ) < 200
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -94,11 +86,7 @@ const EXTRA_RULE_SSID_ANCHOR = `
       $1::integer
     FROM app.networks a
     JOIN app.networks b
-      ON ST_Distance(
-           ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-           ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-         ) < 150
-     AND b.ssid = a.ssid
+       ON b.ssid = a.ssid
      AND SUBSTRING(b.bssid, 1, 11) = SUBSTRING(a.bssid, 1, 11)
      AND b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
@@ -112,10 +100,6 @@ const EXTRA_RULE_SSID_ANCHOR = `
       AND a.ssid IS NOT NULL AND a.ssid <> ''
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
-      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
-      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
-      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
     LIMIT 50000
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
@@ -172,14 +156,6 @@ const EXTRA_RULE_CROSS_OUI_SSID = `
       AND a.ssid IS NOT NULL AND a.ssid <> ''
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
       AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
-      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
-      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
-      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
-      AND ST_Distance(
-        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-      ) < 200
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -293,14 +269,6 @@ const EXTRA_RULE_OCTET4_ROTATION_64 = `
      AND nso.is_active = true
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
-      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
-      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
-      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
-      AND ST_Distance(
-        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-      ) <= 300
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -370,12 +338,6 @@ const EXTRA_RULE_CISCO_QUAD_RADIO = `
      AND nso.relation = 'not_sibling'
      AND nso.is_active = true
     WHERE nso.bssid1 IS NULL
-      AND a.lat IS NOT NULL AND a.lon IS NOT NULL
-      AND b.lat IS NOT NULL AND b.lon IS NOT NULL
-      AND ST_Distance(
-        ST_SetSRID(ST_MakePoint(a.lon, a.lat), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(b.lon, b.lat), 4326)::geography
-      ) <= 200
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -428,14 +390,6 @@ const EXTRA_RULE_GENESEE_COUNTY = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND SUBSTRING(a.bssid, 1, 8) IN ('24:D7:9C', 'C8:28:E5')
       AND nso.bssid1 IS NULL
-      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
-      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
-      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
-      AND ST_Distance(
-        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-      ) <= 500
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -488,14 +442,6 @@ const EXTRA_RULE_TARGET_RETAIL = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND SUBSTRING(a.bssid, 1, 8) = '54:A2:74'
       AND nso.bssid1 IS NULL
-      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
-      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
-      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
-      AND ST_Distance(
-        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-      ) <= 300
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
@@ -548,14 +494,6 @@ const EXTRA_RULE_RGLIDE_WIDE = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND SUBSTRING(a.bssid, 1, 8) = '30:57:8E'
       AND nso.bssid1 IS NULL
-      AND COALESCE(a.bestlat, a.lastlat) IS NOT NULL
-      AND COALESCE(a.bestlon, a.lastlon) IS NOT NULL
-      AND COALESCE(b.bestlat, b.lastlat) IS NOT NULL
-      AND COALESCE(b.bestlon, b.lastlon) IS NOT NULL
-      AND ST_Distance(
-        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-      ) <= 300
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
