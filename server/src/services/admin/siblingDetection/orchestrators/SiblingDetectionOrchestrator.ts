@@ -1,5 +1,5 @@
 import logger from '../../../../logging/logger';
-import { REFRESH_CHUNK_SQL } from '../../siblingDetectionQueries';
+import { buildRefreshChunkSql } from '../../siblingDetectionQueries';
 import {
   normalizeOptions,
   state,
@@ -67,6 +67,11 @@ export class SiblingDetectionOrchestrator {
     let rowsUpserted = 0;
     let completed = true;
 
+    const pairAudit =
+      process.env.SIBLING_REFRESH_PAIR_AUDIT === '1' ||
+      process.env.SIBLING_REFRESH_PAIR_AUDIT === 'true';
+    const refreshChunkSql = buildRefreshChunkSql({ pairAudit });
+
     while (true) {
       if (this.deps.state.cancelRequested) {
         completed = false;
@@ -78,7 +83,7 @@ export class SiblingDetectionOrchestrator {
         break;
       }
 
-      const result: any = await this.deps.longRunningAdminQuery(REFRESH_CHUNK_SQL, [
+      const result: any = await this.deps.longRunningAdminQuery(refreshChunkSql, [
         normalized.batchSize,
         cursor,
         normalized.maxOctetDelta,
@@ -93,6 +98,19 @@ export class SiblingDetectionOrchestrator {
       const seedCount = Number(row.seed_count || 0);
       const upsertedCount = Number(row.upserted_count || 0);
       const nextCursor = row.next_cursor || null;
+
+      if (pairAudit) {
+        const events = row.debug_audit_events;
+        const list = Array.isArray(events) ? events : events ? [events] : [];
+        if (list.length > 0) {
+          logger.info('[Siblings][PAIR_AUDIT] batch forensic snapshot', {
+            siblingRunId: runId,
+            batch: batchesRun + 1,
+            eventCount: list.length,
+            events: list,
+          });
+        }
+      }
 
       if (seedCount === 0) {
         if (!cursor || cursor >= 'FF:FF:FF:FF:FF:FF') {

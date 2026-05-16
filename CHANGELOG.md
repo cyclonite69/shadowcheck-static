@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-15)
+# 1.0.0 (2026-05-16)
 
 
 ### Bug Fixes
@@ -345,7 +345,7 @@
 * **geospatial:** implement hard map interaction lock when viewport lock is active ([f342d2b](https://github.com/cyclonite69/shadowcheck-web/commit/f342d2b5e6dc24d16c497d5a598f1c0492c1c1f3))
 * **geospatial:** improve right-click context menu reliability on map ([56cf6d6](https://github.com/cyclonite69/shadowcheck-web/commit/56cf6d6638bf690bfefccc2592c37ae56acd1d1d))
 * **geospatial:** improve sibling linking menu state ([fb46484](https://github.com/cyclonite69/shadowcheck-web/commit/fb464845171115a8b0f5addffa181088e4845753))
-* **geospatial:** load full DB sibling component on quick search ([384f5df](https://github.com/cyclonite69/shadowcheck-web/commit/384f5dfd84b55f52b6a78892a1a09be1df1ece49))
+* **geospatial:** load full DB sibling component on quick search ([8eb515f](https://github.com/cyclonite69/shadowcheck-web/commit/8eb515fd828d28f7191c278952883a5d2d6ac8cf))
 * **geospatial:** lock virtual row height to prevent column drift overlap ([a0c74c5](https://github.com/cyclonite69/shadowcheck-web/commit/a0c74c5542f6341dbd9384fa78c8a0a04f5550bc))
 * **geospatial:** make note menu detect existing notes robustly ([87331b3](https://github.com/cyclonite69/shadowcheck-web/commit/87331b3ff3dab7ce0a9b9bafb2c712e09805e184))
 * **geospatial:** merge new default columns into saved localStorage column list ([4287d6e](https://github.com/cyclonite69/shadowcheck-web/commit/4287d6ef4c613edc60a0661c152c48db3649e515))
@@ -692,6 +692,7 @@
 * sibling detection startup parameter binding crash ([eb0906c](https://github.com/cyclonite69/shadowcheck-web/commit/eb0906cef26f56011864052538ac5215fb5a3475))
 * **sibling-detection:** fix adminDbService import causing startup crash ([44829ef](https://github.com/cyclonite69/shadowcheck-web/commit/44829ef1fd3ebec19a7ee2694c16c6812cfe71f5))
 * **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
+* **sibling:** implement guarded ON CONFLICT and deterministic dedup ([8685903](https://github.com/cyclonite69/shadowcheck-web/commit/8685903b49f4634cf9a5e96d531b0da5377e681e)), closes [hi#confidence](https://github.com/hi/issues/confidence)
 * **sibling:** purge fleet-fleet cross-unit pairs + guard refresh against re-creation ([496cfa5](https://github.com/cyclonite69/shadowcheck-web/commit/496cfa5028630c4e63f9ceb80464d13bac0d0208))
 * **sibling:** refresh function now respects not_sibling manual overrides ([4e38540](https://github.com/cyclonite69/shadowcheck-web/commit/4e38540fc2b982e76aadc9eabbdb309250c9e9db))
 * **siblings:** add campus-wide fleet SSIDs to exclusion list ([58bd978](https://github.com/cyclonite69/shadowcheck-web/commit/58bd9789564ab386e86b6c09881476e95e50347e))

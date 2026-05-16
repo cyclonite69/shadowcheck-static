@@ -1,6 +1,69 @@
 import { FLEET_SSID_SQL_LIST } from './siblingDetectionConstants';
 
-const REFRESH_CHUNK_SQL = `
+/** Inserted between `hits` and `dedup` when pair audit is enabled. */
+const HIT_COMPETITION_CTE = `
+  hit_competition AS (
+    SELECT
+      LEAST(seed_bssid, sibling_bssid) AS bssid1,
+      GREATEST(seed_bssid, sibling_bssid) AS bssid2,
+      jsonb_agg(
+        jsonb_build_object(
+          'rule', rule,
+          'confidence', confidence,
+          'seed_bssid', seed_bssid,
+          'target_ssid', target_ssid,
+          'sibling_ssid', sibling_ssid
+        ) ORDER BY confidence DESC NULLS LAST, rule ASC
+      ) AS competing_hits
+    FROM hits
+    GROUP BY 1, 2
+  ),`;
+
+/** Between final_pairs and upserted: compares incoming row to current persisted row (pre-statement). */
+const PAIR_REFRESH_AUDIT_CTE = `
+  pair_refresh_audit AS (
+    SELECT
+      f.bssid1,
+      f.bssid2,
+      f.ssid1,
+      f.ssid2,
+      hc.competing_hits,
+      d.rule AS dedup_winning_rule,
+      d.confidence AS dedup_raw_max_confidence,
+      d.corroborating_rules AS dedup_corroborating_rules,
+      f.rule AS final_rule,
+      f.final_conf AS incoming_confidence,
+      (f.final_conf >= 0.90 AND f.final_conf < 0.92) AS would_hide_from_effective_view_cutoff,
+      p.rule AS prev_persisted_rule,
+      p.confidence AS prev_persisted_confidence,
+      p.computed_at AS prev_computed_at,
+      p.run_id AS prev_run_id,
+      p.source AS prev_source,
+      (p.bssid1 IS NOT NULL AND f.final_conf < p.confidence) AS would_downgrade_confidence,
+      (
+        p.bssid1 IS NOT NULL
+        AND p.rule IN ('last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
+        AND f.rule NOT IN ('last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
+      ) AS would_replace_deterministic_with_probabilistic,
+      (
+        hc.competing_hits IS NOT NULL
+        AND jsonb_array_length(hc.competing_hits) >= 2
+        AND (hc.competing_hits->0->>'confidence')::numeric = (hc.competing_hits->1->>'confidence')::numeric
+      ) AS top_two_hits_confidence_tie
+    FROM final_pairs f
+    INNER JOIN dedup d ON d.bssid1 = f.bssid1 AND d.bssid2 = f.bssid2
+    LEFT JOIN hit_competition hc ON hc.bssid1 = f.bssid1 AND hc.bssid2 = f.bssid2
+    LEFT JOIN app.network_sibling_pairs p ON p.bssid1 = f.bssid1 AND p.bssid2 = f.bssid2
+    LEFT JOIN app.network_sibling_overrides nso
+      ON nso.bssid1 = f.bssid1
+     AND nso.bssid2 = f.bssid2
+     AND nso.relation = 'not_sibling'
+     AND nso.is_active = true
+    WHERE f.final_conf >= $5
+      AND nso.bssid1 IS NULL
+  ),`;
+
+const REFRESH_CHUNK_SQL_CORE = `
   WITH seeds AS (
     SELECT ne.bssid
     FROM app.api_network_explorer_mv ne
@@ -18,26 +81,46 @@ const REFRESH_CHUNK_SQL = `
     SELECT s.bssid AS seed_bssid, r.*
     FROM seeds s
     CROSS JOIN LATERAL app.find_sibling_radios(s.bssid, $3, $4) r
-  ),
+  ),__HIT_COMPETITION_SLOT__
   dedup AS (
-    SELECT
-      LEAST(seed_bssid, sibling_bssid) AS bssid1,
-      GREATEST(seed_bssid, sibling_bssid) AS bssid2,
-      (array_agg(rule ORDER BY confidence DESC))[1] AS rule,
-      MAX(confidence) AS confidence,
-      (array_agg(d_last_octet ORDER BY confidence DESC))[1] AS d_last_octet,
-      (array_agg(d_third_octet ORDER BY confidence DESC))[1] AS d_third_octet,
-      (array_agg(target_ssid ORDER BY confidence DESC))[1] AS ssid1,
-      (array_agg(sibling_ssid ORDER BY confidence DESC))[1] AS ssid2,
-      (array_agg(frequency_target ORDER BY confidence DESC))[1] AS frequency1,
-      (array_agg(frequency_sibling ORDER BY confidence DESC))[1] AS frequency2,
-      (array_agg(distance_m ORDER BY confidence DESC))[1] AS distance_m,
-      (array_agg(matched_octets ORDER BY confidence DESC))[1] AS matched_octets,
-      array_agg(DISTINCT rule) AS corroborating_rules
-    FROM hits
-    GROUP BY
+    -- Deterministic winner selection with explicit stable ordering.
+    -- Rule priority: sequential rules are deterministic (priority 1-3),
+    -- mac_only_match is probabilistic (priority 100), others default to 999.
+    -- Ordering: confidence DESC, rule_priority ASC, sibling_bssid ASC
+    SELECT DISTINCT ON (
       LEAST(seed_bssid, sibling_bssid),
       GREATEST(seed_bssid, sibling_bssid)
+    )
+      LEAST(seed_bssid, sibling_bssid) AS bssid1,
+      GREATEST(seed_bssid, sibling_bssid) AS bssid2,
+      rule,
+      confidence,
+      d_last_octet,
+      d_third_octet,
+      target_ssid AS ssid1,
+      sibling_ssid AS ssid2,
+      frequency_target AS frequency1,
+      frequency_sibling AS frequency2,
+      distance_m,
+      matched_octets,
+      (array_agg(DISTINCT rule) OVER (
+        PARTITION BY
+          LEAST(seed_bssid, sibling_bssid),
+          GREATEST(seed_bssid, sibling_bssid)
+      )) AS corroborating_rules
+    FROM hits
+    ORDER BY
+      LEAST(seed_bssid, sibling_bssid),
+      GREATEST(seed_bssid, sibling_bssid),
+      confidence DESC,
+      CASE rule
+        WHEN 'last_octet_sequential' THEN 1
+        WHEN 'ssid_exact_sequential' THEN 2
+        WHEN 'middle_octets_sequential' THEN 3
+        WHEN 'mac_only_match' THEN 100
+        ELSE 999
+      END ASC,
+      sibling_bssid ASC
   ),
   scored AS (
     SELECT
@@ -172,7 +255,7 @@ const REFRESH_CHUNK_SQL = `
     LEFT JOIN partner_stats ps1 ON ps1.radio_bssid = s.bssid1
     LEFT JOIN partner_stats ps2 ON ps2.radio_bssid = s.bssid2
     LEFT JOIN family_stats fs ON fs.ssid_norm = s.n1
-  ),
+  ),__PAIR_AUDIT_SLOT__
   upserted AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence,
@@ -235,13 +318,67 @@ const REFRESH_CHUNK_SQL = `
           network_sibling_pairs.corroborating_rules || EXCLUDED.corroborating_rules
         )
       )
+    WHERE
+      -- Allow update only if incoming confidence is higher OR
+      -- incoming rule is deterministic and current is probabilistic.
+      EXCLUDED.confidence > network_sibling_pairs.confidence
+      OR (
+        EXCLUDED.rule IN (
+          'last_octet_sequential',
+          'ssid_exact_sequential',
+          'middle_octets_sequential'
+        )
+        AND network_sibling_pairs.rule NOT IN (
+          'last_octet_sequential',
+          'ssid_exact_sequential',
+          'middle_octets_sequential'
+        )
+      )
     RETURNING 1
   )
-  SELECT
+__FINAL_SELECT__`;
+
+const FINAL_SELECT_BASE = `  SELECT
     (SELECT COUNT(*)::int FROM seeds) AS seed_count,
     (SELECT COUNT(*)::int FROM upserted) AS upserted_count,
-    (SELECT MAX(bssid)::text FROM seeds) AS next_cursor
-`;
+    (SELECT MAX(bssid)::text FROM seeds) AS next_cursor`;
+
+const FINAL_SELECT_AUDIT = `  SELECT
+    (SELECT COUNT(*)::int FROM seeds) AS seed_count,
+    (SELECT COUNT(*)::int FROM upserted) AS upserted_count,
+    (SELECT MAX(bssid)::text FROM seeds) AS next_cursor,
+    COALESCE(
+      (SELECT jsonb_agg(to_jsonb(pra) ORDER BY pra.bssid1, pra.bssid2)
+       FROM pair_refresh_audit pra
+       WHERE pra.would_downgrade_confidence
+          OR pra.would_replace_deterministic_with_probabilistic
+          OR pra.would_hide_from_effective_view_cutoff
+          OR pra.top_two_hits_confidence_tie
+          OR lower(coalesce(pra.ssid1, '')) LIKE 'pas%'
+          OR lower(coalesce(pra.ssid2, '')) LIKE 'pas%'
+          OR lower(coalesce(pra.ssid1, '')) LIKE 'mdt%'
+          OR lower(coalesce(pra.ssid2, '')) LIKE 'mdt%'
+          OR lower(regexp_replace(coalesce(pra.ssid1, ''), '[^a-z0-9]+', '', 'g')) = 'pasrig'
+          OR lower(regexp_replace(coalesce(pra.ssid2, ''), '[^a-z0-9]+', '', 'g')) = 'pasrig'
+      ),
+      '[]'::jsonb
+    ) AS debug_audit_events`;
+
+/**
+ * Forensic batch SQL for sibling refresh. When `pairAudit` is true, also returns `debug_audit_events`
+ * (jsonb array) on each batch row. Enable via `SIBLING_REFRESH_PAIR_AUDIT=1` on the server only;
+ * remove after investigation — extra joins and aggregation per batch.
+ */
+function buildRefreshChunkSql(options: { pairAudit: boolean }): string {
+  const hitSlot = options.pairAudit ? HIT_COMPETITION_CTE : '';
+  const auditSlot = options.pairAudit ? PAIR_REFRESH_AUDIT_CTE : '';
+  const finalSelect = options.pairAudit ? FINAL_SELECT_AUDIT : FINAL_SELECT_BASE;
+  return REFRESH_CHUNK_SQL_CORE.replace('__HIT_COMPETITION_SLOT__', hitSlot)
+    .replace('__PAIR_AUDIT_SLOT__', auditSlot)
+    .replace('__FINAL_SELECT__', finalSelect);
+}
+
+const REFRESH_CHUNK_SQL = buildRefreshChunkSql({ pairAudit: false });
 
 const SIBLING_STATS_SQL = `
   SELECT
@@ -266,4 +403,4 @@ const SIBLING_STATS_BY_RULE_SQL = `
   ORDER BY pair_count DESC
 `;
 
-export { REFRESH_CHUNK_SQL, SIBLING_STATS_SQL, SIBLING_STATS_BY_RULE_SQL };
+export { buildRefreshChunkSql, REFRESH_CHUNK_SQL, SIBLING_STATS_SQL, SIBLING_STATS_BY_RULE_SQL };
