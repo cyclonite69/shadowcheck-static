@@ -41,6 +41,8 @@ const FLEET_SSIDS = [
   'ccguest',
   'ccinternal',
   'pasrig',
+  'msamobile',
+  'lapeeremsmobile',
 ] as const;
 
 const FLEET_SSID_SQL_LIST = FLEET_SSIDS.map((s) => `'${s}'`).join(',');
