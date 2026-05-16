@@ -88,7 +88,7 @@ function buildFastPathListSql(
         n.bestlon AS raw_lon
       FROM app.api_network_explorer_mv ne
       LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
-      LEFT JOIN app.surveillance_detections sd ON UPPER(sd.bssid) = UPPER(ne.bssid)
+      LEFT JOIN app.surveillance_detections sd ON UPPER(sd.bssid) = UPPER(ne.bssid) AND sd.false_positive = FALSE
       ${SqlFragmentLibrary.joinNetworkLocations('ne', locationMode)}
       ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}
