@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-16)
+# 1.0.0 (2026-05-17)
 
 
 ### Bug Fixes
@@ -697,7 +697,7 @@
 * **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
 * **sibling:** implement guarded ON CONFLICT and deterministic dedup ([d97ad20](https://github.com/cyclonite69/shadowcheck-web/commit/d97ad204687f33afb72cdc1542233d66c1bca6c9)), closes [hi#confidence](https://github.com/hi/issues/confidence)
 * **sibling:** massive expansion of FLEET_SSIDS list ([76f5117](https://github.com/cyclonite69/shadowcheck-web/commit/76f5117d2174ee1b3a3d7e3da3363bb75a30e226))
-* **sibling:** migration 008 — remove distance gate from find_sibling_radios ([4c6a457](https://github.com/cyclonite69/shadowcheck-web/commit/4c6a45723ce743f8e09d13545a020d8917591be2))
+* **sibling:** migration 008 — remove distance gate from find_sibling_radios ([f45aa3b](https://github.com/cyclonite69/shadowcheck-web/commit/f45aa3bbb7bd74ccd8fd674a968cb31a686c826b))
 * **sibling:** purge fleet-fleet cross-unit pairs + guard refresh against re-creation ([496cfa5](https://github.com/cyclonite69/shadowcheck-web/commit/496cfa5028630c4e63f9ceb80464d13bac0d0208))
 * **sibling:** refresh function now respects not_sibling manual overrides ([4e38540](https://github.com/cyclonite69/shadowcheck-web/commit/4e38540fc2b982e76aadc9eabbdb309250c9e9db))
 * **sibling:** remove all distance gates from extra detection rules ([1905eef](https://github.com/cyclonite69/shadowcheck-web/commit/1905eef7f88252ba68c3fafc925b9177dad97739))
@@ -707,6 +707,7 @@
 * **siblings:** manual pairs as baseline + fix upper_octet_rotation SSID exclusion ([504626a](https://github.com/cyclonite69/shadowcheck-web/commit/504626a70dd208f1c2564a65c95236bf46953f0d))
 * **siblings:** only show link badge for real links ([4e66e64](https://github.com/cyclonite69/shadowcheck-web/commit/4e66e64ef2ae61aa524b3fee5e63fbdccf2c8bbd))
 * **siblings:** penalize common SSID long-distance false positives ([5bb903e](https://github.com/cyclonite69/shadowcheck-web/commit/5bb903e97fa0639f4fc980878eebf791c3d0749f))
+* **sibling:** split dedup CTE to fix DISTINCT window function crash ([bf5fda4](https://github.com/cyclonite69/shadowcheck-web/commit/bf5fda49c44389425b8fe0964f0b067f82580b6e))
 * **siblings:** remove distance as penalty/gate; fix BT/BLE first-2-octet false siblings ([713a61a](https://github.com/cyclonite69/shadowcheck-web/commit/713a61a44a23b7a78f1430c7d24f1a830ce0ae38))
 * **siblings:** restore LA-MAC exclusion for middle_octets_sequential ([1044da0](https://github.com/cyclonite69/shadowcheck-web/commit/1044da02035cfdf4644885467db0ab06d3231dc0))
 * **siblings:** snapshot incremental cutoff before loop to prevent batch 2+ starvation ([e7df70f](https://github.com/cyclonite69/shadowcheck-web/commit/e7df70fb3fa3f61d4ce5a5b21250de754d3d221d))

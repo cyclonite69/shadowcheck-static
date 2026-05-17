@@ -99,12 +99,7 @@ const REFRESH_CHUNK_SQL_CORE = `
       frequency_target AS frequency1,
       frequency_sibling AS frequency2,
       distance_m,
-      matched_octets,
-      (array_agg(DISTINCT rule) OVER (
-        PARTITION BY
-          LEAST(seed_bssid, sibling_bssid),
-          GREATEST(seed_bssid, sibling_bssid)
-      )) AS corroborating_rules
+      matched_octets
     FROM hits
     ORDER BY
       LEAST(seed_bssid, sibling_bssid),
@@ -119,9 +114,18 @@ const REFRESH_CHUNK_SQL_CORE = `
       END ASC,
       sibling_bssid ASC
   ),
+  corroboration AS (
+    SELECT
+      LEAST(seed_bssid, sibling_bssid) AS bssid1,
+      GREATEST(seed_bssid, sibling_bssid) AS bssid2,
+      array_agg(DISTINCT rule) AS corroborating_rules
+    FROM hits
+    GROUP BY 1, 2
+  ),
   scored AS (
     SELECT
       d.*,
+      c.corroborating_rules,
       lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) AS n1,
       lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-z0-9]+', '', 'g')) AS n2,
       (
@@ -135,6 +139,7 @@ const REFRESH_CHUNK_SQL_CORE = `
       ) AS ssid_common,
       0 AS distance_penalty
     FROM dedup d
+    LEFT JOIN corroboration c ON c.bssid1 = d.bssid1 AND c.bssid2 = d.bssid2
   ),
   partner_stats AS (
     SELECT
