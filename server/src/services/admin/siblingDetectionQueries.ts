@@ -126,16 +126,16 @@ const REFRESH_CHUNK_SQL_CORE = `
     SELECT
       d.*,
       c.corroborating_rules,
-      lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) AS n1,
-      lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-z0-9]+', '', 'g')) AS n2,
+      lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-zA-Z0-9]+', '', 'g')) AS n1,
+      lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-zA-Z0-9]+', '', 'g')) AS n2,
       (
-        lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g'))
+        lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-zA-Z0-9]+', '', 'g'))
         =
-        lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-z0-9]+', '', 'g'))
+        lower(regexp_replace(coalesce(d.ssid2, ''), '[^a-zA-Z0-9]+', '', 'g'))
       ) AS ssid_same,
       (
-        lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) IN (${FLEET_SSID_SQL_LIST})
-        OR lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-z0-9]+', '', 'g')) LIKE 'hmc%'
+        lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-zA-Z0-9]+', '', 'g')) IN (${FLEET_SSID_SQL_LIST})
+        OR lower(regexp_replace(coalesce(d.ssid1, ''), '[^a-zA-Z0-9]+', '', 'g')) LIKE 'hmc%'
       ) AS ssid_common,
       0 AS distance_penalty
     FROM dedup d
@@ -296,8 +296,8 @@ const FINAL_SELECT_AUDIT = `  SELECT
           OR lower(coalesce(pra.ssid2, '')) LIKE 'pas%'
           OR lower(coalesce(pra.ssid1, '')) LIKE 'mdt%'
           OR lower(coalesce(pra.ssid2, '')) LIKE 'mdt%'
-          OR lower(regexp_replace(coalesce(pra.ssid1, ''), '[^a-z0-9]+', '', 'g')) = 'pasrig'
-          OR lower(regexp_replace(coalesce(pra.ssid2, ''), '[^a-z0-9]+', '', 'g')) = 'pasrig'
+          OR lower(regexp_replace(coalesce(pra.ssid1, ''), '[^a-zA-Z0-9]+', '', 'g')) = 'pasrig'
+          OR lower(regexp_replace(coalesce(pra.ssid2, ''), '[^a-zA-Z0-9]+', '', 'g')) = 'pasrig'
       ),
       '[]'::jsonb
     ) AS debug_audit_events`;

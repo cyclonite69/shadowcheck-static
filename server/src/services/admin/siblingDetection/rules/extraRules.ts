@@ -98,8 +98,8 @@ const EXTRA_RULE_SSID_ANCHOR = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
-      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
-      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
+      AND lower(regexp_replace(a.ssid, '[^a-zA-Z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
+      AND lower(regexp_replace(a.ssid, '[^a-zA-Z0-9]+', '', 'g')) NOT LIKE 'hmc%'
     LIMIT 50000
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
@@ -154,8 +154,8 @@ const EXTRA_RULE_CROSS_OUI_SSID = `
     WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
       AND nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
-      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
-      AND lower(regexp_replace(a.ssid, '[^a-z0-9]+', '', 'g')) NOT LIKE 'hmc%'
+      AND lower(regexp_replace(a.ssid, '[^a-zA-Z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
+      AND lower(regexp_replace(a.ssid, '[^a-zA-Z0-9]+', '', 'g')) NOT LIKE 'hmc%'
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,
