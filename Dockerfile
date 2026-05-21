@@ -16,7 +16,8 @@ ENV NODE_ENV=development \
 COPY package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci --include=dev --legacy-peer-deps
+RUN apk add --no-cache python3 make g++ && \
+    npm ci --include=dev --legacy-peer-deps
 
 # Copy application files
 COPY . .

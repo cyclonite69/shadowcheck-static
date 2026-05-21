@@ -142,6 +142,71 @@ export class SiblingDetectionOrchestrator {
     }
 
     const extraRuleResults = await this.runExtraRules(runId);
+
+    // Enforce Criteria 3: Check for hardware overflow (>= 17 connected nodes)
+    const overflowCheck = await this.deps.adminQuery(`
+      WITH candidate_nodes AS (
+        SELECT
+          mv.bssid,
+          mv.ssid,
+          SUBSTRING(mv.bssid, 1, 8) AS OUI
+        FROM app.api_network_explorer_mv mv
+        WHERE mv.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+          AND mv.type = 'W'
+          AND mv.observations >= 5
+      ),
+      cluster_sizes AS (
+        SELECT
+          OUI,
+          ssid,
+          COUNT(DISTINCT bssid) AS node_count
+        FROM candidate_nodes
+        GROUP BY OUI, ssid
+      )
+      SELECT OUI AS oui, ssid, node_count
+      FROM cluster_sizes
+      WHERE node_count >= 17
+    `);
+
+    if (overflowCheck.rows && overflowCheck.rows.length > 0) {
+      for (const row of overflowCheck.rows) {
+        logger.warn(
+          `[HARDWARE OVERFLOW - INVESTIGATE] Cluster OUI ${row.oui} with SSID "${row.ssid}" has ${row.node_count} connected nodes. Dropping from active sibling tracking.`
+        );
+      }
+
+      await this.deps.adminQuery(`
+        WITH candidate_nodes AS (
+          SELECT
+            mv.bssid,
+            mv.ssid,
+            SUBSTRING(mv.bssid, 1, 8) AS OUI
+          FROM app.api_network_explorer_mv mv
+          WHERE mv.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+            AND mv.type = 'W'
+            AND mv.observations >= 5
+        ),
+        cluster_sizes AS (
+          SELECT
+            OUI,
+            ssid,
+            COUNT(DISTINCT bssid) AS node_count
+          FROM candidate_nodes
+          GROUP BY OUI, ssid
+        ),
+        overflow_bssids AS (
+          SELECT cn.bssid
+          FROM candidate_nodes cn
+          JOIN cluster_sizes cs ON cs.OUI = cn.OUI AND cs.ssid = cn.ssid
+          WHERE cs.node_count >= 17
+        )
+        DELETE FROM app.network_sibling_pairs
+        WHERE (bssid1 IN (SELECT bssid FROM overflow_bssids)
+           OR bssid2 IN (SELECT bssid FROM overflow_bssids))
+           AND rule = 'cross_oui_ssid_exact';
+      `);
+    }
+
     logger.info('[Siblings] Extra rules complete', extraRuleResults);
 
     const finalStatus = completed ? 'completed' : 'truncated';

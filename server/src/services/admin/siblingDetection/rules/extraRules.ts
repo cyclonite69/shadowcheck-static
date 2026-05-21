@@ -119,43 +119,81 @@ const EXTRA_RULE_SSID_ANCHOR = `
 `;
 
 const EXTRA_RULE_CROSS_OUI_SSID = `
-  WITH inserted AS (
+  WITH candidate_nodes AS (
+    -- Criteria 1: Join on api_network_explorer_mv and enforce observation floor >= 5
+    SELECT
+      mv.bssid,
+      mv.ssid,
+      SUBSTRING(mv.bssid, 1, 8) AS OUI,
+      mv.lat,
+      mv.lon
+    FROM app.api_network_explorer_mv mv
+    WHERE mv.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+      AND mv.type = 'W'
+      AND mv.observations >= 5
+  ),
+  cluster_sizes AS (
+    -- Criteria 3: Calculate node count per OUI + SSID cluster
+    SELECT
+      OUI,
+      ssid,
+      COUNT(DISTINCT bssid) AS node_count
+    FROM candidate_nodes
+    GROUP BY OUI, ssid
+  ),
+  inserted AS (
     INSERT INTO app.network_sibling_pairs (
       bssid1, bssid2, rule, confidence, ssid1, ssid2, distance_m, matched_octets, pair_strength, quality_scope, computed_at,
       run_id
     )
     SELECT
-      LEAST(a.bssid, b.bssid),
-      GREATEST(a.bssid, b.bssid),
+      LEAST(a.bssid, b.bssid) AS bssid1,
+      GREATEST(a.bssid, b.bssid) AS bssid2,
       'cross_oui_ssid_exact',
       LEAST(1.000, 0.88),
       a.ssid,
       b.ssid,
-      ST_Distance(
-        ST_SetSRID(ST_MakePoint(COALESCE(a.bestlon, a.lastlon), COALESCE(a.bestlat, a.lastlat)), 4326)::geography,
-        ST_SetSRID(ST_MakePoint(COALESCE(b.bestlon, b.lastlon), COALESCE(b.bestlat, b.lastlat)), 4326)::geography
-      ),
-      'ssid+proximity',
-      'candidate',
-      'default',
-      now(),
-      $1::integer
-    FROM app.networks a
-    JOIN app.networks b
+      CASE
+        WHEN a.lat IS NOT NULL AND a.lon IS NOT NULL AND b.lat IS NOT NULL AND b.lon IS NOT NULL
+        THEN ST_Distance(
+          ST_SetSRID(ST_MakePoint(a.lon, a.lat), 4326)::geography,
+          ST_SetSRID(ST_MakePoint(b.lon, b.lat), 4326)::geography
+        )
+        ELSE NULL
+      END AS distance_m,
+      '3+ matching octets'::text AS matched_octets,
+      'candidate'::text AS pair_strength,
+      'default'::text AS quality_scope,
+      now() AS computed_at,
+      $1::integer AS run_id
+    FROM candidate_nodes a
+    JOIN candidate_nodes b
       ON b.ssid = a.ssid
      AND SUBSTRING(b.bssid, 1, 8) <> SUBSTRING(a.bssid, 1, 8)
      AND b.bssid > a.bssid
-     AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+    JOIN cluster_sizes cs_a ON cs_a.OUI = SUBSTRING(a.bssid, 1, 8) AND cs_a.ssid = a.ssid
+    JOIN cluster_sizes cs_b ON cs_b.OUI = SUBSTRING(b.bssid, 1, 8) AND cs_b.ssid = b.ssid
     LEFT JOIN app.network_sibling_overrides nso
       ON nso.bssid1 = LEAST(a.bssid, b.bssid)
      AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
      AND nso.relation = 'not_sibling'
      AND nso.is_active = true
-    WHERE a.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
-      AND nso.bssid1 IS NULL
+    WHERE nso.bssid1 IS NULL
       AND a.ssid IS NOT NULL AND a.ssid <> ''
       AND lower(regexp_replace(a.ssid, '[^a-zA-Z0-9]+', '', 'g')) NOT IN (${FLEET_SSID_SQL_LIST})
       AND lower(regexp_replace(a.ssid, '[^a-zA-Z0-9]+', '', 'g')) NOT LIKE 'hmc%'
+      -- Criteria 2: Share a minimum of 3 matching octets overall
+      AND (
+        (CASE WHEN split_part(b.bssid, ':', 1) = split_part(a.bssid, ':', 1) THEN 1 ELSE 0 END) +
+        (CASE WHEN split_part(b.bssid, ':', 2) = split_part(a.bssid, ':', 2) THEN 1 ELSE 0 END) +
+        (CASE WHEN split_part(b.bssid, ':', 3) = split_part(a.bssid, ':', 3) THEN 1 ELSE 0 END) +
+        (CASE WHEN split_part(b.bssid, ':', 4) = split_part(a.bssid, ':', 4) THEN 1 ELSE 0 END) +
+        (CASE WHEN split_part(b.bssid, ':', 5) = split_part(a.bssid, ':', 5) THEN 1 ELSE 0 END) +
+        (CASE WHEN split_part(b.bssid, ':', 6) = split_part(a.bssid, ':', 6) THEN 1 ELSE 0 END)
+      ) >= 3
+      -- Criteria 3: Keep cluster sizes <= 16
+      AND cs_a.node_count <= 16
+      AND cs_b.node_count <= 16
     ON CONFLICT (bssid1, bssid2) DO UPDATE
       SET rule        = EXCLUDED.rule,
           confidence  = EXCLUDED.confidence,

@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-17)
+# 1.0.0 (2026-05-21)
 
 
 ### Bug Fixes
@@ -695,7 +695,7 @@
 * **sibling-detection:** fix adminDbService import causing startup crash ([44829ef](https://github.com/cyclonite69/shadowcheck-web/commit/44829ef1fd3ebec19a7ee2694c16c6812cfe71f5))
 * **sibling:** add msamobile and lapeeremsmobile to FLEET_SSIDS ([eed21eb](https://github.com/cyclonite69/shadowcheck-web/commit/eed21ebd6794a63fd2953c44fe0ae05b27652fcd))
 * **sibling:** deterministic last_octet_sequential rule, tighten OUI proximity ([b2f87c2](https://github.com/cyclonite69/shadowcheck-web/commit/b2f87c29c5c53059aef24675376abcfb7d8e945f))
-* **sibling:** fix regex case stripping in SSID fleet normalization ([1077744](https://github.com/cyclonite69/shadowcheck-web/commit/1077744784b630d39000886ea3f6b74bb9f743c2))
+* **sibling:** fix regex case stripping in SSID fleet normalization ([b1d68de](https://github.com/cyclonite69/shadowcheck-web/commit/b1d68dead9746d90a0816e7ff0e23bdf969461db))
 * **sibling:** implement guarded ON CONFLICT and deterministic dedup ([d97ad20](https://github.com/cyclonite69/shadowcheck-web/commit/d97ad204687f33afb72cdc1542233d66c1bca6c9)), closes [hi#confidence](https://github.com/hi/issues/confidence)
 * **sibling:** massive expansion of FLEET_SSIDS list ([76f5117](https://github.com/cyclonite69/shadowcheck-web/commit/76f5117d2174ee1b3a3d7e3da3363bb75a30e226))
 * **sibling:** migration 008 — remove distance gate from find_sibling_radios ([f45aa3b](https://github.com/cyclonite69/shadowcheck-web/commit/f45aa3bbb7bd74ccd8fd674a968cb31a686c826b))
@@ -1194,6 +1194,7 @@
 * **sibling:** add 5 detection rules, remove LA-MAC exclusion, consolidate fleet SSIDs ([bdb5829](https://github.com/cyclonite69/shadowcheck-web/commit/bdb5829c82491fe6ee910f30aff8d7aca1b81bde))
 * **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
 * **siblings:** add middle_octets_sequential rule for multi-BSSID APs ([888cb80](https://github.com/cyclonite69/shadowcheck-web/commit/888cb800028988e491cd01accc1fba857b09bd59))
+* **siblings:** refactor cross_oui_ssid_exact to enforce octet structure and 16-node ceiling ([45b6382](https://github.com/cyclonite69/shadowcheck-web/commit/45b6382bd2a1ce60e7182ab03914209e9c2fb3e9))
 * **siblings:** show linked pairs in explorer ([97206d8](https://github.com/cyclonite69/shadowcheck-web/commit/97206d8e46174f0fcf888d807de5086056958f83))
 * SM-only secrets, fix networks API, scheduled backups, migration cleanup ([7d5403b](https://github.com/cyclonite69/shadowcheck-web/commit/7d5403b60aef8c08541eb7c00dcd23666d27826f))
 * smart radio-type-aware tooltips and signal range estimation ([7504f5e](https://github.com/cyclonite69/shadowcheck-web/commit/7504f5eb3b2dc60281fea7bb59000e3b217fcf9c))
