@@ -207,6 +207,61 @@ export class SiblingDetectionOrchestrator {
       `);
     }
 
+    // Enforce 16-Node Cluster Ceiling for sequential rules (last_octet_sequential, middle_octets_sequential, upper_octet_rotation)
+    const sequentialOverflowCheck = await this.deps.adminQuery(`
+      WITH candidate_nodes AS (
+        SELECT DISTINCT bssid, SUBSTRING(bssid, 1, 8) AS OUI, rule
+        FROM (
+          SELECT bssid1 AS bssid, rule FROM app.network_sibling_pairs
+          UNION ALL
+          SELECT bssid2 AS bssid, rule FROM app.network_sibling_pairs
+        ) t
+        WHERE rule IN ('last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
+      ),
+      cluster_sizes AS (
+        SELECT OUI, rule, COUNT(*) AS node_count
+        FROM candidate_nodes
+        GROUP BY OUI, rule
+      )
+      SELECT OUI AS oui, rule, node_count
+      FROM cluster_sizes
+      WHERE node_count >= 17
+    `);
+
+    if (sequentialOverflowCheck.rows && sequentialOverflowCheck.rows.length > 0) {
+      for (const row of sequentialOverflowCheck.rows) {
+        logger.warn(
+          `[HARDWARE OVERFLOW - INVESTIGATE] Cluster OUI ${row.oui} for rule "${row.rule}" has ${row.node_count} connected nodes. Dropping from active sibling tracking.`
+        );
+      }
+
+      await this.deps.adminQuery(`
+        WITH candidate_nodes AS (
+          SELECT DISTINCT bssid, SUBSTRING(bssid, 1, 8) AS OUI, rule
+          FROM (
+            SELECT bssid1 AS bssid, rule FROM app.network_sibling_pairs
+            UNION ALL
+            SELECT bssid2 AS bssid, rule FROM app.network_sibling_pairs
+          ) t
+          WHERE rule IN ('last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
+        ),
+        cluster_sizes AS (
+          SELECT OUI, rule, COUNT(*) AS node_count
+          FROM candidate_nodes
+          GROUP BY OUI, rule
+        ),
+        overflow_clusters AS (
+          SELECT OUI, rule
+          FROM cluster_sizes
+          WHERE node_count >= 17
+        )
+        DELETE FROM app.network_sibling_pairs p
+        USING overflow_clusters oc
+        WHERE p.rule = oc.rule
+          AND (SUBSTRING(p.bssid1, 1, 8) = oc.OUI OR SUBSTRING(p.bssid2, 1, 8) = oc.OUI);
+      `);
+    }
+
     logger.info('[Siblings] Extra rules complete', extraRuleResults);
 
     const finalStatus = completed ? 'completed' : 'truncated';

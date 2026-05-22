@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-21)
+# 1.0.0 (2026-05-22)
 
 
 ### Bug Fixes
@@ -1191,10 +1191,11 @@
 * show radius label centered inside hover signal circle ([63737e5](https://github.com/cyclonite69/shadowcheck-web/commit/63737e59504822c9ab1d6b1e856a70edffeeea57))
 * **sibling-detection:** add mac_increment and band_pair modalities alongside existing detection ([4c39920](https://github.com/cyclonite69/shadowcheck-web/commit/4c399201f7b01b0acf689bbc44edfa969b738b7a))
 * **sibling-detection:** add xfinity_sig modality (fleet_unit rejected, 0 detections) ([eb1ef34](https://github.com/cyclonite69/shadowcheck-web/commit/eb1ef3404e9ba79216310eb4f80b6bd3cdb90701))
+* **sibling-detection:** implement total octet counting & retain cluster ceiling ([f059c54](https://github.com/cyclonite69/shadowcheck-web/commit/f059c54e524994749b9a97312478da956c0212dd))
 * **sibling:** add 5 detection rules, remove LA-MAC exclusion, consolidate fleet SSIDs ([bdb5829](https://github.com/cyclonite69/shadowcheck-web/commit/bdb5829c82491fe6ee910f30aff8d7aca1b81bde))
 * **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
 * **siblings:** add middle_octets_sequential rule for multi-BSSID APs ([888cb80](https://github.com/cyclonite69/shadowcheck-web/commit/888cb800028988e491cd01accc1fba857b09bd59))
-* **siblings:** refactor cross_oui_ssid_exact to enforce octet structure and 16-node ceiling ([45b6382](https://github.com/cyclonite69/shadowcheck-web/commit/45b6382bd2a1ce60e7182ab03914209e9c2fb3e9))
+* **siblings:** refactor cross_oui_ssid_exact to enforce octet structure and 16-node ceiling ([3c2027c](https://github.com/cyclonite69/shadowcheck-web/commit/3c2027cd0d60dd18fdd23c4c26af1c3a204548fe))
 * **siblings:** show linked pairs in explorer ([97206d8](https://github.com/cyclonite69/shadowcheck-web/commit/97206d8e46174f0fcf888d807de5086056958f83))
 * SM-only secrets, fix networks API, scheduled backups, migration cleanup ([7d5403b](https://github.com/cyclonite69/shadowcheck-web/commit/7d5403b60aef8c08541eb7c00dcd23666d27826f))
 * smart radio-type-aware tooltips and signal range estimation ([7504f5e](https://github.com/cyclonite69/shadowcheck-web/commit/7504f5eb3b2dc60281fea7bb59000e3b217fcf9c))

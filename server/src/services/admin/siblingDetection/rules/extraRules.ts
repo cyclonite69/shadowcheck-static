@@ -240,13 +240,16 @@ const EXTRA_RULE_SAME_OUI_PROXIMITY = `
       $1::integer
     FROM app.networks a
     JOIN app.networks b
-      ON SUBSTRING(b.bssid, 1, 11) = SUBSTRING(a.bssid, 1, 11)
-     AND ABS(
-           ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
-           ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
-         ) BETWEEN 1 AND 6
-     AND b.bssid > a.bssid
+      ON b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+     AND (
+       (CASE WHEN split_part(b.bssid, ':', 1) = split_part(a.bssid, ':', 1) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 2) = split_part(a.bssid, ':', 2) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 3) = split_part(a.bssid, ':', 3) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 4) = split_part(a.bssid, ':', 4) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 5) = split_part(a.bssid, ':', 5) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 6) = split_part(a.bssid, ':', 6) THEN 1 ELSE 0 END)
+     ) >= 5
     LEFT JOIN app.network_sibling_overrides nso
       ON nso.bssid1 = LEAST(a.bssid, b.bssid)
      AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
@@ -413,13 +416,16 @@ const EXTRA_RULE_GENESEE_COUNTY = `
       $1::integer
     FROM app.networks a
     JOIN app.networks b
-      ON SUBSTRING(b.bssid, 1, 14) = SUBSTRING(a.bssid, 1, 14)
-     AND ABS(
-           ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
-           ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
-         ) BETWEEN 1 AND 15
-     AND b.bssid > a.bssid
+      ON b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+     AND (
+       (CASE WHEN split_part(b.bssid, ':', 1) = split_part(a.bssid, ':', 1) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 2) = split_part(a.bssid, ':', 2) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 3) = split_part(a.bssid, ':', 3) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 4) = split_part(a.bssid, ':', 4) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 5) = split_part(a.bssid, ':', 5) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 6) = split_part(a.bssid, ':', 6) THEN 1 ELSE 0 END)
+     ) >= 5
     LEFT JOIN app.network_sibling_overrides nso
       ON nso.bssid1 = LEAST(a.bssid, b.bssid)
      AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
@@ -517,13 +523,16 @@ const EXTRA_RULE_RGLIDE_WIDE = `
       $1::integer
     FROM app.networks a
     JOIN app.networks b
-      ON SUBSTRING(b.bssid, 1, 14) = SUBSTRING(a.bssid, 1, 14)
-     AND ABS(
-           ('x' || SUBSTRING(b.bssid, 16, 2))::bit(8)::int -
-           ('x' || SUBSTRING(a.bssid, 16, 2))::bit(8)::int
-         ) BETWEEN 1 AND 13
-     AND b.bssid > a.bssid
+      ON b.bssid > a.bssid
      AND b.bssid ~* '^([0-9A-F]{2}:){5}[0-9A-F]{2}$'
+     AND (
+       (CASE WHEN split_part(b.bssid, ':', 1) = split_part(a.bssid, ':', 1) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 2) = split_part(a.bssid, ':', 2) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 3) = split_part(a.bssid, ':', 3) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 4) = split_part(a.bssid, ':', 4) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 5) = split_part(a.bssid, ':', 5) THEN 1 ELSE 0 END) +
+       (CASE WHEN split_part(b.bssid, ':', 6) = split_part(a.bssid, ':', 6) THEN 1 ELSE 0 END)
+     ) >= 5
     LEFT JOIN app.network_sibling_overrides nso
       ON nso.bssid1 = LEAST(a.bssid, b.bssid)
      AND nso.bssid2 = GREATEST(a.bssid, b.bssid)
