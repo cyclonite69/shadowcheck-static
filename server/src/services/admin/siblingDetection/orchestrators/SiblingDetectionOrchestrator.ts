@@ -207,7 +207,7 @@ export class SiblingDetectionOrchestrator {
       `);
     }
 
-    // Enforce 16-Node Cluster Ceiling for sequential rules (last_octet_sequential, middle_octets_sequential, upper_octet_rotation)
+    // Enforce 16-Node Cluster Ceiling for sequential rules (Class A/B/C and legacy sequential)
     const sequentialOverflowCheck = await this.deps.adminQuery(`
       WITH candidate_nodes AS (
         SELECT DISTINCT bssid, SUBSTRING(bssid, 1, 8) AS OUI, rule
@@ -216,7 +216,7 @@ export class SiblingDetectionOrchestrator {
           UNION ALL
           SELECT bssid2 AS bssid, rule FROM app.network_sibling_pairs
         ) t
-        WHERE rule IN ('last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
+        WHERE rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
       ),
       cluster_sizes AS (
         SELECT OUI, rule, COUNT(*) AS node_count
@@ -243,7 +243,7 @@ export class SiblingDetectionOrchestrator {
             UNION ALL
             SELECT bssid2 AS bssid, rule FROM app.network_sibling_pairs
           ) t
-          WHERE rule IN ('last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
+          WHERE rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
         ),
         cluster_sizes AS (
           SELECT OUI, rule, COUNT(*) AS node_count

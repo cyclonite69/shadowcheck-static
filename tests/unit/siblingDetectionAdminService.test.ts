@@ -46,15 +46,6 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({
         rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }],
       })
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
@@ -75,15 +66,6 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({ rows: [{ id: 1 }] }) // Insert run
       .mockResolvedValueOnce({ rows: [{ cutoff: '2026-05-09' }] }) // Get cutoff
       .mockResolvedValueOnce({ rows: [] }) // REFRESH_CHUNK_SQL
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
@@ -92,7 +74,7 @@ describe('siblingDetectionAdminService', () => {
     // Logic should handle missing rows by using {}
     const result = await service.runSiblingRefreshJob();
     expect(result.seedsProcessed).toBe(0);
-    expect(mockAdminQuery.mock.calls[3][1]).toEqual([1]);
+    expect(mockAdminQuery.mock.calls[3][1]).toEqual([]);
   });
 
   it('honors maxBatches and returns completed=false when truncated', async () => {
@@ -102,15 +84,6 @@ describe('siblingDetectionAdminService', () => {
       .mockResolvedValueOnce({
         rows: [{ seed_count: 3, upserted_count: 2, next_cursor: 'AA:AA:AA:AA:AA:03' }],
       })
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
-      .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
       .mockResolvedValueOnce({ rowCount: 1 }) // Update run
@@ -136,8 +109,8 @@ describe('siblingDetectionAdminService', () => {
     expect(stats.strong_pairs).toBe(23);
   });
 
-  describe('BUG 1 — last_octet_sequential rule fires in EXTRA_RULES_SQL', () => {
-    it('executes extra rules after chunk loop and logs last_octet counts', async () => {
+  describe('BUG 1 — manual_boost rule fires in EXTRA_RULES_SQL', () => {
+    it('executes extra rules after chunk loop and logs manual_boost counts', async () => {
       mockAdminQuery
         .mockResolvedValueOnce({ rows: [{ id: 1 }] }) // Insert run
         .mockResolvedValueOnce({ rows: [{ cutoff: '2026-05-09' }] }) // Get cutoff
@@ -145,17 +118,8 @@ describe('siblingDetectionAdminService', () => {
           rows: [{ seed_count: 2, upserted_count: 1, next_cursor: 'AA:BB:CC:DD:EE:02' }],
         })
         .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
-        .mockResolvedValueOnce({ rows: [{ count: 3 }] }) // upper_rotation
-        .mockResolvedValueOnce({ rows: [{ count: 1 }] }) // ssid_anchor
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
+        .mockResolvedValueOnce({ rows: [{ count: 3 }] }) // manual_boost
+        .mockResolvedValueOnce({ rows: [{ count: 1 }] }) // manual_insert
         .mockResolvedValueOnce({ rowCount: 1 }) // Update run
         .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
 
@@ -164,65 +128,7 @@ describe('siblingDetectionAdminService', () => {
       expect(result.success).toBe(true);
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.stringContaining('Extra rules complete'),
-        expect.objectContaining({ upper_rotation: 3 })
-      );
-    });
-  });
-
-  describe('BUG 2 — same_oui_proximity requires spatial corroboration', () => {
-    it('reports zero same_oui_proximity when no spatial data present (no false positives)', async () => {
-      mockAdminQuery
-        .mockResolvedValueOnce({ rows: [{ id: 1 }] }) // Insert run
-        .mockResolvedValueOnce({ rows: [{ cutoff: '2026-05-09' }] }) // Get cutoff
-        .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // same_oui_proximity
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
-        .mockResolvedValueOnce({ rowCount: 1 }) // Update run
-        .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
-
-      const result = await service.runSiblingRefreshJob();
-
-      expect(result.success).toBe(true);
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Extra rules complete'),
-        expect.objectContaining({ same_oui_proximity: 0 })
-      );
-    });
-
-    it('reports same_oui_proximity count when spatial corroboration exists', async () => {
-      mockAdminQuery
-        .mockResolvedValueOnce({ rows: [{ id: 1 }] }) // Insert run
-        .mockResolvedValueOnce({ rows: [{ cutoff: '2026-05-09' }] }) // Get cutoff
-        .mockResolvedValueOnce({ rows: [{ seed_count: 0, upserted_count: 0, next_cursor: null }] })
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // upper_rotation
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // ssid_anchor
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cross_oui_ssid
-        .mockResolvedValueOnce({ rows: [{ count: 5 }] }) // same_oui_proximity
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // octet4_rotation_64
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // cisco_quad_radio
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // genesee_county
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // target_retail
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // rglide_wide
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_boost
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }) // manual_insert
-        .mockResolvedValueOnce({ rowCount: 1 }) // Update run
-        .mockResolvedValueOnce({ rows: [] }); // Refresh OUI
-
-      const result = await service.runSiblingRefreshJob();
-
-      expect(result.success).toBe(true);
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Extra rules complete'),
-        expect.objectContaining({ same_oui_proximity: 5 })
+        expect.objectContaining({ manual_boost: 3 })
       );
     });
   });

@@ -15,8 +15,10 @@ jest.mock('../../server/src/config/container', () => ({
 
 describe('Sibling Detection Property-Based Tests', () => {
   beforeEach(() => {
-    mockAdminQuery.mockClear();
-    mockLongRunningAdminQuery.mockClear();
+    mockAdminQuery.mockReset();
+    mockLongRunningAdminQuery.mockReset();
+    mockAdminQuery.mockResolvedValue({ rows: [] });
+    mockLongRunningAdminQuery.mockResolvedValue({ rows: [] });
   });
 
   test('Confidence score should always be between 0 and 1', async () => {
@@ -28,15 +30,6 @@ describe('Sibling Detection Property-Based Tests', () => {
           mockAdminQuery.mockResolvedValueOnce({ rows: [{ id: 1 }] }); // Run ID
           mockAdminQuery.mockResolvedValueOnce({ rows: [{ cutoff: '2026-05-09' }] }); // Cutoff
           mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ seed_count: 0 }] }); // Empty batch
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // upper_rotation
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // ssid_anchor
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // cross_oui_ssid
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // same_oui_proximity
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // octet4_rotation_64
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // cisco_quad_radio
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // genesee_county
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // target_retail
-          mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // rglide_wide
           mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // manual_boost
           mockLongRunningAdminQuery.mockResolvedValueOnce({ rows: [{ count: 0 }] }); // manual_insert
           mockAdminQuery.mockResolvedValueOnce({ rowCount: 1 }); // Update run

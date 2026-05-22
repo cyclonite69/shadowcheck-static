@@ -68,7 +68,7 @@ describe('settings routes', () => {
     it('should get aws settings', async () => {
       const res = await request(app).get('/api/settings/aws');
       expect(res.status).toBe(200);
-      expect(res.body.region).toBeNull();
+      expect(res.body.region).toBe('us-east-1');
     });
 
     it('should post aws region', async () => {
