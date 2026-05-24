@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-22)
+# 1.0.0 (2026-05-24)
 
 
 ### Bug Fixes
@@ -182,6 +182,7 @@
 * **dashboard:** treat all-radio selection as no-op in metrics path ([b2a1f4c](https://github.com/cyclonite69/shadowcheck-web/commit/b2a1f4ca6ae291055549c210bdb1538cbd84fb30))
 * **dashboard:** use explorer MV in filtered metrics query ([bced45d](https://github.com/cyclonite69/shadowcheck-web/commit/bced45d08522031f5bf588df2200dae0e1bea4ab))
 * **data:** add missing deflock_cameras columns + fix import path ([929a063](https://github.com/cyclonite69/shadowcheck-web/commit/929a063018ed2ccd7a6337bdb8da4b3cb7447c4c))
+* **db-stats:** refresh planner stats after bulk maintenance ([144b67b](https://github.com/cyclonite69/shadowcheck-web/commit/144b67bcae929e3f0e686eda1feff1b7a18c0d15))
 * **db:** add deduplication to kismet constraints migration ([42ecd1a](https://github.com/cyclonite69/shadowcheck-web/commit/42ecd1a778fa11cfeea34e47d4c77a21a9681e86))
 * **db:** align radio_manufacturers joins with oui column ([c1fae74](https://github.com/cyclonite69/shadowcheck-web/commit/c1fae74617b3f4f1aa8b371aefafd73b8c69f7bc))
 * **db:** correct max_distance_meters using PostGIS distance ([a91e756](https://github.com/cyclonite69/shadowcheck-web/commit/a91e7561c10013a3c19ff2e8af796a429e3384a2))
@@ -1101,6 +1102,7 @@
 * geospatial tooltip system overhaul with viewport-safe anchoring, draggable tooltips, tether lines, and radius line annotations ([f2adc84](https://github.com/cyclonite69/shadowcheck-web/commit/f2adc84204f9d85941849ad6505f44235ae7b049))
 * geospatial.html uses base-components ([8b9b1c2](https://github.com/cyclonite69/shadowcheck-web/commit/8b9b1c27d6eaee441ecd2240a6005a9a124f0400))
 * **geospatial:** add bounded popup cards for wigle and agency markers ([1f7576a](https://github.com/cyclonite69/shadowcheck-web/commit/1f7576a5bcbfc199c7d55a4584b99e69822d7bc0))
+* **geospatial:** bake sibling summary into explorer mv ([6e0f554](https://github.com/cyclonite69/shadowcheck-web/commit/6e0f554f9e354355345b3c88188b234e7ff5c527))
 * **geospatial:** cluster visible sibling rows ([7e02ee8](https://github.com/cyclonite69/shadowcheck-web/commit/7e02ee8d493595b971f7d0b886a4e24058ba5153))
 * **geospatial:** enhance network tooltips and enable agency/courthouse popups on WiGLE map ([24f372d](https://github.com/cyclonite69/shadowcheck-web/commit/24f372dba6b8cd897403f0a77fef1ae977b119ed))
 * **geospatial:** persist visible sibling group indicators ([1edb27d](https://github.com/cyclonite69/shadowcheck-web/commit/1edb27dc3fbf560ee486932af0365fbc9d1f4bc6))
@@ -1195,8 +1197,9 @@
 * **sibling:** add 5 detection rules, remove LA-MAC exclusion, consolidate fleet SSIDs ([bdb5829](https://github.com/cyclonite69/shadowcheck-web/commit/bdb5829c82491fe6ee910f30aff8d7aca1b81bde))
 * **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
 * **siblings:** add middle_octets_sequential rule for multi-BSSID APs ([888cb80](https://github.com/cyclonite69/shadowcheck-web/commit/888cb800028988e491cd01accc1fba857b09bd59))
-* **siblings:** consolidate asymmetric twins and purge SSID blacklists ([d9f7728](https://github.com/cyclonite69/shadowcheck-web/commit/d9f7728bafc21e07ed43cb39d97d4d13130f9257))
+* **siblings:** consolidate asymmetric twins and purge SSID blacklists ([35ad8d5](https://github.com/cyclonite69/shadowcheck-web/commit/35ad8d5e6f6b35ba178396644a6d1c0c6d4ffa9d))
 * **siblings:** consolidate deterministic routing sieve into core DB engine ([3b2236c](https://github.com/cyclonite69/shadowcheck-web/commit/3b2236ccba080954b0cef4e7de5b873605c84f54))
+* **siblings:** consolidate deterministic vendor twin rules ([7b78f89](https://github.com/cyclonite69/shadowcheck-web/commit/7b78f8980a66e1675311fe0c50055014ffb04d34))
 * **siblings:** refactor cross_oui_ssid_exact to enforce octet structure and 16-node ceiling ([3c2027c](https://github.com/cyclonite69/shadowcheck-web/commit/3c2027cd0d60dd18fdd23c4c26af1c3a204548fe))
 * **siblings:** show linked pairs in explorer ([97206d8](https://github.com/cyclonite69/shadowcheck-web/commit/97206d8e46174f0fcf888d807de5086056958f83))
 * SM-only secrets, fix networks API, scheduled backups, migration cleanup ([7d5403b](https://github.com/cyclonite69/shadowcheck-web/commit/7d5403b60aef8c08541eb7c00dcd23666d27826f))

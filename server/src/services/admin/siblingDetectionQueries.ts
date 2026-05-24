@@ -42,8 +42,8 @@ const PAIR_REFRESH_AUDIT_CTE = `
       (p.bssid1 IS NOT NULL AND f.final_conf < p.confidence) AS would_downgrade_confidence,
       (
         p.bssid1 IS NOT NULL
-        AND p.rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
-        AND f.rule NOT IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
+        AND p.rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'Unnamed Recursive (Class C)', 'AIRLINK_DELTA1_TWIN', 'SIERRA_DELTA1_TWIN', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
+        AND f.rule NOT IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'Unnamed Recursive (Class C)', 'AIRLINK_DELTA1_TWIN', 'SIERRA_DELTA1_TWIN', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
       ) AS would_replace_deterministic_with_probabilistic,
       (
         hc.competing_hits IS NOT NULL
@@ -111,6 +111,9 @@ const REFRESH_CHUNK_SQL_CORE = `
         WHEN 'Class B' THEN 3
         WHEN 'Unnamed Recursive (Class B)' THEN 4
         WHEN 'Class C' THEN 5
+        WHEN 'Unnamed Recursive (Class C)' THEN 6
+        WHEN 'AIRLINK_DELTA1_TWIN' THEN 7
+        WHEN 'SIERRA_DELTA1_TWIN' THEN 8
         WHEN 'last_octet_sequential' THEN 10
         WHEN 'ssid_exact_sequential' THEN 11
         WHEN 'middle_octets_sequential' THEN 12
@@ -177,7 +180,7 @@ const REFRESH_CHUNK_SQL_CORE = `
       s.bssid1,
       s.bssid2,
       s.rule,
-      LEAST(1.000, CASE WHEN s.rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential') THEN s.confidence
+      LEAST(1.000, CASE WHEN s.rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'Unnamed Recursive (Class C)', 'AIRLINK_DELTA1_TWIN', 'SIERRA_DELTA1_TWIN', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential') THEN s.confidence
       ELSE GREATEST(0, (
         s.confidence
         - s.distance_penalty
@@ -274,8 +277,8 @@ const UPSERT_LOGIC_PROD = `INSERT INTO app.network_sibling_pairs (
     WHERE
       EXCLUDED.confidence > network_sibling_pairs.confidence
       OR (
-        EXCLUDED.rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
-        AND network_sibling_pairs.rule NOT IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
+        EXCLUDED.rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'Unnamed Recursive (Class C)', 'AIRLINK_DELTA1_TWIN', 'SIERRA_DELTA1_TWIN', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
+        AND network_sibling_pairs.rule NOT IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'Unnamed Recursive (Class C)', 'AIRLINK_DELTA1_TWIN', 'SIERRA_DELTA1_TWIN', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential')
       )
     RETURNING 1`;
 
