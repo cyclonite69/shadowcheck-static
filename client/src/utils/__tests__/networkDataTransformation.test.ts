@@ -282,4 +282,24 @@ describe('mapApiRowToNetwork', () => {
     expect(net.weighted_lat).toBe(43.02325);
     expect(net.weighted_lon).toBe(-83.69695);
   });
+
+  it('maps sibling summary fields from the API row', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        has_siblings: true,
+        sibling_count: '3',
+        sibling_max_confidence: '0.99',
+        has_strong_sibling: true,
+        sibling_bssids: ['aa:bb:cc:dd:ee:01', 'AA:BB:CC:DD:EE:02'],
+      },
+      0
+    );
+
+    expect(net.has_siblings).toBe(true);
+    expect(net.sibling_count).toBe(3);
+    expect(net.sibling_max_confidence).toBe(0.99);
+    expect(net.has_strong_sibling).toBe(true);
+    expect(net.sibling_bssids).toEqual(['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02']);
+  });
 });

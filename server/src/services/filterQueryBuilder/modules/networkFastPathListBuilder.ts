@@ -11,6 +11,7 @@ import {
 
 const RM_SELECT_FIELDS = SqlFragmentLibrary.selectManufacturerFields('rm');
 const GEOCODED_SELECT_FIELDS = SqlFragmentLibrary.selectGeocodedFields('ne');
+const SIBLING_SELECT_FIELDS = SqlFragmentLibrary.selectSiblingSummaryFields('ne');
 const NT_SELECT_FIELDS = SqlFragmentLibrary.selectThreatTagFields('nt');
 
 function sanitizeFastPathOrderBy(orderBy: string): string {
@@ -48,6 +49,7 @@ function buildFastPathListSql(
         ne.last_seen,
         ${RM_SELECT_FIELDS},
         ${GEOCODED_SELECT_FIELDS},
+        ${SIBLING_SELECT_FIELDS},
         n.min_altitude_m,
         n.max_altitude_m,
         n.altitude_span_m,

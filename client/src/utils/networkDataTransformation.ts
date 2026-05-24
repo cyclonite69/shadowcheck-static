@@ -181,5 +181,13 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     centroid_lon: parseNumericField(row.centroid_lon),
     weighted_lat: parseNumericField(row.weighted_lat),
     weighted_lon: parseNumericField(row.weighted_lon),
+    has_siblings: Boolean(row.has_siblings),
+    sibling_count: parseIntegerField(row.sibling_count) ?? 0,
+    sibling_max_confidence: parseNumericField(row.sibling_max_confidence),
+    has_strong_sibling:
+      typeof row.has_strong_sibling === 'boolean' ? row.has_strong_sibling : false,
+    sibling_bssids: Array.isArray(row.sibling_bssids)
+      ? row.sibling_bssids.map((bssid: unknown) => String(bssid).toUpperCase())
+      : [],
   };
 };

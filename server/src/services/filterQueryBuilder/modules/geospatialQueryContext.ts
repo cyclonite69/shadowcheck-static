@@ -57,6 +57,11 @@ export function buildGeospatialQueryContext(
         ne.geocoded_city,
         ne.geocoded_state,
         ne.geocoded_poi_name,
+        ne.has_siblings,
+        ne.sibling_count,
+        ne.sibling_max_confidence,
+        ne.has_strong_sibling,
+        ne.sibling_bssids,
         ${includeStationaryConfidence ? 'ne.stationary_confidence' : 'NULL::numeric AS stationary_confidence'}
       `;
 

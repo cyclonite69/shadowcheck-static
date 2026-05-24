@@ -89,6 +89,11 @@ export type NetworkRow = {
   centroid_lon?: number | null;
   weighted_lat?: number | null;
   weighted_lon?: number | null;
+  has_siblings?: boolean;
+  sibling_count?: number | null;
+  sibling_max_confidence?: number | null;
+  has_strong_sibling?: boolean | null;
+  sibling_bssids?: string[];
   // Tag fields (from app.network_tags JOIN in list query)
   threat_tag?: 'THREAT' | 'SUSPECT' | 'FALSE_POSITIVE' | 'INVESTIGATE' | null;
   is_ignored?: boolean | null;

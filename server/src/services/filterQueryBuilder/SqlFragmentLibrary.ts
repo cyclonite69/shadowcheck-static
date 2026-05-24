@@ -35,6 +35,19 @@ export class SqlFragmentLibrary {
   }
 
   /**
+   * Returns sibling summary projection fields from the explorer MV.
+   */
+  static selectSiblingSummaryFields(mvAlias = 'ne'): string {
+    return `
+      ${mvAlias}.has_siblings,
+      ${mvAlias}.sibling_count,
+      ${mvAlias}.sibling_max_confidence,
+      ${mvAlias}.has_strong_sibling,
+      ${mvAlias}.sibling_bssids
+    `.trim();
+  }
+
+  /**
    * Returns schema-compatible network tag projection fields.
    */
   static selectThreatTagFields(tagAlias = 'nt'): string {

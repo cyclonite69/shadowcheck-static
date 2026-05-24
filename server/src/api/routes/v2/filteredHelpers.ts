@@ -86,6 +86,11 @@ export interface NetworkRow {
   centroid_lon: number | null;
   weighted_lat: number | null;
   weighted_lon: number | null;
+  has_siblings?: boolean;
+  sibling_count?: number;
+  sibling_max_confidence?: number | null;
+  has_strong_sibling?: boolean;
+  sibling_bssids?: string[];
   threat?: ThreatObject;
   [key: string]: unknown;
 }
@@ -99,6 +104,11 @@ export interface GeospatialRow {
   centroid_lon: number | null;
   weighted_lat: number | null;
   weighted_lon: number | null;
+  has_siblings: boolean;
+  sibling_count: number;
+  sibling_max_confidence: number | null;
+  has_strong_sibling: boolean;
+  sibling_bssids: string[];
   level: number | null;
   accuracy: number | null;
   altitude: number | null;

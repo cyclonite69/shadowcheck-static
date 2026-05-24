@@ -62,6 +62,11 @@ describe('buildNetworkNoFilterListQuery — includeIgnored branch', () => {
     const ctx = makeCtx();
     const { sql } = buildNetworkNoFilterListQuery(ctx);
     expect(sql).toContain('COALESCE(nt.is_ignored, FALSE) = FALSE');
+    expect(sql).toContain('ne.has_siblings');
+    expect(sql).toContain('ne.sibling_count');
+    expect(sql).toContain('ne.sibling_max_confidence');
+    expect(sql).toContain('ne.has_strong_sibling');
+    expect(sql).toContain('ne.sibling_bssids');
   });
 
   test('omits ignored-exclusion clause when tag filter explicitly includes ignored', () => {

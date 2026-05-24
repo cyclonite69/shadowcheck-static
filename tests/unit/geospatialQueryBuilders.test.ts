@@ -9,10 +9,7 @@ import {
 
 describe('geospatial query builders', () => {
   test('context builder carries network filters and pagination params', () => {
-    const ctx = new FilterBuildContext(
-      { threatCategories: ['high'] },
-      { threatCategories: true }
-    );
+    const ctx = new FilterBuildContext({ threatCategories: ['high'] }, { threatCategories: true });
 
     const context = buildGeospatialQueryContext(
       ctx,
@@ -23,18 +20,20 @@ describe('geospatial query builders', () => {
     expect(context.networkWhere).toHaveLength(1);
     expect(context.networkWhere[0]).toContain('ne.threat_level = ANY(');
     expect(context.limitClause).toBe('LIMIT $2 OFFSET $3');
+    expect(context.selectClause).toContain('ne.has_siblings');
+    expect(context.selectClause).toContain('ne.sibling_count');
+    expect(context.selectClause).toContain('ne.sibling_max_confidence');
+    expect(context.selectClause).toContain('ne.has_strong_sibling');
+    expect(context.selectClause).toContain('ne.sibling_bssids');
     expect(context.params).toEqual([['HIGH'], 25, 10]);
   });
 
   test('list builder uses rollup path when network filters exist', () => {
-    const ctx = new FilterBuildContext(
-      { threatCategories: ['high'] },
-      { threatCategories: true }
-    );
-    const context = buildGeospatialQueryContext(
-      ctx,
-      { cte: 'WITH filtered_obs AS (SELECT * FROM app.observations o)', params: [] }
-    );
+    const ctx = new FilterBuildContext({ threatCategories: ['high'] }, { threatCategories: true });
+    const context = buildGeospatialQueryContext(ctx, {
+      cte: 'WITH filtered_obs AS (SELECT * FROM app.observations o)',
+      params: [],
+    });
 
     const result = buildGeospatialListQuery(ctx, context);
 
@@ -48,15 +47,17 @@ describe('geospatial query builders', () => {
       { threatCategories: ['critical'] },
       { threatCategories: true }
     );
-    const context = buildGeospatialQueryContext(
-      ctx,
-      { cte: 'WITH filtered_obs AS (SELECT * FROM app.observations o)', params: [] }
-    );
+    const context = buildGeospatialQueryContext(ctx, {
+      cte: 'WITH filtered_obs AS (SELECT * FROM app.observations o)',
+      params: [],
+    });
 
     const result = buildGeospatialCountQuery(ctx, context);
 
     expect((result.sql.match(/\bWHERE\b/g) || []).length).toBe(1);
     expect(result.sql).toContain('ne.threat_level = ANY(');
-    expect(result.sql).toContain('AND ((o.lat IS NOT NULL AND o.lon IS NOT NULL) OR o.geom IS NOT NULL)');
+    expect(result.sql).toContain(
+      'AND ((o.lat IS NOT NULL AND o.lon IS NOT NULL) OR o.geom IS NOT NULL)'
+    );
   });
 });

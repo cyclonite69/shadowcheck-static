@@ -86,6 +86,13 @@ export const createGeospatialHandler =
           centroid_lon: effectiveRow.centroid_lon ?? null,
           weighted_lat: effectiveRow.weighted_lat ?? null,
           weighted_lon: effectiveRow.weighted_lon ?? null,
+          has_siblings: Boolean(effectiveRow.has_siblings),
+          sibling_count: effectiveRow.sibling_count ?? 0,
+          sibling_max_confidence: effectiveRow.sibling_max_confidence ?? null,
+          has_strong_sibling: Boolean(effectiveRow.has_strong_sibling),
+          sibling_bssids: Array.isArray(effectiveRow.sibling_bssids)
+            ? effectiveRow.sibling_bssids
+            : [],
           threat: effectiveRow.threat,
           threatReasons: transparency.threatReasons,
           threatEvidence: transparency.threatEvidence,

@@ -65,6 +65,12 @@ To ensure fast frontend lookups, MVs have their own unique and non-unique indexe
 - `idx_api_network_explorer_mv_security` (btree): Filter by security/encryption classification.
 - `idx_api_network_explorer_mv_geom` (GIST, functional): Spatial index on `ST_SetSRID(ST_MakePoint(lon, lat), 4326)` for geographic queries.
 
+### `app.network_sibling_pairs`
+
+- `idx_network_sibling_pairs_bssid1_upper` (btree, expression): Case-insensitive lookup when the current network is `bssid1`.
+- `idx_network_sibling_pairs_bssid2_upper` (btree, expression): Case-insensitive lookup when the current network is `bssid2`.
+- `idx_network_sibling_pairs_confidence` (btree, DESC): Confidence-ordered sibling summary aggregation.
+
 ### `app.api_wigle_networks_mv`
 
 - `idx_wigle_networks_mv_bssid` (UNIQUE, btree): Primary lookup by BSSID.

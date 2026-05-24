@@ -8,13 +8,22 @@ Materialized views are used to pre-aggregate and enrich network data for the fro
 
 ## `app.api_network_explorer_mv`
 
-**Purpose:** Primary view for the Network Explorer. Enriches local observations with geocoding, stationary confidence scoring, and threat metrics.
+**Purpose:** Primary view for the Network Explorer. Enriches local observations with geocoding, stationary confidence scoring, threat metrics, and precomputed sibling-radio summary fields for Geospatial reads.
 
 **Source Tables:**
 
 - `app.observations`
 - `app.location_markers`
 - `app.geocoding_cache`
+- `app.network_sibling_pairs`
+
+**Sibling Summary Columns:**
+
+- `has_siblings` boolean
+- `sibling_count` integer
+- `sibling_max_confidence` numeric
+- `has_strong_sibling` boolean
+- `sibling_bssids` text[]
 
 **Refresh Cadence:** ~Hourly (via `api_mv_refresh_state` tracker).
 
