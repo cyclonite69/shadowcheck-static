@@ -29,6 +29,18 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     // Mist negative (same SSID + same band + different chassis)
     'D4:20:B0:FF:AA:41',
     'D4:20:B0:FF:BB:41',
+    // Mist Rule Correction tests (using EE to avoid clashes with live database observations)
+    'D4:20:B0:EE:8F:E1',
+    'D4:20:B0:EE:8F:E2',
+    'D4:20:B0:EE:8C:E2',
+    // AirLink fifth-octet variation tests
+    '00:14:3E:EE:8F:E1',
+    '00:14:3E:EE:8F:E2',
+    '00:14:3E:EE:8C:E2',
+    // Sierra fifth-octet variation tests
+    '28:A3:31:EE:8F:E1',
+    '28:A3:31:EE:8F:E2',
+    '28:A3:31:EE:8C:E2',
   ];
 
   beforeAll(async () => {
@@ -66,7 +78,22 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
 
         -- Mist negative (same SSID + same band + different chassis)
         ('D4:20:B0:FF:AA:41', 'eduroam', 'W', 2437, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
-        ('D4:20:B0:FF:BB:41', 'eduroam', 'W', 2437, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
+        ('D4:20:B0:FF:BB:41', 'eduroam', 'W', 2437, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- Mist Rule Correction tests
+        ('D4:20:B0:EE:8F:E1', 'eduroam', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('D4:20:B0:EE:8F:E2', 'MGuest',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('D4:20:B0:EE:8C:E2', 'MGuest',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- AirLink fifth-octet variation tests
+        ('00:14:3E:EE:8F:E1', 'AirLink_1', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:14:3E:EE:8F:E2', 'AirLink_2', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:14:3E:EE:8C:E2', 'AirLink_3', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- Sierra fifth-octet variation tests
+        ('28:A3:31:EE:8F:E1', 'Sierra_1',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('28:A3:31:EE:8F:E2', 'Sierra_2',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('28:A3:31:EE:8C:E2', 'Sierra_3',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
     `);
   });
 
@@ -143,5 +170,45 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:FF:FF:32');
     expect(sibling).toBeDefined(); // Permitted! Different SSIDs on the same band (2.4 GHz) on the same chassis
     expect(sibling.rule).toBe('Class C');
+  });
+
+  // ── Vendor-Specific Sibling Logic (5th-Octet Exclusions) ──────────────────
+  test('Mist Rule Correction: same first 5 octets matches', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:EE:8F:E1')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:EE:8F:E2');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class C');
+  });
+
+  test('Mist Rule Correction: fifth-octet variation does not match', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:EE:8F:E2')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:EE:8C:E2');
+    expect(sibling).toBeUndefined(); // Rejected! Fifth-octet variation (8F vs 8C)
+  });
+
+  test('AirLink delta twin same first 5 octets matches', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:14:3E:EE:8F:E1')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:14:3E:EE:8F:E2');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('AIRLINK_DELTA1_TWIN');
+  });
+
+  test('AirLink delta twin fifth-octet variation does not match', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:14:3E:EE:8F:E2')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:14:3E:EE:8C:E2');
+    expect(sibling).toBeUndefined(); // Rejected! Fifth-octet variation (8F vs 8C)
+  });
+
+  test('Sierra delta twin same first 5 octets matches', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('28:A3:31:EE:8F:E1')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '28:A3:31:EE:8F:E2');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('SIERRA_DELTA1_TWIN');
+  });
+
+  test('Sierra delta twin fifth-octet variation does not match', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('28:A3:31:EE:8F:E2')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '28:A3:31:EE:8C:E2');
+    expect(sibling).toBeUndefined(); // Rejected! Fifth-octet variation (8F vs 8C)
   });
 });
