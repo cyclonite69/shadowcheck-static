@@ -172,25 +172,47 @@ export const useSiblingLinks = ({
 
         for (const bssid of visibleSet) adjacency.set(bssid, new Set());
 
-        const batchResult = await networkApi.getNetworkSiblingLinksBatch(visibleBssids);
-        if (cancelled) return;
-
-        const batchEdges = Array.isArray(batchResult?.links) ? batchResult.links : [];
-        for (const edge of batchEdges) {
-          addUndirectedEdge(adjacency, edge?.bssid_a, edge?.bssid_b);
-        }
-
-        // Full star per visible row — batch OR-query can miss transitive/off-filter siblings.
-        const anchorResults = await Promise.all(
-          visibleBssids.map((bssid) => networkApi.getNetworkSiblingLinks(bssid))
+        // Check if precomputed sibling_bssids are available on the networks
+        const hasPrecomputedSiblings = networks.some(
+          (n) => Array.isArray(n.sibling_bssids) && n.sibling_bssids.length > 0
         );
-        if (cancelled) return;
 
-        for (let i = 0; i < visibleBssids.length; i++) {
-          const anchor = visibleBssids[i];
-          const links = Array.isArray(anchorResults[i]?.links) ? anchorResults[i].links : [];
-          for (const row of links) {
-            addUndirectedEdge(adjacency, anchor, row?.sibling_bssid);
+        if (hasPrecomputedSiblings) {
+          // Build adjacency locally from precomputed sibling_bssids (NO network requests!)
+          for (const network of networks) {
+            const anchor = normalizeBssid(network.bssid);
+            if (!anchor) continue;
+
+            const siblings = Array.isArray(network.sibling_bssids) ? network.sibling_bssids : [];
+            for (const sibling of siblings) {
+              const normalizedSibling = normalizeBssid(sibling);
+              if (!normalizedSibling) continue;
+
+              addUndirectedEdge(adjacency, anchor, normalizedSibling);
+            }
+          }
+        } else {
+          // Fallback: Legacy API requests when precomputed sibling_bssids are missing
+          const batchResult = await networkApi.getNetworkSiblingLinksBatch(visibleBssids);
+          if (cancelled) return;
+
+          const batchEdges = Array.isArray(batchResult?.links) ? batchResult.links : [];
+          for (const edge of batchEdges) {
+            addUndirectedEdge(adjacency, edge?.bssid_a, edge?.bssid_b);
+          }
+
+          // Full star per visible row — batch OR-query can miss transitive/off-filter siblings.
+          const anchorResults = await Promise.all(
+            visibleBssids.map((bssid) => networkApi.getNetworkSiblingLinks(bssid))
+          );
+          if (cancelled) return;
+
+          for (let i = 0; i < visibleBssids.length; i++) {
+            const anchor = visibleBssids[i];
+            const links = Array.isArray(anchorResults[i]?.links) ? anchorResults[i].links : [];
+            for (const row of links) {
+              addUndirectedEdge(adjacency, anchor, row?.sibling_bssid);
+            }
           }
         }
 
