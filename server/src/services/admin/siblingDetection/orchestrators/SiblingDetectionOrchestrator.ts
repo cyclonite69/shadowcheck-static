@@ -275,6 +275,11 @@ export class SiblingDetectionOrchestrator {
     await this.deps.longRunningAdminQuery('SELECT app.refresh_oui_sibling_profiles()');
     logger.info('[Siblings] OUI sibling profiles refreshed');
 
+    // Run ANALYZE on network sibling pairs and networks to refresh stats
+    await this.deps.longRunningAdminQuery('ANALYZE app.network_sibling_pairs');
+    await this.deps.longRunningAdminQuery('ANALYZE app.networks');
+    logger.info('[Siblings] Database stats analyzed for networks and sibling pairs');
+
     return {
       success: true,
       batchesRun,

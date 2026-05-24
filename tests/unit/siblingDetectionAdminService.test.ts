@@ -59,6 +59,10 @@ describe('siblingDetectionAdminService', () => {
     expect(result.seedsProcessed).toBe(5);
     expect(result.rowsUpserted).toBe(5);
     expect(result.lastCursor).toBe('AA:AA:AA:AA:AA:05');
+
+    // Verify stats refresh hooks ran after completion
+    expect(mockAdminQuery).toHaveBeenCalledWith('ANALYZE app.network_sibling_pairs', []);
+    expect(mockAdminQuery).toHaveBeenCalledWith('ANALYZE app.networks', []);
   });
 
   it('handles missing row in result', async () => {

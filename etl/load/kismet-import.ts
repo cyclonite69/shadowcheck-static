@@ -185,6 +185,10 @@ class KismetImporter {
 
       // Special formatted line for the backend to parse
       console.log(`\nTOTAL_IMPORTED: ${Object.values(this.stats).reduce((a, b) => a + b, 0)}`);
+
+      console.log('   Analyzing table statistics...');
+      await this.pool.query('ANALYZE app.kismet_packets');
+      console.log('   ✅ Table stats analyzed for kismet packets');
     } catch (err: any) {
       console.error(`\n❌ Error: ${err.message}`);
     } finally {

@@ -245,6 +245,11 @@ class IncrementalImporter {
       for (const row of result.rows) {
         console.log(`     - ${row.view_name}`);
       }
+
+      console.log('   Analyzing table statistics...');
+      await this.pool.query('ANALYZE app.observations');
+      await this.pool.query('ANALYZE app.networks');
+      console.log('   ✅ Table stats analyzed for observations and networks');
     } catch (error) {
       const err = error as Error;
       console.warn(`   ⚠️ MV refresh failed: ${err.message}`);

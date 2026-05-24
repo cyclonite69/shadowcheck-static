@@ -195,6 +195,11 @@ export async function refreshMaterializedViews(): Promise<void> {
       }
     }
     console.log(`\n✅ MV refresh complete in ${((Date.now() - startTime) / 1000).toFixed(2)}s\n`);
+
+    console.log('  Analyzing table statistics...');
+    await pool.query('ANALYZE app.observations');
+    await pool.query('ANALYZE app.networks');
+    console.log('  ✅ Database stats analyzed for observations and networks');
   } catch (error) {
     console.error('❌ MV refresh failed:', (error as Error).message);
     throw error;

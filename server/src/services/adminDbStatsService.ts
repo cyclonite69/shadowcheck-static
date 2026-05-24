@@ -8,6 +8,18 @@ const logger = require('../logging/logger');
  */
 export async function getDetailedDatabaseStats(): Promise<any> {
   try {
+    // 0. Run lightweight ANALYZE on primary dashboard tables to ensure catalog counts are accurate
+    const tablesToAnalyze = [
+      'app.observations',
+      'app.networks',
+      'app.network_sibling_pairs',
+      'app.wigle_v3_observations',
+      'app.kismet_packets',
+    ];
+    for (const table of tablesToAnalyze) {
+      await adminQuery(`ANALYZE ${table}`);
+    }
+
     // 1. Get Global DB Size
     const sizeResult = await adminQuery(
       "SELECT pg_size_pretty(pg_database_size('shadowcheck_db')) as total_size"
