@@ -11,6 +11,7 @@ jest.mock('../../server/src/config/container', () => ({
   explorerService: {
     listNetworks: jest.fn(),
     listNetworksV2: jest.fn(),
+    getNetworkByBssid: jest.fn(),
   },
   homeLocationService: {
     getCurrentHomeLocation: jest.fn(),
@@ -23,6 +24,16 @@ jest.mock('../../server/src/config/container', () => ({
       all: () => 'all',
     },
   },
+}));
+
+// Top-level mock hoisted by Jest so explorerService is intercepted before the
+// route module loads. The route calls explorerService.getNetworkByBssid directly.
+jest.mock('../../server/src/services/explorerService', () => ({
+  getNetworkByBssid: jest.fn(),
+  listNetworks: jest.fn(),
+  listNetworksV2: jest.fn(),
+  checkHomeLocationForFilters: jest.fn(),
+  executeExplorerQuery: jest.fn(),
 }));
 
 function createRes() {
@@ -61,6 +72,17 @@ function getExplorerNetworksV2Handler() {
   }
   return layer.route.stack[layer.route.stack.length - 1].handle;
 }
+
+function getNetworkByBssidHandler() {
+  const router = require('../../server/src/api/routes/v1/explorer/networks');
+  const layer = router.stack.find((entry: any) => entry.route?.path === '/explorer/network/:bssid');
+  if (!layer) throw new Error('Could not find /explorer/network/:bssid route');
+  return layer.route.stack[layer.route.stack.length - 1].handle;
+}
+
+// ---------------------------------------------------------------------------
+// /explorer/networks-v2
+// ---------------------------------------------------------------------------
 
 describe('explorer/networks-v2 route', () => {
   let container: any;
@@ -150,5 +172,80 @@ describe('explorer/networks-v2 route', () => {
       })
     );
     expect(res.headers['X-Total-Count']).toBe('1');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /explorer/network/:bssid — alias first_seen → first_observed_at
+// ---------------------------------------------------------------------------
+
+describe('GET /explorer/network/:bssid route', () => {
+  let container: any;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    container = require('../../server/src/config/container');
+  });
+
+  test('aliases first_seen/last_seen → first_observed_at/last_observed_at in response', async () => {
+    container.explorerService.getNetworkByBssid.mockResolvedValue({
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      ssid: 'TestNet',
+      first_seen: '2025-03-01T00:00:00Z',
+      last_seen: '2025-03-08T00:00:00Z',
+      observations: 5,
+    });
+
+    const handler = getNetworkByBssidHandler();
+    const req: any = { params: { bssid: 'AA:BB:CC:DD:EE:FF' } };
+    const { res, done } = createRes();
+
+    await handler(req, res, jest.fn());
+    await done;
+
+    expect(res.statusCode).toBe(200);
+    // Original MV field names preserved
+    expect(res.body.first_seen).toBe('2025-03-01T00:00:00Z');
+    expect(res.body.last_seen).toBe('2025-03-08T00:00:00Z');
+    // Aliased fields present for mapApiRowToNetwork compatibility
+    expect(res.body.first_observed_at).toBe('2025-03-01T00:00:00Z');
+    expect(res.body.last_observed_at).toBe('2025-03-08T00:00:00Z');
+  });
+
+  test('preserves existing first_observed_at when service already returns it', async () => {
+    container.explorerService.getNetworkByBssid.mockResolvedValue({
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      ssid: 'TestNet',
+      first_observed_at: '2025-06-01T00:00:00Z',
+      last_observed_at: '2025-06-15T00:00:00Z',
+      first_seen: '2025-01-01T00:00:00Z',
+      last_seen: '2025-01-31T00:00:00Z',
+    });
+
+    const handler = getNetworkByBssidHandler();
+    const req: any = { params: { bssid: 'AA:BB:CC:DD:EE:FF' } };
+    const { res, done } = createRes();
+
+    await handler(req, res, jest.fn());
+    await done;
+
+    // first_observed_at already present — must not be overwritten by first_seen
+    expect(res.body.first_observed_at).toBe('2025-06-01T00:00:00Z');
+    expect(res.body.last_observed_at).toBe('2025-06-15T00:00:00Z');
+  });
+
+  test('returns 404 when network not found', async () => {
+    container.explorerService.getNetworkByBssid.mockResolvedValue(null);
+
+    const handler = getNetworkByBssidHandler();
+    const req: any = { params: { bssid: 'DE:AD:BE:EF:00:00' } };
+    const { res, done } = createRes();
+
+    await handler(req, res, jest.fn());
+    await done;
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toEqual({ error: 'Network not found' });
   });
 });

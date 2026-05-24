@@ -302,4 +302,81 @@ describe('mapApiRowToNetwork', () => {
     expect(net.has_strong_sibling).toBe(true);
     expect(net.sibling_bssids).toEqual(['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02']);
   });
+
+  // ---------------------------------------------------------------------------
+  // Dual-shape field reading: first_seen/last_seen vs first_observed_at/last_observed_at
+  // Covers the two endpoint shapes:
+  //   - GET /api/v2/.../geospatial → v2Repository aliases: first_observed_at / last_observed_at
+  //   - GET /explorer/network/:bssid → raw MV passthrough now aliased in route handler
+  // The frontend fallback must handle both for robustness.
+  // ---------------------------------------------------------------------------
+
+  it('reads firstSeen/lastSeen/timespanDays from first_observed_at/last_observed_at (v2 geospatial shape)', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        first_observed_at: '2025-01-01T00:00:00Z',
+        last_observed_at: '2025-01-11T00:00:00Z',
+        first_seen: undefined,
+        last_seen: undefined,
+      },
+      0
+    );
+
+    expect(net.firstSeen).toBe('2025-01-01T00:00:00Z');
+    expect(net.lastSeen).toBe('2025-01-11T00:00:00Z');
+    expect(net.timespanDays).toBe(10);
+  });
+
+  it('reads firstSeen/lastSeen/timespanDays from first_seen/last_seen fallback (raw MV passthrough shape)', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        first_observed_at: undefined,
+        last_observed_at: undefined,
+        first_seen: '2025-03-01T00:00:00Z',
+        last_seen: '2025-03-08T00:00:00Z',
+      },
+      0
+    );
+
+    expect(net.firstSeen).toBe('2025-03-01T00:00:00Z');
+    expect(net.lastSeen).toBe('2025-03-08T00:00:00Z');
+    expect(net.timespanDays).toBe(7);
+  });
+
+  it('prefers first_observed_at over first_seen when both are present', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        first_observed_at: '2025-06-01T00:00:00Z',
+        last_observed_at: '2025-06-15T00:00:00Z',
+        first_seen: '2025-01-01T00:00:00Z',
+        last_seen: '2025-01-31T00:00:00Z',
+      },
+      0
+    );
+
+    expect(net.firstSeen).toBe('2025-06-01T00:00:00Z');
+    expect(net.lastSeen).toBe('2025-06-15T00:00:00Z');
+    expect(net.timespanDays).toBe(14);
+  });
+
+  it('returns null firstSeen/lastSeen/timespanDays when all timestamp fields are absent', () => {
+    const net = mapApiRowToNetwork(
+      {
+        ...baseRow,
+        first_observed_at: undefined,
+        last_observed_at: undefined,
+        first_seen: undefined,
+        last_seen: undefined,
+        observed_at: undefined,
+      },
+      0
+    );
+
+    expect(net.firstSeen).toBeNull();
+    expect(net.lastSeen).toBeNull();
+    expect(net.timespanDays).toBeNull();
+  });
 });

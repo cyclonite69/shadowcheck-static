@@ -84,6 +84,10 @@ const parseIntegerField = (val: unknown): number | null => {
 };
 
 // Map API row to NetworkRow
+// Accepts two field name shapes:
+//   - v2 geospatial path:  first_observed_at / last_observed_at  (aliased by v2Repository)
+//   - raw MV passthrough:  first_seen / last_seen  (returned by GET /explorer/network/:bssid)
+// The fallback chain preserves backwards compatibility with both endpoints.
 export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
   const securityValue = formatSecurity(row.capabilities, row.security);
   const bssidValue = (row.bssid || `unknown-${idx}`).toString().toUpperCase();
@@ -131,9 +135,12 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
       return distKm !== null ? distKm * 1000 : null;
     })(),
     accuracy: parseNumericField(row.accuracy_meters),
-    firstSeen: row.first_observed_at || null,
-    lastSeen: row.last_observed_at || row.observed_at || null,
-    timespanDays: calculateTimespan(row.first_observed_at, row.last_observed_at),
+    firstSeen: row.first_observed_at ?? row.first_seen ?? null,
+    lastSeen: row.last_observed_at ?? row.last_seen ?? row.observed_at ?? null,
+    timespanDays: calculateTimespan(
+      row.first_observed_at ?? row.first_seen ?? null,
+      row.last_observed_at ?? row.last_seen ?? null
+    ),
     threat: threatInfo,
     threat_score: threatScore,
     threat_level: threatLevel,

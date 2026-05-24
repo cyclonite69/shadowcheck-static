@@ -242,7 +242,14 @@ router.get('/explorer/network/:bssid', async (req: Request, res: Response, next:
     if (!bssid) return res.status(400).json({ error: 'bssid is required' });
     const row = await explorerService.getNetworkByBssid(bssid);
     if (!row) return res.status(404).json({ error: 'Network not found' });
-    res.json(row);
+    // Alias first_seen/last_seen → first_observed_at/last_observed_at so the
+    // response shape matches the v2 geospatial payload that mapApiRowToNetwork expects.
+    // Both names are present in the response so callers using either shape work correctly.
+    res.json({
+      ...row,
+      first_observed_at: row.first_observed_at ?? row.first_seen ?? null,
+      last_observed_at: row.last_observed_at ?? row.last_seen ?? null,
+    });
   } catch (err) {
     next(err);
   }
