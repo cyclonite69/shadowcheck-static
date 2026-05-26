@@ -6,7 +6,6 @@ import { NetworkRow } from '../../../types/network';
 import {
   addUndirectedEdge,
   buildSiblingGroupMap,
-  mergeSiblingComponentsIntoGroupMap,
   normalizeBssid,
   serializeGroupMap,
 } from '../utils/siblingGroupGraph';
@@ -33,7 +32,6 @@ export const useSiblingLinks = ({
   const [missingSiblingNetworks, setMissingSiblingNetworks] = useState<NetworkRow[]>([]);
   const [hydrationFailedBssids, setHydrationFailedBssids] = useState<string[]>([]);
   const prevHydrationKeyRef = useRef('');
-  const lastAnchorBssidRef = useRef('');
 
   useEffect(() => {
     if (!isAdmin || !selectedAnchorBssid) {
@@ -72,7 +70,6 @@ export const useSiblingLinks = ({
       setMissingSiblingNetworks([]);
       setHydrationFailedBssids([]);
       prevHydrationKeyRef.current = '';
-      lastAnchorBssidRef.current = '';
       return;
     }
 
@@ -87,12 +84,37 @@ export const useSiblingLinks = ({
         const hasSearch = searchStr.length > 0;
 
         if (hasSearch && visibleBssids.length > 0) {
-          // Fix A: Filter networks by quickSearch to find the TRUE search hits.
-          // The anchor must come from the filtered set, not the general page row list.
-          const searchHits = networks.filter(
-            (n) =>
-              n.ssid?.toLowerCase().includes(searchStr) || n.bssid.toLowerCase().includes(searchStr)
-          );
+          // Parse quickSearch prefix to determine the correct match field:
+          //   m:<value>  → manufacturer
+          //   s:<value>  → SSID only
+          //   b:<value>  → BSSID only
+          //   <value>    → SSID or BSSID (default)
+          const prefixMatch = quickSearch.trim().match(/^([sbm]):\s*(.+)$/i);
+          let matchField: 'ssid' | 'bssid' | 'manufacturer' = 'ssid';
+          let matchStr = searchStr; // already lowercased
+
+          if (prefixMatch) {
+            const prefix = prefixMatch[1].toLowerCase();
+            matchStr = prefixMatch[2].trim().toLowerCase();
+            if (prefix === 'm') matchField = 'manufacturer';
+            else if (prefix === 'b') matchField = 'bssid';
+            // 's' → matchField stays 'ssid'
+          }
+
+          // Filter to networks that match the correct field.
+          const searchHits = networks.filter((n) => {
+            switch (matchField) {
+              case 'manufacturer':
+                return n.manufacturer?.toLowerCase().includes(matchStr);
+              case 'bssid':
+                return n.bssid.toLowerCase().includes(matchStr);
+              default:
+                return (
+                  n.ssid?.toLowerCase().includes(matchStr) ||
+                  n.bssid.toLowerCase().includes(matchStr)
+                );
+            }
+          });
 
           if (searchHits.length === 0) {
             setVisibleSiblingGroupMap(new Map());
@@ -100,22 +122,56 @@ export const useSiblingLinks = ({
             return;
           }
 
-          const anchorBssid = normalizeBssid(searchHits[0].bssid);
-          if (!anchorBssid) return;
+          // Build sibling graph from ALL matching search hits' precomputed sibling_bssids.
+          // This keeps independent pairs isolated rather than merging them through a single
+          // anchor's recursive DB component.
+          const searchAdjacency = new Map<string, Set<string>>();
+          for (const bssid of visibleSet) searchAdjacency.set(bssid, new Set());
 
-          // Fix B: Guard against repeat calls if the anchor hasn't changed.
-          if (anchorBssid === lastAnchorBssidRef.current) return;
-          lastAnchorBssidRef.current = anchorBssid;
+          const hasPrecomputedSiblingsInHits = searchHits.some(
+            (n) => Array.isArray(n.sibling_bssids) && n.sibling_bssids.length > 0
+          );
 
-          const componentResult = await networkApi.getSiblingComponentBssids(anchorBssid);
-          if (cancelled) return;
+          if (hasPrecomputedSiblingsInHits) {
+            for (const network of searchHits) {
+              const anchor = normalizeBssid(network.bssid);
+              if (!anchor) continue;
+              const siblings = Array.isArray(network.sibling_bssids) ? network.sibling_bssids : [];
+              for (const sibling of siblings) {
+                const normalizedSibling = normalizeBssid(sibling);
+                if (!normalizedSibling) continue;
+                addUndirectedEdge(searchAdjacency, anchor, normalizedSibling);
+              }
+            }
+          } else {
+            // Fallback: batch + per-hit API calls when sibling_bssids are missing.
+            const searchHitBssids = searchHits
+              .map((n) => normalizeBssid(n.bssid))
+              .filter(Boolean) as string[];
 
-          const components = [
-            Array.isArray(componentResult?.bssids)
-              ? componentResult.bssids.map((b: string) => normalizeBssid(b))
-              : [],
-          ];
-          const groupMap = mergeSiblingComponentsIntoGroupMap(components);
+            const batchResult = await networkApi.getNetworkSiblingLinksBatch(searchHitBssids);
+            if (cancelled) return;
+
+            const batchEdges = Array.isArray(batchResult?.links) ? batchResult.links : [];
+            for (const edge of batchEdges) {
+              addUndirectedEdge(searchAdjacency, edge?.bssid_a, edge?.bssid_b);
+            }
+
+            const anchorResults = await Promise.all(
+              searchHitBssids.map((bssid) => networkApi.getNetworkSiblingLinks(bssid))
+            );
+            if (cancelled) return;
+
+            for (let i = 0; i < searchHitBssids.length; i++) {
+              const anchor = searchHitBssids[i];
+              const links = Array.isArray(anchorResults[i]?.links) ? anchorResults[i].links : [];
+              for (const row of links) {
+                addUndirectedEdge(searchAdjacency, anchor, row?.sibling_bssid);
+              }
+            }
+          }
+
+          const groupMap = buildSiblingGroupMap(visibleSet, searchAdjacency);
           const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid));
 
           logSiblingTopology('useSiblingLinks.searchComponent', {

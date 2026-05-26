@@ -208,7 +208,7 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     }
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    // Legacy fallback API queries are triggered when precomputed data is absent
+    // Fallback API queries are triggered when precomputed data is absent
     expect(mockNetworkApi.getNetworkSiblingLinksBatch).toHaveBeenCalledWith(['AA:BB:CC:DD:EE:01']);
     expect(mockNetworkApi.getNetworkSiblingLinks).toHaveBeenCalledWith('AA:BB:CC:DD:EE:01');
 
@@ -217,5 +217,210 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     const groupMap = mockSetStates[1].mock.calls[0][0];
     expect(groupMap.size).toBe(2);
     expect(groupMap.get('AA:BB:CC:DD:EE:01')).toBe(groupMap.get('AA:BB:CC:DD:EE:02'));
+  });
+
+  // --- quickSearch path fixes ---
+
+  test('SSID search builds separate 2-member groups for each independent AirLink pair', async () => {
+    // Two independent DELTA1_TWIN pairs — should NOT be merged into one group
+    const networks: NetworkRow[] = [
+      {
+        bssid: '00:14:3E:33:2E:40',
+        ssid: 'PAS-301',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:33:2E:41'],
+      } as NetworkRow,
+      {
+        bssid: '00:14:3E:33:2E:41',
+        ssid: 'PAS-RIG',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:33:2E:40'],
+      } as NetworkRow,
+      {
+        bssid: '00:14:3E:20:24:00',
+        ssid: 'PAS-318',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:20:24:01'],
+      } as NetworkRow,
+      {
+        bssid: '00:14:3E:20:24:01',
+        ssid: 'PAS-RIG',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:20:24:00'],
+      } as NetworkRow,
+    ];
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+      quickSearch: 'pas-',
+    });
+
+    for (const effect of mockEffects) {
+      await effect.effectFn();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // getSiblingComponentBssids must NOT be called — old anchor-only approach is gone
+    expect(mockNetworkApi.getSiblingComponentBssids).not.toHaveBeenCalled();
+
+    expect(mockSetStates[1]).toHaveBeenCalled();
+    const groupMap = mockSetStates[1].mock.calls[0][0];
+
+    // Both pairs are grouped
+    expect(groupMap.size).toBe(4);
+
+    // Each pair has its own group ID — they must NOT share a group
+    const groupA = groupMap.get('00:14:3E:33:2E:40');
+    const groupB = groupMap.get('00:14:3E:20:24:00');
+    expect(groupA).toBeDefined();
+    expect(groupB).toBeDefined();
+    expect(groupA).not.toBe(groupB);
+
+    // Partners share their group
+    expect(groupMap.get('00:14:3E:33:2E:41')).toBe(groupA);
+    expect(groupMap.get('00:14:3E:20:24:01')).toBe(groupB);
+  });
+
+  test('SSID search uses ALL matching hits, not only the first', async () => {
+    // If only the first hit were used, PAS-318 pair would have no group
+    const networks: NetworkRow[] = [
+      {
+        bssid: '00:14:3E:33:2E:40',
+        ssid: 'PAS-301',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:33:2E:41'],
+      } as NetworkRow,
+      {
+        bssid: '00:14:3E:20:24:00',
+        ssid: 'PAS-318',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:20:24:01'],
+      } as NetworkRow,
+      {
+        bssid: '00:14:3E:20:24:01',
+        ssid: 'PAS-RIG',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:20:24:00'],
+      } as NetworkRow,
+    ];
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+      quickSearch: 'pas-',
+    });
+
+    for (const effect of mockEffects) {
+      await effect.effectFn();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(mockSetStates[1]).toHaveBeenCalled();
+    const groupMap = mockSetStates[1].mock.calls[0][0];
+
+    // PAS-318 and PAS-RIG must be grouped even though PAS-301 is searchHits[0]
+    expect(groupMap.get('00:14:3E:20:24:00')).toBeDefined();
+    expect(groupMap.get('00:14:3E:20:24:01')).toBeDefined();
+    expect(groupMap.get('00:14:3E:20:24:00')).toBe(groupMap.get('00:14:3E:20:24:01'));
+  });
+
+  test('m: prefix searches by manufacturer, not literal SSID/BSSID text', async () => {
+    const networks: NetworkRow[] = [
+      {
+        bssid: '00:14:3E:61:21:20',
+        ssid: '1923',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:61:21:21'],
+      } as NetworkRow,
+      {
+        bssid: '00:14:3E:61:21:21',
+        ssid: 'msamobile',
+        manufacturer: 'Air Link Communications, Inc.',
+        sibling_bssids: ['00:14:3E:61:21:20'],
+      } as NetworkRow,
+      {
+        bssid: 'AA:BB:CC:DD:EE:01',
+        ssid: 'XfinityWifi',
+        manufacturer: 'Comcast',
+        sibling_bssids: ['AA:BB:CC:DD:EE:02'],
+      } as NetworkRow,
+    ];
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+      quickSearch: 'm:Air Link',
+    });
+
+    for (const effect of mockEffects) {
+      await effect.effectFn();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // getSiblingComponentBssids must NOT be called
+    expect(mockNetworkApi.getSiblingComponentBssids).not.toHaveBeenCalled();
+
+    expect(mockSetStates[1]).toHaveBeenCalled();
+    const groupMap = mockSetStates[1].mock.calls[0][0];
+
+    // The Air Link pair is grouped
+    expect(groupMap.get('00:14:3E:61:21:20')).toBeDefined();
+    expect(groupMap.get('00:14:3E:61:21:21')).toBeDefined();
+    expect(groupMap.get('00:14:3E:61:21:20')).toBe(groupMap.get('00:14:3E:61:21:21'));
+
+    // Comcast network is NOT in the group (different manufacturer)
+    expect(groupMap.get('AA:BB:CC:DD:EE:01')).toBeUndefined();
+  });
+
+  test('search path fallback uses batch+per-hit calls scoped to search hits when sibling_bssids missing', async () => {
+    const networks: NetworkRow[] = [
+      {
+        bssid: '00:14:3E:33:2E:40',
+        ssid: 'PAS-301',
+        manufacturer: 'Air Link Communications, Inc.',
+        // no sibling_bssids
+      } as NetworkRow,
+      {
+        bssid: '00:14:3E:33:2E:41',
+        ssid: 'PAS-RIG',
+        manufacturer: 'Air Link Communications, Inc.',
+        // no sibling_bssids
+      } as NetworkRow,
+    ];
+
+    mockNetworkApi.getNetworkSiblingLinksBatch.mockResolvedValue({
+      links: [{ bssid_a: '00:14:3E:33:2E:40', bssid_b: '00:14:3E:33:2E:41' }],
+    });
+    mockNetworkApi.getNetworkSiblingLinks.mockResolvedValue({ links: [] });
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+      quickSearch: 'pas-',
+    });
+
+    for (const effect of mockEffects) {
+      await effect.effectFn();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // getSiblingComponentBssids must NOT be called
+    expect(mockNetworkApi.getSiblingComponentBssids).not.toHaveBeenCalled();
+
+    // Batch was called with only the search hit BSSIDs
+    expect(mockNetworkApi.getNetworkSiblingLinksBatch).toHaveBeenCalledWith([
+      '00:14:3E:33:2E:40',
+      '00:14:3E:33:2E:41',
+    ]);
+
+    expect(mockSetStates[1]).toHaveBeenCalled();
+    const groupMap = mockSetStates[1].mock.calls[0][0];
+    expect(groupMap.get('00:14:3E:33:2E:40')).toBeDefined();
+    expect(groupMap.get('00:14:3E:33:2E:40')).toBe(groupMap.get('00:14:3E:33:2E:41'));
   });
 });

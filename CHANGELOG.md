@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-24)
+# 1.0.0 (2026-05-26)
 
 
 ### Bug Fixes
@@ -328,7 +328,7 @@
 * **geospatial:** add error logging to WiGLE observation fetch ([1704685](https://github.com/cyclonite69/shadowcheck-web/commit/1704685c1b66515888d1b0a30917f37f8a1cd0a2))
 * **geospatial:** add WiGLE enrichment fields to explorer tooltip pipeline ([bb58cc4](https://github.com/cyclonite69/shadowcheck-web/commit/bb58cc4d263397717aa78ca47ff6a5b7a3dca376))
 * **geospatial:** align header offset and standardize temporal heatmap labeling ([3a7e0db](https://github.com/cyclonite69/shadowcheck-web/commit/3a7e0dbcfa042d53059b320eccdc648faf2489e8))
-* **geospatial:** build sibling links from precomputed payload ([e62e5c3](https://github.com/cyclonite69/shadowcheck-web/commit/e62e5c3726bc65dcf7aa7f8407801e1ae6901d75))
+* **geospatial:** build sibling links from precomputed payload ([9bf5e11](https://github.com/cyclonite69/shadowcheck-web/commit/9bf5e1183bdd221d8996e34908424f9ab9331e9d))
 * **geospatial:** correct anchor BSSID source and guard repeat component calls ([5a19010](https://github.com/cyclonite69/shadowcheck-web/commit/5a19010a68b26e328544d941fa3cbd839ec75c6e))
 * **geospatial:** correct context menu position to cursor location ([8d25de9](https://github.com/cyclonite69/shadowcheck-web/commit/8d25de9c2b51eeb6f885a92d095540f7dfa4639c))
 * **geospatial:** correct filterStore import path in MapRadiusContextMenu ([2aad8f9](https://github.com/cyclonite69/shadowcheck-web/commit/2aad8f9c245a4bfacc6ae79471937e68fd3ff5d6))
@@ -344,6 +344,7 @@
 * **geospatial:** enforce investigate tagging during WiGLE lookup flow ([ae0a306](https://github.com/cyclonite69/shadowcheck-web/commit/ae0a3065c4622485141376d040eaefb4781b11af))
 * **geospatial:** expand sibling groups on quick search ([1edfe9a](https://github.com/cyclonite69/shadowcheck-web/commit/1edfe9ad86e3b2b38c4a3c0fdb0f5953b3ca2442))
 * **geospatial:** fix empty WiGLE observations tooltip stats ([7a17a40](https://github.com/cyclonite69/shadowcheck-web/commit/7a17a405802b77697ba88fa8e8221f77e80dfb47))
+* **geospatial:** group quick-search siblings from payload ([06938c8](https://github.com/cyclonite69/shadowcheck-web/commit/06938c825aee573d0d5e6a5e977fe1ed013d6027))
 * **geospatial:** guard against undefined observations in useWigleLayers data-sync effect ([a5414da](https://github.com/cyclonite69/shadowcheck-web/commit/a5414da948f48162ff66ea221ca02fb88e922b5f))
 * **geospatial:** guard layer toggles until map style loads ([2cf9aca](https://github.com/cyclonite69/shadowcheck-web/commit/2cf9acab5c31c1008933e4720f794bb6a846a5be))
 * **geospatial:** implement batch observation loading ([b3dde60](https://github.com/cyclonite69/shadowcheck-web/commit/b3dde60ca17f54f9ba75bd7b04287d295fd6148a))
