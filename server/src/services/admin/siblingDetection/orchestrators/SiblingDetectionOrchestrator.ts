@@ -207,59 +207,107 @@ export class SiblingDetectionOrchestrator {
       `);
     }
 
-    // Enforce 16-Node Cluster Ceiling for sequential rules (Class A/B/C and legacy sequential)
+    // Enforce 16-Node Connected Component Ceiling for sequential rules (Class A/B/C and legacy sequential)
     const sequentialOverflowCheck = await this.deps.adminQuery(`
-      WITH candidate_nodes AS (
-        SELECT DISTINCT bssid, SUBSTRING(bssid, 1, 8) AS OUI, rule
-        FROM (
-          SELECT bssid1 AS bssid, rule FROM app.network_sibling_pairs
+      WITH RECURSIVE
+      nodes AS (
+        SELECT DISTINCT bssid, rule FROM (
+          SELECT bssid1 AS bssid, rule FROM app.network_sibling_pairs WHERE rule <> 'manual_confirmed'
           UNION ALL
-          SELECT bssid2 AS bssid, rule FROM app.network_sibling_pairs
+          SELECT bssid2 AS bssid, rule FROM app.network_sibling_pairs WHERE rule <> 'manual_confirmed'
         ) t
         WHERE rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
       ),
-      cluster_sizes AS (
-        SELECT OUI, rule, COUNT(*) AS node_count
-        FROM candidate_nodes
-        GROUP BY OUI, rule
+      edges AS (
+        SELECT bssid1 AS a, bssid2 AS b, rule FROM app.network_sibling_pairs WHERE rule <> 'manual_confirmed'
+          AND rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
+        UNION
+        SELECT bssid2 AS a, bssid1 AS b, rule FROM app.network_sibling_pairs WHERE rule <> 'manual_confirmed'
+          AND rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
+      ),
+      comp AS (
+        SELECT bssid AS node, bssid AS comp_id, rule FROM nodes
+        UNION
+        SELECT e.b AS node, LEAST(c.comp_id, e.b) AS comp_id, c.rule
+        FROM comp c
+        JOIN edges e ON e.a = c.node AND e.rule = c.rule
+      ),
+      final_comp AS (
+        SELECT node, MIN(comp_id) AS comp_id, rule
+        FROM comp
+        GROUP BY node, rule
+      ),
+      component_sizes AS (
+        SELECT comp_id, rule, COUNT(DISTINCT node) AS node_count
+        FROM final_comp
+        GROUP BY comp_id, rule
       )
-      SELECT OUI AS oui, rule, node_count
-      FROM cluster_sizes
+      SELECT comp_id AS component_id, rule, node_count
+      FROM component_sizes
       WHERE node_count >= 17
+      ORDER BY node_count DESC;
     `);
 
     if (sequentialOverflowCheck.rows && sequentialOverflowCheck.rows.length > 0) {
       for (const row of sequentialOverflowCheck.rows) {
         logger.warn(
-          `[HARDWARE OVERFLOW - INVESTIGATE] Cluster OUI ${row.oui} for rule "${row.rule}" has ${row.node_count} connected nodes. Dropping from active sibling tracking.`
+          `[HARDWARE OVERFLOW - INVESTIGATE] Connected component starting at BSSID ${row.component_id} for rule "${row.rule}" has ${row.node_count} connected nodes. Dropping this component from active sibling tracking.`
         );
       }
 
-      await this.deps.adminQuery(`
-        WITH candidate_nodes AS (
-          SELECT DISTINCT bssid, SUBSTRING(bssid, 1, 8) AS OUI, rule
-          FROM (
-            SELECT bssid1 AS bssid, rule FROM app.network_sibling_pairs
+      const pruneResult = await this.deps.adminQuery(`
+        WITH RECURSIVE
+        nodes AS (
+          SELECT DISTINCT bssid, rule FROM (
+            SELECT bssid1 AS bssid, rule FROM app.network_sibling_pairs WHERE rule <> 'manual_confirmed'
             UNION ALL
-            SELECT bssid2 AS bssid, rule FROM app.network_sibling_pairs
+            SELECT bssid2 AS bssid, rule FROM app.network_sibling_pairs WHERE rule <> 'manual_confirmed'
           ) t
           WHERE rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
         ),
-        cluster_sizes AS (
-          SELECT OUI, rule, COUNT(*) AS node_count
-          FROM candidate_nodes
-          GROUP BY OUI, rule
+        edges AS (
+          SELECT bssid1 AS a, bssid2 AS b, rule FROM app.network_sibling_pairs WHERE rule <> 'manual_confirmed'
+            AND rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
+          UNION
+          SELECT bssid2 AS a, bssid1 AS b, rule FROM app.network_sibling_pairs WHERE rule <> 'manual_confirmed'
+            AND rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'last_octet_sequential', 'middle_octets_sequential', 'upper_octet_rotation')
         ),
-        overflow_clusters AS (
-          SELECT OUI, rule
-          FROM cluster_sizes
-          WHERE node_count >= 17
+        comp AS (
+          SELECT bssid AS node, bssid AS comp_id, rule FROM nodes
+          UNION
+          SELECT e.b AS node, LEAST(c.comp_id, e.b) AS comp_id, c.rule
+          FROM comp c
+          JOIN edges e ON e.a = c.node AND e.rule = c.rule
+        ),
+        final_comp AS (
+          SELECT node, MIN(comp_id) AS comp_id, rule
+          FROM comp
+          GROUP BY node, rule
+        ),
+        overflowing_components AS (
+          SELECT comp_id, rule
+          FROM final_comp
+          GROUP BY comp_id, rule
+          HAVING COUNT(DISTINCT node) >= 17
+        ),
+        overflow_edges AS (
+          SELECT p.bssid1, p.bssid2, p.rule
+          FROM app.network_sibling_pairs p
+          JOIN final_comp c1 ON p.bssid1 = c1.node AND p.rule = c1.rule
+          JOIN final_comp c2 ON p.bssid2 = c2.node AND p.rule = c2.rule
+          JOIN overflowing_components oc ON c1.comp_id = oc.comp_id AND c1.rule = oc.rule
+          WHERE c1.comp_id = c2.comp_id
         )
         DELETE FROM app.network_sibling_pairs p
-        USING overflow_clusters oc
-        WHERE p.rule = oc.rule
-          AND (SUBSTRING(p.bssid1, 1, 8) = oc.OUI OR SUBSTRING(p.bssid2, 1, 8) = oc.OUI);
+        USING overflow_edges oe
+        WHERE p.bssid1 = oe.bssid1
+          AND p.bssid2 = oe.bssid2
+          AND p.rule = oe.rule;
       `);
+
+      logger.info(
+        `[Siblings] Component-level pruning complete. Pruned ${sequentialOverflowCheck.rows.length} overflowing components, deleting ${pruneResult.rowCount || 0} exact overflow edges.`
+      );
     }
 
     logger.info('[Siblings] Extra rules complete', extraRuleResults);
