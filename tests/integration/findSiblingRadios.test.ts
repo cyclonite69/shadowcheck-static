@@ -41,10 +41,26 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '28:A3:31:EE:8F:E1',
     '28:A3:31:EE:8F:E2',
     '28:A3:31:EE:8C:E2',
+    // Cisco 24:D7:9C fifth-octet variation and group validation tests
+    '24:D7:9C:C6:BE:29',
+    '24:D7:9C:C6:BE:2A',
+    '24:D7:9C:C6:BE:2B',
+    '24:D7:9C:C6:BE:2C',
+    '24:D7:9C:C6:BE:2D',
+    '24:D7:9C:C6:BE:2E',
+    '24:D7:9C:C6:BE:2F',
+    '24:D7:9C:C6:B3:2F',
+    '24:D7:9C:C6:CD:2F',
+    // Cisco 5C:5B:35 tests
+    '5C:5B:35:C6:BE:2E',
+    '5C:5B:35:C6:BE:2F',
+    '5C:5B:35:C6:B3:2F',
   ];
 
   beforeAll(async () => {
     // Clear out any stale versions in test networks (safe since they are unique to this test)
+    await query(`DELETE FROM app.observations WHERE bssid = ANY($1)`, [testBssids]);
+    await query(`DELETE FROM app.ssid_history WHERE bssid = ANY($1)`, [testBssids]);
     await query(`DELETE FROM app.networks WHERE bssid = ANY($1)`, [testBssids]);
 
     // Insert mock networks
@@ -93,12 +109,30 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         -- Sierra fifth-octet variation tests
         ('28:A3:31:EE:8F:E1', 'Sierra_1',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('28:A3:31:EE:8F:E2', 'Sierra_2',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
-        ('28:A3:31:EE:8C:E2', 'Sierra_3',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
+        ('28:A3:31:EE:8C:E2', 'Sierra_3',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- Cisco 24:D7:9C fifth-octet variation and group validation tests
+        ('24:D7:9C:C6:BE:29', 'Cisco_SOMIOT', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('24:D7:9C:C6:BE:2A', 'Cisco_SOMIOT', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('24:D7:9C:C6:BE:2B', 'Cisco_SOMIOT', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('24:D7:9C:C6:BE:2C', '',             'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('24:D7:9C:C6:BE:2D', '',             'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('24:D7:9C:C6:BE:2E', '',             'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('24:D7:9C:C6:BE:2F', '',             'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('24:D7:9C:C6:B3:2F', 'Cisco_SOMIOT', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('24:D7:9C:C6:CD:2F', 'Cisco_SOMIOT', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- Cisco 5C:5B:35 tests
+        ('5C:5B:35:C6:BE:2E', 'Cisco_Enterprise', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('5C:5B:35:C6:BE:2F', '',                 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('5C:5B:35:C6:B3:2F', 'Cisco_Enterprise', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
     `);
   });
 
   afterAll(async () => {
     // Cleanup inserted mock networks
+    await query(`DELETE FROM app.observations WHERE bssid = ANY($1)`, [testBssids]);
+    await query(`DELETE FROM app.ssid_history WHERE bssid = ANY($1)`, [testBssids]);
     await query(`DELETE FROM app.networks WHERE bssid = ANY($1)`, [testBssids]);
     await closePool();
   });
@@ -210,5 +244,45 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('28:A3:31:EE:8F:E2')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === '28:A3:31:EE:8C:E2');
     expect(sibling).toBeUndefined(); // Rejected! Fifth-octet variation (8F vs 8C)
+  });
+
+  // ── Cisco Guardrail Verification ──────────────────────────────────────
+  test('Cisco Guardrail Positive: same first 5 octets matches within delta 1 (Class C)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '24:D7:9C:C6:BE:2E');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class C');
+  });
+
+  test('Cisco Guardrail Positive: same first 5 octets matches within Class B range (delta 6)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '24:D7:9C:C6:BE:29');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class B');
+  });
+
+  test('Cisco Guardrail Negative: same-index / different-chassis B3:2F does NOT match', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '24:D7:9C:C6:B3:2F');
+    expect(sibling).toBeUndefined(); // Rejected! Same last octet, different fifth octet
+  });
+
+  test('Cisco Guardrail Negative: same-index / different-chassis CD:2F does NOT match', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('24:D7:9C:C6:BE:2F')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '24:D7:9C:C6:CD:2F');
+    expect(sibling).toBeUndefined(); // Rejected! Same last octet, different fifth octet
+  });
+
+  test('Cisco 5C:5B:35 Guardrail Positive: same first 5 octets matches (Class C)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('5C:5B:35:C6:BE:2F')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '5C:5B:35:C6:BE:2E');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class C');
+  });
+
+  test('Cisco 5C:5B:35 Guardrail Negative: fifth-octet variation does not match same-index', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('5C:5B:35:C6:BE:2F')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '5C:5B:35:C6:B3:2F');
+    expect(sibling).toBeUndefined(); // Rejected! Same last octet, different fifth octet
   });
 });
