@@ -254,6 +254,65 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
       return React.createElement('span', { className: 'text-xs text-gray-600' }, label);
     },
   },
+  has_siblings: {
+    label: 'Has Siblings',
+    width: 100,
+    sortable: true,
+    default: false,
+    render: (value) => (value === true ? 'Yes' : value === false ? 'No' : '—'),
+  },
+  sibling_count: {
+    label: 'Sibling Count',
+    width: 100,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (value === null || value === undefined || value === '') return '—';
+      return String(value);
+    },
+  },
+  sibling_max_confidence: {
+    label: 'Sibling Max Conf.',
+    width: 120,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (value === null || value === undefined || value === '') return '—';
+      const num = Number(value);
+      if (isNaN(num)) return '—';
+      return num.toFixed(3);
+    },
+  },
+  has_strong_sibling: {
+    label: 'Strong Sibling',
+    width: 110,
+    sortable: true,
+    default: false,
+    render: (value) => (value === true ? 'Yes' : value === false ? 'No' : '—'),
+  },
+  sibling_bssids: {
+    label: 'Sibling BSSIDs',
+    width: 180,
+    sortable: false,
+    default: false,
+    render: (value) => {
+      if (!Array.isArray(value) || value.length === 0) return '—';
+      const list = value.join(', ');
+      return React.createElement(
+        'span',
+        {
+          title: list,
+          style: {
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: 'block',
+          },
+        },
+        list
+      );
+    },
+  },
 };
 
 // Maps frontend column names to API sort field names
@@ -305,6 +364,11 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   centroid_lon: 'centroid_lon',
   weighted_lat: 'weighted_lat',
   weighted_lon: 'weighted_lon',
+  has_siblings: 'has_siblings',
+  sibling_count: 'sibling_count',
+  sibling_max_confidence: 'sibling_max_confidence',
+  has_strong_sibling: 'has_strong_sibling',
+  sibling_bssids: 'sibling_bssids',
 };
 
 // Pagination limit for network queries

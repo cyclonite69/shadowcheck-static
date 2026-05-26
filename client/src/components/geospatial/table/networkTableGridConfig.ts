@@ -19,6 +19,11 @@ export const NETWORK_TABLE_COLUMN_WIDTHS: Record<string, number> = {
   all_tags: 120,
   wigle_v3_observation_count: 90,
   wigle_v3_last_import_at: 140,
+  has_siblings: 100,
+  sibling_count: 100,
+  sibling_max_confidence: 120,
+  has_strong_sibling: 110,
+  sibling_bssids: 180,
 };
 
 // Fine-tune header text alignment against body cells without breaking scroll sync.
