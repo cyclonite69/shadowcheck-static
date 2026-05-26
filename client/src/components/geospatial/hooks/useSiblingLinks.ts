@@ -39,6 +39,9 @@ export const useSiblingLinks = ({
       return;
     }
 
+    // Immediately clear stale selected anchor links when anchor changes
+    setLinkedSiblingBssids(new Set());
+
     let cancelled = false;
     const loadSiblingLinks = async () => {
       try {
@@ -72,6 +75,12 @@ export const useSiblingLinks = ({
       prevHydrationKeyRef.current = '';
       return;
     }
+
+    // Immediately clear previous sibling link groupings and hydrated arrays to prevent stale flash
+    setVisibleSiblingGroupMap(new Map());
+    setMissingSiblingNetworks([]);
+    setHydrationFailedBssids([]);
+    prevHydrationKeyRef.current = '';
 
     let cancelled = false;
     const loadVisibleSiblingGroups = async () => {

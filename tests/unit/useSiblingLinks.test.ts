@@ -138,7 +138,7 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
 
     // Verify adjacency / visible sibling groups are correctly built in-memory
     expect(mockSetStates[1]).toHaveBeenCalled();
-    const groupMap = mockSetStates[1].mock.calls[0][0];
+    const groupMap = mockSetStates[1].mock.calls[mockSetStates[1].mock.calls.length - 1][0];
     expect(groupMap.size).toBe(2);
     expect(groupMap.get('AA:BB:CC:DD:EE:01')).toBe(groupMap.get('AA:BB:CC:DD:EE:02'));
   });
@@ -170,7 +170,7 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
 
     // Verification of local graph expansion
     expect(mockSetStates[1]).toHaveBeenCalled();
-    const groupMap = mockSetStates[1].mock.calls[0][0];
+    const groupMap = mockSetStates[1].mock.calls[mockSetStates[1].mock.calls.length - 1][0];
     expect(groupMap.size).toBe(3);
     expect(groupMap.get('AA:BB:CC:DD:EE:01')).toBe(groupMap.get('AA:BB:CC:DD:EE:02'));
     expect(groupMap.get('AA:BB:CC:DD:EE:01')).toBe(groupMap.get('AA:BB:CC:DD:EE:03'));
@@ -214,7 +214,7 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
 
     // Visibilities are still built correctly
     expect(mockSetStates[1]).toHaveBeenCalled();
-    const groupMap = mockSetStates[1].mock.calls[0][0];
+    const groupMap = mockSetStates[1].mock.calls[mockSetStates[1].mock.calls.length - 1][0];
     expect(groupMap.size).toBe(2);
     expect(groupMap.get('AA:BB:CC:DD:EE:01')).toBe(groupMap.get('AA:BB:CC:DD:EE:02'));
   });
@@ -266,7 +266,7 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     expect(mockNetworkApi.getSiblingComponentBssids).not.toHaveBeenCalled();
 
     expect(mockSetStates[1]).toHaveBeenCalled();
-    const groupMap = mockSetStates[1].mock.calls[0][0];
+    const groupMap = mockSetStates[1].mock.calls[mockSetStates[1].mock.calls.length - 1][0];
 
     // Both pairs are grouped
     expect(groupMap.size).toBe(4);
@@ -319,7 +319,7 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(mockSetStates[1]).toHaveBeenCalled();
-    const groupMap = mockSetStates[1].mock.calls[0][0];
+    const groupMap = mockSetStates[1].mock.calls[mockSetStates[1].mock.calls.length - 1][0];
 
     // PAS-318 and PAS-RIG must be grouped even though PAS-301 is searchHits[0]
     expect(groupMap.get('00:14:3E:20:24:00')).toBeDefined();
@@ -365,7 +365,7 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     expect(mockNetworkApi.getSiblingComponentBssids).not.toHaveBeenCalled();
 
     expect(mockSetStates[1]).toHaveBeenCalled();
-    const groupMap = mockSetStates[1].mock.calls[0][0];
+    const groupMap = mockSetStates[1].mock.calls[mockSetStates[1].mock.calls.length - 1][0];
 
     // The Air Link pair is grouped
     expect(groupMap.get('00:14:3E:61:21:20')).toBeDefined();
@@ -419,8 +419,78 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     ]);
 
     expect(mockSetStates[1]).toHaveBeenCalled();
-    const groupMap = mockSetStates[1].mock.calls[0][0];
+    const groupMap = mockSetStates[1].mock.calls[mockSetStates[1].mock.calls.length - 1][0];
     expect(groupMap.get('00:14:3E:33:2E:40')).toBeDefined();
     expect(groupMap.get('00:14:3E:33:2E:40')).toBe(groupMap.get('00:14:3E:33:2E:41'));
+  });
+
+  test('old group map is cleared immediately when quickSearch or networks changes', async () => {
+    const networks: NetworkRow[] = [
+      { bssid: 'AA:BB:CC:DD:EE:01', sibling_bssids: ['AA:BB:CC:DD:EE:02'] } as NetworkRow,
+    ];
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+      quickSearch: 'old-search',
+    });
+
+    // Run the synchronous effect setup
+    const effect = mockEffects[mockEffects.length - 1];
+    if (effect) {
+      effect.effectFn();
+    }
+
+    // Check that state-setters are immediately called with clean values to prevent stale rendering
+    expect(mockSetStates[1]).toHaveBeenCalledWith(new Map());
+    expect(mockSetStates[2]).toHaveBeenCalledWith([]);
+    expect(mockSetStates[3]).toHaveBeenCalledWith([]);
+  });
+
+  test('stale async fallback results are ignored if networks/search changed', async () => {
+    const networks1: NetworkRow[] = [
+      { bssid: 'AA:BB:CC:DD:EE:01', ssid: 'search-1' } as NetworkRow,
+    ];
+    const networks2: NetworkRow[] = [
+      { bssid: 'AA:BB:CC:DD:EE:03', ssid: 'search-2' } as NetworkRow,
+    ];
+
+    mockNetworkApi.getNetworkSiblingLinksBatch.mockResolvedValue({
+      links: [{ bssid_a: 'AA:BB:CC:DD:EE:01', bssid_b: 'AA:BB:CC:DD:EE:02' }],
+    });
+    mockNetworkApi.getNetworkSiblingLinks.mockResolvedValue({ links: [] });
+
+    // Render with first search
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks: networks1,
+      quickSearch: 'search-1',
+    });
+
+    const effect1 = mockEffects[mockEffects.length - 1];
+
+    // Simulate re-render by resetting state indices but preserving mockStates array
+    mockStateIndex = 0;
+    mockRefIndex = 0;
+    mockEffects.length = 0;
+
+    // Render with second search immediately before effect1 resolves
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks: networks2,
+      quickSearch: 'search-2',
+    });
+
+    // Run cleanup of effect1 (setting cancelled = true)
+    const cleanup = await effect1.effectFn();
+    if (typeof cleanup === 'function') {
+      cleanup();
+    }
+
+    // Verify fallback links are called for the first search
+    expect(mockNetworkApi.getNetworkSiblingLinksBatch).toHaveBeenCalledWith(['AA:BB:CC:DD:EE:01']);
   });
 });
