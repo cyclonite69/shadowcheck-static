@@ -56,6 +56,7 @@ const resetMockIndexes = () => {
   getNetworkSiblingLinksBatch: jest.fn(),
   getSiblingComponentBssids: jest.fn(),
   getNetworkByBssid: jest.fn(),
+  getNetworksByBssids: jest.fn(),
 };
 
 jest.mock('../../client/src/api/networkApi', () => ({
@@ -152,8 +153,8 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     ];
 
     // AA:BB:CC:DD:EE:02 and 03 are "missing" from page payload and should be hydrated
-    mockNetworkApi.getNetworkByBssid.mockImplementation(async (bssid: string) => {
-      return { bssid, ssid: 'Hydrated' };
+    mockNetworkApi.getNetworksByBssids.mockImplementation(async (bssids: string[]) => {
+      return bssids.map((bssid) => ({ bssid, ssid: 'Hydrated' }));
     });
 
     useSiblingLinks({
@@ -176,8 +177,10 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     expect(groupMap.get('AA:BB:CC:DD:EE:01')).toBe(groupMap.get('AA:BB:CC:DD:EE:03'));
 
     // Hydration was called only for off-page / missing siblings
-    expect(mockNetworkApi.getNetworkByBssid).toHaveBeenCalledWith('AA:BB:CC:DD:EE:02');
-    expect(mockNetworkApi.getNetworkByBssid).toHaveBeenCalledWith('AA:BB:CC:DD:EE:03');
+    expect(mockNetworkApi.getNetworksByBssids).toHaveBeenCalledWith([
+      'AA:BB:CC:DD:EE:02',
+      'AA:BB:CC:DD:EE:03',
+    ]);
   });
 
   test('verifies fallback behavior only if sibling_bssids are missing or empty', async () => {

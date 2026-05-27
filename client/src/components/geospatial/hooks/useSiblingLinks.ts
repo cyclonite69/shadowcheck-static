@@ -199,29 +199,50 @@ export const useSiblingLinks = ({
 
           if (missing.length > 0) {
             try {
-              const rows = await Promise.all(missing.map((b) => networkApi.getNetworkByBssid(b)));
+              const CHUNK_SIZE = 100;
+              const chunks: string[][] = [];
+              for (let i = 0; i < missing.length; i += CHUNK_SIZE) {
+                chunks.push(missing.slice(i, i + CHUNK_SIZE));
+              }
+
+              const results = await Promise.allSettled(
+                chunks.map((chunk) => networkApi.getNetworksByBssids(chunk))
+              );
+
               if (!cancelled) {
                 const hydrated: NetworkRow[] = [];
-                const failed: string[] = [];
-                for (let i = 0; i < missing.length; i++) {
-                  const row = rows[i];
-                  if (row) {
-                    hydrated.push(mapApiRowToNetwork(row, 50000 + i));
+                const failed = new Set<string>(missing);
+
+                results.forEach((res, idx) => {
+                  if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+                    for (const row of res.value) {
+                      if (row) {
+                        const net = mapApiRowToNetwork(row, 50000 + hydrated.length);
+                        hydrated.push(net);
+                        failed.delete(normalizeBssid(net.bssid));
+                      }
+                    }
                   } else {
-                    failed.push(missing[i]);
+                    logError(
+                      `Batch sibling hydration chunk ${idx} failed`,
+                      res.status === 'rejected' ? res.reason : ''
+                    );
                   }
-                }
+                });
+
                 setMissingSiblingNetworks(hydrated);
-                setHydrationFailedBssids(failed);
+                setHydrationFailedBssids(Array.from(failed));
+
                 logSiblingTopology('useSiblingLinks.hydration', {
                   requested: missing.length,
                   successCount: hydrated.length,
-                  failedBssids: failed,
+                  failedBssids: Array.from(failed),
                   hydratedBssids: hydrated.map((n) => normalizeBssid(n.bssid)),
                 });
               }
-            } catch {
+            } catch (err) {
               if (!cancelled) {
+                logError('Sibling batch hydration crash', err);
                 setMissingSiblingNetworks([]);
                 setHydrationFailedBssids(missing);
               }
@@ -301,38 +322,52 @@ export const useSiblingLinks = ({
 
         if (missing.length > 0) {
           try {
-            const rows = await Promise.all(missing.map((b) => networkApi.getNetworkByBssid(b)));
+            const CHUNK_SIZE = 100;
+            const chunks: string[][] = [];
+            for (let i = 0; i < missing.length; i += CHUNK_SIZE) {
+              chunks.push(missing.slice(i, i + CHUNK_SIZE));
+            }
+
+            const results = await Promise.allSettled(
+              chunks.map((chunk) => networkApi.getNetworksByBssids(chunk))
+            );
+
             if (!cancelled) {
               const hydrated: NetworkRow[] = [];
-              const failed: string[] = [];
-              for (let i = 0; i < missing.length; i++) {
-                const row = rows[i];
-                if (row) {
-                  hydrated.push(mapApiRowToNetwork(row, 50000 + i));
+              const failed = new Set<string>(missing);
+
+              results.forEach((res, idx) => {
+                if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+                  for (const row of res.value) {
+                    if (row) {
+                      const net = mapApiRowToNetwork(row, 50000 + hydrated.length);
+                      hydrated.push(net);
+                      failed.delete(normalizeBssid(net.bssid));
+                    }
+                  }
                 } else {
-                  failed.push(missing[i]);
+                  logError(
+                    `Batch sibling hydration chunk ${idx} failed`,
+                    res.status === 'rejected' ? res.reason : ''
+                  );
                 }
-              }
+              });
+
               setMissingSiblingNetworks(hydrated);
-              setHydrationFailedBssids(failed);
+              setHydrationFailedBssids(Array.from(failed));
 
               logSiblingTopology('useSiblingLinks.hydration', {
                 requested: missing.length,
                 successCount: hydrated.length,
-                failedBssids: failed,
+                failedBssids: Array.from(failed),
                 hydratedBssids: hydrated.map((n) => normalizeBssid(n.bssid)),
               });
             }
-          } catch {
+          } catch (err) {
             if (!cancelled) {
+              logError('Sibling batch hydration crash', err);
               setMissingSiblingNetworks([]);
               setHydrationFailedBssids(missing);
-              logSiblingTopology('useSiblingLinks.hydration', {
-                requested: missing.length,
-                successCount: 0,
-                failedBssids: missing,
-                error: 'batch hydration threw',
-              });
             }
           }
         } else {

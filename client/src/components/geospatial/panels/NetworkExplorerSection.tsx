@@ -151,8 +151,9 @@ export const NetworkExplorerSection = ({
 
       {import.meta.env.DEV && topologyMismatch && (
         <div className="mx-2 mb-1 rounded border border-amber-600/50 bg-amber-950/40 px-2 py-1 text-[10px] text-amber-200">
-          Sibling topology mismatch — graph {siblingGroupMap?.size ?? 0} member(s), rendered{' '}
-          {filteredNetworks.length} row(s).
+          Sibling expansion incomplete — loaded {filteredNetworks.length} visible rows; sibling
+          graph references {siblingGroupMap?.size ?? 0} BSSIDs; {unresolvedSearchBssids.length}{' '}
+          sibling rows not loaded yet.
           {hydrationFailedBssids.length > 0 && (
             <span className="block">
               Hydration failed ({hydrationFailedBssids.length}):{' '}

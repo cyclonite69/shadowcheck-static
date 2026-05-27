@@ -27,6 +27,7 @@ export {
   getThreatSeverityCounts,
   checkHomeExists,
   fetchMissingSiblingRows,
+  getNetworksByBssids,
 } from '../repositories/v2Repository';
 
 module.exports = {
@@ -38,4 +39,5 @@ module.exports = {
   getThreatSeverityCounts: require('../repositories/v2Repository').getThreatSeverityCounts,
   checkHomeExists: require('../repositories/v2Repository').checkHomeExists,
   fetchMissingSiblingRows: require('../repositories/v2Repository').fetchMissingSiblingRows,
+  getNetworksByBssids: require('../repositories/v2Repository').getNetworksByBssids,
 };

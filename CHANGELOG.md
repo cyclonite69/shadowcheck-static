@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-26)
+# 1.0.0 (2026-05-27)
 
 
 ### Bug Fixes
@@ -328,6 +328,7 @@
 * **geospatial:** add error logging to WiGLE observation fetch ([1704685](https://github.com/cyclonite69/shadowcheck-web/commit/1704685c1b66515888d1b0a30917f37f8a1cd0a2))
 * **geospatial:** add WiGLE enrichment fields to explorer tooltip pipeline ([bb58cc4](https://github.com/cyclonite69/shadowcheck-web/commit/bb58cc4d263397717aa78ca47ff6a5b7a3dca376))
 * **geospatial:** align header offset and standardize temporal heatmap labeling ([3a7e0db](https://github.com/cyclonite69/shadowcheck-web/commit/3a7e0dbcfa042d53059b320eccdc648faf2489e8))
+* **geospatial:** batch hydrate sibling expansion rows ([1fcbc35](https://github.com/cyclonite69/shadowcheck-web/commit/1fcbc35200fdd93bd24309be7c0059ff990eec38))
 * **geospatial:** build sibling links from precomputed payload ([9bf5e11](https://github.com/cyclonite69/shadowcheck-web/commit/9bf5e1183bdd221d8996e34908424f9ab9331e9d))
 * **geospatial:** clear stale sibling links immediately on input change ([b0ded3d](https://github.com/cyclonite69/shadowcheck-web/commit/b0ded3d087c4ff95dcf9df78776f386f0088c6de))
 * **geospatial:** correct anchor BSSID source and guard repeat component calls ([5a19010](https://github.com/cyclonite69/shadowcheck-web/commit/5a19010a68b26e328544d941fa3cbd839ec75c6e))
@@ -716,7 +717,7 @@
 * **siblings:** only show link badge for real links ([4e66e64](https://github.com/cyclonite69/shadowcheck-web/commit/4e66e64ef2ae61aa524b3fee5e63fbdccf2c8bbd))
 * **siblings:** penalize common SSID long-distance false positives ([5bb903e](https://github.com/cyclonite69/shadowcheck-web/commit/5bb903e97fa0639f4fc980878eebf791c3d0749f))
 * **sibling:** split dedup CTE to fix DISTINCT window function crash ([f7025e8](https://github.com/cyclonite69/shadowcheck-web/commit/f7025e8731340865fbb5b55026e1e780a545dcec))
-* **siblings:** prune overflow components surgically ([d2382bd](https://github.com/cyclonite69/shadowcheck-web/commit/d2382bd9edb8126d58dcc11959eb1447933d64ce))
+* **siblings:** prune overflow components surgically ([a4dc1cf](https://github.com/cyclonite69/shadowcheck-web/commit/a4dc1cf679552160900fd8d0dffedcfd4af531c9))
 * **siblings:** remove distance as penalty/gate; fix BT/BLE first-2-octet false siblings ([713a61a](https://github.com/cyclonite69/shadowcheck-web/commit/713a61a44a23b7a78f1430c7d24f1a830ce0ae38))
 * **siblings:** restore LA-MAC exclusion for middle_octets_sequential ([1044da0](https://github.com/cyclonite69/shadowcheck-web/commit/1044da02035cfdf4644885467db0ab06d3231dc0))
 * **siblings:** snapshot incremental cutoff before loop to prevent batch 2+ starvation ([e7df70f](https://github.com/cyclonite69/shadowcheck-web/commit/e7df70fb3fa3f61d4ce5a5b21250de754d3d221d))

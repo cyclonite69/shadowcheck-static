@@ -50,4 +50,30 @@ router.get(
   })
 );
 
+router.post(
+  '/v2/networks/batch',
+  asyncHandler(async (req: Request, res: Response) => {
+    let bssids: string[] = [];
+    if (req.body && Array.isArray(req.body.bssids)) {
+      bssids = req.body.bssids
+        .map((b: any) =>
+          String(b || '')
+            .trim()
+            .toUpperCase()
+        )
+        .filter((b: string) => /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(b));
+    }
+    // Deduplicate
+    bssids = Array.from(new Set(bssids));
+    // Cap at 500
+    if (bssids.length > 500) {
+      bssids = bssids.slice(0, 500);
+    }
+
+    const locationMode = String(req.query.locationMode || 'latest_observation');
+    const result = await v2Service.getNetworksByBssids(bssids, locationMode);
+    res.json({ data: result });
+  })
+);
+
 module.exports = router;

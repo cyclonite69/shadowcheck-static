@@ -236,4 +236,15 @@ export const networkApi = {
       return null;
     }
   },
+
+  /** Fetch a batch of explorer network rows by their BSSIDs. */
+  async getNetworksByBssids(bssids: string[], locationMode?: string): Promise<any[]> {
+    try {
+      const queryStr = locationMode ? `?locationMode=${encodeURIComponent(locationMode)}` : '';
+      const res = await apiClient.post<any>(`/v2/networks/batch${queryStr}`, { bssids });
+      return Array.isArray(res?.data) ? res.data : [];
+    } catch {
+      return [];
+    }
+  },
 };
