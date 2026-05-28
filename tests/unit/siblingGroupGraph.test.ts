@@ -4,6 +4,9 @@ import {
   buildSiblingGroupMap,
   expandNetworksForSiblingSearch,
   mergeSiblingComponentsIntoGroupMap,
+  hasPrecomputedSiblings,
+  buildAdjacencyFromPrecomputed,
+  generateHydrationKey,
 } from '../../client/src/components/geospatial/utils/siblingGroupGraph';
 import type { NetworkRow } from '../../client/src/types/network';
 
@@ -111,6 +114,66 @@ describe('siblingGroupGraph', () => {
       );
 
       expect(expanded.map((n) => n.bssid?.toUpperCase())).toContain('BE:61:A3:7C:BD:09');
+    });
+  });
+
+  describe('hasPrecomputedSiblings', () => {
+    it('returns true if any network has non-empty sibling_bssids', () => {
+      const networks = [
+        { bssid: 'AA:BB:CC:DD:EE:01' } as unknown as NetworkRow,
+        {
+          bssid: 'AA:BB:CC:DD:EE:02',
+          sibling_bssids: ['AA:BB:CC:DD:EE:03'],
+        } as unknown as NetworkRow,
+      ];
+      expect(hasPrecomputedSiblings(networks)).toBe(true);
+    });
+
+    it('returns false if sibling_bssids are empty or undefined', () => {
+      const networks = [
+        { bssid: 'AA:BB:CC:DD:EE:01' } as unknown as NetworkRow,
+        { bssid: 'AA:BB:CC:DD:EE:02', sibling_bssids: [] } as unknown as NetworkRow,
+      ];
+      expect(hasPrecomputedSiblings(networks)).toBe(false);
+    });
+  });
+
+  describe('buildAdjacencyFromPrecomputed', () => {
+    it('builds undirected adjacency correctly from precomputed sibling_bssids', () => {
+      const visibleSet = new Set(['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02']);
+      const networks = [
+        {
+          bssid: 'AA:BB:CC:DD:EE:01',
+          sibling_bssids: ['AA:BB:CC:DD:EE:02'],
+        } as unknown as NetworkRow,
+      ];
+
+      const adjacency = buildAdjacencyFromPrecomputed(visibleSet, networks);
+
+      expect(adjacency.has('AA:BB:CC:DD:EE:01')).toBe(true);
+      expect(adjacency.has('AA:BB:CC:DD:EE:02')).toBe(true);
+      expect(adjacency.get('AA:BB:CC:DD:EE:01')?.has('AA:BB:CC:DD:EE:02')).toBe(true);
+      expect(adjacency.get('AA:BB:CC:DD:EE:02')?.has('AA:BB:CC:DD:EE:01')).toBe(true);
+    });
+  });
+
+  describe('generateHydrationKey', () => {
+    it('generates correct key and does not mutate the input array', () => {
+      const groupMap = new Map([
+        ['AA:BB:CC:DD:EE:01', 'S1'],
+        ['AA:BB:CC:DD:EE:02', 'S1'],
+      ]);
+      const missing = ['AA:BB:CC:DD:EE:04', 'AA:BB:CC:DD:EE:03'];
+      const missingCopy = [...missing];
+
+      const key = generateHydrationKey(groupMap, missing);
+      expect(key).toBe(
+        'AA:BB:CC:DD:EE:01:S1|AA:BB:CC:DD:EE:02:S1::AA:BB:CC:DD:EE:03,AA:BB:CC:DD:EE:04'
+      );
+
+      // Verify no mutation occurred on the original missing array
+      expect(missing).toEqual(missingCopy);
+      expect(missing[0]).toBe('AA:BB:CC:DD:EE:04');
     });
   });
 });

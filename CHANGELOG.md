@@ -724,7 +724,7 @@
 * **siblings:** prune overflow components surgically ([a4dc1cf](https://github.com/cyclonite69/shadowcheck-web/commit/a4dc1cf679552160900fd8d0dffedcfd4af531c9))
 * **siblings:** remove distance as penalty/gate; fix BT/BLE first-2-octet false siblings ([713a61a](https://github.com/cyclonite69/shadowcheck-web/commit/713a61a44a23b7a78f1430c7d24f1a830ce0ae38))
 * **siblings:** restore LA-MAC exclusion for middle_octets_sequential ([1044da0](https://github.com/cyclonite69/shadowcheck-web/commit/1044da02035cfdf4644885467db0ab06d3231dc0))
-* **siblings:** separate pairs_inserted and pairs_updated bindings in completeRun ([e674b0d](https://github.com/cyclonite69/shadowcheck-web/commit/e674b0da7c5afc3fcd00156cee9e0c5b142c059c))
+* **siblings:** separate pairs_inserted and pairs_updated bindings in completeRun ([6faea1f](https://github.com/cyclonite69/shadowcheck-web/commit/6faea1feccfcffe74b9997d71e97478dd30c38b5))
 * **siblings:** snapshot incremental cutoff before loop to prevent batch 2+ starvation ([e7df70f](https://github.com/cyclonite69/shadowcheck-web/commit/e7df70fb3fa3f61d4ce5a5b21250de754d3d221d))
 * **siblings:** support legacy sibling table schema without pair_strength ([a51b918](https://github.com/cyclonite69/shadowcheck-web/commit/a51b9186c4ed831cb930ac0f908e74fac39a8a6e))
 * **siblings:** tighten false-positive rules + respect not_sibling overrides ([740f420](https://github.com/cyclonite69/shadowcheck-web/commit/740f4202503f95e7f6a9a906e7421a6a7a086dee))

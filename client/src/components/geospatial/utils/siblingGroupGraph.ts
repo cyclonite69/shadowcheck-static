@@ -351,3 +351,37 @@ export function processHydrationSettledResults(
 
   return { hydrated, failed, nonRenderable, missingDb };
 }
+
+export function hasPrecomputedSiblings(networks: NetworkRow[]): boolean {
+  return networks.some((n) => Array.isArray(n.sibling_bssids) && n.sibling_bssids.length > 0);
+}
+
+export function buildAdjacencyFromPrecomputed(
+  visibleSet: Set<string>,
+  targetNetworks: NetworkRow[]
+): Map<string, Set<string>> {
+  const adjacency = new Map<string, Set<string>>();
+  for (const bssid of visibleSet) {
+    adjacency.set(bssid, new Set());
+  }
+
+  for (const network of targetNetworks) {
+    const anchor = normalizeBssid(network.bssid);
+    if (!anchor) continue;
+
+    const siblings = Array.isArray(network.sibling_bssids) ? network.sibling_bssids : [];
+    for (const sibling of siblings) {
+      const normalizedSibling = normalizeBssid(sibling);
+      if (!normalizedSibling) continue;
+
+      addUndirectedEdge(adjacency, anchor, normalizedSibling);
+    }
+  }
+
+  return adjacency;
+}
+
+export function generateHydrationKey(groupMap: Map<string, string>, missing: string[]): string {
+  const sortedMissing = [...missing].sort().join(',');
+  return `${serializeGroupMap(groupMap)}::${sortedMissing}`;
+}

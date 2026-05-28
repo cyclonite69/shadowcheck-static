@@ -10,6 +10,9 @@ import {
   serializeGroupMap,
   filterNetworksBySearch,
   processHydrationSettledResults,
+  hasPrecomputedSiblings,
+  buildAdjacencyFromPrecomputed,
+  generateHydrationKey,
 } from '../utils/siblingGroupGraph';
 import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 
@@ -112,26 +115,15 @@ export const useSiblingLinks = ({
           // Build sibling graph from ALL matching search hits' precomputed sibling_bssids.
           // This keeps independent pairs isolated rather than merging them through a single
           // anchor's recursive DB component.
-          const searchAdjacency = new Map<string, Set<string>>();
-          for (const bssid of visibleSet) searchAdjacency.set(bssid, new Set());
+          let searchAdjacency: Map<string, Set<string>>;
 
-          const hasPrecomputedSiblingsInHits = searchHits.some(
-            (n) => Array.isArray(n.sibling_bssids) && n.sibling_bssids.length > 0
-          );
-
-          if (hasPrecomputedSiblingsInHits) {
-            for (const network of searchHits) {
-              const anchor = normalizeBssid(network.bssid);
-              if (!anchor) continue;
-              const siblings = Array.isArray(network.sibling_bssids) ? network.sibling_bssids : [];
-              for (const sibling of siblings) {
-                const normalizedSibling = normalizeBssid(sibling);
-                if (!normalizedSibling) continue;
-                addUndirectedEdge(searchAdjacency, anchor, normalizedSibling);
-              }
-            }
+          if (hasPrecomputedSiblings(searchHits)) {
+            searchAdjacency = buildAdjacencyFromPrecomputed(visibleSet, searchHits);
           } else {
             // Fallback: batch + per-hit API calls when sibling_bssids are missing.
+            searchAdjacency = new Map<string, Set<string>>();
+            for (const bssid of visibleSet) searchAdjacency.set(bssid, new Set());
+
             const searchHitBssids = searchHits
               .map((n) => normalizeBssid(n.bssid))
               .filter(Boolean) as string[];
@@ -159,7 +151,7 @@ export const useSiblingLinks = ({
           }
 
           const groupMap = buildSiblingGroupMap(visibleSet, searchAdjacency);
-          const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid));
+          const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid)).sort();
 
           logSiblingTopology('useSiblingLinks.searchComponent', {
             quickSearch: quickSearch.trim(),
@@ -171,7 +163,7 @@ export const useSiblingLinks = ({
 
           setVisibleSiblingGroupMap(groupMap);
 
-          const hydrationKey = `${serializeGroupMap(groupMap)}::${missing.sort().join(',')}`;
+          const hydrationKey = generateHydrationKey(groupMap, missing);
           if (hydrationKey === prevHydrationKeyRef.current) return;
           prevHydrationKeyRef.current = hydrationKey;
 
@@ -234,31 +226,16 @@ export const useSiblingLinks = ({
           return;
         }
 
-        const adjacency = new Map<string, Set<string>>();
+        let adjacency: Map<string, Set<string>>;
 
-        for (const bssid of visibleSet) adjacency.set(bssid, new Set());
-
-        // Check if precomputed sibling_bssids are available on the networks
-        const hasPrecomputedSiblings = networks.some(
-          (n) => Array.isArray(n.sibling_bssids) && n.sibling_bssids.length > 0
-        );
-
-        if (hasPrecomputedSiblings) {
+        if (hasPrecomputedSiblings(networks)) {
           // Build adjacency locally from precomputed sibling_bssids (NO network requests!)
-          for (const network of networks) {
-            const anchor = normalizeBssid(network.bssid);
-            if (!anchor) continue;
-
-            const siblings = Array.isArray(network.sibling_bssids) ? network.sibling_bssids : [];
-            for (const sibling of siblings) {
-              const normalizedSibling = normalizeBssid(sibling);
-              if (!normalizedSibling) continue;
-
-              addUndirectedEdge(adjacency, anchor, normalizedSibling);
-            }
-          }
+          adjacency = buildAdjacencyFromPrecomputed(visibleSet, networks);
         } else {
           // Fallback: Legacy API requests when precomputed sibling_bssids are missing
+          adjacency = new Map<string, Set<string>>();
+          for (const bssid of visibleSet) adjacency.set(bssid, new Set());
+
           const batchResult = await networkApi.getNetworkSiblingLinksBatch(visibleBssids);
           if (cancelled) return;
 
@@ -284,7 +261,7 @@ export const useSiblingLinks = ({
 
         const edgeCount = [...adjacency.values()].reduce((sum, s) => sum + s.size, 0) / 2;
         const groupMap = buildSiblingGroupMap(visibleSet, adjacency);
-        const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid));
+        const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid)).sort();
 
         logSiblingTopology('useSiblingLinks', {
           visibleBssids,
@@ -296,7 +273,7 @@ export const useSiblingLinks = ({
 
         setVisibleSiblingGroupMap(groupMap);
 
-        const hydrationKey = `${serializeGroupMap(groupMap)}::${missing.sort().join(',')}`;
+        const hydrationKey = generateHydrationKey(groupMap, missing);
         if (hydrationKey === prevHydrationKeyRef.current) return;
         prevHydrationKeyRef.current = hydrationKey;
 
