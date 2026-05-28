@@ -81,6 +81,29 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '00:30:44:61:8A:90',
     '00:30:44:1C:CA:9E',
     '00:30:44:1C:CA:A0',
+    // Cradlepoint SmartBus/Kajeet fleet BSSIDs for parity and band verification
+    '00:30:44:A2:55:51',
+    '00:30:44:A2:55:52',
+    '00:30:44:A2:55:54',
+    '00:30:44:A2:55:55',
+    '00:30:44:A2:55:57',
+    '00:30:44:A2:55:6C',
+    '00:30:44:A2:55:6D',
+    '00:30:44:A2:55:6F',
+    '00:30:44:A2:55:72',
+    '00:30:44:A2:55:73',
+    '00:30:44:A2:55:76',
+    '00:30:44:A2:55:77',
+    '00:30:44:A2:55:80',
+    '00:30:44:A2:55:82',
+    '00:30:44:A2:55:90',
+    '00:30:44:A2:55:93',
+    '00:30:44:A2:55:A0',
+    '00:30:44:A2:55:A1',
+    '00:30:44:A2:55:B0',
+    '00:30:44:A2:55:B1',
+    '00:30:44:A2:55:C0',
+    '00:30:44:A2:55:C1',
   ];
 
   beforeAll(async () => {
@@ -180,7 +203,31 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         ('00:30:44:61:8A:8F', 'CP-Bus-3-A',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('00:30:44:61:8A:90', 'CP-Bus-3-B',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('00:30:44:1C:CA:9E', 'CP-Bus-4-A',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
-        ('00:30:44:1C:CA:A0', 'CP-Bus-4-B',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
+        ('00:30:44:1C:CA:A0', 'CP-Bus-4-B',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- Cradlepoint SmartBus/Kajeet fleet BSSIDs for parity and band verification
+        ('00:30:44:A2:55:51', 'Kajeet SmartBus', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:52', 'Kajeet SmartBus', 'W', 5720, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:54', 'MTA SmartBus',    'W', 2462, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:55', 'MTA SmartBus',    'W', 5745, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:57', 'Kajeet SmartBus', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:6C', 'MTA SmartBus',    'W', 2462, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:6D', 'MTA SmartBus',    'W', 5320, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:6F', 'Kajeet SmartBus', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:72', 'Kajeet SmartBus', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:73', 'Kajeet SmartBus', 'W', 5500, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:76', 'Kajeet SmartBus', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:77', 'Kajeet SmartBus', 'W', 2462, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:80', 'MTA SmartBus',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:82', 'MTA SmartBus',    'W', 5500, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:90', 'Kajeet SmartBus', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:93', 'Kajeet SmartBus', 'W', 5500, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:A0', 'MTA SmartBus',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:A1', 'Kajeet SmartBus', 'W', 5500, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:B0', 'Kajeet SmartBus', 'W', 5500, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:B1', 'Kajeet SmartBus', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:C0', 'MTA SmartBus',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:55:C1', 'MTA SmartBus',    'W', 6115, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
     `);
   });
 
@@ -424,5 +471,52 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:1C:CA:A0');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Class A');
+  });
+
+  // ── Cradlepoint SmartBus/Kajeet Fleet Rule (migration 021) ─────────────────
+  test('Cradlepoint Fleet Rule: keeps valid delta-1 cross-band pair with 2.4G MAC < 5G MAC (A2:55:72 ↔ A2:55:73)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:72')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:73');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
+    expect(sibling.d_last_octet).toBe(1);
+  });
+
+  test('Cradlepoint Fleet Rule: keeps valid delta-1 2.4G to 6G pair', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:C0')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:C1');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
+    expect(sibling.d_last_octet).toBe(1);
+  });
+
+  test('Cradlepoint Fleet Rule: rejects delta-1 same-service same-band pair', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:76')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:77');
+    expect(sibling).toBeUndefined();
+  });
+
+  test('Cradlepoint Fleet Rule: rejects delta-2 same-service cross-band pair', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:80')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:82');
+    expect(sibling).toBeUndefined();
+  });
+
+  test('Cradlepoint Fleet Rule: rejects delta-3 same-service cross-band pair', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:90')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:93');
+    expect(sibling).toBeUndefined();
+  });
+
+  test('Cradlepoint Fleet Rule: rejects delta-1 mixed-service cross-band pair', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:A0')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:A1');
+    expect(sibling).toBeUndefined();
+  });
+
+  test('Cradlepoint Fleet Rule: rejects delta-1 cross-band pair where 5G MAC < 2.4G MAC', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:B0')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:B1');
+    expect(sibling).toBeUndefined();
   });
 });
