@@ -254,6 +254,26 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
       return React.createElement('span', { className: 'text-xs text-gray-600' }, label);
     },
   },
+  unique_days: {
+    label: 'Unique Days',
+    width: 110,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (value === null || value === undefined || value === '') return '—';
+      return String(value);
+    },
+  },
+  unique_locations: {
+    label: 'Unique Locations',
+    width: 130,
+    sortable: true,
+    default: false,
+    render: (value) => {
+      if (value === null || value === undefined || value === '') return '—';
+      return String(value);
+    },
+  },
   has_siblings: {
     label: 'Has Siblings',
     width: 100,

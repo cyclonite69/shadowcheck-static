@@ -47,6 +47,7 @@ export function buildGeospatialQueryContext(
         ne.last_seen,
         ne.observations,
         ne.unique_days,
+        ne.unique_locations,
         ne.max_distance_meters,
         ne.manufacturer,
         ne.threat_score,

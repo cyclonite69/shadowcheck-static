@@ -180,6 +180,8 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     })(),
     wigle_v3_observation_count: parseIntegerField(row.wigle_v3_observation_count),
     wigle_v3_last_import_at: row.wigle_v3_last_import_at || null,
+    unique_days: parseIntegerField(row.unique_days),
+    unique_locations: parseIntegerField(row.unique_locations),
     rawLatitude:
       typeof row.raw_lat === 'number' ? row.raw_lat : typeof row.lat === 'number' ? row.lat : null,
     rawLongitude:

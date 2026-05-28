@@ -101,6 +101,8 @@ export type NetworkRow = {
   all_tags?: string | null;
   wigle_v3_observation_count?: number | null;
   wigle_v3_last_import_at?: string | null;
+  unique_days?: number | null;
+  unique_locations?: number | null;
 };
 
 export type Observation = {

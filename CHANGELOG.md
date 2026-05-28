@@ -1120,6 +1120,7 @@
 * **geospatial:** bake sibling summary into explorer mv ([6e0f554](https://github.com/cyclonite69/shadowcheck-web/commit/6e0f554f9e354355345b3c88188b234e7ff5c527))
 * **geospatial:** cluster visible sibling rows ([7e02ee8](https://github.com/cyclonite69/shadowcheck-web/commit/7e02ee8d493595b971f7d0b886a4e24058ba5153))
 * **geospatial:** enhance network tooltips and enable agency/courthouse popups on WiGLE map ([24f372d](https://github.com/cyclonite69/shadowcheck-web/commit/24f372dba6b8cd897403f0a77fef1ae977b119ed))
+* **geospatial:** expose activity metrics in explorer columns ([cc59732](https://github.com/cyclonite69/shadowcheck-web/commit/cc59732ca6f496015034f1792ee98fa6ab05c656))
 * **geospatial:** persist visible sibling group indicators ([1edb27d](https://github.com/cyclonite69/shadowcheck-web/commit/1edb27dc3fbf560ee486932af0365fbc9d1f4bc6))
 * **geospatial:** pin-drop radius filter via right-click or crosshair button ([5103cf0](https://github.com/cyclonite69/shadowcheck-web/commit/5103cf0fd1cbba978a4a08f10c5286c6809d112c))
 * **geospatial:** radius filter pin, circle, dotted line with distance label, popup radius adjuster ([7190eff](https://github.com/cyclonite69/shadowcheck-web/commit/7190eff1ef48eab2f0a44f1f03bc2928611ebc64))
