@@ -94,6 +94,8 @@ export const useGeospatialExplorerState = ({
     setLinkedSiblingBssids,
     missingSiblingNetworks,
     hydrationFailedBssids,
+    nonRenderableBssids,
+    missingDbBssids,
   } = useSiblingLinks({
     isAdmin,
     selectedAnchorBssid,
@@ -508,6 +510,8 @@ export const useGeospatialExplorerState = ({
     filteredNetworks,
     unresolvedSearchBssids,
     hydrationFailedBssids,
+    nonRenderableBssids,
+    missingDbBssids,
     linkedSiblingBssids,
     visibleSiblingGroupMap,
     setLinkedSiblingBssids,

@@ -72,7 +72,26 @@ router.post(
 
     const locationMode = String(req.query.locationMode || 'latest_observation');
     const result = await v2Service.getNetworksByBssids(bssids, locationMode);
-    res.json({ data: result });
+
+    // Identify which requested BSSIDs are missing from explorer rows
+    const foundBssids = new Set(result.map((r: any) => r.bssid.toUpperCase()));
+    const missingBssids = bssids.filter((b) => !foundBssids.has(b));
+
+    // Query database to check if missing BSSIDs exist in app.networks
+    const existingDbBssids = await v2Service.checkNetworksExist(missingBssids);
+    const existingDbSet = new Set(existingDbBssids);
+
+    // Classify each missing BSSID
+    const unresolved: Record<string, 'non_renderable' | 'missing'> = {};
+    for (const b of missingBssids) {
+      if (existingDbSet.has(b)) {
+        unresolved[b] = 'non_renderable';
+      } else {
+        unresolved[b] = 'missing';
+      }
+    }
+
+    res.json({ data: result, unresolved });
   })
 );
 

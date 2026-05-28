@@ -154,7 +154,10 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
 
     // AA:BB:CC:DD:EE:02 and 03 are "missing" from page payload and should be hydrated
     mockNetworkApi.getNetworksByBssids.mockImplementation(async (bssids: string[]) => {
-      return bssids.map((bssid) => ({ bssid, ssid: 'Hydrated' }));
+      return {
+        data: bssids.map((bssid) => ({ bssid, ssid: 'Hydrated' })),
+        unresolved: {},
+      };
     });
 
     useSiblingLinks({

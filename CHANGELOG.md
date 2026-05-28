@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-27)
+# 1.0.0 (2026-05-28)
 
 
 ### Bug Fixes
@@ -328,8 +328,9 @@
 * **geospatial:** add error logging to WiGLE observation fetch ([1704685](https://github.com/cyclonite69/shadowcheck-web/commit/1704685c1b66515888d1b0a30917f37f8a1cd0a2))
 * **geospatial:** add WiGLE enrichment fields to explorer tooltip pipeline ([bb58cc4](https://github.com/cyclonite69/shadowcheck-web/commit/bb58cc4d263397717aa78ca47ff6a5b7a3dca376))
 * **geospatial:** align header offset and standardize temporal heatmap labeling ([3a7e0db](https://github.com/cyclonite69/shadowcheck-web/commit/3a7e0dbcfa042d53059b320eccdc648faf2489e8))
-* **geospatial:** batch hydrate sibling expansion rows ([1fcbc35](https://github.com/cyclonite69/shadowcheck-web/commit/1fcbc35200fdd93bd24309be7c0059ff990eec38))
+* **geospatial:** batch hydrate sibling expansion rows ([9a7db9b](https://github.com/cyclonite69/shadowcheck-web/commit/9a7db9b1f0758bc551996d34112a858d3a09f82a))
 * **geospatial:** build sibling links from precomputed payload ([9bf5e11](https://github.com/cyclonite69/shadowcheck-web/commit/9bf5e1183bdd221d8996e34908424f9ab9331e9d))
+* **geospatial:** classify sibling hydration diagnostics ([468d02e](https://github.com/cyclonite69/shadowcheck-web/commit/468d02e9e841e59b89430255c50a41b4807aebb5))
 * **geospatial:** clear stale sibling links immediately on input change ([b0ded3d](https://github.com/cyclonite69/shadowcheck-web/commit/b0ded3d087c4ff95dcf9df78776f386f0088c6de))
 * **geospatial:** correct anchor BSSID source and guard repeat component calls ([5a19010](https://github.com/cyclonite69/shadowcheck-web/commit/5a19010a68b26e328544d941fa3cbd839ec75c6e))
 * **geospatial:** correct context menu position to cursor location ([8d25de9](https://github.com/cyclonite69/shadowcheck-web/commit/8d25de9c2b51eeb6f885a92d095540f7dfa4639c))

@@ -12,10 +12,12 @@ jest.mock('../../../server/src/logging/logger', () => ({
 
 // Mock the container/v2Service
 const mockGetNetworksByBssids = jest.fn();
+const mockCheckNetworksExist = jest.fn();
 
 jest.mock('../../../server/src/config/container', () => ({
   v2Service: {
     getNetworksByBssids: (...args: any[]) => mockGetNetworksByBssids(...args),
+    checkNetworksExist: (...args: any[]) => mockCheckNetworksExist(...args),
   },
 }));
 
@@ -30,29 +32,44 @@ describe('POST /api/v2/networks/batch route', () => {
 
   beforeEach(() => {
     mockGetNetworksByBssids.mockReset();
+    mockCheckNetworksExist.mockReset();
   });
 
-  test('successfully processes batch lookup with valid BSSIDs', async () => {
+  test('successfully processes batch lookup with valid BSSIDs and classifies missing', async () => {
     const mockRows = [
       { bssid: '00:11:22:33:44:55', ssid: 'Net1' },
       { bssid: 'AA:BB:CC:DD:EE:FF', ssid: 'Net2' },
     ];
     mockGetNetworksByBssids.mockResolvedValue(mockRows);
+    mockCheckNetworksExist.mockResolvedValue(['54:D7:E3:FB:49:C1']);
 
     const res = await request(app)
       .post('/api/v2/networks/batch')
-      .send({ bssids: ['00:11:22:33:44:55', 'AA:BB:CC:DD:EE:FF'] });
+      .send({
+        bssids: [
+          '00:11:22:33:44:55',
+          'AA:BB:CC:DD:EE:FF',
+          '54:D7:E3:FB:49:C1',
+          '99:99:99:99:99:99',
+        ],
+      });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ data: mockRows });
+    expect(res.body.data).toEqual(mockRows);
+    expect(res.body.unresolved).toEqual({
+      '54:D7:E3:FB:49:C1': 'non_renderable',
+      '99:99:99:99:99:99': 'missing',
+    });
     expect(mockGetNetworksByBssids).toHaveBeenCalledWith(
-      ['00:11:22:33:44:55', 'AA:BB:CC:DD:EE:FF'],
+      ['00:11:22:33:44:55', 'AA:BB:CC:DD:EE:FF', '54:D7:E3:FB:49:C1', '99:99:99:99:99:99'],
       'latest_observation'
     );
+    expect(mockCheckNetworksExist).toHaveBeenCalledWith(['54:D7:E3:FB:49:C1', '99:99:99:99:99:99']);
   });
 
   test('normalizes and dedupes BSSIDs', async () => {
     mockGetNetworksByBssids.mockResolvedValue([]);
+    mockCheckNetworksExist.mockResolvedValue([]);
 
     const res = await request(app)
       .post('/api/v2/networks/batch')
@@ -67,6 +84,7 @@ describe('POST /api/v2/networks/batch route', () => {
 
   test('caps the batch size at 500 BSSIDs', async () => {
     mockGetNetworksByBssids.mockResolvedValue([]);
+    mockCheckNetworksExist.mockResolvedValue([]);
 
     const largeBssidsList = Array.from({ length: 600 }, (_, i) => {
       const hex5 = Math.floor(i / 256)
@@ -84,6 +102,7 @@ describe('POST /api/v2/networks/batch route', () => {
 
   test('validates and filters out malformed BSSIDs', async () => {
     mockGetNetworksByBssids.mockResolvedValue([]);
+    mockCheckNetworksExist.mockResolvedValue([]);
 
     const res = await request(app)
       .post('/api/v2/networks/batch')
@@ -98,6 +117,7 @@ describe('POST /api/v2/networks/batch route', () => {
 
   test('handles empty body gracefully', async () => {
     mockGetNetworksByBssids.mockResolvedValue([]);
+    mockCheckNetworksExist.mockResolvedValue([]);
 
     const res = await request(app).post('/api/v2/networks/batch').send({});
 

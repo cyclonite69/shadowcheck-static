@@ -28,6 +28,7 @@ export {
   checkHomeExists,
   fetchMissingSiblingRows,
   getNetworksByBssids,
+  checkNetworksExist,
 } from '../repositories/v2Repository';
 
 module.exports = {
@@ -40,4 +41,5 @@ module.exports = {
   checkHomeExists: require('../repositories/v2Repository').checkHomeExists,
   fetchMissingSiblingRows: require('../repositories/v2Repository').fetchMissingSiblingRows,
   getNetworksByBssids: require('../repositories/v2Repository').getNetworksByBssids,
+  checkNetworksExist: require('../repositories/v2Repository').checkNetworksExist,
 };

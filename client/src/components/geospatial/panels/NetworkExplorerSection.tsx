@@ -57,6 +57,8 @@ interface NetworkExplorerSectionProps {
   loadingObservations: boolean;
   hydrationFailedBssids?: string[];
   unresolvedSearchBssids?: string[];
+  nonRenderableBssids?: string[];
+  missingDbBssids?: string[];
 }
 
 export const NetworkExplorerSection = ({
@@ -106,8 +108,14 @@ export const NetworkExplorerSection = ({
   loadingObservations,
   hydrationFailedBssids = [],
   unresolvedSearchBssids = [],
+  nonRenderableBssids = [],
+  missingDbBssids = [],
 }: NetworkExplorerSectionProps) => {
-  const topologyMismatch = hydrationFailedBssids.length > 0 || unresolvedSearchBssids.length > 0;
+  const topologyMismatch =
+    hydrationFailedBssids.length > 0 ||
+    nonRenderableBssids.length > 0 ||
+    missingDbBssids.length > 0 ||
+    unresolvedSearchBssids.length > 0;
   const [tableScrollLeft, setTableScrollLeft] = React.useState(0);
 
   const [collapseAllActive, setCollapseAllActive] = useState(false);
@@ -155,14 +163,28 @@ export const NetworkExplorerSection = ({
           graph references {siblingGroupMap?.size ?? 0} BSSIDs; {unresolvedSearchBssids.length}{' '}
           sibling rows not loaded yet.
           {hydrationFailedBssids.length > 0 && (
-            <span className="block">
+            <span className="block text-red-400">
               Hydration failed ({hydrationFailedBssids.length}):{' '}
               {hydrationFailedBssids.slice(0, 4).join(', ')}
               {hydrationFailedBssids.length > 4 ? '…' : ''}
             </span>
           )}
+          {nonRenderableBssids.length > 0 && (
+            <span className="block text-amber-400">
+              Sibling refs not renderable in Explorer ({nonRenderableBssids.length}):{' '}
+              {nonRenderableBssids.slice(0, 4).join(', ')}
+              {nonRenderableBssids.length > 4 ? '…' : ''}
+            </span>
+          )}
+          {missingDbBssids.length > 0 && (
+            <span className="block text-red-300">
+              Real data inconsistency / missing DB refs ({missingDbBssids.length}):{' '}
+              {missingDbBssids.slice(0, 4).join(', ')}
+              {missingDbBssids.length > 4 ? '…' : ''}
+            </span>
+          )}
           {unresolvedSearchBssids.length > 0 && (
-            <span className="block">
+            <span className="block text-amber-300/80">
               Unresolved in search expansion ({unresolvedSearchBssids.length}):{' '}
               {unresolvedSearchBssids.slice(0, 4).join(', ')}
               {unresolvedSearchBssids.length > 4 ? '…' : ''}

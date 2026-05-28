@@ -224,6 +224,8 @@ export default function GeospatialExplorer() {
             renderBudget={renderBudget ?? 0}
             hydrationFailedBssids={state.hydrationFailedBssids}
             unresolvedSearchBssids={state.unresolvedSearchBssids}
+            nonRenderableBssids={state.nonRenderableBssids}
+            missingDbBssids={state.missingDbBssids}
           />
         </>
       }

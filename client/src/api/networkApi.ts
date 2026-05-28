@@ -237,14 +237,20 @@ export const networkApi = {
     }
   },
 
-  /** Fetch a batch of explorer network rows by their BSSIDs. */
-  async getNetworksByBssids(bssids: string[], locationMode?: string): Promise<any[]> {
+  /** Fetch a batch of explorer network rows by their BSSIDs with diagnostic info. */
+  async getNetworksByBssids(
+    bssids: string[],
+    locationMode?: string
+  ): Promise<{ data: any[]; unresolved: Record<string, 'non_renderable' | 'missing'> }> {
     try {
       const queryStr = locationMode ? `?locationMode=${encodeURIComponent(locationMode)}` : '';
       const res = await apiClient.post<any>(`/v2/networks/batch${queryStr}`, { bssids });
-      return Array.isArray(res?.data) ? res.data : [];
+      return {
+        data: Array.isArray(res?.data) ? res.data : [],
+        unresolved: res?.unresolved || {},
+      };
     } catch {
-      return [];
+      return { data: [], unresolved: {} };
     }
   },
 };

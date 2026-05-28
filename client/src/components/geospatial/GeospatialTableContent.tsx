@@ -33,6 +33,8 @@ interface GeospatialTableContentProps {
   renderBudget: number;
   hydrationFailedBssids?: string[];
   unresolvedSearchBssids?: string[];
+  nonRenderableBssids?: string[];
+  missingDbBssids?: string[];
 }
 
 const GeospatialTableContentComponent = ({
@@ -67,6 +69,8 @@ const GeospatialTableContentComponent = ({
   renderBudget,
   hydrationFailedBssids = [],
   unresolvedSearchBssids = [],
+  nonRenderableBssids = [],
+  missingDbBssids = [],
 }: GeospatialTableContentProps) => (
   <NetworkExplorerSection
     expensiveSort={expensiveSort}
@@ -115,6 +119,8 @@ const GeospatialTableContentComponent = ({
     loadingObservations={loadingObservations}
     hydrationFailedBssids={hydrationFailedBssids}
     unresolvedSearchBssids={unresolvedSearchBssids}
+    nonRenderableBssids={nonRenderableBssids}
+    missingDbBssids={missingDbBssids}
   />
 );
 

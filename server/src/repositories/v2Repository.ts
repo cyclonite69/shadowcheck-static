@@ -402,3 +402,16 @@ export async function getNetworksByBssids(
 
   return networkResult.rows as any[];
 }
+
+/**
+ * Checks which BSSIDs exist in the app.networks table.
+ */
+export async function checkNetworksExist(bssids: string[]): Promise<string[]> {
+  if (!Array.isArray(bssids) || bssids.length === 0) return [];
+  const upperBssids = bssids.map((b) => b.toUpperCase());
+  const result = await query(
+    `SELECT bssid FROM app.networks WHERE UPPER(bssid) = ANY($1::text[])`,
+    [upperBssids]
+  );
+  return result.rows.map((row: any) => row.bssid.toUpperCase());
+}
