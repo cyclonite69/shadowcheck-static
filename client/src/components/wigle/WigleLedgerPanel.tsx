@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { wigleApi, type LedgerRow } from '../../api/wigleApi';
+import { formatShortDate, formatISODate } from '../../utils/formatDate';
 
 const STATUS_FILTERS = ['all', 'success', 'error', 'rate_limited', 'skipped'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -15,16 +16,6 @@ const SOURCE_BADGE: Record<string, string> = {
   import: 'bg-blue-900/60 text-blue-300 border border-blue-700/40',
   event: 'bg-slate-700/60 text-slate-400 border border-slate-600/40',
 };
-
-function fmt(ts: string) {
-  return new Date(ts).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-}
 
 function fmtDuration(ms?: number) {
   if (ms == null) return '—';
@@ -165,8 +156,11 @@ export function WigleLedgerPanel() {
                       className="border-t border-slate-700/30 hover:bg-slate-800/40"
                       title={row.error || undefined}
                     >
-                      <td className="px-3 py-1.5 text-slate-400 whitespace-nowrap font-mono">
-                        {fmt(row.timestamp)}
+                      <td
+                        className="px-3 py-1.5 text-slate-400 whitespace-nowrap font-mono"
+                        title={formatISODate(row.timestamp)}
+                      >
+                        {formatShortDate(row.timestamp)}
                       </td>
                       <td className="px-3 py-1.5">
                         <span

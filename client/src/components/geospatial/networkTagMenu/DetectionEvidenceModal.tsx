@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { formatShortDate, formatISODate } from '../../../utils/formatDate';
 
 interface DetectionRecord {
   device_type: string;
@@ -360,6 +361,7 @@ export const DetectionEvidenceModal: React.FC<DetectionEvidenceModalProps> = ({
                   {/* Detected At */}
                   {detection.detected_at && (
                     <div
+                      title={formatISODate(detection.detected_at)}
                       style={{
                         marginTop: '8px',
                         paddingTop: '8px',
@@ -368,7 +370,7 @@ export const DetectionEvidenceModal: React.FC<DetectionEvidenceModalProps> = ({
                         fontSize: '11px',
                       }}
                     >
-                      {new Date(detection.detected_at).toLocaleString()}
+                      {formatShortDate(detection.detected_at)}
                     </div>
                   )}
                 </div>
