@@ -58,14 +58,46 @@ describe('wigle/api — getUserStats', () => {
     expect(callArgs.url).toBe('https://api.wigle.net/api/v2/stats/user');
   });
 
-  test('returns parsed JSON on success', async () => {
+  test('returns normalized user stats on success', async () => {
     mockGet.mockReturnValue('value');
+    const mockRaw = {
+      success: true,
+      statistics: {
+        userName: 'testuser',
+        rank: 123,
+        discoveredWiFiGPS: 10,
+        discoveredBtGPS: 20,
+        discoveredCellGPS: 30,
+        discoveredWiFi: 40,
+        discoveredBt: 50,
+        discoveredCell: 60,
+        totalWiFiLocations: 100,
+        first: '2026-01-01',
+        last: '2026-05-28',
+        eventMonthCount: 5,
+        imageBadgeUrl: '/badge.png',
+      },
+    };
     wigleGatewayFetch.mockResolvedValue({
       ok: true,
-      response: mockResponse(true, { success: true, statistics: {} }),
+      response: mockResponse(true, mockRaw),
     });
     const result = await getUserStats();
-    expect(result).toEqual({ success: true, statistics: {} });
+    expect(result).toEqual({
+      user: 'testuser',
+      rank: 123,
+      imageBadgeUrl: '/badge.png',
+      discoveredWiFiGPS: 10,
+      discoveredBtGPS: 20,
+      discoveredCellGPS: 30,
+      discoveredWiFi: 40,
+      discoveredBt: 50,
+      discoveredCell: 60,
+      totalWiFiLocations: 100,
+      first: '2026-01-01',
+      last: '2026-05-28',
+      eventMonthCount: 5,
+    });
   });
 
   test('throws when gateway returns ok:false', async () => {

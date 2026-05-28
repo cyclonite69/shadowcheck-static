@@ -42,5 +42,24 @@ export async function getUserStats(): Promise<any> {
     throw err;
   }
 
-  return response.json();
+  const data = await response.json();
+  return normalizeUserStats(data);
+}
+
+export function normalizeUserStats(raw: any): any {
+  return {
+    user: raw.statistics?.userName ?? raw.user ?? null,
+    rank: raw.statistics?.rank ?? raw.rank ?? null,
+    imageBadgeUrl: raw.statistics?.imageBadgeUrl ?? null,
+    discoveredWiFiGPS: raw.statistics?.discoveredWiFiGPS ?? null,
+    discoveredBtGPS: raw.statistics?.discoveredBtGPS ?? null,
+    discoveredCellGPS: raw.statistics?.discoveredCellGPS ?? null,
+    discoveredWiFi: raw.statistics?.discoveredWiFi ?? null,
+    discoveredBt: raw.statistics?.discoveredBt ?? null,
+    discoveredCell: raw.statistics?.discoveredCell ?? null,
+    totalWiFiLocations: raw.statistics?.totalWiFiLocations ?? null,
+    first: raw.statistics?.first ?? raw.first ?? null,
+    last: raw.statistics?.last ?? raw.last ?? null,
+    eventMonthCount: raw.statistics?.eventMonthCount ?? null,
+  };
 }

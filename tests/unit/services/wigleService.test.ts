@@ -1,10 +1,11 @@
-import { 
-  getWigleNetworkByBSSID, 
-  getUserStats, 
+import {
+  getWigleNetworkByBSSID,
+  getUserStats,
   getWigleDatabase,
   getWigleDetail,
   getWigleObservations,
-  getKmlPointsForMap
+  getKmlPointsForMap,
+  normalizeUserStats,
 } from '../../../server/src/services/wigleService';
 const { query } = require('../../../server/src/config/database');
 const { fetchWigle } = require('../../../server/src/services/wigleClient');
@@ -74,6 +75,34 @@ describe('wigleService', () => {
   });
 
   describe('getUserStats', () => {
+    it('normalizes raw WiGLE user stats without unsupported fields', () => {
+      const result = normalizeUserStats({
+        user: 'fallback-user',
+        rank: 99,
+        statistics: {
+          userName: 'stats-user',
+          rank: 12,
+          discoveredWiFiGPS: 101,
+          discoveredBtGPS: 202,
+          discoveredCellGPS: 303,
+          discoveredWiFi: 404,
+          discoveredBt: 505,
+          discoveredCell: 606,
+          totalWiFiLocations: 707,
+          first: '20200101-00000',
+          last: '20260528-00000',
+          eventMonthCount: 808,
+          class: 'not-real',
+          points: 9001,
+        },
+      });
+
+      expect(result.user).toBe('stats-user');
+      expect(result.rank).toBe(12);
+      expect(result).not.toHaveProperty('class');
+      expect(result).not.toHaveProperty('points');
+    });
+
     it('should throw if credentials are missing', async () => {
       secretsManager.get.mockReturnValue(null);
       await expect(getUserStats()).rejects.toThrow('WiGLE API credentials not configured');
@@ -103,6 +132,55 @@ describe('wigleService', () => {
       secretsManager.get.mockReturnValue('value');
       fetchWigle.mockRejectedValue(new Error('Network Timeout'));
       await expect(getUserStats()).rejects.toThrow('Network Timeout');
+    });
+
+    it('should successfully fetch and normalize user stats', async () => {
+      secretsManager.get.mockReturnValue('value');
+      const rawPayload = {
+        success: true,
+        user: 'ignored_user',
+        rank: 999,
+        statistics: {
+          userName: 'test_user',
+          rank: 123,
+          class: 'Elite',
+          points: 125000,
+          discoveredWiFiGPS: 100,
+          discoveredBtGPS: 200,
+          discoveredCellGPS: 300,
+          discoveredWiFi: 400,
+          discoveredBt: 500,
+          discoveredCell: 600,
+          totalWiFiLocations: 700,
+          first: '2026-01-01',
+          last: '2026-05-28',
+          eventMonthCount: 50,
+        },
+      };
+      fetchWigle.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(rawPayload),
+      });
+
+      const stats = await getUserStats();
+      expect(stats).toEqual({
+        user: 'test_user',
+        rank: 123,
+        imageBadgeUrl: null,
+        discoveredWiFiGPS: 100,
+        discoveredBtGPS: 200,
+        discoveredCellGPS: 300,
+        discoveredWiFi: 400,
+        discoveredBt: 500,
+        discoveredCell: 600,
+        totalWiFiLocations: 700,
+        first: '2026-01-01',
+        last: '2026-05-28',
+        eventMonthCount: 50,
+      });
+      expect(stats.class).toBeUndefined();
+      expect(stats.points).toBeUndefined();
     });
   });
 });
