@@ -28,3 +28,8 @@ Items confirmed as pre-existing or deferred. Pick these up as standalone tasks �
 ## Admin
 
 - [x] `import/kml.js`: unused `logger` variable — fixed in `233c0732` by adding `logger.error(...)` in the catch block. Lint is clean.
+
+## Security / Dependencies
+
+- [ ] `qs` moderate DoS vulnerability — deferred. Requires upgrading Express beyond its current version constraints (requires `npm audit fix --force`), posing a runtime compatibility/refactor risk.
+- [ ] `ws` uninitialized memory disclosure vulnerability — deferred. Same constraint (requires upgrading Express ecosystem dependencies via `--force`).
