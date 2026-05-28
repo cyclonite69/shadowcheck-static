@@ -8,6 +8,8 @@ import {
   buildSiblingGroupMap,
   normalizeBssid,
   serializeGroupMap,
+  filterNetworksBySearch,
+  processHydrationSettledResults,
 } from '../utils/siblingGroupGraph';
 import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 
@@ -99,37 +101,7 @@ export const useSiblingLinks = ({
         const hasSearch = searchStr.length > 0;
 
         if (hasSearch && visibleBssids.length > 0) {
-          // Parse quickSearch prefix to determine the correct match field:
-          //   m:<value>  → manufacturer
-          //   s:<value>  → SSID only
-          //   b:<value>  → BSSID only
-          //   <value>    → SSID or BSSID (default)
-          const prefixMatch = quickSearch.trim().match(/^([sbm]):\s*(.+)$/i);
-          let matchField: 'ssid' | 'bssid' | 'manufacturer' = 'ssid';
-          let matchStr = searchStr; // already lowercased
-
-          if (prefixMatch) {
-            const prefix = prefixMatch[1].toLowerCase();
-            matchStr = prefixMatch[2].trim().toLowerCase();
-            if (prefix === 'm') matchField = 'manufacturer';
-            else if (prefix === 'b') matchField = 'bssid';
-            // 's' → matchField stays 'ssid'
-          }
-
-          // Filter to networks that match the correct field.
-          const searchHits = networks.filter((n) => {
-            switch (matchField) {
-              case 'manufacturer':
-                return n.manufacturer?.toLowerCase().includes(matchStr);
-              case 'bssid':
-                return n.bssid.toLowerCase().includes(matchStr);
-              default:
-                return (
-                  n.ssid?.toLowerCase().includes(matchStr) ||
-                  n.bssid.toLowerCase().includes(matchStr)
-                );
-            }
-          });
+          const searchHits = filterNetworksBySearch(networks, quickSearch);
 
           if (searchHits.length === 0) {
             setVisibleSiblingGroupMap(new Map());
@@ -216,63 +188,32 @@ export const useSiblingLinks = ({
               );
 
               if (!cancelled) {
-                const hydrated: NetworkRow[] = [];
-                const failed: string[] = [];
-                const nonRenderable: string[] = [];
-                const missingDb: string[] = [];
+                const hydrationRes = processHydrationSettledResults(
+                  results,
+                  chunks,
+                  0,
+                  mapApiRowToNetwork
+                );
 
+                // Log any chunk failures
                 results.forEach((res, idx) => {
-                  const chunkBssids = chunks[idx];
-                  if (res.status === 'fulfilled' && res.value) {
-                    const { data, unresolved } = res.value;
-                    const returnedBssids = new Set(
-                      (data || []).map((row: any) => normalizeBssid(row.bssid))
-                    );
-
-                    if (Array.isArray(data)) {
-                      for (const row of data) {
-                        if (row) {
-                          hydrated.push(mapApiRowToNetwork(row, 50000 + hydrated.length));
-                        }
-                      }
-                    }
-
-                    for (const bssid of chunkBssids) {
-                      const norm = normalizeBssid(bssid);
-                      if (!norm) continue;
-                      if (!returnedBssids.has(norm)) {
-                        const type = unresolved ? unresolved[norm] : undefined;
-                        if (type === 'non_renderable') {
-                          nonRenderable.push(norm);
-                        } else if (type === 'missing') {
-                          missingDb.push(norm);
-                        } else {
-                          missingDb.push(norm);
-                        }
-                      }
-                    }
-                  } else {
-                    for (const bssid of chunkBssids) {
-                      const norm = normalizeBssid(bssid);
-                      if (norm) failed.push(norm);
-                    }
-                    logError(
-                      `Batch sibling hydration chunk ${idx} failed`,
-                      res.status === 'rejected' ? res.reason : ''
-                    );
+                  if (res.status === 'rejected') {
+                    logError(`Batch sibling hydration chunk ${idx} failed`, res.reason);
                   }
                 });
 
-                setMissingSiblingNetworks(hydrated);
-                setHydrationFailedBssids(failed);
-                setNonRenderableBssids(nonRenderable);
-                setMissingDbBssids(missingDb);
+                setMissingSiblingNetworks(hydrationRes.hydrated);
+                setHydrationFailedBssids(hydrationRes.failed);
+                setNonRenderableBssids(hydrationRes.nonRenderable);
+                setMissingDbBssids(hydrationRes.missingDb);
 
                 logSiblingTopology('useSiblingLinks.hydration', {
                   requested: missing.length,
-                  successCount: hydrated.length,
-                  failedBssids: failed,
-                  hydratedBssids: hydrated.map((n) => normalizeBssid(n.bssid)),
+                  successCount: hydrationRes.hydrated.length,
+                  failedBssids: hydrationRes.failed,
+                  hydratedBssids: hydrationRes.hydrated.map((n: NetworkRow) =>
+                    normalizeBssid(n.bssid)
+                  ),
                 });
               }
             } catch (err) {
@@ -372,63 +313,32 @@ export const useSiblingLinks = ({
             );
 
             if (!cancelled) {
-              const hydrated: NetworkRow[] = [];
-              const failed: string[] = [];
-              const nonRenderable: string[] = [];
-              const missingDb: string[] = [];
+              const hydrationRes = processHydrationSettledResults(
+                results,
+                chunks,
+                0,
+                mapApiRowToNetwork
+              );
 
+              // Log any chunk failures
               results.forEach((res, idx) => {
-                const chunkBssids = chunks[idx];
-                if (res.status === 'fulfilled' && res.value) {
-                  const { data, unresolved } = res.value;
-                  const returnedBssids = new Set(
-                    (data || []).map((row: any) => normalizeBssid(row.bssid))
-                  );
-
-                  if (Array.isArray(data)) {
-                    for (const row of data) {
-                      if (row) {
-                        hydrated.push(mapApiRowToNetwork(row, 50000 + hydrated.length));
-                      }
-                    }
-                  }
-
-                  for (const bssid of chunkBssids) {
-                    const norm = normalizeBssid(bssid);
-                    if (!norm) continue;
-                    if (!returnedBssids.has(norm)) {
-                      const type = unresolved ? unresolved[norm] : undefined;
-                      if (type === 'non_renderable') {
-                        nonRenderable.push(norm);
-                      } else if (type === 'missing') {
-                        missingDb.push(norm);
-                      } else {
-                        missingDb.push(norm);
-                      }
-                    }
-                  }
-                } else {
-                  for (const bssid of chunkBssids) {
-                    const norm = normalizeBssid(bssid);
-                    if (norm) failed.push(norm);
-                  }
-                  logError(
-                    `Batch sibling hydration chunk ${idx} failed`,
-                    res.status === 'rejected' ? res.reason : ''
-                  );
+                if (res.status === 'rejected') {
+                  logError(`Batch sibling hydration chunk ${idx} failed`, res.reason);
                 }
               });
 
-              setMissingSiblingNetworks(hydrated);
-              setHydrationFailedBssids(failed);
-              setNonRenderableBssids(nonRenderable);
-              setMissingDbBssids(missingDb);
+              setMissingSiblingNetworks(hydrationRes.hydrated);
+              setHydrationFailedBssids(hydrationRes.failed);
+              setNonRenderableBssids(hydrationRes.nonRenderable);
+              setMissingDbBssids(hydrationRes.missingDb);
 
               logSiblingTopology('useSiblingLinks.hydration', {
                 requested: missing.length,
-                successCount: hydrated.length,
-                failedBssids: failed,
-                hydratedBssids: hydrated.map((n) => normalizeBssid(n.bssid)),
+                successCount: hydrationRes.hydrated.length,
+                failedBssids: hydrationRes.failed,
+                hydratedBssids: hydrationRes.hydrated.map((n: NetworkRow) =>
+                  normalizeBssid(n.bssid)
+                ),
               });
             }
           } catch (err) {

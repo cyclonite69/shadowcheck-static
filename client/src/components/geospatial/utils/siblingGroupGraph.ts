@@ -255,3 +255,99 @@ export function regroupSiblingNetworks(
 
   return grouped;
 }
+
+export interface ParsedSearch {
+  matchField: 'ssid' | 'bssid' | 'manufacturer';
+  matchStr: string;
+}
+
+export function parseQuickSearch(quickSearch: string): ParsedSearch {
+  const searchStr = quickSearch.trim().toLowerCase();
+  const prefixMatch = quickSearch.trim().match(/^([sbm]):\s*(.+)$/i);
+  let matchField: 'ssid' | 'bssid' | 'manufacturer' = 'ssid';
+  let matchStr = searchStr;
+
+  if (prefixMatch) {
+    const prefix = prefixMatch[1].toLowerCase();
+    matchStr = prefixMatch[2].trim().toLowerCase();
+    if (prefix === 'm') matchField = 'manufacturer';
+    else if (prefix === 'b') matchField = 'bssid';
+  }
+
+  return { matchField, matchStr };
+}
+
+export function filterNetworksBySearch(networks: NetworkRow[], quickSearch: string): NetworkRow[] {
+  const searchStr = quickSearch.trim();
+  if (searchStr.length === 0) return networks;
+
+  const { matchField, matchStr } = parseQuickSearch(quickSearch);
+
+  return networks.filter((n) => {
+    switch (matchField) {
+      case 'manufacturer':
+        return n.manufacturer?.toLowerCase().includes(matchStr);
+      case 'bssid':
+        return n.bssid.toLowerCase().includes(matchStr);
+      default:
+        return n.ssid?.toLowerCase().includes(matchStr) || n.bssid.toLowerCase().includes(matchStr);
+    }
+  });
+}
+
+export interface HydrationResults {
+  hydrated: NetworkRow[];
+  failed: string[];
+  nonRenderable: string[];
+  missingDb: string[];
+}
+
+export function processHydrationSettledResults(
+  results: PromiseSettledResult<{ data: any[]; unresolved?: Record<string, string> }>[],
+  chunks: string[][],
+  existingHydratedCount: number,
+  mapApiRowToNetwork: (row: any, fallbackId: number) => NetworkRow
+): HydrationResults {
+  const hydrated: NetworkRow[] = [];
+  const failed: string[] = [];
+  const nonRenderable: string[] = [];
+  const missingDb: string[] = [];
+
+  results.forEach((res, idx) => {
+    const chunkBssids = chunks[idx];
+    if (res.status === 'fulfilled' && res.value) {
+      const { data, unresolved } = res.value;
+      const returnedBssids = new Set((data || []).map((row: any) => normalizeBssid(row.bssid)));
+
+      if (Array.isArray(data)) {
+        for (const row of data) {
+          if (row) {
+            hydrated.push(mapApiRowToNetwork(row, 50000 + existingHydratedCount + hydrated.length));
+          }
+        }
+      }
+
+      for (const bssid of chunkBssids) {
+        const norm = normalizeBssid(bssid);
+        if (!norm) continue;
+        if (!returnedBssids.has(norm)) {
+          const type = unresolved ? unresolved[norm] : undefined;
+          if (type === 'non_renderable') {
+            nonRenderable.push(norm);
+          } else if (type === 'missing') {
+            missingDb.push(norm);
+          } else {
+            missingDb.push(norm);
+          }
+        }
+      }
+    } else {
+      for (const bssid of chunkBssids) {
+        const norm = normalizeBssid(bssid);
+        if (norm) failed.push(norm);
+      }
+    }
+  });
+
+  return { hydrated, failed, nonRenderable, missingDb };
+}
