@@ -332,6 +332,7 @@ export async function getNetworksByBssids(
   const rmJoin = SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm');
   const rmFields = SqlFragmentLibrary.selectManufacturerFields('rm');
   const geocodedFields = SqlFragmentLibrary.selectGeocodedFields('ne');
+  const siblingFields = SqlFragmentLibrary.selectSiblingSummaryFields('ne');
   const tagFields = SqlFragmentLibrary.selectThreatTagFields('nt');
 
   const networkResult = await query(
@@ -349,6 +350,7 @@ export async function getNetworksByBssids(
        ne.last_seen,
        ${rmFields},
        ${geocodedFields},
+       ${siblingFields},
        n.min_altitude_m,
        n.max_altitude_m,
        n.altitude_span_m,
