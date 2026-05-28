@@ -8,6 +8,7 @@ import {
 } from '../../siblingDetectionState';
 import { EXTRA_SIBLING_RULES, type SiblingExtraRuleDefinition } from '../rules/extraRules';
 import { adminQuery, longRunningAdminQuery } from '../adminQueryAdapter';
+import { SiblingRunRepository } from '../../../../repositories/siblingRunRepository';
 
 type SiblingDetectionOrchestratorDeps = {
   adminQuery: typeof adminQuery;
@@ -15,6 +16,7 @@ type SiblingDetectionOrchestratorDeps = {
   normalizeOptions: typeof normalizeOptions;
   state: typeof state;
   extraRules: SiblingExtraRuleDefinition[];
+  siblingRunRepository: SiblingRunRepository;
 };
 
 const defaultDeps: SiblingDetectionOrchestratorDeps = {
@@ -23,6 +25,7 @@ const defaultDeps: SiblingDetectionOrchestratorDeps = {
   normalizeOptions,
   state,
   extraRules: EXTRA_SIBLING_RULES,
+  siblingRunRepository: new SiblingRunRepository(),
 };
 
 /**
@@ -41,25 +44,9 @@ export class SiblingDetectionOrchestrator {
     const runMode =
       normalized.maxBatches !== null ? 'test' : normalized.incremental ? 'incremental' : 'full';
 
-    const runInsert = await this.deps.adminQuery(
-      `INSERT INTO app.sibling_runs
-         (run_mode, max_octet_delta, min_confidence, batch_size, max_batches)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id`,
-      [
-        runMode,
-        normalized.maxOctetDelta,
-        normalized.minCandidateConf,
-        normalized.batchSize,
-        normalized.maxBatches,
-      ]
-    );
-    const runId: number = runInsert.rows[0].id;
+    const runId = await this.deps.siblingRunRepository.createRun(runMode, normalized);
 
-    const cutoffResult = await this.deps.adminQuery(
-      `SELECT MAX(computed_at) AS cutoff FROM app.network_sibling_pairs`
-    );
-    const incrementalCutoff: string | null = cutoffResult.rows[0]?.cutoff ?? null;
+    const incrementalCutoff = await this.deps.siblingRunRepository.getPreviousRunCutoff();
 
     let cursor: string | null = null;
     let batchesRun = 0;
@@ -313,12 +300,10 @@ export class SiblingDetectionOrchestrator {
     logger.info('[Siblings] Extra rules complete', extraRuleResults);
 
     const finalStatus = completed ? 'completed' : 'truncated';
-    await this.deps.adminQuery(
-      `UPDATE app.sibling_runs
-       SET completed_at = now(), status = $1, networks_scanned = $2, pairs_inserted = $3, pairs_updated = $3
-       WHERE id = $4`,
-      [finalStatus, seedsProcessed, rowsUpserted, runId]
-    );
+    await this.deps.siblingRunRepository.completeRun(runId, finalStatus, {
+      seedsProcessed,
+      rowsUpserted,
+    });
 
     await this.deps.longRunningAdminQuery('SELECT app.refresh_oui_sibling_profiles()');
     logger.info('[Siblings] OUI sibling profiles refreshed');
