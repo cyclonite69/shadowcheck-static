@@ -10,6 +10,7 @@ export interface SiblingRunOptions {
 export interface SiblingRunMetrics {
   seedsProcessed: number;
   rowsUpserted: number;
+  rowsUpdated: number;
 }
 
 export class SiblingRunRepository {
@@ -39,9 +40,9 @@ export class SiblingRunRepository {
   async completeRun(runId: number, status: string, metrics: SiblingRunMetrics): Promise<void> {
     await adminQuery(
       `UPDATE app.sibling_runs
-       SET completed_at = now(), status = $1, networks_scanned = $2, pairs_inserted = $3, pairs_updated = $3
-       WHERE id = $4`,
-      [status, metrics.seedsProcessed, metrics.rowsUpserted, runId]
+       SET completed_at = now(), status = $1, networks_scanned = $2, pairs_inserted = $3, pairs_updated = $4
+       WHERE id = $5`,
+      [status, metrics.seedsProcessed, metrics.rowsUpserted, metrics.rowsUpdated, runId]
     );
   }
 

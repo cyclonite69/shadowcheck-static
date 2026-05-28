@@ -170,6 +170,9 @@ export class SiblingDetectionOrchestrator {
     await this.deps.siblingRunRepository.completeRun(runId, finalStatus, {
       seedsProcessed,
       rowsUpserted,
+      // TODO: SiblingDetectionOrchestrator does not currently track updates separately from inserts.
+      // SQL CTE only returns upserted_count representing both inserts and updates. Using 0 as placeholder.
+      rowsUpdated: 0,
     });
 
     await this.deps.longRunningAdminQuery('SELECT app.refresh_oui_sibling_profiles()');
