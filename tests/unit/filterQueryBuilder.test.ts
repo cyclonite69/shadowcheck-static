@@ -315,7 +315,7 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
 
   test('all_tags sort uses aggregated all_tags field', () => {
     const orderBy = buildOrderBy('all_tags', 'asc');
-    expect(orderBy).toContain("LOWER(COALESCE(all_tags, '')) ASC NULLS LAST");
+    expect(orderBy).toContain("LOWER(COALESCE(nt.all_tags, '')) ASC NULLS LAST");
     expect(orderBy).toContain('ASC');
   });
 
@@ -332,8 +332,25 @@ describe('UniversalFilterQueryBuilder – SQL content', () => {
 
   test('boolean and tag sort keys use selected alias expressions', () => {
     const orderBy = buildOrderBy('is_ignored,all_tags', 'desc,asc');
-    expect(orderBy).toContain('WHEN ne.is_ignored IS TRUE THEN 1');
-    expect(orderBy).toContain("LOWER(COALESCE(all_tags, '')) ASC NULLS LAST");
+    expect(orderBy).toContain('WHEN nt.is_ignored IS TRUE THEN 1');
+    expect(orderBy).toContain("LOWER(COALESCE(nt.all_tags, '')) ASC NULLS LAST");
+  });
+
+  test('activity, raw coordinate, and sibling columns are sortable', () => {
+    const orderBy = buildOrderBy(
+      'unique_days,unique_locations,raw_lat,raw_lon,has_siblings,sibling_count,sibling_max_confidence,has_strong_sibling,sibling_bssids',
+      'desc,asc,asc,desc,desc,asc,desc,asc,asc'
+    );
+
+    expect(orderBy).toContain('ne.unique_days DESC NULLS LAST');
+    expect(orderBy).toContain('ne.unique_locations ASC NULLS LAST');
+    expect(orderBy).toContain('n.bestlat ASC NULLS LAST');
+    expect(orderBy).toContain('n.bestlon DESC NULLS LAST');
+    expect(orderBy).toContain('WHEN ne.has_siblings IS TRUE THEN 1');
+    expect(orderBy).toContain('ne.sibling_count ASC NULLS LAST');
+    expect(orderBy).toContain('ne.sibling_max_confidence DESC NULLS LAST');
+    expect(orderBy).toContain('WHEN ne.has_strong_sibling IS TRUE THEN 1');
+    expect(orderBy).toContain("LOWER(COALESCE(ne.sibling_bssids::text, '')) ASC NULLS LAST");
   });
 
   test('network list SQL uses schema-compatible manufacturer projection', () => {
