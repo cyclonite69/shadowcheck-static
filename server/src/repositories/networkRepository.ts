@@ -1,3 +1,4 @@
+import type { PoolClient } from 'pg';
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
 const { UniversalFilterQueryBuilder } = require('../services/filterQueryBuilder');
@@ -224,6 +225,10 @@ class NetworkRepository extends BaseRepository {
         filtersApplied: 0,
       };
     }
+  }
+
+  async refreshNetworkExplorerMV(client: PoolClient): Promise<void> {
+    await client.query('REFRESH MATERIALIZED VIEW app.api_network_explorer_mv');
   }
 }
 

@@ -42,7 +42,9 @@ async function initializeDatabase(options: DatabaseInitOptions): Promise<void> {
       if (err.code === '55000' || (err.message && err.message.includes('has not been populated'))) {
         logger.info('Materialized view app.api_network_explorer_mv is empty. Auto-refreshing...');
         // First time population must be non-concurrent
-        await client.query('REFRESH MATERIALIZED VIEW app.api_network_explorer_mv');
+        const NetworkRepository = require('../../repositories/networkRepository');
+        const networkRepository = new NetworkRepository();
+        await networkRepository.refreshNetworkExplorerMV(client);
         logger.info('Materialized view populated successfully.');
       } else if (err.code === '42P01') {
         logger.warn('Materialized view app.api_network_explorer_mv does not exist yet.');
