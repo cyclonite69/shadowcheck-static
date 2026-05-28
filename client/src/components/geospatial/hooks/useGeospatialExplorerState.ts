@@ -403,7 +403,19 @@ export const useGeospatialExplorerState = ({
     [networks, missingSiblings, visibleSiblingGroupMap, quickSearch]
   );
   const filteredNetworks = expansionResult.networks;
-  const unresolvedSearchBssids = expansionResult.unresolvedBssids;
+  const unresolvedSearchBssids = useMemo(() => {
+    const classified = new Set<string>([
+      ...(hydrationFailedBssids || []),
+      ...(nonRenderableBssids || []),
+      ...(missingDbBssids || []),
+    ]);
+    return expansionResult.unresolvedBssids.filter((bssid) => !classified.has(bssid));
+  }, [
+    expansionResult.unresolvedBssids,
+    hydrationFailedBssids,
+    nonRenderableBssids,
+    missingDbBssids,
+  ]);
 
   const prevPipelineLogKey = useRef('');
   useEffect(() => {
