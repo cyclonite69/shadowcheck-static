@@ -158,10 +158,10 @@ export const NetworkTableHeaderGrid = ({
               }}
               onClick={(e) => isSortable && onColumnSort(col as keyof NetworkRow, e.shiftKey)}
               title={
-                isSortable
-                  ? 'Click to sort (Shift+click for multi-sort)'
-                  : col === 'select'
-                    ? undefined
+                column.tooltip
+                  ? column.tooltip
+                  : isSortable
+                    ? 'Click to sort (Shift+click for multi-sort)'
                     : undefined
               }
             >

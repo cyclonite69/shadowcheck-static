@@ -46,23 +46,60 @@ const ColumnSelectorPortal: React.FC<{
       onWheel={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
     >
-      {orderedColumns.map(([col, column]) => {
-        const isVisible = visibleColumns.includes(col);
-        const colIndex = isVisible ? visibleColumns.indexOf(col) : -1;
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '8px 12px',
+          borderBottom: '1px solid rgba(71, 85, 105, 0.5)',
+          background: 'rgba(15, 23, 42, 0.95)',
+          borderTopLeftRadius: '6px',
+          borderTopRightRadius: '6px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+        }}
+      >
+        <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 600 }}>Columns</span>
+        <button
+          onClick={() => {
+            localStorage.removeItem('shadowcheck_visible_columns');
+            window.location.reload();
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#60a5fa',
+            fontSize: '11px',
+            cursor: 'pointer',
+            padding: '2px 4px',
+            fontWeight: 500,
+          }}
+          title="Reset to default columns and order"
+        >
+          Reset Layout
+        </button>
+      </div>
+      <div style={{ padding: '4px 0' }}>
+        {orderedColumns.map(([col, column]) => {
+          const isVisible = visibleColumns.includes(col);
+          const colIndex = isVisible ? visibleColumns.indexOf(col) : -1;
 
-        return (
-          <ColumnItem
-            key={String(col)}
-            columnKey={col}
-            columnConfig={column}
-            isVisible={isVisible}
-            isFirst={colIndex === 0}
-            isLast={colIndex === visibleColumns.length - 1}
-            onToggle={onToggleColumn}
-            onMove={onMoveColumn}
-          />
-        );
-      })}
+          return (
+            <ColumnItem
+              key={String(col)}
+              columnKey={col}
+              columnConfig={column}
+              isVisible={isVisible}
+              isFirst={colIndex === 0}
+              isLast={colIndex === visibleColumns.length - 1}
+              onToggle={onToggleColumn}
+              onMove={onMoveColumn}
+            />
+          );
+        })}
+      </div>
     </div>,
     document.body
   );

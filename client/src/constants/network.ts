@@ -10,6 +10,7 @@ export type NetworkColumnConfig = {
   sortable: boolean;
   default: boolean;
   render?: (value: unknown, row: NetworkRow) => ReactNode;
+  tooltip?: string;
 };
 
 // Column configuration for network tables
@@ -58,8 +59,8 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
     sortable: true,
     default: false,
   },
-  rawLatitude: { label: 'Raw Lat', width: 100, sortable: false, default: false },
-  rawLongitude: { label: 'Raw Lon', width: 100, sortable: false, default: false },
+  rawLatitude: { label: 'Raw Lat', width: 100, sortable: true, default: false },
+  rawLongitude: { label: 'Raw Lon', width: 100, sortable: true, default: false },
   distanceFromHome: { label: 'Distance (km)', width: 100, sortable: true, default: true },
   accuracy: { label: 'Accuracy (m)', width: 90, sortable: true, default: false },
   stationaryConfidence: { label: 'Stationary Conf.', width: 110, sortable: true, default: false },
@@ -256,6 +257,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   },
   unique_days: {
     label: 'Unique Days',
+    tooltip: 'Number of days this network has been observed',
     width: 110,
     sortable: true,
     default: false,
@@ -266,6 +268,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   },
   unique_locations: {
     label: 'Unique Locations',
+    tooltip: 'Number of unique locations this network has been observed at',
     width: 130,
     sortable: true,
     default: false,
@@ -313,7 +316,7 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
   sibling_bssids: {
     label: 'Sibling BSSIDs',
     width: 180,
-    sortable: false,
+    sortable: true,
     default: false,
     render: (value) => {
       if (!Array.isArray(value) || value.length === 0) return '—';
@@ -357,6 +360,8 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   channel: 'channel',
   latitude: 'lat',
   longitude: 'lon',
+  rawLatitude: 'raw_lat',
+  rawLongitude: 'raw_lon',
   manufacturer: 'manufacturer',
   geocoded_address: 'geocoded_address',
   geocoded_city: 'geocoded_city',
@@ -380,6 +385,8 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   all_tags: 'all_tags',
   wigle_v3_observation_count: 'wigle_v3_observation_count',
   wigle_v3_last_import_at: 'wigle_v3_last_import_at',
+  unique_days: 'unique_days',
+  unique_locations: 'unique_locations',
   centroid_lat: 'centroid_lat',
   centroid_lon: 'centroid_lon',
   weighted_lat: 'weighted_lat',
