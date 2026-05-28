@@ -385,3 +385,17 @@ export function generateHydrationKey(groupMap: Map<string, string>, missing: str
   const sortedMissing = [...missing].sort().join(',');
   return `${serializeGroupMap(groupMap)}::${sortedMissing}`;
 }
+
+export function getUnresolvedSearchBssids(
+  unresolvedBssids: string[],
+  hydrationFailed: string[],
+  nonRenderable: string[],
+  missingDb: string[]
+): string[] {
+  const classified = new Set<string>([
+    ...(hydrationFailed || []),
+    ...(nonRenderable || []),
+    ...(missingDb || []),
+  ]);
+  return unresolvedBssids.filter((bssid) => !classified.has(bssid));
+}

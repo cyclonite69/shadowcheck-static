@@ -7,6 +7,7 @@ import {
   hasPrecomputedSiblings,
   buildAdjacencyFromPrecomputed,
   generateHydrationKey,
+  getUnresolvedSearchBssids,
 } from '../../client/src/components/geospatial/utils/siblingGroupGraph';
 import type { NetworkRow } from '../../client/src/types/network';
 
@@ -174,6 +175,34 @@ describe('siblingGroupGraph', () => {
       // Verify no mutation occurred on the original missing array
       expect(missing).toEqual(missingCopy);
       expect(missing[0]).toBe('AA:BB:CC:DD:EE:04');
+    });
+  });
+
+  describe('getUnresolvedSearchBssids', () => {
+    it('filters out BSSIDs that exist in hydrationFailed, nonRenderable, or missingDb lists', () => {
+      const unresolved = [
+        'AA:BB:CC:DD:EE:01',
+        'AA:BB:CC:DD:EE:02',
+        'AA:BB:CC:DD:EE:03',
+        'AA:BB:CC:DD:EE:04',
+      ];
+      const hydrationFailed = ['AA:BB:CC:DD:EE:01'];
+      const nonRenderable = ['AA:BB:CC:DD:EE:02'];
+      const missingDb = ['AA:BB:CC:DD:EE:03'];
+
+      const result = getUnresolvedSearchBssids(
+        unresolved,
+        hydrationFailed,
+        nonRenderable,
+        missingDb
+      );
+      expect(result).toEqual(['AA:BB:CC:DD:EE:04']);
+    });
+
+    it('returns original unresolvedBssids if all classification arrays are empty', () => {
+      const unresolved = ['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02'];
+      const result = getUnresolvedSearchBssids(unresolved, [], [], []);
+      expect(result).toEqual(['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02']);
     });
   });
 });

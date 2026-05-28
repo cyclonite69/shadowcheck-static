@@ -35,7 +35,10 @@ import {
   DEFAULT_HOME_RADIUS,
 } from '../../../constants/network';
 import { NetworkRow } from '../../../types/network';
-import { expandNetworksForSiblingSearch } from '../utils/siblingGroupGraph';
+import {
+  expandNetworksForSiblingSearch,
+  getUnresolvedSearchBssids,
+} from '../utils/siblingGroupGraph';
 import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 import { useSiblingLinks } from './useSiblingLinks';
 
@@ -403,19 +406,16 @@ export const useGeospatialExplorerState = ({
     [networks, missingSiblings, visibleSiblingGroupMap, quickSearch]
   );
   const filteredNetworks = expansionResult.networks;
-  const unresolvedSearchBssids = useMemo(() => {
-    const classified = new Set<string>([
-      ...(hydrationFailedBssids || []),
-      ...(nonRenderableBssids || []),
-      ...(missingDbBssids || []),
-    ]);
-    return expansionResult.unresolvedBssids.filter((bssid) => !classified.has(bssid));
-  }, [
-    expansionResult.unresolvedBssids,
-    hydrationFailedBssids,
-    nonRenderableBssids,
-    missingDbBssids,
-  ]);
+  const unresolvedSearchBssids = useMemo(
+    () =>
+      getUnresolvedSearchBssids(
+        expansionResult.unresolvedBssids,
+        hydrationFailedBssids,
+        nonRenderableBssids,
+        missingDbBssids
+      ),
+    [expansionResult.unresolvedBssids, hydrationFailedBssids, nonRenderableBssids, missingDbBssids]
+  );
 
   const prevPipelineLogKey = useRef('');
   useEffect(() => {
