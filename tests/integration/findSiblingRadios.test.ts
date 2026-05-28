@@ -55,6 +55,32 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '5C:5B:35:C6:BE:2E',
     '5C:5B:35:C6:BE:2F',
     '5C:5B:35:C6:B3:2F',
+    // Cradlepoint delta-3 guardrail tests (EE: prefix avoids collision with live data)
+    // Radio pairs: delta 1 and delta 2 — must keep
+    '00:30:44:EE:11:10',
+    '00:30:44:EE:11:11',
+    '00:30:44:EE:22:20',
+    '00:30:44:EE:22:22',
+    // Boundary: delta 3 — must keep
+    '00:30:44:EE:33:30',
+    '00:30:44:EE:33:33',
+    // Reject: delta 4 — must not produce Class A
+    '00:30:44:EE:44:40',
+    '00:30:44:EE:44:44',
+    // Cross-vehicle clique: same octets 2-5, large delta — must reject
+    '00:30:44:EE:55:10',
+    '00:30:44:EE:55:1F',
+    // Specific Cradlepoint BSSIDs requested for audit verification
+    '00:30:44:A2:54:CE',
+    '00:30:44:A2:54:D3',
+    '00:30:44:CA:44:19',
+    '00:30:44:CA:44:1A',
+    '00:30:44:CA:44:28',
+    '00:30:44:CA:44:29',
+    '00:30:44:61:8A:8F',
+    '00:30:44:61:8A:90',
+    '00:30:44:1C:CA:9E',
+    '00:30:44:1C:CA:A0',
   ];
 
   beforeAll(async () => {
@@ -125,7 +151,36 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         -- Cisco 5C:5B:35 tests
         ('5C:5B:35:C6:BE:2E', 'Cisco_Enterprise', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('5C:5B:35:C6:BE:2F', '',                 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
-        ('5C:5B:35:C6:B3:2F', 'Cisco_Enterprise', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
+        ('5C:5B:35:C6:B3:2F', 'Cisco_Enterprise', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- Cradlepoint delta-3 guardrail tests
+        -- Radio pair delta 1: 2.4/5 GHz siblings — must keep as Class A
+        ('00:30:44:EE:11:10', 'CP-Radio-2.4', 'W', 2437, '', 1716500000000, 42.100, -83.100, 42.100, -83.100),
+        ('00:30:44:EE:11:11', 'CP-Radio-5',   'W', 5745, '', 1716500000000, 42.100, -83.100, 42.100, -83.100),
+        -- Radio pair delta 2: must keep as Class A
+        ('00:30:44:EE:22:20', 'CP-Sibling-A', 'W', 2412, '', 1716500000000, 42.200, -83.200, 42.200, -83.200),
+        ('00:30:44:EE:22:22', 'CP-Sibling-B', 'W', 5180, '', 1716500000000, 42.200, -83.200, 42.200, -83.200),
+        -- Boundary delta 3: must keep as Class A
+        ('00:30:44:EE:33:30', 'CP-Boundary-A', 'W', 2437, '', 1716500000000, 42.300, -83.300, 42.300, -83.300),
+        ('00:30:44:EE:33:33', 'CP-Boundary-B', 'W', 5500, '', 1716500000000, 42.300, -83.300, 42.300, -83.300),
+        -- Delta 4: must NOT produce Class A (cross-vehicle boundary)
+        ('00:30:44:EE:44:40', 'CP-Fleet-A', 'W', 2412, '', 1716500000000, 42.400, -83.400, 42.400, -83.400),
+        ('00:30:44:EE:44:44', 'CP-Fleet-B', 'W', 5745, '', 1716500000000, 42.405, -83.405, 42.405, -83.405),
+        -- Cross-vehicle large delta (simulates SmartBus fleet clique): must reject
+        ('00:30:44:EE:55:10', 'CP-Bus-A', 'W', 2412, '', 1716500000000, 42.500, -83.500, 42.500, -83.500),
+        ('00:30:44:EE:55:1F', 'CP-Bus-B', 'W', 2412, '', 1716500000000, 42.510, -83.510, 42.510, -83.510),
+
+        -- Specific audit / regression Cradlepoint fleet pairs
+        ('00:30:44:A2:54:CE', 'Cradle_Enterprise', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:A2:54:D3', 'Cradle_Enterprise', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:CA:44:19', 'CP-Bus-1-A',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:CA:44:1A', 'CP-Bus-1-B',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:CA:44:28', 'CP-Bus-2-A',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:CA:44:29', 'CP-Bus-2-B',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:61:8A:8F', 'CP-Bus-3-A',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:61:8A:90', 'CP-Bus-3-B',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:1C:CA:9E', 'CP-Bus-4-A',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:30:44:1C:CA:A0', 'CP-Bus-4-B',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
     `);
   });
 
@@ -284,5 +339,90 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('5C:5B:35:C6:BE:2F')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === '5C:5B:35:C6:B3:2F');
     expect(sibling).toBeUndefined(); // Rejected! Same last octet, different fifth octet
+  });
+
+  // ── Cradlepoint Class A Delta-3 Guardrail (migration 020) ─────────────────
+  test('Cradlepoint Class A Positive: delta-1 radio pair kept (EE:11 fixture)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:11:10')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:11:11');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
+    expect(sibling.d_last_octet).toBe(1);
+  });
+
+  test('Cradlepoint Class A Positive: delta-2 radio pair kept (EE:22 fixture)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:22:20')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:22:22');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
+    expect(sibling.d_last_octet).toBe(2);
+  });
+
+  test('Cradlepoint Class A Positive: delta-3 boundary pair kept (EE:33 fixture)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:33:30')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:33:33');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
+    expect(sibling.d_last_octet).toBe(3);
+  });
+
+  test('Cradlepoint Class A Negative: delta-4 pair does NOT produce Class A (EE:44 fixture)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:44:40')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:44:44');
+    // Must not be Class A regardless of whether another rule catches it
+    if (sibling) {
+      expect(sibling.rule).not.toBe('Class A');
+    }
+  });
+
+  test('Cradlepoint Class A Negative: cross-vehicle large delta (delta=15) does not pair as Class A (EE:55 fixture)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:55:10')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:55:1F');
+    if (sibling) {
+      expect(sibling.rule).not.toBe('Class A');
+    }
+  });
+
+  test('Cradlepoint Class A Negative: cross-vehicle pair is absent or non-Class-A when queried from other side (EE:55 fixture)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:EE:55:1F')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:EE:55:10');
+    if (sibling) {
+      expect(sibling.rule).not.toBe('Class A');
+    }
+  });
+
+  // ── Cradlepoint Specific Audit / Regression Cases ──────────────────────────
+  test('Cradlepoint Audit: A2:54:CE -> A2:54:D3 must return 0 rows (fails Class A and blocked from Class B)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:54:CE')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:54:D3');
+    expect(sibling).toBeUndefined(); // Returns 0 rows
+  });
+
+  test('Cradlepoint Audit: CA:44:19 <-> CA:44:1A still matches as Class A', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:CA:44:19')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:CA:44:1A');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
+  });
+
+  test('Cradlepoint Audit: CA:44:28 <-> CA:44:29 still matches as Class A', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:CA:44:28')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:CA:44:29');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
+  });
+
+  test('Cradlepoint Audit: 61:8A:8F <-> 61:8A:90 still matches as Class A', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:61:8A:8F')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:61:8A:90');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
+  });
+
+  test('Cradlepoint Audit: 1C:CA:9E <-> 1C:CA:A0 still matches as Class A', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:1C:CA:9E')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:1C:CA:A0');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Class A');
   });
 });
