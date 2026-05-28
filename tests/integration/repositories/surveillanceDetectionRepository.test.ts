@@ -248,4 +248,36 @@ describe('SurveillanceDetectionRepository Integration', () => {
     expect(Number(row4.threat_score)).toBe(80.0);
     expect(row4.false_positive).toBe(true);
   });
+
+  test('Candidate Shape: getEnrichedCandidates returns rows matching the stable CandidateRow structure', async () => {
+    // Insert a valid network that matches a known category (Flock Safety WiFi OUI)
+    const bssid = 'B8:35:32:FF:FF:FF';
+    await query(
+      `
+      INSERT INTO app.networks (bssid, ssid, type, frequency, capabilities, lasttime_ms, lastlat, lastlon)
+      VALUES ($1, 'Flock-TEST-SHAPE', 'W', 2412, 'WPA2', 1700000000000, 34.0, -118.0)
+    `,
+      [bssid]
+    );
+
+    const candidates = await getEnrichedCandidates(query);
+    const match = candidates.find((c) => c.bssid === bssid);
+    expect(match).toBeDefined();
+
+    // Verify all CandidateRow interface fields are present with correct types
+    expect(typeof match?.bssid).toBe('string');
+    expect(typeof match?.ssid).toBe('string');
+    expect(typeof match?.type).toBe('string');
+    expect(typeof match?.device_type).toBe('string');
+    expect(typeof match?.base_likelihood).toBe('number');
+    expect(typeof match?.match_quality).toBe('string');
+    expect(typeof match?.detection_method).toBe('string');
+    expect(typeof match?.matched_signals).toBe('object');
+    expect(typeof match?.priority).toBe('number');
+    expect(typeof match?.tier_hit_count).toBe('number');
+    expect(typeof match?.obs_count).toBe('number');
+    expect(typeof match?.unique_days).toBe('number');
+    expect(typeof match?.duration_seconds).toBe('number');
+    expect(typeof match?.unique_positions).toBe('number');
+  });
 });

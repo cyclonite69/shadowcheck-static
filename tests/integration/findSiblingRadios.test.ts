@@ -104,6 +104,15 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '00:30:44:A2:55:B1',
     '00:30:44:A2:55:C0',
     '00:30:44:A2:55:C1',
+    // Cradlepoint Non-Fleet Delta Fallback tests
+    '00:30:44:FF:D0:10',
+    '00:30:44:FF:D0:11',
+    '00:30:44:FF:D0:20',
+    '00:30:44:FF:D0:22',
+    '00:30:44:FF:D0:30',
+    '00:30:44:FF:D0:33',
+    '00:30:44:FF:D0:40',
+    '00:30:44:FF:D0:44',
   ];
 
   beforeAll(async () => {
@@ -227,7 +236,17 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         ('00:30:44:A2:55:B0', 'Kajeet SmartBus', 'W', 5500, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('00:30:44:A2:55:B1', 'Kajeet SmartBus', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('00:30:44:A2:55:C0', 'MTA SmartBus',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
-        ('00:30:44:A2:55:C1', 'MTA SmartBus',    'W', 6115, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
+        ('00:30:44:A2:55:C1', 'MTA SmartBus',    'W', 6115, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- Cradlepoint Non-Fleet Delta Fallback tests (isolated SSIDs, same first 5 octets, no distance dependency)
+        ('00:30:44:FF:D0:10', 'CP-NonFleet-10', 'W', 2412, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
+        ('00:30:44:FF:D0:11', 'CP-NonFleet-11', 'W', 5180, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
+        ('00:30:44:FF:D0:20', 'CP-NonFleet-20', 'W', 2412, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
+        ('00:30:44:FF:D0:22', 'CP-NonFleet-22', 'W', 5180, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
+        ('00:30:44:FF:D0:30', 'CP-NonFleet-30', 'W', 2412, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
+        ('00:30:44:FF:D0:33', 'CP-NonFleet-33', 'W', 5180, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
+        ('00:30:44:FF:D0:40', 'CP-NonFleet-40', 'W', 2412, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
+        ('00:30:44:FF:D0:44', 'CP-NonFleet-44', 'W', 5180, '', 1716500000000, 42.600, -83.600, 42.600, -83.600)
     `);
   });
 
@@ -518,5 +537,33 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:A2:55:B0')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === '00:30:44:A2:55:B1');
     expect(sibling).toBeUndefined();
+  });
+
+  test('Cradlepoint Non-Fleet Fallback: delta <= 3 fallback still pairs under Class A while delta 4 is rejected', async () => {
+    // Assert Delta 1 pairs under Class A
+    const resDelta1 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:10')`);
+    const siblingDelta1 = resDelta1.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:11');
+    expect(siblingDelta1).toBeDefined();
+    expect(siblingDelta1.rule).toBe('Class A');
+    expect(siblingDelta1.d_last_octet).toBe(1);
+
+    // Assert Delta 2 pairs under Class A
+    const resDelta2 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:20')`);
+    const siblingDelta2 = resDelta2.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:22');
+    expect(siblingDelta2).toBeDefined();
+    expect(siblingDelta2.rule).toBe('Class A');
+    expect(siblingDelta2.d_last_octet).toBe(2);
+
+    // Assert Delta 3 pairs under Class A
+    const resDelta3 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:30')`);
+    const siblingDelta3 = resDelta3.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:33');
+    expect(siblingDelta3).toBeDefined();
+    expect(siblingDelta3.rule).toBe('Class A');
+    expect(siblingDelta3.d_last_octet).toBe(3);
+
+    // Assert Delta 4 returns no sibling
+    const resDelta4 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:40')`);
+    const siblingDelta4 = resDelta4.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:44');
+    expect(siblingDelta4).toBeUndefined();
   });
 });

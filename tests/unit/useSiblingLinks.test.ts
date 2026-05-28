@@ -499,4 +499,107 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     // Verify fallback links are called for the first search
     expect(mockNetworkApi.getNetworkSiblingLinksBatch).toHaveBeenCalledWith(['AA:BB:CC:DD:EE:01']);
   });
+
+  test('classifies off-page siblings into hydrationFailedBssids when parallel batch request fails', async () => {
+    const networks: NetworkRow[] = [
+      {
+        bssid: 'AA:BB:CC:DD:EE:01',
+        sibling_bssids: ['AA:BB:CC:DD:EE:02'],
+      } as NetworkRow,
+    ];
+
+    mockNetworkApi.getNetworksByBssids.mockRejectedValue(new Error('Hydration batch call failed'));
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+    });
+
+    for (const effect of mockEffects) {
+      await effect.effectFn();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(mockSetStates[3]).toHaveBeenCalled();
+    const lastCallArg = mockSetStates[3].mock.calls[mockSetStates[3].mock.calls.length - 1][0];
+    expect(lastCallArg).toEqual(['AA:BB:CC:DD:EE:02']);
+  });
+
+  test('classifies off-page siblings into nonRenderableBssids and missingDbBssids based on API unresolved payload', async () => {
+    const networks: NetworkRow[] = [
+      {
+        bssid: 'AA:BB:CC:DD:EE:01',
+        sibling_bssids: ['AA:BB:CC:DD:EE:02', 'AA:BB:CC:DD:EE:03'],
+      } as NetworkRow,
+    ];
+
+    mockNetworkApi.getNetworksByBssids.mockResolvedValue({
+      data: [],
+      unresolved: {
+        'AA:BB:CC:DD:EE:02': 'non_renderable',
+        'AA:BB:CC:DD:EE:03': 'missing',
+      },
+    });
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+    });
+
+    for (const effect of mockEffects) {
+      await effect.effectFn();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(mockSetStates[4]).toHaveBeenCalled();
+    const nonRenderableArg = mockSetStates[4].mock.calls[mockSetStates[4].mock.calls.length - 1][0];
+    expect(nonRenderableArg).toEqual(['AA:BB:CC:DD:EE:02']);
+
+    expect(mockSetStates[5]).toHaveBeenCalled();
+    const missingDbArg = mockSetStates[5].mock.calls[mockSetStates[5].mock.calls.length - 1][0];
+    expect(missingDbArg).toEqual(['AA:BB:CC:DD:EE:03']);
+  });
+
+  test('prevents duplicate warning states by ensuring exposed final arrays contain unique BSSIDs', async () => {
+    // Two visible networks both link to same off-page sibling 'AA:BB:CC:DD:EE:02' (duplicate unresolved)
+    const networks: NetworkRow[] = [
+      {
+        bssid: 'AA:BB:CC:DD:EE:11',
+        sibling_bssids: ['AA:BB:CC:DD:EE:02'],
+      } as NetworkRow,
+      {
+        bssid: 'AA:BB:CC:DD:EE:22',
+        sibling_bssids: ['AA:BB:CC:DD:EE:02'],
+      } as NetworkRow,
+    ];
+
+    mockNetworkApi.getNetworksByBssids.mockResolvedValue({
+      data: [],
+      unresolved: {
+        'AA:BB:CC:DD:EE:02': 'non_renderable',
+      },
+    });
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+    });
+
+    for (const effect of mockEffects) {
+      await effect.effectFn();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // Verify nonRenderableBssids state setter was called and contains unique items
+    expect(mockSetStates[4]).toHaveBeenCalled();
+    const nonRenderableArg = mockSetStates[4].mock.calls[mockSetStates[4].mock.calls.length - 1][0];
+    expect(nonRenderableArg).toEqual(['AA:BB:CC:DD:EE:02']); // Exactly one, no duplicates
+
+    // Assert uniqueness of the final array elements
+    const uniqueElements = Array.from(new Set(nonRenderableArg));
+    expect(nonRenderableArg.length).toBe(uniqueElements.length);
+  });
 });
