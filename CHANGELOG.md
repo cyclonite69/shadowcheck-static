@@ -1244,7 +1244,7 @@
 * **threat:** expand fleet vehicle manufacturer heuristics ([80a1205](https://github.com/cyclonite69/shadowcheck-web/commit/80a1205762d3f5d8863b4794e1de95e2e0d89583))
 * **tooltip:** add WiGLE-specific fields to shared renderNetworkTooltip pipeline ([f0a842c](https://github.com/cyclonite69/shadowcheck-web/commit/f0a842cc64a870a2f42e0d76c290a5fdf8e7785d))
 * **tooltip:** pass full field set from v2, v3, and Kepler to tooltip normalizer ([14d5ec2](https://github.com/cyclonite69/shadowcheck-web/commit/14d5ec28e06319ef0be9909f2a24c9edafe04ab5))
-* **tooltip:** platinum card ��� click fetches full MV data on WiGLE and Kepler ([5fa1068](https://github.com/cyclonite69/shadowcheck-web/commit/5fa1068108b05acb90ef0c3308755082431a502a))
+* **tooltip:** platinum card — click fetches full MV data on WiGLE and Kepler ([5fa1068](https://github.com/cyclonite69/shadowcheck-web/commit/5fa1068108b05acb90ef0c3308755082431a502a))
 * **tooltips:** Smart field display, cleaner UI, and historical SSID ([fe26642](https://github.com/cyclonite69/shadowcheck-web/commit/fe26642e91660a5d84c5f8385bc42dd029fe00da))
 * **ts:** migrate etl + scripts (batch 1 continuation) ([0174285](https://github.com/cyclonite69/shadowcheck-web/commit/01742850b298fc585066a66a1123a3c0dd30b3f6))
 * **ts:** migrate server internals (batch 3) - WIP ([abf3f64](https://github.com/cyclonite69/shadowcheck-web/commit/abf3f644e662be02be9dde42502ed38bbfe91e71))
