@@ -100,7 +100,7 @@
     "winston": "3.19.0",
     "ws": "8.20.1",
     "zod": "4.4.3",
-    "zustand": "5.0.13"
+    "zustand": "5.0.14"
   },
   "devDependencies": {
     "@commitlint/cli": "20.5.3",
