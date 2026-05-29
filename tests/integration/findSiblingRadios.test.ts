@@ -113,6 +113,17 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '00:30:44:FF:D0:33',
     '00:30:44:FF:D0:40',
     '00:30:44:FF:D0:44',
+    // Xfinity/Vantiva randomized LAA tests
+    '4A:BD:CE:D2:2D:B4',
+    '4A:BD:CE:D9:2D:B4',
+    '4A:BD:CE:D9:2D:B2',
+    '4A:BD:CE:D9:2D:B6',
+    // GM Vehicle Hotspot tests
+    '02:92:A5:1A:AF:17',
+    '02:92:A5:1A:CB:17',
+    '02:92:A5:12:AF:17',
+    '02:92:A5:12:CB:17',
+    '02:92:A5:12:AF:18',
   ];
 
   beforeAll(async () => {
@@ -246,7 +257,20 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         ('00:30:44:FF:D0:30', 'CP-NonFleet-30', 'W', 2412, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
         ('00:30:44:FF:D0:33', 'CP-NonFleet-33', 'W', 5180, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
         ('00:30:44:FF:D0:40', 'CP-NonFleet-40', 'W', 2412, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
-        ('00:30:44:FF:D0:44', 'CP-NonFleet-44', 'W', 5180, '', 1716500000000, 42.600, -83.600, 42.600, -83.600)
+        ('00:30:44:FF:D0:44', 'CP-NonFleet-44', 'W', 5180, '', 1716500000000, 42.600, -83.600, 42.600, -83.600),
+
+        -- Xfinity/Vantiva randomized LAA test networks
+        ('4A:BD:CE:D2:2D:B4', 'xfinitywifi',     'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('4A:BD:CE:D9:2D:B4', 'xfinitywifi',     'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('4A:BD:CE:D9:2D:B2', 'GT-777',          'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('4A:BD:CE:D9:2D:B6', 'Xfinity Mobile',  'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+
+        -- GM Vehicle Hotspot test networks
+        ('02:92:A5:1A:AF:17', 'myChevrolet6472', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('02:92:A5:1A:CB:17', 'myBuick8689',     'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('02:92:A5:12:AF:17', 'myChevrolet6472', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('02:92:A5:12:CB:17', 'myBuick8689',     'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('02:92:A5:12:AF:18', 'myChevrolet6472', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
     `);
   });
 
@@ -565,5 +589,54 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const resDelta4 = await query(`SELECT * FROM app.find_sibling_radios('00:30:44:FF:D0:40')`);
     const siblingDelta4 = resDelta4.rows.find((r) => r.sibling_bssid === '00:30:44:FF:D0:44');
     expect(siblingDelta4).toBeUndefined();
+  });
+
+  // ── Xfinity/Vantiva Sibling Hardening Tests ─────────────────────────────────
+  test('Xfinity LAA: rejects cross-chassis Class B bridge (D2:2D:B4 ↔ D9:2D:B4)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('4A:BD:CE:D2:2D:B4')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '4A:BD:CE:D9:2D:B4');
+    expect(sibling).toBeUndefined(); // Bridging different chassis is rejected
+  });
+
+  test('Xfinity LAA: preserves valid same-chassis Class A pairing (D9:2D:B2 ↔ D9:2D:B4)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('4A:BD:CE:D9:2D:B4')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '4A:BD:CE:D9:2D:B2');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
+  });
+
+  test('Xfinity LAA: preserves valid same-chassis Class A pairing (D9:2D:B6 ↔ D9:2D:B4)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('4A:BD:CE:D9:2D:B4')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '4A:BD:CE:D9:2D:B6');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
+  });
+
+  // ── GM Vehicle Hotspot Hardening Tests ──────────────────────────────────────
+  test('GM Vehicle Hotspots: rejects myChevrolet ↔ myBuick bridges', async () => {
+    const res1 = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:1A:AF:17')`);
+    const sibling1 = res1.rows.find((r) => r.sibling_bssid === '02:92:A5:1A:CB:17');
+    expect(sibling1).toBeUndefined(); // Different SSIDs: myChevrolet vs myBuick
+
+    const res2 = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')`);
+    const sibling2 = res2.rows.find((r) => r.sibling_bssid === '02:92:A5:12:CB:17');
+    expect(sibling2).toBeUndefined();
+  });
+
+  test('GM Vehicle Hotspots: rejects same final-octet cross-vehicle bridges', async () => {
+    const res1 = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:CB:17')`);
+    const sibling1 = res1.rows.find((r) => r.sibling_bssid === '02:92:A5:1A:CB:17');
+    expect(sibling1).toBeUndefined(); // Different vehicle (same last octet, different middle)
+
+    const res2 = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')`);
+    const sibling2 = res2.rows.find((r) => r.sibling_bssid === '02:92:A5:1A:AF:17');
+    expect(sibling2).toBeUndefined();
+  });
+
+  test('GM Vehicle Hotspots: preserves valid same-vehicle pairing (02:92:A5:12:AF:17 ↔ 02:92:A5:12:AF:18)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '02:92:A5:12:AF:18');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
   });
 });
