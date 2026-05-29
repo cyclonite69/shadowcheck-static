@@ -60,6 +60,7 @@ interface NetworkExplorerSectionProps {
   unresolvedSearchBssids?: string[];
   nonRenderableBssids?: string[];
   missingDbBssids?: string[];
+  siblingHydrating?: boolean;
 }
 
 export const NetworkExplorerSection = ({
@@ -111,11 +112,25 @@ export const NetworkExplorerSection = ({
   unresolvedSearchBssids = [],
   nonRenderableBssids = [],
   missingDbBssids = [],
+  siblingHydrating = false,
 }: NetworkExplorerSectionProps) => {
   const topologyMismatch =
     hydrationFailedBssids.length > 0 ||
     missingDbBssids.length > 0 ||
     unresolvedSearchBssids.length > 0;
+  const [showWarning, setShowWarning] = useState(false);
+
+  useEffect(() => {
+    if (!topologyMismatch || siblingHydrating) {
+      setShowWarning(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setShowWarning(true);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [topologyMismatch, siblingHydrating]);
+
   const [tableScrollLeft, setTableScrollLeft] = React.useState(0);
 
   const [collapseAllActive, setCollapseAllActive] = useState(false);
@@ -170,7 +185,7 @@ export const NetworkExplorerSection = ({
         onToggleSiblingGroups={handleToggleSiblingGroups}
       />
 
-      {import.meta.env.DEV && topologyMismatch && (
+      {import.meta.env.DEV && showWarning && (
         <div className="mx-2 mb-1 rounded border border-amber-600/50 bg-amber-950/40 px-2 py-1 text-[10px] text-amber-200">
           {topologyMismatch && (
             <span>

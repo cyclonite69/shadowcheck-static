@@ -35,6 +35,7 @@ interface GeospatialTableContentProps {
   unresolvedSearchBssids?: string[];
   nonRenderableBssids?: string[];
   missingDbBssids?: string[];
+  siblingHydrating?: boolean;
 }
 
 const GeospatialTableContentComponent = ({
@@ -71,6 +72,7 @@ const GeospatialTableContentComponent = ({
   unresolvedSearchBssids = [],
   nonRenderableBssids = [],
   missingDbBssids = [],
+  siblingHydrating = false,
 }: GeospatialTableContentProps) => (
   <NetworkExplorerSection
     expensiveSort={expensiveSort}
@@ -121,6 +123,7 @@ const GeospatialTableContentComponent = ({
     unresolvedSearchBssids={unresolvedSearchBssids}
     nonRenderableBssids={nonRenderableBssids}
     missingDbBssids={missingDbBssids}
+    siblingHydrating={siblingHydrating}
   />
 );
 

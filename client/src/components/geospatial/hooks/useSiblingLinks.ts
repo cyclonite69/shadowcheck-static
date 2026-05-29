@@ -38,6 +38,7 @@ export const useSiblingLinks = ({
   const [hydrationFailedBssids, setHydrationFailedBssids] = useState<string[]>([]);
   const [nonRenderableBssids, setNonRenderableBssids] = useState<string[]>([]);
   const [missingDbBssids, setMissingDbBssids] = useState<string[]>([]);
+  const [siblingHydrating, setSiblingHydrating] = useState(false);
   const prevHydrationKeyRef = useRef('');
 
   useEffect(() => {
@@ -82,6 +83,7 @@ export const useSiblingLinks = ({
       setNonRenderableBssids([]);
       setMissingDbBssids([]);
       prevHydrationKeyRef.current = '';
+      setSiblingHydrating(false);
       return;
     }
 
@@ -92,6 +94,7 @@ export const useSiblingLinks = ({
     setNonRenderableBssids([]);
     setMissingDbBssids([]);
     prevHydrationKeyRef.current = '';
+    setSiblingHydrating(true);
 
     let cancelled = false;
     const loadVisibleSiblingGroups = async () => {
@@ -109,6 +112,7 @@ export const useSiblingLinks = ({
           if (searchHits.length === 0) {
             setVisibleSiblingGroupMap(new Map());
             setMissingSiblingNetworks([]);
+            if (!cancelled) setSiblingHydrating(false);
             return;
           }
 
@@ -164,7 +168,10 @@ export const useSiblingLinks = ({
           setVisibleSiblingGroupMap(groupMap);
 
           const hydrationKey = generateHydrationKey(groupMap, missing);
-          if (hydrationKey === prevHydrationKeyRef.current) return;
+          if (hydrationKey === prevHydrationKeyRef.current) {
+            if (!cancelled) setSiblingHydrating(false);
+            return;
+          }
           prevHydrationKeyRef.current = hydrationKey;
 
           if (missing.length > 0) {
@@ -216,12 +223,15 @@ export const useSiblingLinks = ({
                 setNonRenderableBssids([]);
                 setMissingDbBssids([]);
               }
+            } finally {
+              if (!cancelled) setSiblingHydrating(false);
             }
           } else {
             setMissingSiblingNetworks([]);
             setHydrationFailedBssids([]);
             setNonRenderableBssids([]);
             setMissingDbBssids([]);
+            if (!cancelled) setSiblingHydrating(false);
           }
           return;
         }
@@ -274,7 +284,10 @@ export const useSiblingLinks = ({
         setVisibleSiblingGroupMap(groupMap);
 
         const hydrationKey = generateHydrationKey(groupMap, missing);
-        if (hydrationKey === prevHydrationKeyRef.current) return;
+        if (hydrationKey === prevHydrationKeyRef.current) {
+          if (!cancelled) setSiblingHydrating(false);
+          return;
+        }
         prevHydrationKeyRef.current = hydrationKey;
 
         if (missing.length > 0) {
@@ -326,12 +339,15 @@ export const useSiblingLinks = ({
               setNonRenderableBssids([]);
               setMissingDbBssids([]);
             }
+          } finally {
+            if (!cancelled) setSiblingHydrating(false);
           }
         } else {
           setMissingSiblingNetworks([]);
           setHydrationFailedBssids([]);
           setNonRenderableBssids([]);
           setMissingDbBssids([]);
+          if (!cancelled) setSiblingHydrating(false);
         }
       } catch (error) {
         if (!cancelled) {
@@ -340,6 +356,7 @@ export const useSiblingLinks = ({
           setMissingSiblingNetworks([]);
           setHydrationFailedBssids([]);
           prevHydrationKeyRef.current = '';
+          setSiblingHydrating(false);
         }
       }
     };
@@ -358,5 +375,6 @@ export const useSiblingLinks = ({
     hydrationFailedBssids,
     nonRenderableBssids,
     missingDbBssids,
+    siblingHydrating,
   };
 };

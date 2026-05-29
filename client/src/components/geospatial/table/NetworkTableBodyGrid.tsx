@@ -314,7 +314,7 @@ export const NetworkTableBodyGrid = ({
   }, [siblingGroupMap]);
 
   // Show initial loading / empty / error states only when we have no rows yet.
-  if (loadingNetworks || filteredNetworks.length === 0 || error) {
+  if (filteredNetworks.length === 0 || error) {
     return (
       <div
         ref={tableContainerRef}

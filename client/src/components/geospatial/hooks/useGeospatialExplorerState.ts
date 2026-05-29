@@ -100,6 +100,7 @@ export const useGeospatialExplorerState = ({
     hydrationFailedBssids,
     nonRenderableBssids,
     missingDbBssids,
+    siblingHydrating,
   } = useSiblingLinks({
     isAdmin,
     selectedAnchorBssid,
@@ -496,5 +497,6 @@ export const useGeospatialExplorerState = ({
     closeRadiusContextMenu,
     setRadiusFromContextMenu,
     clearRadiusFilter,
+    siblingHydrating,
   };
 };
