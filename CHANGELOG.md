@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-28)
+# 1.0.0 (2026-05-29)
 
 
 ### Bug Fixes
@@ -328,7 +328,7 @@
 * **geospatial/wigle:** viewport-aware popup positioning + WiGLE identity badge ([e520bc7](https://github.com/cyclonite69/shadowcheck-web/commit/e520bc7866fc95f3ca8f97fb38759a6af4b75f89))
 * **geospatial:** add column layout reset and activity tooltips ([7ea4dbf](https://github.com/cyclonite69/shadowcheck-web/commit/7ea4dbfa3b7d26aa784386058e029eb980d7cc12))
 * **geospatial:** add error logging to WiGLE observation fetch ([1704685](https://github.com/cyclonite69/shadowcheck-web/commit/1704685c1b66515888d1b0a30917f37f8a1cd0a2))
-* **geospatial:** add explorer sort mappings for activity fields ([9ed0758](https://github.com/cyclonite69/shadowcheck-web/commit/9ed0758663350103d1a9e2be875f7bbfe1015257))
+* **geospatial:** add explorer sort mappings for activity fields ([9985196](https://github.com/cyclonite69/shadowcheck-web/commit/9985196bf27b90a673982e3cf01f00f052c6bb16))
 * **geospatial:** add WiGLE enrichment fields to explorer tooltip pipeline ([bb58cc4](https://github.com/cyclonite69/shadowcheck-web/commit/bb58cc4d263397717aa78ca47ff6a5b7a3dca376))
 * **geospatial:** align header offset and standardize temporal heatmap labeling ([3a7e0db](https://github.com/cyclonite69/shadowcheck-web/commit/3a7e0dbcfa042d53059b320eccdc648faf2489e8))
 * **geospatial:** avoid duplicate sibling unresolved warnings ([ef38729](https://github.com/cyclonite69/shadowcheck-web/commit/ef38729dc0af5e82126e5dc2dc7afd1551fad432))
@@ -361,6 +361,7 @@
 * **geospatial:** include sibling summaries in batch hydration ([0ea9e37](https://github.com/cyclonite69/shadowcheck-web/commit/0ea9e373b22d95615dc51c94713dd77987bace9d))
 * **geospatial:** load full DB sibling component on quick search ([8eb515f](https://github.com/cyclonite69/shadowcheck-web/commit/8eb515fd828d28f7191c278952883a5d2d6ac8cf))
 * **geospatial:** lock virtual row height to prevent column drift overlap ([a0c74c5](https://github.com/cyclonite69/shadowcheck-web/commit/a0c74c5542f6341dbd9384fa78c8a0a04f5550bc))
+* **geospatial:** log non-renderable sibling refs offscreen ([aa914fc](https://github.com/cyclonite69/shadowcheck-web/commit/aa914fc402a4dbc61e3fd9b560903986ed7378b1))
 * **geospatial:** make note menu detect existing notes robustly ([87331b3](https://github.com/cyclonite69/shadowcheck-web/commit/87331b3ff3dab7ce0a9b9bafb2c712e09805e184))
 * **geospatial:** merge new default columns into saved localStorage column list ([4287d6e](https://github.com/cyclonite69/shadowcheck-web/commit/4287d6ef4c613edc60a0661c152c48db3649e515))
 * **geospatial:** normalize locked viewport bounds ([d65a673](https://github.com/cyclonite69/shadowcheck-web/commit/d65a6739dec7fcb9846fcd4ecb2927f70e50ace2))

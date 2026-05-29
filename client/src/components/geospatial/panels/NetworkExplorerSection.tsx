@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import type { NetworkRow, SortState } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
 import { MapStatusBar } from '../MapStatusBar';
@@ -6,6 +6,7 @@ import { NetworkExplorerCard } from './NetworkExplorerCard';
 import { NetworkExplorerHeader } from './NetworkExplorerHeader';
 import { NetworkTableBodyGrid } from '../table/NetworkTableBodyGrid';
 import { NetworkTableHeaderGrid } from '../table/NetworkTableHeaderGrid';
+import { logDebug } from '../../../logging/clientLogger';
 
 interface NetworkExplorerSectionProps {
   expensiveSort: boolean;
@@ -113,7 +114,6 @@ export const NetworkExplorerSection = ({
 }: NetworkExplorerSectionProps) => {
   const topologyMismatch =
     hydrationFailedBssids.length > 0 ||
-    nonRenderableBssids.length > 0 ||
     missingDbBssids.length > 0 ||
     unresolvedSearchBssids.length > 0;
   const [tableScrollLeft, setTableScrollLeft] = React.useState(0);
@@ -137,6 +137,19 @@ export const NetworkExplorerSection = ({
     setCollapsedGroups(new Set());
   }, []);
 
+  const nonRenderableSignature = nonRenderableBssids.join(',');
+
+  useEffect(() => {
+    if (nonRenderableSignature.length > 0) {
+      const bssids = nonRenderableSignature.split(',');
+      logDebug('geospatial.siblings.non_renderable_refs', {
+        count: bssids.length,
+        bssids: bssids.slice(0, 25),
+        truncated: bssids.length > 25,
+      });
+    }
+  }, [nonRenderableSignature]);
+
   return (
     <NetworkExplorerCard>
       <NetworkExplorerHeader
@@ -159,21 +172,18 @@ export const NetworkExplorerSection = ({
 
       {import.meta.env.DEV && topologyMismatch && (
         <div className="mx-2 mb-1 rounded border border-amber-600/50 bg-amber-950/40 px-2 py-1 text-[10px] text-amber-200">
-          Sibling expansion incomplete — loaded {filteredNetworks.length} visible rows; sibling
-          graph references {siblingGroupMap?.size ?? 0} BSSIDs; {unresolvedSearchBssids.length}{' '}
-          sibling rows not loaded yet.
+          {topologyMismatch && (
+            <span>
+              Sibling expansion incomplete — loaded {filteredNetworks.length} visible rows; sibling
+              graph references {siblingGroupMap?.size ?? 0} BSSIDs; {unresolvedSearchBssids.length}{' '}
+              sibling rows not loaded yet.
+            </span>
+          )}
           {hydrationFailedBssids.length > 0 && (
             <span className="block text-red-400">
               Hydration failed ({hydrationFailedBssids.length}):{' '}
               {hydrationFailedBssids.slice(0, 4).join(', ')}
               {hydrationFailedBssids.length > 4 ? '…' : ''}
-            </span>
-          )}
-          {nonRenderableBssids.length > 0 && (
-            <span className="block text-amber-400">
-              Sibling refs not renderable in Explorer ({nonRenderableBssids.length}):{' '}
-              {nonRenderableBssids.slice(0, 4).join(', ')}
-              {nonRenderableBssids.length > 4 ? '…' : ''}
             </span>
           )}
           {missingDbBssids.length > 0 && (
