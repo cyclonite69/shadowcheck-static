@@ -131,6 +131,10 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     'F6:E2:C6:E6:6E:F5',
     'F6:E2:C6:16:8A:F2',
     'F6:E2:C6:15:6E:F5',
+    // Mist Systems VAP tests
+    'D4:20:B0:9C:8F:E2',
+    'D4:20:B0:9C:8F:F3',
+    'D4:20:B0:9C:8A:F3',
   ];
 
   beforeAll(async () => {
@@ -284,7 +288,11 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         ('F4:E2:C6:46:6E:F5', 'Philpott',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('F6:E2:C6:E6:6E:F5', 'Philpott',        'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('F6:E2:C6:16:8A:F2', 'Philpott IOT',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
-        ('F6:E2:C6:15:6E:F5', 'Philpott IOT',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
+        ('F6:E2:C6:15:6E:F5', 'Philpott IOT',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        -- Mist Systems VAP isolated tests
+        ('D4:20:B0:9C:8F:E2', 'Mist-SSID-1', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('D4:20:B0:9C:8F:F3', 'Mist-SSID-2', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('D4:20:B0:9C:8A:F3', 'Mist-SSID-2', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
     `);
   });
 
@@ -355,14 +363,14 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:FF:FF:11')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:FF:FF:12');
     expect(sibling).toBeDefined(); // Permitted! Same SSID but different bands (2.4 GHz vs 5 GHz) on the same chassis
-    expect(sibling.rule).toBe('Class C');
+    expect(sibling.rule).toBe('Mist Systems VAP (Class A)');
   });
 
   test('Mist Guardrail Positive: different SSIDs + same band may pair if BSSID math supports it', async () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:FF:FF:31')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:FF:FF:32');
     expect(sibling).toBeDefined(); // Permitted! Different SSIDs on the same band (2.4 GHz) on the same chassis
-    expect(sibling.rule).toBe('Class C');
+    expect(sibling.rule).toBe('Mist Systems VAP (Class A)');
   });
 
   // ── Vendor-Specific Sibling Logic (5th-Octet Exclusions) ──────────────────
@@ -370,7 +378,7 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:EE:8F:E1')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:EE:8F:E2');
     expect(sibling).toBeDefined();
-    expect(sibling.rule).toBe('Class C');
+    expect(sibling.rule).toBe('Mist Systems VAP (Class A)');
   });
 
   test('Mist Rule Correction: fifth-octet variation does not match', async () => {
@@ -678,6 +686,20 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   test('Ubiquiti VAPs Negative: mismatching fourth-octet lower nibble must not pair (F6:E2:C6:16:6E:F5 ↔ F6:E2:C6:15:6E:F5)', async () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:15:6E:F5');
+    expect(sibling).toBeUndefined();
+  });
+
+  // ── Mist Systems VAP Sibling Rule Tests ────────────────────────────────────
+  test('Mist VAPs: preserves same-chassis pairing within delta 18 (D4:20:B0:9C:8F:E2 ↔ D4:20:B0:9C:8F:F3)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:9C:8F:E2')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:9C:8F:F3');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Mist Systems VAP (Class A)');
+  });
+
+  test('Mist VAPs Negative: fifth-octet variation does not match (D4:20:B0:9C:8F:E2 ↔ D4:20:B0:9C:8A:F3)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:9C:8F:E2')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:9C:8A:F3');
     expect(sibling).toBeUndefined();
   });
 });
