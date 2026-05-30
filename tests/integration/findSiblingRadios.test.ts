@@ -135,6 +135,11 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     'D4:20:B0:9C:8F:E2',
     'D4:20:B0:9C:8F:F3',
     'D4:20:B0:9C:8A:F3',
+    // LAA Hardening mock tests
+    'F6:EE:EE:64:94:0C',
+    '02:EE:EE:64:94:1C',
+    'F4:EE:EE:64:94:1C',
+    '02:EE:EE:64:94:0D',
   ];
 
   beforeAll(async () => {
@@ -292,7 +297,12 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         -- Mist Systems VAP isolated tests
         ('D4:20:B0:9C:8F:E2', 'Mist-SSID-1', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('D4:20:B0:9C:8F:F3', 'Mist-SSID-2', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
-        ('D4:20:B0:9C:8A:F3', 'Mist-SSID-2', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
+        ('D4:20:B0:9C:8A:F3', 'Mist-SSID-2', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        -- LAA Hardening mock networks
+        ('F6:EE:EE:64:94:0C', 'YMCA-Mock-LAA',   'W', 2437, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('02:EE:EE:64:94:1C', 'Whaley-Mock-LAA', 'W', 2462, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('F4:EE:EE:64:94:1C', 'Whaley-Mock-Guest','W', 2462, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('02:EE:EE:64:94:0D', 'YMCA-Mock-Twin-LAA','W', 2437, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
     `);
   });
 
@@ -701,5 +711,36 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('D4:20:B0:9C:8F:E2')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === 'D4:20:B0:9C:8A:F3');
     expect(sibling).toBeUndefined();
+  });
+
+  // ── LAA Generic Fallback Class A Hardening Tests ─────────────────────────────
+  test('LAA Hardening Negative: generic LAA Class A fallback blocks delta 16 bridge (F6:EE:EE:64:94:0C ↔ 02/F4:EE:EE:64:94:1C)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:EE:EE:64:94:0C')`);
+    const sibling1 = res.rows.find((r) => r.sibling_bssid === '02:EE:EE:64:94:1C');
+    const sibling2 = res.rows.find((r) => r.sibling_bssid === 'F4:EE:EE:64:94:1C');
+    expect(sibling1).toBeUndefined(); // delta 16 is rejected
+    expect(sibling2).toBeUndefined(); // delta 16 is rejected
+  });
+
+  test('LAA Hardening Positive: generic LAA Class A fallback preserves delta <= 7 pairing (F6:EE:EE:64:94:0C ↔ 02:EE:EE:64:94:0D)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:EE:EE:64:94:0C')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '02:EE:EE:64:94:0D');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
+    expect(sibling.d_last_octet).toBe(1);
+  });
+
+  test('LAA Hardening Live Regression: YMCA DT-Public must NOT pair with Whaley access points', async () => {
+    // Check if the live BSSIDs are in the networks database
+    const networkCheck = await query(
+      `SELECT bssid FROM app.networks WHERE bssid = 'F6:92:BF:64:94:0C'`
+    );
+    if (networkCheck.rowCount && networkCheck.rowCount > 0) {
+      const res = await query(`SELECT * FROM app.find_sibling_radios('F6:92:BF:64:94:0C')`);
+      const sibling1 = res.rows.find((r) => r.sibling_bssid === '02:92:BF:64:94:1C');
+      const sibling2 = res.rows.find((r) => r.sibling_bssid === 'F4:92:BF:64:94:1C');
+      expect(sibling1).toBeUndefined(); // F6:92:BF:64:94:0C ↔ 02:92:BF:64:94:1C is blocked
+      expect(sibling2).toBeUndefined(); // F6:92:BF:64:94:0C ↔ F4:92:BF:64:94:1C is blocked
+    }
   });
 });
