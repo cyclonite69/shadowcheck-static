@@ -124,6 +124,13 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '02:92:A5:12:AF:17',
     '02:92:A5:12:CB:17',
     '02:92:A5:12:AF:18',
+    // Ubiquiti UniFi VAP tests
+    'F6:E2:C6:16:6E:F5',
+    'F6:E2:C6:86:6E:F5',
+    'F4:E2:C6:46:6E:F5',
+    'F6:E2:C6:E6:6E:F5',
+    'F6:E2:C6:16:8A:F2',
+    'F6:E2:C6:15:6E:F5',
   ];
 
   beforeAll(async () => {
@@ -270,7 +277,14 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         ('02:92:A5:1A:CB:17', 'myBuick8689',     'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('02:92:A5:12:AF:17', 'myChevrolet6472', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('02:92:A5:12:CB:17', 'myBuick8689',     'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
-        ('02:92:A5:12:AF:18', 'myChevrolet6472', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
+        ('02:92:A5:12:AF:18', 'myChevrolet6472', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        -- Ubiquiti UniFi VAP test networks
+        ('F6:E2:C6:16:6E:F5', 'Philpott IOT',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('F6:E2:C6:86:6E:F5', 'Philpott',        'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('F4:E2:C6:46:6E:F5', 'Philpott',        'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('F6:E2:C6:E6:6E:F5', 'Philpott',        'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('F6:E2:C6:16:8A:F2', 'Philpott IOT',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('F6:E2:C6:15:6E:F5', 'Philpott IOT',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123)
     `);
   });
 
@@ -638,5 +652,32 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const sibling = res.rows.find((r) => r.sibling_bssid === '02:92:A5:12:AF:18');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
+  });
+
+  // ── Ubiquiti UniFi VAP Sibling Rule Tests ────────────────────────────────────
+  test('Ubiquiti VAPs: preserves same-chassis cross-band pairing with different fourth octets (F6:E2:C6:16:6E:F5 ↔ F6:E2:C6:86:6E:F5)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:86:6E:F5');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Ubiquiti UniFi VAP (Class A)');
+  });
+
+  test('Ubiquiti VAPs: preserves same-chassis global-to-LAA cross-band pairing (F4:E2:C6:46:6E:F5 ↔ F6:E2:C6:E6:6E:F5)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('F4:E2:C6:46:6E:F5')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:E6:6E:F5');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Ubiquiti UniFi VAP (Class A)');
+  });
+
+  test('Ubiquiti VAPs Negative: mismatching suffix must not pair (F6:E2:C6:16:6E:F5 ↔ F6:E2:C6:16:8A:F2)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:16:8A:F2');
+    expect(sibling).toBeUndefined();
+  });
+
+  test('Ubiquiti VAPs Negative: mismatching fourth-octet lower nibble must not pair (F6:E2:C6:16:6E:F5 ↔ F6:E2:C6:15:6E:F5)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('F6:E2:C6:16:6E:F5')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === 'F6:E2:C6:15:6E:F5');
+    expect(sibling).toBeUndefined();
   });
 });

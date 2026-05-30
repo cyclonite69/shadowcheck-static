@@ -1,4 +1,4 @@
-# 1.0.0 (2026-05-29)
+# 1.0.0 (2026-05-30)
 
 
 ### Bug Fixes
@@ -719,10 +719,11 @@
 * **sibling:** remove all distance gates from extra detection rules ([1905eef](https://github.com/cyclonite69/shadowcheck-web/commit/1905eef7f88252ba68c3fafc925b9177dad97739))
 * **sibling:** require visible SSID for same_oui_proximity and expand FLEET_SSIDS ([484ae9c](https://github.com/cyclonite69/shadowcheck-web/commit/484ae9c25188f0d4c078f14d8b5574397dcc5321))
 * **siblings:** add campus-wide fleet SSIDs to exclusion list ([58bd978](https://github.com/cyclonite69/shadowcheck-web/commit/58bd9789564ab386e86b6c09881476e95e50347e))
+* **siblings:** add Ubiquiti UniFi VAP sibling rule ([a74d270](https://github.com/cyclonite69/shadowcheck-web/commit/a74d2709f3194c5cc2144fb98e27a9e54d07a0a6))
 * **siblings:** deterministic rule bypass + fleet SSID purge ([c2f03c6](https://github.com/cyclonite69/shadowcheck-web/commit/c2f03c6efb3dfab09579bde05fcc2cf468408041)), closes [hi#cardinality](https://github.com/hi/issues/cardinality)
 * **siblings:** harden Cisco chassis matching rules ([c462d24](https://github.com/cyclonite69/shadowcheck-web/commit/c462d24eb0965d906eedcb0e738205c5f9dc74b9))
 * **siblings:** harden Cradlepoint fleet matching ([dc23ffa](https://github.com/cyclonite69/shadowcheck-web/commit/dc23ffadb53553b8619b4ea0c32a6c080eb57df3))
-* **siblings:** harden LAA and GM hotspot pairing rules ([632cf72](https://github.com/cyclonite69/shadowcheck-web/commit/632cf72d63a4fabaf2a4c88379f8dad72b59eae8))
+* **siblings:** harden LAA and GM hotspot pairing rules ([87e540b](https://github.com/cyclonite69/shadowcheck-web/commit/87e540b02f2c5905da8e481b400252fb9de39b2b))
 * **siblings:** harden vendor chassis matching rules ([74145d2](https://github.com/cyclonite69/shadowcheck-web/commit/74145d2125a509b3894b907789f2b776d3de5f7c))
 * **siblings:** manual pairs as baseline + fix upper_octet_rotation SSID exclusion ([504626a](https://github.com/cyclonite69/shadowcheck-web/commit/504626a70dd208f1c2564a65c95236bf46953f0d))
 * **siblings:** only show link badge for real links ([4e66e64](https://github.com/cyclonite69/shadowcheck-web/commit/4e66e64ef2ae61aa524b3fee5e63fbdccf2c8bbd))
