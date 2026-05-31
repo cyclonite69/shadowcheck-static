@@ -1291,6 +1291,7 @@
 * **user-stats:** serve cached stats on rate-limit instead of 429 ([fbf9cb8](https://github.com/cyclonite69/shadowcheck-web/commit/fbf9cb8e6c10f42c2d242a039e90d830a815f43e))
 * **user-stats:** serve cached stats on rate-limit instead of 429 ([8e22fe9](https://github.com/cyclonite69/shadowcheck-web/commit/8e22fe9f19ccbac4e004610ea4dc69e43eb43413))
 * **v3enrichment:** remove obs panel, decouple forensic preview, add multi-sort + col chooser ([420e252](https://github.com/cyclonite69/shadowcheck-web/commit/420e2520190f79c4bbe6e7a7b5657c429c5372c6))
+* **visint:** add VisINT auto-correlation pipeline ([8773bdc](https://github.com/cyclonite69/shadowcheck-web/commit/8773bdc2423ed96f0803f4b81b278721953d284d))
 * **wigle-detail:** remove Recent Imports & Resumption section from v3 tab ([c064f80](https://github.com/cyclonite69/shadowcheck-web/commit/c064f802977ca3df441fdebfcfff02e2808e901d))
 * **wigle/kepler:** icon buttons, point size slider, crosshair cursor, filter panel position ([41e9231](https://github.com/cyclonite69/shadowcheck-web/commit/41e9231f7c46d9a20647c2c32a839dae348b73bc))
 * **wigle:** add aggregatedLayers.ts unified layer set (Phase 3) ([09ec8e2](https://github.com/cyclonite69/shadowcheck-web/commit/09ec8e224898987e3eb28a8421e3c356baf7da1a))

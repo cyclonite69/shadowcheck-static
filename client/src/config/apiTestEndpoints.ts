@@ -363,6 +363,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Networks v1',
+    label: 'VisINT Auto-Correlation',
+    path: '/api/observations/correlate-visint',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "image": "",\n  "filename": "image.jpg"\n}',
+  },
+  {
+    category: 'Networks v1',
     label: 'Network Notes',
     path: '/api/networks/:bssid/notes',
     method: 'GET',

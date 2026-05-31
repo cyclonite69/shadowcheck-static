@@ -7,12 +7,31 @@ import {
   getWigleObservationsByBSSID,
   getOurObservationCount,
   getWigleObservationsBatch,
+  correlateImageBLE,
+  correlateVisINT,
+  ExifMissingError,
 } from '../../server/src/services/observationService';
 
 const { query } = require('../../server/src/config/database');
+const { exec, execFile } = require('child_process');
 
 jest.mock('../../server/src/config/database', () => ({
   query: jest.fn(),
+}));
+
+jest.mock('child_process', () => ({
+  exec: jest.fn(),
+  execFile: jest.fn(),
+}));
+
+jest.mock('../../server/src/repositories/adminNetworkMediaRepository', () => ({
+  insertNetworkMedia: jest.fn(),
+}));
+
+jest.mock('../../server/src/repositories/adminNetworkTagOuiRepository', () => ({
+  addTagToNetwork: jest.fn(),
+  getNetworkTagsByBssid: jest.fn(),
+  insertNetworkTagWithNotes: jest.fn(),
 }));
 
 describe('Observation Service', () => {
@@ -160,6 +179,257 @@ describe('Observation Service', () => {
       const result = await getWigleObservationsBatch(['AA:BB', 'CC:DD']);
       expect(result).toEqual(mockRows);
       expect(query).toHaveBeenCalledWith(expect.stringContaining('ANY($1)'), [['AA:BB', 'CC:DD']]);
+    });
+  });
+
+  describe('correlateImageBLE', () => {
+    it('should extract EXIF telemetry and execute spatial correlation query', async () => {
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        const cmdStr = args.join(' ');
+        if (cmdStr.includes('$GPSLatitude')) {
+          callback(null, { stdout: '43.023\n' });
+        } else if (cmdStr.includes('$GPSLongitude')) {
+          callback(null, { stdout: '-83.696\n' });
+        } else if (cmdStr.includes('$DateTimeOriginal')) {
+          callback(null, { stdout: '2026-05-06 20:29:10\n' });
+        } else {
+          callback(new Error('Unknown command'));
+        }
+      });
+
+      const mockRows = [
+        {
+          bssid: '23:D4:25:1B:46:00',
+          signal: -65,
+          dist_meters: 6.77,
+          delta_minutes: 31134.2,
+        },
+      ];
+      (query as jest.Mock).mockResolvedValueOnce({ rows: mockRows });
+
+      const result = await correlateImageBLE('dummy.jpg');
+
+      expect(result).toEqual({
+        image: 'dummy.jpg',
+        lat: 43.023,
+        lon: -83.696,
+        timestamp: '2026-05-06 20:29:10',
+        matches: [
+          {
+            bssid: '23:D4:25:1B:46:00',
+            signal: -65,
+            dist_meters: 6.77,
+            delta_minutes: 31134.2,
+          },
+        ],
+      });
+
+      expect(query).toHaveBeenCalledWith(expect.stringContaining("radio_type = 'E'"), [
+        -83.696,
+        43.023,
+        '2026-05-06 20:29:10',
+        150,
+        30,
+        1,
+      ]);
+    });
+
+    it('should throw an error if EXIF parsing fails', async () => {
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        callback(new Error('exiftool error'));
+      });
+
+      await expect(correlateImageBLE('dummy.jpg')).rejects.toThrow(
+        'Failed to parse EXIF payload for dummy.jpg'
+      );
+    });
+  });
+
+  describe('correlateVisINT', () => {
+    const {
+      insertNetworkMedia,
+    } = require('../../server/src/repositories/adminNetworkMediaRepository');
+    const {
+      addTagToNetwork,
+      getNetworkTagsByBssid,
+      insertNetworkTagWithNotes,
+    } = require('../../server/src/repositories/adminNetworkTagOuiRepository');
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      // Setup successful EXIF tool mock
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        const cmdStr = args.join(' ');
+        if (cmdStr.includes('$GPSLatitude')) {
+          callback(null, { stdout: '43.023\n' });
+        } else if (cmdStr.includes('$GPSLongitude')) {
+          callback(null, { stdout: '-83.696\n' });
+        } else if (cmdStr.includes('$DateTimeOriginal')) {
+          callback(null, { stdout: '2026-05-06 20:29:10\n' });
+        } else {
+          callback(new Error('Unknown command'));
+        }
+      });
+    });
+
+    it('should successfully MATCH correlation with score 3 (new firmware)', async () => {
+      const mockRow = {
+        id: 12345,
+        bssid: 'aa:bb:cc:dd:ee:ff',
+        ssid: '4',
+        radio_type: 'E',
+        level: -70,
+        observed_at: '2026-05-06 20:29:10',
+        lat: 43.023,
+        lon: -83.696,
+        dist_meters: 5.4,
+        delta_minutes: 0.1,
+        detection_score: '3',
+      };
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
+
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg');
+
+      expect(result).toEqual({
+        status: 'MATCHED',
+        observation_id: '12345',
+        detection_score: 3,
+        dist_meters: 5.4,
+        delta_minutes: 0.1,
+        tags_applied: ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'],
+        exif: { lat: 43.023, lon: -83.696, ts: '2026-05-06 20:29:10' },
+      });
+
+      expect(insertNetworkMedia).toHaveBeenCalledWith(
+        'AA:BB:CC:DD:EE:FF',
+        'image',
+        'test.jpg',
+        5,
+        'image/jpeg',
+        expect.any(Buffer),
+        expect.stringContaining('score=3')
+      );
+
+      expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
+        'AA:BB:CC:DD:EE:FF',
+        ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'],
+        null
+      );
+    });
+
+    it('should successfully MATCH correlation with score 2 (legacy firmware)', async () => {
+      const mockRow = {
+        id: 12345,
+        bssid: 'aa:bb:cc:dd:ee:ff',
+        ssid: 'Penguin-1234567890',
+        radio_type: 'E',
+        level: -70,
+        observed_at: '2026-05-06 20:29:10',
+        lat: 43.023,
+        lon: -83.696,
+        dist_meters: 5.4,
+        delta_minutes: 0.1,
+        detection_score: '2',
+      };
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce({ tags: ['SOME_TAG'] });
+
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg');
+
+      expect(result.tags_applied).toEqual(['FLOCK_LEGACY', 'VISINT_VERIFIED']);
+      expect(addTagToNetwork).toHaveBeenCalledTimes(2);
+      expect(addTagToNetwork).toHaveBeenNthCalledWith(1, 'AA:BB:CC:DD:EE:FF', 'FLOCK_LEGACY', null);
+      expect(addTagToNetwork).toHaveBeenNthCalledWith(
+        2,
+        'AA:BB:CC:DD:EE:FF',
+        'VISINT_VERIFIED',
+        null
+      );
+    });
+
+    it('should successfully MATCH correlation with score 1 (candidate)', async () => {
+      const mockRow = {
+        id: 12345,
+        bssid: 'aa:bb:cc:dd:ee:ff',
+        ssid: '4',
+        radio_type: 'E',
+        level: -70,
+        observed_at: '2026-05-06 20:29:10',
+        lat: 43.023,
+        lon: -83.696,
+        dist_meters: 5.4,
+        delta_minutes: 0.1,
+        detection_score: '1',
+      };
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
+      (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
+
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg');
+
+      expect(result.tags_applied).toEqual(['FLOCK_CANDIDATE', 'VISINT_PENDING']);
+    });
+
+    it('should fallback to UNMATCHED when query returns no rows', async () => {
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
+
+      const result = await correlateVisINT(Buffer.from('dummy'), 'test.jpg');
+
+      expect(result).toEqual({
+        status: 'UNMATCHED',
+        observation_id: null,
+        detection_score: 0,
+        dist_meters: null,
+        delta_minutes: null,
+        tags_applied: ['UNMATCHED_NODE', 'VISINT_UNMATCHED'],
+        exif: { lat: 43.023, lon: -83.696, ts: '2026-05-06 20:29:10' },
+      });
+
+      expect(insertNetworkMedia).toHaveBeenCalledWith(
+        'VISINT_UNMATCHED',
+        'image',
+        'test.jpg',
+        5,
+        'image/jpeg',
+        expect.any(Buffer),
+        expect.stringContaining('extracted_lat')
+      );
+
+      expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
+        'VISINT_UNMATCHED',
+        ['UNMATCHED_NODE', 'VISINT_UNMATCHED'],
+        null
+      );
+    });
+
+    it('should apply SHOTSPOTTER tag if filename contains shot or spotter', async () => {
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+      (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
+
+      const result = await correlateVisINT(Buffer.from('dummy'), 'shotspotter_capture.jpg');
+
+      expect(result.tags_applied).toContain('SHOTSPOTTER');
+    });
+
+    it('should throw ExifMissingError if EXIF fields are missing', async () => {
+      // Mock empty output for longitude
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        const cmdStr = args.join(' ');
+        if (cmdStr.includes('$GPSLatitude')) {
+          callback(null, { stdout: '43.023\n' });
+        } else if (cmdStr.includes('$GPSLongitude')) {
+          callback(null, { stdout: '' });
+        } else if (cmdStr.includes('$DateTimeOriginal')) {
+          callback(null, { stdout: '' });
+        } else {
+          callback(new Error('Unknown command'));
+        }
+      });
+
+      await expect(correlateVisINT(Buffer.from('dummy'), 'test.jpg')).rejects.toThrow(
+        /Missing EXIF telemetry fields: GPSLongitude, DateTimeOriginal/
+      );
     });
   });
 });

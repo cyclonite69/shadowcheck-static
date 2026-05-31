@@ -276,4 +276,34 @@ router.post(
   })
 );
 
+/**
+ * POST /api/observations/correlate-visint
+ *
+ * Correlates VisINT photo telemetry with nearby observations in the database.
+ * Accepts a JSON body containing a base64-encoded image and original filename.
+ */
+router.post(
+  '/observations/correlate-visint',
+  asyncHandler(async (req: Request, res: Response) => {
+    const imageBase64 = req.body.image || req.body.image_data_base64;
+    const filename = req.body.filename || req.body.original_filename || 'image.jpg';
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image data in base64 format is required.' });
+    }
+
+    try {
+      const buffer = Buffer.from(imageBase64, 'base64');
+      const result = await observationService.correlateVisINT(buffer, filename);
+      res.json({ ok: true, ...result });
+    } catch (error: any) {
+      if (error.name === 'ExifMissingError') {
+        return res.status(400).json({ error: error.message, type: 'ExifMissingError' });
+      }
+      logger.error(`VisINT correlation failed: ${error.message}`);
+      res.status(500).json({ error: 'VisINT correlation failed', details: error.message });
+    }
+  })
+);
+
 export default router;
