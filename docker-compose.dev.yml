@@ -8,6 +8,9 @@ services:
       dockerfile: Dockerfile
       target: builder # Use builder stage for development
     container_name: shadowcheck_web_api_dev
+    env_file:
+      - path: .env.local
+        required: false # optional — falls back to shell env / AWS Secrets Manager
     environment:
       NODE_ENV: development
       PORT: 3001

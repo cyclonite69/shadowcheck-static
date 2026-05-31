@@ -138,6 +138,7 @@ docker-data/
 docker/infrastructure/certs/local/
 !docker/infrastructure/README.md
 docker-compose.override.yml
+docker-compose.local.yml
 
 # Build Artifacts
 *.exe
