@@ -1,74 +1,3 @@
-export {};
-
-const HIGH_CONF_OUIS = [
-  '70:C9:4E',
-  '3C:91:80',
-  'D8:F3:BC',
-  '80:30:49',
-  'B8:35:32',
-  '14:5A:FC',
-  '74:4C:A1',
-  '08:3A:88',
-  '9C:2F:9D',
-  'C0:35:32',
-  '94:08:53',
-  'E4:AA:EA',
-  '24:B2:B9',
-  'B8:1E:A4',
-  '70:08:94',
-  '58:8E:81',
-  'EC:1B:BD',
-  '3C:71:BF',
-  '58:00:E3',
-  '90:35:EA',
-  '5C:93:A2',
-  '64:6E:69',
-  '48:27:EA',
-  'A4:CF:12',
-  '82:6B:F2',
-  'CC:CC:CC',
-  '04:0D:84',
-  'F0:82:C0',
-  '1C:34:F1',
-  '38:5B:44',
-  '94:34:69',
-  'B4:E3:F9',
-  'B4:1E:52',
-];
-
-const FS_EXT_BATTERY_OUIS = [
-  '58:8E:81',
-  'EC:1B:BD',
-  '90:35:EA',
-  'CC:CC:CC',
-  '04:0D:84',
-  'F0:82:C0',
-  '1C:34:F1',
-  '38:5B:44',
-  '94:34:69',
-  'B4:E3:F9',
-];
-
-const MED_CONF_OUIS = [
-  'F4:6A:DD',
-  'F8:A2:D6',
-  'E0:0A:F6',
-  '00:F4:8D',
-  'D0:39:57',
-  'E8:D0:FC',
-  'E0:4F:43',
-];
-
-const SHOTSPOTTER_OUIS = ['D4:11:D6'];
-
-const AXON_OUIS = ['00:25:DF', '08:FB:EA', '54:78:C9', '70:F7:54', 'B8:13:32'];
-
-const MOTOROLA_BWC_OUIS = ['00:04:7D', '00:18:85', '00:1F:92', '4C:CC:34'];
-
-function sqlArray(arr: string[]): string {
-  return arr.map((o) => `'${o}'`).join(',');
-}
-
 export interface CandidateRow {
   bssid: string;
   ssid: string | null;
@@ -113,21 +42,12 @@ export interface ScoredDetection {
 async function getEnrichedCandidates(
   adminQuery: (sql: string, params?: any[]) => Promise<any>
 ): Promise<CandidateRow[]> {
-  const highOui = sqlArray(HIGH_CONF_OUIS);
-  const extBattOui = sqlArray(FS_EXT_BATTERY_OUIS);
-  const medOui = sqlArray(MED_CONF_OUIS);
-  const shotspotterOui = sqlArray(SHOTSPOTTER_OUIS);
-  const axonOui = sqlArray(AXON_OUIS);
-  const motorolaBwcOui = sqlArray(MOTOROLA_BWC_OUIS);
-
   const result = await adminQuery(`
     WITH candidates AS (
 
       -- 1. High-confidence WiFi OUI
       SELECT n.bssid, n.ssid, n.type, n.bestlevel, n.service, n.mfgrid,
-        CASE WHEN LEFT(n.bssid, 8) = ANY(ARRAY[${extBattOui}]) THEN 'FS_EXT_BATTERY'
-             ELSE 'FLOCK_SAFETY_CAMERA'
-        END AS device_type,
+        odg.surveillance_type AS device_type,
         CASE WHEN n.ssid ~ '^Flock-[0-9A-Fa-f]{6}$' THEN 90
              WHEN LEFT(n.bssid, 8) = 'B4:1E:52' THEN 85
              ELSE 80
@@ -141,8 +61,10 @@ async function getEnrichedCandidates(
         jsonb_build_object('oui', LEFT(n.bssid, 8), 'ssid', n.ssid, 'tier', 'HIGH') AS matched_signals,
         1 AS priority
       FROM app.networks n
+      JOIN app.oui_device_groups odg ON LEFT(n.bssid, 8) = odg.oui
       WHERE n.type = 'W'
-        AND LEFT(n.bssid, 8) = ANY(ARRAY[${highOui}])
+        AND odg.surveillance_type IN ('FLOCK_SAFETY_CAMERA', 'FS_EXT_BATTERY')
+        AND odg.surveillance_confidence = 'HIGH'
 
       UNION ALL
 
@@ -152,7 +74,12 @@ async function getEnrichedCandidates(
         jsonb_build_object('ssid', n.ssid, 'cve', 'CVE-2025-59409'), 2
       FROM app.networks n
       WHERE n.type = 'W' AND n.ssid = 'test_flck'
-        AND LEFT(n.bssid, 8) != ALL(ARRAY[${highOui}])
+        AND NOT EXISTS (
+          SELECT 1 FROM app.oui_device_groups odg
+          WHERE odg.oui = LEFT(n.bssid, 8)
+            AND odg.surveillance_type IN ('FLOCK_SAFETY_CAMERA', 'FS_EXT_BATTERY')
+            AND odg.surveillance_confidence = 'HIGH'
+        )
 
       UNION ALL
 
@@ -162,7 +89,12 @@ async function getEnrichedCandidates(
         jsonb_build_object('ssid', n.ssid, 'pattern', 'Flock-[0-9A-Fa-f]{6}'), 3
       FROM app.networks n
       WHERE n.type = 'W' AND n.ssid ~ '^Flock-[0-9A-Fa-f]{6}$'
-        AND LEFT(n.bssid, 8) != ALL(ARRAY[${highOui}])
+        AND NOT EXISTS (
+          SELECT 1 FROM app.oui_device_groups odg
+          WHERE odg.oui = LEFT(n.bssid, 8)
+            AND odg.surveillance_type IN ('FLOCK_SAFETY_CAMERA', 'FS_EXT_BATTERY')
+            AND odg.surveillance_confidence = 'HIGH'
+        )
 
       UNION ALL
 
@@ -171,9 +103,10 @@ async function getEnrichedCandidates(
         'FLOCK_SAFETY_CAMERA', 50, 'WEAK', 'oui_match',
         jsonb_build_object('oui', LEFT(n.bssid, 8), 'tier', 'MEDIUM', 'vendor', 'contract_mfr'), 4
       FROM app.networks n
+      JOIN app.oui_device_groups odg ON LEFT(n.bssid, 8) = odg.oui
       WHERE n.type = 'W'
-        AND LEFT(n.bssid, 8) = ANY(ARRAY[${medOui}])
-        AND LEFT(n.bssid, 8) != ALL(ARRAY[${highOui}])
+        AND odg.surveillance_type = 'FLOCK_SAFETY_CAMERA'
+        AND odg.surveillance_confidence = 'MEDIUM'
 
       UNION ALL
 
@@ -210,7 +143,10 @@ async function getEnrichedCandidates(
         'SHOTSPOTTER_SENSOR', 85, 'STRONG', 'oui_match',
         jsonb_build_object('oui', LEFT(n.bssid, 8), 'vendor', 'ShotSpotter Inc. / SoundThinking'), 7
       FROM app.networks n
-      WHERE n.type = 'W' AND LEFT(n.bssid, 8) = ANY(ARRAY[${shotspotterOui}])
+      JOIN app.oui_device_groups odg ON LEFT(n.bssid, 8) = odg.oui
+      WHERE n.type = 'W'
+        AND odg.surveillance_type = 'SHOTSPOTTER_SENSOR'
+        AND odg.surveillance_confidence = 'HIGH'
 
       UNION ALL
 
@@ -222,7 +158,12 @@ async function getEnrichedCandidates(
       WHERE n.type = 'W'
         AND (n.ssid ~* '^(SoundThinking|ShotSpotter|SST-|SENSOR-|SNS-|acoustic)'
              OR n.ssid ~ '^[A-Z]{2,4}-\\d{4,6}$')
-        AND LEFT(n.bssid, 8) != ALL(ARRAY[${shotspotterOui}])
+        AND NOT EXISTS (
+          SELECT 1 FROM app.oui_device_groups odg
+          WHERE odg.oui = LEFT(n.bssid, 8)
+            AND odg.surveillance_type = 'SHOTSPOTTER_SENSOR'
+            AND odg.surveillance_confidence = 'HIGH'
+        )
 
       UNION ALL
 
@@ -231,7 +172,9 @@ async function getEnrichedCandidates(
         'AXON_BODY_CAMERA', 75, 'STRONG', 'oui_match',
         jsonb_build_object('oui', LEFT(n.bssid, 8), 'vendor', 'Axon Enterprise'), 9
       FROM app.networks n
-      WHERE LEFT(n.bssid, 8) = ANY(ARRAY[${axonOui}])
+      JOIN app.oui_device_groups odg ON LEFT(n.bssid, 8) = odg.oui
+      WHERE odg.surveillance_type = 'AXON_BODY_CAMERA'
+        AND odg.surveillance_confidence = 'HIGH'
 
       UNION ALL
 
@@ -240,7 +183,9 @@ async function getEnrichedCandidates(
         'MOTOROLA_BWC', 75, 'STRONG', 'oui_match',
         jsonb_build_object('oui', LEFT(n.bssid, 8), 'vendor', 'Motorola Solutions'), 10
       FROM app.networks n
-      WHERE LEFT(n.bssid, 8) = ANY(ARRAY[${motorolaBwcOui}])
+      JOIN app.oui_device_groups odg ON LEFT(n.bssid, 8) = odg.oui
+      WHERE odg.surveillance_type = 'MOTOROLA_BWC'
+        AND odg.surveillance_confidence = 'HIGH'
 
       UNION ALL
 
@@ -251,7 +196,12 @@ async function getEnrichedCandidates(
       FROM app.networks n
       WHERE n.type IN ('E', 'B')
         AND n.mfgrid = 845
-        AND LEFT(n.bssid, 8) != ALL(ARRAY[${axonOui}])
+        AND NOT EXISTS (
+          SELECT 1 FROM app.oui_device_groups odg
+          WHERE odg.oui = LEFT(n.bssid, 8)
+            AND odg.surveillance_type = 'AXON_BODY_CAMERA'
+            AND odg.surveillance_confidence = 'HIGH'
+        )
 
       UNION ALL
 
@@ -263,7 +213,12 @@ async function getEnrichedCandidates(
       WHERE n.type IN ('E', 'B')
         AND n.ssid ~* '^(axon|taser|signal)'
         AND (n.mfgrid IS NULL OR n.mfgrid != 845)
-        AND LEFT(n.bssid, 8) != ALL(ARRAY[${axonOui}])
+        AND NOT EXISTS (
+          SELECT 1 FROM app.oui_device_groups odg
+          WHERE odg.oui = LEFT(n.bssid, 8)
+            AND odg.surveillance_type = 'AXON_BODY_CAMERA'
+            AND odg.surveillance_confidence = 'HIGH'
+        )
 
       UNION ALL
 
@@ -297,7 +252,12 @@ async function getEnrichedCandidates(
       FROM app.networks n
       WHERE n.type IN ('E', 'B')
         AND n.service = '0000ffa1-0000-1000-8000-00805f9b34fb'
-        AND LEFT(n.bssid, 8) != ALL(ARRAY[${axonOui}])
+        AND NOT EXISTS (
+          SELECT 1 FROM app.oui_device_groups odg
+          WHERE odg.oui = LEFT(n.bssid, 8)
+            AND odg.surveillance_type = 'AXON_BODY_CAMERA'
+            AND odg.surveillance_confidence = 'HIGH'
+        )
 
       UNION ALL
 
@@ -314,8 +274,10 @@ async function getEnrichedCandidates(
           'note', 'uncategorized_no_service_class_axon_oui'), 15
       FROM app.networks n
       JOIN app.observations o ON n.bssid = o.bssid AND o.radio_frequency = 7936
+      JOIN app.oui_device_groups odg ON LEFT(n.bssid, 8) = odg.oui
       WHERE n.type IN ('E', 'B')
-        AND LEFT(n.bssid, 8) = ANY(ARRAY[${axonOui}])
+        AND odg.surveillance_type = 'AXON_BODY_CAMERA'
+        AND odg.surveillance_confidence = 'HIGH'
         AND (n.ssid IS NULL OR n.ssid !~ '^X_[A-Za-z][A-Za-z]+$')
 
       UNION ALL
