@@ -1,4 +1,4 @@
-# Active Workstreams — 2026-05-03
+# Active Workstreams — 2026-05-31
 
 Update this file manually when handing off a task or starting a new session. Agents read it at session start to avoid stepping on in-progress work.
 
@@ -6,7 +6,7 @@ Update this file manually when handing off a task or starting a new session. Age
 
 ## Current Status
 
-_No active workstreams. All completed as of 2026-05-03._
+_No active workstreams. VisINT Auto-Correlation Pipeline successfully merged and pushed as of 2026-05-31._
 
 ---
 
@@ -24,7 +24,27 @@ _No active workstreams. All completed as of 2026-05-03._
 
 ---
 
-## Recently Completed (this session — 2026-05-03)
+## Recently Completed (this session — 2026-05-31)
+
+| Task                                                                             | Status |
+| -------------------------------------------------------------------------------- | ------ |
+| VisINT auto-correlation pipeline (`d149d1ef`)                                    | ✅     |
+| Flock Falcon new firmware fingerprint reverse-engineered and integrated          | ✅     |
+| `exec()` → `execFile()` command injection hardening on all EXIF extraction paths | ✅     |
+
+---
+
+## Open Backlog Items
+
+- **UI Integration**: Wire `VisIntUploader` component into a dashboard tab/page (no entry point yet).
+- **Forensic Visualization**: Add map representation/marker query for `VISINT_UNMATCHED` cellular ghost nodes.
+- **Local Dev Configs**: Commit `.env.example`, `.gitignore`, `docker-compose.dev.yml`, and `local-dev-aliases.sh` as a separate, clean commit.
+- **Sibling Verification**: Run/verify `20260528_prune_invalid_laa_vehicle_class_b_siblings.sql` against migration `030`, then commit sibling test changes separately.
+- **Credential Rotation**: Verify Grafana credential rotation script (written, never executed on EC2).
+
+---
+
+## Recently Completed (prior session — 2026-05-03)
 
 | Task                                                       | Status |
 | ---------------------------------------------------------- | ------ |
