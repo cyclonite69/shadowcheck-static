@@ -128,6 +128,11 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '6C:CD:D6:35:CE:CC',
     '6C:CD:D6:38:3F:CC',
     '6C:CD:D6:35:CF:CD',
+    // Arcadyan HOME-EE7D tests
+    '5C:B0:66:EB:E1:C1',
+    '7E:B0:66:EB:E1:C1',
+    '9E:B0:66:EB:E1:C2',
+    '5C:BF:66:EB:E1:C1',
     // Ubiquiti UniFi VAP tests
     'F6:E2:C6:16:6E:F5',
     'F6:E2:C6:86:6E:F5',
@@ -295,6 +300,11 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         ('6C:CD:D6:35:CE:CC', 'NETGEAR73', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('6C:CD:D6:38:3F:CC', 'NETGEAR73', 'W', 5765, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('6C:CD:D6:35:CF:CD', 'NETGEAR73', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        -- Arcadyan HOME-EE7D test networks
+        ('5C:B0:66:EB:E1:C1', 'HOME-EE7D', 'W', 2462, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('7E:B0:66:EB:E1:C1', '',          'W', 2462, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('9E:B0:66:EB:E1:C2', '',          'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('5C:BF:66:EB:E1:C1', 'HOME-EE7D', 'W', 2462, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         -- Ubiquiti UniFi VAP test networks
         ('F6:E2:C6:16:6E:F5', 'Philpott IOT',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('F6:E2:C6:86:6E:F5', 'Philpott',        'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
@@ -691,6 +701,27 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
   test('Netgear Dual-Band Negative: mismatching last octet does not pair (6C:CD:D6:35:CE:CC ↔ 6C:CD:D6:35:CF:CD)', async () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('6C:CD:D6:35:CE:CC')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === '6C:CD:D6:35:CF:CD');
+    expect(sibling).toBeUndefined();
+  });
+
+  // ── Arcadyan HOME-EE7D Sibling Rule Tests ────────────────────────────────────
+  test('Arcadyan HOME-EE7D: preserves same-chassis global-to-LAA and LAA-to-LAA pairings', async () => {
+    // global to LAA
+    const res1 = await query(`SELECT * FROM app.find_sibling_radios('5C:B0:66:EB:E1:C1')`);
+    const sibling1 = res1.rows.find((r) => r.sibling_bssid === '7E:B0:66:EB:E1:C1');
+    expect(sibling1).toBeDefined();
+    expect(sibling1.rule).toBe('Arcadyan HOME-EE7D (Class A)');
+
+    // LAA to LAA cross-band delta <= 7
+    const res2 = await query(`SELECT * FROM app.find_sibling_radios('7E:B0:66:EB:E1:C1')`);
+    const sibling2 = res2.rows.find((r) => r.sibling_bssid === '9E:B0:66:EB:E1:C2');
+    expect(sibling2).toBeDefined();
+    expect(sibling2.rule).toBe('Arcadyan HOME-EE7D (Class A)');
+  });
+
+  test('Arcadyan HOME-EE7D Negative: mismatching byte 2 does not pair (5C:B0:66:EB:E1:C1 ↔ 5C:BF:66:EB:E1:C1)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('5C:B0:66:EB:E1:C1')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '5C:BF:66:EB:E1:C1');
     expect(sibling).toBeUndefined();
   });
 
