@@ -6,7 +6,7 @@ Update this file manually when handing off a task or starting a new session. Age
 
 ## Current Status
 
-_No active workstreams. Decoupling hook logic (Gap 2) and surveillance OUI metadata seeding (Gap 4 Phase A) successfully completed as of 2026-05-31._
+_No active workstreams. Decoupling hook logic (Gap 2) and database-driven surveillance OUI refactoring (Gap 4) successfully completed as of 2026-05-31._
 
 ---
 
@@ -34,6 +34,7 @@ _No active workstreams. Decoupling hook logic (Gap 2) and surveillance OUI metad
 | Forensic tooltip removal from OrphanNetworksPanel (`7c38dac7`)                       | ✅     |
 | Decouple graph traversal / extract pure utils from useSiblingLinks (`72bd3dc7`)      | ✅     |
 | Migration 031: Add surveillance OUI metadata and seed oui_device_groups (`e1d1318e`) | ✅     |
+| Refactor surveillance query to use app.oui_device_groups lookup table (`24922d98`)   | ✅     |
 
 ---
 
