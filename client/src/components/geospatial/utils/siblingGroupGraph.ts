@@ -399,3 +399,45 @@ export function getUnresolvedSearchBssids(
   ]);
   return unresolvedBssids.filter((bssid) => !classified.has(bssid));
 }
+
+export function buildAdjacencyFromApiLinks(
+  visibleSet: Set<string>,
+  batchLinks: unknown,
+  anchorLinks: { anchor: string; links: unknown }[]
+): Map<string, Set<string>> {
+  const adjacency = new Map<string, Set<string>>();
+  for (const bssid of visibleSet) {
+    adjacency.set(bssid, new Set());
+  }
+
+  const batchEdges = Array.isArray(batchLinks) ? batchLinks : [];
+  for (const edge of batchEdges) {
+    addUndirectedEdge(adjacency, edge?.bssid_a, edge?.bssid_b);
+  }
+
+  for (const item of anchorLinks) {
+    const anchor = normalizeBssid(item.anchor);
+    if (!anchor) continue;
+    const links = Array.isArray(item.links) ? item.links : [];
+    for (const row of links) {
+      addUndirectedEdge(adjacency, anchor, row?.sibling_bssid);
+    }
+  }
+
+  return adjacency;
+}
+
+export function getMissingSiblingBssids(
+  groupMap: Map<string, string>,
+  visibleSet: Set<string>
+): string[] {
+  return [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid)).sort();
+}
+
+export function chunkBssids(bssids: string[], chunkSize = 100): string[][] {
+  const chunks: string[][] = [];
+  for (let i = 0; i < bssids.length; i += chunkSize) {
+    chunks.push(bssids.slice(i, i + chunkSize));
+  }
+  return chunks;
+}

@@ -13,6 +13,9 @@ import {
   hasPrecomputedSiblings,
   buildAdjacencyFromPrecomputed,
   generateHydrationKey,
+  buildAdjacencyFromApiLinks,
+  getMissingSiblingBssids,
+  chunkBssids,
 } from '../utils/siblingGroupGraph';
 import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 
@@ -125,9 +128,6 @@ export const useSiblingLinks = ({
             searchAdjacency = buildAdjacencyFromPrecomputed(visibleSet, searchHits);
           } else {
             // Fallback: batch + per-hit API calls when sibling_bssids are missing.
-            searchAdjacency = new Map<string, Set<string>>();
-            for (const bssid of visibleSet) searchAdjacency.set(bssid, new Set());
-
             const searchHitBssids = searchHits
               .map((n) => normalizeBssid(n.bssid))
               .filter(Boolean) as string[];
@@ -135,27 +135,25 @@ export const useSiblingLinks = ({
             const batchResult = await networkApi.getNetworkSiblingLinksBatch(searchHitBssids);
             if (cancelled) return;
 
-            const batchEdges = Array.isArray(batchResult?.links) ? batchResult.links : [];
-            for (const edge of batchEdges) {
-              addUndirectedEdge(searchAdjacency, edge?.bssid_a, edge?.bssid_b);
-            }
-
             const anchorResults = await Promise.all(
               searchHitBssids.map((bssid) => networkApi.getNetworkSiblingLinks(bssid))
             );
             if (cancelled) return;
 
-            for (let i = 0; i < searchHitBssids.length; i++) {
-              const anchor = searchHitBssids[i];
-              const links = Array.isArray(anchorResults[i]?.links) ? anchorResults[i].links : [];
-              for (const row of links) {
-                addUndirectedEdge(searchAdjacency, anchor, row?.sibling_bssid);
-              }
-            }
+            const anchorLinks = searchHitBssids.map((anchor, idx) => ({
+              anchor,
+              links: anchorResults[idx]?.links,
+            }));
+
+            searchAdjacency = buildAdjacencyFromApiLinks(
+              visibleSet,
+              batchResult?.links,
+              anchorLinks
+            );
           }
 
           const groupMap = buildSiblingGroupMap(visibleSet, searchAdjacency);
-          const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid)).sort();
+          const missing = getMissingSiblingBssids(groupMap, visibleSet);
 
           logSiblingTopology('useSiblingLinks.searchComponent', {
             quickSearch: quickSearch.trim(),
@@ -176,11 +174,7 @@ export const useSiblingLinks = ({
 
           if (missing.length > 0) {
             try {
-              const CHUNK_SIZE = 100;
-              const chunks: string[][] = [];
-              for (let i = 0; i < missing.length; i += CHUNK_SIZE) {
-                chunks.push(missing.slice(i, i + CHUNK_SIZE));
-              }
+              const chunks = chunkBssids(missing);
 
               const results = await Promise.allSettled(
                 chunks.map((chunk) => networkApi.getNetworksByBssids(chunk))
@@ -243,16 +237,8 @@ export const useSiblingLinks = ({
           adjacency = buildAdjacencyFromPrecomputed(visibleSet, networks);
         } else {
           // Fallback: Legacy API requests when precomputed sibling_bssids are missing
-          adjacency = new Map<string, Set<string>>();
-          for (const bssid of visibleSet) adjacency.set(bssid, new Set());
-
           const batchResult = await networkApi.getNetworkSiblingLinksBatch(visibleBssids);
           if (cancelled) return;
-
-          const batchEdges = Array.isArray(batchResult?.links) ? batchResult.links : [];
-          for (const edge of batchEdges) {
-            addUndirectedEdge(adjacency, edge?.bssid_a, edge?.bssid_b);
-          }
 
           // Full star per visible row — batch OR-query can miss transitive/off-filter siblings.
           const anchorResults = await Promise.all(
@@ -260,18 +246,17 @@ export const useSiblingLinks = ({
           );
           if (cancelled) return;
 
-          for (let i = 0; i < visibleBssids.length; i++) {
-            const anchor = visibleBssids[i];
-            const links = Array.isArray(anchorResults[i]?.links) ? anchorResults[i].links : [];
-            for (const row of links) {
-              addUndirectedEdge(adjacency, anchor, row?.sibling_bssid);
-            }
-          }
+          const anchorLinks = visibleBssids.map((anchor, idx) => ({
+            anchor,
+            links: anchorResults[idx]?.links,
+          }));
+
+          adjacency = buildAdjacencyFromApiLinks(visibleSet, batchResult?.links, anchorLinks);
         }
 
         const edgeCount = [...adjacency.values()].reduce((sum, s) => sum + s.size, 0) / 2;
         const groupMap = buildSiblingGroupMap(visibleSet, adjacency);
-        const missing = [...groupMap.keys()].filter((bssid) => !visibleSet.has(bssid)).sort();
+        const missing = getMissingSiblingBssids(groupMap, visibleSet);
 
         logSiblingTopology('useSiblingLinks', {
           visibleBssids,
@@ -292,11 +277,7 @@ export const useSiblingLinks = ({
 
         if (missing.length > 0) {
           try {
-            const CHUNK_SIZE = 100;
-            const chunks: string[][] = [];
-            for (let i = 0; i < missing.length; i += CHUNK_SIZE) {
-              chunks.push(missing.slice(i, i + CHUNK_SIZE));
-            }
+            const chunks = chunkBssids(missing);
 
             const results = await Promise.allSettled(
               chunks.map((chunk) => networkApi.getNetworksByBssids(chunk))
