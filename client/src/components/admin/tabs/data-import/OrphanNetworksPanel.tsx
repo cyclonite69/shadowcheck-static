@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi } from '../../../../api/adminApi';
 import type { OrphanNetworkRow } from './types';
 import { formatShortDate } from '../../../../utils/formatDate';
-import { renderNetworkTooltip } from '../../../../utils/geospatial/renderNetworkTooltip';
-import { normalizeTooltipData } from '../../../../utils/geospatial/tooltipDataNormalizer';
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 
@@ -57,7 +55,6 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   const [search, setSearch] = useState('');
   const [draftSearch, setDraftSearch] = useState('');
   const [activeBssid, setActiveBssid] = useState<string | null>(null);
-  const [activeTooltip, setActiveTooltip] = useState<{ bssid: string; html: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const requestIdRef = useRef(0);
   const rowsRef = useRef<OrphanNetworkRow[]>([]);
@@ -188,24 +185,6 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
     };
   }, [hasMore, isLoadingMore, loadRows, loading]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveTooltip(null);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const handleRowClick = (row: OrphanNetworkRow, event: React.MouseEvent<HTMLTableRowElement>) => {
-    if (activeTooltip?.bssid === row.bssid) {
-      setActiveTooltip(null);
-      return;
-    }
-    const normalized = normalizeTooltipData({ ...row, lat: row.bestlat, lon: row.bestlon });
-    const html = renderNetworkTooltip({ ...normalized, triggerElement: event.currentTarget });
-    if (html) setActiveTooltip({ bssid: row.bssid, html });
-  };
-
   const handleCheckWigle = async (bssid: string) => {
     try {
       setActiveBssid(bssid);
@@ -256,8 +235,6 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
   };
 
   const visibleColDefs = COLUMNS.filter((c) => visibleCols.has(c.id));
-  // +1 for the Check WiGLE action column (always visible)
-  const colSpan = visibleColDefs.length + 1;
 
   return (
     <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">
@@ -377,15 +354,9 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
             </thead>
             <tbody>
               {rows.map((row, idx) => {
-                const isActive = activeTooltip?.bssid === row.bssid;
                 return (
                   <React.Fragment key={`${row.bssid}-${idx}`}>
-                    <tr
-                      className={`border-b border-slate-800/50 cursor-pointer transition-colors ${
-                        isActive ? 'bg-blue-500/10' : 'hover:bg-slate-700/30'
-                      }`}
-                      onClick={(e) => handleRowClick(row, e)}
-                    >
+                    <tr className="border-b border-slate-800/50 cursor-pointer transition-colors hover:bg-slate-700/30">
                       {visibleColDefs.map((col) => {
                         switch (col.id) {
                           case 'bssid':
@@ -499,20 +470,6 @@ export function OrphanNetworksPanel({ refreshKey }: { refreshKey: number }) {
                         </button>
                       </td>
                     </tr>
-                    {isActive && (
-                      <tr>
-                        <td
-                          colSpan={colSpan}
-                          style={{
-                            padding: '0 12px 12px',
-                            background: 'transparent',
-                            border: 'none',
-                          }}
-                        >
-                          <div dangerouslySetInnerHTML={{ __html: activeTooltip.html }} />
-                        </td>
-                      </tr>
-                    )}
                   </React.Fragment>
                 );
               })}
