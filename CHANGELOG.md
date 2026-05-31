@@ -1086,7 +1086,7 @@
 * **db:** add function to refresh stale network computed columns ([130dd13](https://github.com/cyclonite69/shadowcheck-web/commit/130dd13270fadc833e358530486534e788eccbcc))
 * **db:** add manufacturer column to api_network_explorer_mv ([8411198](https://github.com/cyclonite69/shadowcheck-web/commit/84111986533d3a318fdf0056e66f5c132fc4e169))
 * **db:** add spatial GIST index to MV for fast bounding box queries ([a3b60f9](https://github.com/cyclonite69/shadowcheck-web/commit/a3b60f90d950cb6828144fa70023c1b9d4c1d450))
-* **db:** add surveillance OUI metadata columns and seed oui_device_groups (migration 031) ([32f0758](https://github.com/cyclonite69/shadowcheck-web/commit/32f0758ced9dc67fcac91674a8e6ab076c5fe761))
+* **db:** add surveillance OUI metadata columns and seed oui_device_groups (migration 031) ([e1d1318](https://github.com/cyclonite69/shadowcheck-web/commit/e1d1318effd795ddc1471629ea44df4eaee23e2a))
 * **db:** add wigle_v2_bluetooth_search table and MV bluetooth column ([e9d9d6f](https://github.com/cyclonite69/shadowcheck-web/commit/e9d9d6fdb6fbc655290a23780b5e0670443cd43f))
 * **db:** complete federal courthouses dataset with 219 locations ([dc95759](https://github.com/cyclonite69/shadowcheck-web/commit/dc9575971d5435842bad13fec0a89b281b3517b4))
 * **db:** finalize federal courthouses - 357 records, all 94 districts clean ([1b777b5](https://github.com/cyclonite69/shadowcheck-web/commit/1b777b5766c788d83e9a740b64658891939e2788))

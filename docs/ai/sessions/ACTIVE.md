@@ -6,7 +6,7 @@ Update this file manually when handing off a task or starting a new session. Age
 
 ## Current Status
 
-_No active workstreams. VisINT Auto-Correlation Pipeline successfully merged and pushed as of 2026-05-31._
+_No active workstreams. Decoupling hook logic (Gap 2) and surveillance OUI metadata seeding (Gap 4 Phase A) successfully completed as of 2026-05-31._
 
 ---
 
@@ -26,11 +26,14 @@ _No active workstreams. VisINT Auto-Correlation Pipeline successfully merged and
 
 ## Recently Completed (this session — 2026-05-31)
 
-| Task                                                                             | Status |
-| -------------------------------------------------------------------------------- | ------ |
-| VisINT auto-correlation pipeline (`d149d1ef`)                                    | ✅     |
-| Flock Falcon new firmware fingerprint reverse-engineered and integrated          | ✅     |
-| `exec()` → `execFile()` command injection hardening on all EXIF extraction paths | ✅     |
+| Task                                                                                 | Status |
+| ------------------------------------------------------------------------------------ | ------ |
+| VisINT auto-correlation pipeline (`d149d1ef`)                                        | ✅     |
+| Flock Falcon new firmware fingerprint reverse-engineered and integrated              | ✅     |
+| `exec()` → `execFile()` command injection hardening on all EXIF extraction paths     | ✅     |
+| Forensic tooltip removal from OrphanNetworksPanel (`7c38dac7`)                       | ✅     |
+| Decouple graph traversal / extract pure utils from useSiblingLinks (`72bd3dc7`)      | ✅     |
+| Migration 031: Add surveillance OUI metadata and seed oui_device_groups (`e1d1318e`) | ✅     |
 
 ---
 
