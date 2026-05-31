@@ -691,6 +691,7 @@
 * **server:** correct admin import route paths ([ccbf049](https://github.com/cyclonite69/shadowcheck-web/commit/ccbf0493ecfd88176dc0422d37fe963cd765f0cf))
 * **server:** guard cacheService.connect in test environment ([86f0a3d](https://github.com/cyclonite69/shadowcheck-web/commit/86f0a3d9cfba0c6cd38e0f5808ea9bc748bb017e))
 * **server:** pass siblingDetectionRoutes to mountApiRoutes ([536ecc7](https://github.com/cyclonite69/shadowcheck-web/commit/536ecc723b4af47de3727ec78e9e89a0b0bd0335))
+* **server:** replace override dotenv with canonical loadEnv to preserve container env vars ([909d69b](https://github.com/cyclonite69/shadowcheck-web/commit/909d69b3bff61ebfd3cf64dcaa3867be163ca701))
 * **server:** resolve networks routes circular dependency ([b32d495](https://github.com/cyclonite69/shadowcheck-web/commit/b32d4954fb619bde2ccc046336d4efa99b437389))
 * **server:** resolve undefined route middleware crash ([7836d9c](https://github.com/cyclonite69/shadowcheck-web/commit/7836d9c569e27d4a827106d5d6cee1329c9af769))
 * **server:** revert cacheService export to CommonJS for runtime compatibility ([e32b50e](https://github.com/cyclonite69/shadowcheck-web/commit/e32b50e291fe3f5d6fad96533966a225b74af771))

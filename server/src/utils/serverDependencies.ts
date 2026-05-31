@@ -62,7 +62,7 @@ function loadCoreDependencies(): CoreDependencies {
   const { clearPostgresEnv } = require('./envSanitizer');
   clearPostgresEnv();
 
-  require('dotenv').config({ override: true });
+  require('../config/loadEnv');
   const logger = require('../logging/logger');
   const express = require('express');
   const path = require('path');

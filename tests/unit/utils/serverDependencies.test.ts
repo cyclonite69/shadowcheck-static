@@ -8,9 +8,7 @@ jest.mock('../../../server/src/utils/envSanitizer', () => ({
   clearPostgresEnv: jest.fn(),
 }));
 
-jest.mock('dotenv', () => ({
-  config: jest.fn(),
-}));
+jest.mock('../../../server/src/config/loadEnv', () => ({}));
 
 jest.mock('../../../server/src/logging/logger', () => ({
   info: jest.fn(),
@@ -87,9 +85,6 @@ describe('serverDependencies', () => {
 
     const { clearPostgresEnv } = require('../../../server/src/utils/envSanitizer');
     expect(clearPostgresEnv).toHaveBeenCalled();
-
-    const dotenv = require('dotenv');
-    expect(dotenv.config).toHaveBeenCalledWith({ override: true });
   });
 
   it('should load route modules correctly', () => {
