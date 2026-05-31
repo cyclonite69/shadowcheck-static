@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { wigleApi } from '../../../api/wigleApi';
 import {
   WigleImportRun,
@@ -32,6 +32,41 @@ export const useWigleSearch = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [lastImportRun, setLastImportRun] = useState<WigleImportRun | null>(null);
   const [resumeLoading, setResumeLoading] = useState(false);
+
+  const [selectedNetwork, setSelectedNetwork] = useState<WigleNetworkResult | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedNetwork(null);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const handleScroll = () => {
+      if (searchLoading || !hasMorePages) return;
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        if (scrollHeight - scrollTop <= clientHeight + 200) {
+          loadMoreResults(false);
+        }
+      }, 100);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, [hasMorePages, searchLoading, loadMoreResults]);
 
   const loadApiStatus = async () => {
     try {
@@ -248,5 +283,8 @@ export const useWigleSearch = () => {
     lastImportRun,
     resumeImport,
     resumeLoading,
+    selectedNetwork,
+    setSelectedNetwork,
+    scrollRef,
   };
 };

@@ -3,6 +3,9 @@ import { AdminCard } from '../components/AdminCard';
 import { ObservationsCard } from '../components/ObservationsCard';
 import { useWigleSearch } from '../hooks/useWigleSearch';
 import { useWigleRuns } from '../hooks/useWigleRuns';
+import { useWigleBluetooth } from '../hooks/useWigleBluetooth';
+import { useWigleSavedTerms } from '../hooks/useWigleSavedTerms';
+import { useWigleCoverage } from '../hooks/useWigleCoverage';
 import { US_STATES } from '../../../constants/network';
 import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
@@ -78,14 +81,6 @@ const SURVEILLANCE_MFGR_PRESETS = [
   { label: 'Custom range', min: null, max: null },
 ] as const;
 
-type BtSearchParams = {
-  namelike: string;
-  showBt: boolean;
-  showBle: boolean;
-  mfgrIdMinimum: string;
-  mfgrIdMaximum: string;
-};
-
 export const WigleSearchTab: React.FC = () => {
   const {
     apiStatus,
@@ -103,46 +98,12 @@ export const WigleSearchTab: React.FC = () => {
     totalPages: _totalPages,
     totalResults,
     loadedCount,
+    selectedNetwork,
+    setSelectedNetwork,
+    scrollRef,
   } = useWigleSearch();
 
   const [searchType, setSearchType] = React.useState<'wifi' | 'bluetooth'>('wifi');
-  const [btParams, setBtParams] = React.useState<BtSearchParams>({
-    namelike: '',
-    showBt: true,
-    showBle: true,
-    mfgrIdMinimum: '',
-    mfgrIdMaximum: '',
-  });
-  const [btImportLoading, setBtImportLoading] = React.useState(false);
-  const [btImportError, setBtImportError] = React.useState<string | null>(null);
-
-  const importAllBluetooth = async () => {
-    setBtImportError(null);
-    setBtImportLoading(true);
-    try {
-      const payload: Record<string, unknown> = {
-        country: searchParams.country || 'US',
-        region: searchParams.region || undefined,
-        city: searchParams.city || undefined,
-        latrange1: searchParams.latrange1 || undefined,
-        latrange2: searchParams.latrange2 || undefined,
-        longrange1: searchParams.longrange1 || undefined,
-        longrange2: searchParams.longrange2 || undefined,
-        showBt: btParams.showBt,
-        showBle: btParams.showBle,
-      };
-      if (btParams.namelike.trim()) payload.namelike = btParams.namelike.trim();
-      if (btParams.mfgrIdMinimum.trim()) payload.mfgrIdMinimum = Number(btParams.mfgrIdMinimum);
-      if (btParams.mfgrIdMaximum.trim()) payload.mfgrIdMaximum = Number(btParams.mfgrIdMaximum);
-      const { wigleApi } = await import('../../../api/wigleApi');
-      await wigleApi.importAllBluetooth(payload);
-      await refreshRuns();
-    } catch (err: any) {
-      setBtImportError(err?.message || 'BT import failed');
-    } finally {
-      setBtImportLoading(false);
-    }
-  };
 
   const {
     runs,
@@ -159,36 +120,23 @@ export const WigleSearchTab: React.FC = () => {
     deleteRun,
   } = useWigleRuns({ limit: 100 });
 
-  const [selectedNetwork, setSelectedNetwork] = useState<any | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const [savedTerms, setSavedTerms] = useState<Array<{ id: number; term: string }>>([]);
-  const [ssidDropdownOpen, setSsidDropdownOpen] = useState(false);
+  const { btParams, setBtParams, btImportLoading, btImportError, importAllBluetooth } =
+    useWigleBluetooth({
+      searchParams,
+      refreshRuns,
+    });
+
+  const { savedTerms, ssidDropdownOpen, setSsidDropdownOpen, saveCurrentSsid, deleteSavedTerm } =
+    useWigleSavedTerms({
+      ssid: searchParams.ssid,
+    });
+
+  const { coverageTerms, coverageTerm, setCoverageTerm, termReport, termReportLoading } =
+    useWigleCoverage({
+      runs,
+    });
+
   const ssidInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Coverage dropdown: unique search terms derived from runs
-  const coverageTerms = useMemo(
-    () => [...new Set(runs.map((r) => r.searchTerm).filter(Boolean))] as string[],
-    [runs]
-  );
-  const [coverageTerm, setCoverageTerm] = useState<string>('');
-  const [termReport, setTermReport] = useState<WigleCompletenessReport | null>(null);
-  const [termReportLoading, setTermReportLoading] = useState(false);
-
-  // Auto-select first available term
-  useEffect(() => {
-    if (!coverageTerm && coverageTerms.length > 0) setCoverageTerm(coverageTerms[0]);
-  }, [coverageTerms, coverageTerm]);
-
-  // Re-fetch coverage when selected term changes
-  useEffect(() => {
-    if (!coverageTerm) return;
-    setTermReportLoading(true);
-    wigleApi
-      .getImportCompletenessReport(new URLSearchParams({ searchTerm: coverageTerm }))
-      .then((data) => setTermReport(data?.report || null))
-      .catch(() => setTermReport(null))
-      .finally(() => setTermReportLoading(false));
-  }, [coverageTerm]);
 
   const handleRowClick = (net: any) => {
     const bssid = net.netid || net.bssid;
@@ -198,68 +146,6 @@ export const WigleSearchTab: React.FC = () => {
   useEffect(() => {
     loadApiStatus();
   }, []);
-
-  useEffect(() => {
-    wigleApi
-      .getSavedSsidTerms()
-      .then((data: any) => setSavedTerms(data?.terms || []))
-      .catch(() => {});
-  }, []);
-
-  const saveCurrentSsid = async () => {
-    const term = searchParams.ssid?.trim() ?? '';
-    if (term.length < 3) return;
-    try {
-      const data = await wigleApi.saveSsidTerm(term);
-      if (data?.term) {
-        setSavedTerms((prev) => {
-          const without = prev.filter((t) => t.id !== data.term.id);
-          return [data.term, ...without];
-        });
-      }
-    } catch {}
-  };
-
-  const deleteSavedTerm = async (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!window.confirm('Remove this saved search term?')) return;
-    try {
-      await wigleApi.deleteSavedSsidTerm(id);
-      setSavedTerms((prev) => prev.filter((t) => t.id !== id));
-    } catch {}
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedNetwork(null);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    const handleScroll = () => {
-      if (searchLoading || !hasMorePages) return;
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        if (scrollHeight - scrollTop <= clientHeight + 200) {
-          loadMoreResults(false);
-        }
-      }, 100);
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(timeoutId);
-    };
-  }, [hasMorePages, searchLoading, loadMoreResults]);
 
   return (
     <div className="space-y-4">
