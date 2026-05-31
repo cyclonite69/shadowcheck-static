@@ -124,6 +124,10 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '02:92:A5:12:AF:17',
     '02:92:A5:12:CB:17',
     '02:92:A5:12:AF:18',
+    // Netgear Dual-Band tests
+    '6C:CD:D6:35:CE:CC',
+    '6C:CD:D6:38:3F:CC',
+    '6C:CD:D6:35:CF:CD',
     // Ubiquiti UniFi VAP tests
     'F6:E2:C6:16:6E:F5',
     'F6:E2:C6:86:6E:F5',
@@ -287,6 +291,10 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         ('02:92:A5:12:AF:17', 'myChevrolet6472', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('02:92:A5:12:CB:17', 'myBuick8689',     'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('02:92:A5:12:AF:18', 'myChevrolet6472', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        -- Netgear Dual-Band test networks
+        ('6C:CD:D6:35:CE:CC', 'NETGEAR73', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('6C:CD:D6:38:3F:CC', 'NETGEAR73', 'W', 5765, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('6C:CD:D6:35:CF:CD', 'NETGEAR73', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         -- Ubiquiti UniFi VAP test networks
         ('F6:E2:C6:16:6E:F5', 'Philpott IOT',    'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('F6:E2:C6:86:6E:F5', 'Philpott',        'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
@@ -670,6 +678,20 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const sibling = res.rows.find((r) => r.sibling_bssid === '02:92:A5:12:AF:18');
     expect(sibling).toBeDefined();
     expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
+  });
+
+  // ── Netgear Dual-Band Sibling Rule Tests ────────────────────────────────────
+  test('Netgear Dual-Band: preserves same-chassis pairing within delta 3 on byte 4 with same byte 6 (6C:CD:D6:35:CE:CC ↔ 6C:CD:D6:38:3F:CC)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('6C:CD:D6:35:CE:CC')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '6C:CD:D6:38:3F:CC');
+    expect(sibling).toBeDefined();
+    expect(sibling.rule).toBe('Netgear Dual-Band (Class A)');
+  });
+
+  test('Netgear Dual-Band Negative: mismatching last octet does not pair (6C:CD:D6:35:CE:CC ↔ 6C:CD:D6:35:CF:CD)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('6C:CD:D6:35:CE:CC')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '6C:CD:D6:35:CF:CD');
+    expect(sibling).toBeUndefined();
   });
 
   // ── Ubiquiti UniFi VAP Sibling Rule Tests ────────────────────────────────────
