@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Local ShadowCheck shell helpers
 
+if [ -z "${BASH_VERSION:-}" ] && [ -z "${ZSH_VERSION:-}" ]; then
+  echo "Error: This script must be sourced in bash or zsh, not sh/dash." >&2
+  return 1 2>/dev/null || exit 1
+fi
+
 scroot() {
   cd /home/dbcooper/repos/shadowcheck-web || return 1
 }
@@ -23,7 +28,17 @@ sclocal() {
     return 1
   fi
 
-  docker compose up -d --build "$@"
+  local compose_files=(-f docker-compose.yml -f docker-compose.dev.yml)
+  if [[ -f docker-compose.local.yml ]]; then
+    compose_files+=(-f docker-compose.local.yml)
+  fi
+
+  local env_files=(--env-file .env)
+  if [[ -f .env.local ]]; then
+    env_files+=(--env-file .env.local)
+  fi
+
+  docker compose "${env_files[@]}" "${compose_files[@]}" up -d --build "$@"
 }
 
 scapi() {
