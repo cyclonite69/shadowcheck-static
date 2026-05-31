@@ -718,7 +718,7 @@
 * **sibling:** refresh function now respects not_sibling manual overrides ([4e38540](https://github.com/cyclonite69/shadowcheck-web/commit/4e38540fc2b982e76aadc9eabbdb309250c9e9db))
 * **sibling:** remove all distance gates from extra detection rules ([1905eef](https://github.com/cyclonite69/shadowcheck-web/commit/1905eef7f88252ba68c3fafc925b9177dad97739))
 * **sibling:** require visible SSID for same_oui_proximity and expand FLEET_SSIDS ([484ae9c](https://github.com/cyclonite69/shadowcheck-web/commit/484ae9c25188f0d4c078f14d8b5574397dcc5321))
-* **siblings:** add Arcadyan HOME-EE7D sibling rule ([f83666c](https://github.com/cyclonite69/shadowcheck-web/commit/f83666ccfe1acd31bc859507450fc2fd9157ed9d))
+* **siblings:** add Arcadyan HOME-EE7D sibling rule ([795126e](https://github.com/cyclonite69/shadowcheck-web/commit/795126e278b406ce423dde5209d642dfafa5b897))
 * **siblings:** add campus-wide fleet SSIDs to exclusion list ([58bd978](https://github.com/cyclonite69/shadowcheck-web/commit/58bd9789564ab386e86b6c09881476e95e50347e))
 * **siblings:** add Mist Systems VAP sibling rule ([ab53bf5](https://github.com/cyclonite69/shadowcheck-web/commit/ab53bf5fa940e5ecfc00c3cd8ac9388fac442c50))
 * **siblings:** add Netgear dual-band sibling rule ([036b802](https://github.com/cyclonite69/shadowcheck-web/commit/036b8024f01cffd5f98da8456d4012adc71f2aaf))

@@ -1,0 +1,376 @@
+# ShadowCheck Autonomous Sibling Autopilot Configuration
+# Deterministic MAC/BSSID-only sibling rule audit, draft, dry-run, commit, and push workflow.
+#
+# Core design:
+# - Rule discovery and rule predicates must be deterministic MAC/BSSID based.
+# - Spatial/temporal/signal/geocode data may be logged only as validation evidence.
+# - Code commits/pushes are allowed when family isolation and validation gates pass.
+# - DB mutation is NOT allowed unless explicitly enabled in a separate DB-operation phase.
+
+version: 1
+name: shadowcheck-autonomous-sibling-autopilot
+mode: deterministic_mac_only
+
+repository:
+  root: /home/dbcooper/repos/shadowcheck-web
+  branch: master
+  remote: origin
+  allow_auto_commit: true
+  allow_auto_push: true
+  allow_untracked_family_files: true
+
+database:
+  container: shadowcheck_postgres_local
+  user: shadowcheck_admin
+  dev_database: shadowcheck_db
+  test_database: shadowcheck_test
+  schema: app
+
+tables:
+  networks: app.networks
+  sibling_pairs: app.network_sibling_pairs
+  sibling_overrides: app.network_sibling_overrides
+  siblings_effective: app.network_siblings_effective
+  explorer_mv: app.api_network_explorer_mv
+  radio_manufacturers: app.radio_manufacturers
+  schema_migrations: app.schema_migrations
+
+functions:
+  sibling_function: app.find_sibling_radios
+
+core_policy:
+  sibling_truth: mac_bssid_deterministic
+  allowed_predicates:
+    - bssid_octets
+    - oui
+    - manufacturer
+    - laa_bit
+    - exact_octet_equality
+    - bounded_octet_delta
+    - high_low_nibble_patterns
+    - prefix_suffix_anchors
+    - known_vendor_mac_allocation_patterns
+    - ssid_vendor_guard_only
+
+  forbidden_predicates:
+    - coordinates
+    - distance
+    - time
+    - recency
+    - signal_strength
+    - observation_count
+    - gps_accuracy
+    - geocode
+    - address
+    - map_renderability
+    - explorer_visibility
+    - wigle_import_date
+
+  forbidden_predicate_policy: validation_notes_only
+
+safety_gates:
+  allow_read_only_db_queries: true
+  allow_draft_migrations: true
+  allow_draft_tests: true
+  allow_rollback_dry_runs: true
+  allow_shadowcheck_test_migration_validation: true
+
+  allow_shadowcheck_db_migration_apply: false
+  allow_cleanup_commit: false
+  allow_backfill_commit: false
+  allow_delete_purge: false
+  allow_full_redetect: false
+  allow_full_sibling_refresh: false
+  allow_mv_refresh: false
+  allow_prod_db_operations: false
+
+  require_human_approval_for:
+    - db_migration_apply_to_shadowcheck_db
+    - cleanup_commit
+    - backfill_commit
+    - delete_or_purge
+    - full_redetect
+    - full_sibling_refresh
+    - mv_refresh
+    - broad_generic_rule
+    - forbidden_predicate_needed
+    - ambiguous_mac_evidence
+
+runtime_limits:
+  statement_timeout_ms: 120000
+  dry_run_runtime_soft_limit_seconds: 120
+  dry_run_runtime_hard_limit_seconds: 180
+  cancel_query_on_hard_limit: true
+  terminate_backend_on_cancel_failure: false
+  max_families_per_autonomous_batch: 3
+  max_component_size_warning: 16
+  max_high_degree_anchor_warning: 15
+
+performance_policy:
+  dry_runs_must_be_set_based: true
+  avoid_lateral_find_sibling_over_broad_networks: true
+  require_seed_count_before_expensive_work: true
+  require_full_family_not_limit_sampling: true
+  exploratory_limit_allowed: false
+
+on_timeout:
+  action: cancel_and_rewrite
+  report_required:
+    - pid
+    - runtime
+    - query_prefix
+    - wait_event_type
+    - wait_event
+    - optimized_plan
+
+git_isolation:
+  never_stage:
+    - .env.example
+    - .gitignore
+    - docker-compose.dev.yml
+    - scripts/local-dev-aliases.sh
+    - server/src/services/observationService.ts
+    - tests/unit/observationService.test.ts
+    - scratch/
+    - .antigravitycli/
+    - flock_correlator.sh
+    - scripts/run_full_sibling_refresh.ts
+    - scripts/run_refresh_compiled.js
+    - scripts/run_refresh_compiled_piped.js
+
+  allow_hook_generated_files:
+    - CHANGELOG.md
+    - docs/metrics/lines-of-code.md
+
+  stage_only_current_family:
+    - sql/migrations/{date}*{seq}*{family_slug}_sibling_rule.sql
+    - sql/scripts/{date}*verify*{family_slug}_sibling_rule_dryrun.sql
+    - sql/scripts/{date}*prune_invalid*{family_slug}_siblings.sql
+    - tests/integration/findSiblingRadios.test.ts
+
+commit_message_template:
+  subject: "fix(siblings): add {family_name} sibling rule"
+  body_required_sections:
+    - deterministic_mac_bssid_structure
+    - forbidden_predicates_not_used
+    - positive_negative_tests_added
+    - baseline_tests_preserved
+    - rollback_only_dry_run_included
+    - no_db_mutation
+    - no_redetect
+    - no_mv_refresh
+
+validation_commands:
+  pre_commit:
+    - git diff --check
+    - RUN_INTEGRATION_TESTS=true npx jest tests/integration/findSiblingRadios.test.ts --no-coverage
+    - npm run lint
+    - npx tsc --noEmit
+
+  post_commit:
+    - git log -3 --oneline
+    - git show --name-only --format="" HEAD
+    - git status -sb
+    - git diff --cached --name-only
+
+  pre_push:
+    - git log -3 --oneline
+    - git status -sb
+    - git show --name-only --format="" HEAD
+    - git diff --cached --name-only
+
+baseline_rules:
+  must_preserve:
+    - name: Cradlepoint
+    - name: Cisco
+    - name: Xfinity_LAA_hardening
+    - name: GM_hotspot_hardening
+    - name: Ubiquiti_UniFi_VAP
+    - name: Mist_Systems_VAP
+    - name: LAA_Class_A_delta_hardening
+    - name: YMCA_Whaley_0C_1C_negative_regression
+    - name: Netgear_dual_band
+    - name: Arcadyan_HOME_EE7D
+  if_committed: true
+
+known_blocked_false_bridges:
+  - name: YMCA_Whaley_delta16
+    blocked_by: LAA_Class_A_octet_6_delta_gate
+    bssids:
+      - F6:92:BF:64:94:0C
+      - 02:92:BF:64:94:1C
+      - F4:92:BF:64:94:1C
+    must_remain_blocked: true
+
+  - name: GM_cross_vehicle_same_suffix
+    blocked_by: GM_vehicle_hotspot_ssid_token_guard
+    must_remain_blocked: true
+
+  - name: loose_LAA_Class_B_cross_chassis
+    blocked_by: LAA_hardening
+    must_remain_blocked: true
+
+family_queue:
+  strategy: ranked_then_static
+  auto_advance: true
+  stop_after_successful_families: 3
+
+  static_priority:
+    - family_id: gm_complementary_hotspots
+      family_name: GM Complementary Vehicle Hotspots
+      family_slug: gm_complementary_hotspot
+      status: draft_existing
+      migration: sql/migrations/20260530_028_gm_complementary_hotspot_sibling_rule.sql
+      dryrun_script: sql/scripts/20260530_verify_gm_complementary_sibling_rule_dryrun.sql
+      performance_required: set_based
+      ssid_guard_required: true
+      notes:
+        - Must not use broad lateral find_sibling_radios over all app.networks.
+        - Must use optimized set-based candidate generation.
+        - Same vehicle SSID token guard is allowed because MAC alone is insufficient for vehicle hotspot disambiguation.
+
+    - family_id: comcast_vantiva_c6_4f_d5
+      family_name: Comcast Vantiva C6:4F:D5
+      family_slug: comcast_vantiva
+      status: draft_existing
+      migration: sql/migrations/20260530_026_comcast_vantiva_sibling_rule.sql
+      dryrun_script: sql/scripts/20260530_verify_comcast_vantiva_sibling_rule_dryrun.sql
+      performance_required: set_based
+      ssid_guard_required: false
+
+    - family_id: vendor_scoped_first_octet_rotation
+      family_name: Vendor-scoped first-octet rotation candidates
+      family_slug: vendor_scoped_first_octet_rotation
+      status: discovery_only
+      performance_required: set_based
+      requires_collision_audit: true
+
+ranking_inputs:
+  score_weights:
+    manual_override_density: 10
+    manual_edges_not_emitted_by_function: 10
+    deterministic_mac_pattern_repetition: 8
+    false_bridge_risk: 8
+    fallback_rule_usage: 6
+    chain_only_component: 6
+    persisted_edges_no_longer_emitted: 5
+    same_suffix_cross_block_risk: 5
+    ui_grouping_anomaly: 3
+    non_renderable_refs: 1
+
+component_audit:
+  required: true
+  flag_conditions:
+    - component_size_greater_than_family_norm
+    - component_size_greater_than_16
+    - high_degree_anchor_greater_than_15
+    - bridge_edge_joins_two_clean_clusters
+    - same_last_octet_crosses_chassis_blocks
+    - last_octet_delta_too_large
+    - suffix_chassis_anchor_differs
+    - multiple_unrelated_manufacturers
+    - semantic_ssid_mixture
+
+  classifications:
+    - valid_deterministic_component
+    - false_bridge
+    - missing_valid_edge
+    - mac_valid_but_semantic_suspicious
+    - unsafe_requires_human_judgment
+
+dry_run_requirements:
+  transaction: ROLLBACK
+  full_family_required: true
+  use_statement_timeout: true
+  set_based_required: true
+  report:
+    - seed_bssid_count
+    - candidate_pair_count_by_rule
+    - insert_estimate
+    - update_estimate
+    - already_present_count
+    - manual_overrides_absorbed
+    - sample_matched_pairs
+    - sample_rejected_near_misses
+    - high_degree_anchors
+    - unrelated_family_check
+    - rollback_confirmation
+    - pre_post_row_count_unchanged
+
+backfill_policy:
+  allowed_in_autopilot: false
+  separate_phase_required: true
+  execution_script_location: /tmp
+  require_diff_showing_only_rollback_to_commit: true
+  post_backfill_required:
+    - verify_row_count_delta
+    - verify_sample_pairs
+    - verify_no_unrelated_families
+    - ANALYZE app.network_sibling_pairs
+
+cleanup_policy:
+  allowed_in_autopilot: false
+  separate_phase_required: true
+  backup_required: true
+  rollback_default: true
+  exact_candidate_set_required: true
+
+mv_policy:
+  allowed_in_autopilot: false
+  separate_phase_required: true
+  preferred_command: REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv;
+  post_refresh_command: ANALYZE app.api_network_explorer_mv;
+
+ui_verification:
+  allowed_in_autopilot: read_only_report_only
+  known_separate_issues:
+    slow_path_missing_sibling_projection:
+      file: server/src/services/filterQueryBuilder/modules/networkSlowPathBuilder.ts
+      required_projection: SqlFragmentLibrary.selectSiblingSummaryFields('ne')
+    sibling_group_map_case_sensitive_lookup:
+      file: client/src/components/geospatial/table/NetworkTableBodyGrid.tsx
+      required_normalization: "(net.bssid ?? '').toUpperCase()"
+
+rule:
+  if_sibling_bssids_correct_but_group_rendering_wrong: diagnose_ui_not_db_rules
+
+output_reports:
+  directory: docs/audits
+  create_or_update:
+    - sibling-rule-autopilot-{date}.md
+    - sibling-rule-candidates-{date}.md
+    - sibling-rule-family-queue-{date}.md
+    - sibling-rule-dryruns-{date}.md
+    - sibling-rule-pending-db-ops-{date}.md
+
+final_report_format:
+  - families_processed
+  - commits_created
+  - pushes_completed
+  - migrations_committed
+  - dryrun_scripts_committed
+  - tests_added
+  - full_family_dryrun_results
+  - component_anomaly_summary
+  - pending_db_operations
+  - files_left_unstaged_or_untracked
+  - next_family_in_queue
+  - safety_confirmations
+
+autonomy_behavior:
+  do_not_ask_which_family_next: true
+  do_not_stop_at_commit_readiness: true
+  auto_commit_when_safe: true
+  auto_push_when_safe: true
+  continue_after_push: true
+  stop_before_db_mutation: true
+  cancel_and_rewrite_slow_dryruns: true
+
+stop_conditions:
+  - three_families_committed_and_pushed
+  - no_safe_deterministic_families_remain
+  - forbidden_predicate_required
+  - broad_generic_rule_required
+  - ambiguous_high_risk_evidence
+  - dry_run_cannot_complete_under_runtime_limit_after_rewrite
+  - db_mutation_required_to_continue
