@@ -183,3 +183,6 @@ typecheck-current.log
 
 # --- Audit artifacts (Project Policy) ---
 docs/ai/audits/
+
+# --- Vendor doc raw source material (scraped originals, may contain third-party keys) ---
+docs/references/vendor_docs/
