@@ -30,16 +30,3 @@ export {
   getNetworksByBssids,
   checkNetworksExist,
 } from '../repositories/v2Repository';
-
-module.exports = {
-  executeV2Query: require('../repositories/v2Repository').executeV2Query,
-  listNetworks: require('../repositories/v2Repository').listNetworks,
-  getNetworkDetail: require('../repositories/v2Repository').getNetworkDetail,
-  getDashboardMetrics: require('../repositories/v2Repository').getDashboardMetrics,
-  getThreatMapData: require('../repositories/v2Repository').getThreatMapData,
-  getThreatSeverityCounts: require('../repositories/v2Repository').getThreatSeverityCounts,
-  checkHomeExists: require('../repositories/v2Repository').checkHomeExists,
-  fetchMissingSiblingRows: require('../repositories/v2Repository').fetchMissingSiblingRows,
-  getNetworksByBssids: require('../repositories/v2Repository').getNetworksByBssids,
-  checkNetworksExist: require('../repositories/v2Repository').checkNetworksExist,
-};
