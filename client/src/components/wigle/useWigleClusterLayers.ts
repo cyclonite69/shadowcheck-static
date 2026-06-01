@@ -5,6 +5,7 @@ import type { AgencyVisibility } from '../hooks/useAgencyOffices';
 import { resetFederalCourthouseLayers } from '../hooks/useFederalCourthouses';
 import { resetKmlLayers } from './kmlLayers';
 import { resetV2Layers, resetV3Layers, resetFieldDataLayers, FIELD_DATA_SOURCE } from './mapLayers';
+import { runWhenStyleReady } from './mapLifecycle';
 
 interface UseWigleClusterLayersProps {
   mapRef: MutableRefObject<Map | null>;
@@ -46,31 +47,39 @@ export const useWigleClusterLayers = ({
       clusteringChangedRef.current = true;
       return;
     }
-    if (!map.isStyleLoaded()) return;
 
-    resetV2Layers(map, v2FCRef, clusteringEnabled);
-    const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
-    if (v2Src && v2FCRef.current) v2Src.setData(v2FCRef.current);
+    const resetClusteredLayers = () => {
+      resetV2Layers(map, v2FCRef, clusteringEnabled);
+      const v2Src = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
+      if (v2Src && v2FCRef.current) v2Src.setData(v2FCRef.current);
 
-    resetV3Layers(map, v3FCRef, clusteringEnabled);
-    const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
-    if (v3Src && v3FCRef.current) v3Src.setData(v3FCRef.current);
+      resetV3Layers(map, v3FCRef, clusteringEnabled);
+      const v3Src = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
+      if (v3Src && v3FCRef.current) v3Src.setData(v3FCRef.current);
 
-    resetKmlLayers(map, kmlFCRef, clusteringEnabled);
-    const kmlSrc = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
-    if (kmlSrc && kmlFCRef.current) kmlSrc.setData(kmlFCRef.current);
+      resetKmlLayers(map, kmlFCRef, clusteringEnabled);
+      const kmlSrc = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
+      if (kmlSrc && kmlFCRef.current) kmlSrc.setData(kmlFCRef.current);
 
-    if (map.getSource(FIELD_DATA_SOURCE)) {
-      resetFieldDataLayers(map, fieldDataFCRef, clusteringEnabled);
-      const fieldSrc = map.getSource(FIELD_DATA_SOURCE) as GeoJSONSource | undefined;
-      if (fieldSrc && fieldDataFCRef.current) fieldSrc.setData(fieldDataFCRef.current);
-    }
+      if (map.getSource(FIELD_DATA_SOURCE)) {
+        resetFieldDataLayers(map, fieldDataFCRef, clusteringEnabled);
+        const fieldSrc = map.getSource(FIELD_DATA_SOURCE) as GeoJSONSource | undefined;
+        if (fieldSrc && fieldDataFCRef.current) fieldSrc.setData(fieldDataFCRef.current);
+      }
 
-    resetAgencyOfficeLayers(map, agencyData, agencyVisibility, clusteringEnabled);
-    resetFederalCourthouseLayers(map, courthouseData, federalCourthousesVisible, clusteringEnabled);
+      resetAgencyOfficeLayers(map, agencyData, agencyVisibility, clusteringEnabled);
+      resetFederalCourthouseLayers(
+        map,
+        courthouseData,
+        federalCourthousesVisible,
+        clusteringEnabled
+      );
 
-    applyLayerVisibilityCallback();
-    updateAllClusterColorsCallback();
+      applyLayerVisibilityCallback();
+      updateAllClusterColorsCallback();
+    };
+
+    return runWhenStyleReady(map, 'clustering-change', resetClusteredLayers);
   }, [
     agencyData,
     agencyVisibility,

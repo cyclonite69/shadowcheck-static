@@ -1,10 +1,11 @@
-import { useEffect, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { wigleApi } from '../../api/wigleApi';
 import { buildFilteredRequestParams } from '../../utils/filteredRequestParams';
 import { EMPTY_FEATURE_COLLECTION } from '../../utils/wigle';
 import { ensureFieldDataLayer, removeFieldDataLayer, updateFieldDataSource } from './mapLayers';
+import { runWhenStyleReady } from './mapLifecycle';
 
 interface UseWigleFieldDataProps {
   mapRef: MutableRefObject<Map | null>;
@@ -23,45 +24,50 @@ export const useWigleFieldData = ({
   clusteringEnabled,
   fieldDataFCRef,
 }: UseWigleFieldDataProps) => {
-  useEffect(() => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [featureCount, setFeatureCount] = useState(0);
+  const loadingRef = useRef(false);
+  const requestIdRef = useRef(0);
+  const showFieldDataRef = useRef(showFieldData);
+
+  showFieldDataRef.current = showFieldData;
+
+  const syncFieldData = useCallback(
+    (map: Map, features: object[]) => {
+      const fc = { type: 'FeatureCollection', features };
+      fieldDataFCRef.current = fc;
+      setFeatureCount(features.length);
+
+      return runWhenStyleReady(map, 'field-data', () => {
+        if (!showFieldDataRef.current) return;
+        ensureFieldDataLayer(map, fieldDataFCRef, clusteringEnabled);
+        const latestFc = fieldDataFCRef.current;
+        if (Array.isArray((latestFc as any)?.features)) {
+          updateFieldDataSource(map, latestFc);
+        }
+      });
+    },
+    [clusteringEnabled, fieldDataFCRef]
+  );
+
+  const fetchFieldData = useCallback(async () => {
     void mapboxRef;
 
     const map = mapRef.current;
-    if (!map || !mapReady) return;
+    if (!map || !mapReady || !showFieldDataRef.current) return;
 
-    if (!showFieldData) {
-      fieldDataFCRef.current = EMPTY_FEATURE_COLLECTION;
-      if (map.isStyleLoaded()) removeFieldDataLayer(map);
-      return;
-    }
+    if (loadingRef.current) return;
 
-    let cancelled = false;
-    let requestId = 0;
+    const currentRequestId = ++requestIdRef.current;
+    loadingRef.current = true;
+    setLoading(true);
+    setError(null);
 
-    const syncFieldData = (features: object[]) => {
-      const fc = { type: 'FeatureCollection', features };
-      fieldDataFCRef.current = fc;
-
-      if (!map.isStyleLoaded()) {
-        map.once('style.load', () => {
-          if (cancelled) return;
-          ensureFieldDataLayer(map, fieldDataFCRef, clusteringEnabled);
-          const latestFc = fieldDataFCRef.current;
-          if (Array.isArray((latestFc as any)?.features)) {
-            updateFieldDataSource(map, latestFc);
-          }
-        });
-        return;
-      }
-      ensureFieldDataLayer(map, fieldDataFCRef, clusteringEnabled);
-      updateFieldDataSource(map, fc);
-    };
-
-    const loadFieldData = async () => {
-      const currentRequestId = ++requestId;
+    try {
       const bounds = map.getBounds();
       if (!bounds) {
-        syncFieldData([]);
+        syncFieldData(map, []);
         return;
       }
       const filters = {
@@ -77,7 +83,7 @@ export const useWigleFieldData = ({
       let offset = 0;
       const rows: any[] = [];
 
-      while (!cancelled) {
+      while (showFieldDataRef.current) {
         const params = buildFilteredRequestParams({
           payload: { filters, enabled },
           limit,
@@ -85,7 +91,7 @@ export const useWigleFieldData = ({
           includeTotal: true,
         });
         const result = await wigleApi.getLocalObservations(params);
-        if (cancelled || currentRequestId !== requestId) return;
+        if (currentRequestId !== requestIdRef.current || !showFieldDataRef.current) return;
 
         const pageRows = Array.isArray(result?.data) ? result.data : [];
         rows.push(...pageRows);
@@ -109,18 +115,46 @@ export const useWigleFieldData = ({
           },
         }));
 
-      syncFieldData(features);
-    };
+      if (currentRequestId === requestIdRef.current && showFieldDataRef.current) {
+        syncFieldData(map, features);
+      }
+    } catch (err: any) {
+      if (currentRequestId === requestIdRef.current) {
+        setError(err.message || 'Failed to load field data');
+      }
+    } finally {
+      if (currentRequestId === requestIdRef.current) {
+        loadingRef.current = false;
+        setLoading(false);
+      }
+    }
+  }, [mapReady, mapRef, mapboxRef, syncFieldData]);
 
-    void loadFieldData();
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (!showFieldData) {
+      requestIdRef.current += 1;
+      loadingRef.current = false;
+      setLoading(false);
+      setError(null);
+      setFeatureCount(0);
+      fieldDataFCRef.current = EMPTY_FEATURE_COLLECTION;
+      if (map.isStyleLoaded()) removeFieldDataLayer(map);
+      return;
+    }
+
+    void fetchFieldData();
     const handleMoveEnd = () => {
-      void loadFieldData();
+      void fetchFieldData();
     };
     map.on('moveend', handleMoveEnd);
 
     return () => {
-      cancelled = true;
       map.off('moveend', handleMoveEnd);
     };
-  }, [clusteringEnabled, fieldDataFCRef, mapReady, mapRef, mapboxRef, showFieldData]);
+  }, [fetchFieldData, fieldDataFCRef, mapReady, mapRef, showFieldData]);
+
+  return { loading, error, featureCount, fetchFieldData };
 };

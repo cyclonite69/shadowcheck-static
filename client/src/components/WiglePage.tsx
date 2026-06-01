@@ -1,6 +1,6 @@
 import { usePageFilters } from '../hooks/usePageFilters';
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import type { Map } from 'mapbox-gl';
+import type { GeoJSONSource, Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { AppHeader } from './AppHeader';
 import { WigleControlPanel } from './WigleControlPanel';
@@ -9,19 +9,29 @@ import { WigleMap } from './WigleMap';
 import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
-import { useAgencyOffices } from './hooks/useAgencyOffices';
+import { resetAgencyOfficeLayers, useAgencyOffices } from './hooks/useAgencyOffices';
 import type { AgencyVisibility } from './hooks/useAgencyOffices';
-import { useFederalCourthouses } from './hooks/useFederalCourthouses';
-import { useDeflockCameras } from './hooks/useDeflockCameras';
-import { useShotspotterZones } from './hooks/useShotspotterZones';
-import { useShotspotterSensors } from './hooks/useShotspotterSensors';
+import { resetFederalCourthouseLayers, useFederalCourthouses } from './hooks/useFederalCourthouses';
+import { ensureDeflockLayers, useDeflockCameras } from './hooks/useDeflockCameras';
+import { ensureShotspotterLayers, useShotspotterZones } from './hooks/useShotspotterZones';
+import {
+  ensureShotspotterSensorLayers,
+  useShotspotterSensors,
+} from './hooks/useShotspotterSensors';
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
 import { useWigleClusterLayers } from './wigle/useWigleClusterLayers';
 import { useWigleKmlData } from './wigle/useWigleKmlData';
 import { useWigleFieldData } from './wigle/useWigleFieldData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
-import { ensureV2Layers, ensureV3Layers, applyLayerVisibility } from './wigle/mapLayers';
+import {
+  ensureFieldDataLayer,
+  ensureV2Layers,
+  ensureV3Layers,
+  applyLayerVisibility,
+  setPointRadius,
+  updateFieldDataSource,
+} from './wigle/mapLayers';
 import { ensureKmlLayers, kmlRowsToGeoJSON } from './wigle/kmlLayers';
 import { attachClickHandlers } from './wigle/mapHandlers';
 import { updateAllClusterColors } from './wigle/clusterColors';
@@ -30,6 +40,7 @@ import { useWigleDataSync } from './wigle/useWigleDataSync';
 import { useWigleAutoFetch } from './wigle/useWigleAutoFetch';
 import { useWigleMapFeatures } from './wigle/useWigleMapFeatures';
 import { useWigleResize } from './wigle/useWigleResize';
+import { apply3dBuildings, applyTerrain, runWhenStyleReady } from './wigle/mapLifecycle';
 import { useHomeLocationLayer } from './geospatial/hooks/useHomeLocationLayer';
 import { locationApi } from '../api/locationApi';
 import { DEFAULT_HOME_RADIUS } from '../constants/network';
@@ -213,6 +224,104 @@ const WiglePage: React.FC = () => {
     if (mapRef.current && mapboxRef.current)
       attachClickHandlers(mapRef.current, mapboxRef.current, wigleHandlersAttachedRef);
   }, []);
+  const applyEnabledWigleOverlays = useCallback(
+    (reason: string) => {
+      const map = mapRef.current;
+      if (!map) return undefined;
+
+      return runWhenStyleReady(map, reason, () => {
+        const currentLayers = layersRef.current;
+        const clustering = clusteringEnabledRef.current;
+
+        ensureAllLayers();
+        attachClickHandlersCallback();
+
+        const v2Source = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
+        if (v2Source && v2FCRef.current) {
+          clusterColorCache.current.v2 = {};
+          map.removeFeatureState({ source: 'wigle-v2-points' });
+          v2Source.setData(v2FCRef.current);
+        }
+
+        const v3Source = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
+        if (v3Source && v3FCRef.current) {
+          clusterColorCache.current.v3 = {};
+          map.removeFeatureState({ source: 'wigle-v3-points' });
+          v3Source.setData(v3FCRef.current);
+        }
+
+        const kmlSource = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
+        if (kmlSource && kmlFCRef.current) kmlSource.setData(kmlFCRef.current);
+
+        if (currentLayers.showFieldData && fieldDataFCRef.current) {
+          ensureFieldDataLayer(map, fieldDataFCRef, clustering);
+          updateFieldDataSource(map, fieldDataFCRef.current);
+        }
+
+        resetAgencyOfficeLayers(map, agencyData, agencyVisibility, clustering);
+        resetFederalCourthouseLayers(
+          map,
+          courthouseData,
+          currentLayers.federalCourthouses,
+          clustering
+        );
+
+        if (currentLayers.deflockCameras && deflockData?.features?.length) {
+          ensureDeflockLayers(map, deflockData, clustering);
+        }
+        if (currentLayers.shotspotterZones && shotspotterData?.features?.length) {
+          ensureShotspotterLayers(map, shotspotterData);
+        }
+        if (currentLayers.shotspotterSensors && shotspotterSensorsData?.features?.length) {
+          ensureShotspotterSensorLayers(map, shotspotterSensorsData);
+        }
+
+        setPointRadius(map, pointSize);
+        applyLayerVisibilityCallback();
+        updateAllClusterColorsCallback();
+        apply3dBuildings(map, mapStyle, show3dBuildings);
+        applyTerrain(map, mapStyle, showTerrain);
+      });
+    },
+    [
+      agencyData,
+      agencyVisibility,
+      applyLayerVisibilityCallback,
+      attachClickHandlersCallback,
+      courthouseData,
+      deflockData,
+      ensureAllLayers,
+      mapStyle,
+      pointSize,
+      shotspotterData,
+      shotspotterSensorsData,
+      show3dBuildings,
+      showTerrain,
+      updateAllClusterColorsCallback,
+    ]
+  );
+
+  useEffect(() => {
+    if (!mapReady) return undefined;
+    return applyEnabledWigleOverlays('overlay-state-change');
+  }, [
+    applyEnabledWigleOverlays,
+    clusteringEnabled,
+    layers.deflockCameras,
+    layers.federalCourthouses,
+    layers.fieldOffices,
+    layers.kml,
+    layers.residentAgencies,
+    layers.shotspotterSensors,
+    layers.shotspotterZones,
+    layers.showFieldData,
+    layers.v2,
+    layers.v3,
+    mapReady,
+    pointSize,
+    show3dBuildings,
+    showTerrain,
+  ]);
 
   useWigleMapInit({
     mapContainerRef,
@@ -232,7 +341,12 @@ const WiglePage: React.FC = () => {
     updateAllClusterColorsCallback,
   });
   useHomeLocationLayer({ mapReady, mapRef, homeLocation });
-  useWigleFieldData({
+  const {
+    loading: fieldDataLoading,
+    error: fieldDataError,
+    featureCount: fieldDataFeatureCount,
+    fetchFieldData,
+  } = useWigleFieldData({
     mapRef,
     mapReady,
     mapboxRef,
@@ -304,10 +418,7 @@ const WiglePage: React.FC = () => {
     showFieldDataRef,
     styleEffectInitRef,
     wigleHandlersAttachedRef,
-    ensureAllLayers,
-    attachClickHandlersCallback,
-    applyLayerVisibilityCallback,
-    updateAllClusterColorsCallback,
+    applyEnabledWigleOverlays,
   });
   useWigleResize({ mapContainerRef, mapRef, setMapSize, setIsMobile });
 
@@ -480,17 +591,21 @@ const WiglePage: React.FC = () => {
         onToggleClustering={() => setClusteringEnabled((v) => !v)}
         onLoadPoints={() => {
           void (async () => {
-            const tasks = [];
+            const tasks: Promise<unknown>[] = [];
             if (layers.v2 || layers.v3) tasks.push(fetchPoints());
             if (layers.kml) tasks.push(fetchKmlPoints());
+            if (layers.showFieldData) tasks.push(fetchFieldData());
             await Promise.all(tasks);
+            applyEnabledWigleOverlays('load-points');
           })();
         }}
-        loading={v2Loading || v3Loading || kmlLoading}
+        loading={v2Loading || v3Loading || kmlLoading || fieldDataLoading}
+        canLoadPoints={layers.v2 || layers.v3 || layers.kml || layers.showFieldData}
         rowsLoaded={
           (layers.v2 ? v2Rows.length : 0) +
           (layers.v3 ? v3Rows.length : 0) +
           (layers.kml ? kmlRows.length : 0) +
+          (layers.showFieldData ? fieldDataFeatureCount : 0) +
           ((layers.fieldOffices
             ? (agencyData?.features?.filter(
                 (f: any) => f.properties?.office_type === 'field_office'
@@ -532,7 +647,7 @@ const WiglePage: React.FC = () => {
       />
       <WigleMap
         mapContainerRef={mapContainerRef}
-        error={mapError || dataError || kmlError}
+        error={mapError || dataError || kmlError || fieldDataError}
         mapReady={mapReady}
         mapRef={mapRef}
         homeLocation={homeLocation}

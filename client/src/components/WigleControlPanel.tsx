@@ -18,6 +18,7 @@ interface WigleControlPanelProps {
   onToggleClustering: () => void;
   onLoadPoints: () => void;
   loading: boolean;
+  canLoadPoints: boolean;
   rowsLoaded: number;
   totalRows: number | null;
   layers: WigleLayerState;
@@ -40,12 +41,15 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
   onToggleClustering,
   onLoadPoints,
   loading,
+  canLoadPoints,
   rowsLoaded,
   totalRows,
   layers,
   onToggleLayer,
 }) => {
   if (!isOpen) return null;
+
+  const loadPointsDisabled = loading || !canLoadPoints;
 
   return (
     <div
@@ -196,13 +200,13 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
         onClick={onLoadPoints}
         className="w-full rounded-lg px-4 py-2 text-sm font-semibold shadow-lg transition-all hover:shadow-xl"
         style={{
-          background: loading
+          background: loadPointsDisabled
             ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)'
             : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
         }}
-        disabled={loading}
+        disabled={loadPointsDisabled}
       >
-        {loading ? 'Loading...' : '📍 Load Points'}
+        {loading ? 'Loading...' : canLoadPoints ? '📍 Load Points' : 'Select a Layer'}
       </button>
 
       {/* Stats footer */}
