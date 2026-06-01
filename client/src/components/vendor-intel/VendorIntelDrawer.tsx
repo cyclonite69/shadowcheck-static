@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import vendorManifest from '../../../../docs/references/vendor_intel_manifest.json';
+import vendorManifest from './vendor_intel_manifest.json';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
