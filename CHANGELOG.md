@@ -864,7 +864,7 @@
 * **v2:** correct threat-map query parameter binding ([a63e6ed](https://github.com/cyclonite69/shadowcheck-web/commit/a63e6ede3e284b9ef2fdb3cdd4d865c5468c0d89))
 * **v2:** fast-path temporal threat filters for geospatial ([703aa69](https://github.com/cyclonite69/shadowcheck-web/commit/703aa6924113f84f4ae220b125963c7b8f0a4a57))
 * **v2:** prevent filtered query timeouts from network_tags row multiplication ([cd07c54](https://github.com/cyclonite69/shadowcheck-web/commit/cd07c548b5aa28b2f95120407a582c747190a5fc))
-* **v2:** remove redundant module.exports require block from v2Service ([4580177](https://github.com/cyclonite69/shadowcheck-web/commit/458017796de7822156b104e956b5bc575eb3be81))
+* **v2:** remove redundant module.exports require block from v2Service ([1827513](https://github.com/cyclonite69/shadowcheck-web/commit/18275135ed2a869b953ed64fbd823b1b44c736ec))
 * **v2:** support network_tags schema variants in filtered queries ([bd624c6](https://github.com/cyclonite69/shadowcheck-web/commit/bd624c6e2bec3807a92fa6ffc6ed2047945a982f))
 * **v2:** use fast-path eligibility for filtered count query ([eb57d6e](https://github.com/cyclonite69/shadowcheck-web/commit/eb57d6ef2355e94f8c3d89dec63e1be80eec67f5))
 * **v3enrichment:** make table thead sticky ([5c42d1c](https://github.com/cyclonite69/shadowcheck-web/commit/5c42d1ca71cd6c29575daa92264d3df59fc4d50c))
