@@ -41,6 +41,17 @@ export interface DetailError {
 }
 
 /**
+ * Check if a MAC address (BSSID) is locally administered (randomized).
+ * The 2nd hex digit of the first octet will be 2, 3, 6, 7, A, B, E, or F.
+ */
+export function isLocallyAdministeredMac(mac: string): boolean {
+  const clean = mac.replace(/[^0-9A-Fa-f]/g, '');
+  if (clean.length < 2) return false;
+  const firstByte = parseInt(clean.substring(0, 2), 16);
+  return (firstByte & 0x02) !== 0;
+}
+
+/**
  * Fetch raw WiGLE v3 detail response without importing.
  * Returns { ok: true, data } on success or { ok: false, status, error } on failure.
  */
@@ -53,6 +64,18 @@ export async function fetchUpstream(
 
   if (!wigleApiName || !wigleApiToken) {
     return { ok: false, status: 503, error: 'WiGLE API credentials not configured' };
+  }
+
+  if (isLocallyAdministeredMac(netid)) {
+    logger.info(
+      `[WiGLE][v3/detail/${endpoint}][404] Skipping upstream call for locally-administered/randomized MAC: ${netid}`
+    );
+    return {
+      ok: false,
+      status: 404,
+      error:
+        'Network not found in WiGLE. This is expected for randomized or locally-administered MAC addresses.',
+    };
   }
 
   const encodedAuth = getEncodedWigleAuth();
