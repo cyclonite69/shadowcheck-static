@@ -261,8 +261,9 @@ export const WigleStatsTab: React.FC = () => {
               src={badgeUrl}
               alt="WiGLE Badge"
               className="rounded-lg shadow-2xl border border-slate-700"
+              referrerPolicy="no-referrer"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://wigle.net/bi/wigle.png';
+                (e.target as HTMLImageElement).src = 'https://wigle.net/favicon.ico';
               }}
             />
             <p className="text-[10px] text-slate-500 mt-4 text-center italic">
