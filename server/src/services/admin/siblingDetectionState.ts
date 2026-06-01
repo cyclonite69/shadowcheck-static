@@ -6,6 +6,8 @@ type SiblingRefreshOptions = {
   minStrongConf?: number;
   maxBatches?: number | null;
   incremental?: boolean;
+  targetBssids?: string[];
+  notes?: string;
 };
 
 type SiblingRefreshResult = {
@@ -42,6 +44,8 @@ const DEFAULTS: Required<SiblingRefreshOptions> = {
   minStrongConf: 0.97,
   maxBatches: null,
   incremental: false,
+  targetBssids: [],
+  notes: '',
 };
 
 const state: SiblingRefreshStatus & { cancelRequested: boolean } = {
@@ -78,6 +82,8 @@ function normalizeOptions(options: SiblingRefreshOptions = {}): Required<Sibling
         ? null
         : Math.floor(clampNumber(options.maxBatches, 1, 1, 100000)),
     incremental: options.incremental ?? DEFAULTS.incremental,
+    targetBssids: options.targetBssids ?? DEFAULTS.targetBssids,
+    notes: options.notes ?? DEFAULTS.notes,
   };
 }
 

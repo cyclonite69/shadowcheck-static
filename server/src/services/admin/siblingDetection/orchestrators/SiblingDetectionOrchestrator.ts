@@ -44,10 +44,33 @@ export class SiblingDetectionOrchestrator {
   async runRefreshJob(options: SiblingRefreshOptions = {}): Promise<SiblingRefreshResult> {
     const normalized = this.deps.normalizeOptions(options);
     const started = Date.now();
-    const runMode =
-      normalized.maxBatches !== null ? 'test' : normalized.incremental ? 'incremental' : 'full';
+    const targetBssids = options.targetBssids;
+    const hasTargets = Array.isArray(targetBssids) && targetBssids.length > 0;
+
+    if (hasTargets) {
+      normalized.incremental = false;
+    }
+
+    const runMode = hasTargets
+      ? 'test'
+      : normalized.maxBatches !== null
+        ? 'test'
+        : normalized.incremental
+          ? 'incremental'
+          : 'full';
 
     const runId = await this.deps.siblingRunRepository.createRun(runMode, normalized);
+
+    if (hasTargets) {
+      const noteText = options.notes || `Targeted run on ${targetBssids!.length} BSSIDs`;
+      await this.deps.adminQuery(`UPDATE app.sibling_runs SET notes = $1 WHERE id = $2`, [
+        noteText,
+        runId,
+      ]);
+      logger.info(
+        `[Siblings] Starting targeted run on ${targetBssids!.length} BSSIDs (runId: ${runId})`
+      );
+    }
 
     const incrementalCutoff = await this.deps.siblingRunRepository.getPreviousRunCutoff();
 
@@ -60,7 +83,7 @@ export class SiblingDetectionOrchestrator {
     const pairAudit =
       process.env.SIBLING_REFRESH_PAIR_AUDIT === '1' ||
       process.env.SIBLING_REFRESH_PAIR_AUDIT === 'true';
-    const refreshChunkSql = buildRefreshChunkSql({ pairAudit });
+    const refreshChunkSql = buildRefreshChunkSql({ pairAudit, targetBssids: hasTargets });
 
     while (true) {
       if (this.deps.state.cancelRequested) {
@@ -73,7 +96,7 @@ export class SiblingDetectionOrchestrator {
         break;
       }
 
-      const result: any = await this.deps.longRunningAdminQuery(refreshChunkSql, [
+      const queryParams: any[] = [
         normalized.batchSize,
         cursor,
         normalized.maxOctetDelta,
@@ -82,7 +105,12 @@ export class SiblingDetectionOrchestrator {
         normalized.incremental,
         incrementalCutoff,
         runId,
-      ]);
+      ];
+      if (hasTargets) {
+        queryParams.push(targetBssids);
+      }
+
+      const result: any = await this.deps.longRunningAdminQuery(refreshChunkSql, queryParams);
 
       const row = result.rows[0] || {};
       const seedCount = Number(row.seed_count || 0);

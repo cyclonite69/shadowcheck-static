@@ -1164,6 +1164,7 @@
 * implement pgadmin healthcheck and lifecycle management in rebuild script ([0889768](https://github.com/cyclonite69/shadowcheck-web/commit/08897687caca988bf871b1e6619a5bb5515322d8))
 * implement proper TypeScript build pipeline for Docker ([0978e35](https://github.com/cyclonite69/shadowcheck-web/commit/0978e35594c868953aa71ee6d1129cd09cbaac16))
 * implement system-wide dashboard theme configuration ([d4f4f17](https://github.com/cyclonite69/shadowcheck-web/commit/d4f4f170c8d72dd6201607f65b546871273d8cb6)), closes [html/body/#root](https://github.com/html/body//issues/root)
+* implement targeted and manufacturer high-value backfill sweeps ([e5a2556](https://github.com/cyclonite69/shadowcheck-web/commit/e5a2556f7dc8b84bd49c4af9f27a65990675d29c)), closes [hi#value](https://github.com/hi/issues/value)
 * implement threat scoring v4.0 with individual behavior and fleet correlation ([ab3684a](https://github.com/cyclonite69/shadowcheck-web/commit/ab3684af14c17d082e67e533f66d5a4e52a717e2))
 * implement zero-touch spot migration with tag discovery ([098871d](https://github.com/cyclonite69/shadowcheck-web/commit/098871d895c7b8d5cce73fda77de8b0f6f2eb37c))
 * import history with before/after metrics, backup checkbox, expandable rows ([cc9f7b0](https://github.com/cyclonite69/shadowcheck-web/commit/cc9f7b0fecc26257ce30b37a4c6dc0a42502ab9f))
