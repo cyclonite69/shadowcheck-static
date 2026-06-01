@@ -1,7 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { AdminCard } from '../components/AdminCard';
-import { apiClient } from '../../../api/client';
 import { formatShortDate } from '../../../utils/formatDate';
+import {
+  useDbStats,
+  TableStat,
+  MVStat,
+  UnusedIndex,
+  UnusedIndexSummary,
+} from '../hooks/useDbStats';
+import { useSiblingStats } from '../hooks/useSiblingStats';
+import { useTableCategories } from '../hooks/useTableCategories';
 
 const DatabaseIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -48,124 +56,11 @@ const TrendingUpIcon = ({ size = 20, className = '' }) => (
   </svg>
 );
 
-interface TableStat {
-  table_name: string;
-  row_count: string;
-  size_bytes: string;
-  size_pretty: string;
-  total_inserts: string;
-  total_updates: string;
-  total_deletes: string;
-  last_active: string | null;
-  index_reads: string;
-  sequential_reads: string;
-}
-
-interface MVStat {
-  view_name: string;
-  is_populated: boolean;
-  size_pretty: string;
-  seq_scan: string;
-  seq_tup_read: string;
-  last_active: string | null;
-}
-
-interface UnusedIndex {
-  table_name: string;
-  index_name: string;
-  scan_count: string;
-  size_pretty: string;
-  size_bytes: string;
-}
-
-interface UnusedIndexSummary {
-  count: number;
-  total_mb: number;
-}
-
-interface DbStats {
-  total_db_size: string;
-  tables: TableStat[];
-  categories: Record<string, string[]>;
-  materialized_views: MVStat[];
-  unused_indexes: UnusedIndex[];
-  unused_indexes_summary?: UnusedIndexSummary;
-}
-
-interface SiblingStats {
-  total_pairs: number;
-  strong_pairs: number;
-  candidate_pairs: number;
-  avg_confidence: string;
-  oldest_computed_at: string | null;
-  newest_computed_at: string | null;
-}
-
-interface SiblingByRule {
-  rule: string;
-  pair_count: number;
-  avg_confidence: string;
-  last_run_at: string | null;
-}
-
 export const DbStatsTab: React.FC = () => {
-  const [stats, setStats] = useState<DbStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [_error, setError] = useState<string | null>(null);
-  const [siblingStats, setSiblingStats] = useState<SiblingStats | null>(null);
-  const [siblingByRule, setSiblingByRule] = useState<SiblingByRule[]>([]);
-  const [purgingSiblings, setPurgingSiblings] = useState(false);
-
-  const fetchStats = async () => {
-    try {
-      setLoading(true);
-      const [dbResponse, sibResponse] = await Promise.allSettled([
-        apiClient.get<DbStats>('/admin/db-stats'),
-        apiClient.get<{ ok: boolean; stats: SiblingStats; byRule: SiblingByRule[] }>(
-          '/admin/siblings/stats'
-        ),
-      ]);
-      if (dbResponse.status === 'fulfilled') {
-        setStats(dbResponse.value);
-        setError(null);
-      } else {
-        setError((dbResponse.reason as any)?.message || 'Failed to fetch DB stats');
-      }
-      if (sibResponse.status === 'fulfilled' && sibResponse.value.ok) {
-        setSiblingStats(sibResponse.value.stats);
-        setSiblingByRule(sibResponse.value.byRule);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const purgeSiblings = async () => {
-    if (!window.confirm('Purge all sibling pairs and start a full redetect now?')) return;
-    setPurgingSiblings(true);
-    try {
-      await apiClient.delete('/admin/siblings/pairs');
-      setSiblingStats(null);
-      setSiblingByRule([]);
-      // Trigger full redetect immediately after purge
-      await apiClient.post('/admin/siblings/refresh', {});
-      await fetchStats();
-    } catch (err: any) {
-      window.alert(`Purge/redetect failed: ${err?.message || 'Unknown error'}`);
-    } finally {
-      setPurgingSiblings(false);
-    }
-  };
-
-  const getTablesByCategory = (category: string) => {
-    if (!stats) return [];
-    const tableNames = stats.categories[category] || [];
-    return stats.tables.filter((t) => tableNames.includes(t.table_name));
-  };
+  const { stats, loading, error, fetchStats } = useDbStats();
+  const { siblingStats, siblingByRule, purgingSiblings, purgeSiblings } =
+    useSiblingStats(fetchStats);
+  const { coreAndInfra, wigle, kismet } = useTableCategories(stats);
 
   const renderTableList = (tables: TableStat[]) => (
     <div className="overflow-x-auto">
@@ -339,6 +234,17 @@ export const DbStatsTab: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-12 text-red-400">
+        <div className="text-center">
+          <p className="font-bold mb-2">Failed to load stats</p>
+          <p className="text-xs opacity-75">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* DB Summary Header */}
@@ -402,7 +308,7 @@ export const DbStatsTab: React.FC = () => {
           icon={DatabaseIcon}
           color="from-blue-600 to-indigo-700"
         >
-          {renderTableList([...getTablesByCategory('core'), ...getTablesByCategory('infra')])}
+          {renderTableList(coreAndInfra)}
         </AdminCard>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -412,7 +318,7 @@ export const DbStatsTab: React.FC = () => {
             icon={ActivityIcon}
             color="from-orange-500 to-red-600"
           >
-            {renderTableList(getTablesByCategory('wigle'))}
+            {renderTableList(wigle)}
           </AdminCard>
 
           {/* Kismet Sidecar */}
@@ -421,7 +327,7 @@ export const DbStatsTab: React.FC = () => {
             icon={ActivityIcon}
             color="from-purple-600 to-indigo-600"
           >
-            {renderTableList(getTablesByCategory('kismet'))}
+            {renderTableList(kismet)}
           </AdminCard>
         </div>
 
