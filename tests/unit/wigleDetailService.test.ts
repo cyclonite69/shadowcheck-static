@@ -44,7 +44,7 @@ describe('wigleDetailService', () => {
   });
 
   describe('fetchUpstream', () => {
-    const netid = 'AA:BB:CC:DD:EE:FF';
+    const netid = '00:11:22:33:44:55';
     const endpoint = 'wifi';
 
     it('returns 503 if credentials are not configured', async () => {
@@ -120,7 +120,7 @@ describe('wigleDetailService', () => {
   });
 
   describe('importObservations', () => {
-    const netid = 'AA:BB:CC:DD:EE:FF';
+    const netid = '00:11:22:33:44:55';
 
     it('returns zeroes for non-array input', async () => {
       const result = await importObservations(netid, null as any);
@@ -165,7 +165,7 @@ describe('wigleDetailService', () => {
   });
 
   describe('fetchOrImportDetail', () => {
-    const netid = 'AA:BB:CC:DD:EE:FF';
+    const netid = '00:11:22:33:44:55';
     const endpoint = 'wifi';
 
     it('serves from cache if shouldImport is false and cached data exists', async () => {

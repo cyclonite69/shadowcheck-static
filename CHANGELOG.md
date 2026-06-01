@@ -779,6 +779,7 @@
 * **tests:** resolve implicit any[] and null safety errors in wigleImportRunRepository.test.ts ([ad67ba2](https://github.com/cyclonite69/shadowcheck-web/commit/ad67ba2d6125b5de6b1d9a87ba39c058537120df))
 * **tests:** resolve pre-existing test failures, fix schemas.ts zod record type ([db60e05](https://github.com/cyclonite69/shadowcheck-web/commit/db60e053702e2e942ac6abfda39398a71d65b4dc))
 * **tests:** update filterQueryBuilder test expectation for buildOrderBy ([74cbae9](https://github.com/cyclonite69/shadowcheck-web/commit/74cbae980c34f225c6715caf1eb3b8293d785e53))
+* **test:** update test MACs to non-locally-administered addresses after LA guard added ([c0cba48](https://github.com/cyclonite69/shadowcheck-web/commit/c0cba480062d1664d1f09cd44e6f69849f2e75b8))
 * **test:** use require() for CommonJS cacheService import ([c66777c](https://github.com/cyclonite69/shadowcheck-web/commit/c66777c36fab4e6ca376789e07d5fed8bb2c8c1f))
 * **threat-scoring:** exclude is_ignored networks from threat calculations ([68b2035](https://github.com/cyclonite69/shadowcheck-web/commit/68b2035afbc0abd99d84923aae5f37185c996678))
 * **threat:** neutralize ignored networks in filtered API output ([38e0fc6](https://github.com/cyclonite69/shadowcheck-web/commit/38e0fc64138d1928aaa24dac140965c82eb7b255))
