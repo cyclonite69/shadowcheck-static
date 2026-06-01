@@ -60,7 +60,26 @@ export const DbStatsTab: React.FC = () => {
   const { stats, loading, error, fetchStats } = useDbStats();
   const { siblingStats, siblingByRule, purgingSiblings, purgeSiblings } =
     useSiblingStats(fetchStats);
-  const { coreAndInfra, wigle, kismet } = useTableCategories(stats);
+  const { coreAndInfra, wigle, kismet, uncategorized } = useTableCategories(stats);
+
+  // Unused index search and pagination states
+  const [indexSearch, setIndexSearch] = React.useState('');
+  const [indexPage, setIndexPage] = React.useState(0);
+
+  const filteredIndexes = React.useMemo(() => {
+    if (!stats) return [];
+    const query = indexSearch.toLowerCase().trim();
+    if (!query) return stats.unused_indexes;
+    return stats.unused_indexes.filter(
+      (idx) =>
+        idx.index_name.toLowerCase().includes(query) || idx.table_name.toLowerCase().includes(query)
+    );
+  }, [stats, indexSearch]);
+
+  const paginatedIndexes = React.useMemo(() => {
+    const start = indexPage * 25;
+    return filteredIndexes.slice(start, start + 25);
+  }, [filteredIndexes, indexPage]);
 
   const renderTableList = (tables: TableStat[]) => (
     <div className="overflow-x-auto">
@@ -183,10 +202,37 @@ export const DbStatsTab: React.FC = () => {
       {summary && summary.count > 0 && (
         <div className="mb-4 p-3 bg-red-950/30 border border-red-900/50 rounded-lg">
           <p className="text-sm font-medium text-red-300">
-            {summary.count} index{summary.count !== 1 ? 'es' : ''} · {summary.total_mb} MB wasted
+            {summary.count} index{summary.count !== 1 ? 'es' : ''} · {summary.total_mb} MB unused (0
+            scans since stats reset)
           </p>
         </div>
       )}
+
+      {/* Search Input */}
+      <div className="mb-4 max-w-md relative">
+        <input
+          type="text"
+          placeholder="Search by index or table name..."
+          value={indexSearch}
+          onChange={(e) => {
+            setIndexSearch(e.target.value);
+            setIndexPage(0);
+          }}
+          className="w-full pl-3 pr-10 py-1.5 bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg text-xs text-slate-300 placeholder-slate-600 transition-colors focus:outline-none"
+        />
+        {indexSearch && (
+          <button
+            onClick={() => {
+              setIndexSearch('');
+              setIndexPage(0);
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-sm font-bold"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left border-collapse">
           <thead>
@@ -198,14 +244,14 @@ export const DbStatsTab: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/50">
-            {indexes.length === 0 ? (
+            {paginatedIndexes.length === 0 ? (
               <tr>
                 <td colSpan={4} className="py-8 text-center text-slate-600 italic">
-                  No unused indexes detected.
+                  No matching unused indexes found.
                 </td>
               </tr>
             ) : (
-              indexes.map((idx) => (
+              paginatedIndexes.map((idx) => (
                 <tr key={idx.index_name} className="hover:bg-slate-800/30 transition-colors">
                   <td className="py-2 pr-4 font-mono text-orange-400 font-medium">
                     {idx.index_name}
@@ -223,6 +269,38 @@ export const DbStatsTab: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredIndexes.length > 0 && (
+        <div className="mt-4 flex items-center justify-between border-t border-slate-800/50 pt-3 text-xs text-slate-400">
+          <div>
+            Showing <span className="text-slate-300 font-semibold">{indexPage * 25 + 1}</span> to{' '}
+            <span className="text-slate-300 font-semibold">
+              {Math.min((indexPage + 1) * 25, filteredIndexes.length)}
+            </span>{' '}
+            of <span className="text-slate-300 font-semibold">{filteredIndexes.length}</span> index
+            {filteredIndexes.length !== 1 ? 'es' : ''}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIndexPage((p) => Math.max(0, p - 1))}
+              disabled={indexPage === 0}
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 font-medium rounded transition-colors border border-slate-700/50 disabled:cursor-not-allowed"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() =>
+                setIndexPage((p) => Math.min(Math.ceil(filteredIndexes.length / 25) - 1, p + 1))
+              }
+              disabled={(indexPage + 1) * 25 >= filteredIndexes.length}
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 font-medium rounded transition-colors border border-slate-700/50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -289,7 +367,7 @@ export const DbStatsTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex flex-col justify-center">
+        <div className="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex flex-col justify-center items-center gap-2">
           <button
             onClick={fetchStats}
             disabled={loading}
@@ -297,6 +375,11 @@ export const DbStatsTab: React.FC = () => {
           >
             {loading ? 'Refreshing...' : 'Refresh Stats'}
           </button>
+          {stats?.stats_reset && (
+            <div className="text-[10px] text-slate-500 font-medium text-center">
+              Index scan data since: {formatShortDate(stats.stats_reset)}
+            </div>
+          )}
         </div>
       </div>
 
@@ -455,6 +538,20 @@ export const DbStatsTab: React.FC = () => {
             </button>
           </div>
         </AdminCard>
+
+        {/* Uncategorized Tables */}
+        {uncategorized.length > 0 && (
+          <AdminCard
+            title="Uncategorized Tables"
+            icon={DatabaseIcon}
+            color="from-slate-600 to-slate-700"
+          >
+            <div className="mb-4 text-xs text-slate-500 italic">
+              (not in any configured category)
+            </div>
+            {renderTableList(uncategorized)}
+          </AdminCard>
+        )}
       </div>
 
       <div className="text-[10px] text-slate-600 italic px-2">

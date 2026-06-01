@@ -38,6 +38,7 @@ export interface UnusedIndexSummary {
 
 export interface DbStats {
   total_db_size: string;
+  stats_reset: string | null;
   tables: TableStat[];
   categories: Record<string, string[]>;
   materialized_views: MVStat[];

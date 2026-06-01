@@ -26,6 +26,12 @@ export async function getDetailedDatabaseStats(): Promise<any> {
     );
     const totalDbSize = sizeResult.rows[0]?.total_size || 'Unknown';
 
+    // Get Stats Reset Time
+    const statsResetResult = await adminQuery(
+      'SELECT stats_reset::text FROM pg_stat_bgwriter LIMIT 1'
+    );
+    const statsReset = statsResetResult.rows[0]?.stats_reset || null;
+
     // 2. Get Per-Table Metrics (Activity + Size)
     const { rows: tableStats } = await adminQuery(`
       SELECT 
@@ -123,6 +129,7 @@ export async function getDetailedDatabaseStats(): Promise<any> {
     return {
       success: true,
       total_db_size: totalDbSize,
+      stats_reset: statsReset,
       tables: tableStats,
       categories,
       materialized_views: mvStats,
