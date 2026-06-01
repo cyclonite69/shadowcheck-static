@@ -16,7 +16,7 @@ ENV NODE_ENV=development \
 COPY package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN apk add --no-cache python3 make g++ && \
+RUN apk add --no-cache python3 make g++ docker-cli docker-cli-compose aws-cli postgresql-client curl && \
     npm ci --include=dev --legacy-peer-deps
 
 # Copy application files
