@@ -4,41 +4,95 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Capabilities | GDIT</title>
-<style>body {
-    background: #0f172a;
-    color: #e2e8f0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+<style>*, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #0a1424;
+    color: #f8fafc;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 14px;
     line-height: 1.7;
-    max-width: 760px;
+  }
+  .sc-page {
+    max-width: 780px;
     margin: 0 auto;
-    padding: 24px 20px 48px;
+    padding: 28px 24px 64px;
+  }
+  .sc-card {
+    background: rgba(15,23,42,0.8);
+    border: 1px solid rgba(51,65,85,0.4);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .sc-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(30,41,59,0.6);
+    background: linear-gradient(to right, rgba(15,23,42,0.8), rgba(15,23,42,0.4));
+  }
+  .sc-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .sc-title {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.3;
+  }
+  .sc-meta {
+    margin: 0;
+    font-size: 11px;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .sc-body {
+    padding: 20px 24px 28px;
   }
   h1, h2, h3, h4, h5, h6 {
-    color: #f1f5f9;
+    color: #e2e8f0;
     line-height: 1.3;
-    margin-top: 1.6em;
-    margin-bottom: 0.5em;
+    margin-top: 1.5em;
+    margin-bottom: 0.4em;
   }
-  h1 { font-size: 1.5em; }
-  h2 { font-size: 1.25em; }
-  h3 { font-size: 1.1em; }
+  h1 { font-size: 1.3em; }
+  h2 { font-size: 1.15em; }
+  h3 { font-size: 1.05em; color: #94a3b8; }
   a { color: #60a5fa; text-decoration: none; }
   a:hover { text-decoration: underline; }
-  p { margin: 0 0 1em; }
-  img { max-width: 100%; height: auto; border-radius: 4px; opacity: 0.9; }
-  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-  th, td { border: 1px solid #334155; padding: 6px 10px; text-align: left; }
-  th { background: #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  blockquote { border-left: 3px solid #334155; margin: 1em 0; padding: 0 0 0 16px; color: #94a3b8; }
-  code, pre { background: #1e293b; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px; }
-  code { padding: 1px 5px; }
-  pre { padding: 12px; overflow-x: auto; }
-  hr { border: none; border-top: 1px solid #1e293b; margin: 2em 0; }</style>
+  p { margin: 0 0 0.9em; color: #e2e8f0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; opacity: 0.9; display: block; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 13px; }
+  th, td { border: 1px solid rgba(51,65,85,0.5); padding: 6px 10px; text-align: left; }
+  th { background: rgba(30,41,59,0.6); color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  blockquote { border-left: 3px solid rgba(51,65,85,0.6); margin: 1em 0; padding: 0 0 0 16px; color: #94a3b8; font-style: italic; }
+  code { background: rgba(30,41,59,0.6); border-radius: 4px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; padding: 1px 5px; color: #e2e8f0; }
+  pre { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 14px; overflow-x: auto; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: #e2e8f0; }
+  hr { border: none; border-top: 1px solid rgba(51,65,85,0.4); margin: 1.5em 0; }
+  ul, ol { padding-left: 1.4em; color: #e2e8f0; }
+  li { margin-bottom: 0.3em; }</style>
 </head>
 <body>
-<h1>Capabilities | GDIT</h1>
-
-<div id="readability-page-1" class="page"><div><header><nav role="navigation"></nav></header><section><div><div><p><img alt="colorful droplet" loading="lazy" width="590" height="590" decoding="async" data-nimg="1" srcset="https://images.ctfassets.net/szx3os6exj55/7z8MDWCY342e5vvAQ154Wg/db58d958cf3143252410bdabec0b1cb4/Capabilities-Mobile-1560x1360px-ol1527-v2-11142024.jpg?w=590&amp;h=590&amp;q=90&amp;fm=webp&amp;fit=fill&amp;f=center 1x, https://images.ctfassets.net/szx3os6exj55/7z8MDWCY342e5vvAQ154Wg/db58d958cf3143252410bdabec0b1cb4/Capabilities-Mobile-1560x1360px-ol1527-v2-11142024.jpg?w=590&amp;h=590&amp;q=90&amp;fm=webp&amp;fit=fill&amp;f=center 2x" src="https://images.ctfassets.net/szx3os6exj55/7z8MDWCY342e5vvAQ154Wg/db58d958cf3143252410bdabec0b1cb4/Capabilities-Mobile-1560x1360px-ol1527-v2-11142024.jpg?w=590&amp;h=590&amp;q=90&amp;fm=webp&amp;fit=fill&amp;f=center"></p></div><div><p>Capabilities</p><h2 role="presentation">Technology driven, mission focused. </h2><p role="presentation">At the intersection of technology and mission, we partner with customers to transform vision into reality – empowering them to solve today’s challenges while preparing for tomorrow’s possibilities.  <br></p></div></div><div><p>From protecting national security to advancing public health, we provide the tools and expertise that allow our customers to overcome challenges and create a future defined by their boldest accomplishments.  </p></div><a id="technology-solutions"></a><div><p><h2>Technology</h2><h3>Technology activated by insightful minds.</h3></p><div><p role="presentation">From strategy to implementation, we empower agencies with the digital technologies they need to stay ahead.  <br></p></div></div><a id="technologies"></a><div><div><h3>AI</h3><p><span>Unlock the power of your data and push the boundaries of what’s possible. <br></span></p></div><div><h3>Software Development</h3><p><span>Software solutions that put customer needs first. Human-centered. Mission-focused.<br></span></p></div><div><h3>Cloud</h3><p><span>Enhance decision making with AI, enable seamless remote collaboration, and improve citizen services. <br></span></p></div><div><h3>Full-Spectrum Cyber</h3><p><span>Harness full-spectrum cyber to amplify mission advantage across cyberspace.<br></span></p></div><div><h3>Digital Modernization </h3><p><span>Harness cutting-edge technology and expert-driven solutions.<br></span></p></div><div><h3>Quantum</h3><p><span>Take advantage of the opportunities presented by game-changing quantum. <br></span></p></div><div><h3>High-Performance Computing</h3><p><span>Run the most complex calculations and data analysis faster to empower the mission. <br></span></p></div><div><h3>5G and Advanced Wireless </h3><p><span>Command your mission’s success with edge-based connectivity where it matters most. <br></span></p></div></div><div><p><h2><a href="https://example.com/capabilities/mission-solutions/digital-accelerators/">Digital Accelerators</a></h2><h3>Fast-track your digital evolution.</h3></p><div><p role="presentation">Tap into the benefits of AI, connectivity at the edge, resilient cybersecurity, and cloud with rapidly deployable, open-source solutions tailored to your mission.<br></p></div></div><div><p><h2><a href="https://example.com/capabilities/technology/partners/">Partners</a></h2><h3>Building stronger solutions.</h3></p><div><p role="presentation">Our portfolio of partners feature trusted industry leaders and emerging technology companies at the forefront of tomorrow so our customers get what they need today.<br></p></div></div><a id="misson-solutions"></a><div><p><h2><a href="https://example.com/capabilities/mission-solutions/">Mission Solutions</a></h2><h3>Mission-ready solutions, engineered for impact.</h3></p><div><p role="presentation">We start closer to the finish line. GDIT's proven solutions are engineered for government missions, accelerating time to value, reducing complexity, and minimizing implementation risk.<br></p></div></div><div><div><h3>AI for Fraud, Waste,  and Abuse</h3><p><span>Purpose-built AI to detect and stop fraud, waste, and abuse.<br></span></p></div><div><h3>Agentic AI for Customer Experience</h3><p><span>Transform responsiveness of government services by empowering digital agents.<br></span></p></div><div><h3>Cloud FinOps</h3><p><span>Realize the full value of the cloud, control costs and maintain accountability.<br></span></p></div><div><h3>Aerial Threat Detection</h3><p><span>Defense Operations Grid-Mesh Accelerator (DOGMA) is an AI-enabled solution that connects battlefield systems to deliver faster operational decisions.<br></span></p></div><div><h3>Full-Spectrum Cyber Operations </h3><p><span>Thwart adversaries and gain intelligence to create mission critical advantages.<br></span></p></div><div><h3>Insider Threat Risk Reduction</h3><p><span>Transition to near-real-time insider threat warnings at an enterprise level.<br></span></p></div><div><h3>Secure Software Development</h3><p><span>Efficiently and effectively building secure software from the ground up.<br></span></p></div><div><h3>Edge Connectivity</h3><p><span>Our “cloud-in-a-box” solution enables secure collaboration at the tactical edge.<br></span></p></div><div><h3>Zero Trust</h3><p><span>Power secure collaboration, access, and data protection from enterprise to edge.<br></span></p></div><div><h3>Mobile Command Center</h3><p><span>Mobile command-center tech suite enabled with innovative technology that collects and distributes mission critical information at the edge.<br></span></p></div></div><a id="mission-expertise"></a><div><p><h2>Mission Expertise</h2><h3>Expertise to drive the nation forward.</h3></p><div><p role="presentation">Our deep understanding of some of the most complex government, defense, health and intelligence missions around the world enable innovation at the speed of change.<br></p></div></div><div><div><h3>Smart Government</h3><p><span>Technology that delivers better, faster services for citizens doesn’t just happen – it's built.<br></span></p></div><div><h3>Border Security</h3><p><span>We partner across government, to enhance security, safety and experience at the physical and digital border.<br></span></p></div><div><h3>Intelligence Specialist Support</h3><p><span>When the operation matters most. <br></span></p></div><div><h3>Training and Simulation</h3><p><span>Delivering the training missions for today and anticipating the needs for tomorrow. <br></span></p></div><div><h3>Medical Research and Life Science</h3><p><span>From discovery to delivery, we transform scientific potential into real-world impact. GDIT accelerates medical research and life sciences with advanced technology, scientific expertise and secure, scalable systems.<br></span></p></div><div><h3>Electronic Health Records (EHR) Modernization</h3><p><span>Modernizing electronic health records (EHRs) increases interoperability, eliminates information gaps to accelerate care, and improve patient outcomes, ensuring critical provider decisions can be made at speed.<br></span></p></div><div><h3>Logistics and Supply Chain Management</h3><p><span>GDIT operates the largest logistics and supply chain management operations for the federal government, providing the speed, security and transparency customers require worldwide. <br></span></p></div></div></section></div></div>
+<div class="sc-page">
+  <div class="sc-card">
+    <div class="sc-card-header">
+      <span class="sc-badge" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640">RESEARCH</span>
+      <h1 class="sc-title">Capabilities | GDIT</h1>
+      
+      <p class="sc-meta" style="margin-top:2px;opacity:0.5">gdit_network_capabilities.html</p>
+    </div>
+    <div class="sc-body">
+      <div id="readability-page-1" class="page"><div><header><nav role="navigation"></nav></header><section><div><div><p><img alt="colorful droplet" loading="lazy" width="590" height="590" decoding="async" data-nimg="1" srcset="https://images.ctfassets.net/szx3os6exj55/7z8MDWCY342e5vvAQ154Wg/db58d958cf3143252410bdabec0b1cb4/Capabilities-Mobile-1560x1360px-ol1527-v2-11142024.jpg?w=590&amp;h=590&amp;q=90&amp;fm=webp&amp;fit=fill&amp;f=center 1x, https://images.ctfassets.net/szx3os6exj55/7z8MDWCY342e5vvAQ154Wg/db58d958cf3143252410bdabec0b1cb4/Capabilities-Mobile-1560x1360px-ol1527-v2-11142024.jpg?w=590&amp;h=590&amp;q=90&amp;fm=webp&amp;fit=fill&amp;f=center 2x" src="https://images.ctfassets.net/szx3os6exj55/7z8MDWCY342e5vvAQ154Wg/db58d958cf3143252410bdabec0b1cb4/Capabilities-Mobile-1560x1360px-ol1527-v2-11142024.jpg?w=590&amp;h=590&amp;q=90&amp;fm=webp&amp;fit=fill&amp;f=center"></p></div><div><p>Capabilities</p><h2 role="presentation">Technology driven, mission focused. </h2><p role="presentation">At the intersection of technology and mission, we partner with customers to transform vision into reality – empowering them to solve today’s challenges while preparing for tomorrow’s possibilities.  <br></p></div></div><div><p>From protecting national security to advancing public health, we provide the tools and expertise that allow our customers to overcome challenges and create a future defined by their boldest accomplishments.  </p></div><a id="technology-solutions"></a><div><p><h2>Technology</h2><h3>Technology activated by insightful minds.</h3></p><div><p role="presentation">From strategy to implementation, we empower agencies with the digital technologies they need to stay ahead.  <br></p></div></div><a id="technologies"></a><div><div><h3>AI</h3><p><span>Unlock the power of your data and push the boundaries of what’s possible. <br></span></p></div><div><h3>Software Development</h3><p><span>Software solutions that put customer needs first. Human-centered. Mission-focused.<br></span></p></div><div><h3>Cloud</h3><p><span>Enhance decision making with AI, enable seamless remote collaboration, and improve citizen services. <br></span></p></div><div><h3>Full-Spectrum Cyber</h3><p><span>Harness full-spectrum cyber to amplify mission advantage across cyberspace.<br></span></p></div><div><h3>Digital Modernization </h3><p><span>Harness cutting-edge technology and expert-driven solutions.<br></span></p></div><div><h3>Quantum</h3><p><span>Take advantage of the opportunities presented by game-changing quantum. <br></span></p></div><div><h3>High-Performance Computing</h3><p><span>Run the most complex calculations and data analysis faster to empower the mission. <br></span></p></div><div><h3>5G and Advanced Wireless </h3><p><span>Command your mission’s success with edge-based connectivity where it matters most. <br></span></p></div></div><div><p><h2><a href="https://example.com/capabilities/mission-solutions/digital-accelerators/">Digital Accelerators</a></h2><h3>Fast-track your digital evolution.</h3></p><div><p role="presentation">Tap into the benefits of AI, connectivity at the edge, resilient cybersecurity, and cloud with rapidly deployable, open-source solutions tailored to your mission.<br></p></div></div><div><p><h2><a href="https://example.com/capabilities/technology/partners/">Partners</a></h2><h3>Building stronger solutions.</h3></p><div><p role="presentation">Our portfolio of partners feature trusted industry leaders and emerging technology companies at the forefront of tomorrow so our customers get what they need today.<br></p></div></div><a id="misson-solutions"></a><div><p><h2><a href="https://example.com/capabilities/mission-solutions/">Mission Solutions</a></h2><h3>Mission-ready solutions, engineered for impact.</h3></p><div><p role="presentation">We start closer to the finish line. GDIT's proven solutions are engineered for government missions, accelerating time to value, reducing complexity, and minimizing implementation risk.<br></p></div></div><div><div><h3>AI for Fraud, Waste,  and Abuse</h3><p><span>Purpose-built AI to detect and stop fraud, waste, and abuse.<br></span></p></div><div><h3>Agentic AI for Customer Experience</h3><p><span>Transform responsiveness of government services by empowering digital agents.<br></span></p></div><div><h3>Cloud FinOps</h3><p><span>Realize the full value of the cloud, control costs and maintain accountability.<br></span></p></div><div><h3>Aerial Threat Detection</h3><p><span>Defense Operations Grid-Mesh Accelerator (DOGMA) is an AI-enabled solution that connects battlefield systems to deliver faster operational decisions.<br></span></p></div><div><h3>Full-Spectrum Cyber Operations </h3><p><span>Thwart adversaries and gain intelligence to create mission critical advantages.<br></span></p></div><div><h3>Insider Threat Risk Reduction</h3><p><span>Transition to near-real-time insider threat warnings at an enterprise level.<br></span></p></div><div><h3>Secure Software Development</h3><p><span>Efficiently and effectively building secure software from the ground up.<br></span></p></div><div><h3>Edge Connectivity</h3><p><span>Our “cloud-in-a-box” solution enables secure collaboration at the tactical edge.<br></span></p></div><div><h3>Zero Trust</h3><p><span>Power secure collaboration, access, and data protection from enterprise to edge.<br></span></p></div><div><h3>Mobile Command Center</h3><p><span>Mobile command-center tech suite enabled with innovative technology that collects and distributes mission critical information at the edge.<br></span></p></div></div><a id="mission-expertise"></a><div><p><h2>Mission Expertise</h2><h3>Expertise to drive the nation forward.</h3></p><div><p role="presentation">Our deep understanding of some of the most complex government, defense, health and intelligence missions around the world enable innovation at the speed of change.<br></p></div></div><div><div><h3>Smart Government</h3><p><span>Technology that delivers better, faster services for citizens doesn’t just happen – it's built.<br></span></p></div><div><h3>Border Security</h3><p><span>We partner across government, to enhance security, safety and experience at the physical and digital border.<br></span></p></div><div><h3>Intelligence Specialist Support</h3><p><span>When the operation matters most. <br></span></p></div><div><h3>Training and Simulation</h3><p><span>Delivering the training missions for today and anticipating the needs for tomorrow. <br></span></p></div><div><h3>Medical Research and Life Science</h3><p><span>From discovery to delivery, we transform scientific potential into real-world impact. GDIT accelerates medical research and life sciences with advanced technology, scientific expertise and secure, scalable systems.<br></span></p></div><div><h3>Electronic Health Records (EHR) Modernization</h3><p><span>Modernizing electronic health records (EHRs) increases interoperability, eliminates information gaps to accelerate care, and improve patient outcomes, ensuring critical provider decisions can be made at speed.<br></span></p></div><div><h3>Logistics and Supply Chain Management</h3><p><span>GDIT operates the largest logistics and supply chain management operations for the federal government, providing the speed, security and transparency customers require worldwide. <br></span></p></div></div></section></div></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

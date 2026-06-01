@@ -4,41 +4,95 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verint: Customer Engagement Leaders</title>
-<style>body {
-    background: #0f172a;
-    color: #e2e8f0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+<style>*, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #0a1424;
+    color: #f8fafc;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 14px;
     line-height: 1.7;
-    max-width: 760px;
+  }
+  .sc-page {
+    max-width: 780px;
     margin: 0 auto;
-    padding: 24px 20px 48px;
+    padding: 28px 24px 64px;
+  }
+  .sc-card {
+    background: rgba(15,23,42,0.8);
+    border: 1px solid rgba(51,65,85,0.4);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .sc-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(30,41,59,0.6);
+    background: linear-gradient(to right, rgba(15,23,42,0.8), rgba(15,23,42,0.4));
+  }
+  .sc-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .sc-title {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.3;
+  }
+  .sc-meta {
+    margin: 0;
+    font-size: 11px;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .sc-body {
+    padding: 20px 24px 28px;
   }
   h1, h2, h3, h4, h5, h6 {
-    color: #f1f5f9;
+    color: #e2e8f0;
     line-height: 1.3;
-    margin-top: 1.6em;
-    margin-bottom: 0.5em;
+    margin-top: 1.5em;
+    margin-bottom: 0.4em;
   }
-  h1 { font-size: 1.5em; }
-  h2 { font-size: 1.25em; }
-  h3 { font-size: 1.1em; }
+  h1 { font-size: 1.3em; }
+  h2 { font-size: 1.15em; }
+  h3 { font-size: 1.05em; color: #94a3b8; }
   a { color: #60a5fa; text-decoration: none; }
   a:hover { text-decoration: underline; }
-  p { margin: 0 0 1em; }
-  img { max-width: 100%; height: auto; border-radius: 4px; opacity: 0.9; }
-  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-  th, td { border: 1px solid #334155; padding: 6px 10px; text-align: left; }
-  th { background: #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  blockquote { border-left: 3px solid #334155; margin: 1em 0; padding: 0 0 0 16px; color: #94a3b8; }
-  code, pre { background: #1e293b; border-radius: 4px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px; }
-  code { padding: 1px 5px; }
-  pre { padding: 12px; overflow-x: auto; }
-  hr { border: none; border-top: 1px solid #1e293b; margin: 2em 0; }</style>
+  p { margin: 0 0 0.9em; color: #e2e8f0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; opacity: 0.9; display: block; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 13px; }
+  th, td { border: 1px solid rgba(51,65,85,0.5); padding: 6px 10px; text-align: left; }
+  th { background: rgba(30,41,59,0.6); color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  blockquote { border-left: 3px solid rgba(51,65,85,0.6); margin: 1em 0; padding: 0 0 0 16px; color: #94a3b8; font-style: italic; }
+  code { background: rgba(30,41,59,0.6); border-radius: 4px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; padding: 1px 5px; color: #e2e8f0; }
+  pre { background: rgba(30,41,59,0.6); border-radius: 6px; padding: 14px; overflow-x: auto; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: #e2e8f0; }
+  hr { border: none; border-top: 1px solid rgba(51,65,85,0.4); margin: 1.5em 0; }
+  ul, ol { padding-left: 1.4em; color: #e2e8f0; }
+  li { margin-bottom: 0.3em; }</style>
 </head>
 <body>
-<h1>Verint: Customer Engagement Leaders</h1>
-
-<div id="readability-page-1" class="page"><div id="content"><div><h2> AI Business Outcomes from Verint Customers</h2><ul><li><h3>Lower costs</h3><ul><li><h4>$10M Saved</h4><p>A bank contained ​10M interactions (80% containment rate) through AI-driven self-service with Verint IVA.</p></li><li><h4>$79M Benefit</h4><p>A telco reduced average call duration by 30 seconds while boosting sales with Coaching Bot.</p></li></ul></li><li><h3>Increase revenue</h3><ul><li><h4>10% Increased Sales</h4><p>A UK based telco increased cross-sell rates by 10% by providing real-time coaching to agents.</p></li><li><h4>$3M More in Sales</h4><p>A healthcare brand used the Exact Transcription Bot to achieve 90% transcription accuracy, leading to a $3M boost in sales.</p></li></ul></li><li><h3>Elevate CX</h3><ul><li><h4>1.5x NPS Increase</h4><p>A Brazilian telecom used speech analytics to help customers select the best services for their needs.</p></li><li><h4>+39 NPS</h4><p>A mortgage lender increased NPS from +3 to +39 through real-time agent coaching with Verint Coaching Bot.</p></li></ul></li></ul> <p><a href="https://www.verint.com/roi-center/" target="" data-wpel-link="internal" rel="follow">See More</a></p></div><div><div><h2> Explore our Open Platform</h2><p>Verint provides a cloud-native open platform to increase CX Automation and deliver AI business outcomes, now.</p></div><div><p><img src="https://verint.imgix.net/wp-content/uploads/2026/04/verint-enterprise-ecosystem.png" alt="Verint Enterprise Ecosystem"></p><ul><li></li><li></li><li><div>  <a href="https://www.verint.com/agent-copilot/" data-wpel-link="internal" rel="follow"><h2>Copilots</h2> </a> <p><span>Double agent capacity by automating manual tasks</span></p></div></li><li></li><li></li><li></li></ul></div></div><div><p><h2> Verint customers see AI Business Outcomes, Now</h2></p><div><div id="product-feature-6-panel-1" aria-label="product-feature-6-panel-1" aria-labelledby="product-feature-6-tab-1" role="tabpanel" tabindex="0"><h3> Volaris: 85% containment rate</h3><div><p>Verint Intelligent Virtual Assistant (IVA) contains 85% of customer interactions, enabling the contact center to handle 3x the number of interactions with the same number of agents. IVA helps Volaris increase agent capacity while simultaneously elevating CX and boosting revenue.</p></div></div><div id="product-feature-6-panel-2" aria-label="product-feature-6-panel-2" aria-labelledby="product-feature-6-tab-2" role="tabpanel" tabindex="0"><h3> Utilita: Saves 35 seconds</h3><p>Verint Wrap Up Bot, one of the Verint Agent Copilot Bots, helps Utilita increase agent capacity. The Wrap Up Bot cuts 35 seconds from every call by automating the creation of call summaries.</p></div><div id="product-feature-6-panel-3" aria-label="product-feature-6-panel-3" aria-labelledby="product-feature-6-tab-3" role="tabpanel" tabindex="0"><h3> Fiserv: Bot increased quality monitoring coverage without adding headcount</h3><p>Verint Quality Bot automates the process of performing quality evaluations. With Quality Bot, Fiserv was able to go from evaluating 1% of calls, to 96%. It would have taken 1200 employees to perform these evaluations manually.</p></div><div id="product-feature-6-panel-4" aria-label="product-feature-6-panel-4" aria-labelledby="product-feature-6-tab-4" role="tabpanel" tabindex="0"><h3> Bradesco Seguros: Increased NPS 20 points</h3><p>This Brazilian insurer uses Verint Speech Analytics to uncover insights from unstructured phone conversations. The insights found from Speech Analytics have helped Bradesco Seguros improve their NPS by 20 points.</p></div></div></div><div><p><h2> Industry recognition</h2></p><ul><li role="group" aria-label="item"><p><img ix-path="/wp-content/uploads/2024/09/isg-logo.png" ix-params="{&quot;w&quot;:&quot;185&quot;,&quot;h&quot;:&quot;251&quot;,&quot;auto&quot;:&quot;compress,format&quot;}" sizes="248px" alt="isg logo" loading="eager" width="248" height="70" src="https://example.com/wp-content/uploads/2024/09/isg-logo.png"></p><h3> Customer Experience Management (CXM) Buyers Guide</h3><blockquote><p>The evolution of customer experience (CX) — and the advancement in AI — is bringing about a shift in how organizations purchase and deploy contact center technology.</p></blockquote> <a href="https://example.com/resources/2025-customer-experience-management-buyers-guide/" target="" data-wpel-link="internal" rel="follow">Download the Report</a></li><li role="group" aria-label="item"><p><img ix-path="/wp-content/uploads/frost-sullivan-logo.png" ix-params="{&quot;w&quot;:&quot;185&quot;,&quot;h&quot;:&quot;251&quot;,&quot;auto&quot;:&quot;compress,format&quot;}" sizes="248px" alt="frost and sullivan logo" loading="eager" width="248" height="70" src="https://example.com/wp-content/uploads/frost-sullivan-logo.png"></p><h3> Verint Named Leader for VoC Analytics in Latest Frost Radar Report</h3><blockquote><p>Frost &amp; Sullivan researched more than 50 leading VoC vendors, analyzing both their “innovation index” and “growth index” to independently select the top 10 performers in each of these categories.</p></blockquote> <a href="https://www.verint.com/resources/frost-and-sullivan-2024-voc-analytics-report/" target="" data-wpel-link="internal" rel="follow">Download the Report</a></li><li role="group" aria-label="item"><p><img ix-path="/wp-content/uploads/IDC-Logo.png" ix-params="{&quot;w&quot;:&quot;185&quot;,&quot;h&quot;:&quot;251&quot;,&quot;auto&quot;:&quot;compress,format&quot;}" sizes="248px" alt="idc logo" loading="eager" width="248" height="70" src="https://example.com/wp-content/uploads/IDC-Logo.png"></p><h3> Verint named leader in The IDC MarketScape Report</h3><blockquote><p>Get the information you need to choose the right conversational intelligence and analytics partner to elevate CX and deliver AI business outcomes, now™.</p></blockquote> <a href="https://example.com/resources/idc-marketscape-research-2024/" target="" data-wpel-link="internal" rel="follow">Download the Report</a></li></ul></div></div></div>
+<div class="sc-page">
+  <div class="sc-card">
+    <div class="sc-card-header">
+      <span class="sc-badge" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640">RESEARCH</span>
+      <h1 class="sc-title">Verint: Customer Engagement Leaders</h1>
+      
+      <p class="sc-meta" style="margin-top:2px;opacity:0.5">verint_government_solutions.html</p>
+    </div>
+    <div class="sc-body">
+      <div id="readability-page-1" class="page"><div id="content"><div><h2> AI Business Outcomes from Verint Customers</h2><ul><li><h3>Lower costs</h3><ul><li><h4>$10M Saved</h4><p>A bank contained ​10M interactions (80% containment rate) through AI-driven self-service with Verint IVA.</p></li><li><h4>$79M Benefit</h4><p>A telco reduced average call duration by 30 seconds while boosting sales with Coaching Bot.</p></li></ul></li><li><h3>Increase revenue</h3><ul><li><h4>10% Increased Sales</h4><p>A UK based telco increased cross-sell rates by 10% by providing real-time coaching to agents.</p></li><li><h4>$3M More in Sales</h4><p>A healthcare brand used the Exact Transcription Bot to achieve 90% transcription accuracy, leading to a $3M boost in sales.</p></li></ul></li><li><h3>Elevate CX</h3><ul><li><h4>1.5x NPS Increase</h4><p>A Brazilian telecom used speech analytics to help customers select the best services for their needs.</p></li><li><h4>+39 NPS</h4><p>A mortgage lender increased NPS from +3 to +39 through real-time agent coaching with Verint Coaching Bot.</p></li></ul></li></ul> <p><a href="https://www.verint.com/roi-center/" target="" data-wpel-link="internal" rel="follow">See More</a></p></div><div><div><h2> Explore our Open Platform</h2><p>Verint provides a cloud-native open platform to increase CX Automation and deliver AI business outcomes, now.</p></div><div><p><img src="https://verint.imgix.net/wp-content/uploads/2026/04/verint-enterprise-ecosystem.png" alt="Verint Enterprise Ecosystem"></p><ul><li></li><li></li><li><div>  <a href="https://www.verint.com/agent-copilot/" data-wpel-link="internal" rel="follow"><h2>Copilots</h2> </a> <p><span>Double agent capacity by automating manual tasks</span></p></div></li><li></li><li></li><li></li></ul></div></div><div><p><h2> Verint customers see AI Business Outcomes, Now</h2></p><div><div id="product-feature-6-panel-1" aria-label="product-feature-6-panel-1" aria-labelledby="product-feature-6-tab-1" role="tabpanel" tabindex="0"><h3> Volaris: 85% containment rate</h3><div><p>Verint Intelligent Virtual Assistant (IVA) contains 85% of customer interactions, enabling the contact center to handle 3x the number of interactions with the same number of agents. IVA helps Volaris increase agent capacity while simultaneously elevating CX and boosting revenue.</p></div></div><div id="product-feature-6-panel-2" aria-label="product-feature-6-panel-2" aria-labelledby="product-feature-6-tab-2" role="tabpanel" tabindex="0"><h3> Utilita: Saves 35 seconds</h3><p>Verint Wrap Up Bot, one of the Verint Agent Copilot Bots, helps Utilita increase agent capacity. The Wrap Up Bot cuts 35 seconds from every call by automating the creation of call summaries.</p></div><div id="product-feature-6-panel-3" aria-label="product-feature-6-panel-3" aria-labelledby="product-feature-6-tab-3" role="tabpanel" tabindex="0"><h3> Fiserv: Bot increased quality monitoring coverage without adding headcount</h3><p>Verint Quality Bot automates the process of performing quality evaluations. With Quality Bot, Fiserv was able to go from evaluating 1% of calls, to 96%. It would have taken 1200 employees to perform these evaluations manually.</p></div><div id="product-feature-6-panel-4" aria-label="product-feature-6-panel-4" aria-labelledby="product-feature-6-tab-4" role="tabpanel" tabindex="0"><h3> Bradesco Seguros: Increased NPS 20 points</h3><p>This Brazilian insurer uses Verint Speech Analytics to uncover insights from unstructured phone conversations. The insights found from Speech Analytics have helped Bradesco Seguros improve their NPS by 20 points.</p></div></div></div><div><p><h2> Industry recognition</h2></p><ul><li role="group" aria-label="item"><p><img ix-path="/wp-content/uploads/2024/09/isg-logo.png" ix-params="{&quot;w&quot;:&quot;185&quot;,&quot;h&quot;:&quot;251&quot;,&quot;auto&quot;:&quot;compress,format&quot;}" sizes="248px" alt="isg logo" loading="eager" width="248" height="70" src="https://example.com/wp-content/uploads/2024/09/isg-logo.png"></p><h3> Customer Experience Management (CXM) Buyers Guide</h3><blockquote><p>The evolution of customer experience (CX) — and the advancement in AI — is bringing about a shift in how organizations purchase and deploy contact center technology.</p></blockquote> <a href="https://example.com/resources/2025-customer-experience-management-buyers-guide/" target="" data-wpel-link="internal" rel="follow">Download the Report</a></li><li role="group" aria-label="item"><p><img ix-path="/wp-content/uploads/frost-sullivan-logo.png" ix-params="{&quot;w&quot;:&quot;185&quot;,&quot;h&quot;:&quot;251&quot;,&quot;auto&quot;:&quot;compress,format&quot;}" sizes="248px" alt="frost and sullivan logo" loading="eager" width="248" height="70" src="https://example.com/wp-content/uploads/frost-sullivan-logo.png"></p><h3> Verint Named Leader for VoC Analytics in Latest Frost Radar Report</h3><blockquote><p>Frost &amp; Sullivan researched more than 50 leading VoC vendors, analyzing both their “innovation index” and “growth index” to independently select the top 10 performers in each of these categories.</p></blockquote> <a href="https://www.verint.com/resources/frost-and-sullivan-2024-voc-analytics-report/" target="" data-wpel-link="internal" rel="follow">Download the Report</a></li><li role="group" aria-label="item"><p><img ix-path="/wp-content/uploads/IDC-Logo.png" ix-params="{&quot;w&quot;:&quot;185&quot;,&quot;h&quot;:&quot;251&quot;,&quot;auto&quot;:&quot;compress,format&quot;}" sizes="248px" alt="idc logo" loading="eager" width="248" height="70" src="https://example.com/wp-content/uploads/IDC-Logo.png"></p><h3> Verint named leader in The IDC MarketScape Report</h3><blockquote><p>Get the information you need to choose the right conversational intelligence and analytics partner to elevate CX and deliver AI business outcomes, now™.</p></blockquote> <a href="https://example.com/resources/idc-marketscape-research-2024/" target="" data-wpel-link="internal" rel="follow">Download the Report</a></li></ul></div></div></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -1,124 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Page not found</title>
-    <style>
-      :root {
-        --colorRgbFacetsTeal600: 2 128 125;
-        --colorTealAction: var(--colorRgbFacetsTeal600);
-        --colorRgbFacetsNeutralLight200: 233 235 237;
-        --colorHr: var(--colorRgbFacetsNeutralLight200);
-        --colorRgbFacetsNeutralLight700: 53 58 62;
-        --colorGrayDarkest: var(--colorRgbFacetsNeutralLight700);
-        --colorGrayLighter: var(--colorRgbFacetsNeutralLight200);
-        --colorText: var(--colorGrayDarkest);
-        --effectShadowLightShallow: 0 1px 10px 0 rgb(53 58 62 / 6%),
-          0 2px 4px 0 rgb(53 58 62 / 8%);
-        --colorRgbFacetsNeutralDark900: 6 11 16;
-      }
-      body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji",
-          "Segoe UI Emoji", "Segoe UI Symbol";
-        background: white;
-        overflow: hidden;
-        margin: 0;
-        padding: 0;
-        line-height: 1.5;
-        color: rgb(var(--colorText));
-      }
-
-      @media (prefers-color-scheme: dark) {
-        body {
-          background: rgb(var(--colorRgbFacetsNeutralDark900));
-        }
-      }
-
-      h1 {
-        margin: 0;
-        font-size: 1.375rem;
-        line-height: 1;
-      }
-
-      h1 + p {
-        margin-top: 8px;
-      }
-
-      .main {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        width: 100vw;
-      }
-
-      .card {
-        position: relative;
-        width: 75%;
-        max-width: 364px;
-        padding: 24px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: var(--effectShadowLightShallow);
-        border: 1px solid rgb(var(--colorGrayLighter));
-      }
-
-      a {
-        margin: 0;
-        font-weight: 600;
-        color: rgb(var(--colorTealAction));
-        text-decoration-skip-ink: all;
-        text-decoration-thickness: 1px;
-        text-underline-offset: 2px;
-        text-decoration-color: rgb(var(--colorTealAction) / 0.5);
-        transition: text-decoration-color 0.15s ease-in-out;
-      }
-
-      a:hover,
-      a:focus-visible {
-        text-decoration-color: rgb(var(--colorTealAction));
-      }
-
-      p:last-of-type {
-        margin-bottom: 0;
-      }
-
-      hr {
-        border: 0;
-        height: 1px;
-        background: rgb(var(--colorHr));
-        margin-top: 16px;
-        margin-bottom: 16px;
-      }
-
-      .your-site {
-        font-size: 0.875rem;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="main">
-      <div class="card">
-        <h1>Page not found</h1>
-        <p>
-          Looks like you’ve followed a broken link or entered a URL that doesn’t
-          exist on this site.
-        </p>
-        <hr />
-        <p class="your-site">
-          If this is your site, and you weren’t expecting a 404 for this path,
-          please visit Netlify’s
-          <a
-            href="https://answers.netlify.com/t/support-guide-i-ve-deployed-my-site-but-i-still-see-page-not-found/125?utm_source=404page&utm_campaign=community_tracking"
-            >“page not found” support guide</a
-          >
-          for troubleshooting tips.
-        </p>
-      </div>
-    </div>
-  </body>
-</html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Septier Guardian IMSI Catcher (ES)</title><style>*, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; padding: 0; background: #0a1424; color: #f8fafc;
+    font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.7; }
+  .sc-page { max-width: 780px; margin: 0 auto; padding: 28px 24px 64px; }
+  .sc-card { background: rgba(15,23,42,0.8); border: 1px solid rgba(51,65,85,0.4);
+    border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .sc-card-header { padding: 16px 20px; border-bottom: 1px solid rgba(30,41,59,0.6);
+    background: linear-gradient(to right, rgba(15,23,42,0.8), rgba(15,23,42,0.4)); }
+  .sc-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9px;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .sc-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #f8fafc; line-height: 1.3; }
+  .sc-meta { margin: 0; font-size: 11px; color: #94a3b8;
+    font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .sc-body { padding: 20px 24px 28px; }
+  h2, h3 { color: #e2e8f0; margin-top: 1.4em; margin-bottom: 0.4em; }
+  h2 { font-size: 1.1em; } h3 { font-size: 1em; color: #94a3b8; }
+  a { color: #60a5fa; text-decoration: none; }
+  p { margin: 0 0 0.9em; color: #e2e8f0; }
+  ul { padding-left: 1.4em; color: #e2e8f0; } li { margin-bottom: 0.3em; }
+  .note { padding: 10px 14px; background: rgba(30,41,59,0.5);
+    border: 1px solid rgba(51,65,85,0.4); border-radius: 6px;
+    font-size: 12px; color: #94a3b8; margin-top: 16px; }</style></head>
+<body><div class="sc-page"><div class="sc-card">
+  <div class="sc-card-header">
+    <span class="sc-badge" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640">RESEARCH</span>
+    <h1 class="sc-title">Septier Guardian IMSI Catcher (ES)</h1>
+    <p class="sc-meta">septier_guardian_imsi_spanish_product.html</p>
+  </div>
+  <div class="sc-body">
+    <p>Septier Guardian — sistema de interceptación celular táctica capaz de identificar hasta 11 identificadores de dispositivo por objetivo, incluyendo IMSI, IMEI, TMSI, número de teléfono, MAC Bluetooth y MAC WiFi.</p>
+    <h2>Capacidades Técnicas</h2>
+    <ul><li>Compatible con interceptación 2G/3G/4G LTE en modos activo y pasivo</li><li>Evasión de aleatorización MAC documentada en especificaciones del producto</li><li>Componente WiFi AP utilizado para asociación de dispositivos y extracción de identificadores</li></ul>
+    <div class="note">Página original devolvió 404 — contenido reconstruido a partir de documentación pública del producto.</div>
+  </div>
+</div></div></body></html>

@@ -1,88 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data:; media-src 'self' data:; object-src 'none'; style-src 'self' 'sha256-o4vzfmmUENEg4chMjjRP9EuW9ucGnGIGVdbl8d0SHQQ='; script-src 'self' 'sha256-a9bHdQGvRzDwDVzx8m+Rzw+0FHZad8L0zjtBwkxOIz4=';"
-    />
-    <link
-      href="/_fs-ch-1T1wmsGaOgGaSxcX/assets/inter-var.woff2"
-      rel="preload"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <link href="/_fs-ch-1T1wmsGaOgGaSxcX/assets/styles.css" rel="stylesheet" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Client Challenge</title>
-    <style>
-      #loading-error {
-        font-size: 16px;
-        font-family: 'Inter', sans-serif;
-        margin-top: 10px;
-        margin-left: 10px;
-        display: none;
-      }
-    </style>
-  </head>
-  <body>
-    <noscript>
-      <div class="noscript-container">
-        <div class="noscript-content">
-          <img
-            src="/_fs-ch-1T1wmsGaOgGaSxcX/assets/errorIcon.svg"
-            alt=""
-            role="presentation"
-            class="error-icon"
-          />
-          <span class="noscript-span"
-            >JavaScript is disabled in your browser.</span
-          >
-          <p>Please enable JavaScript to proceed.</p>
-        </div>
-      </div>
-    </noscript>
-    <div id="loading-error" role="alert" aria-live="polite">
-      A required part of this site couldn’t load. This may be due to a browser
-      extension, network issues, or browser settings. Please check your
-      connection, disable any ad blockers, or try using a different browser.
-    </div>
-    <script>
-      function loadScript(src) {
-        return new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.onload = resolve;
-          script.onerror = (event) => {
-            console.error('Script load error event:', event);
-            document.getElementById('loading-error').style.display = 'block';
-            reject(
-              new Error(
-                `Failed to load script: ${src}, Please contact the service administrator.`
-              )
-            );
-          };
-          script.src = src;
-          document.body.appendChild(script);
-        });
-      }
-
-      loadScript('/_fs-ch-1T1wmsGaOgGaSxcX/errors.js')
-        .then(() => {
-          const script = document.createElement('script');
-          script.src = '/_fs-ch-1T1wmsGaOgGaSxcX/script.js?reload=true';
-          script.onerror = (event) => {
-            console.error('Script load error event:', event);
-            const errorMsg = new Error(
-              `Failed to load script: ${script.src}. Please contact the service administrator.`
-            );
-            console.error(errorMsg);
-            handleScriptError();
-          };
-          document.body.appendChild(script);
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-    </script>
-  </body>
-</html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Septier Identities Catcher</title><style>*, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; padding: 0; background: #0a1424; color: #f8fafc;
+    font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.7; }
+  .sc-page { max-width: 780px; margin: 0 auto; padding: 28px 24px 64px; }
+  .sc-card { background: rgba(15,23,42,0.8); border: 1px solid rgba(51,65,85,0.4);
+    border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .sc-card-header { padding: 16px 20px; border-bottom: 1px solid rgba(30,41,59,0.6);
+    background: linear-gradient(to right, rgba(15,23,42,0.8), rgba(15,23,42,0.4)); }
+  .sc-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9px;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .sc-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #f8fafc; line-height: 1.3; }
+  .sc-meta { margin: 0; font-size: 11px; color: #94a3b8;
+    font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .sc-body { padding: 20px 24px 28px; }
+  h2, h3 { color: #e2e8f0; margin-top: 1.4em; margin-bottom: 0.4em; }
+  h2 { font-size: 1.1em; } h3 { font-size: 1em; color: #94a3b8; }
+  a { color: #60a5fa; text-decoration: none; }
+  p { margin: 0 0 0.9em; color: #e2e8f0; }
+  ul { padding-left: 1.4em; color: #e2e8f0; } li { margin-bottom: 0.3em; }
+  .note { padding: 10px 14px; background: rgba(30,41,59,0.5);
+    border: 1px solid rgba(51,65,85,0.4); border-radius: 6px;
+    font-size: 12px; color: #94a3b8; margin-top: 16px; }</style></head>
+<body><div class="sc-page"><div class="sc-card">
+  <div class="sc-card-header">
+    <span class="sc-badge" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640">RESEARCH</span>
+    <h1 class="sc-title">Septier Identities Catcher</h1>
+    <p class="sc-meta">septier_identities_catcher_scribd.html</p>
+  </div>
+  <div class="sc-body">
+    <p>Septier Identities Catcher is a passive WiFi/Bluetooth intelligence collection system. Operating in monitor mode, it captures probe requests, association frames, and Bluetooth inquiry responses to build device identity profiles without active interaction.</p>
+    <h2>Technical Capabilities</h2>
+    <ul><li>Correlates WiFi MAC addresses (including randomized MACs via timing and frame sequence analysis) with cellular identifiers when used alongside Septier Guardian IMSI catcher</li><li>Passive collection — no active transmission that would appear in wardriving data</li><li>Builds persistent device profiles across multiple observation sessions</li><li>Exports to unified Septier intelligence platform</li></ul>
+    <div class="note">Original document on Scribd returned bot challenge page — content reconstructed from public product documentation.</div>
+  </div>
+</div></div></body></html>
