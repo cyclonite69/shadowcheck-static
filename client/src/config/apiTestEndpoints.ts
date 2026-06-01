@@ -214,6 +214,25 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Geospatial',
+    label: 'Google Maps Tile',
+    description: 'Proxies Google Maps tiles. Requires google_maps_api_key to be configured.',
+    path: '/api/google-maps-tile/:type/:z/:x/:y',
+    method: 'GET',
+    params: [
+      {
+        name: 'type',
+        label: 'Type',
+        defaultValue: 'satellite',
+        type: 'select',
+        options: ['satellite', 'hybrid', 'terrain', 'roadmap'],
+      },
+      { name: 'z', label: 'Zoom', defaultValue: '14', type: 'number' },
+      { name: 'x', label: 'X Tile', defaultValue: '4680', type: 'number' },
+      { name: 'y', label: 'Y Tile', defaultValue: '6340', type: 'number' },
+    ],
+  },
+  {
+    category: 'Geospatial',
     label: 'Google Maps Token',
     path: '/api/google-maps-token',
     method: 'GET',
@@ -544,6 +563,16 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Networks v2',
+    label: 'Universal Filter: Observations (POST)',
+    description:
+      'POST-body variant of the filtered observations query. Accepts full filter payload in request body.',
+    path: '/api/v2/networks/filtered/observations',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "filters": {},\n  "enabled": {},\n  "limit": 100\n}',
+  },
+  {
+    category: 'Networks v2',
     label: 'Universal Filter: List',
     path: '/api/v2/networks/filtered',
     method: 'GET',
@@ -583,6 +612,37 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     params: [
       { name: 'filters', label: 'Filters (JSON)', defaultValue: '{}' },
       { name: 'enabled', label: 'Enabled (JSON)', defaultValue: '{}' },
+    ],
+  },
+
+  // ── Public Analytics ────────────────────────────────────────────────────────
+  {
+    category: 'Public Analytics',
+    label: 'Analytics Public: Filtered',
+    description:
+      'Filtered analytics without auth. Mounted at /analytics-public/filtered — used by the public Kepler/map views.',
+    path: '/analytics-public/filtered',
+    method: 'GET',
+    params: [
+      { name: 'filters', label: 'Filters (JSON)', defaultValue: '{}' },
+      { name: 'enabled', label: 'Enabled (JSON)', defaultValue: '{}' },
+    ],
+  },
+  {
+    category: 'Public Analytics',
+    label: 'Data Quality Metrics',
+    description:
+      'Returns data quality metrics for observations. Optional filter: none | temporal | extreme | duplicate | all.',
+    path: '/api/data-quality',
+    method: 'GET',
+    params: [
+      {
+        name: 'filter',
+        label: 'Filter',
+        defaultValue: 'none',
+        type: 'select',
+        options: ['none', 'temporal', 'extreme', 'duplicate', 'all'],
+      },
     ],
   },
 
@@ -1270,6 +1330,28 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
   },
 
+  // ── Mobile Ingest ─────────────────────────────────────────────────────────
+  {
+    category: 'Mobile Ingest',
+    label: 'Request Upload URL',
+    description:
+      'Generate a presigned S3 URL for mobile SQLite upload. Requires Bearer API key (SHADOWCHECK_API_KEY).',
+    path: '/api/v1/ingest/request-upload',
+    method: 'POST',
+    defaultBody:
+      '{\n  "fileName": "scan.sqlite",\n  "case_id": "case001",\n  "filesize": 1048576\n}',
+  },
+  {
+    category: 'Mobile Ingest',
+    label: 'Complete Upload',
+    description:
+      'Verify S3 upload success and record it for ETL. Requires Bearer API key (SHADOWCHECK_API_KEY).',
+    path: '/api/v1/ingest/complete',
+    method: 'POST',
+    defaultBody:
+      '{\n  "s3Key": "uploads/case001/20260601/upload-id-scan.sqlite",\n  "sourceTag": "mobile-unit-1",\n  "deviceModel": "Pixel 9",\n  "deviceId": "abc123"\n}',
+  },
+
   // ── Admin System ──────────────────────────────────────────────────────────
   {
     category: 'Admin System',
@@ -1674,11 +1756,46 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Analysis',
+    label: 'Network Media Upload',
+    description: 'Upload a media file (image/video) and attach it to a network note.',
+    path: '/api/admin/network-media/upload',
+    method: 'POST',
+    requiresAuth: true,
+  },
+  {
+    category: 'Admin Analysis',
+    label: 'Network Media Download',
+    description: 'Download a specific media attachment by its database ID.',
+    path: '/api/admin/network-media/download/:id',
+    method: 'GET',
+    requiresAuth: true,
+    params: [{ name: 'id', label: 'Media ID', placeholder: '1', type: 'number' }],
+  },
+  {
+    category: 'Admin Analysis',
     label: 'Network Notes (admin)',
     path: '/api/admin/network-notes/:bssid',
     method: 'GET',
     requiresAuth: true,
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
+  },
+  {
+    category: 'Admin Analysis',
+    label: 'Network Notations (legacy)',
+    description: 'Legacy notation list endpoint for a BSSID — use Network Notes for new code.',
+    path: '/api/admin/network-notations/:bssid',
+    method: 'GET',
+    requiresAuth: true,
+    params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
+  },
+  {
+    category: 'Admin Analysis',
+    label: 'Network Notations Add (legacy)',
+    description: 'Legacy add-notation endpoint — use Network Notes Add for new code.',
+    path: '/api/admin/network-notations/add',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "bssid": "00:11:22:33:44:55",\n  "note": ""\n}',
   },
   {
     category: 'Admin Analysis',

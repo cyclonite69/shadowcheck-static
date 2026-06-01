@@ -19,7 +19,8 @@ let statsCache: { data: any; fetchedAt: number } | null = null;
  */
 router.get('/user-stats', async (req: any, res: any, next: any) => {
   const now = Date.now();
-  const fresh = statsCache && now - statsCache.fetchedAt < CACHE_TTL_MS;
+  const forceRefresh = req.query.refresh === 'true';
+  const fresh = statsCache && now - statsCache.fetchedAt < CACHE_TTL_MS && !forceRefresh;
 
   if (fresh) {
     return res.json({ success: true, stats: statsCache!.data, stale: false });

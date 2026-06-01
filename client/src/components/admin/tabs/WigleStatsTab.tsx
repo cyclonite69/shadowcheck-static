@@ -99,20 +99,21 @@ export const WigleStatsTab: React.FC = () => {
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const fetchInFlightRef = useRef(false);
 
-  const fetchStats = async () => {
+  const fetchStats = async (force = false) => {
     if (fetchInFlightRef.current) {
       return;
     }
     fetchInFlightRef.current = true;
     try {
       setLoading(true);
+      const url = force ? '/wigle/user-stats?refresh=true' : '/wigle/user-stats';
       const response = await apiClient.get<{
         success: boolean;
         stats: any;
         stale?: boolean;
         cachedAt?: string;
         error?: string;
-      }>('/wigle/user-stats');
+      }>(url);
       if (response?.success) {
         setStats(response.stats);
         setStale(response.stale ?? false);
@@ -159,7 +160,7 @@ export const WigleStatsTab: React.FC = () => {
           <span className="text-amber-500/70">·</span>
           <span className="text-amber-500/60 italic truncate">{statsError}</span>
           <button
-            onClick={fetchStats}
+            onClick={() => fetchStats(true)}
             className="ml-auto px-3 py-1 bg-amber-700/40 hover:bg-amber-700/70 rounded text-amber-300 font-bold transition-colors whitespace-nowrap"
           >
             Refresh
@@ -172,7 +173,7 @@ export const WigleStatsTab: React.FC = () => {
           <p className="text-sm">{statsError}</p>
           <div className="mt-4 flex gap-2">
             <button
-              onClick={fetchStats}
+              onClick={() => fetchStats(true)}
               className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
             >
               RETRY
@@ -181,7 +182,7 @@ export const WigleStatsTab: React.FC = () => {
               <button
                 onClick={async () => {
                   await apiClient.post('/wigle/quota-reset', {});
-                  fetchStats();
+                  fetchStats(true);
                 }}
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors"
               >
