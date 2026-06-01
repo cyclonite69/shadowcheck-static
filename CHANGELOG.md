@@ -962,7 +962,7 @@
 * **wigle:** restore WiGLE-only and local-match badges on map tooltips ([4b84f0d](https://github.com/cyclonite69/shadowcheck-web/commit/4b84f0d54d2e941b9d2e3cfcc1d09f24b4080060))
 * **wigle:** seed field data bssids when wigle datasets are off ([3e33420](https://github.com/cyclonite69/shadowcheck-web/commit/3e33420b848c91033d5c7008f51b2b1e648eadbf))
 * **wigle:** serve cached detail before live lookup ([e86cb52](https://github.com/cyclonite69/shadowcheck-web/commit/e86cb52ef3506ab988727f67e7d9fe8d349bdb1c))
-* **wigle:** short-circuit fetchUpstream for locally-administered/randomized MACs ([ef18333](https://github.com/cyclonite69/shadowcheck-web/commit/ef1833379ef9bc824a20a82899ce67d66a34aced))
+* **wigle:** short-circuit fetchUpstream for locally-administered/randomized MACs ([b2ef8a6](https://github.com/cyclonite69/shadowcheck-web/commit/b2ef8a65262b5d69a9904f40bc85d5ee14c058e5))
 * **wigle:** stabilize map layer rendering and event binding ([1ce43ce](https://github.com/cyclonite69/shadowcheck-web/commit/1ce43ce462bc4c33e07d59e1370263ff519a27d8))
 * **wigle:** standardize KML layer initialization via callback ([f52f6b2](https://github.com/cyclonite69/shadowcheck-web/commit/f52f6b2c160f2fa4da098cbd5b63e7ae979bc039))
 * **wigle:** swap v3 observation timestamps and fix address locality ([9d73034](https://github.com/cyclonite69/shadowcheck-web/commit/9d73034c939a3ed385c89f6437a286e4e278d66a))
