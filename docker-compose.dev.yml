@@ -31,6 +31,8 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     command: npm run dev # Use nodemon for hot-reload
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health >/dev/null 2>&1 || exit 1"]
 
   redis:
     container_name: shadowcheck_web_redis_dev
