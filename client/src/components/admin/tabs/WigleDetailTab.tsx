@@ -1,14 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { AdminCard } from '../components/AdminCard';
-import { useWigleDetail, type WigleDetailType } from '../hooks/useWigleDetail';
-import { useWigleFileUpload } from '../../../hooks/useWigleFileUpload';
-import { useWigleRuns } from '../hooks/useWigleRuns';
-import { wigleApi } from '../../../api/wigleApi';
-import { apiClient } from '../../../api/client';
-import { renderNetworkTooltip } from '../../../utils/geospatial/renderNetworkTooltip';
-import { normalizeTooltipData } from '../../../utils/geospatial/tooltipDataNormalizer';
+import { type WigleDetailType } from '../hooks/useWigleDetail';
 import { formatShortDate } from '../../../utils/formatDate';
 import { V3EnrichmentManagerTable } from './data-import/V3EnrichmentManagerTable';
+import { useWigleDetailLookup } from '../hooks/useWigleDetailLookup';
+import { useWigleDetectionEvidence } from '../hooks/useWigleDetectionEvidence';
+import { useWigleTooltipPreview } from '../hooks/useWigleTooltipPreview';
+import { useWigleEnrichmentControls } from '../hooks/useWigleEnrichmentControls';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -62,9 +60,11 @@ const formatDeviceType = (deviceType: string): string => {
 };
 
 export const WigleDetailTab: React.FC = () => {
-  const [netid, setNetid] = useState('');
-  const [detailType, setDetailType] = useState<WigleDetailType>('wifi');
   const {
+    netid,
+    setNetid,
+    detailType,
+    setDetailType,
     loading,
     error,
     data,
@@ -73,191 +73,33 @@ export const WigleDetailTab: React.FC = () => {
     newObservations,
     totalObservations,
     fetchDetail,
-  } = useWigleDetail();
-  const { uploadError, uploadSuccess, uploadFile, reset } = useWigleFileUpload();
+    uploadError,
+    uploadSuccess,
+    handleSearch,
+    handleFileUpload,
+  } = useWigleDetailLookup();
 
-  const [pendingEnrichment, setPendingEnrichment] = useState<number | null>(null);
-  const [isManualMode, setIsManualMode] = useState(false);
-  const [manualBssids, setManualBssids] = useState('');
-  const [selectedObs, setSelectedObs] = useState<(typeof observations)[0] | null>(null);
-  const [detectionEvidence, setDetectionEvidence] = useState<any[]>([]);
-  const [detectionLoading, setDetectionLoading] = useState(false);
-  const tooltipContainerRef = useRef<HTMLDivElement>(null);
-  const [tooltipHtml, setTooltipHtml] = useState<string | null>(null);
+  const { selectedObs, setSelectedObs, detectionEvidence, detectionLoading } =
+    useWigleDetectionEvidence(data);
 
-  useEffect(() => {
-    setSelectedObs(null);
-    // Fetch detection evidence when data changes
-    if (data?.networkId) {
-      const bssid = data.networkId.toUpperCase();
-      setDetectionLoading(true);
-      apiClient
-        .get<any>(`/admin/networks/${bssid}/detection-evidence`)
-        .then((response) => {
-          setDetectionEvidence(response?.evidence || []);
-        })
-        .catch((_err) => {
-          setDetectionEvidence([]);
-        })
-        .finally(() => {
-          setDetectionLoading(false);
-        });
-    } else {
-      setDetectionEvidence([]);
-    }
-  }, [data]);
-
-  useEffect(() => {
-    const el = tooltipContainerRef.current;
-    if (!el || !data) {
-      setTooltipHtml(null);
-      return;
-    }
-    const normalized = normalizeTooltipData({
-      ...data,
-      netid: data.networkId,
-      ssid: selectedObs?.ssid || data.ssid || data.name,
-      type:
-        data.type?.toLowerCase() === 'wifi'
-          ? 'W'
-          : data.type?.toLowerCase() === 'gsm'
-            ? 'G'
-            : data.type?.toLowerCase() === 'lte'
-              ? 'L'
-              : data.type?.toLowerCase() === 'ble'
-                ? 'E'
-                : data.type?.toLowerCase() === 'bt'
-                  ? 'B'
-                  : 'W',
-      observation_count: observations?.length || 0,
-      accuracy: data.locationClusters?.[0]?.accuracy || null,
-      // Only include geocoded_address, not the full streetAddress spread to avoid duplication
-      geocoded_address: data.streetAddress?.housenumber
-        ? `${data.streetAddress.housenumber} ${data.streetAddress.road}, ${data.streetAddress.city}, ${data.streetAddress.region} ${data.streetAddress.postalcode}`
-        : undefined,
-      city: data.streetAddress?.city,
-      region: data.streetAddress?.region,
-      qos: data.bestClusterWiGLEQoS,
-      comment: data.comment,
-      // Always include network-level timestamps
-      first_seen: data.firstSeen,
-      last_seen: data.lastSeen,
-      // When observation is selected, also include the specific observation time
-      ...(selectedObs && {
-        lat: selectedObs.latitude,
-        lon: selectedObs.longitude,
-        signal: selectedObs.signal,
-        altitude: selectedObs.altitude,
-        time: selectedObs.observed_at, // This becomes the "Seen" timestamp
-      }),
-    });
-    setTooltipHtml(renderNetworkTooltip({ ...normalized, triggerElement: el }));
-  }, [data, selectedObs, observations]);
+  const { tooltipContainerRef, tooltipHtml } = useWigleTooltipPreview({
+    data,
+    selectedObs,
+    observations,
+  });
 
   const {
-    runs,
-    loading: runsLoading,
+    pendingEnrichment,
+    isManualMode,
+    setIsManualMode,
+    activeEnrichmentRun,
+    runsLoading,
     actionLoading,
-    refresh: refreshRuns,
-  } = useWigleRuns({ limit: 10 });
-
-  // Derived: the enrichment run that is actively looping right now
-  const activeEnrichmentRun =
-    runs.find(
-      (r) => r.status === 'running' && (r.source === 'v3_batch' || r.source === 'v3_manual')
-    ) ?? null;
-
-  const stopEnrichment = async () => {
-    if (!activeEnrichmentRun) return;
-    try {
-      await wigleApi.cancelImportRun(activeEnrichmentRun.id);
-      await refreshRuns();
-    } catch (e: any) {
-      alert(`Failed to stop enrichment: ${e.message}`);
-    }
-  };
-
-  const loadEnrichmentStats = async () => {
-    try {
-      const data = await wigleApi.getEnrichmentStats();
-      if (data?.ok) {
-        setPendingEnrichment(data.pendingCount);
-      }
-    } catch (e) {
-      console.error('Failed to load enrichment stats', e);
-    }
-  };
-
-  useEffect(() => {
-    void loadEnrichmentStats();
-  }, []);
-
-  const handleEnrichmentConflict = async <T,>(
-    err: any,
-    retry: (bssids?: string[]) => Promise<T>,
-    bssids?: string[]
-  ): Promise<T | undefined> => {
-    if (err?.status !== 409) {
-      alert(`Failed to start enrichment: ${err.message}`);
-      return undefined;
-    }
-    const match = String(err.message).match(/#(\d+)/);
-    const stuckRunId = match ? Number(match[1]) : null;
-    const label = stuckRunId ? `Run #${stuckRunId} is stuck` : 'An enrichment run is stuck';
-    if (!window.confirm(`${label} (status: running). Force-clear it and start a new run?`)) {
-      return undefined;
-    }
-    try {
-      if (stuckRunId) await wigleApi.forceClearEnrichmentRun(stuckRunId);
-      return await retry(bssids);
-    } catch (e2: any) {
-      alert(`Failed after force-clear: ${e2.message}`);
-      throw e2;
-    }
-  };
-
-  const handleStartEnrichment = async () => {
-    const bssids = isManualMode
-      ? manualBssids
-          .split(/[\n,]/)
-          .map((s) => s.trim())
-          .filter((s) => s.length > 5)
-      : undefined;
-
-    const doStart = async (b?: string[]) => {
-      const data = await wigleApi.startEnrichment(b);
-      if (data?.ok) {
-        await refreshRuns();
-        void loadEnrichmentStats();
-        if (isManualMode) setManualBssids('');
-      }
-    };
-
-    try {
-      await doStart(bssids);
-    } catch (e: any) {
-      await handleEnrichmentConflict(e, doStart, bssids);
-    }
-  };
-
-  const handleSearch = (shouldImport: boolean) => {
-    reset();
-    fetchDetail(netid, shouldImport, detailType);
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const networkId = await uploadFile(file);
-    if (networkId) {
-      setNetid(networkId);
-      fetchDetail(networkId, false, detailType);
-    }
-
-    // Reset input
-    event.target.value = '';
-  };
+    stopEnrichment,
+    handleStartEnrichment,
+    handleManualEnrich,
+    handleManualSelect,
+  } = useWigleEnrichmentControls({ detailType, fetchDetail, setNetid });
 
   return (
     <div className="space-y-6">
@@ -826,26 +668,8 @@ export const WigleDetailTab: React.FC = () => {
 
             {isManualMode ? (
               <V3EnrichmentManagerTable
-                onEnrich={async (bssids) => {
-                  const doStart = async (b?: string[]) => {
-                    const data = await wigleApi.startEnrichment(b);
-                    if (data?.ok) {
-                      await refreshRuns();
-                      void loadEnrichmentStats();
-                    }
-                    return data;
-                  };
-                  try {
-                    return await doStart(bssids);
-                  } catch (e: any) {
-                    return (await handleEnrichmentConflict(e, doStart, bssids)) ?? undefined;
-                  }
-                }}
-                onSelect={(bssid) => {
-                  setNetid(bssid);
-                  fetchDetail(bssid, false, detailType);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onEnrich={handleManualEnrich}
+                onSelect={handleManualSelect}
                 isLoading={actionLoading}
               />
             ) : (

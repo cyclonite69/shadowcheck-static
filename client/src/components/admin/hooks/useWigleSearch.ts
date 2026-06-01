@@ -44,30 +44,6 @@ export const useWigleSearch = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    const handleScroll = () => {
-      if (searchLoading || !hasMorePages) return;
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        if (scrollHeight - scrollTop <= clientHeight + 200) {
-          loadMoreResults(false);
-        }
-      }, 100);
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(timeoutId);
-    };
-  }, [hasMorePages, searchLoading, loadMoreResults]);
-
   const loadApiStatus = async () => {
     try {
       const data = await wigleApi.getApiStatus();
@@ -255,6 +231,30 @@ export const useWigleSearch = () => {
   };
 
   const hasMorePages = searchAfter !== null;
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const handleScroll = () => {
+      if (searchLoading || !hasMorePages) return;
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        if (scrollHeight - scrollTop <= clientHeight + 200) {
+          loadMoreResults(false);
+        }
+      }, 100);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, [hasMorePages, searchLoading, loadMoreResults]);
 
   const effectiveLoadedCount =
     searchResults?.run?.rowsReturned ?? searchResults?.loadedCount ?? allResults.length;

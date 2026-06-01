@@ -1,0 +1,76 @@
+import { useEffect, useState } from 'react';
+import type React from 'react';
+import { apiClient } from '../../../api/client';
+import type { WigleDetailData } from './useWigleDetail';
+
+export interface WigleObservation {
+  id: number | string;
+  observed_at: string;
+  latitude: number;
+  longitude: number;
+  signal: number;
+  altitude?: number | null;
+  ssid?: string | null;
+}
+
+export interface WigleDetectionEvidence {
+  device_type: string;
+  detected_at: string;
+  threat_score: number;
+  confidence: number;
+  detection_method?: string | null;
+  notes?: string | null;
+  matched_signals?: string[] | null;
+  false_positive?: boolean;
+  fp_reason?: string | null;
+  tags?: string[] | Record<string, unknown> | null;
+}
+
+interface DetectionEvidenceResponse {
+  evidence?: WigleDetectionEvidence[];
+}
+
+export interface UseWigleDetectionEvidenceResult {
+  selectedObs: WigleObservation | null;
+  setSelectedObs: React.Dispatch<React.SetStateAction<WigleObservation | null>>;
+  detectionEvidence: WigleDetectionEvidence[];
+  detectionLoading: boolean;
+}
+
+export const useWigleDetectionEvidence = (
+  data: WigleDetailData | null
+): UseWigleDetectionEvidenceResult => {
+  const [selectedObs, setSelectedObs] = useState<WigleObservation | null>(null);
+  const [detectionEvidence, setDetectionEvidence] = useState<WigleDetectionEvidence[]>([]);
+  const [detectionLoading, setDetectionLoading] = useState(false);
+
+  useEffect(() => {
+    setSelectedObs(null);
+
+    if (!data?.networkId) {
+      setDetectionEvidence([]);
+      return;
+    }
+
+    const bssid = data.networkId.toUpperCase();
+    setDetectionLoading(true);
+    apiClient
+      .get<DetectionEvidenceResponse>(`/admin/networks/${bssid}/detection-evidence`)
+      .then((response) => {
+        setDetectionEvidence(response?.evidence || []);
+      })
+      .catch(() => {
+        setDetectionEvidence([]);
+      })
+      .finally(() => {
+        setDetectionLoading(false);
+      });
+  }, [data]);
+
+  return {
+    selectedObs,
+    setSelectedObs,
+    detectionEvidence,
+    detectionLoading,
+  };
+};
