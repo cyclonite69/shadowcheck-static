@@ -1,0 +1,11 @@
+# Third-party API keys embedded in scraped vendor HTML reference documents.
+# These are keys belonging to the vendor websites (Google Maps, reCAPTCHA, Shopify,
+# Netlify), not ShadowCheck secrets. The files are read-only reference material.
+docs/references/vendor_docs/verint_government_solutions.html:generic-api-key:1
+docs/references/vendor_docs/verint_government_solutions.html:generic-api-key:977
+docs/references/vendor_docs/verint_government_solutions.html:gcp-api-key:977
+docs/references/vendor_docs/gdit_network_capabilities.html:jwt:71
+docs/references/vendor_docs/norsat_products_index.html:generic-api-key:58
+docs/references/vendor_docs/norsat_products_index.html:generic-api-key:1227
+docs/references/vendor_docs/norsat_products_index.html:generic-api-key:4512
+docs/references/vendor_docs/norsat_products_index.html:gcp-api-key:4499

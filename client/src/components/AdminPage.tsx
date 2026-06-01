@@ -16,6 +16,7 @@ import { WigleStatsTab } from './admin/tabs/WigleStatsTab';
 import { DbStatsTab } from './admin/tabs/DbStatsTab';
 import { adminApi } from '../api/adminApi';
 import type { AdminRuntimeConfig } from '../types/admin';
+import { SigintLibraryTab } from './admin/tabs/SigintLibraryTab';
 
 const ConfigurationTab = lazy(() => import('./admin/tabs/ConfigurationTab'));
 const MLTrainingTab = lazy(() => import('./admin/tabs/MLTrainingTab'));
@@ -228,6 +229,21 @@ const SearchIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const BookIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </svg>
+);
+
 const DetailIcon = ({ size = 24, className = '' }) => (
   <svg
     viewBox="0 0 24 24"
@@ -302,6 +318,7 @@ const AdminPage: React.FC = () => {
     { id: 'aws', label: 'AWS', icon: CloudIcon },
     ...(showPgAdminTab ? [{ id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon }] : []),
     { id: 'users', label: 'Users', icon: UsersIcon },
+    { id: 'sigint-library', label: 'SIGINT Library', icon: BookIcon },
   ];
 
   useEffect(() => {
@@ -386,6 +403,7 @@ const AdminPage: React.FC = () => {
           {activeTab === 'aws' && <AwsTab />}
           {activeTab === 'pgadmin' && <PgAdminTab />}
           {activeTab === 'users' && <UsersTab />}
+          {activeTab === 'sigint-library' && <SigintLibraryTab />}
         </div>
       </div>
     </div>

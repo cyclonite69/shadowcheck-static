@@ -349,6 +349,7 @@ export const renderNetworkTooltip = (props: any): any => {
 
   const surveillanceDeviceType = (props as any).surveillance_device_type;
   const surveillanceMethod = (props as any).surveillance_detection_method;
+  const surveillanceType = (props as any).surveillance_type as string | null | undefined;
 
   const fieldRows = [
     isStingray ? fieldRow('SIGINT Type', 'Stingray') : '',
@@ -544,6 +545,20 @@ export const renderNetworkTooltip = (props: any): any => {
   ${
     !isMissingValue(props.notes)
       ? `<div style="padding:4px 12px 6px;font-size:10px;color:rgba(255,255,255,0.45);font-style:italic;border-top:1px solid rgba(255,255,255,0.05);">${normalizeDisplay(props.notes)}</div>`
+      : ''
+  }
+
+  ${
+    surveillanceType
+      ? `<button
+          data-vendor-intel="${surveillanceType}"
+          style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 12px;background:rgba(220,38,38,0.08);border:0;border-top:1px solid rgba(220,38,38,0.2);border-radius:0 0 8px 8px;cursor:pointer;color:#dc2626;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;"
+          onmouseover="this.style.background='rgba(220,38,38,0.15)'"
+          onmouseout="this.style.background='rgba(220,38,38,0.08)'"
+        >
+          <span>&#9888; Vendor Intel</span>
+          <span style="font-size:12px;">&#8250;</span>
+        </button>`
       : ''
   }
 

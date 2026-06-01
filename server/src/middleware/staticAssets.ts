@@ -20,6 +20,20 @@ function mountStaticAssets(app: Express, distDir: string): void {
     })
   );
 
+  // Serve vendor intelligence reference documents (HTML/PDF) from docs/references/vendor_docs/
+  // Mounted at /vendor-docs/ — kept out of the build artifact intentionally.
+  // Uses process.cwd() (not __dirname) because __dirname resolves to the compiled output path
+  // (dist/server/server/src/middleware/) making relative traversal error-prone. The server is
+  // always started from the project root (Docker WORKDIR /app, npm start), so cwd() is stable.
+  const vendorDocsPath = path.resolve(process.cwd(), 'docs/references/vendor_docs');
+  app.use(
+    '/vendor-docs',
+    express.static(vendorDocsPath, {
+      maxAge: '1d',
+      etag: true,
+    })
+  );
+
   // Serve other static files with short cache (index.html, favicon, etc.)
   app.use(
     express.static(distDir, {

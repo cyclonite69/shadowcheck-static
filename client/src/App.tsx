@@ -6,6 +6,8 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LoginForm } from './components/auth/LoginForm';
 import { ChangePasswordForm } from './components/auth/ChangePasswordForm';
 import StartPage from './components/StartPage';
+import { VendorIntelDrawer } from './components/vendor-intel/VendorIntelDrawer';
+import { useVendorIntelClickHandler } from './hooks/useVendorIntelClickHandler';
 
 // Eager load: lightweight pages that are commonly accessed first
 import DashboardPage from './components/DashboardPage';
@@ -39,6 +41,7 @@ function RouteLoadingFallback() {
 function AppContent() {
   const { loading, login, isAuthenticated, mustChangePassword, pendingUsername, refreshAuth } =
     useAuth();
+  useVendorIntelClickHandler();
   const [error, setError] = useState('');
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [forcedCurrentPassword, setForcedCurrentPassword] = useState('');
@@ -104,6 +107,7 @@ function AppContent() {
         Skip to main content
       </a>
       <Navigation />
+      <VendorIntelDrawer />
       <main id="main-content" className="flex h-screen">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
