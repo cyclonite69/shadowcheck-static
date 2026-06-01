@@ -2,6 +2,30 @@
 
 Update this file manually when handing off a task or starting a new session. Agents read it at session start to avoid stepping on in-progress work.
 
+## Current Operating Environment (as of 2026-05-31)
+
+**Mode: Local Development Only**
+
+- All work is running against local Docker Compose stack
+- PostgreSQL: shadowcheck_postgres_local (Docker container)
+- Redis: shadowcheck_web_redis (Docker container)
+- API: shadowcheck_web_api (port 3001) + api_dev (nodemon)
+- Frontend: shadowcheck_web_frontend (port 5173)
+- AWS Secrets Manager: UNAVAILABLE — expected, not a bug
+  (SecretsManager unavailable warnings in logs are normal)
+- EC2/SSM: NOT IN USE — do not attempt SSM connections
+- Local secrets load from: .env.local via loadEnv canonical helper
+- DB credentials: see docker-compose.yml environment section
+- Admin DB user: shadowcheck_admin / shadowcheck_db
+
+**What this means for agents:**
+
+- Never attempt SSM tunnel or EC2 connections
+- Never treat SecretsManager warnings as errors requiring fixes
+- All migrations run against shadowcheck_postgres_local container
+- Use docker exec -i shadowcheck_postgres_local psql for DB access
+- sclocal alias starts the full local dev stack
+
 ---
 
 ## Current Status
