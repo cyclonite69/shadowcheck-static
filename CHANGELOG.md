@@ -256,6 +256,7 @@
 * **etl:** restore enrich-geocoding structure broken by mid-function paste ([0ea8517](https://github.com/cyclonite69/shadowcheck-web/commit/0ea8517d38e5107a88676b6e12025d2fabcace88))
 * **etl:** restore folded pipeline compatibility ([e0e5375](https://github.com/cyclonite69/shadowcheck-web/commit/e0e537578a932864ce30eff1d845fa316da1ad8e))
 * exclude (0,0) default coordinates from distance calculations ([7962797](https://github.com/cyclonite69/shadowcheck-web/commit/7962797959c7827097fd39df7e2cbe5c56eb40c5))
+* exclude /vendor-docs from SPA fallback ([e90b674](https://github.com/cyclonite69/shadowcheck-web/commit/e90b674cea441046b17e4ea93e957c46e3f2bc93))
 * exclude cell tower IDs from v4 scoring (length > 17) ([02a5ffb](https://github.com/cyclonite69/shadowcheck-web/commit/02a5ffb522b1423f38693d49bd1666911f7f6e74))
 * exclude quality-filtered observations from v2 geospatial queries ([5c1bc39](https://github.com/cyclonite69/shadowcheck-web/commit/5c1bc3937496e000fe4385ab60a88211bdb48366))
 * explicit cert restoration and pgadmin permissions in scs_rebuild ([01e6e91](https://github.com/cyclonite69/shadowcheck-web/commit/01e6e916d5eb436e6e6bbe645a876aa86151f3fa))

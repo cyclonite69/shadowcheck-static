@@ -9,7 +9,8 @@ function createSpaFallback(distDir: string): RequestHandler {
     if (
       req.path.startsWith('/api') ||
       req.path.startsWith('/demo') ||
-      req.path.startsWith('/analytics-public')
+      req.path.startsWith('/analytics-public') ||
+      req.path.startsWith('/vendor-docs')
     ) {
       return res.status(404).json({ error: 'Not found' });
     }
