@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import type { NetworkRow, SortState } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
+import type { ColumnBadgeConfig } from '../../../types/badgeConfig';
 import { MapStatusBar } from '../MapStatusBar';
 import { NetworkExplorerCard } from './NetworkExplorerCard';
 import { NetworkExplorerHeader } from './NetworkExplorerHeader';
@@ -61,6 +62,7 @@ interface NetworkExplorerSectionProps {
   nonRenderableBssids?: string[];
   missingDbBssids?: string[];
   siblingHydrating?: boolean;
+  badgeConfigs?: Record<string, ColumnBadgeConfig>;
 }
 
 export const NetworkExplorerSection = ({
@@ -113,6 +115,7 @@ export const NetworkExplorerSection = ({
   nonRenderableBssids = [],
   missingDbBssids = [],
   siblingHydrating = false,
+  badgeConfigs,
 }: NetworkExplorerSectionProps) => {
   const topologyMismatch =
     hydrationFailedBssids.length > 0 ||
@@ -180,6 +183,7 @@ export const NetworkExplorerSection = ({
         onToggleColumnSelector={onToggleColumnSelector}
         onToggleColumn={onToggleColumn}
         onMoveColumn={onMoveColumn}
+        badgeConfigs={badgeConfigs}
         siblingGroupCount={allGroupIds.size}
         allCollapsed={collapseAllActive}
         onToggleSiblingGroups={handleToggleSiblingGroups}
@@ -251,6 +255,7 @@ export const NetworkExplorerSection = ({
         onLoadMore={onLoadMore}
         onHorizontalScroll={setTableScrollLeft}
         quickSearch={quickSearch}
+        badgeConfigs={badgeConfigs}
       />
 
       <MapStatusBar

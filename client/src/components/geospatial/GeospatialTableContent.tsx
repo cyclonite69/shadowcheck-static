@@ -1,5 +1,6 @@
 import { NetworkExplorerSection } from './panels/NetworkExplorerSection';
 import { NETWORK_COLUMNS } from '../../constants/network';
+import { useBadgeConfigs } from '../badgeStudio';
 
 interface GeospatialTableContentProps {
   state: any;
@@ -73,59 +74,64 @@ const GeospatialTableContentComponent = ({
   nonRenderableBssids = [],
   missingDbBssids = [],
   siblingHydrating = false,
-}: GeospatialTableContentProps) => (
-  <NetworkExplorerSection
-    expensiveSort={expensiveSort}
-    quickSearch={state.quickSearch}
-    onQuickSearchChange={state.setQuickSearch}
-    filtersOpen={state.filtersOpen}
-    onToggleFilters={state.toggleFilters}
-    showColumnSelector={state.showColumnSelector}
-    columnDropdownRef={state.columnDropdownRef}
-    visibleColumns={state.visibleColumns}
-    columns={NETWORK_COLUMNS}
-    onToggleColumnSelector={state.toggleColumnSelector}
-    onToggleColumn={state.toggleColumn}
-    onMoveColumn={state.moveColumn}
-    sort={sort}
-    allSelected={allSelected}
-    someSelected={someSelected}
-    onToggleSelectAll={toggleSelectAll}
-    onColumnSort={state.handleColumnSort}
-    onReorderColumns={state.reorderColumns}
-    tableContainerRef={state.tableContainerRef}
-    loadingNetworks={loadingNetworks}
-    filteredNetworks={filteredNetworks}
-    error={error}
-    selectedNetworks={selectedNetworks}
-    linkedSiblingBssids={linkedSiblingBssids}
-    siblingGroupMap={visibleSiblingGroupMap}
-    selectedAnchorBssid={selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null}
-    selectedAnchorHasLinkedSiblings={linkedSiblingBssids.size > 0}
-    onSelectExclusive={selectNetworkExclusive}
-    onSelectGroup={onSelectGroup}
-    onOpenContextMenu={onOpenContextMenu}
-    onToggleSelectNetwork={toggleSelectNetwork}
-    isLoadingMore={isLoadingMore}
-    hasMore={pagination.hasMore}
-    onLoadMore={loadMore}
-    visibleCount={filteredNetworks.length}
-    networkTruncated={networkTruncated}
-    networkTotal={networkTotal}
-    selectedCount={selectedNetworks.size}
-    observationCount={state.observationCount}
-    observationsTruncated={observationsTruncated}
-    observationsTotal={observationsTotal}
-    renderBudgetExceeded={renderBudgetExceeded}
-    renderBudget={renderBudget}
-    loadingObservations={loadingObservations}
-    hydrationFailedBssids={hydrationFailedBssids}
-    unresolvedSearchBssids={unresolvedSearchBssids}
-    nonRenderableBssids={nonRenderableBssids}
-    missingDbBssids={missingDbBssids}
-    siblingHydrating={siblingHydrating}
-  />
-);
+}: GeospatialTableContentProps) => {
+  const { configs: badgeConfigs } = useBadgeConfigs();
+
+  return (
+    <NetworkExplorerSection
+      expensiveSort={expensiveSort}
+      quickSearch={state.quickSearch}
+      onQuickSearchChange={state.setQuickSearch}
+      filtersOpen={state.filtersOpen}
+      onToggleFilters={state.toggleFilters}
+      showColumnSelector={state.showColumnSelector}
+      columnDropdownRef={state.columnDropdownRef}
+      visibleColumns={state.visibleColumns}
+      columns={NETWORK_COLUMNS}
+      onToggleColumnSelector={state.toggleColumnSelector}
+      onToggleColumn={state.toggleColumn}
+      onMoveColumn={state.moveColumn}
+      sort={sort}
+      allSelected={allSelected}
+      someSelected={someSelected}
+      onToggleSelectAll={toggleSelectAll}
+      onColumnSort={state.handleColumnSort}
+      onReorderColumns={state.reorderColumns}
+      tableContainerRef={state.tableContainerRef}
+      loadingNetworks={loadingNetworks}
+      filteredNetworks={filteredNetworks}
+      error={error}
+      selectedNetworks={selectedNetworks}
+      linkedSiblingBssids={linkedSiblingBssids}
+      siblingGroupMap={visibleSiblingGroupMap}
+      selectedAnchorBssid={selectedNetworks.size === 1 ? Array.from(selectedNetworks)[0] : null}
+      selectedAnchorHasLinkedSiblings={linkedSiblingBssids.size > 0}
+      onSelectExclusive={selectNetworkExclusive}
+      onSelectGroup={onSelectGroup}
+      onOpenContextMenu={onOpenContextMenu}
+      onToggleSelectNetwork={toggleSelectNetwork}
+      isLoadingMore={isLoadingMore}
+      hasMore={pagination.hasMore}
+      onLoadMore={loadMore}
+      visibleCount={filteredNetworks.length}
+      networkTruncated={networkTruncated}
+      networkTotal={networkTotal}
+      selectedCount={selectedNetworks.size}
+      observationCount={state.observationCount}
+      observationsTruncated={observationsTruncated}
+      observationsTotal={observationsTotal}
+      renderBudgetExceeded={renderBudgetExceeded}
+      renderBudget={renderBudget}
+      loadingObservations={loadingObservations}
+      hydrationFailedBssids={hydrationFailedBssids}
+      unresolvedSearchBssids={unresolvedSearchBssids}
+      nonRenderableBssids={nonRenderableBssids}
+      missingDbBssids={missingDbBssids}
+      siblingHydrating={siblingHydrating}
+      badgeConfigs={badgeConfigs}
+    />
+  );
+};
 
 import { memo } from 'react';
 export const GeospatialTableContent = memo(GeospatialTableContentComponent);

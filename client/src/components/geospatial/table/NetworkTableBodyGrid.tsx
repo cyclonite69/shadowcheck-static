@@ -1,6 +1,7 @@
 import React from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { NetworkRow } from '../../../types/network';
+import type { ColumnBadgeConfig } from '../../../types/badgeConfig';
 import {
   NETWORK_TABLE_COLUMN_WIDTHS,
   NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS,
@@ -33,6 +34,7 @@ interface NetworkTableBodyGridProps {
   onLoadMore: () => void;
   onHorizontalScroll?: (scrollLeft: number) => void;
   quickSearch?: string;
+  badgeConfigs?: Record<string, ColumnBadgeConfig>;
 }
 
 export const NetworkTableBodyGrid = ({
@@ -58,6 +60,7 @@ export const NetworkTableBodyGrid = ({
   onLoadMore,
   onHorizontalScroll,
   quickSearch = '',
+  badgeConfigs,
 }: NetworkTableBodyGridProps) => {
   // Canonical membership from siblingGroupMap; row presence is a render concern only.
   const patternGroups = React.useMemo(() => {
@@ -404,6 +407,7 @@ export const NetworkTableBodyGrid = ({
               patternSiblingCount={patternSiblingCount}
               isPatternGroupCollapsed={isPatternGroupCollapsed}
               onTogglePatternGroup={onToggleCollapse}
+              badgeConfigs={badgeConfigs}
             />
           );
         })}

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { NetworkRow } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
+import type { ColumnBadgeConfig } from '../../../types/badgeConfig';
 import { ColumnSelector } from '../table/ColumnSelector';
 
 interface NetworkExplorerHeaderProps {
@@ -16,6 +17,7 @@ interface NetworkExplorerHeaderProps {
   onToggleColumnSelector: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
   onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
+  badgeConfigs?: Record<string, ColumnBadgeConfig>;
   siblingGroupCount?: number;
   allCollapsed?: boolean;
   onToggleSiblingGroups?: () => void;
@@ -36,6 +38,7 @@ export const NetworkExplorerHeader = ({
   onToggleColumnSelector,
   onToggleColumn,
   onMoveColumn,
+  badgeConfigs,
   siblingGroupCount = 0,
   allCollapsed = false,
   onToggleSiblingGroups,
@@ -254,6 +257,7 @@ export const NetworkExplorerHeader = ({
           onToggle={onToggleColumnSelector}
           onToggleColumn={onToggleColumn}
           onMoveColumn={onMoveColumn}
+          badgeConfigs={badgeConfigs}
         />
       </div>
     </div>

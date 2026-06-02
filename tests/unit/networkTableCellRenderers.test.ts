@@ -1,4 +1,5 @@
 import type { NetworkRow } from '../../client/src/types/network';
+import type { ColumnBadgeConfig } from '../../client/src/types/badgeConfig';
 import { NETWORK_COLUMNS } from '../../client/src/constants/network';
 import { renderNetworkTableCell } from '../../client/src/components/geospatial/networkTable/cellRenderers';
 import React from 'react';
@@ -191,6 +192,77 @@ describe('renderNetworkTableCell', () => {
 
     expect(getText(result.content)).toBe('-83.6975');
     expect(result.title).toBe('Longitude: -83.697534°');
+  });
+
+  it('returns the existing raw renderer when badge config is missing', () => {
+    const result = renderNetworkTableCell(makeContext('threat_score', 92));
+
+    expect(getText(result.content)).toBe('92.0');
+  });
+
+  it('returns the existing raw renderer when badge config is disabled', () => {
+    const disabledConfig: ColumnBadgeConfig = {
+      column: 'threat_score',
+      enabled: false,
+      shape: 'pill',
+      fill: 'solid',
+      size: 'normal',
+      defaultColor: { accentColor: '#ef4444' },
+      rules: [{ match: { type: 'any' }, color: { accentColor: '#ef4444' }, label: 'BADGE' }],
+    };
+
+    const result = renderNetworkTableCell(makeContext('threat_score', 92), {
+      threat_score: disabledConfig,
+    });
+
+    expect(getText(result.content)).toBe('92.0');
+  });
+
+  it('renders through BadgeRenderer when badge config is enabled', () => {
+    const enabledConfig: ColumnBadgeConfig = {
+      column: 'threat_score',
+      enabled: true,
+      shape: 'pill',
+      fill: 'solid',
+      size: 'normal',
+      defaultColor: { accentColor: '#ef4444' },
+      rules: [{ match: { type: 'any' }, color: { accentColor: '#ef4444' }, label: 'BADGE' }],
+    };
+
+    const result = renderNetworkTableCell(makeContext('threat_score', 92), {
+      threat_score: enabledConfig,
+    });
+
+    const element = result.content as React.ReactElement<any>;
+    expect(typeof element.type).toBe('object');
+    expect(element.props.value).toBe(92);
+    expect(element.props.config).toEqual(enabledConfig);
+  });
+
+  it('uses threat level as badge value for the structured threat column', () => {
+    const enabledConfig: ColumnBadgeConfig = {
+      column: 'threat',
+      enabled: true,
+      shape: 'pill',
+      fill: 'ghost',
+      size: 'normal',
+      defaultColor: { accentColor: '#ef4444' },
+      rules: [{ match: { type: 'any' }, color: { accentColor: '#ef4444' } }],
+    };
+    const context = makeContext('threat', baseRow.threat);
+    context.row = {
+      ...baseRow,
+      threat: {
+        score: 88,
+        level: 'HIGH',
+        summary: 'High risk',
+      },
+    };
+
+    const result = renderNetworkTableCell(context, { threat: enabledConfig });
+    const element = result.content as React.ReactElement<any>;
+
+    expect(element.props.value).toBe('HIGH');
   });
 });
 

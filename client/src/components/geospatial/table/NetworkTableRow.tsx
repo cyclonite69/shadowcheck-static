@@ -282,6 +282,7 @@ export const NetworkTableRow = React.memo(NetworkTableRowComponent, (prevProps, 
     prevProps.isPatternSibling === nextProps.isPatternSibling &&
     prevProps.patternGroupId === nextProps.patternGroupId &&
     prevProps.patternSiblingCount === nextProps.patternSiblingCount &&
-    prevProps.isPatternGroupCollapsed === nextProps.isPatternGroupCollapsed
+    prevProps.isPatternGroupCollapsed === nextProps.isPatternGroupCollapsed &&
+    prevProps.badgeConfigs === nextProps.badgeConfigs
   );
 });

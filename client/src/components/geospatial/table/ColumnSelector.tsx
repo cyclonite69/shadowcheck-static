@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { NetworkRow } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
+import type { ColumnBadgeConfig } from '../../../types/badgeConfig';
 import { useColumnSelectorPosition, type MenuPosition } from '../hooks/useColumnSelectorPosition';
 import { ColumnItem } from './ColumnItem';
 
@@ -13,6 +14,7 @@ interface ColumnSelectorProps {
   onToggle: () => void;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
   onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
+  badgeConfigs?: Record<string, ColumnBadgeConfig>;
 }
 
 /**
@@ -22,9 +24,10 @@ const ColumnSelectorPortal: React.FC<{
   position: MenuPosition;
   orderedColumns: Array<readonly [keyof NetworkRow | 'select', NetworkColumnConfig]>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
+  badgeConfigs?: Record<string, ColumnBadgeConfig>;
   onToggleColumn: (col: keyof NetworkRow | 'select') => void;
   onMoveColumn: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
-}> = ({ position, orderedColumns, visibleColumns, onToggleColumn, onMoveColumn }) => {
+}> = ({ position, orderedColumns, visibleColumns, badgeConfigs, onToggleColumn, onMoveColumn }) => {
   return createPortal(
     <div
       style={{
@@ -94,6 +97,7 @@ const ColumnSelectorPortal: React.FC<{
               isVisible={isVisible}
               isFirst={colIndex === 0}
               isLast={colIndex === visibleColumns.length - 1}
+              badgeEnabled={Boolean(badgeConfigs?.[String(col)]?.enabled)}
               onToggle={onToggleColumn}
               onMove={onMoveColumn}
             />
@@ -113,6 +117,7 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
   onToggle,
   onToggleColumn,
   onMoveColumn,
+  badgeConfigs,
 }) => {
   const menuPosition = useColumnSelectorPosition(visible, anchorRef);
 
@@ -157,6 +162,7 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
           position={menuPosition}
           orderedColumns={orderedColumns}
           visibleColumns={visibleColumns}
+          badgeConfigs={badgeConfigs}
           onToggleColumn={onToggleColumn}
           onMoveColumn={onMoveColumn}
         />

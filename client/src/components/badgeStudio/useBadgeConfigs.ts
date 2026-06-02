@@ -2,13 +2,22 @@ import { useState, useMemo, useCallback } from 'react';
 import type { ColumnBadgeConfig, BadgePreset } from '../../types/badgeConfig';
 import { BADGE_DEFAULTS } from './badgeDefaults';
 
-const LS_KEY_CONFIGS = 'shadowcheck_badge_column_configs';
+export const BADGE_COLUMN_CONFIGS_STORAGE_KEY = 'shadowcheck.badgeStudio.columnConfigs.v1';
+const LEGACY_LS_KEY_CONFIGS = 'shadowcheck_badge_column_configs';
 const LS_KEY_PRESET = 'shadowcheck_badge_active_preset';
 const LS_KEY_PRESETS = 'shadowcheck_badge_presets';
 
+type BadgeStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+function getBrowserStorage(): BadgeStorage | null {
+  return typeof localStorage === 'undefined' ? null : localStorage;
+}
+
 function readLocalStorage<T>(key: string): T | null {
   try {
-    const raw = localStorage.getItem(key);
+    const storage = getBrowserStorage();
+    if (!storage) return null;
+    const raw = storage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
@@ -17,10 +26,62 @@ function readLocalStorage<T>(key: string): T | null {
 
 function writeLocalStorage(key: string, value: unknown): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const storage = getBrowserStorage();
+    if (!storage) return;
+    storage.setItem(key, JSON.stringify(value));
   } catch {
     // ignore quota errors
   }
+}
+
+export function readStoredColumnBadgeConfigs(
+  storage: BadgeStorage | null = getBrowserStorage()
+): Record<string, ColumnBadgeConfig> {
+  try {
+    if (!storage) return {};
+    const raw = storage.getItem(BADGE_COLUMN_CONFIGS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as Record<string, ColumnBadgeConfig>;
+
+    const legacyRaw = storage.getItem(LEGACY_LS_KEY_CONFIGS);
+    if (!legacyRaw) return {};
+
+    const migrated = JSON.parse(legacyRaw) as Record<string, ColumnBadgeConfig>;
+    storage.setItem(BADGE_COLUMN_CONFIGS_STORAGE_KEY, JSON.stringify(migrated));
+    storage.removeItem(LEGACY_LS_KEY_CONFIGS);
+    return migrated;
+  } catch {
+    return {};
+  }
+}
+
+export function writeStoredColumnBadgeConfigs(
+  configs: Record<string, ColumnBadgeConfig>,
+  storage: Pick<Storage, 'setItem'> | null = getBrowserStorage()
+): void {
+  if (!storage) return;
+  storage.setItem(BADGE_COLUMN_CONFIGS_STORAGE_KEY, JSON.stringify(configs));
+}
+
+export function removeStoredColumnBadgeConfig(
+  configs: Record<string, ColumnBadgeConfig>,
+  column: string
+): Record<string, ColumnBadgeConfig> {
+  const next = { ...configs };
+  delete next[column];
+  return next;
+}
+
+export function createFallbackBadgeConfig(column: string): ColumnBadgeConfig {
+  return {
+    column,
+    enabled: false,
+    shape: 'pill',
+    fill: 'ghost',
+    size: 'compact',
+    defaultColor: { accentColor: '#64748b' },
+    rules: [{ match: { type: 'any' }, color: { accentColor: '#64748b' } }],
+    showRawValueAsTooltip: true,
+  };
 }
 
 /**
@@ -32,12 +93,13 @@ export function useBadgeConfigs(): {
   presets: BadgePreset[];
   activePresetId: string | null;
   updateColumnConfig: (column: string, cfg: ColumnBadgeConfig) => void;
+  resetColumnConfig: (column: string) => void;
   activatePreset: (id: string | null) => void;
   saveAsPreset: (name: string, description?: string) => BadgePreset;
   deletePreset: (id: string) => void;
 } {
-  const [unsaved, setUnsaved] = useState<Record<string, ColumnBadgeConfig>>(
-    () => readLocalStorage<Record<string, ColumnBadgeConfig>>(LS_KEY_CONFIGS) ?? {}
+  const [unsaved, setUnsaved] = useState<Record<string, ColumnBadgeConfig>>(() =>
+    readStoredColumnBadgeConfigs()
   );
 
   const [presets, setPresets] = useState<BadgePreset[]>(
@@ -70,7 +132,15 @@ export function useBadgeConfigs(): {
   const updateColumnConfig = useCallback((column: string, cfg: ColumnBadgeConfig) => {
     setUnsaved((prev) => {
       const next = { ...prev, [column]: cfg };
-      writeLocalStorage(LS_KEY_CONFIGS, next);
+      writeStoredColumnBadgeConfigs(next);
+      return next;
+    });
+  }, []);
+
+  const resetColumnConfig = useCallback((column: string) => {
+    setUnsaved((prev) => {
+      const next = removeStoredColumnBadgeConfig(prev, column);
+      writeStoredColumnBadgeConfigs(next);
       return next;
     });
   }, []);
@@ -121,6 +191,7 @@ export function useBadgeConfigs(): {
     presets,
     activePresetId,
     updateColumnConfig,
+    resetColumnConfig,
     activatePreset,
     saveAsPreset,
     deletePreset,

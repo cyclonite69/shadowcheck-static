@@ -622,6 +622,13 @@ const columnRenderers: Partial<
   last_altitude_m: renderAltitudeCell,
 };
 
+function getBadgeCellValue(context: NetworkTableCellRendererContext): unknown {
+  if (context.column === 'threat') {
+    return context.row.threat?.level ?? context.row.threat_level ?? context.value;
+  }
+  return context.value;
+}
+
 export const renderNetworkTableCell = (
   context: NetworkTableCellRendererContext,
   badgeConfigs?: Record<string, ColumnBadgeConfig>
@@ -629,7 +636,9 @@ export const renderNetworkTableCell = (
   const badgeCfg = badgeConfigs?.[context.column];
   if (badgeCfg?.enabled) {
     return {
-      content: <BadgeRenderer value={context.value} config={badgeCfg} row={context.row} />,
+      content: (
+        <BadgeRenderer value={getBadgeCellValue(context)} config={badgeCfg} row={context.row} />
+      ),
     };
   }
 

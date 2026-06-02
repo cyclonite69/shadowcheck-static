@@ -8,6 +8,7 @@ interface ColumnItemProps {
   isVisible: boolean;
   isFirst: boolean;
   isLast: boolean;
+  badgeEnabled?: boolean;
   onToggle: (col: keyof NetworkRow | 'select') => void;
   onMove: (col: keyof NetworkRow | 'select', direction: 'left' | 'right') => void;
 }
@@ -18,6 +19,7 @@ export const ColumnItem: React.FC<ColumnItemProps> = ({
   isVisible,
   isFirst,
   isLast,
+  badgeEnabled = false,
   onToggle,
   onMove,
 }) => {
@@ -76,31 +78,58 @@ export const ColumnItem: React.FC<ColumnItemProps> = ({
           →
         </button>
       </div>
-      <label
+      <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          cursor: 'pointer',
+          gap: '8px',
           flex: 1,
           minWidth: 0,
         }}
       >
-        <input
-          type="checkbox"
-          checked={isVisible}
-          onChange={() => onToggle(columnKey)}
-          style={{ marginRight: '8px' }}
-        />
-        <span
+        <label
           style={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer',
+            flex: 1,
+            minWidth: 0,
           }}
         >
-          {columnConfig.label}
-        </span>
-      </label>
+          <input
+            type="checkbox"
+            checked={isVisible}
+            onChange={() => onToggle(columnKey)}
+            style={{ marginRight: '8px' }}
+          />
+          <span
+            style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {columnConfig.label}
+          </span>
+        </label>
+        {badgeEnabled && (
+          <span
+            style={{
+              border: '1px solid rgba(59, 130, 246, 0.35)',
+              borderRadius: '999px',
+              color: '#60a5fa',
+              background: 'rgba(59, 130, 246, 0.1)',
+              fontSize: '10px',
+              lineHeight: 1,
+              padding: '3px 6px',
+              flexShrink: 0,
+            }}
+            title="Badge rendering enabled in Badge Studio"
+          >
+            Badge
+          </span>
+        )}
+      </div>
     </div>
   );
 };
