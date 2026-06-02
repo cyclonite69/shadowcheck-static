@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { apiClient } from '../../../api/client';
 import { WigleLedgerPanel } from '../../wigle/WigleLedgerPanel';
+import { WigleStatsBadge } from './WigleStatsBadge';
 
 const TrophyIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -138,10 +139,6 @@ export const WigleStatsTab: React.FC = () => {
     return stats?.[key];
   };
 
-  const badgeUrl = stats?.imageBadgeUrl
-    ? `https://wigle.net${stats.imageBadgeUrl}`
-    : `https://wigle.net/bi/${getStat('user')}.png`;
-
   if (loading && !stats) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -256,19 +253,11 @@ export const WigleStatsTab: React.FC = () => {
         </AdminCard>
 
         {/* WiGLE Badge */}
-        <AdminCard icon={BadgeIcon} title="Official Badge" color="from-purple-500 to-purple-600">
+        <AdminCard icon={BadgeIcon} title="Stats Badge" color="from-purple-500 to-purple-600">
           <div className="flex flex-col items-center justify-center h-full py-4">
-            <img
-              src={badgeUrl}
-              alt="WiGLE Badge"
-              className="rounded-lg shadow-2xl border border-slate-700"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'https://wigle.net/favicon.ico';
-              }}
-            />
+            <WigleStatsBadge stats={stats} />
             <p className="text-[10px] text-slate-500 mt-4 text-center italic">
-              Live ranking badge from WiGLE.net
+              Rendered from live WiGLE stats API data
             </p>
             <a
               href={`https://wigle.net/user/${getStat('user')}`}
