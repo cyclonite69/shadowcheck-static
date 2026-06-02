@@ -7,6 +7,11 @@ import { useWigleDetailLookup } from '../hooks/useWigleDetailLookup';
 import { useWigleDetectionEvidence } from '../hooks/useWigleDetectionEvidence';
 import { useWigleTooltipPreview } from '../hooks/useWigleTooltipPreview';
 import { useWigleEnrichmentControls } from '../hooks/useWigleEnrichmentControls';
+import {
+  computeTemporalSummary,
+  computeSsidDisplaySummary,
+  bestObservedSsid,
+} from '../../../utils/wigleDetailUtils';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -100,6 +105,15 @@ export const WigleDetailTab: React.FC = () => {
     handleManualEnrich,
     handleManualSelect,
   } = useWigleEnrichmentControls({ detailType, fetchDetail, setNetid });
+
+  // ── Derived display values ────────────────────────────────────────────────
+  const temporal = data
+    ? computeTemporalSummary(observations, selectedObs?.observed_at, data.firstSeen, data.lastSeen)
+    : null;
+
+  const observedSsid = data ? bestObservedSsid(observations, selectedObs?.ssid) : null;
+
+  const ssidSummary = data ? computeSsidDisplaySummary(data.ssid ?? data.name, observedSsid) : null;
 
   return (
     <div className="space-y-6">
@@ -216,8 +230,23 @@ export const WigleDetailTab: React.FC = () => {
             <div className="flex justify-between items-start pb-4 border-b border-slate-700/50">
               <div>
                 <h3 className="text-xl font-bold text-white mb-1">
-                  {data.ssid || data.name || '(hidden)'}
+                  {ssidSummary?.displayTitle ?? data.ssid ?? data.name ?? '(hidden)'}
                 </h3>
+                {ssidSummary?.isHiddenCanonical && ssidSummary.observedSsid && (
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    <span className="text-slate-500">Observed SSID: </span>
+                    <span className="text-amber-300 font-medium">{ssidSummary.observedSsid}</span>
+                  </div>
+                )}
+                {ssidSummary &&
+                  !ssidSummary.isHiddenCanonical &&
+                  ssidSummary.observedSsid &&
+                  ssidSummary.observedSsid !== ssidSummary.canonicalSsid && (
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      <span className="text-slate-500">Also seen as: </span>
+                      <span className="text-amber-300 font-medium">{ssidSummary.observedSsid}</span>
+                    </div>
+                  )}
                 <div className="font-mono text-cyan-400 text-sm">{data.networkId}</div>
               </div>
               <div className="text-right space-y-1">
@@ -357,20 +386,16 @@ export const WigleDetailTab: React.FC = () => {
 
             {/* Timestamps */}
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div
-                className={`p-3 rounded transition-colors ${selectedObs ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-slate-800/30'}`}
-              >
+              <div className="bg-slate-800/30 p-3 rounded">
                 <div className="text-xs text-slate-500 mb-1">First Seen</div>
                 <div className="text-sm text-white">
-                  {formatShortDate(selectedObs ? selectedObs.observed_at : data.firstSeen)}
+                  {formatShortDate(temporal?.firstSeen ?? null)}
                 </div>
               </div>
-              <div
-                className={`p-3 rounded transition-colors ${selectedObs ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-slate-800/30'}`}
-              >
+              <div className="bg-slate-800/30 p-3 rounded">
                 <div className="text-xs text-slate-500 mb-1">Last Seen</div>
                 <div className="text-sm text-white">
-                  {formatShortDate(selectedObs ? selectedObs.observed_at : data.lastSeen)}
+                  {formatShortDate(temporal?.lastSeen ?? null)}
                 </div>
               </div>
               <div className="bg-slate-800/30 p-3 rounded">
@@ -378,6 +403,13 @@ export const WigleDetailTab: React.FC = () => {
                 <div className="text-sm text-white">{data.channel ?? 'N/A'}</div>
               </div>
             </div>
+            {selectedObs && temporal?.selectedSeen && (
+              <div className="bg-violet-500/10 border border-violet-500/20 p-2 rounded text-center">
+                <span className="text-xs text-violet-400 font-mono">
+                  Viewing observation: {formatShortDate(temporal.selectedSeen)}
+                </span>
+              </div>
+            )}
 
             {/* Observations Table */}
             {observations && observations.length > 0 && (
