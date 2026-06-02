@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "updated": "2026-06-01",
     "description": "Vendor intelligence manifest for ShadowCheck SIGINT forensics platform. Maps surveillance_type keys to vendor profiles and attached reference documents.",
     "source_types": {
@@ -116,6 +116,33 @@
           "summary": "Wayback Machine snapshot index for sii.transparencytoolkit.org, a database of surveillance industry companies and products.",
           "year": 2023,
           "origin": "Transparency Toolkit / Wayback Machine"
+        },
+        {
+          "title": "Verint Engage GI2/PI2/SI2 — Full Product List (SII)",
+          "source_type": "leaked",
+          "format": "pdf",
+          "file": "verint_engage_gi2_product_list.pdf",
+          "summary": "24-page Verint product list from the Surveillance Industry Index. Covers Engage GI2 (passive GSM off-air monitoring), Engage PI2 (phone tracking), Engage SI2, Inmarsat/Thuraya interception, speech recognition, and IP monitoring active/passive.",
+          "year": 2013,
+          "origin": "Surveillance Industry Index / DocumentCloud"
+        },
+        {
+          "title": "Comverse Infosys RELIANT — Cryptome Leak",
+          "source_type": "leaked",
+          "format": "html",
+          "file": "verint_comverse_cryptome_reliant_clean.html",
+          "summary": "2002 Cryptome publication of Comverse Infosys (Verint predecessor) internal product profile. Describes RELIANT lawful intercept system, STAR-GATE delivery platform, and global deployment in 50+ countries. CALEA/ETSI compliant.",
+          "year": 2002,
+          "origin": "Cryptome / Comverse Infosys"
+        },
+        {
+          "title": "Verint Colombia — Privacy International Report",
+          "source_type": "public",
+          "format": "html",
+          "file": "verint_privacy_international_colombia_clean.html",
+          "summary": "Privacy International press release documenting Verint's contracts with Colombian DAS, DIPOL, and DIJIN for mass surveillance systems. Verint provided network probes and Integrated Recording System even after DAS was outed for illegal surveillance.",
+          "year": 2015,
+          "origin": "Privacy International"
         }
       ]
     },
@@ -143,6 +170,24 @@
           "file": "rohde_schwarz_wlan_appnote.html",
           "summary": "R&S application note on frequency range extension of spectrum analyzers with harmonic mixers for WLAN/802.11 testing. Relevant to RF monitoring capabilities.",
           "year": 2023,
+          "origin": "Rohde & Schwarz"
+        },
+        {
+          "title": "R&S FSH Handheld Spectrum Analyzer — Product Brochure",
+          "source_type": "manufacturer",
+          "format": "pdf",
+          "file": "rohde_schwarz_fsh_brochure.pdf",
+          "summary": "Official Rohde & Schwarz FSH product brochure covering FSH4/8/13/20 models. Functions include spectrum analysis, WLAN/LTE OTA analysis, cable and antenna analysis, and interference hunting. Primary field instrument for RF surveillance teams.",
+          "year": 2023,
+          "origin": "Rohde & Schwarz"
+        },
+        {
+          "title": "R&S FSH Technical Specifications",
+          "source_type": "manufacturer",
+          "format": "pdf",
+          "file": "rohde_schwarz_fsh_specs.pdf",
+          "summary": "Official R&S FSH specifications document covering all model variants (FSH4/8/13/20), frequency ranges, dynamic range, noise figure, and optional firmware applications.",
+          "year": 2026,
           "origin": "Rohde & Schwarz"
         }
       ]
@@ -380,6 +425,53 @@
           "summary": "Official Cambium PMP 450i datasheet with specifications for the fixed wireless access platform.",
           "year": 2022,
           "origin": "Cambium Networks"
+        }
+      ]
+    },
+    {
+      "vendor_key": "ABILITY_INC",
+      "display_name": "Ability Inc.",
+      "oui_prefixes": [],
+      "threat_tier": 1,
+      "surveillance_type": "ABILITY_INC",
+      "description": "Israeli IMSI catcher and off-air interception company founded 1994 in Tel Aviv. Products include IBIS, the Unlimited Interceptor (ULIN) SS7-based global interception system, GoDown cellular jammer, and In-Between GSM/UMTS/LTE active interception systems. Sold to defense ministries, national agencies, and law enforcement worldwide.",
+      "docs": [
+        {
+          "title": "The Spy Files: How Safe Are Your Emails and Phone Calls?",
+          "source_type": "public",
+          "format": "html",
+          "file": "ability_ibis_bureau_investigates_clean.html",
+          "summary": "Bureau of Investigative Journalism coverage of WikiLeaks Spy Files release. Documents Ability Inc as an IMSI catcher vendor alongside Harris Corp and Rohde & Schwarz. Describes IBIS product capabilities and global law enforcement sales.",
+          "year": 2011,
+          "origin": "The Bureau of Investigative Journalism"
+        }
+      ]
+    },
+    {
+      "vendor_key": "ELBIT_TADIRAN",
+      "display_name": "Elbit Systems / Tadiran Communications",
+      "oui_prefixes": [],
+      "threat_tier": 3,
+      "surveillance_type": "ELBIT_TADIRAN",
+      "description": "Israeli defense electronics company. Tadiran Communications (acquired by Elbit Systems) produces the CNR-710, CNR-9000, and E-LynX SDR tactical radio families widely deployed by IDF and allied militaries. E-LynX supports VHF/UHF/L-Band with wideband MANET networking for land, air, maritime, and dismounted forces.",
+      "docs": [
+        {
+          "title": "E-LynX VHF/UHF SDR — Full Product Line",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "elbit_elynx_de_product_page_clean.html",
+          "summary": "Elbit Systems Deutschland product page for the complete E-LynX SDR family. Covers handheld (<800g, 30-512MHz), manpack, vehicular (50W RF head, 30MHz-1.8GHz), airborne, and SATCOM configurations. Includes E-LynX Intercom, Tactical Router, and Soldier Radio.",
+          "year": 2024,
+          "origin": "Elbit Systems Deutschland"
+        },
+        {
+          "title": "Tadiran CNR-9000 — VHF/FM Tactical Radio",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "tadiran_elbit_cnr9000_wayback_clean.html",
+          "summary": "Tadiran CNR-9000 VHF/FM tactical radio. Software-defined architecture with P3I growth path. CNR-9000HDR variant achieves 115 kbps VHF data rate. Standard radio of the IDF and multiple allied militaries.",
+          "year": 2023,
+          "origin": "Elbit Systems / Wayback Machine"
         }
       ]
     }
