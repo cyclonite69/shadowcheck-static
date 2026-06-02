@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Map, GeoJSONSource, MapMouseEvent, MapboxGeoJSONFeature } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { agencyApi } from '../../api/agencyApi';
+import type { CourthouseMatch } from '../../api/agencyApi';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { renderCourthousePopupCard } from '../../utils/geospatial/renderMapPopupCards';
 import { getPopupAnchor } from '../../utils/geospatial/popupAnchor';
@@ -14,7 +15,7 @@ import { setupPopupPin } from '../../utils/geospatial/setupPopupPin';
 
 interface CourthouseFeature {
   type: 'Feature';
-  id: number;
+  id: number | string;
   geometry: {
     type: 'Point';
     coordinates: [number, number];
@@ -39,12 +40,40 @@ interface FederalCourthousesGeoJSON {
   features: CourthouseFeature[];
 }
 
+function buildNearestCourthouseGeoJSON(courthouses: CourthouseMatch[]): FederalCourthousesGeoJSON {
+  return {
+    type: 'FeatureCollection',
+    features: courthouses.map((courthouse) => ({
+      type: 'Feature',
+      id: `${courthouse.cluster_id ?? 'single'}:${courthouse.id}`,
+      geometry: {
+        type: 'Point',
+        coordinates: [courthouse.longitude, courthouse.latitude],
+      },
+      properties: {
+        id: courthouse.id,
+        name: courthouse.name,
+        short_name: courthouse.short_name ?? null,
+        courthouse_type: courthouse.courthouse_type,
+        district: courthouse.district,
+        circuit: courthouse.circuit,
+        address_line1: null,
+        city: courthouse.city,
+        state: courthouse.state,
+        postal_code: courthouse.postal_code ?? null,
+        active: true,
+      },
+    })),
+  };
+}
+
 export const useFederalCourthouses = (
   mapRef: React.MutableRefObject<Map | null>,
   mapReady: boolean,
   isVisible: boolean = true,
   mapboxRef?: React.MutableRefObject<typeof mapboxglType | null>,
-  clusteringEnabled: boolean = true
+  clusteringEnabled: boolean = true,
+  courthouseMatches?: CourthouseMatch[]
 ) => {
   const [hasBeenVisible, setHasBeenVisible] = useState(isVisible);
 
@@ -54,76 +83,90 @@ export const useFederalCourthouses = (
     }
   }, [isVisible, hasBeenVisible]);
 
+  const shouldFetchAllCourthouses = hasBeenVisible && courthouseMatches === undefined;
   const {
     data,
     loading,
     error: fetchError,
   } = useAsyncData<FederalCourthousesGeoJSON>(
     () =>
-      hasBeenVisible
+      shouldFetchAllCourthouses
         ? agencyApi.getFederalCourthouses()
         : Promise.resolve({ type: 'FeatureCollection', features: [] } as FederalCourthousesGeoJSON),
-    [hasBeenVisible]
+    [shouldFetchAllCourthouses]
   );
   const error = fetchError?.message ?? null;
+  const renderedData = courthouseMatches ? buildNearestCourthouseGeoJSON(courthouseMatches) : data;
+  const renderedDataKey = courthouseMatches
+    ? courthouseMatches
+        .map((courthouse) => `${courthouse.cluster_id ?? 'single'}:${courthouse.id}`)
+        .sort()
+        .join('|')
+    : `all:${data?.features.length ?? 0}`;
 
   const dataRef = useRef<FederalCourthousesGeoJSON | null>(null);
   const isVisibleRef = useRef(isVisible);
   const clusteringEnabledRef = useRef(clusteringEnabled);
 
   // Keep refs in sync
-  dataRef.current = data;
+  dataRef.current = renderedData ?? null;
   isVisibleRef.current = isVisible;
   clusteringEnabledRef.current = clusteringEnabled;
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !data || data.features.length === 0) return;
+    if (!map || !mapReady) return;
+
+    const unclusteredLayers = ['courthouse-district', 'courthouse-circuit', 'courthouse-specialty'];
+    const handleMouseEnter = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const handleMouseLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    const handleClusterClick = (e: MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['courthouse-clusters'],
+      });
+      const clusterId = features[0]?.properties?.cluster_id;
+      if (!clusterId) return;
+
+      const source = map.getSource('federal-courthouses') as GeoJSONSource;
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') return;
+        map.easeTo({
+          center: features[0].geometry.coordinates as [number, number],
+          zoom: zoom || 10,
+        });
+      });
+    };
 
     const addSourceAndLayers = () => {
       const currentData = dataRef.current;
-      if (!map.getStyle() || !currentData || currentData.features.length === 0) return;
+      if (!map.getStyle()) return;
+      if (!currentData || currentData.features.length === 0) {
+        resetFederalCourthouseLayers(map, currentData, isVisibleRef.current, false);
+        return;
+      }
 
       ensureFederalCourthouseLayers(map, currentData, clusteringEnabledRef.current);
 
-      const UNCLUSTERED_LAYERS = [
-        'courthouse-district',
-        'courthouse-circuit',
-        'courthouse-specialty',
-      ];
-      UNCLUSTERED_LAYERS.forEach((id) => {
+      unclusteredLayers.forEach((id) => {
+        map.off('click', id, handleClick);
+        map.off('mouseenter', id, handleMouseEnter);
+        map.off('mouseleave', id, handleMouseLeave);
         map.on('click', id, handleClick);
-        map.on('mouseenter', id, () => {
-          map.getCanvas().style.cursor = 'pointer';
-        });
-        map.on('mouseleave', id, () => {
-          map.getCanvas().style.cursor = '';
-        });
+        map.on('mouseenter', id, handleMouseEnter);
+        map.on('mouseleave', id, handleMouseLeave);
       });
-      map.on('click', 'courthouse-clusters', (e) => {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['courthouse-clusters'],
-        });
-        const clusterId = features[0]?.properties?.cluster_id;
-        if (!clusterId) return;
+      map.off('click', 'courthouse-clusters', handleClusterClick);
+      map.off('mouseenter', 'courthouse-clusters', handleMouseEnter);
+      map.off('mouseleave', 'courthouse-clusters', handleMouseLeave);
+      map.on('click', 'courthouse-clusters', handleClusterClick);
 
-        const source = map.getSource('federal-courthouses') as GeoJSONSource;
-        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err || !features[0]?.geometry || features[0].geometry.type !== 'Point') return;
-          map.easeTo({
-            center: features[0].geometry.coordinates as [number, number],
-            zoom: zoom || 10,
-          });
-        });
-      });
-
-      // Cursor pointer
-      map.on('mouseenter', 'courthouse-clusters', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'courthouse-clusters', () => {
-        map.getCanvas().style.cursor = '';
-      });
+      map.on('mouseenter', 'courthouse-clusters', handleMouseEnter);
+      map.on('mouseleave', 'courthouse-clusters', handleMouseLeave);
 
       // Apply initial visibility
       applyVisibility(map, isVisibleRef.current);
@@ -189,8 +232,19 @@ export const useFederalCourthouses = (
 
     return () => {
       map.off('style.load', addSourceAndLayers);
+      unclusteredLayers.forEach((id) => {
+        if (!map.getLayer(id)) return;
+        map.off('click', id, handleClick);
+        map.off('mouseenter', id, handleMouseEnter);
+        map.off('mouseleave', id, handleMouseLeave);
+      });
+      if (map.getLayer('courthouse-clusters')) {
+        map.off('click', 'courthouse-clusters', handleClusterClick);
+        map.off('mouseenter', 'courthouse-clusters', handleMouseEnter);
+        map.off('mouseleave', 'courthouse-clusters', handleMouseLeave);
+      }
     };
-  }, [mapReady, data, mapRef]);
+  }, [mapReady, renderedDataKey, mapRef]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -198,7 +252,7 @@ export const useFederalCourthouses = (
     applyVisibility(map, isVisible);
   }, [isVisible, mapRef, mapReady]);
 
-  return { data, loading, error };
+  return { data: renderedData, loading, error };
 };
 
 export function ensureFederalCourthouseLayers(

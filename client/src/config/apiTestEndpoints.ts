@@ -456,6 +456,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     defaultBody: '{\n  "bssids": ["00:11:22:33:44:55"]\n}',
   },
+  {
+    category: 'Networks v1',
+    label: 'Nearest Courthouses Batch',
+    path: '/api/networks/nearest-courthouses/batch',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "bssids": ["00:11:22:33:44:55"]\n}',
+  },
 
   // ── Network Tags ──────────────────────────────────────────────────────────
   {

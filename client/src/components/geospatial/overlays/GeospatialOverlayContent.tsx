@@ -4,6 +4,7 @@ import { WigleLookupDialog } from '../modals/WigleLookupDialog';
 import { BatchWigleLookupDialog } from '../modals/BatchWigleLookupDialog';
 import { WigleObservationsPanel } from '../panels/WigleObservationsPanel';
 import { NearestAgenciesPanel } from '../panels/NearestAgenciesPanel';
+import { NearestCourthousesPanel } from '../panels/NearestCourthousesPanel';
 
 interface GeospatialOverlayContentProps {
   state: any;
@@ -54,6 +55,9 @@ interface GeospatialOverlayContentProps {
   agencies: any[];
   agenciesLoading: boolean;
   agenciesError: any;
+  courthouses: any[];
+  courthousesLoading: boolean;
+  courthousesError: any;
 }
 
 const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps> = ({
@@ -103,6 +107,9 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
   agencies,
   agenciesLoading,
   agenciesError,
+  courthouses,
+  courthousesLoading,
+  courthousesError,
 }) => {
   const [batchDialogBssids, setBatchDialogBssids] = useState<string[]>([]);
 
@@ -208,6 +215,14 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
           agencies={agencies}
           loading={agenciesLoading}
           error={agenciesError}
+          networkCount={selectedNetworks.size}
+        />
+      )}
+      {state.showCourthousesPanel && (
+        <NearestCourthousesPanel
+          courthouses={courthouses}
+          loading={courthousesLoading}
+          error={courthousesError}
           networkCount={selectedNetworks.size}
         />
       )}

@@ -2,7 +2,7 @@ export {};
 import type { Request, Response } from 'express';
 const express = require('express');
 const router = express.Router();
-const { agencyService } = require('../../../config/container');
+const { agencyService, courthouseService } = require('../../../config/container');
 const { asyncHandler } = require('../../../utils/asyncHandler');
 
 /**
@@ -52,6 +52,34 @@ router.post(
       bssids,
       agencies,
       count: agencies.length,
+      radius_km: radius,
+    });
+  })
+);
+
+/**
+ * POST /api/networks/nearest-courthouses/batch
+ * Get nearest federal courthouse per observation cluster for multiple networks (local + WiGLE)
+ */
+router.post(
+  '/nearest-courthouses/batch',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { bssids } = req.body;
+
+    if (!Array.isArray(bssids) || bssids.length === 0) {
+      return res.status(400).json({ error: 'bssids array is required' });
+    }
+
+    const radius = parseFloat(req.query.radius as string) || 250;
+    const upperBssids = bssids.map((b) => String(b).toUpperCase());
+
+    const courthouses = await courthouseService.getNearestCourthousesBatch(upperBssids, radius);
+
+    res.json({
+      ok: true,
+      bssids,
+      courthouses,
+      count: courthouses.length,
       radius_km: radius,
     });
   })

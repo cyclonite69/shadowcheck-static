@@ -33,6 +33,25 @@ interface NearestAgenciesBatchResponse {
   radius_km: number;
 }
 
+export interface CourthouseMatch {
+  cluster_id?: number;
+  cluster_count?: number;
+  has_wigle_obs?: boolean;
+  has_local_obs?: boolean;
+  id: number;
+  name: string;
+  short_name?: string;
+  courthouse_type: string;
+  district: string;
+  circuit: string;
+  city: string;
+  state: string;
+  postal_code?: string;
+  latitude: number;
+  longitude: number;
+  distance_meters?: number;
+}
+
 export const agencyApi = {
   async getNearestAgenciesBatch(
     bssids: string[],
@@ -48,6 +67,13 @@ export const agencyApi = {
     return apiClient.get<NearestAgenciesResponse>(
       `/networks/nearest-agencies/${encodeURIComponent(bssid)}?radius=${radius}`
     );
+  },
+
+  async getNearestCourthousesBatch(
+    bssids: string[],
+    radius: number = 250
+  ): Promise<{ ok: boolean; courthouses: CourthouseMatch[]; count: number; radius_km: number }> {
+    return apiClient.post(`/networks/nearest-courthouses/batch?radius=${radius}`, { bssids });
   },
 
   // Agency Offices (GeoJSON)

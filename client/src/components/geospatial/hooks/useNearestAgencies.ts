@@ -11,6 +11,9 @@ export interface Agency {
   longitude: number;
   distance_meters?: number;
   has_wigle_obs?: boolean;
+  has_local_obs?: boolean;
+  cluster_id?: number;
+  cluster_count?: number;
 }
 
 export const useNearestAgencies = (bssid: string | string[] | null) => {

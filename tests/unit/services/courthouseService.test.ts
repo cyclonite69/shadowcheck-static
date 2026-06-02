@@ -13,4 +13,14 @@ describe('courthouseService', () => {
     expect(result).toEqual(mockData);
     expect(courthouseRepository.fetchFederalCourthousesGeoJSON).toHaveBeenCalled();
   });
+
+  it('should call findNearestCourthousesBatch from repository', async () => {
+    const mockData = [{ id: 1, cluster_id: 0 }];
+    (courthouseRepository.findNearestCourthousesBatch as jest.Mock).mockResolvedValue(mockData);
+
+    const result = await courthouseService.getNearestCourthousesBatch(['AA:BB'], 250);
+
+    expect(result).toEqual(mockData);
+    expect(courthouseRepository.findNearestCourthousesBatch).toHaveBeenCalledWith(['AA:BB'], 250);
+  });
 });

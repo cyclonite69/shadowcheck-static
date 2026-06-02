@@ -7,6 +7,7 @@ import { logError } from '../logging/clientLogger';
 import { GeospatialLayout } from './geospatial/GeospatialLayout';
 import { GeospatialFiltersPanel } from './geospatial/panels/GeospatialFiltersPanel';
 import { useNearestAgencies } from './geospatial/hooks/useNearestAgencies';
+import { useNearestCourthouses } from './geospatial/hooks/useNearestCourthouses';
 import { useNetworkContextMenu } from './geospatial/hooks/useNetworkContextMenu';
 import { useNetworkNotes } from './geospatial/hooks/useNetworkNotes';
 import { useNetworkSelection } from './geospatial/hooks/useNetworkSelection';
@@ -137,6 +138,18 @@ export default function GeospatialExplorer() {
       : null
   );
 
+  const {
+    courthouses,
+    loading: courthousesLoading,
+    error: courthousesError,
+  } = useNearestCourthouses(
+    state.showCourthousesPanel
+      ? selectedNetworks.size >= 1
+        ? Array.from(selectedNetworks)
+        : null
+      : null
+  );
+
   // Notes & Modals
   const {
     showNoteModal,
@@ -175,7 +188,14 @@ export default function GeospatialExplorer() {
     showAgenciesPanel: state.showAgenciesPanel,
   });
 
-  useFederalCourthouses(state.mapRef, state.mapReady, state.showCourthousesPanel, state.mapboxRef);
+  useFederalCourthouses(
+    state.mapRef,
+    state.mapReady,
+    state.showCourthousesPanel,
+    state.mapboxRef,
+    false,
+    courthouses
+  );
 
   return (
     <GeospatialLayout
@@ -278,6 +298,9 @@ export default function GeospatialExplorer() {
             agencies={agencies}
             agenciesLoading={agenciesLoading}
             agenciesError={agenciesError}
+            courthouses={courthouses}
+            courthousesLoading={courthousesLoading}
+            courthousesError={courthousesError}
           />
           <MapRadiusContextMenu
             menu={state.radiusContextMenu}
