@@ -1105,6 +1105,7 @@
 * **db:** complete federal courthouses dataset with 219 locations ([dc95759](https://github.com/cyclonite69/shadowcheck-web/commit/dc9575971d5435842bad13fec0a89b281b3517b4))
 * **db:** finalize federal courthouses - 357 records, all 94 districts clean ([1b777b5](https://github.com/cyclonite69/shadowcheck-web/commit/1b777b5766c788d83e9a740b64658891939e2788))
 * **db:** schedule daily materialized view refresh ([c1e936d](https://github.com/cyclonite69/shadowcheck-web/commit/c1e936d93ac16001b049fcf3ce2a79f4f4ea2181))
+* **db:** seed SIGINT surveillance OUI classifications ([78d84f2](https://github.com/cyclonite69/shadowcheck-web/commit/78d84f22cc22b7c48ef4adc536ef06542ec4aeb4))
 * **db:** standardize radio manufacturers and addresses ([04e6ff8](https://github.com/cyclonite69/shadowcheck-web/commit/04e6ff83509592479a8c0ab8ebf5b44ec6759a89)), closes [hi#fidelity](https://github.com/hi/issues/fidelity)
 * **deploy:** align grafana health check detection with other containers ([651cf90](https://github.com/cyclonite69/shadowcheck-web/commit/651cf90c30e7437a9673278fee705aa7c5256664))
 * **deploy:** self-install scs_rebuild as system-wide command on first run ([544d6e2](https://github.com/cyclonite69/shadowcheck-web/commit/544d6e2a4ba574744cf889b7e599546290e412d6))
