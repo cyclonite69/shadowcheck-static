@@ -68,6 +68,25 @@ describe('settingsAdminService', () => {
     });
   });
 
+  describe('upsertSetting', () => {
+    it('should insert or update value and return saved row', async () => {
+      const mockRow = { key: 'badge_studio', value: 'true' };
+      adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
+
+      const result = await settingsAdminService.upsertSetting(
+        'badge_studio',
+        true,
+        'badge_studio runtime feature flag'
+      );
+
+      expect(result).toEqual(mockRow);
+      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO app.settings'),
+        ['badge_studio', 'true', 'badge_studio runtime feature flag']
+      );
+    });
+  });
+
   describe('toggleMLBlending', () => {
     it('should toggle from true to false', async () => {
       // 1. getSettingByKey returns true

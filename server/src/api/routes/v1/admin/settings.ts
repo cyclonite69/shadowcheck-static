@@ -142,6 +142,7 @@ router.get('/runtime', async (req: any, res: any) => {
         adminAllowMlTraining: dbBackedFlags.admin_allow_ml_training,
         adminAllowMlScoring: dbBackedFlags.admin_allow_ml_scoring,
         enableBackgroundJobs: dbBackedFlags.enable_background_jobs,
+        badgeStudio: dbBackedFlags.badge_studio,
         apiGateEnabled: envFlag(process.env.API_GATE_ENABLED ?? 'true', true),
         forceHttps: envFlag(process.env.FORCE_HTTPS, false),
         cookieSecure: envFlag(process.env.COOKIE_SECURE, false),
@@ -282,7 +283,9 @@ router.put('/:key', async (req: any, res: any) => {
       value = JSON.stringify(value);
     }
 
-    const setting = await settingsAdminService.updateSetting(key, value);
+    const setting = featureFlagService.isDbBackedFlagKey(key)
+      ? await settingsAdminService.upsertSetting(key, value, `${key} runtime feature flag`)
+      : await settingsAdminService.updateSetting(key, value);
 
     if (!setting) {
       return res.status(404).json({ success: false, error: 'Setting not found' });

@@ -4,6 +4,7 @@ export interface FlagItem {
   label: string;
   enabled: boolean;
   detail: string;
+  description?: string;
   source: string;
   impact: 'Live' | 'Restart' | 'Rebuild';
   editable?: boolean;
@@ -34,6 +35,7 @@ export const ConfigFlagRow: React.FC<FlagRowProps> = ({ item, isLoading, onToggl
     <div>
       <div className="text-sm font-medium text-white">{item.label}</div>
       <div className="text-xs text-slate-500">{item.detail}</div>
+      {item.description && <div className="mt-1 text-xs text-slate-400">{item.description}</div>}
     </div>
     <div className="shrink-0 text-right">
       <div className="flex flex-wrap justify-end gap-2">

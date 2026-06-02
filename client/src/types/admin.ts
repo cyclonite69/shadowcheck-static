@@ -115,6 +115,7 @@ export interface AdminRuntimeFeatureFlags {
   adminAllowMlTraining: boolean;
   adminAllowMlScoring: boolean;
   enableBackgroundJobs: boolean;
+  badgeStudio: boolean;
   apiGateEnabled: boolean;
   forceHttps: boolean;
   cookieSecure: boolean;

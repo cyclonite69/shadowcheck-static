@@ -29,6 +29,24 @@ export async function updateSetting(key: string, value: any): Promise<any> {
   return rows[0];
 }
 
+export async function upsertSetting(
+  key: string,
+  value: any,
+  description: string | null = null
+): Promise<any> {
+  const { rows } = await adminQuery(
+    `INSERT INTO app.settings (key, value, description)
+     VALUES ($1, $2::jsonb, $3)
+     ON CONFLICT (key) DO UPDATE
+       SET value = EXCLUDED.value,
+           description = COALESCE(app.settings.description, EXCLUDED.description),
+           updated_at = NOW()
+     RETURNING *`,
+    [key, JSON.stringify(value), description]
+  );
+  return rows[0];
+}
+
 export async function toggleMLBlending(): Promise<boolean> {
   const current = await getSettingByKey('ml_blending_enabled');
   const newValue = current?.value === 'true' ? 'false' : 'true';
@@ -55,6 +73,7 @@ module.exports = {
   getAllSettings,
   getSettingByKey,
   updateSetting,
+  upsertSetting,
   toggleMLBlending,
   saveMLModelConfig,
 };

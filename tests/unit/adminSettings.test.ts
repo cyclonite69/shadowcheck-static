@@ -7,6 +7,7 @@ jest.mock('../../server/src/config/container', () => ({
     getAllSettings: jest.fn(),
     getSettingByKey: jest.fn(),
     updateSetting: jest.fn(),
+    upsertSetting: jest.fn(),
     toggleMLBlending: jest.fn(),
   },
   backgroundJobsService: {
@@ -105,10 +106,14 @@ describe('admin settings routes', () => {
 
   describe('GET /api/admin/settings/runtime', () => {
     it('should return runtime settings', async () => {
-      featureFlagService.getAllFlags.mockReturnValue({ admin_allow_docker: true });
+      featureFlagService.getAllFlags.mockReturnValue({
+        admin_allow_docker: true,
+        badge_studio: true,
+      });
       const res = await request(app).get('/api/admin/settings/runtime');
       expect(res.status).toBe(200);
       expect(res.body.featureFlags.adminAllowDocker).toBe(true);
+      expect(res.body.featureFlags.badgeStudio).toBe(true);
     });
   });
 
@@ -207,13 +212,33 @@ describe('admin settings routes', () => {
     });
 
     it('should handle enable_background_jobs update', async () => {
-      settingsAdminService.updateSetting.mockResolvedValueOnce({ value: 'true' });
+      settingsAdminService.upsertSetting.mockResolvedValueOnce({ value: 'true' });
       featureFlagService.isDbBackedFlagKey.mockReturnValue(true);
       const res = await request(app)
         .put('/api/admin/settings/enable_background_jobs')
         .send({ value: 'true' });
       expect(res.status).toBe(200);
+      expect(settingsAdminService.upsertSetting).toHaveBeenCalledWith(
+        'enable_background_jobs',
+        true,
+        'enable_background_jobs runtime feature flag'
+      );
       expect(backgroundJobsService.applySchedulerFlagChange).toHaveBeenCalled();
+    });
+
+    it('should upsert badge_studio as a DB-backed feature flag', async () => {
+      settingsAdminService.upsertSetting.mockResolvedValueOnce({ value: 'true' });
+      featureFlagService.isDbBackedFlagKey.mockReturnValue(true);
+
+      const res = await request(app).put('/api/admin/settings/badge_studio').send({ value: true });
+
+      expect(res.status).toBe(200);
+      expect(settingsAdminService.upsertSetting).toHaveBeenCalledWith(
+        'badge_studio',
+        true,
+        'badge_studio runtime feature flag'
+      );
+      expect(featureFlagService.refreshCache).toHaveBeenCalled();
     });
   });
 

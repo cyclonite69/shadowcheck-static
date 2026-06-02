@@ -62,6 +62,7 @@ describe('featureFlagService', () => {
       expect(flags).toHaveProperty('auto_geocode_on_import');
       expect(flags).toHaveProperty('admin_allow_docker');
       expect(flags).toHaveProperty('enable_background_jobs');
+      expect(flags).toHaveProperty('badge_studio');
     });
 
     test('returns a copy — mutations do not affect internal cache', () => {
@@ -76,6 +77,7 @@ describe('featureFlagService', () => {
       expect(svc.isDbBackedFlagKey('dedupe_on_scan')).toBe(true);
       expect(svc.isDbBackedFlagKey('admin_allow_docker')).toBe(true);
       expect(svc.isDbBackedFlagKey('enable_background_jobs')).toBe(true);
+      expect(svc.isDbBackedFlagKey('badge_studio')).toBe(true);
     });
 
     test('returns false for unknown keys', () => {
@@ -96,10 +98,10 @@ describe('featureFlagService', () => {
     test('updates flag value from DB row', async () => {
       const { query } = require('../../../server/src/config/database');
       (query as jest.Mock).mockResolvedValue({
-        rows: [{ key: 'dedupe_on_scan', value: false }],
+        rows: [{ key: 'badge_studio', value: true }],
       });
       await svc.refreshCache();
-      expect(svc.getFlag('dedupe_on_scan')).toBe(false);
+      expect(svc.getFlag('badge_studio')).toBe(true);
     });
 
     test('handles string "true" value from DB', async () => {
@@ -231,7 +233,7 @@ describe('featureFlagService', () => {
       expect(svc.getFlag('enable_background_jobs')).toBe(true);
     });
 
-    test('getAllFlags returns all 9 known keys after refresh', async () => {
+    test('getAllFlags returns all known keys after refresh', async () => {
       const { query } = require('../../../server/src/config/database');
       (query as jest.Mock).mockResolvedValue({ rows: [] });
       await svc.refreshCache();
@@ -241,6 +243,7 @@ describe('featureFlagService', () => {
         'admin_allow_ml_training',
         'admin_allow_ml_scoring',
         'enable_background_jobs',
+        'badge_studio',
         'simple_rule_scoring_enabled',
         'allow_mobile_ingest_auto_process',
         'score_debug_logging',

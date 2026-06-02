@@ -25,6 +25,16 @@ export const useConfigurationFlags = ({ featureFlags, demoMode }: UseConfigurati
         impact: 'Live',
         editable: true,
       },
+      {
+        label: 'Badge Studio',
+        enabled: featureFlags?.badgeStudio ?? false,
+        detail: 'badge_studio',
+        description:
+          'Enable Badge Studio tools for column badge rendering, palettes, and badge configuration experiments.',
+        source: 'Database setting',
+        impact: 'Live',
+        editable: true,
+      },
     ],
     [featureFlags]
   );

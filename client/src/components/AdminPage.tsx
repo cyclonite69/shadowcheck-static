@@ -17,6 +17,7 @@ import { DbStatsTab } from './admin/tabs/DbStatsTab';
 import { adminApi } from '../api/adminApi';
 import type { AdminRuntimeConfig } from '../types/admin';
 import { SigintLibraryTab } from './admin/tabs/SigintLibraryTab';
+import { BadgeStudioTab } from './admin/tabs/BadgeStudioTab';
 
 const ConfigurationTab = lazy(() => import('./admin/tabs/ConfigurationTab'));
 const MLTrainingTab = lazy(() => import('./admin/tabs/MLTrainingTab'));
@@ -301,6 +302,7 @@ const AdminPage: React.FC = () => {
     runtimeConfig?.featureFlags?.adminAllowMlTraining === true ||
     runtimeConfig?.featureFlags?.adminAllowMlScoring === true;
   const showPgAdminTab = runtimeConfig?.featureFlags?.adminAllowDocker === true;
+  const showBadgeStudioTab = runtimeConfig?.featureFlags?.badgeStudio === true;
 
   const tabs = [
     { id: 'config', label: 'Configuration', icon: SettingsIcon },
@@ -319,6 +321,9 @@ const AdminPage: React.FC = () => {
     ...(showPgAdminTab ? [{ id: 'pgadmin', label: 'PgAdmin', icon: DatabaseIcon }] : []),
     { id: 'users', label: 'Users', icon: UsersIcon },
     { id: 'sigint-library', label: 'SIGINT Library', icon: BookIcon },
+    ...(showBadgeStudioTab
+      ? [{ id: 'badge-studio', label: 'Badge Studio', icon: SettingsIcon }]
+      : []),
   ];
 
   useEffect(() => {
@@ -404,6 +409,7 @@ const AdminPage: React.FC = () => {
           {activeTab === 'pgadmin' && <PgAdminTab />}
           {activeTab === 'users' && <UsersTab />}
           {activeTab === 'sigint-library' && <SigintLibraryTab />}
+          {activeTab === 'badge-studio' && showBadgeStudioTab && <BadgeStudioTab />}
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ type DbBackedFlagKey =
   | 'admin_allow_ml_training'
   | 'admin_allow_ml_scoring'
   | 'enable_background_jobs'
+  | 'badge_studio'
   | 'simple_rule_scoring_enabled'
   | 'allow_mobile_ingest_auto_process'
   | 'score_debug_logging'
@@ -19,6 +20,7 @@ const FLAG_DEFAULTS: Record<DbBackedFlagKey, boolean> = {
   admin_allow_ml_scoring:
     String(process.env.ADMIN_ALLOW_ML_SCORING ?? 'true').toLowerCase() === 'true',
   enable_background_jobs: process.env.ENABLE_BACKGROUND_JOBS === 'true',
+  badge_studio: false,
   simple_rule_scoring_enabled: process.env.SIMPLE_RULE_SCORING_ENABLED === 'true',
   allow_mobile_ingest_auto_process: process.env.ALLOW_MOBILE_INGEST_AUTO_PROCESS === 'true',
   score_debug_logging: false,

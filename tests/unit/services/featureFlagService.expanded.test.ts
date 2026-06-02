@@ -46,6 +46,7 @@ describe('featureFlagService', () => {
       expect(flags).toHaveProperty('admin_allow_docker');
       expect(flags).toHaveProperty('admin_allow_ml_training');
       expect(flags).toHaveProperty('enable_background_jobs');
+      expect(flags).toHaveProperty('badge_studio');
       expect(flags).toHaveProperty('simple_rule_scoring_enabled');
       expect(flags).toHaveProperty('auto_geocode_on_import');
       expect(flags).toHaveProperty('dedupe_on_scan');
@@ -60,6 +61,7 @@ describe('featureFlagService', () => {
     test('returns true for valid flag keys', () => {
       expect(featureFlagService.isDbBackedFlagKey('enable_background_jobs')).toBe(true);
       expect(featureFlagService.isDbBackedFlagKey('admin_allow_docker')).toBe(true);
+      expect(featureFlagService.isDbBackedFlagKey('badge_studio')).toBe(true);
     });
 
     test('returns false for unknown keys', () => {
@@ -74,6 +76,7 @@ describe('featureFlagService', () => {
       mockQuery.mockResolvedValueOnce({
         rows: [
           { key: 'enable_background_jobs', value: 'true' },
+          { key: 'badge_studio', value: 'true' },
           { key: 'admin_allow_docker', value: 'false' },
           { key: 'auto_geocode_on_import', value: 'false' },
         ],
@@ -82,6 +85,7 @@ describe('featureFlagService', () => {
       const result = await featureFlagService.refreshCache();
 
       expect(result.enable_background_jobs).toBe(true);
+      expect(result.badge_studio).toBe(true);
       expect(result.admin_allow_docker).toBe(false);
       expect(result.auto_geocode_on_import).toBe(false);
     });
