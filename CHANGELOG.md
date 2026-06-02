@@ -1080,7 +1080,7 @@
 * **aws:** add passwordless psql aliases using Secrets Manager ([3820b49](https://github.com/cyclonite69/shadowcheck-web/commit/3820b49c8d9ef92cb5da67cb72c8b5226414f225))
 * **aws:** add PostgreSQL aliases with Secrets Manager integration ([36a9418](https://github.com/cyclonite69/shadowcheck-web/commit/36a9418981af454ec15bc242be0e4e4c087086d0))
 * **backend:** add centroid/weighted coords to geospatial API path and fix MV refresh order ([32cdc65](https://github.com/cyclonite69/shadowcheck-web/commit/32cdc655ccc25d4d6a79e912999f3b5dc81060b9))
-* **badge-studio:** phase 1 renderer, palette, and config system ([d390c7f](https://github.com/cyclonite69/shadowcheck-web/commit/d390c7f709fb2e3ea042ba1ff954ec18db4ae0c9))
+* **badge-studio:** phase 1 renderer, palette, and config system ([89a065d](https://github.com/cyclonite69/shadowcheck-web/commit/89a065d05884cfc938a7f8c725c514ddd78a2cc3))
 * bake DB bootstrap, migrations, and Docker cleanup into deploy pipeline ([2f9910b](https://github.com/cyclonite69/shadowcheck-web/commit/2f9910b8a41d13f1e5bd2adc4edfacd392cbd4f1))
 * BSSID-based coloring for tooltips, radio icons, and sibling group borders ([4710ce6](https://github.com/cyclonite69/shadowcheck-web/commit/4710ce635b00f57df38158d943377be1c0760a91))
 * **build:** upgrade to Vite 8 + plugin-react 6, fix CJS/ESM conflict ([48f5c10](https://github.com/cyclonite69/shadowcheck-web/commit/48f5c109aefb72c67e016f5ce58032696c4245bc))
