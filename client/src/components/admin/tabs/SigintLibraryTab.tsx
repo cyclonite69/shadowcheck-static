@@ -1,29 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import vendorManifest from '../../vendor-intel/vendor_intel_manifest.json';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type SourceType = 'leaked' | 'foia' | 'manufacturer' | 'public' | 'research';
-
-interface VendorDoc {
-  title: string;
-  source_type: SourceType;
-  format: 'html' | 'pdf';
-  file: string;
-  summary: string;
-  year: number;
-  origin: string;
-}
-
-interface VendorEntry {
-  vendor_key: string;
-  display_name: string;
-  oui_prefixes: string[];
-  threat_tier: 1 | 2 | 3;
-  surveillance_type: string;
-  description: string;
-  docs: VendorDoc[];
-}
+import type { SourceType, VendorDoc, VendorEntry } from '../../vendor-intel/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,6 +20,66 @@ const TIER_CONFIG: Record<number, { label: string; color: string; bg: string; bo
   },
 };
 
+const CATEGORY_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  SIGINT_INTERCEPT: {
+    label: 'SIGINT / Intercept',
+    color: '#dc2626',
+    bg: '#dc262612',
+    border: '#dc262640',
+  },
+  BODY_CAMERA: { label: 'Body Camera', color: '#3b82f6', bg: '#3b82f612', border: '#3b82f640' },
+  CEW_TASER: { label: 'CEW / TASER', color: '#8b5cf6', bg: '#8b5cf612', border: '#8b5cf640' },
+  ALPR_CAMERA: { label: 'ALPR Camera', color: '#ef4444', bg: '#ef444412', border: '#ef444440' },
+  ACOUSTIC_SENSOR: {
+    label: 'Acoustic Sensor',
+    color: '#ef4444',
+    bg: '#ef444412',
+    border: '#ef444440',
+  },
+  PUBLIC_SAFETY_MOBILE_ROUTER: {
+    label: 'Public Safety Router',
+    color: '#10b981',
+    bg: '#10b98112',
+    border: '#10b98140',
+  },
+  DEFENSE_C4ISR: {
+    label: 'Defense / C4ISR',
+    color: '#f97316',
+    bg: '#f9731612',
+    border: '#f9731640',
+  },
+  DUAL_USE_INFRASTRUCTURE: {
+    label: 'Dual-use Infrastructure',
+    color: '#eab308',
+    bg: '#eab30812',
+    border: '#eab30840',
+  },
+  DUAL_USE_PENTEST_GEAR: {
+    label: 'Pentest / RF Research',
+    color: '#f59e0b',
+    bg: '#f59e0b12',
+    border: '#f59e0b40',
+  },
+  UNKNOWN_PRIVATE_OUI: {
+    label: 'Private / Unknown OUI',
+    color: '#6b7280',
+    bg: '#6b728012',
+    border: '#6b728040',
+  },
+};
+
+const getCategoryConfig = (entry: VendorEntry) => {
+  if (entry.category && CATEGORY_CONFIG[entry.category]) return CATEGORY_CONFIG[entry.category];
+  if (entry.threat_tier && TIER_CONFIG[entry.threat_tier]) {
+    const t = TIER_CONFIG[entry.threat_tier];
+    return { label: t.label, color: t.color, bg: t.bg, border: t.border };
+  }
+  return CATEGORY_CONFIG.UNKNOWN_PRIVATE_OUI;
+};
+
 const SOURCE_CONFIG: Record<
   SourceType,
   { label: string; color: string; bg: string; border: string }
@@ -52,11 +89,19 @@ const SOURCE_CONFIG: Record<
   manufacturer: { label: 'MANUFACTURER', color: '#6b7280', bg: '#6b728015', border: '#6b728040' },
   public: { label: 'PUBLIC', color: '#3b82f6', bg: '#3b82f615', border: '#3b82f640' },
   research: { label: 'RESEARCH', color: '#8b5cf6', bg: '#8b5cf615', border: '#8b5cf640' },
+  procurement: { label: 'PROCUREMENT', color: '#10b981', bg: '#10b98115', border: '#10b98140' },
+  fcc: { label: 'FCC', color: '#06b6d4', bg: '#06b6d415', border: '#06b6d440' },
 };
 
-const VENDOR_DOCS_BASE = '/vendor-docs/';
-
-const ALL_SOURCE_TYPES: SourceType[] = ['leaked', 'foia', 'manufacturer', 'public', 'research'];
+const ALL_SOURCE_TYPES: SourceType[] = [
+  'leaked',
+  'foia',
+  'manufacturer',
+  'public',
+  'research',
+  'procurement',
+  'fcc',
+];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -81,8 +126,8 @@ const SourceBadge: React.FC<{ type: SourceType }> = ({ type }) => {
   );
 };
 
-const TierBadge: React.FC<{ tier: number }> = ({ tier }) => {
-  const c = TIER_CONFIG[tier] ?? TIER_CONFIG[3];
+const CategoryBadge: React.FC<{ entry: VendorEntry }> = ({ entry }) => {
+  const c = getCategoryConfig(entry);
   return (
     <span
       style={{
@@ -106,6 +151,7 @@ const TierBadge: React.FC<{ tier: number }> = ({ tier }) => {
 export const SigintLibraryTab: React.FC = () => {
   const [tierFilter, setTierFilter] = useState<number | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceType | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
 
@@ -114,6 +160,7 @@ export const SigintLibraryTab: React.FC = () => {
   const filtered = useMemo(() => {
     return vendors
       .filter((v) => tierFilter === null || v.threat_tier === tierFilter)
+      .filter((v) => categoryFilter === null || v.category === categoryFilter)
       .filter((v) => {
         if (!sourceFilter) return true;
         return v.docs.some((d) => d.source_type === sourceFilter);
@@ -124,6 +171,7 @@ export const SigintLibraryTab: React.FC = () => {
         return (
           v.display_name.toLowerCase().includes(q) ||
           v.surveillance_type.toLowerCase().includes(q) ||
+          (v.category ?? '').toLowerCase().includes(q) ||
           v.description.toLowerCase().includes(q) ||
           v.docs.some(
             (d) =>
@@ -133,10 +181,21 @@ export const SigintLibraryTab: React.FC = () => {
           )
         );
       })
-      .sort((a, b) => a.threat_tier - b.threat_tier);
-  }, [vendors, tierFilter, sourceFilter, search]);
+      .sort((a, b) => {
+        // SIGINT/defense first by tier, others by category label
+        if (a.threat_tier && b.threat_tier) return a.threat_tier - b.threat_tier;
+        if (a.threat_tier) return -1;
+        if (b.threat_tier) return 1;
+        return (a.category ?? '').localeCompare(b.category ?? '');
+      });
+  }, [vendors, tierFilter, sourceFilter, categoryFilter, search]);
 
   const totalDocs = vendors.reduce((sum, v) => sum + v.docs.length, 0);
+
+  // Unique categories for filter pills
+  const allCategories = Array.from(
+    new Set(vendors.map((v) => v.category).filter(Boolean))
+  ) as string[];
 
   return (
     <div className="space-y-4">
@@ -144,13 +203,27 @@ export const SigintLibraryTab: React.FC = () => {
       <div className="rounded-xl border border-slate-700/40 bg-slate-900/60 p-4 backdrop-blur-sm">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h2 className="text-lg font-bold text-white">SIGINT Vendor Library</h2>
+            <h2 className="text-lg font-bold text-white">Device Intel Library</h2>
             <p className="text-sm text-slate-400 mt-1">
-              {vendors.length} vendors · {totalDocs} reference documents indexed
+              {vendors.length} entries · {totalDocs} reference documents indexed
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Tier filter */}
+            {/* Category filter */}
+            <select
+              value={categoryFilter ?? ''}
+              onChange={(e) => setCategoryFilter(e.target.value || null)}
+              className="bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All categories</option>
+              {allCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {CATEGORY_CONFIG[cat]?.label ?? cat}
+                </option>
+              ))}
+            </select>
+
+            {/* Tier filter (legacy SIGINT tiers) */}
             <div className="flex gap-1">
               {[1, 2, 3].map((t) => {
                 const c = TIER_CONFIG[t];
@@ -194,7 +267,7 @@ export const SigintLibraryTab: React.FC = () => {
             {/* Search */}
             <input
               type="text"
-              placeholder="Search vendors, docs…"
+              placeholder="Search entries, docs…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded-md px-3 py-1.5 w-48 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-slate-500"
@@ -203,15 +276,15 @@ export const SigintLibraryTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Vendor cards */}
+      {/* Entry cards */}
       <div className="space-y-3">
         {filtered.length === 0 && (
           <div className="text-center py-12 text-slate-500 text-sm">
-            No vendors match the current filters.
+            No entries match the current filters.
           </div>
         )}
         {filtered.map((vendor) => {
-          const tier = TIER_CONFIG[vendor.threat_tier] ?? TIER_CONFIG[3];
+          const cat = getCategoryConfig(vendor);
           const isExpanded = expandedVendor === vendor.vendor_key;
           const visibleDocs = sourceFilter
             ? vendor.docs.filter((d) => d.source_type === sourceFilter)
@@ -222,20 +295,20 @@ export const SigintLibraryTab: React.FC = () => {
               key={vendor.vendor_key}
               className="rounded-xl border backdrop-blur-sm overflow-hidden"
               style={{
-                borderColor: isExpanded ? `${tier.color}40` : 'rgba(255,255,255,0.08)',
+                borderColor: isExpanded ? `${cat.color}40` : 'rgba(255,255,255,0.08)',
                 background: '#0f1117',
               }}
             >
-              {/* Vendor header row */}
+              {/* Entry header row */}
               <button
                 onClick={() => setExpandedVendor(isExpanded ? null : vendor.vendor_key)}
                 className="w-full text-left"
-                style={{ padding: '14px 16px', background: isExpanded ? tier.bg : 'transparent' }}
+                style={{ padding: '14px 16px', background: isExpanded ? cat.bg : 'transparent' }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <TierBadge tier={vendor.threat_tier} />
+                      <CategoryBadge entry={vendor} />
                       <span
                         style={{
                           fontSize: '9px',
@@ -244,7 +317,7 @@ export const SigintLibraryTab: React.FC = () => {
                           letterSpacing: '0.05em',
                         }}
                       >
-                        {vendor.surveillance_type}
+                        {vendor.device_class ?? vendor.surveillance_type}
                       </span>
                     </div>
                     <div className="text-white font-semibold text-sm">{vendor.display_name}</div>
@@ -253,10 +326,16 @@ export const SigintLibraryTab: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs text-slate-500">{vendor.docs.length} docs</span>
+                    <span className="text-xs text-slate-500">
+                      {vendor.docs.length > 0
+                        ? `${vendor.docs.length} docs`
+                        : vendor.docs_status === 'needs_collection'
+                          ? 'no docs yet'
+                          : '—'}
+                    </span>
                     <span
                       style={{
-                        color: tier.color,
+                        color: cat.color,
                         fontSize: '16px',
                         transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                         transition: 'transform 0.2s',
@@ -272,7 +351,7 @@ export const SigintLibraryTab: React.FC = () => {
                 {vendor.oui_prefixes.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     <span className="text-xs text-slate-500 self-center">OUI:</span>
-                    {vendor.oui_prefixes.map((oui) => (
+                    {vendor.oui_prefixes.slice(0, 8).map((oui) => (
                       <span
                         key={oui}
                         className="text-xs font-mono px-1.5 py-0.5 rounded"
@@ -286,6 +365,11 @@ export const SigintLibraryTab: React.FC = () => {
                         {oui}
                       </span>
                     ))}
+                    {vendor.oui_prefixes.length > 8 && (
+                      <span className="text-xs text-slate-500 self-center">
+                        +{vendor.oui_prefixes.length - 8} more
+                      </span>
+                    )}
                   </div>
                 )}
               </button>
@@ -294,7 +378,7 @@ export const SigintLibraryTab: React.FC = () => {
               {isExpanded && (
                 <div
                   style={{
-                    borderTop: `1px solid ${tier.color}25`,
+                    borderTop: `1px solid ${cat.color}25`,
                     padding: '12px 16px 16px',
                     background: 'rgba(0,0,0,0.2)',
                   }}
@@ -306,7 +390,7 @@ export const SigintLibraryTab: React.FC = () => {
                     {visibleDocs.map((doc, i) => (
                       <a
                         key={i}
-                        href={`${VENDOR_DOCS_BASE}${doc.file}`}
+                        href={`/vendor-docs/${doc.file}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block rounded-lg p-3 transition-colors"
@@ -354,7 +438,11 @@ export const SigintLibraryTab: React.FC = () => {
                     ))}
                     {visibleDocs.length === 0 && (
                       <p className="text-xs text-slate-500 italic">
-                        No documents match the current source filter.
+                        {vendor.docs_status === 'needs_collection'
+                          ? 'No archived reference documents yet.'
+                          : vendor.docs_status === 'not_applicable'
+                            ? 'No reference documents applicable for this entry.'
+                            : 'No documents match the current source filter.'}
                       </p>
                     )}
                   </div>
