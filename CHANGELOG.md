@@ -1115,7 +1115,7 @@
 * **deploy:** align grafana health check detection with other containers ([651cf90](https://github.com/cyclonite69/shadowcheck-web/commit/651cf90c30e7437a9673278fee705aa7c5256664))
 * **deploy:** self-install scs_rebuild as system-wide command on first run ([544d6e2](https://github.com/cyclonite69/shadowcheck-web/commit/544d6e2a4ba574744cf889b7e599546290e412d6))
 * **dev:** add healthcheck to api_dev container in docker-compose.dev.yml ([e17640f](https://github.com/cyclonite69/shadowcheck-web/commit/e17640f9fcc1796afa215d509e3644d7c701c8b5))
-* **device-intel:** expand SIGINT Library to Device Intel Library ([bc85937](https://github.com/cyclonite69/shadowcheck-web/commit/bc8593733b39829f36fe57dc78f3b64177d619eb))
+* **device-intel:** expand SIGINT Library to Device Intel Library ([0b3a386](https://github.com/cyclonite69/shadowcheck-web/commit/0b3a38694ddcd0aa942754978e2975b35b2b07d0))
 * Disable automatic network marker loading on geospatial page ([163ccf2](https://github.com/cyclonite69/shadowcheck-web/commit/163ccf2c0c6c2dc6c143601f09f7f468e306b8c8))
 * **ec2-setup:** install nano and security-updates timer in setup-instance.sh ([be7df3c](https://github.com/cyclonite69/shadowcheck-web/commit/be7df3c0ada36df60313eee972943b867c91489c))
 * enhance geospatial visualizations and add database migration scripts ([2403006](https://github.com/cyclonite69/shadowcheck-web/commit/24030065809df5ec9a266ea8a68549e1c3573101))

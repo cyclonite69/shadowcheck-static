@@ -64,8 +64,8 @@ describe('vendor_intel_manifest integrity', () => {
     }
   });
 
-  test('docs_status is needs_collection, not_applicable, or absent', () => {
-    const allowed = new Set(['needs_collection', 'not_applicable', undefined]);
+  test('docs_status is needs_collection, not_applicable, partial, or absent', () => {
+    const allowed = new Set(['needs_collection', 'not_applicable', 'partial', undefined]);
     for (const v of manifest.vendors) {
       expect(allowed.has(v.docs_status)).toBe(true);
     }
@@ -123,8 +123,8 @@ describe('new operational entries resolve', () => {
     expect(entry).not.toBeNull();
     expect(entry!.category).toBe('BODY_CAMERA');
     expect(entry!.threat_tier).toBeNull();
-    expect(entry!.docs_status).toBe('needs_collection');
-    expect(entry!.docs).toHaveLength(0);
+    // docs_status is 'partial' once at least one doc is archived
+    expect(['needs_collection', 'partial']).toContain(entry!.docs_status);
   });
 
   test('FLOCK_SAFETY_CAMERA resolves with category ALPR_CAMERA', () => {

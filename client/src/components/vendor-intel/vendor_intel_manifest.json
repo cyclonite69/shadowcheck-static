@@ -586,8 +586,18 @@
         "BT_COD"
       ],
       "confidence_notes": "OUI blocks sourced from IEEE registry; consistent with FCC filing data. BLE mfgrid 0x034D and service UUID 0xFFA1 confirmed from captured devices. CoD 0x1F00 confirmed across 23 observed Axon units per operator dataset.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Axon Body 3 — Introduction and Registration (Product Guide)",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "axon_body3_product_guide.html",
+          "summary": "Official Axon Body 3 product guide covering camera overview, registration via Axon Device Manager, dock-based setup, and integration with Axon Evidence. Confirms WiFi-based evidence upload architecture.",
+          "year": 2026,
+          "origin": "Axon Enterprise (axon.com/help)"
+        }
+      ]
     },
     {
       "vendor_key": "AXON_SIGNAL_PERIPHERAL",
@@ -608,8 +618,27 @@
       "description": "Axon Signal Sidearm, Signal Vehicle, and related CEW ecosystem peripherals. These BLE peripherals broadcast the Axon manufacturer ID (0x034D) and BLE names matching ^axon, ^taser, or ^signal. Used to automatically activate body cameras when a TASER is drawn.",
       "evidence_types": ["BLE_MFGRID", "BLE_NAME"],
       "confidence_notes": "BLE mfgrid 0x034D shared with Axon BWC. Classification as SIGNAL vs BWC depends on BLE advertisement name pattern.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Axon Signal — Product Overview (axon.com)",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "axon_signal_peripheral_product.html",
+          "summary": "Official Axon Signal product page covering Signal Sensor (formerly Signal Sidearm), Signal Vehicle, and TASER battery pack integration. Describes BLE-based hands-free camera activation ecosystem and Safariland holster compatibility.",
+          "year": 2026,
+          "origin": "Axon Enterprise (axon.com)"
+        },
+        {
+          "title": "Axon Signal Sidearm — Operation and Technical Guide",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "axon_signal_sidearm_guide.html",
+          "summary": "Axon Signal Sidearm product guide covering holster installation, BLE operation, calibration, and camera activation behavior when firearm is drawn.",
+          "year": 2026,
+          "origin": "Axon Enterprise (axon.com/help)"
+        }
+      ]
     },
     {
       "vendor_key": "MOTOROLA_BWC",
@@ -624,8 +653,18 @@
       "description": "Motorola Solutions body-worn camera line (V300, V500, Si500). Deployed by law enforcement agencies as an alternative to Axon. Identified via Motorola Solutions OUI blocks.",
       "evidence_types": ["OUI"],
       "confidence_notes": "OUI blocks are broad Motorola Solutions allocations covering many product lines. OUI match alone is MEDIUM confidence; corroborate with SSID or behavioral data.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Motorola Solutions V300 Body-Worn Camera — Product Page",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "motorola_v300_product.html",
+          "summary": "Motorola Solutions V300 body-worn camera product overview. Covers continuous-operation design with detachable 12-hour battery, 128 GB storage, secure wireless uploading, APX radio Bluetooth integration, and Record-after-the-Fact technology.",
+          "year": 2025,
+          "origin": "Motorola Solutions (motorolasolutions.com)"
+        }
+      ]
     },
     {
       "vendor_key": "FLOCK_SAFETY_CAMERA",
@@ -771,8 +810,27 @@
       "description": "Cradlepoint (Ericsson) IBR, E3000, and R series cellular routers. Widely used in public safety, law enforcement, transit, and enterprise mobile deployments. Identified via OUI and SSID patterns IBR-, E3000-, CradlepointXXXX.",
       "evidence_types": ["OUI", "SSID_PATTERN"],
       "confidence_notes": "OUI blocks cover commercial and enterprise product lines; not exclusive to public safety. SSID corroboration increases confidence. Not yet in active detection vocab — library-only entry for Phase 1.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Cradlepoint IBR900 Series Ruggedized Router — Datasheet",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "cradlepoint_ibr900_datasheet.html",
+          "summary": "Official Cradlepoint IBR900 datasheet. Ruggedized Gigabit-Class LTE router for in-vehicle and IoT deployments. Explicitly lists public safety networks, GPS/AVL integration, and GPIO for vehicle systems. Confirms law enforcement and mobile command use cases.",
+          "year": 2024,
+          "origin": "Ericsson Cradlepoint (cradlepoint.com)"
+        },
+        {
+          "title": "Cradlepoint R1900 Series 5G Ruggedized Router — Datasheet",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "cradlepoint_r1900_datasheet.html",
+          "summary": "Official Cradlepoint R1900 datasheet for 5G successor to IBR1700. Covers ruggedized public safety and law enforcement vehicle deployments with 5G/LTE multi-carrier failover.",
+          "year": 2025,
+          "origin": "Ericsson Cradlepoint (cradlepoint.com)"
+        }
+      ]
     },
     {
       "vendor_key": "SIERRA_AIRLINK",

@@ -38,7 +38,7 @@ export interface VendorEntry {
   /** Signal types that can produce a detection match. */
   evidence_types?: string[];
   confidence_notes?: string;
-  /** 'needs_collection' | 'not_applicable' | undefined (docs present). */
+  /** 'needs_collection' | 'partial' | 'not_applicable' | undefined (all docs present). */
   docs_status?: string;
   docs: VendorDoc[];
 }
