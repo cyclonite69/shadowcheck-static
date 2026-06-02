@@ -1,6 +1,7 @@
 import React from 'react';
 import type { VirtualItem } from '@tanstack/react-virtual';
 import type { NetworkRow } from '../../../types/network';
+import type { ColumnBadgeConfig } from '../../../types/badgeConfig';
 import { NETWORK_COLUMNS } from '../../../constants/network';
 import { NETWORK_TABLE_LOCKED_HORIZONTAL_COLUMNS } from './networkTableGridConfig';
 import { renderNetworkTableCell } from '../networkTable/cellRenderers';
@@ -33,6 +34,7 @@ interface NetworkTableRowProps {
   patternSiblingCount: number;
   isPatternGroupCollapsed: boolean;
   onTogglePatternGroup: (groupId: string) => void;
+  badgeConfigs?: Record<string, ColumnBadgeConfig>;
 }
 
 const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
@@ -62,6 +64,7 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
   patternSiblingCount,
   isPatternGroupCollapsed,
   onTogglePatternGroup,
+  badgeConfigs,
 }) => {
   const isSelected = net.bssid ? selectedNetworks.has(net.bssid) : false;
   const isLinkedSibling = net.bssid ? linkedSiblingBssids.has(net.bssid) : false;
@@ -112,16 +115,19 @@ const NetworkTableRowComponent: React.FC<NetworkTableRowProps> = ({
       content,
       style: overrideStyle,
       title,
-    } = renderNetworkTableCell({
-      column: col,
-      columnConfig: column,
-      row: net,
-      value,
-      isSelected,
-      isLinkedSibling,
-      showSelectedAnchorLink,
-      onToggleSelectNetwork,
-    });
+    } = renderNetworkTableCell(
+      {
+        column: col,
+        columnConfig: column,
+        row: net,
+        value,
+        isSelected,
+        isLinkedSibling,
+        showSelectedAnchorLink,
+        onToggleSelectNetwork,
+      },
+      badgeConfigs
+    );
 
     let displayContent = content;
     if (col === 'ssid') {

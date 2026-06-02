@@ -1,7 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { NetworkRow } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
+import type { ColumnBadgeConfig } from '../../../types/badgeConfig';
 import { TypeBadge, ThreatBadge, SecurityBadge } from '../../badges';
+import { BadgeRenderer } from '../../badgeStudio/BadgeRenderer';
 import { Tooltip } from '../../../utils/Tooltip';
 import { macColor } from '../../../utils/mapHelpers';
 import {
@@ -621,8 +623,16 @@ const columnRenderers: Partial<
 };
 
 export const renderNetworkTableCell = (
-  context: NetworkTableCellRendererContext
+  context: NetworkTableCellRendererContext,
+  badgeConfigs?: Record<string, ColumnBadgeConfig>
 ): NetworkTableCellRendererResult => {
+  const badgeCfg = badgeConfigs?.[context.column];
+  if (badgeCfg?.enabled) {
+    return {
+      content: <BadgeRenderer value={context.value} config={badgeCfg} row={context.row} />,
+    };
+  }
+
   const renderer = columnRenderers[context.column];
   if (renderer) {
     return renderer(context);

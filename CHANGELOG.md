@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-01)
+# 1.0.0 (2026-06-02)
 
 
 ### Bug Fixes
@@ -952,6 +952,7 @@
 * **wigle:** remove duplicate state declaration in WigleDetailTab ([9715119](https://github.com/cyclonite69/shadowcheck-web/commit/9715119b54df2396df38184dcf9776936f10b093))
 * **wigle:** remove hallucinated v3/network/search endpoint, add param validation ([dec1dab](https://github.com/cyclonite69/shadowcheck-web/commit/dec1dab071baf3e42451c2e7f4a8dafb767ee1c4))
 * **wigle:** render ledger panel as normal block below map ([7a17def](https://github.com/cyclonite69/shadowcheck-web/commit/7a17def434452d44b4f1967c2978f516f331afea))
+* **wigle:** render stats badge without hotlinked PNG ([ddb2251](https://github.com/cyclonite69/shadowcheck-web/commit/ddb22516ac1ce82fdbc153a5a4d69a7bfda7bfc0))
 * **wigle:** report DB-backed import totals in investigate flow ([9a0e9b7](https://github.com/cyclonite69/shadowcheck-web/commit/9a0e9b73f77fb924835e6db5f89ec79d09866226))
 * **wigle:** resolve 500 errors in catalog filtering and single network lookups ([5f2c6bf](https://github.com/cyclonite69/shadowcheck-web/commit/5f2c6bf7ac3182e4c90e85c270539ab7e95512b4))
 * **wigle:** resolve ambiguous column references in v3 network queries ([175a974](https://github.com/cyclonite69/shadowcheck-web/commit/175a97429b4d7e73e19ae94a9c843cf9a2e26e07))
@@ -1079,6 +1080,7 @@
 * **aws:** add passwordless psql aliases using Secrets Manager ([3820b49](https://github.com/cyclonite69/shadowcheck-web/commit/3820b49c8d9ef92cb5da67cb72c8b5226414f225))
 * **aws:** add PostgreSQL aliases with Secrets Manager integration ([36a9418](https://github.com/cyclonite69/shadowcheck-web/commit/36a9418981af454ec15bc242be0e4e4c087086d0))
 * **backend:** add centroid/weighted coords to geospatial API path and fix MV refresh order ([32cdc65](https://github.com/cyclonite69/shadowcheck-web/commit/32cdc655ccc25d4d6a79e912999f3b5dc81060b9))
+* **badge-studio:** phase 1 renderer, palette, and config system ([d390c7f](https://github.com/cyclonite69/shadowcheck-web/commit/d390c7f709fb2e3ea042ba1ff954ec18db4ae0c9))
 * bake DB bootstrap, migrations, and Docker cleanup into deploy pipeline ([2f9910b](https://github.com/cyclonite69/shadowcheck-web/commit/2f9910b8a41d13f1e5bd2adc4edfacd392cbd4f1))
 * BSSID-based coloring for tooltips, radio icons, and sibling group borders ([4710ce6](https://github.com/cyclonite69/shadowcheck-web/commit/4710ce635b00f57df38158d943377be1c0760a91))
 * **build:** upgrade to Vite 8 + plugin-react 6, fix CJS/ESM conflict ([48f5c10](https://github.com/cyclonite69/shadowcheck-web/commit/48f5c109aefb72c67e016f5ce58032696c4245bc))
@@ -1307,8 +1309,9 @@
 * **user-stats:** serve cached stats on rate-limit instead of 429 ([8e22fe9](https://github.com/cyclonite69/shadowcheck-web/commit/8e22fe9f19ccbac4e004610ea4dc69e43eb43413))
 * **v3enrichment:** remove obs panel, decouple forensic preview, add multi-sort + col chooser ([420e252](https://github.com/cyclonite69/shadowcheck-web/commit/420e2520190f79c4bbe6e7a7b5657c429c5372c6))
 * vendor intel manifest, drawer, and SIGINT library tab ([bf8f591](https://github.com/cyclonite69/shadowcheck-web/commit/bf8f59167802816990aab884db0a8519232a64df))
+* **vendor-intel:** add Ability Inc + Elbit/Tadiran; extend Verint & Rohde & Schwarz with new docs ([bd0fc7c](https://github.com/cyclonite69/shadowcheck-web/commit/bd0fc7c179102ead40824279200dfa5a5e7d9159))
 * **vendor-intel:** add extracted vendor docs and extraction script ([87854bd](https://github.com/cyclonite69/shadowcheck-web/commit/87854bd29c2ea86f0669f749f6ee1a20deb7af8c))
-* **vendor-intel:** redesign vendor docs with ShadowCheck theme and informed stubs ([063afb0](https://github.com/cyclonite69/shadowcheck-web/commit/063afb01b5e14d8bb9c91f329f9f25f8eb73aa37))
+* **vendor-intel:** redesign vendor docs with ShadowCheck theme and informed stubs ([a080112](https://github.com/cyclonite69/shadowcheck-web/commit/a0801123436aff23f071a5fc0386e6daf9af0e7d))
 * **visint:** add VisINT auto-correlation pipeline ([d149d1e](https://github.com/cyclonite69/shadowcheck-web/commit/d149d1efbc688b2c8ef7cde080b79603da9c0f07))
 * **wigle-detail:** remove Recent Imports & Resumption section from v3 tab ([c064f80](https://github.com/cyclonite69/shadowcheck-web/commit/c064f802977ca3df441fdebfcfff02e2808e901d))
 * **wigle/kepler:** icon buttons, point size slider, crosshair cursor, filter panel position ([41e9231](https://github.com/cyclonite69/shadowcheck-web/commit/41e9231f7c46d9a20647c2c32a839dae348b73bc))
