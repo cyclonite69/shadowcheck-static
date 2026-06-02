@@ -1,5 +1,7 @@
 const { query } = require('../config/database');
 
+const MAX_NEAREST_PLACE_CLUSTERS = 50;
+
 export async function fetchFederalCourthousesGeoJSON(): Promise<any> {
   const sql = `
     SELECT 
@@ -44,6 +46,9 @@ export async function fetchFederalCourthousesGeoJSON(): Promise<any> {
  * DBSCAN-cluster observation points for the given BSSIDs (local + WiGLE),
  * then return the nearest federal courthouse per cluster.
  * Returns one row per cluster with cluster_id, cluster_count, and source flags.
+ * A safety cap of MAX_NEAREST_PLACE_CLUSTERS (50) is applied after DBSCAN;
+ * clusters are kept in natural cid order so sparse/western clusters are not
+ * silently dropped by density-biased sorting.
  */
 export async function findNearestCourthousesBatch(
   bssids: string[],
@@ -87,42 +92,57 @@ export async function findNearestCourthousesBatch(
         BOOL_OR(source = 'local') AS has_local_obs
       FROM clustered
       GROUP BY cid
-      ORDER BY COUNT(*) DESC
-      LIMIT 5
+      -- ORDER BY cid preserves all spatially distinct clusters from DBSCAN.
+      -- Do NOT use COUNT(*) DESC ordering -- that silently drops sparse/distant
+      -- clusters. Safety cap prevents runaway CROSS JOINs on degenerate inputs.
+      ORDER BY cid
+      LIMIT ${MAX_NEAREST_PLACE_CLUSTERS}
     ),
     per_cluster_nearest AS (
-      SELECT DISTINCT ON (c.cid)
+      SELECT
         c.cid,
         c.cluster_count,
         c.has_wigle_obs,
         c.has_local_obs,
-        ch.id, ch.name, ch.short_name, ch.courthouse_type,
-        ch.district, ch.circuit,
-        ch.city, ch.state, ch.postal_code,
-        ST_Y(ch.location::geometry) AS latitude,
-        ST_X(ch.location::geometry) AS longitude,
-        ST_Distance(
-          ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
-          ch.location::geography
-        ) AS distance_meters
+        c.lat AS cluster_lat, c.lon AS cluster_lon,
+        nearest.id, nearest.name, nearest.short_name, nearest.courthouse_type,
+        nearest.district, nearest.circuit,
+        nearest.city, nearest.state, nearest.postal_code,
+        nearest.latitude,
+        nearest.longitude,
+        nearest.distance_meters
       FROM centroids c
-      CROSS JOIN app.federal_courthouses ch
-      WHERE ch.location IS NOT NULL
-        AND ch.active = TRUE
-        AND ST_Distance(
+      LEFT JOIN LATERAL (
+        SELECT
+          ch.id, ch.name, ch.short_name, ch.courthouse_type,
+          ch.district, ch.circuit,
+          ch.city, ch.state, ch.postal_code,
+          ST_Y(ch.location::geometry) AS latitude,
+          ST_X(ch.location::geometry) AS longitude,
+          ST_Distance(
+            ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
+            ch.location::geography
+          ) AS distance_meters
+        FROM app.federal_courthouses ch
+        WHERE ch.location IS NOT NULL
+          AND ch.active = TRUE
+          AND ST_Distance(
+            ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
+            ch.location::geography
+          ) <= ($2 * 1000)
+        ORDER BY ST_Distance(
           ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
           ch.location::geography
-        ) <= ($2 * 1000)
-      ORDER BY c.cid, ST_Distance(
-        ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
-        ch.location::geography
-      )
+        )
+        LIMIT 1
+      ) nearest ON TRUE
     )
     SELECT
       cid AS cluster_id,
       cluster_count,
       has_wigle_obs,
       has_local_obs,
+      cluster_lat, cluster_lon,
       id, name, short_name, courthouse_type,
       district, circuit,
       city, state, postal_code,

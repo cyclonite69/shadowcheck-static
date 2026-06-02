@@ -110,5 +110,95 @@ describe('courthouseRepository', () => {
 
       expect(dbConfigCourthouse.query).toHaveBeenCalledWith(expect.any(String), [bssids, 100]);
     });
+
+    it('uses MAX_NEAREST_PLACE_CLUSTERS=50, orders by cid (not COUNT), and includes cluster centroid coords', async () => {
+      (dbConfigCourthouse.query as jest.Mock).mockResolvedValue({ rows: [] });
+
+      await courthouseRepository.findNearestCourthousesBatch(['AA:BB:CC:DD:EE:FF'], 250);
+      const sql = (dbConfigCourthouse.query as jest.Mock).mock.calls[0][0] as string;
+
+      // Safety cap is 50, not a small arbitrary number
+      expect(sql).toContain('LIMIT 50');
+      // Must NOT use density-biased sorting that drops sparse clusters
+      expect(sql).not.toContain('ORDER BY COUNT');
+      // Must preserve natural DBSCAN cluster order
+      expect(sql).toContain('ORDER BY cid');
+      expect(sql).toContain('LEFT JOIN LATERAL');
+      expect(sql).toContain('cluster_lat');
+      expect(sql).toContain('cluster_lon');
+    });
+
+    it('11+ distinct singleton clusters are not silently truncated to 10', async () => {
+      const mockRows = Array.from({ length: 11 }, (_, i) => ({
+        cluster_id: i,
+        cluster_count: 1,
+        has_wigle_obs: false,
+        has_local_obs: true,
+        cluster_lat: 30 + i,
+        cluster_lon: -90 - i,
+        id: 200 + i,
+        name: `District Court ${i}`,
+        short_name: null,
+        courthouse_type: 'district_court',
+        district: `District ${i}`,
+        circuit: 'Fifth Circuit',
+        city: `City${i}`,
+        state: 'XX',
+        postal_code: '00000',
+        latitude: 30 + i,
+        longitude: -90 - i,
+        distance_meters: 1000 + i * 100,
+      }));
+      (dbConfigCourthouse.query as jest.Mock).mockResolvedValue({ rows: mockRows });
+
+      const result = await courthouseRepository.findNearestCourthousesBatch(
+        ['AA:BB:CC:DD:EE:FF'],
+        250
+      );
+
+      expect(result).toHaveLength(11);
+      expect(result[10].cluster_id).toBe(10);
+
+      const sql = (dbConfigCourthouse.query as jest.Mock).mock.calls[0][0] as string;
+      expect(sql).toContain('LIMIT 50');
+      expect(sql).not.toContain('LIMIT 10');
+    });
+
+    it('cluster with no courthouse inside radius is returned with null courthouse fields', async () => {
+      const mockRows = [
+        {
+          cluster_id: 0,
+          cluster_count: 1,
+          has_wigle_obs: true,
+          has_local_obs: false,
+          cluster_lat: 47.6,
+          cluster_lon: -122.3,
+          id: null,
+          name: null,
+          short_name: null,
+          courthouse_type: null,
+          district: null,
+          circuit: null,
+          city: null,
+          state: null,
+          postal_code: null,
+          latitude: null,
+          longitude: null,
+          distance_meters: null,
+        },
+      ];
+      (dbConfigCourthouse.query as jest.Mock).mockResolvedValue({ rows: mockRows });
+
+      const result = await courthouseRepository.findNearestCourthousesBatch(
+        ['AA:BB:CC:DD:EE:FF'],
+        1
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].cluster_id).toBe(0);
+      expect(result[0].cluster_count).toBe(1);
+      expect(result[0].name).toBeNull();
+      expect(result[0].distance_meters).toBeNull();
+    });
   });
 });

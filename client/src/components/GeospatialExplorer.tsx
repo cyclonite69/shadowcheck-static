@@ -301,6 +301,7 @@ export default function GeospatialExplorer() {
             courthouses={courthouses}
             courthousesLoading={courthousesLoading}
             courthousesError={courthousesError}
+            mapRef={state.mapRef}
           />
           <MapRadiusContextMenu
             menu={state.radiusContextMenu}

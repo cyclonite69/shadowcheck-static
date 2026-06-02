@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { GeospatialOverlays } from './GeospatialOverlays';
 import { WigleLookupDialog } from '../modals/WigleLookupDialog';
 import { BatchWigleLookupDialog } from '../modals/BatchWigleLookupDialog';
 import { WigleObservationsPanel } from '../panels/WigleObservationsPanel';
-import { NearestAgenciesPanel } from '../panels/NearestAgenciesPanel';
-import { NearestCourthousesPanel } from '../panels/NearestCourthousesPanel';
+import { NearestPlacesPanel } from '../panels/NearestPlacesPanel';
+import { mergeNearestPlaces } from '../../../utils/geospatial/mergeNearestPlaces';
+import type { Map as MapboxMap } from 'mapbox-gl';
 
 interface GeospatialOverlayContentProps {
   state: any;
@@ -58,6 +59,7 @@ interface GeospatialOverlayContentProps {
   courthouses: any[];
   courthousesLoading: boolean;
   courthousesError: any;
+  mapRef?: React.MutableRefObject<MapboxMap | null>;
 }
 
 const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps> = ({
@@ -110,8 +112,20 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
   courthouses,
   courthousesLoading,
   courthousesError,
+  mapRef,
 }) => {
   const [batchDialogBssids, setBatchDialogBssids] = useState<string[]>([]);
+
+  // Merge agency + courthouse results by cluster_id for unified panel
+  const nearestClusters = useMemo(
+    () => mergeNearestPlaces(agencies, courthouses),
+    [agencies, courthouses]
+  );
+
+  const showAgencies = Boolean(state.showAgenciesPanel);
+  const showCourthouses = Boolean(state.showCourthousesPanel);
+  const placesLoading = agenciesLoading || courthousesLoading;
+  const placesError = agenciesError || courthousesError || '';
 
   const handleBatchInvestigate = useCallback(() => {
     setBatchDialogBssids(Array.from(selectedNetworks));
@@ -210,20 +224,15 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
         batchStats={wigleObservations.batchStats}
         onClose={clearWigleObservations}
       />
-      {state.showAgenciesPanel && (
-        <NearestAgenciesPanel
-          agencies={agencies}
-          loading={agenciesLoading}
-          error={agenciesError}
+      {(showAgencies || showCourthouses) && (
+        <NearestPlacesPanel
+          clusters={nearestClusters}
+          loading={placesLoading}
+          error={placesError}
           networkCount={selectedNetworks.size}
-        />
-      )}
-      {state.showCourthousesPanel && (
-        <NearestCourthousesPanel
-          courthouses={courthouses}
-          loading={courthousesLoading}
-          error={courthousesError}
-          networkCount={selectedNetworks.size}
+          showAgencies={showAgencies}
+          showCourthouses={showCourthouses}
+          mapRef={mapRef}
         />
       )}
       <BatchWigleLookupDialog

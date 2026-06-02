@@ -1,5 +1,7 @@
 const { query } = require('../config/database');
 
+const MAX_NEAREST_PLACE_CLUSTERS = 50;
+
 export async function fetchAgencyOfficesGeoJSON(): Promise<any> {
   const sql = `
     SELECT 
@@ -100,10 +102,14 @@ export async function findNearestAgenciesToNetwork(bssid: string, radius: number
 }
 
 export async function findNearestAgenciesBatch(bssids: string[], radius: number): Promise<any[]> {
-  // DBSCAN clusters observation points (5 km eps), computes each cluster's
+  // DBSCAN clusters observation points (~5 km eps), computes each cluster's
   // centroid, finds the nearest agency per cluster.
-  // Returns one row per cluster (not deduplicated by agency id).
-  // Caps: 5 clusters.
+  // Returns one row per cluster. A safety cap of MAX_NEAREST_PLACE_CLUSTERS is
+  // applied after DBSCAN to bound the CROSS JOIN cost; it does NOT rank clusters
+  // by density (COUNT(*) DESC ordering was removed — that was dropping sparse
+  // western singleton clusters). Clusters are kept in natural DBSCAN order.
+  // In practice, a user cannot select more than a few dozen distinct spatial
+  // regions at once, so this cap is not a real constraint.
   const sql = `
     WITH all_observations AS (
       SELECT lat, lon, 'local' as source
@@ -142,39 +148,52 @@ export async function findNearestAgenciesBatch(bssids: string[], radius: number)
         BOOL_OR(source = 'local') AS has_local_obs
       FROM clustered
       GROUP BY cid
-      ORDER BY COUNT(*) DESC
-      LIMIT 5
+      -- ORDER BY cid preserves all spatially distinct clusters from DBSCAN.
+      -- Do NOT use COUNT(*) DESC ordering -- that silently drops sparse/distant
+      -- clusters. Safety cap prevents runaway CROSS JOINs on degenerate inputs.
+      ORDER BY cid
+      LIMIT ${MAX_NEAREST_PLACE_CLUSTERS}
     ),
     per_cluster_nearest AS (
-      SELECT DISTINCT ON (c.cid)
+      SELECT
         c.cid,
         c.cluster_count,
         c.has_wigle_obs,
         c.has_local_obs,
-        a.id, a.name, a.office_type, a.city, a.state, a.postal_code,
-        ST_Y(a.location::geometry) AS latitude,
-        ST_X(a.location::geometry) AS longitude,
-        ST_Distance(
-          ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
-          a.location::geography
-        ) AS distance_meters
+        c.lat AS cluster_lat, c.lon AS cluster_lon,
+        nearest.id, nearest.name, nearest.office_type, nearest.city, nearest.state, nearest.postal_code,
+        nearest.latitude,
+        nearest.longitude,
+        nearest.distance_meters
       FROM centroids c
-      CROSS JOIN app.agency_offices a
-      WHERE a.location IS NOT NULL
-        AND ST_Distance(
+      LEFT JOIN LATERAL (
+        SELECT
+          a.id, a.name, a.office_type, a.city, a.state, a.postal_code,
+          ST_Y(a.location::geometry) AS latitude,
+          ST_X(a.location::geometry) AS longitude,
+          ST_Distance(
+            ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
+            a.location::geography
+          ) AS distance_meters
+        FROM app.agency_offices a
+        WHERE a.location IS NOT NULL
+          AND ST_Distance(
+            ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
+            a.location::geography
+          ) <= ($2 * 1000)
+        ORDER BY ST_Distance(
           ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
           a.location::geography
-        ) <= ($2 * 1000)
-      ORDER BY c.cid, ST_Distance(
-        ST_SetSRID(ST_MakePoint(c.lon, c.lat), 4326)::geography,
-        a.location::geography
-      )
+        )
+        LIMIT 1
+      ) nearest ON TRUE
     )
     SELECT
       cid AS cluster_id,
       cluster_count,
       has_wigle_obs,
       has_local_obs,
+      cluster_lat, cluster_lon,
       id, name, office_type, city, state, postal_code,
       latitude, longitude, distance_meters
     FROM per_cluster_nearest

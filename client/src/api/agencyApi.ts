@@ -25,10 +25,29 @@ interface NearestAgenciesResponse {
   radius_km: number;
 }
 
+/** Single agency row returned from the batch nearest-agencies endpoint. */
+export interface AgencyMatch {
+  cluster_id?: number;
+  cluster_count?: number;
+  cluster_lat?: number;
+  cluster_lon?: number;
+  has_wigle_obs?: boolean;
+  has_local_obs?: boolean;
+  id?: number;
+  name?: string | null;
+  office_type?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distance_meters?: number;
+}
+
 interface NearestAgenciesBatchResponse {
   ok: boolean;
   bssids: string[];
-  agencies: AgencyOffice[];
+  agencies: AgencyMatch[];
   count: number;
   radius_km: number;
 }
@@ -36,19 +55,21 @@ interface NearestAgenciesBatchResponse {
 export interface CourthouseMatch {
   cluster_id?: number;
   cluster_count?: number;
+  cluster_lat?: number;
+  cluster_lon?: number;
   has_wigle_obs?: boolean;
   has_local_obs?: boolean;
-  id: number;
-  name: string;
-  short_name?: string;
-  courthouse_type: string;
-  district: string;
-  circuit: string;
-  city: string;
-  state: string;
-  postal_code?: string;
-  latitude: number;
-  longitude: number;
+  id?: number | null;
+  name?: string | null;
+  short_name?: string | null;
+  courthouse_type?: string | null;
+  district?: string | null;
+  circuit?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   distance_meters?: number;
 }
 

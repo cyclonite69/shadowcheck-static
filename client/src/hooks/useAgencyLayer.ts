@@ -4,10 +4,10 @@ import type * as mapboxglType from 'mapbox-gl';
 import { renderAgencyPopupCard } from '../utils/geospatial/renderMapPopupCards';
 
 interface Agency {
-  name: string;
-  office_type?: string;
-  latitude: number;
-  longitude: number;
+  name?: string | null;
+  office_type?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   distance_meters?: number;
   has_wigle_obs?: boolean;
 }
@@ -37,15 +37,19 @@ export const useAgencyLayer = ({
     if (map.getLayer(layerId)) map.removeLayer(layerId);
     if (map.getSource(sourceId)) map.removeSource(sourceId);
 
-    if (agencies.length === 0 || !showAgenciesPanel) return;
+    const agencyMatches = agencies.filter(
+      (agency) => agency.name && agency.latitude != null && agency.longitude != null
+    );
+
+    if (agencyMatches.length === 0 || !showAgenciesPanel) return;
 
     map.addSource(sourceId, {
       type: 'geojson',
       data: {
         type: 'FeatureCollection',
-        features: agencies.map((a) => ({
+        features: agencyMatches.map((a) => ({
           type: 'Feature',
-          geometry: { type: 'Point', coordinates: [a.longitude, a.latitude] },
+          geometry: { type: 'Point', coordinates: [a.longitude!, a.latitude!] },
           properties: {
             name: a.name,
             type: a.office_type ?? 'resident_agency',

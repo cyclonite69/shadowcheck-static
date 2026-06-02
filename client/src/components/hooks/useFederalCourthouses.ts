@@ -43,27 +43,35 @@ interface FederalCourthousesGeoJSON {
 function buildNearestCourthouseGeoJSON(courthouses: CourthouseMatch[]): FederalCourthousesGeoJSON {
   return {
     type: 'FeatureCollection',
-    features: courthouses.map((courthouse) => ({
-      type: 'Feature',
-      id: `${courthouse.cluster_id ?? 'single'}:${courthouse.id}`,
-      geometry: {
-        type: 'Point',
-        coordinates: [courthouse.longitude, courthouse.latitude],
-      },
-      properties: {
-        id: courthouse.id,
-        name: courthouse.name,
-        short_name: courthouse.short_name ?? null,
-        courthouse_type: courthouse.courthouse_type,
-        district: courthouse.district,
-        circuit: courthouse.circuit,
-        address_line1: null,
-        city: courthouse.city,
-        state: courthouse.state,
-        postal_code: courthouse.postal_code ?? null,
-        active: true,
-      },
-    })),
+    features: courthouses
+      .filter(
+        (courthouse) =>
+          courthouse.id != null &&
+          courthouse.name &&
+          courthouse.latitude != null &&
+          courthouse.longitude != null
+      )
+      .map((courthouse) => ({
+        type: 'Feature',
+        id: `${courthouse.cluster_id ?? 'single'}:${courthouse.id}`,
+        geometry: {
+          type: 'Point',
+          coordinates: [courthouse.longitude!, courthouse.latitude!],
+        },
+        properties: {
+          id: courthouse.id!,
+          name: courthouse.name!,
+          short_name: courthouse.short_name ?? null,
+          courthouse_type: courthouse.courthouse_type ?? 'district_court',
+          district: courthouse.district ?? '',
+          circuit: courthouse.circuit ?? '',
+          address_line1: null,
+          city: courthouse.city ?? '',
+          state: courthouse.state ?? '',
+          postal_code: courthouse.postal_code ?? null,
+          active: true,
+        },
+      })),
   };
 }
 

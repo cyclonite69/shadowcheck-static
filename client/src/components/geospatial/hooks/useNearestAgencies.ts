@@ -2,18 +2,21 @@ import { useState, useEffect } from 'react';
 import { agencyApi } from '../../../api/agencyApi';
 
 export interface Agency {
-  name: string;
-  office_type?: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  latitude: number;
-  longitude: number;
+  id?: number | null;
+  name?: string | null;
+  office_type?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   distance_meters?: number;
   has_wigle_obs?: boolean;
   has_local_obs?: boolean;
   cluster_id?: number;
   cluster_count?: number;
+  cluster_lat?: number;
+  cluster_lon?: number;
 }
 
 export const useNearestAgencies = (bssid: string | string[] | null) => {
