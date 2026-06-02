@@ -132,6 +132,75 @@ export class SqlFragmentLibrary {
   }
 
   /**
+   * Returns OUI device-groups join for surveillance classification.
+   *
+   * oui_device_groups stores colonized OUI prefixes like '70:C9:4E'.
+   * BSSIDs in the Explorer are always colonized (XX:XX:XX:XX:XX:XX) because
+   * the ETL normalises them on import and the MV upper-cases the bssid column.
+   * SUBSTRING(bssid, 1, 8) therefore reliably extracts the colonized prefix.
+   * For defensive safety we also handle un-colonized forms (12 hex chars) by
+   * re-inserting colons before matching, so a raw string like 'AABBCCDDEEFF'
+   * is converted to 'AA:BB:CC' before the join.
+   *
+   * Null / malformed BSSIDs produce no match (LEFT JOIN → NULL).
+   */
+  static normalizedOuiExpression(sourceBssidAlias: string): string {
+    return `(
+      CASE
+        WHEN ${sourceBssidAlias}.bssid IS NULL THEN NULL
+        WHEN ${sourceBssidAlias}.bssid ~ '^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
+          THEN UPPER(SUBSTRING(${sourceBssidAlias}.bssid, 1, 8))
+        WHEN ${sourceBssidAlias}.bssid ~ '^[0-9A-Fa-f]{12}$'
+          THEN UPPER(
+            SUBSTRING(${sourceBssidAlias}.bssid, 1, 2) || ':' ||
+            SUBSTRING(${sourceBssidAlias}.bssid, 3, 2) || ':' ||
+            SUBSTRING(${sourceBssidAlias}.bssid, 5, 2)
+          )
+        ELSE NULL
+      END
+    )`;
+  }
+
+  static joinOuiDeviceGroups(sourceBssidAlias: string, ouiAlias = 'odg'): string {
+    return `LEFT JOIN app.oui_device_groups ${ouiAlias} ON ${ouiAlias}.oui = ${SqlFragmentLibrary.normalizedOuiExpression(sourceBssidAlias)}`;
+  }
+
+  /**
+   * Returns Device Class SELECT fields using the merged
+   * COALESCE(surveillance_detections.device_type, oui_device_groups.surveillance_type)
+   * pattern.  The sdAlias must already be joined before calling this.
+   */
+  static selectDeviceClassFields(sdAlias = 'sd', ouiAlias = 'odg'): string {
+    return `
+      COALESCE(${sdAlias}.device_type, ${ouiAlias}.surveillance_type) AS device_class,
+      ${ouiAlias}.surveillance_type AS oui_surveillance_type,
+      ${ouiAlias}.surveillance_confidence AS oui_surveillance_confidence
+    `.trim();
+  }
+
+  static deviceClassFilterPredicate(
+    sourceBssidAlias: string,
+    valuesParam: string,
+    includeFalsePositiveFilter = true
+  ): string {
+    const falsePositiveFilter = includeFalsePositiveFilter ? 'AND sd2.false_positive = FALSE' : '';
+    const noDetectionFalsePositiveFilter = includeFalsePositiveFilter
+      ? 'AND sd3.false_positive = FALSE'
+      : '';
+
+    return `(EXISTS (SELECT 1 FROM app.surveillance_detections sd2
+         WHERE UPPER(sd2.bssid) = UPPER(${sourceBssidAlias}.bssid)
+           ${falsePositiveFilter}
+           AND sd2.device_type = ANY(${valuesParam}))
+       OR EXISTS (SELECT 1 FROM app.oui_device_groups odg2
+         WHERE odg2.oui = ${SqlFragmentLibrary.normalizedOuiExpression(sourceBssidAlias)}
+         AND odg2.surveillance_type = ANY(${valuesParam})
+         AND NOT EXISTS (SELECT 1 FROM app.surveillance_detections sd3
+           WHERE UPPER(sd3.bssid) = UPPER(${sourceBssidAlias}.bssid)
+             ${noDetectionFalsePositiveFilter})))`;
+  }
+
+  /**
    * Returns canonical join for the explorer materialized view.
    */
   static joinExplorerMv(sourceAlias: string, mvAlias = 'ne'): string {

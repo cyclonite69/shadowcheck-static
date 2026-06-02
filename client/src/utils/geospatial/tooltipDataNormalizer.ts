@@ -1,4 +1,5 @@
 import { formatSecurity } from '../wigle';
+import { normalizeDeviceClass } from '../deviceClassUtils';
 
 type AnyRecord = Record<string, any>;
 
@@ -139,6 +140,9 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
   })();
 
   const isWigleV2 = wigleSource === 'wigle-v2';
+  const deviceClass = normalizeDeviceClass(
+    pickFirst(raw.device_class, raw.surveillance_device_type, raw.oui_surveillance_type)
+  );
 
   return {
     ssid: pickFirst(raw.ssid, raw.name),
@@ -147,6 +151,10 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     radio_type: pickFirst(raw.radio_type, raw.type),
     threat_level: pickFirst(raw.threat_level, raw.threat),
     threat_score: toNumberOrNull(raw.threat_score),
+    device_class: deviceClass,
+    surveillance_type: normalizeDeviceClass(pickFirst(raw.surveillance_type, deviceClass)),
+    surveillance_device_type: pickFirst(raw.surveillance_device_type, null),
+    surveillance_detection_method: pickFirst(raw.surveillance_detection_method, null),
     signal: toNumberOrNull(
       pickFirst(
         raw.signal,

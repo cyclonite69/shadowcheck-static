@@ -70,6 +70,7 @@ export const FILTER_KEYS = [
   'shotspotter',
   'bwc',
   'flock',
+  'deviceClass',
 ] as const;
 
 export type FilterKey = (typeof FILTER_KEYS)[number];
@@ -148,4 +149,7 @@ export const NETWORK_ONLY_FILTERS = new Set<FilterKey>([
   'wigleV3LastImportBefore',
   'wigleV3LastImportAfter',
   'surveillance',
+  // deviceClass is network-only: filter uses EXISTS subqueries against
+  // surveillance_detections + oui_device_groups, both joinable from ne.bssid
+  'deviceClass',
 ]);

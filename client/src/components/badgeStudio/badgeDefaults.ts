@@ -133,6 +133,134 @@ export const BADGE_DEFAULTS: Record<string, ColumnBadgeConfig> = {
       { match: { type: 'any' }, color: c('#94a3b8') },
     ],
   },
+
+  device_class: {
+    column: 'device_class',
+    enabled: false,
+    shape: 'pill',
+    fill: 'solid',
+    size: 'compact',
+    defaultColor: c('#475569'),
+    hoverAction: 'vendor-intel-drawer',
+    rules: [
+      // SIGINT / intercept / private OUI: high emphasis
+      {
+        match: { type: 'exact', value: 'L3HARRIS_STINGRAY' },
+        color: c('#dc2626'),
+        label: 'L3Harris StingRay',
+      },
+      {
+        match: { type: 'exact', value: 'VERINT_INTERCEPT' },
+        color: c('#dc2626'),
+        label: 'Verint Intercept',
+      },
+      {
+        match: { type: 'exact', value: 'SEPTIER_WIFICATCHER' },
+        color: c('#dc2626'),
+        label: 'Septier WiFi Catcher',
+      },
+      {
+        match: { type: 'exact', value: 'ABILITY_INTERCEPT' },
+        color: c('#dc2626'),
+        label: 'Ability Intercept',
+      },
+      {
+        match: { type: 'exact', value: 'ROHDE_SCHWARZ_WLAN' },
+        color: c('#dc2626'),
+        label: 'Rohde & Schwarz WLAN',
+      },
+      {
+        match: { type: 'exact', value: 'COBHAM_SIGINT' },
+        color: c('#dc2626'),
+        label: 'Cobham SIGINT',
+      },
+      {
+        match: { type: 'exact', value: 'PRIVATE_OUI_REGISTERED' },
+        color: c('#dc2626'),
+        label: 'Private OUI',
+      },
+      // Defense / C4ISR: high or amber
+      {
+        match: { type: 'exact', value: 'RAYTHEON_ESYSTEMS' },
+        color: c('#f97316'),
+        label: 'Raytheon E-Systems',
+      },
+      {
+        match: { type: 'exact', value: 'NORSAT_SATCOM' },
+        color: c('#f97316'),
+        label: 'Norsat Satcom',
+      },
+      {
+        match: { type: 'exact', value: 'GENERAL_DYNAMICS_C4ISR' },
+        color: c('#f97316'),
+        label: 'General Dynamics C4ISR',
+      },
+      {
+        match: { type: 'exact', value: 'NORTHROP_GRUMMAN_ISR' },
+        color: c('#f97316'),
+        label: 'Northrop Grumman ISR',
+      },
+      {
+        match: { type: 'exact', value: 'LEONARDO_DRS_TACTICAL' },
+        color: c('#f97316'),
+        label: 'Leonardo DRS Tactical',
+      },
+      {
+        match: { type: 'exact', value: 'TADIRAN_COMMS' },
+        color: c('#f97316'),
+        label: 'Tadiran Comms',
+      },
+      // LEO sensors / body cameras: medium/high
+      {
+        match: { type: 'exact', value: 'FLOCK_SAFETY_CAMERA' },
+        color: c('#ef4444'),
+        label: 'Flock Camera',
+      },
+      {
+        match: { type: 'exact', value: 'FS_EXT_BATTERY' },
+        color: c('#ef4444'),
+        label: 'Flock Battery',
+      },
+      {
+        match: { type: 'exact', value: 'SHOTSPOTTER_SENSOR' },
+        color: c('#ef4444'),
+        label: 'ShotSpotter',
+      },
+      {
+        match: { type: 'exact', value: 'AXON_BODY_CAMERA' },
+        color: c('#3b82f6'),
+        label: 'Axon BWC',
+      },
+      {
+        match: { type: 'exact', value: 'MOTOROLA_BWC' },
+        color: c('#3b82f6'),
+        label: 'Motorola BWC',
+      },
+      // Dual-use infrastructure
+      {
+        match: { type: 'exact', value: 'UBIQUITI_MESH' },
+        color: c('#eab308'),
+        label: 'Ubiquiti Mesh',
+      },
+      {
+        match: { type: 'exact', value: 'CAMBIUM_BACKHAUL' },
+        color: c('#eab308'),
+        label: 'Cambium Backhaul',
+      },
+      {
+        match: { type: 'exact', value: 'PROXIM_SURVEILLANCE' },
+        color: c('#eab308'),
+        label: 'Proxim Surveillance',
+      },
+      {
+        match: { type: 'exact', value: 'PEPLINK_MOBILEPOST' },
+        color: c('#eab308'),
+        label: 'Peplink Mobile Post',
+      },
+      // Fallback: prettify raw enum value
+      { match: { type: 'any' }, color: c('#6b7280') },
+    ],
+  },
 };
 
 /** Sample values used for live preview in BadgeStudio (Phase 2). */
@@ -145,4 +273,13 @@ export const BADGE_PREVIEW_SAMPLES: Record<string, unknown[]> = {
   manufacturer: ['Flock Safety', 'Apple Inc', 'Unknown'],
   threat_score: [85, 62, 40, 15, null],
   timespanDays: [400, 120, 45, 10, 1],
+  device_class: [
+    'FLOCK_SAFETY_CAMERA',
+    'SHOTSPOTTER_SENSOR',
+    'AXON_BODY_CAMERA',
+    'L3HARRIS_STINGRAY',
+    'GENERAL_DYNAMICS_C4ISR',
+    'UBIQUITI_MESH',
+    null,
+  ],
 };

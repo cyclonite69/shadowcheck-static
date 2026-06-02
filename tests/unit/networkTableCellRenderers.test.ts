@@ -264,6 +264,26 @@ describe('renderNetworkTableCell', () => {
 
     expect(element.props.value).toBe('HIGH');
   });
+
+  it('formats device_class values with the shared label utility', () => {
+    const result = renderNetworkTableCell(makeContext('device_class', 'FLOCK_SAFETY_CAMERA'));
+    expect(getText(result.content)).toBe('Flock Safety Camera');
+    expect(result.title).toBe('FLOCK_SAFETY_CAMERA');
+  });
+
+  it('shows Vendor Intel action only for manifest-backed device classes', () => {
+    const withIntel = renderNetworkTableCell(makeContext('device_class', 'L3HARRIS_STINGRAY'));
+    expect(getText(withIntel.content)).toBe('L3Harris StingRay');
+
+    const withoutIntel = renderNetworkTableCell(makeContext('device_class', 'FLOCK_SAFETY_CAMERA'));
+    const element = withoutIntel.content as React.ReactElement<any>;
+    const children = React.Children.toArray(element.props.children);
+    const hasVendorIntelButton = children.some(
+      (child) =>
+        React.isValidElement<{ title?: string }>(child) && child.props.title === 'Open Vendor Intel'
+    );
+    expect(hasVendorIntelButton).toBe(false);
+  });
 });
 
 const getText = (node: React.ReactNode): any => {

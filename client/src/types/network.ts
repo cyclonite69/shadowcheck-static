@@ -103,6 +103,10 @@ export type NetworkRow = {
   wigle_v3_last_import_at?: string | null;
   unique_days?: number | null;
   unique_locations?: number | null;
+  // Device Class classification (merged BSSID-level + OUI-level)
+  device_class?: string | null;
+  oui_surveillance_type?: string | null;
+  oui_surveillance_confidence?: string | null;
 };
 
 export type Observation = {

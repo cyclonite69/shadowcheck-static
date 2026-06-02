@@ -1,5 +1,6 @@
 import { RELATIVE_WINDOWS } from '../constants';
 import type { FilterBuildContext } from '../FilterBuildContext';
+import { SqlFragmentLibrary } from '../SqlFragmentLibrary';
 import { mapThreatCategoriesToDbLevels } from '../threatCategoryLevels';
 import type { FastPathPredicateOptions } from './networkFastPathPredicateTypes';
 
@@ -135,6 +136,12 @@ export function buildFastPathSupplementalPredicates(
       `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('FLOCK_SAFETY_CAMERA', 'RAVEN_GUNSHOT_DETECTOR', 'FS_EXT_BATTERY') AND sd.false_positive = FALSE)`
     );
     ctx.addApplied('threat', 'flock', true);
+  }
+
+  if (e.deviceClass && Array.isArray(f.deviceClass) && f.deviceClass.length > 0) {
+    const valuesParam = ctx.addParam(f.deviceClass);
+    where.push(SqlFragmentLibrary.deviceClassFilterPredicate('ne', valuesParam));
+    ctx.addApplied('threat', 'deviceClass', f.deviceClass);
   }
 
   if (e.timeframe && f.timeframe) {

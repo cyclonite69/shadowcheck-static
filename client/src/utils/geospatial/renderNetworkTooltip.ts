@@ -3,6 +3,11 @@ import { macColor } from '../../utils/mapHelpers';
 import { resolveRadioTech } from '../../utils/mapHelpers';
 import { getDisplayRadioType, getRadioTypeIcon } from '../../utils/icons/radioTypeIcons';
 import {
+  formatDeviceType,
+  hasVendorIntelForDeviceClass,
+  normalizeDeviceClass,
+} from '../deviceClassUtils';
+import {
   formatCoord,
   formatAltitude,
   formatRSSI,
@@ -347,16 +352,17 @@ export const renderNetworkTooltip = (props: any): any => {
   const displaySecurity = getSecurityDisplay();
   const showSecurity = !!displaySecurity;
 
-  const surveillanceDeviceType = (props as any).surveillance_device_type;
+  const surveillanceDeviceType = normalizeDeviceClass((props as any).surveillance_device_type);
   const surveillanceMethod = (props as any).surveillance_detection_method;
-  const surveillanceType = (props as any).surveillance_type as string | null | undefined;
+  const surveillanceType = normalizeDeviceClass((props as any).surveillance_type);
+  const showVendorIntel = hasVendorIntelForDeviceClass(surveillanceType);
 
   const fieldRows = [
     isStingray ? fieldRow('SIGINT Type', 'Stingray') : '',
     !isMissingValue(surveillanceDeviceType)
       ? fieldRow(
           'Surveillance Device',
-          String(surveillanceDeviceType).replace(/_/g, ' '),
+          formatDeviceType(surveillanceDeviceType),
           surveillanceMethod ? `Detection: ${surveillanceMethod}` : undefined
         )
       : '',
@@ -549,7 +555,7 @@ export const renderNetworkTooltip = (props: any): any => {
   }
 
   ${
-    surveillanceType
+    showVendorIntel && surveillanceType
       ? `<button
           data-vendor-intel="${surveillanceType}"
           style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 12px;background:rgba(220,38,38,0.08);border:0;border-top:1px solid rgba(220,38,38,0.2);border-radius:0 0 8px 8px;cursor:pointer;color:#dc2626;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;"

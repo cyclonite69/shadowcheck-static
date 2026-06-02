@@ -18,6 +18,12 @@ import {
   formatAltitude,
   formatAccuracy,
 } from '../../../utils/geospatial/fieldFormatting';
+import { emitVendorIntel } from '../../vendor-intel/VendorIntelDrawer';
+import {
+  formatDeviceType,
+  hasVendorIntelForDeviceClass,
+  normalizeDeviceClass,
+} from '../../../utils/deviceClassUtils';
 
 export interface NetworkTableCellRendererContext {
   column: keyof NetworkRow | 'select';
@@ -551,6 +557,54 @@ const renderPresence = ({ value }: NetworkTableCellRendererContext) => {
   };
 };
 
+const renderDeviceClass = ({ value }: NetworkTableCellRendererContext) => {
+  const raw = normalizeDeviceClass(typeof value === 'string' ? value : null);
+  if (!raw) return { content: <span style={{ color: '#475569' }}>—</span> };
+  const label = formatDeviceType(raw);
+  const hasIntel = hasVendorIntelForDeviceClass(raw);
+  return {
+    content: (
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+          title={raw}
+        >
+          {label}
+        </span>
+        {hasIntel && (
+          <button
+            aria-label={`Open vendor intel for ${label}`}
+            title="Open Vendor Intel"
+            onClick={(e) => {
+              e.stopPropagation();
+              emitVendorIntel(raw);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0 3px',
+              fontSize: 10,
+              lineHeight: 1,
+              color: '#f97316',
+              flexShrink: 0,
+            }}
+          >
+            Intel
+          </button>
+        )}
+      </span>
+    ),
+    title: raw,
+  };
+};
+
 const renderTruncatedText = ({ value }: NetworkTableCellRendererContext) => {
   const text = typeof value === 'string' ? value.trim() : '';
   const label = text || '—';
@@ -598,6 +652,7 @@ const columnRenderers: Partial<
   stationaryConfidence: renderStationaryConfidence,
   geocoded_confidence: renderGeocodedConfidence,
   manufacturer: renderTruncatedText,
+  device_class: renderDeviceClass,
   geocoded_address: renderTruncatedText,
   geocoded_city: renderTruncatedText,
   geocoded_state: renderTruncatedText,

@@ -85,12 +85,14 @@ function buildFastPathListSql(
         ne.ml_boost,
         sd.device_type AS surveillance_device_type,
         sd.detection_method AS surveillance_detection_method,
+        ${SqlFragmentLibrary.selectDeviceClassFields('sd', 'odg')},
         NULL::text AS network_id,
         n.bestlat AS raw_lat,
         n.bestlon AS raw_lon
       FROM app.api_network_explorer_mv ne
       LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
       LEFT JOIN app.surveillance_detections sd ON UPPER(sd.bssid) = UPPER(ne.bssid) AND sd.false_positive = FALSE
+      ${SqlFragmentLibrary.joinOuiDeviceGroups('ne', 'odg')}
       ${SqlFragmentLibrary.joinNetworkLocations('ne', locationMode)}
       ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}
       ${SqlFragmentLibrary.joinRadioManufacturers('ne', 'rm')}

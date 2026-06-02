@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { formatShortDate, formatISODate } from '../../../utils/formatDate';
+import { formatDeviceType } from '../../../utils/deviceClassUtils';
 
 interface DetectionRecord {
   device_type: string;
@@ -20,21 +21,6 @@ interface DetectionEvidenceModalProps {
   ssid?: string | null;
   onClose: () => void;
 }
-
-const formatDeviceType = (deviceType: string): string => {
-  const mapping: Record<string, string> = {
-    SHOTSPOTTER_SENSOR: 'ShotSpotter Sensor',
-    AXON_BODY_CAMERA: 'Axon Body Camera',
-    MOTOROLA_BWC: 'Motorola Body Camera',
-    AXON_SIGNAL_PERIPHERAL: 'Axon Signal Peripheral',
-    DEI_BWC: 'Body Worn Camera (DEI)',
-    BT_IMAGING_DEVICE: 'BT Imaging Device',
-    FLOCK_SAFETY_CAMERA: 'Flock Safety Camera',
-    RAVEN_GUNSHOT_DETECTOR: 'Raven Gunshot Detector',
-    FS_EXT_BATTERY: 'Flock External Battery',
-  };
-  return mapping[deviceType] || deviceType;
-};
 
 export const DetectionEvidenceModal: React.FC<DetectionEvidenceModalProps> = ({
   bssid,

@@ -12,6 +12,7 @@ import {
   computeSsidDisplaySummary,
   bestObservedSsid,
 } from '../../../utils/wigleDetailUtils';
+import { formatDeviceType } from '../../../utils/deviceClassUtils';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -45,24 +46,6 @@ const DetailIcon = ({ size = 24, className = '' }) => (
     <polyline points="10 9 9 9 8 9" />
   </svg>
 );
-
-/**
- * Convert device_type enum to human-readable label
- */
-const formatDeviceType = (deviceType: string): string => {
-  const typeMap: Record<string, string> = {
-    FLOCK_SAFETY_CAMERA: 'Flock Safety Camera',
-    RAVEN_GUNSHOT_DETECTOR: 'Raven Gunshot Detector',
-    FS_EXT_BATTERY: 'Flock External Battery',
-    AXON_BODY_CAMERA: 'Axon Body Camera',
-    MOTOROLA_BWC: 'Motorola Body Camera',
-    AXON_SIGNAL_PERIPHERAL: 'Axon Signal Peripheral',
-    DEI_BWC: 'Body Worn Camera (DEI)',
-    BT_IMAGING_DEVICE: 'BT Imaging Device',
-    SHOTSPOTTER_SENSOR: 'ShotSpotter Sensor',
-  };
-  return typeMap[deviceType] || deviceType.replace(/_/g, ' ');
-};
 
 export const WigleDetailTab: React.FC = () => {
   const {

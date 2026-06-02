@@ -130,4 +130,32 @@ describe('normalizeTooltipData', () => {
 
     expect(html).not.toContain('OBS #75 of 30');
   });
+
+  it('populates surveillance_type from canonical device_class for map Vendor Intel', () => {
+    const normalized = normalizeTooltipData({
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      device_class: 'L3HARRIS_STINGRAY',
+    });
+
+    expect(normalized.device_class).toBe('L3HARRIS_STINGRAY');
+    expect(normalized.surveillance_type).toBe('L3HARRIS_STINGRAY');
+  });
+
+  it('renders Vendor Intel only for manifest-backed device classes', () => {
+    const withIntel = renderNetworkTooltip({
+      ssid: 'Intel',
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      surveillance_type: 'L3HARRIS_STINGRAY',
+      triggerElement: mockTriggerElement,
+    });
+    const withoutIntel = renderNetworkTooltip({
+      ssid: 'Operational',
+      bssid: 'AA:BB:CC:DD:EE:00',
+      surveillance_type: 'FLOCK_SAFETY_CAMERA',
+      triggerElement: mockTriggerElement,
+    });
+
+    expect(withIntel).toContain('data-vendor-intel="L3HARRIS_STINGRAY"');
+    expect(withoutIntel).not.toContain('data-vendor-intel');
+  });
 });

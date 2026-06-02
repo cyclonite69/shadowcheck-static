@@ -198,5 +198,9 @@ export const mapApiRowToNetwork = (row: any, idx: number): NetworkRow => {
     sibling_bssids: Array.isArray(row.sibling_bssids)
       ? row.sibling_bssids.map((bssid: unknown) => String(bssid).toUpperCase())
       : [],
+    device_class:
+      row.device_class || row.surveillance_device_type || row.oui_surveillance_type || null,
+    oui_surveillance_type: row.oui_surveillance_type || null,
+    oui_surveillance_confidence: row.oui_surveillance_confidence || null,
   };
 };

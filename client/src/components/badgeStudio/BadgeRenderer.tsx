@@ -2,6 +2,7 @@ import React from 'react';
 import type { ColumnBadgeConfig } from '../../types/badgeConfig';
 import type { NetworkRow } from '../../types/network';
 import { resolveBadgeColors, matchesRule } from './colorUtils';
+import { formatDeviceType, hasVendorIntelForDeviceClass } from '../../utils/deviceClassUtils';
 
 interface BadgeRendererProps {
   value: unknown;
@@ -69,7 +70,19 @@ const BadgeRendererComponent: React.FC<BadgeRendererProps> = ({ value, config, r
 
   // Display text: rule label override → raw value string → em dash
   const displayValue =
-    label !== undefined ? label : value != null && value !== '' ? String(value) : '—';
+    label !== undefined
+      ? label
+      : config.column === 'device_class' && value != null && value !== ''
+        ? formatDeviceType(String(value))
+        : value != null && value !== ''
+          ? String(value)
+          : '—';
+  const vendorIntelValue =
+    config.hoverAction === 'vendor-intel-drawer' && value ? String(value) : undefined;
+  const gatedVendorIntelValue =
+    config.column === 'device_class' && !hasVendorIntelForDeviceClass(vendorIntelValue)
+      ? undefined
+      : vendorIntelValue;
 
   const baseStyle: React.CSSProperties = {
     display: 'inline-block',
@@ -97,9 +110,7 @@ const BadgeRendererComponent: React.FC<BadgeRendererProps> = ({ value, config, r
       <span
         style={{ ...baseStyle, background: 'transparent', border: 'none', padding: '0' }}
         title={config.showRawValueAsTooltip && value != null ? String(value) : undefined}
-        data-vendor-intel={
-          config.hoverAction === 'vendor-intel-drawer' && value ? String(value) : undefined
-        }
+        data-vendor-intel={gatedVendorIntelValue}
       >
         <span style={dotStyle} />
         <span style={{ color: resolved.text, fontSize: sizeStyle.fontSize }}>{displayValue}</span>
@@ -116,9 +127,7 @@ const BadgeRendererComponent: React.FC<BadgeRendererProps> = ({ value, config, r
     <span
       style={baseStyle}
       title={config.showRawValueAsTooltip && value != null ? String(value) : undefined}
-      data-vendor-intel={
-        config.hoverAction === 'vendor-intel-drawer' && value ? String(value) : undefined
-      }
+      data-vendor-intel={gatedVendorIntelValue}
     >
       {displayValue}
     </span>

@@ -2,6 +2,7 @@ import { RELATIVE_WINDOWS } from './constants';
 import { buildEngagementPredicates } from './engagementPredicates';
 import { splitTextFilterTokens, normalizeWildcards } from './normalizers';
 import type { NetworkWhereBuildContext } from './NetworkWhereBuildContext';
+import { SqlFragmentLibrary } from './SqlFragmentLibrary';
 import { mapThreatCategoriesToDbLevels } from './threatCategoryLevels';
 
 export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
@@ -217,6 +218,12 @@ export function buildNetworkWhere(ctx: NetworkWhereBuildContext): string[] {
       `EXISTS (SELECT 1 FROM app.surveillance_detections sd WHERE sd.bssid = ne.bssid AND sd.device_type IN ('FLOCK_SAFETY_CAMERA', 'RAVEN_GUNSHOT_DETECTOR', 'FS_EXT_BATTERY'))`
     );
     ctx.addApplied('threat', 'flock', true);
+  }
+
+  if (e.deviceClass && Array.isArray(f.deviceClass) && f.deviceClass.length > 0) {
+    const valuesParam = ctx.addParam(f.deviceClass);
+    networkWhere.push(SqlFragmentLibrary.deviceClassFilterPredicate('ne', valuesParam));
+    ctx.addApplied('threat', 'deviceClass', f.deviceClass);
   }
 
   if (e.timeframe && f.timeframe) {

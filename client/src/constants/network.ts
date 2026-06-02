@@ -111,6 +111,13 @@ export const NETWORK_COLUMNS: Partial<Record<keyof NetworkRow | 'select', Networ
       );
     },
   },
+  device_class: {
+    label: 'Device Class',
+    width: 160,
+    sortable: true,
+    default: false,
+    tooltip: 'OUI/BSSID device classification: merged from scored detections and OUI seed data',
+  },
   geocoded_address: {
     label: 'Geocoded Address',
     width: 220,
@@ -396,6 +403,7 @@ export const API_SORT_MAP: Partial<Record<keyof NetworkRow, string>> = {
   sibling_max_confidence: 'sibling_max_confidence',
   has_strong_sibling: 'has_strong_sibling',
   sibling_bssids: 'sibling_bssids',
+  device_class: 'device_class',
 };
 
 // Pagination limit for network queries
