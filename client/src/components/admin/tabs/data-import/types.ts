@@ -1,3 +1,5 @@
+import type { KmlSkippedFile } from '../../../../types/kmlImport';
+
 export interface Metrics {
   networks?: number | null;
   observations?: number | null;
@@ -15,6 +17,9 @@ export interface DataImportResult {
   failed?: number;
   filesImported?: number;
   pointsImported?: number;
+  skipped?: number;
+  skippedFiles?: KmlSkippedFile[];
+  forced?: boolean;
   batchId?: string;
   sourceType?: string;
   uploadedToS3?: boolean;

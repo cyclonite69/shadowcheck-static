@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../../api/adminApi';
 import type { DataImportResult } from '../tabs/data-import/types';
+import type { KmlImportStatusResponse } from '../../../types/kmlImport';
 
 export const useDataImport = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -10,6 +11,26 @@ export const useDataImport = () => {
   const [sourceTag, setSourceTag] = useState('');
   const [backupEnabled, setBackupEnabled] = useState(true);
   const [lastResult, setLastResult] = useState<DataImportResult | null>(null);
+  const [kmlImports, setKmlImports] = useState<KmlImportStatusResponse | null>(null);
+  const [kmlImportsLoading, setKmlImportsLoading] = useState(false);
+  const [kmlImportsError, setKmlImportsError] = useState<string | null>(null);
+
+  const refreshKmlImports = useCallback(async () => {
+    try {
+      setKmlImportsLoading(true);
+      setKmlImportsError(null);
+      const result = await adminApi.getKmlImports();
+      setKmlImports(result);
+    } catch (error) {
+      setKmlImportsError(error instanceof Error ? error.message : 'Unable to load KML imports');
+    } finally {
+      setKmlImportsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshKmlImports();
+  }, [refreshKmlImports]);
 
   const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -103,11 +124,13 @@ export const useDataImport = () => {
       );
       const result = await adminApi.importKml(formData);
       setLastResult(result);
+      const skipped = Number(result.skipped || 0);
       setKmlImportStatus(
         result.ok
-          ? `Imported ${Number(result.filesImported || files.length).toLocaleString()} KML file(s) into ${Number(result.pointsImported || 0).toLocaleString()} staged points`
+          ? `Imported ${Number(result.filesImported || 0).toLocaleString()} KML file(s) into ${Number(result.pointsImported || 0).toLocaleString()} staged points${skipped ? ` (${skipped.toLocaleString()} duplicate skipped)` : ''}`
           : `Failed: ${result.error || 'Unknown error'}`
       );
+      void refreshKmlImports();
     } catch {
       setKmlImportStatus('KML import failed: Network error');
     } finally {
@@ -126,6 +149,10 @@ export const useDataImport = () => {
     backupEnabled,
     setBackupEnabled,
     lastResult,
+    kmlImports,
+    kmlImportsLoading,
+    kmlImportsError,
+    refreshKmlImports,
     handleFileImport,
     handleSqlFileImport,
     handleKmlImport,

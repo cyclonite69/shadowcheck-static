@@ -21,6 +21,10 @@ export const DataImportTab: React.FC = () => {
     handleFileImport,
     handleSqlFileImport,
     handleKmlImport,
+    kmlImports,
+    kmlImportsLoading,
+    kmlImportsError,
+    refreshKmlImports,
   } = useDataImport();
   const [historyKey, setHistoryKey] = useState(0);
 
@@ -67,9 +71,13 @@ export const DataImportTab: React.FC = () => {
         />
         <KmlImportCard
           isLoading={isLoading}
+          kmlImports={kmlImports}
+          kmlImportsError={kmlImportsError}
+          kmlImportsLoading={kmlImportsLoading}
           kmlImportStatus={kmlImportStatus}
           onFilesChange={(event) => handleKmlImport(event, 'files')}
           onFolderChange={(event) => handleKmlImport(event, 'folder')}
+          onRefreshImports={refreshKmlImports}
         />
       </div>
 

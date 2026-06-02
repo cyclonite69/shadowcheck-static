@@ -3,19 +3,37 @@ import { AdminCard } from '../../components/AdminCard';
 import { UploadIcon } from './UploadIcon';
 import { ImportStatusMessage } from './ImportStatusMessage';
 import { FileImportButton } from './FileImportButton';
+import type { KmlImportStatusResponse } from '../../../../types/kmlImport';
 
 interface KmlImportCardProps {
   isLoading: boolean;
+  kmlImports: KmlImportStatusResponse | null;
+  kmlImportsError: string | null;
+  kmlImportsLoading: boolean;
   kmlImportStatus: string;
   onFilesChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onFolderChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onRefreshImports: () => void;
 }
+
+const formatNumber = (value: number | null | undefined) => Number(value || 0).toLocaleString();
+
+const formatDate = (value: string | null | undefined) => {
+  if (!value) return 'None';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+};
 
 export const KmlImportCard = ({
   isLoading,
+  kmlImports,
+  kmlImportsError,
+  kmlImportsLoading,
   kmlImportStatus,
   onFilesChange,
   onFolderChange,
+  onRefreshImports,
 }: KmlImportCardProps) => (
   <AdminCard icon={UploadIcon} title="KML Import" color="from-sky-500 to-cyan-600">
     <div className="space-y-4">
@@ -52,6 +70,93 @@ export const KmlImportCard = ({
       </div>
 
       <ImportStatusMessage status={kmlImportStatus} />
+
+      <div className="border-t border-slate-700/50 pt-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h4 className="text-sm font-semibold text-slate-300">Imported KMLs</h4>
+          <button
+            type="button"
+            onClick={onRefreshImports}
+            disabled={kmlImportsLoading}
+            className="text-xs text-sky-300 hover:text-sky-200 disabled:text-slate-500"
+          >
+            {kmlImportsLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+
+        {kmlImportsError ? (
+          <p className="text-xs text-red-300">{kmlImportsError}</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <p className="text-slate-500">Files</p>
+                <p className="font-mono text-slate-200">
+                  {formatNumber(kmlImports?.totals.file_count)}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500">Points</p>
+                <p className="font-mono text-slate-200">
+                  {formatNumber(kmlImports?.totals.point_count)}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500">WiGLE files</p>
+                <p className="font-mono text-slate-200">
+                  {formatNumber(kmlImports?.totals.wigle_file_count)}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500">Latest</p>
+                <p className="font-mono text-slate-200">
+                  {formatDate(kmlImports?.totals.latest_imported_at)}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 max-h-56 overflow-auto rounded border border-slate-700/50">
+              <table className="w-full min-w-[720px] text-left text-xs">
+                <thead className="sticky top-0 bg-slate-900 text-slate-400">
+                  <tr>
+                    <th className="px-2 py-2 font-medium">Source file</th>
+                    <th className="px-2 py-2 font-medium">Type</th>
+                    <th className="px-2 py-2 font-medium text-right">Placemarks</th>
+                    <th className="px-2 py-2 font-medium text-right">Points</th>
+                    <th className="px-2 py-2 font-medium">Hash</th>
+                    <th className="px-2 py-2 font-medium">Imported</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {(kmlImports?.files || []).slice(0, 25).map((file) => (
+                    <tr key={file.id} className="text-slate-300">
+                      <td className="px-2 py-2 font-mono text-[11px]">{file.source_file}</td>
+                      <td className="px-2 py-2">{file.source_type || 'kml'}</td>
+                      <td className="px-2 py-2 text-right font-mono">
+                        {formatNumber(file.placemark_count)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono">
+                        {formatNumber(file.point_count)}
+                      </td>
+                      <td className="px-2 py-2 font-mono">{file.hash_prefix || 'none'}</td>
+                      <td className="px-2 py-2 font-mono text-[11px]">
+                        {formatDate(file.imported_at)}
+                      </td>
+                    </tr>
+                  ))}
+                  {!kmlImports?.files?.length ? (
+                    <tr>
+                      <td className="px-2 py-4 text-center text-slate-500" colSpan={6}>
+                        No KML imports found.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
 
       <div className="text-xs text-slate-500 pt-2 border-t border-slate-700/50">
         <p>Accepted file type: `.kml`</p>

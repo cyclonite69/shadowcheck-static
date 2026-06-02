@@ -4,6 +4,7 @@
 
 import { apiClient } from './client';
 import type { AdminRuntimeConfig, AdminUser } from '../types/admin';
+import type { KmlImportResult, KmlImportStatusResponse } from '../types/kmlImport';
 
 export const adminApi = {
   // User management
@@ -202,6 +203,10 @@ export const adminApi = {
     return apiClient.get(`/admin/import-history?limit=${limit}`);
   },
 
+  async getKmlImports(limit = 500): Promise<KmlImportStatusResponse> {
+    return apiClient.get(`/admin/kml-imports?limit=${limit}`);
+  },
+
   async startMobileImport(uploadId: number): Promise<any> {
     return apiClient.post(`/admin/import/mobile/${uploadId}/start`, {});
   },
@@ -314,17 +319,7 @@ export const adminApi = {
     return this.parseImportResponse(response, 'SQL import failed');
   },
 
-  async importKml(formData: FormData): Promise<{
-    ok: boolean;
-    filesImported?: number;
-    pointsImported?: number;
-    batchId?: string;
-    sourceType?: string;
-    uploadedToS3?: boolean;
-    message?: string;
-    error?: string;
-    output?: string;
-  }> {
+  async importKml(formData: FormData): Promise<KmlImportResult> {
     const response = await fetch('/api/admin/import-kml', {
       method: 'POST',
       body: formData,

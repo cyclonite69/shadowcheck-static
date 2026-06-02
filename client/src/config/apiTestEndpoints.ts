@@ -1332,6 +1332,15 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Import',
+    label: 'KML Import Status',
+    description: 'List local KML files imported into app.kml_files and app.kml_points.',
+    path: '/api/admin/kml-imports',
+    method: 'GET',
+    requiresAuth: true,
+    params: [{ name: 'limit', label: 'Limit', defaultValue: '500', type: 'number' }],
+  },
+  {
+    category: 'Admin Import',
     label: 'Import WiGLE (legacy)',
     path: '/api/import/wigle',
     method: 'POST',

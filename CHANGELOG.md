@@ -1198,6 +1198,7 @@
 * **kepler:** improve map controls and tooltip payloads ([230f089](https://github.com/cyclonite69/shadowcheck-web/commit/230f08972c65c8cad1e507338f81b1fc072b00fb))
 * **kepler:** increase viewport padding to zoom out and fit all points in bounding box ([2cee4d1](https://github.com/cyclonite69/shadowcheck-web/commit/2cee4d1c2431b354940598827f2ffeadfad933d3))
 * **kepler:** pin tooltips on click ([2a43c07](https://github.com/cyclonite69/shadowcheck-web/commit/2a43c073546558c1a1550c9fe9d0dfe358265a62))
+* **kml:** show import status and skip duplicate uploads ([e775cf4](https://github.com/cyclonite69/shadowcheck-web/commit/e775cf4e7f22c2df4621aaab8d479c779e9ee10d))
 * **ledger:** add http_status column and capture error details for all WiGLE failures ([a5c5c32](https://github.com/cyclonite69/shadowcheck-web/commit/a5c5c321b386369ca6632f0b41e3ad3e308b5d33))
 * **ledger:** persist WiGLE request timestamps to DB so 24h quota survives restarts ([b277faf](https://github.com/cyclonite69/shadowcheck-web/commit/b277faf90ca83696857abecdc89c5fb2ea39902c))
 * make deploy-complete.sh fully non-interactive ([48bd529](https://github.com/cyclonite69/shadowcheck-web/commit/48bd52994ab4ad09ec4ba11d3b73001a32cafcaa))
