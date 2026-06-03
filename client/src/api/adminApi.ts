@@ -215,6 +215,18 @@ export const adminApi = {
     return apiClient.get('/admin/wigle-kml-sync/status');
   },
 
+  async getWigleKmlTransactions(pageStart = 0, limit = 100): Promise<any> {
+    return apiClient.get(
+      `/admin/wigle-kml-sync/transactions?pageStart=${pageStart}&limit=${limit}`
+    );
+  },
+
+  async syncWigleKmls(
+    options: { limit?: number; dryRun?: boolean; force?: boolean } = {}
+  ): Promise<any> {
+    return apiClient.post('/admin/wigle-kml-sync/sync', options);
+  },
+
   async startMobileImport(uploadId: number): Promise<any> {
     return apiClient.post(`/admin/import/mobile/${uploadId}/start`, {});
   },

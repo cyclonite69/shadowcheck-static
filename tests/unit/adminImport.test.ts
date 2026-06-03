@@ -46,6 +46,12 @@ jest.mock('../../server/src/repositories/kmlImportRepository', () => ({
   findKmlFilesByHashes: jest.fn(),
 }));
 
+jest.mock('../../server/src/services/wigle/wigleKmlSyncService', () => ({
+  listTransactions: jest.fn(),
+  syncKmlTransactions: jest.fn(),
+  downloadKml: jest.fn(),
+}));
+
 jest.mock('child_process', () => {
   const { EventEmitter } = require('events');
   const mockChildProcessSpawn = new EventEmitter();
@@ -119,6 +125,10 @@ const {
   listKmlImportStatus,
   findKmlFilesByHashes,
 } = require('../../server/src/repositories/kmlImportRepository');
+const {
+  listTransactions,
+  syncKmlTransactions,
+} = require('../../server/src/services/wigle/wigleKmlSyncService');
 
 const adminImportRouter = require('../../server/src/api/routes/v1/admin/import');
 
@@ -567,6 +577,9 @@ describe('admin/import routes', () => {
         status: 'credentials_missing',
         message: 'WiGLE API credentials are not configured.',
         recommendation: 'Configure wigle_api_name and wigle_api_token in Settings.',
+        provider: null,
+        listEndpoint: null,
+        kmlEndpoint: null,
         localKml: {
           fileCount: 5,
           pointCount: 100,
@@ -576,7 +589,7 @@ describe('admin/import routes', () => {
       expect(listKmlImportStatus).toHaveBeenCalled();
     });
 
-    it('returns remote_listing_unsupported when WiGLE credentials are configured', async () => {
+    it('returns supported status when WiGLE credentials are configured', async () => {
       (secretsManager.get as jest.Mock).mockImplementation((key: string) => {
         if (key === 'wigle_api_name') return 'test-name';
         if (key === 'wigle_api_token') return 'test-token';
@@ -597,17 +610,61 @@ describe('admin/import routes', () => {
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
         configured: true,
-        supported: false,
-        status: 'remote_listing_unsupported',
-        message:
-          'ShadowCheck has not found a documented WiGLE API endpoint for listing/downloading uploaded KML/KMZ artifacts.',
-        recommendation: 'Manual KML upload remains the supported path.',
+        supported: true,
+        status: 'ready',
+        message: 'WiGLE remote KML sync is supported.',
+        recommendation: 'Click Sync now to import remote runs.',
+        provider: 'wigle_api_v2',
+        listEndpoint: '/api/v2/file/transactions',
+        kmlEndpoint: '/api/v2/file/kml/{transid}',
         localKml: {
           fileCount: 8,
           pointCount: 250,
           latestImportedAt: '2026-06-02T12:00:00.000Z',
         },
       });
+    });
+  });
+
+  describe('GET /api/admin/wigle-kml-sync/transactions', () => {
+    it('should list remote uploads from wigle listTransactions service', async () => {
+      const mockResult = { success: true, results: [{ transid: '1' }] };
+      (listTransactions as jest.Mock).mockResolvedValueOnce(mockResult);
+
+      const res = await request(app).get(
+        '/api/admin/wigle-kml-sync/transactions?limit=10&pageStart=0'
+      );
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(mockResult);
+      expect(listTransactions).toHaveBeenCalledWith(0, 10);
+    });
+
+    it('should propagate service errors gracefully', async () => {
+      (listTransactions as jest.Mock).mockRejectedValueOnce(new Error('Sync error'));
+      const res = await request(app).get('/api/admin/wigle-kml-sync/transactions');
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Sync error');
+    });
+  });
+
+  describe('POST /api/admin/wigle-kml-sync/sync', () => {
+    it('should trigger syncKmlTransactions service with body options', async () => {
+      const mockSyncResult = {
+        ok: true,
+        syncedCount: 2,
+        skippedCount: 1,
+        failedCount: 0,
+        results: [],
+      };
+      (syncKmlTransactions as jest.Mock).mockResolvedValueOnce(mockSyncResult);
+
+      const res = await request(app)
+        .post('/api/admin/wigle-kml-sync/sync')
+        .send({ limit: 15, dryRun: true, force: true });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(mockSyncResult);
+      expect(syncKmlTransactions).toHaveBeenCalledWith({ limit: 15, dryRun: true, force: true });
     });
   });
 });

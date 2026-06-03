@@ -1201,6 +1201,7 @@
 * **kepler:** pin tooltips on click ([2a43c07](https://github.com/cyclonite69/shadowcheck-web/commit/2a43c073546558c1a1550c9fe9d0dfe358265a62))
 * **kml:** add capability-gated WiGLE remote sync status ([3cdeecf](https://github.com/cyclonite69/shadowcheck-web/commit/3cdeecfb0f97e01e64796f9de0a22cd1c9b79e37))
 * **kml:** show import status and skip duplicate uploads ([303c23e](https://github.com/cyclonite69/shadowcheck-web/commit/303c23eedd45928ad263c9d62c304a202cdb63e0))
+* **kml:** sync WiGLE KML transactions via official API ([62db63b](https://github.com/cyclonite69/shadowcheck-web/commit/62db63bf644f8070424387f32bbdac1ff088a221))
 * **ledger:** add http_status column and capture error details for all WiGLE failures ([a5c5c32](https://github.com/cyclonite69/shadowcheck-web/commit/a5c5c321b386369ca6632f0b41e3ad3e308b5d33))
 * **ledger:** persist WiGLE request timestamps to DB so 24h quota survives restarts ([b277faf](https://github.com/cyclonite69/shadowcheck-web/commit/b277faf90ca83696857abecdc89c5fb2ea39902c))
 * make deploy-complete.sh fully non-interactive ([48bd529](https://github.com/cyclonite69/shadowcheck-web/commit/48bd52994ab4ad09ec4ba11d3b73001a32cafcaa))

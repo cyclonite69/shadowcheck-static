@@ -111,7 +111,7 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
           {
             configured: false,
             supported: false,
-            status: 'credentials_missing',
+            status: 'credentials_missing' as const,
             message: 'WiGLE API credentials are not configured.',
             recommendation: 'Configure wigle_api_name and wigle_api_token in Settings.',
             localKml: {
@@ -130,11 +130,9 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
     expect(html).toContain('WiGLE Remote Sync');
     expect(html).toContain('Credentials');
     expect(html).toContain('Missing');
-    expect(html).toContain('Remote Listing');
+    expect(html).toContain('Remote Sync');
     expect(html).toContain('Unsupported');
-    expect(html).toContain(
-      'ShadowCheck has not found a documented WiGLE API endpoint for listing/downloading uploaded KML/KMZ artifacts.'
-    );
+    expect(html).toContain('WiGLE API credentials are not configured.');
   });
 
   it('renders unsupported state safely with credentials configured', () => {
@@ -146,9 +144,8 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
           {
             configured: true,
             supported: false,
-            status: 'remote_listing_unsupported',
-            message:
-              'ShadowCheck has not found a documented WiGLE API endpoint for listing/downloading uploaded KML/KMZ artifacts.',
+            status: 'remote_listing_unsupported' as const,
+            message: 'WiGLE remote listing is unsupported.',
             recommendation: 'Manual KML upload remains the supported path.',
             localKml: {
               fileCount: 234,
@@ -166,11 +163,11 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
     expect(html).toContain('WiGLE Remote Sync');
     expect(html).toContain('Credentials');
     expect(html).toContain('Configured');
-    expect(html).toContain('Remote Listing');
+    expect(html).toContain('Remote Sync');
     expect(html).toContain('Unsupported');
   });
 
-  it('renders disabled buttons with tooltips', () => {
+  it('renders disabled buttons with tooltips when unsupported', () => {
     let stateCall = 0;
     useStateSpy = jest.spyOn(React, 'useState').mockImplementation((init?: any): any => {
       stateCall++;
@@ -179,8 +176,8 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
           {
             configured: true,
             supported: false,
-            status: 'remote_listing_unsupported',
-            message: 'ShadowCheck has not found a documented WiGLE API endpoint...',
+            status: 'remote_listing_unsupported' as const,
+            message: 'WiGLE remote listing is unsupported...',
             recommendation: 'Manual KML upload remains the supported path.',
             localKml: {
               fileCount: 234,
@@ -200,5 +197,184 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
     expect(html).toContain('Sync now');
     expect(html).toContain('title="WiGLE remote KML listing is unsupported in this version"');
     expect(html).toContain('title="WiGLE remote KML sync is unsupported in this version"');
+  });
+
+  it('renders active sync panel when supported is true', () => {
+    let stateCall = 0;
+    useStateSpy = jest.spyOn(React, 'useState').mockImplementation((init?: any): any => {
+      stateCall++;
+      if (stateCall === 1) {
+        return [
+          {
+            configured: true,
+            supported: true,
+            status: 'ready' as const,
+            message: 'WiGLE API remote sync is ready.',
+            recommendation: '',
+            localKml: {
+              fileCount: 234,
+              pointCount: 316445,
+              latestImportedAt: '2026-04-04T01:09:31.717Z',
+            },
+          },
+          jest.fn(),
+        ];
+      }
+      return [init, jest.fn()];
+    });
+
+    const html = renderCard();
+    expect(html).toContain('WiGLE Remote Sync');
+    expect(html).toContain('Credentials');
+    expect(html).toContain('Configured');
+    expect(html).toContain('Remote Sync');
+    expect(html).toContain('Supported');
+    expect(html).toContain('Check WiGLE');
+    expect(html).toContain('Dry Run');
+    expect(html).toContain('Sync now');
+    expect(html).toContain('Force reimport');
+  });
+
+  it('renders active sync panel with transactions history list', () => {
+    let stateCall = 0;
+    useStateSpy = jest.spyOn(React, 'useState').mockImplementation((init?: any): any => {
+      stateCall++;
+      // 1. syncStatus
+      if (stateCall === 1) {
+        return [
+          {
+            configured: true,
+            supported: true,
+            status: 'ready' as const,
+            message: 'WiGLE API remote sync is ready.',
+            recommendation: '',
+            localKml: {
+              fileCount: 234,
+              pointCount: 316445,
+              latestImportedAt: '2026-04-04T01:09:31.717Z',
+            },
+          },
+          jest.fn(),
+        ];
+      }
+      // 2. syncStatusLoading
+      if (stateCall === 2) return [false, jest.fn()];
+      // 3. syncStatusError
+      if (stateCall === 3) return [null, jest.fn()];
+      // 4. txs (inside WiGLEActiveSyncPanel)
+      if (stateCall === 4) {
+        return [
+          [
+            {
+              transid: '20260529-00225',
+              fileName: 'test-upload.kml',
+              fileSize: 102400,
+              fileLines: 1500,
+              status: 'SUCCESS',
+            },
+          ],
+          jest.fn(),
+        ];
+      }
+      // 5. txsLoading
+      if (stateCall === 5) return [false, jest.fn()];
+      // 6. txsError
+      if (stateCall === 6) return [null, jest.fn()];
+      // 7. syncLoading
+      if (stateCall === 7) return [false, jest.fn()];
+      // 8. syncResult (null so we render the list)
+      if (stateCall === 8) return [null, jest.fn()];
+      // 9. force
+      if (stateCall === 9) return [false, jest.fn()];
+
+      return [init, jest.fn()];
+    });
+
+    const html = renderCard();
+    expect(html).toContain('Check WiGLE');
+    expect(html).toContain('Dry Run');
+    expect(html).toContain('Sync now');
+    expect(html).toContain('test-upload.kml');
+    expect(html).toContain('100 KB');
+    expect(html).toContain('1,500 lines');
+  });
+
+  it('renders active sync panel with sync execution results', () => {
+    let stateCall = 0;
+    useStateSpy = jest.spyOn(React, 'useState').mockImplementation((init?: any): any => {
+      stateCall++;
+      // 1. syncStatus
+      if (stateCall === 1) {
+        return [
+          {
+            configured: true,
+            supported: true,
+            status: 'ready' as const,
+            message: 'WiGLE API remote sync is ready.',
+            recommendation: '',
+            localKml: {
+              fileCount: 234,
+              pointCount: 316445,
+              latestImportedAt: '2026-04-04T01:09:31.717Z',
+            },
+          },
+          jest.fn(),
+        ];
+      }
+      // 2. syncStatusLoading
+      if (stateCall === 2) return [false, jest.fn()];
+      // 3. syncStatusError
+      if (stateCall === 3) return [null, jest.fn()];
+      // 4. txs (inside WiGLEActiveSyncPanel) - can be set
+      if (stateCall === 4) {
+        return [
+          [
+            {
+              transid: '20260529-00225',
+              fileName: 'test-upload.kml',
+              fileSize: 102400,
+              fileLines: 1500,
+              status: 'SUCCESS',
+            },
+          ],
+          jest.fn(),
+        ];
+      }
+      // 5. txsLoading
+      if (stateCall === 5) return [false, jest.fn()];
+      // 6. txsError
+      if (stateCall === 6) return [null, jest.fn()];
+      // 7. syncLoading
+      if (stateCall === 7) return [false, jest.fn()];
+      // 8. syncResult
+      if (stateCall === 8) {
+        return [
+          {
+            ok: true,
+            syncedCount: 1,
+            skippedCount: 0,
+            failedCount: 0,
+            results: [
+              {
+                transid: '20260529-00225',
+                fileName: 'test-upload.kml',
+                status: 'imported',
+                pointsImported: 1500,
+              },
+            ],
+          },
+          jest.fn(),
+        ];
+      }
+      // 9. force
+      if (stateCall === 9) return [false, jest.fn()];
+
+      return [init, jest.fn()];
+    });
+
+    const html = renderCard();
+    expect(html).toContain('Sync Execution Results');
+    expect(html).toContain('imported');
+    expect(html).toContain('(1500 pts)');
   });
 });

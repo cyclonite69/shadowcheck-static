@@ -1349,6 +1349,28 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Import',
+    label: 'WiGLE KML Remote Transactions',
+    description: 'List user uploads from WiGLE API (v2) without downloading.',
+    path: '/api/admin/wigle-kml-sync/transactions',
+    method: 'GET',
+    requiresAuth: true,
+    params: [
+      { name: 'limit', label: 'Limit', defaultValue: '100', type: 'number' },
+      { name: 'pageStart', label: 'Page Start', defaultValue: '0', type: 'number' },
+    ],
+  },
+  {
+    category: 'Admin Import',
+    label: 'WiGLE KML Remote Sync Trigger',
+    description: 'Trigger KML run imports from WiGLE.',
+    path: '/api/admin/wigle-kml-sync/sync',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "limit": 10,\n  "dryRun": false,\n  "force": false\n}',
+  },
+
+  {
+    category: 'Admin Import',
     label: 'Import WiGLE (legacy)',
     path: '/api/import/wigle',
     method: 'POST',

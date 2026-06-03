@@ -49,10 +49,13 @@ export interface KmlImportResult {
 
 export interface WigleKmlSyncStatusResponse {
   configured: boolean;
-  supported: false;
-  status: 'remote_listing_unsupported' | 'credentials_missing';
+  supported: boolean;
+  status: 'ready' | 'credentials_missing' | 'remote_listing_unsupported';
   message: string;
   recommendation: string;
+  provider?: string | null;
+  listEndpoint?: string | null;
+  kmlEndpoint?: string | null;
   localKml: {
     fileCount: number;
     pointCount: number;

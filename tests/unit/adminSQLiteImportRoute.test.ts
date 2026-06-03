@@ -2,12 +2,17 @@ export {};
 
 const { EventEmitter } = require('events');
 
-jest.mock('fs', () => ({
-  promises: {
-    unlink: jest.fn().mockResolvedValue(undefined),
-    rm: jest.fn().mockResolvedValue(undefined),
-  },
-}));
+jest.mock('fs', () => {
+  const actualFs = jest.requireActual('fs');
+  return {
+    ...actualFs,
+    promises: {
+      ...actualFs.promises,
+      unlink: jest.fn().mockResolvedValue(undefined),
+      rm: jest.fn().mockResolvedValue(undefined),
+    },
+  };
+});
 
 jest.mock('child_process', () => ({
   spawn: jest.fn(),

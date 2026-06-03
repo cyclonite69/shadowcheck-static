@@ -219,6 +219,11 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
   }
 });
 
+const {
+  listTransactions,
+  syncKmlTransactions,
+} = require('../../../../../services/wigle/wigleKmlSyncService');
+
 /**
  * GET /api/admin/wigle-kml-sync/status
  * Safe admin endpoint to check status of remote WiGLE KML sync integration.
@@ -236,14 +241,17 @@ router.get('/admin/wigle-kml-sync/status', async (req, res) => {
 
     const response = {
       configured,
-      supported: false,
-      status: configured ? 'remote_listing_unsupported' : 'credentials_missing',
+      supported: configured,
+      status: configured ? 'ready' : 'credentials_missing',
       message: configured
-        ? 'ShadowCheck has not found a documented WiGLE API endpoint for listing/downloading uploaded KML/KMZ artifacts.'
+        ? 'WiGLE remote KML sync is supported.'
         : 'WiGLE API credentials are not configured.',
       recommendation: configured
-        ? 'Manual KML upload remains the supported path.'
+        ? 'Click Sync now to import remote runs.'
         : 'Configure wigle_api_name and wigle_api_token in Settings.',
+      provider: configured ? 'wigle_api_v2' : null,
+      listEndpoint: configured ? '/api/v2/file/transactions' : null,
+      kmlEndpoint: configured ? '/api/v2/file/kml/{transid}' : null,
       localKml: {
         fileCount,
         pointCount,
@@ -255,6 +263,40 @@ router.get('/admin/wigle-kml-sync/status', async (req, res) => {
   } catch (err) {
     logger.error(`Wiggle KML sync status failed: ${err.message}`, { error: err });
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/wigle-kml-sync/transactions
+ * Retrieve the user's remote uploads listing from WiGLE API.
+ */
+router.get('/admin/wigle-kml-sync/transactions', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const pageStart = parseInt(req.query.pageStart, 10) || 0;
+    const transactions = await listTransactions(pageStart, pageStart + limit);
+    res.json(transactions);
+  } catch (err) {
+    logger.error(`Wiggle KML transactions fetch failed: ${err.message}`, { error: err });
+    res.status(err.status || 500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/wigle-kml-sync/sync
+ * Sync KML runs from WiGLE.
+ */
+router.post('/admin/wigle-kml-sync/sync', async (req, res) => {
+  try {
+    const limit = parseInt(req.body.limit, 10) || 10;
+    const dryRun = req.body.dryRun === true || String(req.body.dryRun).toLowerCase() === 'true';
+    const force = req.body.force === true || String(req.body.force).toLowerCase() === 'true';
+
+    const syncResult = await syncKmlTransactions({ limit, dryRun, force });
+    res.json(syncResult);
+  } catch (err) {
+    logger.error(`Wiggle KML sync failed: ${err.message}`, { error: err });
+    res.status(err.status || 500).json({ ok: false, error: err.message });
   }
 });
 
