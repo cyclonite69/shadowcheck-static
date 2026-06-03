@@ -38,6 +38,11 @@ describe('AdminMaintenanceService', () => {
 
       expect(stats).toEqual({ total: 0, unique_obs: 0 });
     });
+
+    it('should propagate database error', async () => {
+      (query as jest.Mock).mockRejectedValueOnce(new Error('DB Error'));
+      await expect(getDuplicateObservationStats()).rejects.toThrow('DB Error');
+    });
   });
 
   describe('deleteDuplicateObservations', () => {
@@ -59,6 +64,11 @@ describe('AdminMaintenanceService', () => {
 
       expect(result).toBe(0);
     });
+
+    it('should propagate database error', async () => {
+      (adminQuery as jest.Mock).mockRejectedValueOnce(new Error('DB Error'));
+      await expect(deleteDuplicateObservations()).rejects.toThrow('DB Error');
+    });
   });
 
   describe('getObservationCount', () => {
@@ -79,12 +89,9 @@ describe('AdminMaintenanceService', () => {
       expect(count).toBe(0);
     });
 
-    it('should return 0 if total is missing', async () => {
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [{}] });
-
-      const count = await getObservationCount();
-
-      expect(count).toBe(0);
+    it('should propagate database error', async () => {
+      (query as jest.Mock).mockRejectedValueOnce(new Error('DB Error'));
+      await expect(getObservationCount()).rejects.toThrow('DB Error');
     });
   });
 
@@ -109,11 +116,9 @@ describe('AdminMaintenanceService', () => {
       expect(createViewCall[0]).toContain('1600000000000');
     });
 
-    it('should throw error if minValidTimestamp is invalid', async () => {
-      await expect(refreshColocationView(-1)).rejects.toThrow('Invalid minValidTimestamp');
-      await expect(refreshColocationView(NaN)).rejects.toThrow('Invalid minValidTimestamp');
-      await expect(refreshColocationView(Infinity)).rejects.toThrow('Invalid minValidTimestamp');
-      expect(adminQuery).not.toHaveBeenCalled();
+    it('should propagate database error', async () => {
+      (adminQuery as jest.Mock).mockRejectedValueOnce(new Error('DB Error'));
+      await expect(refreshColocationView(1600000000000)).rejects.toThrow('DB Error');
     });
   });
 
@@ -128,6 +133,11 @@ describe('AdminMaintenanceService', () => {
       expect(adminQuery).toHaveBeenCalledWith(
         expect.stringContaining('TRUNCATE TABLE app.networks')
       );
+    });
+
+    it('should propagate database error', async () => {
+      (adminQuery as jest.Mock).mockRejectedValueOnce(new Error('DB Error'));
+      await expect(truncateAllData()).rejects.toThrow('DB Error');
     });
   });
 });

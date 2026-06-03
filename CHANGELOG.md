@@ -1199,7 +1199,7 @@
 * **kepler:** improve map controls and tooltip payloads ([230f089](https://github.com/cyclonite69/shadowcheck-web/commit/230f08972c65c8cad1e507338f81b1fc072b00fb))
 * **kepler:** increase viewport padding to zoom out and fit all points in bounding box ([2cee4d1](https://github.com/cyclonite69/shadowcheck-web/commit/2cee4d1c2431b354940598827f2ffeadfad933d3))
 * **kepler:** pin tooltips on click ([2a43c07](https://github.com/cyclonite69/shadowcheck-web/commit/2a43c073546558c1a1550c9fe9d0dfe358265a62))
-* **kml:** add capability-gated WiGLE remote sync status ([7ef743c](https://github.com/cyclonite69/shadowcheck-web/commit/7ef743cab20d76cca8a4683edac5103843b8d379))
+* **kml:** add capability-gated WiGLE remote sync status ([3cdeecf](https://github.com/cyclonite69/shadowcheck-web/commit/3cdeecfb0f97e01e64796f9de0a22cd1c9b79e37))
 * **kml:** show import status and skip duplicate uploads ([303c23e](https://github.com/cyclonite69/shadowcheck-web/commit/303c23eedd45928ad263c9d62c304a202cdb63e0))
 * **ledger:** add http_status column and capture error details for all WiGLE failures ([a5c5c32](https://github.com/cyclonite69/shadowcheck-web/commit/a5c5c321b386369ca6632f0b41e3ad3e308b5d33))
 * **ledger:** persist WiGLE request timestamps to DB so 24h quota survives restarts ([b277faf](https://github.com/cyclonite69/shadowcheck-web/commit/b277faf90ca83696857abecdc89c5fb2ea39902c))
