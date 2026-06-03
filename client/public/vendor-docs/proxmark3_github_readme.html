@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Proxmark3 — Iceman Fork GitHub README</title>
+<meta name="sc-source-url" content="https://github.com/RfidResearchGroup/proxmark3/blob/master/README.md">
+<meta name="sc-scraped" content="2026-06-02">
+</head>
+<body>
+<h1>Proxmark3 (Iceman Fork) — RFID/NFC Research Tool</h1>
+<p><strong>Source:</strong> github.com/RfidResearchGroup/proxmark3 README.md (scraped 2026-06-02)</p>
+<p><strong>Original author:</strong> Jonathan Westhues</p>
+<p><strong>Iceman fork:</strong> github.com/RfidResearchGroup/proxmark3 (5.7k stars, 1.3k forks)</p>
+
+<h2>Overview</h2>
+<p>The Proxmark3 is the swiss-army tool of RFID, allowing interactions with the vast majority of RFID tags on a global scale. Originally built by Jonathan Westhues. The Iceman repository is considered the pinnacle of features and functionality, enabling chip identification, penetration testing, and RFID programming automation.</p>
+
+<h2>Supported Protocols &amp; Capabilities</h2>
+<ul>
+  <li>125 kHz LF RFID (EM410x, HID, Indala, T5577, etc.)</li>
+  <li>134 kHz LF RFID</li>
+  <li>13.56 MHz HF RFID/NFC (MIFARE, DESFire, iClass/PicoPass, FeliCa, NFC Forum, EMV)</li>
+  <li>RFID read, write, clone, and emulation</li>
+  <li>Wiegand encoding/decoding</li>
+  <li>NFC NDEF type1/2/4a/4b, MIFARE, barcode</li>
+  <li>EMV and CIPURSE support</li>
+  <li>Extensive Lua and Python scripting</li>
+  <li>Blue Shark Bluetooth/battery addon for wireless operation</li>
+  <li>Standalone modes (no host computer required)</li>
+</ul>
+
+<h2>Hardware Variants</h2>
+<ul>
+  <li><strong>RDV4 (current flagship):</strong> 256KB flash, smart card module, FPC connector, swappable antennas, LF Q-factor switch, LF 125/134 frequency switch, ABS case</li>
+  <li>RDV1/RDV2/RDV3 easy — supported</li>
+  <li>Ryscorp green PCB version, Radiowar black PCB version — supported</li>
+  <li>Proxmark3 SE (BLE enabled) — supported</li>
+  <li>Proxmark3 X — community tested</li>
+</ul>
+
+<h2>Platform Support</h2>
+<ul>
+  <li>Linux (Ubuntu, Kali, Debian, Gentoo, Arch, Fedora, Raspbian, ParrotOS)</li>
+  <li>macOS (Homebrew, MacPorts)</li>
+  <li>Windows (WSL1, WSL2, MinGW, ProxSpace)</li>
+  <li>Android / Termux</li>
+  <li>iOS (jailbroken)</li>
+  <li>Docker</li>
+</ul>
+
+<h2>License</h2>
+<p>GPLv3 or later. Each contribution under copyright of its author. See AUTHORS.md.</p>
+
+<h2>Detection Notes for ShadowCheck</h2>
+<p>Proxmark3 is a USB-connected (or Bluetooth via Blue Shark addon) RFID research tool. It produces NO WiFi emissions visible in standard wardriving captures. The Blue Shark BLE addon broadcasts a BLE advertisement that could theoretically be detected. Library-only entry for analyst reference — not meaningfully detection-worthy from WiFi wardriving data.</p>
+</body>
+</html>

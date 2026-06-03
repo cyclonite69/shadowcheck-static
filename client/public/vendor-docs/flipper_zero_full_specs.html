@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flipper Zero — Full Technical Specifications</title>
+<meta name="sc-source-url" content="https://flipperzero.one/products/flipper-zero">
+<meta name="sc-scraped" content="2026-06-02">
+</head>
+<body>
+<h1>Flipper Zero — Multi-tool Device Technical Specifications</h1>
+<p><strong>Source:</strong> flipperzero.one (scraped 2026-06-02)</p>
+<p><strong>Manufacturer:</strong> Flipper Devices Inc.</p>
+<p>Fully open-source and customizable portable multi-tool for pentesters and geeks. Supports radio protocols, access control systems, hardware hacking, and more.</p>
+
+<h2>Microcontroller (MCU)</h2>
+<ul>
+  <li><strong>Model:</strong> STM32WB55RG</li>
+  <li><strong>Application processor:</strong> ARM Cortex-M4 32-bit 64 MHz</li>
+  <li><strong>Radio processor:</strong> ARM Cortex-M0+ 32-bit 32 MHz</li>
+  <li><strong>Radio:</strong> Bluetooth LE 5.4, 802.15.4 and proprietary</li>
+  <li><strong>Flash:</strong> 1024 KB (shared)</li>
+  <li><strong>SRAM:</strong> 256 KB (shared)</li>
+</ul>
+
+<h2>Sub-1 GHz Module</h2>
+<ul>
+  <li><strong>Transceiver chip:</strong> CC1101</li>
+  <li><strong>TX Power:</strong> -20 dBm max</li>
+  <li><strong>Frequency bands (region-dependent):</strong>
+    <ul>
+      <li>315 MHz</li>
+      <li>433 MHz</li>
+      <li>868 MHz</li>
+      <li>915 MHz</li>
+    </ul>
+  </li>
+  <li>Modulations: 2-FSK, 4-FSK, GFSK, MSK, OOK, ASK</li>
+  <li>Range: up to 50 meters</li>
+</ul>
+
+<h2>Bluetooth LE 5.4</h2>
+<ul>
+  <li>TX power: 4 dBm max</li>
+  <li>RX sensitivity: -96 dBm</li>
+  <li>Data rate: 2 Mbps</li>
+</ul>
+
+<h2>NFC (High-Frequency RFID)</h2>
+<ul>
+  <li>Frequency: 13.56 MHz</li>
+  <li>Supports: NXP MIFARE Classic, Ultralight, DESFire; FeliCa; HID iClass (PicoPass); NFC Forum protocols</li>
+</ul>
+
+<h2>125 kHz RFID (Low-Frequency)</h2>
+<ul>
+  <li>Modulation: AM/OOK; Coding: ASK, PSK</li>
+  <li>Supported: EM400x, EM410x, EM420x, HID, Indala, FDX (A &amp; B), Pyramid, AWID, Viking, Jablotron, Paradox, PAC Stanley, Keri, Gallagher, NexWatch</li>
+</ul>
+
+<h2>Infrared Transceiver</h2>
+<ul>
+  <li>RX wavelength: 950 nm (±100 nm)</li>
+  <li>RX carrier: 38 kHz (±5%)</li>
+  <li>TX wavelength: 940 nm; TX power: 300 mW</li>
+  <li>Supported protocols: NEC family, Kaseikyo, RCA, RC5, RC6, Samsung, SIRC</li>
+</ul>
+
+<h2>iButton 1-Wire</h2>
+<ul>
+  <li>Supported: Dallas DS199x, DS1971, CYFRAL, Metakom, TM2004, RW1990</li>
+</ul>
+
+<h2>USB</h2>
+<ul>
+  <li>Type-C, USB 2.0 (12 Mbps); Charging: 1A max</li>
+</ul>
+
+<h2>GPIO</h2>
+<ul>
+  <li>13 I/O pins, 2.54 mm connectors; 3.3V CMOS; 5V tolerant input</li>
+</ul>
+
+<h2>Display</h2>
+<ul>
+  <li>LCD Monochrome 128×64 px; Controller: ST7567; Interface: SPI; Diagonal: 1.4"</li>
+</ul>
+
+<h2>Battery</h2>
+<ul>
+  <li>LiPo 2100 mAh; up to 28 days battery life</li>
+</ul>
+
+<h2>MicroSD</h2>
+<ul>
+  <li>Up to 256 GB (SPI mode); 2–32 GB recommended; FAT12/16/32/exFAT</li>
+</ul>
+
+<h2>Physical</h2>
+<ul>
+  <li>Size: 100×40×25 mm; Weight: 102 g; Operating temp: 0–40°C</li>
+</ul>
+
+<h2>Detection Notes for ShadowCheck</h2>
+<p>BLE device name "Flipper Zero" is distinctive and unlikely to appear on production consumer hardware. BLE service UUIDs are published in open-source firmware (github.com/flipperdevices/flipperzero-firmware). FCC ID 2A2PY-FLIPPER (reported — unverified; no FCC filing archived here). No WiFi radio; not detectable in wardriving captures except via BLE scanning.</p>
+</body>
+</html>

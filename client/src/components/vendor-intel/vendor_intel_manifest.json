@@ -703,8 +703,18 @@
       "description": "Flock Safety fixed automated license plate recognition (ALPR) cameras. Deployed by municipal police, county sheriffs, HOAs, and private entities across the US. Each camera broadcasts a WiFi network for management and cellular upload. Identified via proprietary OUI blocks, canonical SSID pattern Flock-[6 hex chars], and BLE manufacturer ID 0x09C8 (XUNTONG).",
       "evidence_types": ["OUI", "SSID_PATTERN", "BLE_MFGRID"],
       "confidence_notes": "23 HIGH-confidence OUI prefixes listed here; additional medium-confidence contract-manufacturer OUIs seeded in DB migrations (see 20260531_031). SSID Flock-[hex6] is EXACT match per operator captures. BLE mfgrid 0x09C8 shared with FS_EXT_BATTERY and RAVEN_GUNSHOT_DETECTOR; disambiguate via BLE name.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Flock Safety License Plate Readers — Product Page",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "flock_safety_lpr_product.html",
+          "summary": "Official Flock Safety LPR product page. Confirms solar-powered, LTE-connected cameras with WiFi management interface. Covers Vehicle Signature technology, NightVision, NCIC integration, 5,000+ law enforcement agencies, and National LPR Network with billions of monthly plate reads. Data retention: 30-day default, up to 1 year.",
+          "year": 2026,
+          "origin": "Flock Safety (flocksafety.com)"
+        }
+      ]
     },
     {
       "vendor_key": "FS_EXT_BATTERY",
@@ -730,8 +740,18 @@
       "description": "Flock Safety external battery / solar power unit paired with ALPR cameras in locations without grid power. Broadcasts its own WiFi management interface. Identified via a subset of Flock OUI blocks and BLE name prefix 'fs ext battery'.",
       "evidence_types": ["OUI", "BLE_NAME"],
       "confidence_notes": "OUI subset of Flock Safety allocations. Upserting FS_EXT_BATTERY after FLOCK_SAFETY_CAMERA in DB ensures battery OUIs carry correct sub-type.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Flock Safety License Plate Readers — Product Page",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "flock_safety_lpr_product.html",
+          "summary": "Official Flock Safety LPR product page. Documents solar-powered battery deployment model for off-grid camera locations. Confirms shared Flock product ecosystem including external battery units.",
+          "year": 2026,
+          "origin": "Flock Safety (flocksafety.com)"
+        }
+      ]
     },
     {
       "vendor_key": "SHOTSPOTTER_SENSOR",
@@ -743,11 +763,21 @@
       "threat_tier": null,
       "severity": "HIGH",
       "surveillance_type": "SHOTSPOTTER_SENSOR",
-      "description": "ShotSpotter (now SoundThinking) acoustic gunshot detection sensors mounted on utility poles and rooftops. Deployed in over 100 US cities. Each sensor node maintains a WiFi management interface. Identified via OUI D4:11:D6 and SSID patterns matching SoundThinking, ShotSpotter, SST-, SENSOR-, SNS-, or acoustic prefixes.",
+      "description": "ShotSpotter (now SoundThinking) acoustic gunshot detection sensors mounted on utility poles and rooftops. Deployed in 180+ US cities per manufacturer (2026). Each sensor node maintains a WiFi management interface. Uses acoustic triangulation requiring 3+ sensors to hear same sound. 97% accuracy per manufacturer (2019-2021 reported data). Identified via OUI D4:11:D6 and SSID patterns matching SoundThinking, ShotSpotter, SST-, SENSOR-, SNS-, or acoustic prefixes.",
       "evidence_types": ["OUI", "SSID_PATTERN"],
       "confidence_notes": "OUI D4:11:D6 confirmed from captured devices. SSID pattern is MEDIUM confidence alone; combined with OUI is HIGH.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "SoundThinking ShotSpotter — Gunshot Detection System Product Page",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "shotspotter_soundthinking_tech_product.html",
+          "summary": "Official SoundThinking ShotSpotter product page. Covers acoustic sensor array architecture, triangulation method, 60-second detection-to-alert time, 97% accuracy (manufacturer-reported), 24x7 Incident Review Center, privacy protections (NYU Policing Project audit), SOC2 compliance, and platform integrations (CAD/RMS, LPR, drones, RTCC). OUI D4:11:D6 associated with SoundThinking hardware per operator observations.",
+          "year": 2026,
+          "origin": "SoundThinking Inc. (soundthinking.com)"
+        }
+      ]
     },
     {
       "vendor_key": "RAVEN_GUNSHOT_DETECTOR",
@@ -759,11 +789,21 @@
       "threat_tier": null,
       "severity": "HIGH",
       "surveillance_type": "RAVEN_GUNSHOT_DETECTOR",
-      "description": "Raven Alert gunshot detection platform by Flock Safety. Acoustic sensor nodes using BLE for local communication. Identified via BLE manufacturer ID 0x09C8 (XUNTONG, shared Flock Safety component supplier) and BLE device name prefix 'raven'.",
+      "description": "Raven Alert gunshot detection platform by Flock Safety. Acoustic sensor nodes using BLE for local communication. Detects gunshots, sideshows, crashes, and fireworks via event-triggered acoustic recognition. Not always-on recording; activates only on acoustic signatures of interest. Integrates with Flock LPR and video via FlockOS. Identified via BLE manufacturer ID 0x09C8 (XUNTONG, shared Flock Safety component supplier) and BLE device name prefix 'raven'.",
       "evidence_types": ["BLE_MFGRID", "BLE_NAME"],
       "confidence_notes": "BLE mfgrid 0x09C8 shared across Flock Safety product family. BLE name ^raven disambiguates from FLOCK_SAFETY_CAMERA and FS_EXT_BATTERY.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Flock Safety Gunshot and Audio Detection — Product Page",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "flock_safety_audio_detection_product.html",
+          "summary": "Official Flock Safety audio/gunshot detection product page. Covers event-triggered acoustic detection (gunshots, sideshows, crashes, fireworks), BLE-based sensor communication, FlockOS integration with LPR and video, policy-governed activation (not always-on), tamper detection, and RTCC workflow design. Confirms Raven branding under Flock Safety audio detection umbrella.",
+          "year": 2026,
+          "origin": "Flock Safety (flocksafety.com)"
+        }
+      ]
     },
     {
       "vendor_key": "DEI_BWC",
@@ -842,11 +882,21 @@
       "threat_tier": null,
       "severity": "LOW",
       "surveillance_type": "SIERRA_AIRLINK",
-      "description": "Sierra Wireless (now Semtech) AirLink RV55, LX40, MP70 cellular routers. Common in law enforcement, transit, and utilities. Identified via OUI and SSID patterns AirLink-, RV55-, LX40-.",
+      "description": "Sierra Wireless (now Semtech) AirLink RV55, LX40, MP70 cellular routers. Common in law enforcement, transit, and utilities for 30+ years. AirLink Pro series are ultra-rugged mission-critical routers supporting 5G, 5G RedCap, and 4G LTE. Identified via OUI and SSID patterns AirLink-, RV55-, LX40-. MP70 has built-in WiFi AP.",
       "evidence_types": ["OUI", "SSID_PATTERN"],
       "confidence_notes": "OUI blocks broadly assigned to Sierra Wireless hardware. Not yet in active detection vocab — library-only entry for Phase 1.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Sierra Wireless / Semtech AirLink Router Solutions",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "sierra_airlink_router_solutions.html",
+          "summary": "Official Sierra Wireless (Semtech) AirLink router solutions page. Confirms AirLink brand, Pro/Essential series product lines, 5G/4G public safety and law enforcement deployments, 30+ years of mission-critical connectivity experience. Customer quote from North Platte PD chief confirms active LE deployment. Lists public safety, vehicle networking, and industrial as primary verticals.",
+          "year": 2026,
+          "origin": "Sierra Wireless / Semtech (sierrawireless.com)"
+        }
+      ]
     },
     {
       "vendor_key": "HAK5_WIFI_PINEAPPLE",
@@ -858,11 +908,21 @@
       "threat_tier": null,
       "severity": "MEDIUM",
       "surveillance_type": "HAK5_WIFI_PINEAPPLE",
-      "description": "Hak5 WiFi Pineapple Mark VII and Elite series. Dual-use pentest / RF auditing platform that performs rogue AP attacks, PineAP beacon-response injection, and passive WiFi reconnaissance. Widely used in authorized penetration tests and red team exercises. FCC ID reported as 2A4RG-MARK7 (unverified locally; no FCC docs archived).",
+      "description": "Hak5 WiFi Pineapple Mark VII and Enterprise series. Dual-use pentest / RF auditing platform that performs rogue AP attacks, PineAP beacon-response injection, and passive WiFi reconnaissance. Mark VII: 2.4 GHz 802.11 b/g/n (5 GHz/ac with module), single-core MIPS, 3 radios, 256MB RAM, 2GB eMMC, USB-C. Enterprise: 802.11 a/b/g/n/ac wave2, quad-core ARM, 4 radios, 1GB RAM. Widely used in authorized penetration tests.",
       "evidence_types": ["SSID_PATTERN", "OUI"],
-      "confidence_notes": "No fixed OUI — SoC OUI varies by hardware revision. Detection via default SSID 'pineapple' or characteristic management interface patterns. High FP risk; correlate with behavioral data before flagging. Not yet in active detection vocab — library-only entry for Phase 1.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "confidence_notes": "No fixed OUI — SoC OUI varies by hardware revision (MIPS or ARM vendor). Detection via default SSID 'pineapple' or characteristic management interface patterns. High FP risk; correlate with behavioral data before flagging. FCC ID 2A4RG-MARK7 (reported — unverified; no FCC filing archived). Not yet in active detection vocab — library-only entry for Phase 1.",
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Hak5 WiFi Pineapple — Mark VII & Enterprise Shop Page",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "hak5_wifi_pineapple_shop_specs.html",
+          "summary": "Official Hak5 shop product page for WiFi Pineapple Mark VII and Enterprise. Mark VII specs: 2.4 GHz 802.11 b/g/n (5 GHz/ac with module), single-core MIPS SoC, 3 dedicated role-based radios, 256MB RAM, 2GB eMMC, USB-C power. Enterprise specs: 802.11 a/b/g/n/ac wave2, quad-core ARM, 4 radios, 1GB RAM, 4GB eMMC, AC power. Features PineAP suite, WPA Enterprise capture, passive surveillance, cloud C2.",
+          "year": 2026,
+          "origin": "Hak5 LLC (shop.hak5.org)"
+        }
+      ]
     },
     {
       "vendor_key": "FLIPPER_ZERO",
@@ -874,11 +934,21 @@
       "threat_tier": null,
       "severity": "MEDIUM",
       "surveillance_type": "FLIPPER_ZERO",
-      "description": "Flipper Zero multi-tool RF / hardware hacking device. Supports sub-GHz, NFC, RFID, IR, iButton, GPIO, and BLE. BLE default device name is 'Flipper Zero'; BLE service UUIDs are publicly documented in the open-source Flipper firmware. Commonly used by security researchers and hobbyists. FCC ID reported as 2A2PY-FLIPPER (unverified locally; no FCC docs archived).",
+      "description": "Flipper Zero multi-tool RF / hardware hacking device by Flipper Devices Inc. MCU: STM32WB55RG (ARM Cortex-M4 64MHz + M0+ 32MHz). Sub-1GHz via CC1101 (315/433/868/915MHz), NFC 13.56MHz, 125kHz RFID, IR transceiver, iButton 1-Wire, BLE 5.4, GPIO. Battery: LiPo 2100mAh, 28-day life. Fully open-source firmware (github.com/flipperdevices/flipperzero-firmware). BLE default device name 'Flipper Zero'; BLE service UUIDs publicly documented.",
       "evidence_types": ["BLE_NAME", "SERVICE_UUID"],
-      "confidence_notes": "BLE device name 'Flipper Zero' is low-FP — no consumer device uses this name. BLE service UUIDs are published in open-source firmware. Not yet in active detection vocab — library-only entry for Phase 1.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "confidence_notes": "BLE device name 'Flipper Zero' is distinctive and unlikely to appear on production consumer hardware. BLE service UUIDs published in open-source firmware. No WiFi radio; not visible in wardriving captures. FCC ID 2A2PY-FLIPPER (reported — unverified; no FCC filing archived). Not yet in active detection vocab — library-only entry for Phase 1.",
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Flipper Zero — Official Product Page and Full Technical Specifications",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "flipper_zero_full_specs.html",
+          "summary": "Official Flipper Zero product page with complete hardware specifications. MCU: STM32WB55RG (ARM Cortex-M4 64MHz + ARM Cortex-M0+ 32MHz). Sub-1GHz: CC1101 chip, 315/433/868/915MHz bands, up to 50m range. BLE 5.4: 4dBm TX, -96dBm RX. NFC 13.56MHz (MIFARE, DESFire, FeliCa, iClass). 125kHz RFID (EM410x, HID, Indala, etc.). IR transceiver. iButton 1-Wire. USB-C. GPIO 13 pins. LCD 128x64. LiPo 2100mAh.",
+          "year": 2026,
+          "origin": "Flipper Devices Inc. (flipperzero.one)"
+        }
+      ]
     },
     {
       "vendor_key": "UBERTOOTH",
@@ -890,11 +960,21 @@
       "threat_tier": null,
       "severity": "LOW",
       "surveillance_type": "UBERTOOTH_ONE",
-      "description": "Great Scott Gadgets Ubertooth One. Open-source Bluetooth monitoring and development platform. USB dongle used for passive BLE/BT sniffing and research. Produces no wireless emissions visible in standard wardriving captures; documented here for analyst reference.",
+      "description": "Great Scott Gadgets Ubertooth One. Open-source Bluetooth monitoring and development platform. USB dongle used for passive BLE/BT sniffing and research. Latest release 2020-12-R1. Capable BLE sniffer and partial BR Bluetooth Classic sniffer. Produces no wireless emissions visible in standard wardriving captures; documented here for analyst reference.",
       "evidence_types": [],
       "confidence_notes": "No WiFi or active BLE advertisement. Library-only entry — not detection-worthy from wardriving data.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Ubertooth One — GitHub README (Great Scott Gadgets)",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "ubertooth_one_github_readme.html",
+          "summary": "Official GitHub README for Project Ubertooth. Confirms open-source BT/BLE passive sniffer platform, USB dongle form factor, latest release 2020-12-R1, documentation at ubertooth.readthedocs.io. Capable of BLE sniffing and partial BR Bluetooth Classic sniffing. No active wireless emissions; not detectable from wardriving captures.",
+          "year": 2026,
+          "origin": "Great Scott Gadgets (github.com/greatscottgadgets/ubertooth)"
+        }
+      ]
     },
     {
       "vendor_key": "PROXMARK3",
@@ -906,11 +986,21 @@
       "threat_tier": null,
       "severity": "LOW",
       "surveillance_type": "PROXMARK3",
-      "description": "Proxmark3 RFID / NFC research and auditing tool. USB-connected hardware used for reading, cloning, and emulating RFID/NFC credentials. Produces no WiFi or BLE emissions; documented here for analyst reference.",
+      "description": "Proxmark3 RFID / NFC research and auditing tool. USB-connected hardware for reading, cloning, and emulating RFID/NFC credentials. Supports 125kHz LF (EM410x, HID, Indala, T5577) and 13.56MHz HF (MIFARE, DESFire, iClass, FeliCa, EMV). RDV4 hardware adds smart card module, FPC Bluetooth/battery addon. Iceman fork (RfidResearchGroup/proxmark3) is canonical community fork (5.7k stars). GPLv3.",
       "evidence_types": [],
-      "confidence_notes": "No wireless emissions visible in wardriving captures. Library-only entry.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "confidence_notes": "No WiFi or BLE emissions from base hardware. Blue Shark Bluetooth addon may produce a BLE advertisement. Library-only entry.",
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Proxmark3 Iceman Fork — GitHub README",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "proxmark3_github_readme.html",
+          "summary": "Official GitHub README for Proxmark3 Iceman fork (RfidResearchGroup/proxmark3). Covers supported RFID protocols (125kHz LF, 134kHz LF, 13.56MHz HF/NFC, EMV, CIPURSE), hardware variants (RDV4 flagship, RDV1/2/3, SE with BLE, Proxmark3 X), platform support (Linux, macOS, Windows, Android, iOS), and GPLv3 license.",
+          "year": 2026,
+          "origin": "RfidResearchGroup / Iceman (github.com/RfidResearchGroup/proxmark3)"
+        }
+      ]
     },
     {
       "vendor_key": "RAYTHEON_ESYSTEMS",
@@ -922,11 +1012,21 @@
       "threat_tier": 3,
       "severity": "HIGH",
       "surveillance_type": "RAYTHEON_ESYSTEMS",
-      "description": "Raytheon E-Systems (now Raytheon Intelligence & Space). Defense electronics division producing SIGINT, electronic warfare, and intelligence systems for US government and allied militaries.",
+      "description": "Raytheon E-Systems (now Raytheon Intelligence & Space under RTX). Defense electronics division producing SIGINT, electronic warfare, and intelligence systems for US government and allied militaries. Products include airborne ISR, surveillance & reconnaissance, all-domain sensors, and electronic warfare systems. Product specifics are classified and not publicly listed.",
       "evidence_types": ["OUI"],
-      "confidence_notes": "OUI blocks confirmed from IEEE registry. OUI match is high confidence for this vendor.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "confidence_notes": "OUI blocks 00:00:8F and 00:E0:E7 confirmed from IEEE registry as registered to Raytheon E-Systems. OUI match is high confidence for this vendor.",
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Raytheon / RTX — Company and Products Overview",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "raytheon_esystems_rtx_overview.html",
+          "summary": "RTX/Raytheon corporate overview confirming Raytheon Intelligence & Space division under RTX. Product areas include Surveillance & Reconnaissance, Electronic Warfare, Global ISR Sensors, All-Domain Sensors, and Advanced Technology. Specific product specs are classified. OUI blocks 00:00:8F and 00:E0:E7 confirmed from IEEE OUI registry to Raytheon E-Systems.",
+          "year": 2026,
+          "origin": "RTX Corporation (rtx.com)"
+        }
+      ]
     },
     {
       "vendor_key": "PROXIM_SURVEILLANCE",
@@ -938,11 +1038,21 @@
       "threat_tier": 3,
       "severity": "LOW",
       "surveillance_type": "PROXIM_SURVEILLANCE",
-      "description": "Proxim Wireless point-to-point and point-to-multipoint broadband equipment. ORiNOCO and Tsunami product lines used in surveillance infrastructure backhaul and government wireless networks.",
+      "description": "Proxim Wireless (AN SRA Company) point-to-point and point-to-multipoint broadband equipment. ORiNOCO and Tsunami product lines used in surveillance infrastructure backhaul and government wireless networks. Current product catalog includes Tsunami MP-8260 (6 GHz PtMP), ORiNOCO AP-9200R (ruggged outdoor Wi-Fi 5), Stratum X5 (up to 1.58 Gbps PtP), and Edge series. Video Surveillance is an explicitly listed solution vertical.",
       "evidence_types": ["OUI"],
-      "confidence_notes": "OUI blocks confirm Proxim hardware. Surveillance context inferred from deployment patterns rather than inherent device capability.",
-      "docs_status": "needs_collection",
-      "docs": []
+      "confidence_notes": "OUI blocks 00:20:A6 and 04:F5:F4 confirm Proxim hardware. ORiNOCO AP-9200R outdoor WiFi AP visible in wardriving captures on 2.4/5 GHz. Surveillance context confirmed from vendor's own Video Surveillance solution vertical.",
+      "docs_status": "partial",
+      "docs": [
+        {
+          "title": "Proxim Wireless — Products Catalog",
+          "source_type": "manufacturer",
+          "format": "html",
+          "file": "proxim_wireless_products_catalog.html",
+          "summary": "Official Proxim Wireless product catalog. Current products: Tsunami MP-8260 (5.9–6.4 GHz PtMP), ORiNOCO AP-9200R (rugged outdoor Wi-Fi 5, 2.4+5 GHz), Stratum X5 (up to 1.58 Gbps PtP), Edge 1025/1055/1015/1045 series. Solution verticals explicitly include Video Surveillance, Smart City, Intelligent Transportation Systems. ISO 9001:2015 certified.",
+          "year": 2026,
+          "origin": "Proxim Wireless (proxim.com)"
+        }
+      ]
     },
     {
       "vendor_key": "PRIVATE_OUI_REGISTERED",

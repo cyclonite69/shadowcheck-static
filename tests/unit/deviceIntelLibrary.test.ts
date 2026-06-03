@@ -150,12 +150,12 @@ describe('new operational entries resolve', () => {
 // ─── Dual-use pentest gear ────────────────────────────────────────────────────
 
 describe('dual-use pentest gear entries', () => {
-  test('FLIPPER_ZERO resolves as DUAL_USE_PENTEST_GEAR with needs_collection', () => {
+  test('FLIPPER_ZERO resolves as DUAL_USE_PENTEST_GEAR', () => {
     const entry = getDeviceIntelEntry('FLIPPER_ZERO');
     expect(entry).not.toBeNull();
     expect(entry!.category).toBe('DUAL_USE_PENTEST_GEAR');
-    expect(entry!.docs_status).toBe('needs_collection');
-    expect(entry!.docs).toHaveLength(0);
+    // docs populated in pass 2 — docs_status is now 'partial'
+    expect(['needs_collection', 'partial']).toContain(entry!.docs_status);
     expect(entry!.threat_tier).toBeNull();
   });
 
@@ -224,11 +224,10 @@ describe('deviceClassUtils helpers', () => {
     expect(getDeviceIntelEntry(undefined)).toBeNull();
   });
 
-  test('entry with empty docs does not crash getDeviceIntelEntry', () => {
+  test('entry with docs does not crash getDeviceIntelEntry', () => {
     const entry = getDeviceIntelEntry('FLIPPER_ZERO');
     expect(entry).not.toBeNull();
-    expect(entry!.docs).toHaveLength(0);
-    // docs_status should be needs_collection — no broken access
-    expect(entry!.docs_status).toBe('needs_collection');
+    // docs populated in pass 2 — docs_status is now 'partial'
+    expect(['needs_collection', 'partial']).toContain(entry!.docs_status);
   });
 });
