@@ -19,6 +19,7 @@ import {
   formatAccuracy,
 } from '../../../utils/geospatial/fieldFormatting';
 import { emitVendorIntel } from '../../vendor-intel/VendorIntelDrawer';
+import { emitDetectionEvidence } from '../networkTagMenu/DetectionEvidenceModal';
 import {
   formatDeviceType,
   hasVendorIntelForDeviceClass,
@@ -557,11 +558,83 @@ const renderPresence = ({ value }: NetworkTableCellRendererContext) => {
   };
 };
 
-const renderDeviceClass = ({ value }: NetworkTableCellRendererContext) => {
+const renderDeviceClass = ({ value, row }: NetworkTableCellRendererContext) => {
   const raw = normalizeDeviceClass(typeof value === 'string' ? value : null);
   if (!raw) return { content: <span style={{ color: '#475569' }}>—</span> };
+
   const label = formatDeviceType(raw);
   const hasIntel = hasVendorIntelForDeviceClass(raw);
+  const isPrivateOui = raw === 'PRIVATE_OUI_REGISTERED';
+
+  // Route 1: manifest entry exists → Intel drawer
+  // Route 2: operational detection (no manifest, not private) → Evidence modal
+  // Route 3: private/unknown OUI → explanatory tooltip chip, no button
+  let action: React.ReactNode = null;
+
+  if (hasIntel && !isPrivateOui) {
+    action = (
+      <button
+        aria-label={`Open vendor intel for ${label}`}
+        title="Open Vendor Intel"
+        onClick={(e) => {
+          e.stopPropagation();
+          emitVendorIntel(raw);
+        }}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '0 3px',
+          fontSize: 10,
+          lineHeight: 1,
+          color: '#f97316',
+          flexShrink: 0,
+        }}
+      >
+        Intel
+      </button>
+    );
+  } else if (!isPrivateOui) {
+    action = (
+      <button
+        aria-label={`View detection evidence for ${label}`}
+        title="View Detection Evidence"
+        onClick={(e) => {
+          e.stopPropagation();
+          emitDetectionEvidence(row.bssid, row.ssid);
+        }}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '0 3px',
+          fontSize: 10,
+          lineHeight: 1,
+          color: '#60a5fa',
+          flexShrink: 0,
+        }}
+      >
+        Evidence
+      </button>
+    );
+  } else {
+    // Private OUI — no actionable button; tooltip on the label explains
+    action = (
+      <span
+        title="Privately registered OUI — vendor identity not publicly attributed"
+        style={{
+          fontSize: 9,
+          color: '#6b7280',
+          flexShrink: 0,
+          cursor: 'default',
+          paddingLeft: 3,
+        }}
+      >
+        ?
+      </span>
+    );
+  }
+
   return {
     content: (
       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -577,28 +650,7 @@ const renderDeviceClass = ({ value }: NetworkTableCellRendererContext) => {
         >
           {label}
         </span>
-        {hasIntel && (
-          <button
-            aria-label={`Open vendor intel for ${label}`}
-            title="Open Vendor Intel"
-            onClick={(e) => {
-              e.stopPropagation();
-              emitVendorIntel(raw);
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0 3px',
-              fontSize: 10,
-              lineHeight: 1,
-              color: '#f97316',
-              flexShrink: 0,
-            }}
-          >
-            Intel
-          </button>
-        )}
+        {action}
       </span>
     ),
     title: raw,

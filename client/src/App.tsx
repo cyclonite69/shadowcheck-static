@@ -7,6 +7,7 @@ import { LoginForm } from './components/auth/LoginForm';
 import { ChangePasswordForm } from './components/auth/ChangePasswordForm';
 import StartPage from './components/StartPage';
 import { VendorIntelDrawer } from './components/vendor-intel/VendorIntelDrawer';
+import { DetectionEvidenceGlobal } from './components/geospatial/networkTagMenu/DetectionEvidenceModal';
 import { useVendorIntelClickHandler } from './hooks/useVendorIntelClickHandler';
 
 // Eager load: lightweight pages that are commonly accessed first
@@ -108,6 +109,7 @@ function AppContent() {
       </a>
       <Navigation />
       <VendorIntelDrawer />
+      <DetectionEvidenceGlobal />
       <main id="main-content" className="flex h-screen">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>

@@ -3,6 +3,10 @@ import type { ColumnBadgeConfig } from '../../client/src/types/badgeConfig';
 import { NETWORK_COLUMNS } from '../../client/src/constants/network';
 import { renderNetworkTableCell } from '../../client/src/components/geospatial/networkTable/cellRenderers';
 import React from 'react';
+import {
+  emitDetectionEvidence,
+  DETECTION_EVIDENCE_EVENT,
+} from '../../client/src/components/geospatial/networkTagMenu/DetectionEvidenceModal';
 
 const baseRow: NetworkRow = {
   bssid: 'AA:BB:CC:DD:EE:FF',
@@ -275,7 +279,9 @@ describe('renderNetworkTableCell', () => {
     const withIntel = renderNetworkTableCell(makeContext('device_class', 'L3HARRIS_STINGRAY'));
     expect(getText(withIntel.content)).toBe('L3Harris StingRay');
 
-    const withoutIntel = renderNetworkTableCell(makeContext('device_class', 'FLOCK_SAFETY_CAMERA'));
+    const withoutIntel = renderNetworkTableCell(
+      makeContext('device_class', 'SOME_NON_EXISTENT_CLASS')
+    );
     const element = withoutIntel.content as React.ReactElement<any>;
     const children = React.Children.toArray(element.props.children);
     const hasVendorIntelButton = children.some(
@@ -283,6 +289,55 @@ describe('renderNetworkTableCell', () => {
         React.isValidElement<{ title?: string }>(child) && child.props.title === 'Open Vendor Intel'
     );
     expect(hasVendorIntelButton).toBe(false);
+  });
+
+  it('renders Evidence action for operational device classes without manifest entries', () => {
+    const result = renderNetworkTableCell(makeContext('device_class', 'SOME_NON_EXISTENT_CLASS'));
+    const element = result.content as React.ReactElement<any>;
+    const children = React.Children.toArray(element.props.children);
+    const hasEvidenceButton = children.some(
+      (child) =>
+        React.isValidElement<{ title?: string }>(child) &&
+        child.props.title === 'View Detection Evidence'
+    );
+    expect(hasEvidenceButton).toBe(true);
+  });
+
+  it('renders non-interactive explanation/tooltip for PRIVATE_OUI_REGISTERED', () => {
+    const result = renderNetworkTableCell(makeContext('device_class', 'PRIVATE_OUI_REGISTERED'));
+    const element = result.content as React.ReactElement<any>;
+    const children = React.Children.toArray(element.props.children);
+    const explanationNode = children.find(
+      (child) =>
+        React.isValidElement<{ title?: string }>(child) &&
+        child.props.title?.includes('Privately registered OUI')
+    ) as React.ReactElement<any> | undefined;
+
+    expect(explanationNode).toBeDefined();
+    expect(explanationNode!.props.children).toBe('?');
+  });
+
+  it('emitDetectionEvidence dispatches custom event with bssid and ssid', () => {
+    const bssid = '00:11:22:33:44:55';
+    const ssid = 'Test Network';
+
+    const mockDispatch = jest.fn();
+    const originalWindow = (global as any).window;
+    (global as any).window = {
+      dispatchEvent: mockDispatch,
+    };
+
+    emitDetectionEvidence(bssid, ssid);
+
+    expect(mockDispatch).toHaveBeenCalled();
+    const event = mockDispatch.mock.calls[0][0];
+    expect(event.detail).toEqual({ bssid, ssid });
+
+    if (originalWindow) {
+      (global as any).window = originalWindow;
+    } else {
+      delete (global as any).window;
+    }
   });
 });
 

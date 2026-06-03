@@ -3,6 +3,14 @@ import { createPortal } from 'react-dom';
 import { formatShortDate, formatISODate } from '../../../utils/formatDate';
 import { formatDeviceType } from '../../../utils/deviceClassUtils';
 
+// ─── Event bus (mirrors VendorIntelDrawer pattern) ────────────────────────────
+
+export const DETECTION_EVIDENCE_EVENT = 'detection-evidence-open';
+
+export function emitDetectionEvidence(bssid: string, ssid?: string | null): void {
+  window.dispatchEvent(new CustomEvent(DETECTION_EVIDENCE_EVENT, { detail: { bssid, ssid } }));
+}
+
 interface DetectionRecord {
   device_type: string;
   confidence: number;
@@ -377,5 +385,36 @@ export const DetectionEvidenceModal: React.FC<DetectionEvidenceModalProps> = ({
       </style>
     </div>,
     document.body
+  );
+};
+
+// ─── Global event-driven wrapper (mirrors VendorIntelDrawer mount pattern) ────
+
+/**
+ * Mount once in App.tsx. Listens for DETECTION_EVIDENCE_EVENT and renders
+ * DetectionEvidenceModal without requiring local state at the call site.
+ */
+export const DetectionEvidenceGlobal: React.FC = () => {
+  const [target, setTarget] = useState<{ bssid: string; ssid?: string | null } | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { bssid, ssid } = (e as CustomEvent).detail as {
+        bssid: string;
+        ssid?: string | null;
+      };
+      setTarget({ bssid, ssid });
+    };
+    window.addEventListener(DETECTION_EVIDENCE_EVENT, handler);
+    return () => window.removeEventListener(DETECTION_EVIDENCE_EVENT, handler);
+  }, []);
+
+  if (!target) return null;
+  return (
+    <DetectionEvidenceModal
+      bssid={target.bssid}
+      ssid={target.ssid}
+      onClose={() => setTarget(null)}
+    />
   );
 };

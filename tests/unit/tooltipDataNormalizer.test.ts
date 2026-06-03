@@ -151,7 +151,7 @@ describe('normalizeTooltipData', () => {
     const withoutIntel = renderNetworkTooltip({
       ssid: 'Operational',
       bssid: 'AA:BB:CC:DD:EE:00',
-      surveillance_type: 'FLOCK_SAFETY_CAMERA',
+      surveillance_type: 'SOME_NON_EXISTENT_CLASS',
       triggerElement: mockTriggerElement,
     });
 
