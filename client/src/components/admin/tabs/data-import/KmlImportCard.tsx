@@ -407,12 +407,30 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
           <div className="flex justify-between items-center">
             <span className="font-semibold text-slate-300">Sync Execution Results</span>
             <span
-              className={`px-2 py-0.5 rounded text-[10px] font-medium ${syncResult.ok ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                syncResult.rateLimited
+                  ? 'bg-cyan-500/20 text-cyan-300'
+                  : syncResult.ok
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'bg-rose-500/20 text-rose-300'
+              }`}
             >
-              {syncResult.ok ? 'Success' : 'Warnings/Errors'}
+              {syncResult.rateLimited
+                ? 'Rate Limited'
+                : syncResult.ok
+                  ? 'Success'
+                  : 'Warnings/Errors'}
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-[11px] py-1 border-y border-slate-700/50">
+
+          {syncResult.rateLimited && (
+            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded p-2 text-cyan-300 text-[11px] leading-relaxed">
+              {syncResult.rateLimitMessage ||
+                'Deferred — WiGLE request budget exhausted. Try again after the request window resets.'}
+            </div>
+          )}
+
+          <div className="grid grid-cols-4 gap-2 text-center text-[11px] py-1 border-y border-slate-700/50">
             <div>
               <p className="text-slate-500">Synced</p>
               <p className="font-mono text-emerald-400 font-bold">{syncResult.syncedCount}</p>
@@ -420,6 +438,10 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
             <div>
               <p className="text-slate-500">Skipped</p>
               <p className="font-mono text-amber-400 font-bold">{syncResult.skippedCount}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Deferred</p>
+              <p className="font-mono text-cyan-400 font-bold">{syncResult.deferredCount || 0}</p>
             </div>
             <div>
               <p className="text-slate-500">Failed</p>
@@ -442,7 +464,9 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
                         ? 'bg-emerald-500/20 text-emerald-300'
                         : res.status === 'skipped'
                           ? 'bg-amber-500/20 text-amber-300'
-                          : 'bg-rose-500/20 text-rose-300'
+                          : res.status === 'deferred'
+                            ? 'bg-cyan-500/20 text-cyan-300'
+                            : 'bg-rose-500/20 text-rose-300'
                     }`}
                   >
                     {res.status}

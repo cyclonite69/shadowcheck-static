@@ -25,7 +25,7 @@ export interface WigleSyncResult {
   results: {
     transid: string;
     fileName: string;
-    status: 'imported' | 'skipped' | 'failed';
+    status: 'imported' | 'skipped' | 'failed' | 'deferred';
     error?: string;
     pointsImported?: number;
   }[];
@@ -34,6 +34,10 @@ export interface WigleSyncResult {
   skippedAlreadyImportedCount?: number;
   skippedIncompleteCount?: number;
   skippedReasons?: string[];
+  deferredCount?: number;
+  rateLimited?: boolean;
+  rateLimitMessage?: string;
+  remainingDeferredCount?: number;
 }
 
 /**
@@ -157,6 +161,20 @@ export function mapWigleStatus(tx: any): string {
   return tx.status || 'UNKNOWN';
 }
 
+function isWigleQuotaError(e: any): boolean {
+  if (!e) return false;
+  if (e.status === 429 || e.status === 503) {
+    return true;
+  }
+  const msg = String(e.message || '').toLowerCase();
+  return (
+    msg.includes('soft limit reached') ||
+    msg.includes('circuit breaker') ||
+    msg.includes('rate limit') ||
+    msg.includes('quota')
+  );
+}
+
 /**
  * Main function to sync missing KML files from WiGLE upload history
  */
@@ -200,6 +218,9 @@ export async function syncKmlTransactions(
   let syncedCount = 0;
   let skippedCount = 0;
   let failedCount = 0;
+  let rateLimited = false;
+  let rateLimitMessage = '';
+  let deferredCount = 0;
 
   // Prepare standard debug fields
   const debugFields = {
@@ -218,6 +239,9 @@ export async function syncKmlTransactions(
       syncedCount: 0,
       skippedCount: 0,
       failedCount: 0,
+      deferredCount: 0,
+      rateLimited: false,
+      remainingDeferredCount: candidates.length,
       results: toSync.map((tx: any) => {
         let filename = tx.fileName || `${tx.transid}.kml`;
         if (!filename.toLowerCase().endsWith('.kml')) {
@@ -249,6 +273,17 @@ export async function syncKmlTransactions(
     const transid = tx.transid;
     const uploadedAt = tx.lastupdt || tx.firstTime || new Date().toISOString();
     const txStatus = mapWigleStatus(tx);
+
+    if (rateLimited) {
+      results.push({
+        transid,
+        fileName: filename,
+        status: 'deferred',
+        error: 'WiGLE request budget exhausted; remaining transactions deferred.',
+      });
+      deferredCount++;
+      continue;
+    }
 
     try {
       logger.info(`[WiGLE KML Sync] Processing transaction ${transid} | file=${filename}`);
@@ -366,17 +401,42 @@ export async function syncKmlTransactions(
         .replace(/Authorization: Basic [A-Za-z0-9+/=]+/gi, 'Authorization: Basic [REDACTED]')
         .substring(0, 500);
 
-      logger.error(`[WiGLE KML Sync] Failed transaction ${transid}: ${safeMsg}`, { error: e });
-      results.push({ transid, fileName: filename, status: 'failed', error: safeMsg });
-      failedCount++;
+      if (isWigleQuotaError(e)) {
+        logger.warn(`[WiGLE KML Sync] Quota/rate-limit hit at transaction ${transid}: ${safeMsg}`);
+        rateLimited = true;
+        rateLimitMessage =
+          'Deferred — WiGLE request budget exhausted. Try again after the request window resets.';
+        results.push({
+          transid,
+          fileName: filename,
+          status: 'deferred',
+          error: 'WiGLE request budget exhausted; remaining transactions deferred.',
+        });
+        deferredCount++;
+      } else {
+        logger.error(`[WiGLE KML Sync] Failed transaction ${transid}: ${safeMsg}`, { error: e });
+        results.push({ transid, fileName: filename, status: 'failed', error: safeMsg });
+        failedCount++;
+      }
     }
   }
 
+  const processedSoFar = results.filter(
+    (r) => r.status === 'imported' || r.status === 'skipped' || r.status === 'failed'
+  ).length;
+  const remainingDeferredCount = rateLimited
+    ? candidates.length - processedSoFar
+    : candidates.length - results.length;
+
   return {
-    ok: failedCount === 0,
+    ok: failedCount === 0 && !rateLimited,
     syncedCount,
     skippedCount,
     failedCount,
+    deferredCount,
+    rateLimited,
+    rateLimitMessage: rateLimited ? rateLimitMessage : undefined,
+    remainingDeferredCount: remainingDeferredCount >= 0 ? remainingDeferredCount : 0,
     results,
     ...debugFields,
   };

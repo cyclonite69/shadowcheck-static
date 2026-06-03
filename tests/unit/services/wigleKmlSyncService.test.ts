@@ -504,5 +504,149 @@ describe('wigleKmlSyncService', () => {
         })
       );
     });
+
+    describe('Rate-limiting and quota exhaustion handling', () => {
+      it('stops download loop and defers remaining transactions when WiGLE stats soft limit is reached', async () => {
+        const mockListJson = jest.fn().mockResolvedValue({
+          success: true,
+          results: [
+            { transid: 'tx-1', fileName: 'file1.kml', status: 'SUCCESS' },
+            { transid: 'tx-2', fileName: 'file2.kml', status: 'SUCCESS' },
+            { transid: 'tx-3', fileName: 'file3.kml', status: 'SUCCESS' },
+            { transid: 'tx-4', fileName: 'file4.kml', status: 'SUCCESS' },
+          ],
+        });
+
+        const arrayBuffer = new TextEncoder().encode('<kml>data</kml>').buffer;
+
+        // Mock gateway fetch:
+        // tx-1: success
+        // tx-2: success
+        // tx-3: soft limit error (status 429)
+        wigleGatewayFetchMock.mockImplementation(async (req: any) => {
+          if (req.url.includes('transactions')) {
+            return { ok: true, response: { ok: true, json: mockListJson } };
+          }
+          if (req.url.includes('kml/tx-1') || req.url.includes('kml/tx-2')) {
+            return {
+              ok: true,
+              response: {
+                ok: true,
+                arrayBuffer: jest.fn().mockResolvedValue(arrayBuffer),
+              },
+            };
+          }
+          if (req.url.includes('kml/tx-3')) {
+            return {
+              ok: false,
+              error: 'WiGLE stats soft limit reached (10/10).',
+              status: 429,
+            };
+          }
+          return { ok: false, error: 'Should not download past rate limit' };
+        });
+
+        queryMock.mockResolvedValue({ rows: [] }); // No existing records
+        findKmlFilesByHashesMock.mockResolvedValue([]); // Not duplicate
+        historyServiceMock.captureImportMetrics.mockResolvedValue({});
+        historyServiceMock.createImportHistoryEntry.mockResolvedValue(2000);
+
+        spawnMock.mockImplementation(() => {
+          const mockChild = new EventEmitter();
+          (mockChild as any).stdout = new EventEmitter();
+          (mockChild as any).stderr = new EventEmitter();
+          process.nextTick(() => {
+            (mockChild as any).stdout.emit('data', 'Files: 1\nPoints: 100');
+            mockChild.emit('close', 0);
+          });
+          return mockChild;
+        });
+
+        // Run sync with limit 4
+        const result = await syncKmlTransactions({ limit: 4, dryRun: false });
+
+        expect(result.ok).toBe(false);
+        expect(result.syncedCount).toBe(2);
+        expect(result.failedCount).toBe(0);
+        expect(result.deferredCount).toBe(2); // tx-3 and tx-4
+        expect(result.rateLimited).toBe(true);
+        expect(result.rateLimitMessage).toContain('exhausted');
+
+        expect(result.results[0].status).toBe('imported'); // tx-1
+        expect(result.results[1].status).toBe('imported'); // tx-2
+        expect(result.results[2].status).toBe('deferred'); // tx-3 (triggered limit)
+        expect(result.results[3].status).toBe('deferred'); // tx-4 (deferred because limit was set)
+
+        // Verify we never attempted to download tx-4
+        const downloadCalls = wigleGatewayFetchMock.mock.calls.filter((c: any[]) =>
+          c[0].url.includes('kml/')
+        );
+        expect(downloadCalls.some((c: any[]) => c[0].url.includes('tx-4'))).toBe(false);
+      });
+
+      it('counts normal KML parsing errors as failed and does not stop the loop', async () => {
+        const mockListJson = jest.fn().mockResolvedValue({
+          success: true,
+          results: [
+            { transid: 'tx-bad', fileName: 'bad.kml', status: 'SUCCESS' },
+            { transid: 'tx-good', fileName: 'good.kml', status: 'SUCCESS' },
+          ],
+        });
+
+        const arrayBuffer = new TextEncoder().encode('<kml>data</kml>').buffer;
+
+        wigleGatewayFetchMock.mockImplementation(async (req: any) => {
+          if (req.url.includes('transactions')) {
+            return { ok: true, response: { ok: true, json: mockListJson } };
+          }
+          return {
+            ok: true,
+            response: {
+              ok: true,
+              arrayBuffer: jest.fn().mockResolvedValue(arrayBuffer),
+            },
+          };
+        });
+
+        queryMock.mockResolvedValue({ rows: [] });
+        findKmlFilesByHashesMock.mockResolvedValue([]);
+        historyServiceMock.captureImportMetrics.mockResolvedValue({});
+        historyServiceMock.createImportHistoryEntry.mockResolvedValue(2001);
+
+        // Spawn mock: first call (tx-bad) fails with exit code 1
+        spawnMock.mockImplementationOnce(() => {
+          const mockChild = new EventEmitter();
+          (mockChild as any).stdout = new EventEmitter();
+          (mockChild as any).stderr = new EventEmitter();
+          process.nextTick(() => {
+            (mockChild as any).stderr.emit('data', 'Parser syntax error');
+            mockChild.emit('close', 1);
+          });
+          return mockChild;
+        });
+        // second call (tx-good) succeeds with exit code 0
+        spawnMock.mockImplementationOnce(() => {
+          const mockChild = new EventEmitter();
+          (mockChild as any).stdout = new EventEmitter();
+          (mockChild as any).stderr = new EventEmitter();
+          process.nextTick(() => {
+            (mockChild as any).stdout.emit('data', 'Files: 1\nPoints: 100');
+            mockChild.emit('close', 0);
+          });
+          return mockChild;
+        });
+
+        const result = await syncKmlTransactions({ limit: 2, dryRun: false });
+
+        expect(result.ok).toBe(false);
+        expect(result.syncedCount).toBe(1);
+        expect(result.failedCount).toBe(1);
+        expect(result.deferredCount).toBe(0);
+        expect(result.rateLimited).toBe(false);
+
+        expect(result.results[0].status).toBe('failed');
+        expect(result.results[1].status).toBe('imported');
+      });
+    });
   });
 });

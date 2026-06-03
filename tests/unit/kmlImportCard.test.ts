@@ -377,4 +377,103 @@ describe('KmlImportCard - WiGLE Remote Sync', () => {
     expect(html).toContain('imported');
     expect(html).toContain('(1500 pts)');
   });
+
+  it('renders rate-limited and deferred sync results correctly', () => {
+    let stateCall = 0;
+    useStateSpy = jest.spyOn(React, 'useState').mockImplementation((init?: any): any => {
+      stateCall++;
+      // 1. syncStatus
+      if (stateCall === 1) {
+        return [
+          {
+            configured: true,
+            supported: true,
+            status: 'ready' as const,
+            message: 'WiGLE API remote sync is ready.',
+            recommendation: '',
+            localKml: {
+              fileCount: 234,
+              pointCount: 316445,
+              latestImportedAt: '2026-04-04T01:09:31.717Z',
+            },
+          },
+          jest.fn(),
+        ];
+      }
+      // 2. syncStatusLoading
+      if (stateCall === 2) return [false, jest.fn()];
+      // 3. syncStatusError
+      if (stateCall === 3) return [null, jest.fn()];
+      // 4. txs
+      if (stateCall === 4) {
+        return [
+          [
+            {
+              transid: '20260529-00225',
+              fileName: 'test-upload.kml',
+              fileSize: 102400,
+              fileLines: 1500,
+              status: 'SUCCESS',
+            },
+          ],
+          jest.fn(),
+        ];
+      }
+      // 5. txsLoading
+      if (stateCall === 5) return [false, jest.fn()];
+      // 6. txsError
+      if (stateCall === 6) return [null, jest.fn()];
+      // 7. syncLoading
+      if (stateCall === 7) return [false, jest.fn()];
+      // 8. syncResult
+      if (stateCall === 8) {
+        return [
+          {
+            ok: false,
+            syncedCount: 2,
+            skippedCount: 1,
+            failedCount: 0,
+            deferredCount: 7,
+            rateLimited: true,
+            rateLimitMessage:
+              'Deferred — WiGLE request budget exhausted. Try again after the request window resets.',
+            results: [
+              {
+                transid: '20260529-00225',
+                fileName: 'test-upload-1.kml',
+                status: 'imported',
+                pointsImported: 1500,
+              },
+              {
+                transid: '20260529-00226',
+                fileName: 'test-upload-2.kml',
+                status: 'imported',
+                pointsImported: 2000,
+              },
+              {
+                transid: '20260529-00227',
+                fileName: 'test-upload-3.kml',
+                status: 'deferred',
+                error: 'WiGLE request budget exhausted; remaining transactions deferred.',
+              },
+            ],
+          },
+          jest.fn(),
+        ];
+      }
+      // 9. force
+      if (stateCall === 9) return [false, jest.fn()];
+
+      return [init, jest.fn()];
+    });
+
+    const html = renderCard();
+    expect(html).toContain('Sync Execution Results');
+    expect(html).toContain('Rate Limited');
+    expect(html).toContain('Deferred — WiGLE request budget exhausted');
+    expect(html).toContain('Deferred');
+    expect(html).toContain('test-upload-3.kml');
+    expect(html).toContain('deferred');
+    expect(html).not.toContain('Warnings/Errors');
+  });
 });
