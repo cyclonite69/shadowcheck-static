@@ -263,11 +263,11 @@ class BackgroundJobsService {
     });
   }
 
-  static async runSurveillanceScan() {
+  static async runSurveillanceScan(options: any = {}) {
     if (this.runningJobIds.surveillanceScan) {
       throw new Error('surveillance scan job already running');
     }
-    await trackJobRun('surveillanceScan', async () => runSurveillanceScanJob(), {
+    await trackJobRun('surveillanceScan', async () => runSurveillanceScanJob(options), {
       lastConfig: this.lastConfig,
       runningJobIds: this.runningJobIds,
     });
@@ -328,7 +328,7 @@ class BackgroundJobsService {
     }
 
     if (jobName === 'surveillanceScan') {
-      await this.runSurveillanceScan();
+      await this.runSurveillanceScan(options);
       return { jobName, status: 'completed' };
     }
 

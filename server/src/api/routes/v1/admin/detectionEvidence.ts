@@ -59,4 +59,32 @@ router.get('/admin/networks/:bssid/detection-evidence', async (req: any, res: an
   }
 });
 
+/**
+ * POST /api/admin/surveillance-detections/dry-run
+ *
+ * Runs the surveillance scan in dry-run mode and returns the results.
+ *
+ * @param {Object} req.body - Options
+ * @param {number} [req.body.sampleLimit=100] - Cap on the number of samples returned in the list
+ * @returns {SurveillanceScanDryRunResult} JSON body containing candidate counts, actions, and samples
+ */
+router.post('/admin/surveillance-detections/dry-run', async (req: any, res: any) => {
+  try {
+    const { runSurveillanceScanJob } = require('../../../../services/backgroundJobs/runners');
+    const sampleLimit = parseInt(req.body.sampleLimit, 10) || 100;
+
+    const result = await runSurveillanceScanJob({
+      dryRun: true,
+      sampleLimit,
+    });
+
+    res.json(result);
+  } catch (err: any) {
+    logger.error('[DetectionEvidence] Surveillance dry-run failed', { error: err?.message });
+    res
+      .status(500)
+      .json({ success: false, error: err?.message || 'Failed to run surveillance scan dry-run' });
+  }
+});
+
 module.exports = router;

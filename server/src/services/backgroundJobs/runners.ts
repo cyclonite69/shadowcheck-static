@@ -8,6 +8,7 @@ const OUIGroupingService = require('../ouiGroupingService');
 
 import { scoreBehavioralThreats } from './mlBehavioralScoring';
 import { scoreSurveillanceCandidates } from './surveillanceScoring';
+import { SurveillanceScanDryRunResult } from '../../types/surveillanceScan';
 
 const survRepo = require('../../repositories/surveillanceDetectionRepository');
 
@@ -134,9 +135,19 @@ const runSiblingDetectionJob = async (options: any = {}) => {
   };
 };
 
-const runSurveillanceScanJob = async () => {
+const runSurveillanceScanJob = async (
+  options: { dryRun?: boolean; sampleLimit?: number } = {}
+): Promise<
+  | SurveillanceScanDryRunResult
+  | { detectionCount: number; taggedCount: number; falsePositiveCount: number }
+> => {
   const { adminQuery } = require('../adminDbService');
-  logger.info('[Surveillance Scan] Starting multi-factor surveillance detection scan (v2.0)...');
+  const dryRun = options.dryRun === true;
+  const sampleLimit = options.sampleLimit ?? 100;
+
+  logger.info(
+    `[Surveillance Scan] Starting multi-factor surveillance detection scan (v2.0) | dryRun=${dryRun}...`
+  );
 
   // Phase 1: SQL — get enriched candidates with observation stats (all tier hits per bssid)
   let candidates;
@@ -162,6 +173,153 @@ const runSurveillanceScanJob = async () => {
   logger.info(
     `[Surveillance Scan] Scored ${scored.length} devices (${fpCount} auto-flagged false positive)`
   );
+
+  if (dryRun) {
+    const existingResult = await adminQuery(
+      `
+      SELECT bssid, device_type, confidence, threat_score, detection_method, matched_signals, false_positive
+      FROM app.surveillance_detections
+      WHERE bssid = ANY($1)
+    `,
+      [scored.map((s) => s.bssid)]
+    );
+
+    const existingMap = new Map<
+      string,
+      {
+        bssid: string;
+        device_type: string;
+        confidence: string | number;
+        threat_score: string | number;
+        detection_method: string;
+        matched_signals: string[];
+        false_positive: boolean;
+      }
+    >();
+
+    for (const row of existingResult.rows) {
+      existingMap.set(row.bssid, row);
+    }
+
+    const summary = {
+      insert: 0,
+      update: 0,
+      unchanged: 0,
+      skip_false_positive: 0,
+    };
+    const byDeviceType: Record<string, typeof summary> = {};
+    const samples: SurveillanceScanDryRunResult['samples'] = [];
+
+    // Map candidates by BSSID to get SSIDs
+    const bssidToSsid = new Map<string, string | null>();
+    for (const c of candidates) {
+      if (c.ssid) {
+        bssidToSsid.set(c.bssid, c.ssid);
+      }
+    }
+
+    const normalize = (v: any) => JSON.stringify(Array.isArray(v) ? [...v].sort() : []);
+
+    for (const s of scored) {
+      const existing = existingMap.get(s.bssid);
+      let action: 'insert' | 'update' | 'unchanged' | 'skip_false_positive' = 'insert';
+      let reason = 'No existing detection found';
+
+      if (existing) {
+        if (existing.false_positive) {
+          action = 'skip_false_positive';
+          reason = 'Existing detection is marked as false positive';
+        } else {
+          // Normalize confidence/threat_score as floats before comparing
+          const existingConf = parseFloat(String(existing.confidence || 0));
+          const candidateConf = parseFloat(String(s.confidence || 0));
+          const confidenceDiff = existingConf !== candidateConf;
+
+          const existingThreat = parseFloat(String(existing.threat_score || 0));
+          const candidateThreat = parseFloat(String(s.threat_score || 0));
+          const threatScoreDiff = existingThreat !== candidateThreat;
+
+          const deviceTypeDiff = existing.device_type !== s.device_type;
+          const detectionMethodDiff = existing.detection_method !== s.detection_method;
+          const matchedSignalsDiff =
+            normalize(existing.matched_signals) !== normalize(s.matched_signals);
+
+          if (
+            deviceTypeDiff ||
+            confidenceDiff ||
+            threatScoreDiff ||
+            detectionMethodDiff ||
+            matchedSignalsDiff
+          ) {
+            action = 'update';
+            const diffs: string[] = [];
+            if (deviceTypeDiff)
+              diffs.push(`device_type (${existing.device_type} -> ${s.device_type})`);
+            if (confidenceDiff) diffs.push(`confidence (${existingConf} -> ${candidateConf})`);
+            if (threatScoreDiff)
+              diffs.push(`threat_score (${existingThreat} -> ${candidateThreat})`);
+            if (detectionMethodDiff)
+              diffs.push(
+                `detection_method (${existing.detection_method} -> ${s.detection_method})`
+              );
+            if (matchedSignalsDiff) diffs.push(`matched_signals changed`);
+            reason = `Values changed: ${diffs.join(', ')}`;
+          } else {
+            action = 'unchanged';
+            reason = 'No changes detected';
+          }
+        }
+      }
+
+      summary[action]++;
+
+      if (!byDeviceType[s.device_type]) {
+        byDeviceType[s.device_type] = {
+          insert: 0,
+          update: 0,
+          unchanged: 0,
+          skip_false_positive: 0,
+        };
+      }
+      byDeviceType[s.device_type][action]++;
+
+      if (samples.length < sampleLimit) {
+        const sample: SurveillanceScanDryRunResult['samples'][number] = {
+          bssid: s.bssid,
+          ssid: bssidToSsid.get(s.bssid) || null,
+          device_type: s.device_type,
+          confidence: s.confidence,
+          threat_score: s.threat_score,
+          detection_method: s.detection_method,
+          matched_signals: Array.isArray(s.matched_signals) ? s.matched_signals : [],
+          action,
+          reason,
+        };
+        if (existing) {
+          sample.existing = {
+            device_type: existing.device_type,
+            confidence: existing.confidence,
+            threat_score: parseFloat(String(existing.threat_score)),
+            detection_method: existing.detection_method,
+            matched_signals: Array.isArray(existing.matched_signals)
+              ? existing.matched_signals
+              : [],
+            false_positive: existing.false_positive,
+          };
+        }
+        samples.push(sample);
+      }
+    }
+
+    return {
+      dryRun: true as const,
+      candidateCount: scored.length,
+      existingDetectionCount: existingResult.rows.length,
+      summary,
+      byDeviceType,
+      samples,
+    };
+  }
 
   // Phase 3: SQL — bulk upsert scored detections
   let upsertedCount: number;

@@ -1795,6 +1795,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Analysis',
+    label: 'Surveillance Dry Run',
+    path: '/api/admin/surveillance-detections/dry-run',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "sampleLimit": 100\n}',
+  },
+  {
+    category: 'Admin Analysis',
     label: 'Network Media',
     path: '/api/admin/network-media/:bssid',
     method: 'GET',
