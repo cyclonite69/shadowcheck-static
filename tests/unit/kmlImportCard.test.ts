@@ -4,6 +4,23 @@ import type { ComponentProps } from 'react';
 import { KmlImportCard } from '../../client/src/components/admin/tabs/data-import/KmlImportCard';
 import type { KmlImportStatusResponse } from '../../client/src/types/kmlImport';
 
+jest.mock('../../client/src/api/adminApi', () => ({
+  adminApi: {
+    getWigleKmlSyncStatus: jest.fn().mockResolvedValue({
+      configured: false,
+      supported: false,
+      status: 'credentials_missing',
+      message: 'WiGLE API credentials are not configured.',
+      recommendation: 'Configure wigle_api_name and wigle_api_token in Settings.',
+      localKml: {
+        fileCount: 0,
+        pointCount: 0,
+        latestImportedAt: null,
+      },
+    }),
+  },
+}));
+
 const status: KmlImportStatusResponse = {
   totals: {
     file_count: 234,
@@ -66,5 +83,122 @@ describe('KmlImportCard', () => {
     });
 
     expect(html).toContain('duplicate skipped');
+  });
+});
+
+describe('KmlImportCard - WiGLE Remote Sync', () => {
+  let useStateSpy: jest.SpyInstance;
+
+  afterEach(() => {
+    if (useStateSpy) {
+      useStateSpy.mockRestore();
+    }
+    jest.clearAllMocks();
+  });
+
+  it('renders WiGLE Remote Sync section and loading state initially', () => {
+    const html = renderCard();
+    expect(html).toContain('WiGLE Remote Sync');
+    expect(html).toContain('Loading sync status...');
+  });
+
+  it('renders credentials missing state safely', () => {
+    let stateCall = 0;
+    useStateSpy = jest.spyOn(React, 'useState').mockImplementation((init?: any): any => {
+      stateCall++;
+      if (stateCall === 1) {
+        return [
+          {
+            configured: false,
+            supported: false,
+            status: 'credentials_missing',
+            message: 'WiGLE API credentials are not configured.',
+            recommendation: 'Configure wigle_api_name and wigle_api_token in Settings.',
+            localKml: {
+              fileCount: 234,
+              pointCount: 316445,
+              latestImportedAt: '2026-04-04T01:09:31.717Z',
+            },
+          },
+          jest.fn(),
+        ];
+      }
+      return [init, jest.fn()];
+    });
+
+    const html = renderCard();
+    expect(html).toContain('WiGLE Remote Sync');
+    expect(html).toContain('Credentials');
+    expect(html).toContain('Missing');
+    expect(html).toContain('Remote Listing');
+    expect(html).toContain('Unsupported');
+    expect(html).toContain(
+      'ShadowCheck has not found a documented WiGLE API endpoint for listing/downloading uploaded KML/KMZ artifacts.'
+    );
+  });
+
+  it('renders unsupported state safely with credentials configured', () => {
+    let stateCall = 0;
+    useStateSpy = jest.spyOn(React, 'useState').mockImplementation((init?: any): any => {
+      stateCall++;
+      if (stateCall === 1) {
+        return [
+          {
+            configured: true,
+            supported: false,
+            status: 'remote_listing_unsupported',
+            message:
+              'ShadowCheck has not found a documented WiGLE API endpoint for listing/downloading uploaded KML/KMZ artifacts.',
+            recommendation: 'Manual KML upload remains the supported path.',
+            localKml: {
+              fileCount: 234,
+              pointCount: 316445,
+              latestImportedAt: '2026-04-04T01:09:31.717Z',
+            },
+          },
+          jest.fn(),
+        ];
+      }
+      return [init, jest.fn()];
+    });
+
+    const html = renderCard();
+    expect(html).toContain('WiGLE Remote Sync');
+    expect(html).toContain('Credentials');
+    expect(html).toContain('Configured');
+    expect(html).toContain('Remote Listing');
+    expect(html).toContain('Unsupported');
+  });
+
+  it('renders disabled buttons with tooltips', () => {
+    let stateCall = 0;
+    useStateSpy = jest.spyOn(React, 'useState').mockImplementation((init?: any): any => {
+      stateCall++;
+      if (stateCall === 1) {
+        return [
+          {
+            configured: true,
+            supported: false,
+            status: 'remote_listing_unsupported',
+            message: 'ShadowCheck has not found a documented WiGLE API endpoint...',
+            recommendation: 'Manual KML upload remains the supported path.',
+            localKml: {
+              fileCount: 234,
+              pointCount: 316445,
+              latestImportedAt: '2026-04-04T01:09:31.717Z',
+            },
+          },
+          jest.fn(),
+        ];
+      }
+      return [init, jest.fn()];
+    });
+
+    const html = renderCard();
+    expect(html).toContain('disabled=""');
+    expect(html).toContain('Check WiGLE');
+    expect(html).toContain('Sync now');
+    expect(html).toContain('title="WiGLE remote KML listing is unsupported in this version"');
+    expect(html).toContain('title="WiGLE remote KML sync is unsupported in this version"');
   });
 });

@@ -95,6 +95,7 @@ jest.mock('../../server/src/services/admin/adminHelpers', () => {
 });
 
 const {
+  secretsManager,
   adminImportHistoryService,
   adminOrphanNetworksService,
   backupService,
@@ -538,6 +539,75 @@ describe('admin/import routes', () => {
 
       const res = await request(app).post('/api/admin/import-kml').send({});
       expect(res.status).toBe(500);
+    });
+  });
+
+  describe('GET /api/admin/wigle-kml-sync/status', () => {
+    it('returns credentials_missing when no WiGLE credentials are configured', async () => {
+      (secretsManager.get as jest.Mock).mockImplementation((key: string) => {
+        if (key === 'wigle_api_name' || key === 'wigle_api_token') return null;
+        return null;
+      });
+
+      (listKmlImportStatus as jest.Mock).mockResolvedValueOnce({
+        files: [],
+        totals: {
+          file_count: 5,
+          point_count: 100,
+          wigle_file_count: 2,
+          latest_imported_at: '2026-06-01T12:00:00.000Z',
+        },
+      });
+
+      const res = await request(app).get('/api/admin/wigle-kml-sync/status');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        configured: false,
+        supported: false,
+        status: 'credentials_missing',
+        message: 'WiGLE API credentials are not configured.',
+        recommendation: 'Configure wigle_api_name and wigle_api_token in Settings.',
+        localKml: {
+          fileCount: 5,
+          pointCount: 100,
+          latestImportedAt: '2026-06-01T12:00:00.000Z',
+        },
+      });
+      expect(listKmlImportStatus).toHaveBeenCalled();
+    });
+
+    it('returns remote_listing_unsupported when WiGLE credentials are configured', async () => {
+      (secretsManager.get as jest.Mock).mockImplementation((key: string) => {
+        if (key === 'wigle_api_name') return 'test-name';
+        if (key === 'wigle_api_token') return 'test-token';
+        return null;
+      });
+
+      (listKmlImportStatus as jest.Mock).mockResolvedValueOnce({
+        files: [],
+        totals: {
+          file_count: 8,
+          point_count: 250,
+          wigle_file_count: 4,
+          latest_imported_at: '2026-06-02T12:00:00.000Z',
+        },
+      });
+
+      const res = await request(app).get('/api/admin/wigle-kml-sync/status');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        configured: true,
+        supported: false,
+        status: 'remote_listing_unsupported',
+        message:
+          'ShadowCheck has not found a documented WiGLE API endpoint for listing/downloading uploaded KML/KMZ artifacts.',
+        recommendation: 'Manual KML upload remains the supported path.',
+        localKml: {
+          fileCount: 8,
+          pointCount: 250,
+          latestImportedAt: '2026-06-02T12:00:00.000Z',
+        },
+      });
     });
   });
 });

@@ -4,7 +4,11 @@
 
 import { apiClient } from './client';
 import type { AdminRuntimeConfig, AdminUser } from '../types/admin';
-import type { KmlImportResult, KmlImportStatusResponse } from '../types/kmlImport';
+import type {
+  KmlImportResult,
+  KmlImportStatusResponse,
+  WigleKmlSyncStatusResponse,
+} from '../types/kmlImport';
 
 export const adminApi = {
   // User management
@@ -205,6 +209,10 @@ export const adminApi = {
 
   async getKmlImports(limit = 500): Promise<KmlImportStatusResponse> {
     return apiClient.get(`/admin/kml-imports?limit=${limit}`);
+  },
+
+  async getWigleKmlSyncStatus(): Promise<WigleKmlSyncStatusResponse> {
+    return apiClient.get('/admin/wigle-kml-sync/status');
   },
 
   async startMobileImport(uploadId: number): Promise<any> {

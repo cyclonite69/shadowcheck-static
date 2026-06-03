@@ -218,4 +218,44 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
     await cleanupPaths(cleanupTargets);
   }
 });
+
+/**
+ * GET /api/admin/wigle-kml-sync/status
+ * Safe admin endpoint to check status of remote WiGLE KML sync integration.
+ */
+router.get('/admin/wigle-kml-sync/status', async (req, res) => {
+  try {
+    const wigleApiName = secretsManager.get('wigle_api_name');
+    const wigleApiToken = secretsManager.get('wigle_api_token');
+    const configured = Boolean(wigleApiName && wigleApiToken);
+
+    const importStatus = await listKmlImportStatus(1);
+    const fileCount = importStatus.totals.file_count;
+    const pointCount = importStatus.totals.point_count;
+    const latestImportedAt = importStatus.totals.latest_imported_at;
+
+    const response = {
+      configured,
+      supported: false,
+      status: configured ? 'remote_listing_unsupported' : 'credentials_missing',
+      message: configured
+        ? 'ShadowCheck has not found a documented WiGLE API endpoint for listing/downloading uploaded KML/KMZ artifacts.'
+        : 'WiGLE API credentials are not configured.',
+      recommendation: configured
+        ? 'Manual KML upload remains the supported path.'
+        : 'Configure wigle_api_name and wigle_api_token in Settings.',
+      localKml: {
+        fileCount,
+        pointCount,
+        latestImportedAt,
+      },
+    };
+
+    res.json(response);
+  } catch (err) {
+    logger.error(`Wiggle KML sync status failed: ${err.message}`, { error: err });
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 module.exports = router;

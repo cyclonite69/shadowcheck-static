@@ -1341,6 +1341,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Import',
+    label: 'WiGLE KML Remote Sync Status',
+    description: 'Get status and capability details for remote WiGLE KML sync.',
+    path: '/api/admin/wigle-kml-sync/status',
+    method: 'GET',
+    requiresAuth: true,
+  },
+  {
+    category: 'Admin Import',
     label: 'Import WiGLE (legacy)',
     path: '/api/import/wigle',
     method: 'POST',

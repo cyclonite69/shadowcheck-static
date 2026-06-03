@@ -46,3 +46,16 @@ export interface KmlImportResult {
   metricsBefore?: Record<string, number | null | undefined> | null;
   metricsAfter?: Record<string, number | null | undefined> | null;
 }
+
+export interface WigleKmlSyncStatusResponse {
+  configured: boolean;
+  supported: false;
+  status: 'remote_listing_unsupported' | 'credentials_missing';
+  message: string;
+  recommendation: string;
+  localKml: {
+    fileCount: number;
+    pointCount: number;
+    latestImportedAt: string | null;
+  };
+}
