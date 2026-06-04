@@ -8,6 +8,8 @@ import {
   UnusedIndex,
   UnusedIndexSummary,
   UsedIndex,
+  UniqueEnforcementIndex,
+  DuplicateIndexGroup,
 } from '../hooks/useDbStats';
 import { useSiblingStats } from '../hooks/useSiblingStats';
 import { useTableCategories } from '../hooks/useTableCategories';
@@ -70,6 +72,9 @@ export const DbStatsTab: React.FC = () => {
   // Used index search and pagination states
   const [usedIndexSearch, setUsedIndexSearch] = React.useState('');
   const [usedIndexPage, setUsedIndexPage] = React.useState(0);
+
+  // Unique enforcement index panel — collapsed by default
+  const [uniqueExpanded, setUniqueExpanded] = React.useState(false);
 
   const filteredIndexes = React.useMemo(() => {
     if (!stats) return [];
@@ -217,6 +222,136 @@ export const DbStatsTab: React.FC = () => {
     </div>
   );
 
+  const renderUniqueEnforcementIndexes = (indexes: UniqueEnforcementIndex[]) => {
+    const totalBytes = indexes.reduce((s, i) => s + parseInt(i.size_bytes), 0);
+    const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
+    return (
+      <div>
+        <button
+          onClick={() => setUniqueExpanded((v) => !v)}
+          className="w-full flex items-center justify-between text-left mb-3"
+        >
+          <span className="text-sm font-semibold text-slate-200">
+            Unique &amp; Primary Key Indexes ({indexes.length} · {totalMb} MB)
+          </span>
+          <span className="text-slate-500 text-xs">
+            {uniqueExpanded ? '▲ collapse' : '▼ expand'}
+          </span>
+        </button>
+        {uniqueExpanded && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="text-slate-500 border-b border-slate-800">
+                  <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Table</th>
+                  <th className="py-2 px-4 font-semibold uppercase tracking-wider">Index</th>
+                  <th className="py-2 px-4 font-semibold uppercase tracking-wider text-center">
+                    Type
+                  </th>
+                  <th className="py-2 px-4 font-semibold uppercase tracking-wider text-center">
+                    Kind
+                  </th>
+                  <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
+                    Size
+                  </th>
+                  <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
+                    Scans
+                  </th>
+                  <th className="py-2 pl-4 font-semibold uppercase tracking-wider">Definition</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {indexes.map((idx) => (
+                  <tr key={idx.index_name} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-2 pr-4 font-mono text-slate-400">{idx.table_name}</td>
+                    <td className="py-2 px-4 font-mono text-blue-400 font-medium">
+                      {idx.index_name}
+                    </td>
+                    <td className="py-2 px-4 text-center">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700 text-slate-400 font-mono">
+                        {idx.index_type}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 text-center">
+                      {idx.is_primary ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-900/40 text-blue-400 border border-blue-800/40 font-bold">
+                          PK
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-900/40 text-violet-400 border border-violet-800/40 font-bold">
+                          UNIQUE
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 px-4 text-right tabular-nums text-slate-400">
+                      {idx.index_size}
+                    </td>
+                    <td className="py-2 px-4 text-right tabular-nums">
+                      {parseInt(idx.times_used) === 0 ? (
+                        <span
+                          className="text-slate-600"
+                          title="0 scans — constraint enforcement only"
+                        >
+                          0
+                        </span>
+                      ) : (
+                        <span className="text-emerald-400">
+                          {parseInt(idx.times_used).toLocaleString()}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 pl-4 font-mono text-slate-600 max-w-xs">
+                      <span title={idx.index_def}>
+                        {idx.index_def.length > 80
+                          ? idx.index_def.slice(0, 80) + '…'
+                          : idx.index_def}
+                      </span>
+                      {parseInt(idx.times_used) === 0 && (
+                        <span className="ml-2 text-[10px] text-slate-700 italic">
+                          (0 scans — constraint enforcement only)
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDuplicateIndexGroups = (groups: DuplicateIndexGroup[]) => {
+    if (groups.length === 0) {
+      return (
+        <div className="flex items-center gap-2 text-sm text-emerald-400 p-3 bg-emerald-950/30 border border-emerald-900/50 rounded-lg">
+          <span>✓</span>
+          <span>No duplicate index definitions detected</span>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        {groups.map((g, i) => (
+          <div key={i} className="p-3 bg-amber-950/30 border border-amber-900/50 rounded-lg">
+            <div className="text-xs font-semibold text-amber-300 mb-1">
+              Table: <span className="font-mono">{g.table_name}</span>
+            </div>
+            <div className="text-xs text-slate-400">
+              Duplicates ({g.count}):{' '}
+              {g.indexes.map((name, j) => (
+                <span key={j} className="font-mono text-amber-400 mr-2">
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderUnusedIndexes = (_indexes: UnusedIndex[], summary?: UnusedIndexSummary) => (
     <div>
       {summary && summary.count > 0 && (
@@ -260,14 +395,16 @@ export const DbStatsTab: React.FC = () => {
             <tr className="text-slate-500 border-b border-slate-800">
               <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Index Name</th>
               <th className="py-2 px-4 font-semibold uppercase tracking-wider">Table</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-center">Type</th>
               <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Size</th>
-              <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">Scans</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Scans</th>
+              <th className="py-2 pl-4 font-semibold uppercase tracking-wider">Definition</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/50">
             {paginatedIndexes.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-slate-600 italic">
+                <td colSpan={6} className="py-8 text-center text-slate-600 italic">
                   No matching unused indexes found.
                 </td>
               </tr>
@@ -278,11 +415,26 @@ export const DbStatsTab: React.FC = () => {
                     {idx.index_name}
                   </td>
                   <td className="py-2 px-4 font-mono text-slate-500">{idx.table_name}</td>
+                  <td className="py-2 px-4 text-center">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700 text-slate-400 font-mono">
+                      {idx.index_type}
+                    </span>
+                  </td>
                   <td className="py-2 px-4 text-right tabular-nums text-slate-400 font-medium">
                     {idx.size_pretty}
                   </td>
-                  <td className="py-2 pl-4 text-right tabular-nums text-red-400 font-bold">
-                    {idx.scan_count}
+                  <td className="py-2 px-4 text-right tabular-nums text-red-400 font-bold">
+                    <div>{idx.scan_count} scans</div>
+                    <div className="text-slate-600 font-normal">
+                      {parseInt(idx.idx_tup_read).toLocaleString()} rows read
+                    </div>
+                  </td>
+                  <td className="py-2 pl-4 font-mono text-slate-600 max-w-xs">
+                    <span title={idx.index_def}>
+                      {idx.index_def && idx.index_def.length > 80
+                        ? idx.index_def.slice(0, 80) + '…'
+                        : idx.index_def}
+                    </span>
                   </td>
                 </tr>
               ))
@@ -557,6 +709,28 @@ export const DbStatsTab: React.FC = () => {
         >
           {stats && renderMVList(stats.materialized_views)}
         </AdminCard>
+
+        {/* Unique / Constraint Indexes */}
+        {stats && stats.unique_enforcement_indexes && (
+          <AdminCard
+            title="Unique &amp; Constraint Indexes"
+            icon={TrendingUpIcon}
+            color="from-blue-600 to-indigo-700"
+          >
+            {renderUniqueEnforcementIndexes(stats.unique_enforcement_indexes)}
+          </AdminCard>
+        )}
+
+        {/* Duplicate Index Groups */}
+        {stats && stats.duplicate_index_groups && (
+          <AdminCard
+            title="Duplicate Index Detection"
+            icon={TrendingUpIcon}
+            color="from-amber-600 to-orange-700"
+          >
+            {renderDuplicateIndexGroups(stats.duplicate_index_groups)}
+          </AdminCard>
+        )}
 
         {/* Unused Index Report */}
         <AdminCard

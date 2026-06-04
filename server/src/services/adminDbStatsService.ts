@@ -104,19 +104,73 @@ export async function getDetailedDatabaseStats(): Promise<any> {
     `);
 
     // 5. Get Unused Index Report with summary totals
+    // Filter by catalog truth (indisunique=false, indisprimary=false) rather than name patterns
     const { rows: unusedIndexes } = await adminQuery(`
-      SELECT 
-        schemaname || '.' || relname as table_name,
-        indexrelname as index_name,
-        idx_scan as scan_count,
-        pg_size_pretty(pg_relation_size(indexrelid)) as size_pretty,
-        pg_relation_size(indexrelid) as size_bytes
-      FROM pg_stat_user_indexes
+      SELECT
+        n.nspname || '.' || t.relname AS table_name,
+        i.relname AS index_name,
+        COALESCE(s.idx_scan, 0) AS scan_count,
+        pg_size_pretty(pg_relation_size(i.oid)) AS size_pretty,
+        pg_relation_size(i.oid) AS size_bytes,
+        pg_get_indexdef(i.oid) AS index_def,
+        am.amname AS index_type,
+        COALESCE(s.idx_tup_read, 0) AS idx_tup_read
+      FROM pg_index ix
+      JOIN pg_class i ON i.oid = ix.indexrelid
+      JOIN pg_class t ON t.oid = ix.indrelid
+      JOIN pg_namespace n ON n.oid = t.relnamespace
+      JOIN pg_am am ON am.oid = i.relam
+      LEFT JOIN pg_stat_user_indexes s ON s.indexrelid = ix.indexrelid
+      WHERE n.nspname = 'app'
+        AND ix.indisunique = false
+        AND ix.indisprimary = false
+        AND COALESCE(s.idx_scan, 0) = 0
+      ORDER BY pg_relation_size(i.oid) DESC
+    `);
+
+    // 5b. Unique / primary key enforcement indexes
+    const { rows: uniqueEnforcementIndexes } = await adminQuery(`
+      SELECT
+        t.relname AS table_name,
+        i.relname AS index_name,
+        pg_size_pretty(pg_relation_size(i.oid)) AS index_size,
+        pg_relation_size(i.oid) AS size_bytes,
+        am.amname AS index_type,
+        ix.indisprimary AS is_primary,
+        COALESCE(s.idx_scan, 0) AS times_used,
+        pg_get_indexdef(i.oid) AS index_def
+      FROM pg_index ix
+      JOIN pg_class i ON i.oid = ix.indexrelid
+      JOIN pg_class t ON t.oid = ix.indrelid
+      JOIN pg_namespace n ON n.oid = t.relnamespace
+      JOIN pg_am am ON am.oid = i.relam
+      LEFT JOIN pg_stat_user_indexes s ON s.indexrelid = ix.indexrelid
+      WHERE n.nspname = 'app'
+        AND ix.indisunique = true
+      ORDER BY t.relname, i.relname
+    `);
+
+    // 5c. Duplicate index groups (same structural definition on same table)
+    const { rows: duplicateIndexGroups } = await adminQuery(`
+      SELECT
+        indrelid::regclass::text AS table_name,
+        array_agg(indexrelid::regclass::text ORDER BY indexrelid::regclass::text) AS indexes,
+        count(*)::int AS count
+      FROM pg_index
+      JOIN pg_stat_user_indexes ON pg_stat_user_indexes.indexrelid = pg_index.indexrelid
       WHERE schemaname = 'app'
-        AND idx_scan = 0
-        AND indexrelname NOT LIKE '%_pkey'
-        AND indexrelname NOT LIKE '%_id_key'
-      ORDER BY pg_relation_size(indexrelid) DESC
+      GROUP BY
+        indrelid,
+        indkey::text,
+        indclass::text,
+        indoption::text,
+        indisunique,
+        indisprimary,
+        indisreplident,
+        indpred::text,
+        COALESCE(pg_get_expr(indexprs, indrelid)::text, '')
+      HAVING count(*) > 1
+      ORDER BY table_name
     `);
 
     // 6. Get Used Index Report (top 50 by scan count, excluding PKs)
@@ -156,6 +210,8 @@ export async function getDetailedDatabaseStats(): Promise<any> {
         total_mb: parseFloat(unusedIndexTotalMb),
       },
       used_indexes: usedIndexes,
+      unique_enforcement_indexes: uniqueEnforcementIndexes,
+      duplicate_index_groups: duplicateIndexGroups,
     };
   } catch (e: any) {
     logger.error('Failed to fetch detailed DB stats', { error: e.message });

@@ -209,4 +209,32 @@ router.get('/ledger', requireAdmin, async (req: any, res: any) => {
   }
 });
 
+/**
+ * PATCH /api/wigle/soft-limits
+ * Mutates process.env soft-limit overrides in the running process without a restart.
+ * Body: { search?: number, detail?: number, stats?: number }
+ */
+router.patch('/soft-limits', requireAdmin, (req: any, res: any) => {
+  const VALID_KINDS = ['search', 'detail', 'stats'] as const;
+  const updated: Record<string, number> = {};
+
+  for (const kind of VALID_KINDS) {
+    if (req.body[kind] !== undefined) {
+      const val = Number(req.body[kind]);
+      if (!Number.isFinite(val) || val <= 0) {
+        return res.status(400).json({ error: `Invalid value for ${kind}` });
+      }
+      process.env[`WIGLE_SOFT_LIMIT_${kind.toUpperCase()}`] = String(val);
+      updated[kind] = val;
+    }
+  }
+
+  if (Object.keys(updated).length === 0) {
+    return res.status(400).json({ error: 'No valid fields provided' });
+  }
+
+  logger.info(`[WiGLE] Soft limits updated at runtime: ${JSON.stringify(updated)}`);
+  res.json({ ok: true, updated });
+});
+
 export default router;

@@ -29,6 +29,9 @@ export interface UnusedIndex {
   scan_count: string;
   size_pretty: string;
   size_bytes: string;
+  index_def: string;
+  index_type: string;
+  idx_tup_read: string;
 }
 
 export interface UnusedIndexSummary {
@@ -45,6 +48,23 @@ export interface UsedIndex {
   size_bytes: string;
 }
 
+export interface UniqueEnforcementIndex {
+  table_name: string;
+  index_name: string;
+  index_size: string;
+  size_bytes: string;
+  index_type: string;
+  is_primary: boolean;
+  times_used: string;
+  index_def: string;
+}
+
+export interface DuplicateIndexGroup {
+  table_name: string;
+  indexes: string[];
+  count: number;
+}
+
 export interface DbStats {
   total_db_size: string;
   stats_reset: string | null;
@@ -54,6 +74,8 @@ export interface DbStats {
   unused_indexes: UnusedIndex[];
   unused_indexes_summary?: UnusedIndexSummary;
   used_indexes: UsedIndex[];
+  unique_enforcement_indexes: UniqueEnforcementIndex[];
+  duplicate_index_groups: DuplicateIndexGroup[];
 }
 
 export interface UseDbStatsReturn {
