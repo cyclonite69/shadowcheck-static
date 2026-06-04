@@ -175,6 +175,8 @@ env_keys.txt
 .grok/
 .kiro/
 .sixth/
+.antigravitycli/
+scratch/
 
 # --- Temporary & reconnaissance scripts ---
 /recon_ec2*.sh

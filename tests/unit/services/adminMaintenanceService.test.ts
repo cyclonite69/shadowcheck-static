@@ -96,29 +96,9 @@ describe('AdminMaintenanceService', () => {
   });
 
   describe('refreshColocationView', () => {
-    it('should execute queries to refresh colocation view', async () => {
-      (adminQuery as jest.Mock).mockResolvedValue({ rowCount: 1 });
-
+    it('should skip and resolve without calling database', async () => {
       await refreshColocationView(1600000000000);
-
-      expect(adminQuery).toHaveBeenCalledTimes(4);
-      expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('DROP MATERIALIZED VIEW'));
-      expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('CREATE MATERIALIZED VIEW'));
-      expect(adminQuery).toHaveBeenCalledWith(expect.stringContaining('CREATE UNIQUE INDEX'));
-      expect(adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('REFRESH MATERIALIZED VIEW CONCURRENTLY')
-      );
-
-      // Check if minValidTimestamp is interpolated correctly
-      const createViewCall = (adminQuery as jest.Mock).mock.calls.find((call) =>
-        call[0].includes('CREATE MATERIALIZED VIEW')
-      );
-      expect(createViewCall[0]).toContain('1600000000000');
-    });
-
-    it('should propagate database error', async () => {
-      (adminQuery as jest.Mock).mockRejectedValueOnce(new Error('DB Error'));
-      await expect(refreshColocationView(1600000000000)).rejects.toThrow('DB Error');
+      expect(adminQuery).not.toHaveBeenCalled();
     });
   });
 

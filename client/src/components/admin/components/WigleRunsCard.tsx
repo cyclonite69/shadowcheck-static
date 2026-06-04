@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { AdminCard } from './AdminCard';
+import { US_STATES } from '../../../constants/network';
 import { formatShortDate } from '../../../utils/formatDate';
 import type { WigleImportRun } from '../../../types/admin';
 import type { SortEntry } from '../hooks/useWigleRuns';
@@ -16,19 +17,95 @@ interface ColDef {
 const COLUMNS: ColDef[] = [
   { id: 'id', label: 'ID', sortKey: null, defaultVisible: true },
   { id: 'target', label: 'Target', sortKey: 'search_term', defaultVisible: true },
+  { id: 'jurisdiction', label: 'State/Territory', sortKey: 'state', defaultVisible: true },
   { id: 'status', label: 'Status', sortKey: 'status', defaultVisible: true },
   { id: 'progress', label: 'Progress', sortKey: null, defaultVisible: true },
-  { id: 'rows_inserted', label: 'Inserted', sortKey: 'rows_inserted', defaultVisible: true },
+  {
+    id: 'rows_inserted',
+    label: 'Last Run Rows Inserted',
+    sortKey: 'rows_inserted',
+    defaultVisible: true,
+  },
   { id: 'rows_returned', label: 'Returned', sortKey: 'rows_returned', defaultVisible: false },
   { id: 'pages_fetched', label: 'Pages', sortKey: 'pages_fetched', defaultVisible: false },
   { id: 'total_pages', label: 'Total Pages', sortKey: 'total_pages', defaultVisible: false },
   { id: 'source', label: 'Source', sortKey: 'source', defaultVisible: false },
-  { id: 'state', label: 'State', sortKey: 'state', defaultVisible: false },
   { id: 'started_at', label: 'Started', sortKey: 'started_at', defaultVisible: true },
   { id: 'completed_at', label: 'Completed', sortKey: 'completed_at', defaultVisible: false },
   { id: 'last_active', label: 'Last Active', sortKey: 'updated_at', defaultVisible: true },
   { id: 'actions', label: 'Actions', sortKey: null, defaultVisible: true },
 ];
+
+const COLUMN_STORAGE_KEY = 'import_runs_columns_v2';
+const TERRITORY_CODES = new Set(['AS', 'GU', 'MP', 'PR', 'VI']);
+const JURISDICTION_LABELS = new Map(US_STATES.map((state) => [state.code, state.name]));
+const COUNTRY_LABELS = new Map([
+  ['US', 'United States'],
+  ['CA', 'Canada'],
+  ['MX', 'Mexico'],
+  ['GB', 'United Kingdom'],
+  ['AU', 'Australia'],
+  ['DE', 'Germany'],
+  ['FR', 'France'],
+  ['JP', 'Japan'],
+]);
+
+function getStringParam(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function formatJurisdiction(run: WigleImportRun): {
+  label: string;
+  detail: string | null;
+  isUnknown: boolean;
+} {
+  const stateOrRegion = getStringParam(run.state) || getStringParam(run.requestParams?.region);
+  const country = getStringParam(run.requestParams?.country);
+  const normalizedCountry = country.toUpperCase();
+  const code = (
+    stateOrRegion || (TERRITORY_CODES.has(normalizedCountry) ? country : '')
+  ).toUpperCase();
+
+  if (!code) {
+    if (!country) {
+      return {
+        label: 'Global',
+        detail: null,
+        isUnknown: false,
+      };
+    }
+
+    const countryName = COUNTRY_LABELS.get(normalizedCountry);
+    if (countryName) {
+      return {
+        label: `${normalizedCountry} — ${countryName} (National)`,
+        detail: `country=${normalizedCountry} region=${stateOrRegion || '-'}`,
+        isUnknown: false,
+      };
+    }
+
+    return {
+      label: 'Unknown',
+      detail: `country=${normalizedCountry || '-'} region=${stateOrRegion || '-'} state=${run.state || '-'}`,
+      isUnknown: true,
+    };
+  }
+
+  const name = JURISDICTION_LABELS.get(code);
+  if (name) {
+    return {
+      label: `${code} — ${name}`,
+      detail: `country=${country || '-'} region=${stateOrRegion || '-'}`,
+      isUnknown: false,
+    };
+  }
+
+  return {
+    label: 'Unknown',
+    detail: `country=${country || '-'} region=${stateOrRegion || '-'} state=${run.state || '-'}`,
+    isUnknown: true,
+  };
+}
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -151,13 +228,13 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
   // Column visibility
   const [visibleCols, setVisibleCols] = React.useState<Set<string>>(() => {
     try {
-      const saved = localStorage.getItem('import_runs_columns');
+      const saved = localStorage.getItem(COLUMN_STORAGE_KEY);
       if (saved) return new Set(JSON.parse(saved) as string[]);
     } catch {}
     return new Set(COLUMNS.filter((c) => c.defaultVisible).map((c) => c.id));
   });
   React.useEffect(() => {
-    localStorage.setItem('import_runs_columns', JSON.stringify([...visibleCols]));
+    localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify([...visibleCols]));
   }, [visibleCols]);
 
   const [chooserOpen, setChooserOpen] = React.useState(false);
@@ -286,7 +363,7 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
       case 'source': {
         const isBt = run.source === 'wigle_bt';
         return (
-          <td key={col.id} className="px-3 py-2">
+          <td key={col.id} className="px-3 py-2" title={`source=${run.source}`}>
             <span
               className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${
                 isBt
@@ -299,12 +376,27 @@ export const WigleRunsCard: React.FC<WigleRunsCardProps> = ({
           </td>
         );
       }
-      case 'state':
+      case 'jurisdiction': {
+        const jurisdiction = formatJurisdiction(run);
         return (
-          <td key={col.id} className="px-3 py-2 text-slate-400">
-            {run.state || 'Global'}
+          <td
+            key={col.id}
+            className="px-3 py-2 text-slate-400"
+            title={jurisdiction.detail || undefined}
+          >
+            <div
+              className={`font-semibold ${jurisdiction.isUnknown ? 'text-amber-300' : 'text-slate-200'}`}
+            >
+              {jurisdiction.label}
+            </div>
+            {jurisdiction.isUnknown && jurisdiction.detail && (
+              <div className="text-[9px] text-slate-500 truncate max-w-[140px]">
+                {jurisdiction.detail}
+              </div>
+            )}
           </td>
         );
+      }
       case 'started_at':
         return (
           <td key={col.id} className="px-3 py-2 text-slate-500 whitespace-nowrap">

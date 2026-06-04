@@ -66,10 +66,96 @@ export const ApiTestingTab: React.FC = () => {
     apiError,
     runApiRequest,
     API_PRESETS,
+    testingAll,
+    testAllResults,
+    runAllTests,
   } = useApiTesting();
 
   return (
     <div className="space-y-6">
+      {/* Bulk Endpoint Verification */}
+      <AdminCard
+        icon={ApiIcon}
+        title="Bulk Endpoint Verification"
+        color="from-emerald-500 to-emerald-600"
+      >
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <span className="text-xs text-slate-400">
+              Run automated check sequences against all registered endpoints sequentially with local
+              mock data.
+            </span>
+            <button
+              onClick={runAllTests}
+              disabled={testingAll || apiLoading}
+              className={`px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-xs shadow-md shrink-0`}
+            >
+              {testingAll ? 'Running Checks...' : 'Test All Endpoints'}
+            </button>
+          </div>
+
+          {testAllResults.length > 0 && (
+            <div className="border border-slate-700/50 rounded-lg overflow-hidden bg-slate-900/50">
+              <div className="max-h-[250px] overflow-y-auto">
+                <table className="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700">
+                      <th className="p-2">Method</th>
+                      <th className="p-2">Endpoint</th>
+                      <th className="p-2">Label</th>
+                      <th className="p-2 text-center">Status</th>
+                      <th className="p-2 text-right">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {testAllResults.map((res, i) => (
+                      <tr key={i} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="p-2 font-bold">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] ${
+                              res.method === 'GET'
+                                ? 'bg-blue-900/40 text-blue-300'
+                                : res.method === 'POST'
+                                  ? 'bg-emerald-900/40 text-emerald-300'
+                                  : res.method === 'DELETE'
+                                    ? 'bg-red-900/40 text-red-300'
+                                    : 'bg-amber-900/40 text-amber-300'
+                            }`}
+                          >
+                            {res.method}
+                          </span>
+                        </td>
+                        <td className="p-2 font-mono text-slate-300 break-all">{res.path}</td>
+                        <td className="p-2 text-slate-400">{res.label}</td>
+                        <td className="p-2 text-center font-bold">
+                          <span className={res.ok ? 'text-green-400' : 'text-red-400'}>
+                            {res.status}
+                          </span>
+                        </td>
+                        <td className="p-2 text-right text-slate-500 font-mono">
+                          {res.durationMs !== undefined ? `${res.durationMs}ms` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bg-slate-800/80 p-2 text-right border-t border-slate-700 text-[10px] text-slate-400">
+                Total Tested: <strong className="text-slate-200">{testAllResults.length}</strong> /{' '}
+                {API_PRESETS.length} | Success:{' '}
+                <strong className="text-green-400">
+                  {testAllResults.filter((r) => r.ok).length}
+                </strong>{' '}
+                | Failed:{' '}
+                <strong className="text-red-400">
+                  {testAllResults.filter((r) => !r.ok).length}
+                </strong>
+              </div>
+            </div>
+          )}
+        </div>
+      </AdminCard>
+
       {/* Quick Presets — full width */}
       <AdminCard icon={ApiIcon} title="Quick Presets" color="from-blue-500 to-blue-600" compact>
         <div className="flex flex-wrap gap-2">

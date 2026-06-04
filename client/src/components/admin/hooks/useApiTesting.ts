@@ -138,6 +138,110 @@ export const useApiTesting = () => {
     }
   };
 
+  const [testingAll, setTestingAll] = useState(false);
+  const [testAllResults, setTestAllResults] = useState<any[]>([]);
+
+  const runAllTests = async () => {
+    setTestingAll(true);
+    setTestAllResults([]);
+    const results: any[] = [];
+
+    // Fallback values for common path parameters
+    const FALLBACK_PARAMS: Record<string, string> = {
+      bssid: '9A:9D:5D:81:16:1E',
+      oui: '9A9D5D',
+      runId: '18',
+      uploadId: '1',
+      noteId: '1',
+      mediaId: '6',
+      userId: '3',
+      termId: '1',
+      key: 'enable_background_jobs',
+      instanceId: 'i-06380d0c9c99f6124',
+      filename: 'Screenshot_20260421_032056.png',
+      action: 'recreate-api',
+      id: '1',
+      label: 'default',
+      z: '14',
+      x: '4680',
+      y: '6340',
+      type: 'satellite',
+    };
+
+    for (const preset of API_PRESETS) {
+      let finalUrl = preset.path;
+      const queryParams = new URLSearchParams();
+      const replacedParams = new Set<string>();
+
+      preset.params?.forEach((input) => {
+        const val =
+          paramValues[input.name] || input.defaultValue || FALLBACK_PARAMS[input.name] || '1';
+        if (finalUrl.includes(`:${input.name}`)) {
+          finalUrl = finalUrl.replace(`:${input.name}`, encodeURIComponent(val));
+          replacedParams.add(input.name);
+        } else {
+          queryParams.append(input.name, val);
+        }
+      });
+
+      const paramRegex = /:([a-zA-Z0-9_]+)/g;
+      let match;
+      while ((match = paramRegex.exec(finalUrl)) !== null) {
+        const paramName = match[1];
+        if (!replacedParams.has(paramName)) {
+          const fallback = FALLBACK_PARAMS[paramName] || '1';
+          finalUrl = finalUrl.replace(`:${paramName}`, encodeURIComponent(fallback));
+          replacedParams.add(paramName);
+        }
+      }
+
+      finalUrl = finalUrl.replace(/\(\*\)/g, '');
+
+      const queryString = queryParams.toString();
+      const resolvedUrl = queryString ? `${finalUrl}?${queryString}` : finalUrl;
+
+      const start = performance.now();
+      try {
+        const opts: RequestInit = { method: preset.method };
+        if (preset.method !== 'GET' && preset.method !== 'DELETE' && preset.defaultBody) {
+          opts.headers = { 'Content-Type': 'application/json' };
+          opts.body = preset.defaultBody;
+        }
+
+        const res = await fetch(resolvedUrl, opts);
+        const text = await res.text();
+        const outcome = {
+          label: preset.label,
+          category: preset.category,
+          method: preset.method,
+          path: resolvedUrl,
+          ok: res.ok,
+          status: res.status,
+          durationMs: Math.round(performance.now() - start),
+          body: text,
+        };
+
+        results.push(outcome);
+        setTestAllResults([...results]);
+      } catch (err: any) {
+        const outcome = {
+          label: preset.label,
+          category: preset.category,
+          method: preset.method,
+          path: resolvedUrl,
+          ok: false,
+          status: 'ERR',
+          durationMs: Math.round(performance.now() - start),
+          error: err?.message || 'Request failed',
+        };
+        results.push(outcome);
+        setTestAllResults([...results]);
+      }
+    }
+
+    setTestingAll(false);
+  };
+
   return {
     endpoint,
     setEndpoint,
@@ -156,5 +260,8 @@ export const useApiTesting = () => {
     loadApiHealth,
     runApiRequest,
     API_PRESETS,
+    testingAll,
+    testAllResults,
+    runAllTests,
   };
 };
