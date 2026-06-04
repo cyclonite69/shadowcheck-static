@@ -4,6 +4,20 @@ import { API_PRESETS, ApiPreset, HttpMethod } from './apiTestingPresets';
 
 export type { ApiInput, ApiPreset } from './apiTestingPresets';
 
+export type EndpointResultStatus = 'pass' | 'auth' | 'validation' | 'fail';
+
+export function categorizeStatus(
+  httpStatus: number | null,
+  isNetworkError: boolean
+): EndpointResultStatus {
+  if (isNetworkError || httpStatus === null) return 'fail';
+  if (httpStatus >= 200 && httpStatus < 300) return 'pass';
+  if (httpStatus === 401 || httpStatus === 403) return 'auth';
+  if (httpStatus === 400 || httpStatus === 422) return 'validation';
+  if (httpStatus >= 500) return 'fail';
+  return 'validation';
+}
+
 export const useApiTesting = () => {
   const [endpoint, setEndpoint] = useState('/health');
   const [method, setMethod] = useState<HttpMethod>('GET');
@@ -217,6 +231,7 @@ export const useApiTesting = () => {
           path: resolvedUrl,
           ok: res.ok,
           status: res.status,
+          resultStatus: categorizeStatus(res.status, false),
           durationMs: Math.round(performance.now() - start),
           body: text,
         };
@@ -231,6 +246,7 @@ export const useApiTesting = () => {
           path: resolvedUrl,
           ok: false,
           status: 'ERR',
+          resultStatus: 'fail' as const,
           durationMs: Math.round(performance.now() - start),
           error: err?.message || 'Request failed',
         };

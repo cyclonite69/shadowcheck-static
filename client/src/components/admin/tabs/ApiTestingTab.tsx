@@ -128,7 +128,21 @@ export const ApiTestingTab: React.FC = () => {
                         <td className="p-2 font-mono text-slate-300 break-all">{res.path}</td>
                         <td className="p-2 text-slate-400">{res.label}</td>
                         <td className="p-2 text-center font-bold">
-                          <span className={res.ok ? 'text-green-400' : 'text-red-400'}>
+                          <span
+                            className={
+                              res.resultStatus === 'pass'
+                                ? 'text-green-400'
+                                : res.resultStatus === 'auth'
+                                  ? 'text-slate-400'
+                                  : res.resultStatus === 'validation'
+                                    ? 'text-amber-400'
+                                    : 'text-red-400'
+                            }
+                          >
+                            {res.resultStatus === 'pass' && '✅ '}
+                            {res.resultStatus === 'auth' && '🔒 '}
+                            {res.resultStatus === 'validation' && '⚠️ '}
+                            {res.resultStatus === 'fail' && '❌ '}
                             {res.status}
                           </span>
                         </td>
@@ -141,14 +155,22 @@ export const ApiTestingTab: React.FC = () => {
                 </table>
               </div>
               <div className="bg-slate-800/80 p-2 text-right border-t border-slate-700 text-[10px] text-slate-400">
-                Total Tested: <strong className="text-slate-200">{testAllResults.length}</strong> /{' '}
-                {API_PRESETS.length} | Success:{' '}
+                Tested: <strong className="text-slate-200">{testAllResults.length}</strong> /{' '}
+                {API_PRESETS.length} | ✅ Pass:{' '}
                 <strong className="text-green-400">
-                  {testAllResults.filter((r) => r.ok).length}
+                  {testAllResults.filter((r) => r.resultStatus === 'pass').length}
                 </strong>{' '}
-                | Failed:{' '}
+                | 🔒 Auth:{' '}
+                <strong className="text-slate-400">
+                  {testAllResults.filter((r) => r.resultStatus === 'auth').length}
+                </strong>{' '}
+                | ⚠️ Validation:{' '}
+                <strong className="text-amber-400">
+                  {testAllResults.filter((r) => r.resultStatus === 'validation').length}
+                </strong>{' '}
+                | ❌ Errors:{' '}
                 <strong className="text-red-400">
-                  {testAllResults.filter((r) => !r.ok).length}
+                  {testAllResults.filter((r) => r.resultStatus === 'fail').length}
                 </strong>
               </div>
             </div>
