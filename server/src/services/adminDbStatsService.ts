@@ -104,7 +104,7 @@ export async function getDetailedDatabaseStats(): Promise<any> {
     `);
 
     // 5. Get Unused Index Report with summary totals
-    const { rows: unusedIndexes, rows: rawUnusedIndexes } = await adminQuery(`
+    const { rows: unusedIndexes } = await adminQuery(`
       SELECT 
         schemaname || '.' || relname as table_name,
         indexrelname as index_name,
@@ -119,9 +119,26 @@ export async function getDetailedDatabaseStats(): Promise<any> {
       ORDER BY pg_relation_size(indexrelid) DESC
     `);
 
+    // 6. Get Used Index Report (top 50 by scan count, excluding PKs)
+    const { rows: usedIndexes } = await adminQuery(`
+      SELECT
+        schemaname || '.' || relname as table_name,
+        indexrelname as index_name,
+        idx_scan as scan_count,
+        idx_tup_read as tuples_read,
+        pg_size_pretty(pg_relation_size(indexrelid)) as size_pretty,
+        pg_relation_size(indexrelid) as size_bytes
+      FROM pg_stat_user_indexes
+      WHERE schemaname = 'app'
+        AND idx_scan > 0
+        AND indexrelname NOT LIKE '%_pkey'
+      ORDER BY idx_scan DESC
+      LIMIT 50
+    `);
+
     // Calculate unused index totals
-    const unusedIndexCount = rawUnusedIndexes.length;
-    const unusedIndexTotalBytes = rawUnusedIndexes.reduce((sum: number, idx: any) => {
+    const unusedIndexCount = unusedIndexes.length;
+    const unusedIndexTotalBytes = unusedIndexes.reduce((sum: number, idx: any) => {
       return sum + parseInt(idx.size_bytes, 10);
     }, 0);
     const unusedIndexTotalMb = (unusedIndexTotalBytes / (1024 * 1024)).toFixed(1);
@@ -138,6 +155,7 @@ export async function getDetailedDatabaseStats(): Promise<any> {
         count: unusedIndexCount,
         total_mb: parseFloat(unusedIndexTotalMb),
       },
+      used_indexes: usedIndexes,
     };
   } catch (e: any) {
     logger.error('Failed to fetch detailed DB stats', { error: e.message });

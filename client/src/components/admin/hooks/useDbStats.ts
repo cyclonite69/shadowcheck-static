@@ -36,6 +36,15 @@ export interface UnusedIndexSummary {
   total_mb: number;
 }
 
+export interface UsedIndex {
+  table_name: string;
+  index_name: string;
+  scan_count: string;
+  tuples_read: string;
+  size_pretty: string;
+  size_bytes: string;
+}
+
 export interface DbStats {
   total_db_size: string;
   stats_reset: string | null;
@@ -44,6 +53,7 @@ export interface DbStats {
   materialized_views: MVStat[];
   unused_indexes: UnusedIndex[];
   unused_indexes_summary?: UnusedIndexSummary;
+  used_indexes: UsedIndex[];
 }
 
 export interface UseDbStatsReturn {

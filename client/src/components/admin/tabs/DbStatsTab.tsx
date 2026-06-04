@@ -7,6 +7,7 @@ import {
   MVStat,
   UnusedIndex,
   UnusedIndexSummary,
+  UsedIndex,
 } from '../hooks/useDbStats';
 import { useSiblingStats } from '../hooks/useSiblingStats';
 import { useTableCategories } from '../hooks/useTableCategories';
@@ -66,6 +67,10 @@ export const DbStatsTab: React.FC = () => {
   const [indexSearch, setIndexSearch] = React.useState('');
   const [indexPage, setIndexPage] = React.useState(0);
 
+  // Used index search and pagination states
+  const [usedIndexSearch, setUsedIndexSearch] = React.useState('');
+  const [usedIndexPage, setUsedIndexPage] = React.useState(0);
+
   const filteredIndexes = React.useMemo(() => {
     if (!stats) return [];
     const query = indexSearch.toLowerCase().trim();
@@ -80,6 +85,21 @@ export const DbStatsTab: React.FC = () => {
     const start = indexPage * 25;
     return filteredIndexes.slice(start, start + 25);
   }, [filteredIndexes, indexPage]);
+
+  const filteredUsedIndexes = React.useMemo(() => {
+    if (!stats) return [];
+    const query = usedIndexSearch.toLowerCase().trim();
+    if (!query) return stats.used_indexes;
+    return stats.used_indexes.filter(
+      (idx) =>
+        idx.index_name.toLowerCase().includes(query) || idx.table_name.toLowerCase().includes(query)
+    );
+  }, [stats, usedIndexSearch]);
+
+  const paginatedUsedIndexes = React.useMemo(() => {
+    const start = usedIndexPage * 25;
+    return filteredUsedIndexes.slice(start, start + 25);
+  }, [filteredUsedIndexes, usedIndexPage]);
 
   const renderTableList = (tables: TableStat[]) => (
     <div className="overflow-x-auto">
@@ -305,6 +325,120 @@ export const DbStatsTab: React.FC = () => {
     </div>
   );
 
+  const renderUsedIndexes = (indexes: UsedIndex[]) => (
+    <div>
+      <div className="mb-4 p-3 bg-emerald-950/30 border border-emerald-900/50 rounded-lg">
+        <p className="text-sm font-medium text-emerald-300">
+          Top {indexes.length} most-scanned indexes · since{' '}
+          {stats?.stats_reset ? formatShortDate(stats.stats_reset) : 'last stats reset'}
+        </p>
+      </div>
+
+      {/* Search Input */}
+      <div className="mb-4 max-w-md relative">
+        <input
+          type="text"
+          placeholder="Search by index or table name..."
+          value={usedIndexSearch}
+          onChange={(e) => {
+            setUsedIndexSearch(e.target.value);
+            setUsedIndexPage(0);
+          }}
+          className="w-full pl-3 pr-10 py-1.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg text-xs text-slate-300 placeholder-slate-600 transition-colors focus:outline-none"
+        />
+        {usedIndexSearch && (
+          <button
+            onClick={() => {
+              setUsedIndexSearch('');
+              setUsedIndexPage(0);
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-sm font-bold"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs text-left border-collapse">
+          <thead>
+            <tr className="text-slate-500 border-b border-slate-800">
+              <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Index Name</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider">Table</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Size</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Scans</th>
+              <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">
+                Tuples Read
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/50">
+            {paginatedUsedIndexes.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-slate-600 italic">
+                  No matching used indexes found.
+                </td>
+              </tr>
+            ) : (
+              paginatedUsedIndexes.map((idx) => (
+                <tr key={idx.index_name} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="py-2 pr-4 font-mono text-emerald-400 font-medium">
+                    {idx.index_name}
+                  </td>
+                  <td className="py-2 px-4 font-mono text-slate-500">{idx.table_name}</td>
+                  <td className="py-2 px-4 text-right tabular-nums text-slate-400 font-medium">
+                    {idx.size_pretty}
+                  </td>
+                  <td className="py-2 px-4 text-right tabular-nums text-emerald-400 font-bold">
+                    {parseInt(idx.scan_count).toLocaleString()}
+                  </td>
+                  <td className="py-2 pl-4 text-right tabular-nums text-slate-500">
+                    {parseInt(idx.tuples_read).toLocaleString()}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination Controls */}
+      {filteredUsedIndexes.length > 0 && (
+        <div className="mt-4 flex items-center justify-between border-t border-slate-800/50 pt-3 text-xs text-slate-400">
+          <div>
+            Showing <span className="text-slate-300 font-semibold">{usedIndexPage * 25 + 1}</span>{' '}
+            to{' '}
+            <span className="text-slate-300 font-semibold">
+              {Math.min((usedIndexPage + 1) * 25, filteredUsedIndexes.length)}
+            </span>{' '}
+            of <span className="text-slate-300 font-semibold">{filteredUsedIndexes.length}</span>{' '}
+            index{filteredUsedIndexes.length !== 1 ? 'es' : ''}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setUsedIndexPage((p) => Math.max(0, p - 1))}
+              disabled={usedIndexPage === 0}
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 font-medium rounded transition-colors border border-slate-700/50 disabled:cursor-not-allowed"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() =>
+                setUsedIndexPage((p) =>
+                  Math.min(Math.ceil(filteredUsedIndexes.length / 25) - 1, p + 1)
+                )
+              }
+              disabled={(usedIndexPage + 1) * 25 >= filteredUsedIndexes.length}
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 font-medium rounded transition-colors border border-slate-700/50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   if (loading && !stats) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -433,6 +567,29 @@ export const DbStatsTab: React.FC = () => {
           {stats && renderUnusedIndexes(stats.unused_indexes, stats.unused_indexes_summary)}
         </AdminCard>
 
+        {/* Used Index Report */}
+        <AdminCard
+          title="Used Index Report"
+          icon={TrendingUpIcon}
+          color="from-emerald-600 to-teal-700"
+        >
+          {stats && renderUsedIndexes(stats.used_indexes)}
+        </AdminCard>
+
+        {/* Uncategorized Tables */}
+        {uncategorized.length > 0 && (
+          <AdminCard
+            title="Uncategorized Tables"
+            icon={DatabaseIcon}
+            color="from-slate-600 to-slate-700"
+          >
+            <div className="mb-4 text-xs text-slate-500 italic">
+              (not in any configured category)
+            </div>
+            {renderTableList(uncategorized)}
+          </AdminCard>
+        )}
+
         {/* Sibling Detection Stats */}
         <AdminCard
           title="Sibling Detection"
@@ -539,20 +696,6 @@ export const DbStatsTab: React.FC = () => {
             </button>
           </div>
         </AdminCard>
-
-        {/* Uncategorized Tables */}
-        {uncategorized.length > 0 && (
-          <AdminCard
-            title="Uncategorized Tables"
-            icon={DatabaseIcon}
-            color="from-slate-600 to-slate-700"
-          >
-            <div className="mb-4 text-xs text-slate-500 italic">
-              (not in any configured category)
-            </div>
-            {renderTableList(uncategorized)}
-          </AdminCard>
-        )}
       </div>
 
       <div className="text-[10px] text-slate-600 italic px-2">

@@ -1061,6 +1061,7 @@
 * **admin:** add Reload Secrets button and POST /settings/reload-secrets endpoint ([2ddf7b7](https://github.com/cyclonite69/shadowcheck-web/commit/2ddf7b7e4d42018bcef450272c415a8df496a711))
 * **admin:** add search/pagination, stats_reset, and uncategorized tables ([4f9409d](https://github.com/cyclonite69/shadowcheck-web/commit/4f9409d72c14790bc5e74d93a7f2837080085733))
 * **admin:** add SQL file upload import from UI to EC2 ([5e55ce7](https://github.com/cyclonite69/shadowcheck-web/commit/5e55ce70f26aecabe0ac389b75ebb92f8bd622d9))
+* **admin:** add used index report to DB stats tab; move sibling detect to bottom ([d92412f](https://github.com/cyclonite69/shadowcheck-web/commit/d92412f8c3987a3e26ca584ce9d2e205a5ace489))
 * **admin:** api testing tab with sequential endpoint runner ([d3c17b0](https://github.com/cyclonite69/shadowcheck-web/commit/d3c17b06fe563ee187143a3087c591770842da46))
 * **admin:** center subnav and complete home location config ([391d6ff](https://github.com/cyclonite69/shadowcheck-web/commit/391d6fff01985ddcf9d049ef72c2919e5653a56f))
 * **admin:** enhance tab styling with 3D shadows and add SSO ephemeral credentials ([3b9db60](https://github.com/cyclonite69/shadowcheck-web/commit/3b9db6067fc2be4f8b1ceb9821ff7763b12e67de))
