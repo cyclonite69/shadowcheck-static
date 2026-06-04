@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import vendorManifest from '../../vendor-intel/vendor_intel_manifest.json';
-import type { SourceType, VendorDoc, VendorEntry } from '../../vendor-intel/types';
+import type { SourceType, VendorEntry } from '../../vendor-intel/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

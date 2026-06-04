@@ -390,6 +390,15 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Networks v1',
+    label: 'VisINT Attachment',
+    path: '/api/observations/attach-visint',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody:
+      '{\n  "image": "",\n  "filename": "image.jpg",\n  "bssid": "VISINT_UNMATCHED",\n  "status": "UNMATCHED",\n  "detection_score": 0,\n  "dist_meters": null,\n  "delta_minutes": null\n}',
+  },
+  {
+    category: 'Networks v1',
     label: 'Network Notes',
     path: '/api/networks/:bssid/notes',
     method: 'GET',

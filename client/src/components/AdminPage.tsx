@@ -21,6 +21,7 @@ import { BadgeStudioTab } from './admin/tabs/BadgeStudioTab';
 
 const ConfigurationTab = lazy(() => import('./admin/tabs/ConfigurationTab'));
 const MLTrainingTab = lazy(() => import('./admin/tabs/MLTrainingTab'));
+const VisIntUploader = lazy(() => import('./visint/VisIntUploader'));
 
 const TabLoadingFallback = () => (
   <div className="px-6 py-8 text-sm text-slate-500 text-center">Loading tab...</div>
@@ -263,6 +264,21 @@ const DetailIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const CameraIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
+  </svg>
+);
+
 const AdminPage: React.FC = () => {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('config');
@@ -314,6 +330,7 @@ const AdminPage: React.FC = () => {
     { id: 'wigle', label: 'WiGLE Search (v2)', icon: SearchIcon },
     { id: 'wigle-detail', label: 'WiGLE Detail (v3)', icon: DetailIcon },
     { id: 'imports', label: 'Data Import', icon: UploadIcon },
+    { id: 'visint', label: 'VisINT Uploader', icon: CameraIcon },
     { id: 'backups', label: 'Backups', icon: DatabaseIcon },
     { id: 'exports', label: 'Data Export', icon: DownloadIcon },
     { id: 'geocoding', label: 'Geocoding', icon: MapIcon },
@@ -402,6 +419,11 @@ const AdminPage: React.FC = () => {
           {activeTab === 'wigle' && <WigleSearchTab />}
           {activeTab === 'wigle-detail' && <WigleDetailTab />}
           {activeTab === 'imports' && <DataImportTab />}
+          {activeTab === 'visint' && (
+            <Suspense fallback={<TabLoadingFallback />}>
+              <VisIntUploader />
+            </Suspense>
+          )}
           {activeTab === 'backups' && <BackupsTab />}
           {activeTab === 'exports' && <DataExportTab />}
           {activeTab === 'geocoding' && <GeocodingTab />}

@@ -4,10 +4,8 @@ import { mapApiRowToNetwork } from '../../../utils/networkDataTransformation';
 import { logError } from '../../../logging/clientLogger';
 import { NetworkRow } from '../../../types/network';
 import {
-  addUndirectedEdge,
   buildSiblingGroupMap,
   normalizeBssid,
-  serializeGroupMap,
   filterNetworksBySearch,
   processHydrationSettledResults,
   hasPrecomputedSiblings,

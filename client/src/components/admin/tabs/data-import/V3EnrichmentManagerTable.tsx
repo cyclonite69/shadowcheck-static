@@ -108,8 +108,7 @@ function enrichmentOutcomeMessage(outcome: {
 
 type SortEntry = { key: string; dir: 'asc' | 'desc' };
 
-// ─── Sort helpers ─────────────────────────────────────────────────────────────
-
+/*
 function getSortValue(row: EnrichmentRow, key: string): string | number {
   switch (key) {
     case 'ssid':
@@ -134,7 +133,9 @@ function getSortValue(row: EnrichmentRow, key: string): string | number {
       return '';
   }
 }
+*/
 
+/*
 function applySortCols(rows: EnrichmentRow[], sortCols: SortEntry[]): EnrichmentRow[] {
   if (sortCols.length === 0) return rows;
   return [...rows].sort((a, b) => {
@@ -147,12 +148,12 @@ function applySortCols(rows: EnrichmentRow[], sortCols: SortEntry[]): Enrichment
     return 0;
   });
 }
+*/
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> = ({
   onEnrich,
-  onSelect,
   isLoading: actionLoading,
 }) => {
   const [allRows, setAllRows] = useState<EnrichmentRow[]>([]);

@@ -4,7 +4,7 @@
  */
 
 import { extractExif, ExifMissingError } from './visint/visintExif';
-import { correlateVisINT } from './visint/visintPipeline';
+import { correlateVisINT, saveVisINTAttachment } from './visint/visintPipeline';
 
 const { query } = require('../config/database');
 const logger = require('../logging/logger');
@@ -230,7 +230,7 @@ export async function correlateImageBLE(
   };
 }
 
-export { ExifMissingError, correlateVisINT };
+export { ExifMissingError, correlateVisINT, saveVisINTAttachment };
 
 module.exports = {
   getHomeLocationForObservations,
@@ -241,5 +241,6 @@ module.exports = {
   getWigleObservationsBatch,
   correlateImageBLE,
   correlateVisINT,
+  saveVisINTAttachment,
   ExifMissingError,
 };

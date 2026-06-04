@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { ObservationsCard } from '../components/ObservationsCard';
 import { useWigleSearch } from '../hooks/useWigleSearch';
@@ -10,7 +10,6 @@ import { US_STATES } from '../../../constants/network';
 import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
 import { wigleApi } from '../../../api/wigleApi';
-import type { WigleCompletenessReport } from '../hooks/useWigleRuns';
 import { getCoverageStatusMeta } from './wigleCoverageStatusMeta';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
@@ -663,7 +662,8 @@ export const WigleSearchTab: React.FC = () => {
                             {searchResults.results.map((net: any, idx: number) => {
                               const bssid = net.netid || net.bssid;
                               const isActive =
-                                (selectedNetwork?.netid || selectedNetwork?.bssid) === bssid;
+                                ((selectedNetwork as any)?.netid || selectedNetwork?.bssid) ===
+                                bssid;
                               const city = net.geocoded_city || net.city || '—';
                               const state = net.geocoded_state || net.region || '—';
                               const firstSeen = net.firsttime || null;

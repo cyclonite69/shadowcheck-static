@@ -5,8 +5,15 @@ export async function queryCorrelatedObservations(
   queryFn: (sql: string, params: any[]) => Promise<any>,
   lon: number,
   lat: number,
-  timestamp: string
+  timestamp: string,
+  radiusMeters: number = 50,
+  windowHours: number = 2,
+  limit: number = 5
 ): Promise<any[]> {
+  const baseDate = new Date(timestamp);
+  const startTime = new Date(baseDate.getTime() - windowHours * 60 * 60 * 1000).toISOString();
+  const endTime = new Date(baseDate.getTime() + windowHours * 60 * 60 * 1000).toISOString();
+
   const dbQuery = `
     SELECT
       id,
@@ -36,14 +43,21 @@ export async function queryCorrelatedObservations(
       ST_DWithin(
         ST_SetSRID(ST_MakePoint(lon, lat), 4326)::geography,
         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
-        150
+        $4
       )
-      AND observed_at BETWEEN ($3::timestamptz - INTERVAL '24 hours')
-                          AND ($3::timestamptz + INTERVAL '24 hours')
-    ORDER BY detection_score DESC, dist_meters ASC
-    LIMIT 10
+      AND observed_at BETWEEN $5::timestamptz AND $6::timestamptz
+    ORDER BY delta_minutes ASC, detection_score DESC, dist_meters ASC
+    LIMIT $7
   `;
 
-  const { rows } = await queryFn(dbQuery, [lon, lat, timestamp]);
+  const { rows } = await queryFn(dbQuery, [
+    lon,
+    lat,
+    timestamp,
+    radiusMeters,
+    startTime,
+    endTime,
+    limit,
+  ]);
   return rows;
 }

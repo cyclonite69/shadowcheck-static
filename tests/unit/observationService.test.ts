@@ -299,6 +299,7 @@ describe('Observation Service', () => {
         delta_minutes: 0.1,
         tags_applied: ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'],
         exif: { lat: 43.023, lon: -83.696, ts: '2026-05-06 20:29:10' },
+        candidates: [mockRow],
       });
 
       expect(insertNetworkMedia).toHaveBeenCalledWith(
@@ -384,6 +385,7 @@ describe('Observation Service', () => {
         delta_minutes: null,
         tags_applied: ['UNMATCHED_NODE', 'VISINT_UNMATCHED'],
         exif: { lat: 43.023, lon: -83.696, ts: '2026-05-06 20:29:10' },
+        candidates: [],
       });
 
       expect(insertNetworkMedia).toHaveBeenCalledWith(

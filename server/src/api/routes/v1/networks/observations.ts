@@ -287,6 +287,12 @@ router.post(
   asyncHandler(async (req: Request, res: Response) => {
     const imageBase64 = req.body.image || req.body.image_data_base64;
     const filename = req.body.filename || req.body.original_filename || 'image.jpg';
+    const commit = req.body.commit !== undefined ? Boolean(req.body.commit) : true;
+    const radiusMeters =
+      req.body.radius_meters !== undefined ? Number(req.body.radius_meters) : undefined;
+    const windowHours =
+      req.body.window_hours !== undefined ? Number(req.body.window_hours) : undefined;
+    const limit = req.body.limit !== undefined ? Number(req.body.limit) : undefined;
 
     if (!imageBase64) {
       return res.status(400).json({ error: 'Image data in base64 format is required.' });
@@ -294,7 +300,14 @@ router.post(
 
     try {
       const buffer = Buffer.from(imageBase64, 'base64');
-      const result = await observationService.correlateVisINT(buffer, filename);
+      const result = await observationService.correlateVisINT(
+        buffer,
+        filename,
+        commit,
+        radiusMeters,
+        windowHours,
+        limit
+      );
       res.json({ ok: true, ...result });
     } catch (error: any) {
       if (error.name === 'ExifMissingError') {
@@ -302,6 +315,53 @@ router.post(
       }
       logger.error(`VisINT correlation failed: ${error.message}`);
       res.status(500).json({ error: 'VisINT correlation failed', details: error.message });
+    }
+  })
+);
+
+/**
+ * POST /api/observations/attach-visint
+ *
+ * Commits a VisINT photo attachment and auto-tags to a selected network observation.
+ * Accepts a JSON body containing image base64, filename, target BSSID, and matching scores/deltas.
+ */
+router.post(
+  '/observations/attach-visint',
+  asyncHandler(async (req: Request, res: Response) => {
+    const imageBase64 = req.body.image || req.body.image_data_base64;
+    const filename = req.body.filename || req.body.original_filename || 'image.jpg';
+    const targetBssid = req.body.bssid || 'VISINT_UNMATCHED';
+    const status = req.body.status || 'UNMATCHED';
+    const detectionScore = parseInt(req.body.detection_score || '0', 10);
+    const distMeters = req.body.dist_meters !== undefined ? parseFloat(req.body.dist_meters) : null;
+    const deltaMinutes =
+      req.body.delta_minutes !== undefined ? parseFloat(req.body.delta_minutes) : null;
+    const lat = req.body.lat !== undefined ? parseFloat(req.body.lat) : undefined;
+    const lon = req.body.lon !== undefined ? parseFloat(req.body.lon) : undefined;
+    const ts = req.body.ts || undefined;
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image data in base64 format is required.' });
+    }
+
+    try {
+      const buffer = Buffer.from(imageBase64, 'base64');
+      const tagsApplied = await observationService.saveVisINTAttachment(
+        buffer,
+        filename,
+        targetBssid,
+        status,
+        detectionScore,
+        distMeters,
+        deltaMinutes,
+        lat,
+        lon,
+        ts
+      );
+      res.json({ ok: true, success: true, tags_applied: tagsApplied });
+    } catch (error: any) {
+      logger.error(`VisINT attachment failed: ${error.message}`);
+      res.status(500).json({ error: 'VisINT attachment failed', details: error.message });
     }
   })
 );

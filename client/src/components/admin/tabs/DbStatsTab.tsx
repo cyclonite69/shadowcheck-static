@@ -197,7 +197,7 @@ export const DbStatsTab: React.FC = () => {
     </div>
   );
 
-  const renderUnusedIndexes = (indexes: UnusedIndex[], summary?: UnusedIndexSummary) => (
+  const renderUnusedIndexes = (_indexes: UnusedIndex[], summary?: UnusedIndexSummary) => (
     <div>
       {summary && summary.count > 0 && (
         <div className="mb-4 p-3 bg-red-950/30 border border-red-900/50 rounded-lg">
