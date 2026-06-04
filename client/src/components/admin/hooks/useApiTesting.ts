@@ -26,6 +26,53 @@ export const useApiTesting = () => {
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
 
   const [apiLoading, setApiLoading] = useState(false);
+
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(null);
+  const [useAuthentication, setUseAuthentication] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  const login = async (username: string, password: string) => {
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        setAuthenticatedUser(data.user?.username || username);
+        setUseAuthentication(true);
+        return true;
+      } else {
+        setLoginError(data.error || 'Authentication failed');
+        return false;
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || 'Login request failed');
+      return false;
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // Ignore logout request errors
+    } finally {
+      setIsAuthenticated(false);
+      setAuthenticatedUser(null);
+      setUseAuthentication(false);
+    }
+  };
   const [apiResult, setApiResult] = useState<any>(null);
   const [apiError, setApiError] = useState('');
   const [apiHealth, setApiHealth] = useState<ApiHealth | null>(null);
@@ -110,7 +157,10 @@ export const useApiTesting = () => {
       const finalUrl = activePreset ? constructUrl() : endpoint;
       setEndpoint(finalUrl);
 
-      const opts: RequestInit = { method };
+      const opts: RequestInit = {
+        method,
+        credentials: useAuthentication && isAuthenticated ? 'include' : 'omit',
+      };
       let finalBody = body;
 
       if (activePreset?.defaultBody && paramValues) {
@@ -144,6 +194,7 @@ export const useApiTesting = () => {
         status: res.status,
         durationMs: Math.round(performance.now() - start),
         body: text,
+        usedAuth: useAuthentication && isAuthenticated,
       });
     } catch (err: any) {
       setApiError(err?.message || 'Request failed');
@@ -216,7 +267,10 @@ export const useApiTesting = () => {
 
       const start = performance.now();
       try {
-        const opts: RequestInit = { method: preset.method };
+        const opts: RequestInit = {
+          method: preset.method,
+          credentials: useAuthentication && isAuthenticated ? 'include' : 'omit',
+        };
         if (preset.method !== 'GET' && preset.method !== 'DELETE' && preset.defaultBody) {
           opts.headers = { 'Content-Type': 'application/json' };
           opts.body = preset.defaultBody;
@@ -234,6 +288,7 @@ export const useApiTesting = () => {
           resultStatus: categorizeStatus(res.status, false),
           durationMs: Math.round(performance.now() - start),
           body: text,
+          usedAuth: useAuthentication && isAuthenticated,
         };
 
         results.push(outcome);
@@ -249,6 +304,7 @@ export const useApiTesting = () => {
           resultStatus: 'fail' as const,
           durationMs: Math.round(performance.now() - start),
           error: err?.message || 'Request failed',
+          usedAuth: useAuthentication && isAuthenticated,
         };
         results.push(outcome);
         setTestAllResults([...results]);
@@ -279,5 +335,13 @@ export const useApiTesting = () => {
     testingAll,
     testAllResults,
     runAllTests,
+    isAuthenticated,
+    authenticatedUser,
+    useAuthentication,
+    setUseAuthentication,
+    loginLoading,
+    loginError,
+    login,
+    logout,
   };
 };

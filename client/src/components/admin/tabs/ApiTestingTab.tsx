@@ -49,6 +49,21 @@ const DownloadIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+const LockIcon = ({ size = 24, className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
 export const ApiTestingTab: React.FC = () => {
   const {
     endpoint,
@@ -69,10 +84,162 @@ export const ApiTestingTab: React.FC = () => {
     testingAll,
     testAllResults,
     runAllTests,
+    isAuthenticated,
+    authenticatedUser,
+    useAuthentication,
+    setUseAuthentication,
+    loginLoading,
+    loginError,
+    login,
+    logout,
   } = useApiTesting();
+
+  const [usernameInput, setUsernameInput] = React.useState('admin');
+  const [passwordInput, setPasswordInput] = React.useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = await login(usernameInput, passwordInput);
+    if (success) {
+      setPasswordInput('');
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* Authentication Manager */}
+      <AdminCard icon={LockIcon} title="Authentication Manager" color="from-amber-500 to-amber-600">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left: Login Form */}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+              Test Session Authentication
+            </div>
+
+            {isAuthenticated ? (
+              <div className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50 flex flex-col justify-between h-[130px]">
+                <div>
+                  <div className="text-xs text-slate-400">Authenticated Session User</div>
+                  <div className="text-sm font-semibold text-emerald-400 mt-1 flex items-center gap-1.5 font-mono">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                    {authenticatedUser}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="w-full px-3 py-2 bg-rose-950/40 hover:bg-rose-900/40 border border-rose-800/40 text-rose-300 hover:text-rose-200 rounded-lg font-medium text-xs transition-all shadow-sm"
+                >
+                  Logout Test Session
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] text-slate-400 uppercase tracking-wider mb-1">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      placeholder="admin"
+                      className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs focus:outline-none focus:border-amber-500 font-mono"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 uppercase tracking-wider mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs focus:outline-none focus:border-amber-500 font-mono"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="w-full px-3 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-semibold hover:from-amber-500 hover:to-amber-600 transition-all disabled:opacity-50 text-xs shadow-md"
+                >
+                  {loginLoading ? 'Authenticating...' : 'Login & Establish Session'}
+                </button>
+
+                {loginError && (
+                  <div className="text-red-400 text-[11px] p-2 bg-red-950/20 rounded border border-red-800/40">
+                    ⚠️ {loginError}
+                  </div>
+                )}
+              </div>
+            )}
+          </form>
+
+          {/* Right: Auth Controls / Toggles */}
+          <div className="flex flex-col justify-between space-y-4">
+            <div>
+              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Authentication Mode
+              </div>
+              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                Toggle whether test requests carry your authenticated session cookie.
+                Unauthenticated mode helps verify that access control gates deny requests correctly.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setUseAuthentication(false)}
+                  className={`py-2 px-3 rounded-md text-xs font-semibold transition-all ${
+                    !useAuthentication
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  🔒 Unauthenticated
+                </button>
+                <button
+                  type="button"
+                  disabled={!isAuthenticated}
+                  onClick={() => setUseAuthentication(true)}
+                  className={`py-2 px-3 rounded-md text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                    useAuthentication
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'text-slate-500 cursor-not-allowed'
+                  }`}
+                  title={
+                    !isAuthenticated ? 'Establish a session first to run authenticated tests' : ''
+                  }
+                >
+                  🔑 Authenticated
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] bg-slate-800/30 p-2.5 rounded-lg border border-slate-700/30 text-slate-400">
+              <span className="font-bold uppercase tracking-wider text-[9px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 font-mono">
+                Status
+              </span>
+              <span>
+                {useAuthentication && isAuthenticated ? (
+                  <span className="text-amber-400 font-medium">
+                    Requests will be sent with session token cookie.
+                  </span>
+                ) : (
+                  <span>Requests will be sent with cookies omitted.</span>
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+      </AdminCard>
+
       {/* Bulk Endpoint Verification */}
       <AdminCard
         icon={ApiIcon}
@@ -103,6 +270,7 @@ export const ApiTestingTab: React.FC = () => {
                       <th className="p-2">Method</th>
                       <th className="p-2">Endpoint</th>
                       <th className="p-2">Label</th>
+                      <th className="p-2 text-center">Mode</th>
                       <th className="p-2 text-center">Status</th>
                       <th className="p-2 text-right">Time</th>
                     </tr>
@@ -127,6 +295,17 @@ export const ApiTestingTab: React.FC = () => {
                         </td>
                         <td className="p-2 font-mono text-slate-300 break-all">{res.path}</td>
                         <td className="p-2 text-slate-400">{res.label}</td>
+                        <td className="p-2 text-center">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              res.usedAuth
+                                ? 'bg-amber-950/40 text-amber-300 border border-amber-800/30'
+                                : 'bg-slate-800/40 text-slate-400'
+                            }`}
+                          >
+                            {res.usedAuth ? '🔑 Auth' : '🔒 Public'}
+                          </span>
+                        </td>
                         <td className="p-2 text-center font-bold">
                           <span
                             className={
@@ -300,7 +479,7 @@ export const ApiTestingTab: React.FC = () => {
         {/* Response Panel */}
         <AdminCard icon={DownloadIcon} title="Response" color="from-emerald-500 to-emerald-600">
           <div className="space-y-3">
-            <div className="flex gap-4 text-sm pb-3 border-b border-slate-700/50">
+            <div className="flex flex-wrap gap-4 text-sm pb-3 border-b border-slate-700/50">
               <div>
                 <span className="text-slate-400">Status: </span>
                 <strong className={apiResult?.ok ? 'text-green-400' : 'text-red-400'}>
@@ -313,6 +492,20 @@ export const ApiTestingTab: React.FC = () => {
                   {apiResult ? `${apiResult.durationMs} ms` : '—'}
                 </strong>
               </div>
+              {apiResult && (
+                <div>
+                  <span className="text-slate-400">Mode: </span>
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      apiResult.usedAuth
+                        ? 'bg-amber-950/40 text-amber-300 border border-amber-800/30'
+                        : 'bg-slate-800/40 text-slate-400'
+                    }`}
+                  >
+                    {apiResult.usedAuth ? '🔑 Authenticated' : '🔒 Unauthenticated'}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-700/50">
