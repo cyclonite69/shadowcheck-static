@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-03)
+# 1.0.0 (2026-06-04)
 
 
 ### Bug Fixes
@@ -157,6 +157,7 @@
 * compute security type in MV instead of copying raw capabilities ([079d9c5](https://github.com/cyclonite69/shadowcheck-web/commit/079d9c5a63af59dd7f8d570b3de6b71874425dac))
 * **container:** remove circular dependency on wigleEnrichmentService ([bcbb156](https://github.com/cyclonite69/shadowcheck-web/commit/bcbb1566ff2fc4fc87fe3c81ede65db0df81fa03))
 * Convert NetworkTableHeader to CSS grid for consistent column reordering ([b9766e0](https://github.com/cyclonite69/shadowcheck-web/commit/b9766e047ec76b611a79f5d67921fb64b8b18f00))
+* correct 3 backend bugs found by API endpoint testing ([6cc827b](https://github.com/cyclonite69/shadowcheck-web/commit/6cc827b2468165d04d9793a9ac826776321e987b))
 * Correct analytics API paths in analytics.html ([d42e779](https://github.com/cyclonite69/shadowcheck-web/commit/d42e7796643e631196bfefdc4070f7b7a9f48164))
 * Correct API paths and column names for surveillance page ([337a46c](https://github.com/cyclonite69/shadowcheck-web/commit/337a46cab0121207bba40247e993be60cedc55d3))
 * correct BT capabilities parsing and BLE misclassification detection ([b88ecc0](https://github.com/cyclonite69/shadowcheck-web/commit/b88ecc0020ffa0c1a2c0d925f826ffcd062665aa))
@@ -485,7 +486,7 @@
 * **kepler:** restore tooltip rendering on map point hover ([4e0e078](https://github.com/cyclonite69/shadowcheck-web/commit/4e0e078fa22ad31eee62bc252fcca50d97663d46))
 * **kepler:** use live explorer timestamp columns ([b9d85ba](https://github.com/cyclonite69/shadowcheck-web/commit/b9d85ba36e3dbbd9cc6502d5e8e840a5d359ba50))
 * kismet importer streaming + param indexing, remove hamburger button ([a989a6e](https://github.com/cyclonite69/shadowcheck-web/commit/a989a6e44445662d4ed4fd7be6da447053d7f642))
-* **kml:** defer WiGLE sync when request budget is exhausted ([b90684b](https://github.com/cyclonite69/shadowcheck-web/commit/b90684b1359d88523b4ab172bb346e56033461dc))
+* **kml:** defer WiGLE sync when request budget is exhausted ([d7289c1](https://github.com/cyclonite69/shadowcheck-web/commit/d7289c1dcd3a99ec6d12516c43378880869f9716))
 * **L5:** correct CONFIG.THREAT_THRESHOLD interpolation in threats.ts SQL templates ([7097d52](https://github.com/cyclonite69/shadowcheck-web/commit/7097d528699bc7ef3b0b320e7ba0c24b78e79caf))
 * **layout:** map viewport accounts for header height on WiGLE page ([7c97d59](https://github.com/cyclonite69/shadowcheck-web/commit/7c97d59555261047a815b409599c199a75bf997f))
 * **layout:** revert panels to left side — sidebars belong on the left ([bea94ea](https://github.com/cyclonite69/shadowcheck-web/commit/bea94ea5e812401b46313572c7696921af3faa7a))

@@ -100,28 +100,6 @@ router.delete('/api/admin/network-tags/remove', async (req: any, res: any, next:
   }
 });
 
-// GET /api/admin/network-tags/:bssid - Get all tags for a network
-router.get('/admin/network-tags/:bssid', async (req: any, res: any, next: any) => {
-  try {
-    const { bssid } = req.params;
-
-    const result = await adminNetworkTagsService.getNetworkTagsExpanded(bssid);
-
-    if (!result) {
-      return res.status(404).json({
-        error: { message: `No tags found for network ${bssid}` },
-      });
-    }
-
-    res.json({
-      ok: true,
-      network: result,
-    });
-  } catch (error: any) {
-    next(error);
-  }
-});
-
 // GET /api/admin/network-tags/search - Search networks by tags
 router.get('/admin/network-tags/search', async (req: any, res: any, next: any) => {
   try {
@@ -160,6 +138,28 @@ router.get('/admin/network-tags/search', async (req: any, res: any, next: any) =
       searchTags: tagArray,
       networks: result,
       count: result.length,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+});
+
+// GET /api/admin/network-tags/:bssid - Get all tags for a network
+router.get('/admin/network-tags/:bssid', async (req: any, res: any, next: any) => {
+  try {
+    const { bssid } = req.params;
+
+    const result = await adminNetworkTagsService.getNetworkTagsExpanded(bssid);
+
+    if (!result) {
+      return res.status(404).json({
+        error: { message: `No tags found for network ${bssid}` },
+      });
+    }
+
+    res.json({
+      ok: true,
+      network: result,
     });
   } catch (error: any) {
     next(error);
