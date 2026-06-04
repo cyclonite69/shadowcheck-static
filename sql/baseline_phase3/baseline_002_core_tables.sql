@@ -347,7 +347,8 @@ CREATE INDEX IF NOT EXISTS idx_observations_time ON app.observations_legacy USIN
 CREATE INDEX IF NOT EXISTS idx_observations_observed_at_ms ON app.observations_legacy USING btree (observed_at_ms);
 CREATE INDEX IF NOT EXISTS idx_observations_v2_bssid ON app.observations USING btree (bssid);
 CREATE INDEX IF NOT EXISTS idx_observations_v2_device_id ON app.observations USING btree (device_id);
-CREATE INDEX IF NOT EXISTS idx_observations_v2_geom ON app.observations USING gist (geom);
+-- idx_observations_v2_geom is redundant (app.idx_obs_geom_gist is created in baseline_006_indexes_grants_defaults.sql)
+-- CREATE INDEX IF NOT EXISTS idx_observations_v2_geom ON app.observations USING gist (geom);
 CREATE INDEX IF NOT EXISTS idx_observations_v2_observed_at_ms ON app.observations USING btree (observed_at_ms);
 CREATE INDEX IF NOT EXISTS idx_observations_v2_radio_frequency ON app.observations USING btree (radio_frequency);
 CREATE INDEX IF NOT EXISTS idx_observations_v2_radio_type ON app.observations USING btree (radio_type);
