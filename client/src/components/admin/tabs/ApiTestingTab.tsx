@@ -92,7 +92,15 @@ export const ApiTestingTab: React.FC = () => {
     loginError,
     login,
     logout,
+    apiHealth,
+    loadApiHealth,
+    runDestructive,
+    setRunDestructive,
   } = useApiTesting();
+
+  React.useEffect(() => {
+    loadApiHealth();
+  }, []);
 
   const [usernameInput, setUsernameInput] = React.useState('admin');
   const [passwordInput, setPasswordInput] = React.useState('');
@@ -247,6 +255,28 @@ export const ApiTestingTab: React.FC = () => {
         color="from-emerald-500 to-emerald-600"
       >
         <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs text-slate-400 pb-2 border-b border-slate-800/60">
+            <div className="flex flex-col gap-1">
+              <span>
+                Target Database:{' '}
+                <span className="font-mono font-bold text-blue-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-700/50">
+                  {apiHealth?.database || 'Loading...'}
+                </span>
+              </span>
+              <span>
+                API Health:{' '}
+                <span
+                  className={`font-semibold ${apiHealth?.status === 'HEALTHY' || apiHealth?.status === 'ONLINE' ? 'text-green-400' : 'text-amber-400'}`}
+                >
+                  {apiHealth?.status || 'Loading...'}
+                </span>
+              </span>
+            </div>
+            <div className="text-right text-[11px] text-slate-500">
+              App Version: <span className="font-mono">{apiHealth?.version || 'N/A'}</span>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <span className="text-xs text-slate-400">
               Run automated check sequences against all registered endpoints sequentially with local
@@ -315,12 +345,15 @@ export const ApiTestingTab: React.FC = () => {
                                   ? 'text-slate-400'
                                   : res.resultStatus === 'validation'
                                     ? 'text-amber-400'
-                                    : 'text-red-400'
+                                    : res.resultStatus === 'skipped'
+                                      ? 'text-slate-500 font-normal italic'
+                                      : 'text-red-400'
                             }
                           >
                             {res.resultStatus === 'pass' && '✅ '}
                             {res.resultStatus === 'auth' && '🔒 '}
                             {res.resultStatus === 'validation' && '⚠️ '}
+                            {res.resultStatus === 'skipped' && '🚫 '}
                             {res.resultStatus === 'fail' && '❌ '}
                             {res.status}
                           </span>
@@ -343,6 +376,10 @@ export const ApiTestingTab: React.FC = () => {
                 <strong className="text-slate-400">
                   {testAllResults.filter((r) => r.resultStatus === 'auth').length}
                 </strong>{' '}
+                | 🚫 Skipped:{' '}
+                <strong className="text-slate-500">
+                  {testAllResults.filter((r) => r.resultStatus === 'skipped').length}
+                </strong>{' '}
                 | ⚠️ Validation:{' '}
                 <strong className="text-amber-400">
                   {testAllResults.filter((r) => r.resultStatus === 'validation').length}
@@ -354,6 +391,32 @@ export const ApiTestingTab: React.FC = () => {
               </div>
             </div>
           )}
+          <div className="flex items-center gap-2.5 bg-slate-950/30 p-3 rounded-lg border border-slate-800/50 mt-4">
+            <input
+              id="run-destructive"
+              type="checkbox"
+              checked={runDestructive}
+              onChange={(e) => setRunDestructive(e.target.checked)}
+              className="h-4.5 w-4.5 rounded border-slate-700 bg-slate-900 text-emerald-600 focus:ring-emerald-500/50 cursor-pointer"
+            />
+            <div className="flex flex-col">
+              <label
+                htmlFor="run-destructive"
+                className="text-xs font-semibold text-slate-200 select-none cursor-pointer flex items-center gap-1.5"
+              >
+                Include Destructive Tests
+                {runDestructive && (
+                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-red-950/50 text-red-400 border border-red-900/30 animate-pulse">
+                    ⚠️ Destructive Mode Active
+                  </span>
+                )}
+              </label>
+              <span className="text-[10px] text-slate-400 mt-0.5 leading-normal">
+                If enabled, destructive endpoints (e.g. Mapbox config delete, home location marker
+                delete, sibling pairs purge) will execute on the targeted database.
+              </span>
+            </div>
+          </div>
         </div>
       </AdminCard>
 

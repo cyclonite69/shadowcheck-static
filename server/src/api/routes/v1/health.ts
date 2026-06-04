@@ -8,12 +8,14 @@ const startTime = Date.now();
 router.get('/health', async (req, res) => {
   const checks = {};
   let overallStatus = 'healthy';
+  let dbName = 'unknown';
 
   // 1. Database check
   const dbStart = Date.now();
   try {
-    await pool.query('SELECT 1');
-    (checks as any).database = { status: 'ok', latency_ms: Date.now() - dbStart };
+    const dbRes = await pool.query('SELECT current_database() AS db_name');
+    dbName = dbRes.rows[0]?.db_name || 'unknown';
+    (checks as any).database = { status: 'ok', database: dbName, latency_ms: Date.now() - dbStart };
   } catch (err) {
     (checks as any).database = { status: 'error', error: (err as any).message };
     overallStatus = 'unhealthy';
@@ -81,6 +83,7 @@ router.get('/health', async (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: Math.floor((Date.now() - startTime) / 1000),
     checks,
+    database: dbName,
   };
 
   const statusCode = overallStatus === 'unhealthy' ? 503 : 200;

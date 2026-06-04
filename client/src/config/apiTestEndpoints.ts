@@ -25,6 +25,7 @@ export interface ApiEndpointConfig {
   params?: ApiInput[];
   requiresAuth?: boolean;
   defaultBody?: string;
+  isDestructive?: boolean;
 }
 
 export type { HttpMethod };
@@ -104,6 +105,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     params: [{ name: 'label', label: 'Label', placeholder: 'default' }],
+    isDestructive: true,
   },
   {
     category: 'Health & Core',
@@ -264,6 +266,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/location-markers/home',
     method: 'DELETE',
     requiresAuth: true,
+    isDestructive: true,
   },
   {
     category: 'Geospatial',
@@ -1818,6 +1821,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/siblings/pairs',
     method: 'DELETE',
     requiresAuth: true,
+    isDestructive: true,
   },
   {
     category: 'Admin Analysis',

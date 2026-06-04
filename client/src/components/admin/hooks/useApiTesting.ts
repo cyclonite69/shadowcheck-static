@@ -76,6 +76,7 @@ export const useApiTesting = () => {
   const [apiResult, setApiResult] = useState<any>(null);
   const [apiError, setApiError] = useState('');
   const [apiHealth, setApiHealth] = useState<ApiHealth | null>(null);
+  const [runDestructive, setRunDestructive] = useState(false);
 
   const loadApiHealth = async () => {
     const candidates = ['/health', '/api/health'];
@@ -94,14 +95,15 @@ export const useApiTesting = () => {
         const reportedStatus =
           typeof parsed?.status === 'string' ? String(parsed.status).toUpperCase() : 'ONLINE';
         const version = parsed?.version || 'N/A';
-        setApiHealth({ status: reportedStatus, version });
+        const database = parsed?.database || 'N/A';
+        setApiHealth({ status: reportedStatus, version, database });
         return;
       } catch {
         // Try next candidate.
       }
     }
 
-    setApiHealth({ status: 'OFFLINE', version: 'N/A' });
+    setApiHealth({ status: 'OFFLINE', version: 'N/A', database: 'N/A' });
   };
 
   const selectPreset = (preset: ApiPreset) => {
@@ -265,6 +267,24 @@ export const useApiTesting = () => {
       const queryString = queryParams.toString();
       const resolvedUrl = queryString ? `${finalUrl}?${queryString}` : finalUrl;
 
+      if (preset.isDestructive && !runDestructive) {
+        const outcome = {
+          label: preset.label,
+          category: preset.category,
+          method: preset.method,
+          path: resolvedUrl,
+          ok: true,
+          status: 'SKIPPED',
+          resultStatus: 'skipped' as const,
+          durationMs: 0,
+          body: 'Skipped (Destructive endpoint). Check "Include Destructive Tests" to run.',
+          usedAuth: useAuthentication && isAuthenticated,
+        };
+        results.push(outcome);
+        setTestAllResults([...results]);
+        continue;
+      }
+
       const start = performance.now();
       try {
         const opts: RequestInit = {
@@ -343,5 +363,7 @@ export const useApiTesting = () => {
     loginError,
     login,
     logout,
+    runDestructive,
+    setRunDestructive,
   };
 };
