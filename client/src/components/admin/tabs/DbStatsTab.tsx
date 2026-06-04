@@ -203,7 +203,8 @@ export const DbStatsTab: React.FC = () => {
         <div className="mb-4 p-3 bg-red-950/30 border border-red-900/50 rounded-lg">
           <p className="text-sm font-medium text-red-300">
             {summary.count} index{summary.count !== 1 ? 'es' : ''} · {summary.total_mb} MB unused (0
-            scans since stats reset)
+            scans since stats reset
+            {stats?.stats_reset ? ` at ${formatShortDate(stats.stats_reset)}` : ''})
           </p>
         </div>
       )}
