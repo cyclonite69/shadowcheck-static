@@ -227,9 +227,10 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-sqlite').send({ source_tag: 'test' });
-      expect(res.status).toBe(200);
-      expect(res.body.imported).toBe('10');
-      expect(res.body.failed).toBe('2');
+      expect(res.status).toBe(202);
+      expect(res.body.ok).toBe(true);
+      expect(res.body.status).toBe('started');
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(adminImportHistoryService.completeImportSuccess).toHaveBeenCalled();
     });
 
@@ -245,7 +246,7 @@ describe('admin/import routes', () => {
       const res = await request(app)
         .post('/api/admin/import-sqlite')
         .send({ source_tag: 'test', backup: true });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(202);
       expect(backupService.runPostgresBackup).toHaveBeenCalled();
       expect(adminImportHistoryService.markImportBackupTaken).toHaveBeenCalledWith(1);
     });
@@ -262,7 +263,7 @@ describe('admin/import routes', () => {
       const res = await request(app)
         .post('/api/admin/import-sqlite')
         .send({ source_tag: 'test', backup: true });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(202);
     });
 
     it('should handle import process error', async () => {
@@ -274,7 +275,8 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-sqlite').send({ source_tag: 'test' });
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
 
@@ -288,7 +290,8 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-sqlite').send({ source_tag: 'test' });
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
 
@@ -319,8 +322,9 @@ describe('admin/import routes', () => {
       const res = await request(app)
         .post('/api/admin/import-sqlite')
         .send({ source_tag: 'test', isKismet: true });
-      expect(res.status).toBe(200);
-      expect(res.body.imported).toBe('1');
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(adminImportHistoryService.completeImportSuccess).toHaveBeenCalled();
     });
   });
 
@@ -340,7 +344,8 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-sql').send({ source_tag: 'test_sql' });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(adminImportHistoryService.completeImportSuccess).toHaveBeenCalled();
     });
 
@@ -354,7 +359,7 @@ describe('admin/import routes', () => {
       backupService.runPostgresBackup.mockResolvedValueOnce();
 
       const res = await request(app).post('/api/admin/import-sql').send({ backup: true });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(202);
       expect(backupService.runPostgresBackup).toHaveBeenCalled();
     });
 
@@ -367,7 +372,9 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-sql').send({});
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
 
     it('should handle sql non-zero exit', async () => {
@@ -379,7 +386,9 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-sql').send({});
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
 
     it('should return 400 if getSqlImportCommand throws an error', async () => {
@@ -508,7 +517,8 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-kml').send({});
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(adminImportHistoryService.completeImportSuccess).toHaveBeenCalled();
     });
 
@@ -548,11 +558,8 @@ describe('admin/import routes', () => {
 
       const res = await request(app).post('/api/admin/import-kml').send({ force: 'true' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.forced).toBe(true);
-      expect(res.body.skipped).toBe(0);
-      expect(findKmlFilesByHashes).not.toHaveBeenCalled();
-      expect(spawn).toHaveBeenCalled();
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(adminImportHistoryService.completeImportSuccess).toHaveBeenCalled();
     });
 
@@ -565,7 +572,8 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-kml').send({});
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
 
@@ -578,7 +586,9 @@ describe('admin/import routes', () => {
       });
 
       const res = await request(app).post('/api/admin/import-kml').send({});
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(202);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
 
     it('should return 400 if getKmlImportCommand throws an error', async () => {

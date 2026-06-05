@@ -104,6 +104,7 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
     }
 
     if (importableFiles.length === 0) {
+      await cleanupPaths(cleanupTargets);
       return res.json({
         ok: true,
         importType: 'kml',
@@ -152,66 +153,64 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
       await cleanupPaths(cleanupTargets);
       return res.status(400).json({ ok: false, error: err.message });
     }
-    const importResult = await new Promise((resolve, reject) => {
-      const p = spawn(cmd, args, {
-        cwd: PROJECT_ROOT,
-        env: {
-          ...process.env,
-          DB_ADMIN_PASSWORD: secretsManager.get('db_admin_password') || '',
-          DB_ADMIN_USER: 'shadowcheck_admin',
-        },
-      });
-      let output = '',
-        errorOutput = '';
-      p.stdout.on('data', (d) => (output += d));
-      p.stderr.on('data', (d) => (errorOutput += d));
-      p.on('close', (code) => resolve({ code, output, errorOutput }));
-      p.on('error', reject);
+    const p = spawn(cmd, args, {
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        DB_ADMIN_PASSWORD: secretsManager.get('db_admin_password') || '',
+        DB_ADMIN_USER: 'shadowcheck_admin',
+      },
     });
-    const durationSec = ((Date.now() - startedAt) / 1000).toFixed(2);
-    if (importResult.code !== 0) {
+
+    res.status(202).json({
+      ok: true,
+      status: 'started',
+      historyId,
+      sourceTag: historyContext.sourceTag,
+      filename: historyContext.filename,
+      message: 'Import started in background. Monitor import history for completion.',
+    });
+
+    let output = '',
+      errorOutput = '';
+    p.stdout.on('data', (d) => (output += d));
+    p.stderr.on('data', (d) => (errorOutput += d));
+    p.on('error', async (err) => {
+      logger.error(`KML import process error: ${err.message}`);
+      const durationSec = ((Date.now() - startedAt) / 1000).toFixed(2);
       if (historyId) {
-        await adminImportHistoryService.failImportHistory(
+        await adminImportHistoryService.failImportHistory(historyId, err.message, durationSec);
+      }
+      await cleanupPaths(cleanupTargets);
+    });
+    p.on('close', async (code) => {
+      await cleanupPaths(cleanupTargets);
+      const durationSec = ((Date.now() - startedAt) / 1000).toFixed(2);
+      if (code !== 0) {
+        logger.error(`KML import failed with exit status ${code}. Error: ${errorOutput}`);
+        if (historyId) {
+          await adminImportHistoryService.failImportHistory(
+            historyId,
+            errorOutput.slice(0, 500) || `Exit code ${code}`,
+            durationSec
+          );
+        }
+        return;
+      }
+      const { filesImported, pointsImported } = parseKmlImportCounts(
+        output,
+        importableFiles.length
+      );
+      const metricsAfter = await adminImportHistoryService.captureImportMetrics();
+      if (historyId) {
+        await adminImportHistoryService.completeImportSuccess(
           historyId,
-          importResult.errorOutput || `code ${importResult.code}`,
-          durationSec
+          pointsImported,
+          Math.max(importableFiles.length - filesImported, 0),
+          durationSec,
+          metricsAfter
         );
       }
-      return res.status(500).json({
-        ok: false,
-        error: 'KML import failed',
-        output: importResult.output,
-        errorOutput: importResult.errorOutput,
-      });
-    }
-    const { filesImported, pointsImported } = parseKmlImportCounts(
-      importResult.output,
-      importableFiles.length
-    );
-    const metricsAfter = await adminImportHistoryService.captureImportMetrics();
-    if (historyId) {
-      await adminImportHistoryService.completeImportSuccess(
-        historyId,
-        pointsImported,
-        Math.max(importableFiles.length - filesImported, 0),
-        durationSec,
-        metricsAfter
-      );
-    }
-    res.json({
-      ok: true,
-      importType: 'kml',
-      batchId,
-      filesImported,
-      pointsImported,
-      skipped: skippedFiles.length,
-      skippedFiles,
-      forced: forceImport,
-      durationSec,
-      historyId,
-      metricsBefore,
-      metricsAfter,
-      output: importResult.output,
     });
   } catch (err) {
     if (historyId) {
@@ -221,10 +220,9 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
         ((Date.now() - startedAt) / 1000).toFixed(2)
       );
     }
+    await cleanupPaths(cleanupTargets);
     res.status(500).json({ ok: false, error: err.message });
     logger.error(`KML import failed (batch: ${batchId}): ${err.message}`, { error: err, batchId });
-  } finally {
-    await cleanupPaths(cleanupTargets);
   }
 });
 

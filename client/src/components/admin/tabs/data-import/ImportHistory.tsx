@@ -152,6 +152,20 @@ export function ImportHistory({ refreshKey }: { refreshKey: number }) {
       .finally(() => setLoading(false));
   }, [refreshKey, reloadKey]);
 
+  useEffect(() => {
+    const hasRunning = history.some((run) => run.status === 'running');
+    if (!hasRunning) return;
+
+    const interval = setInterval(() => {
+      adminApi
+        .getImportHistory(10)
+        .then((data: any) => setHistory(data?.history ?? []))
+        .catch(() => {});
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [history]);
+
   const toggle = (id: number) =>
     setExpanded((prev) => {
       const next = new Set(prev);

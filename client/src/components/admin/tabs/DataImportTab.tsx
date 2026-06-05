@@ -87,9 +87,18 @@ export const DataImportTab: React.FC = () => {
 
       {/* Import History */}
       <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-slate-300 mb-3">
-          Import History{' '}
-          <span className="text-slate-500 font-normal text-xs">— click a row for details</span>
+        <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center justify-between">
+          <span>
+            Import History{' '}
+            <span className="text-slate-500 font-normal text-xs">— click a row for details</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setHistoryKey((k) => k + 1)}
+            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700/60 rounded text-xs text-slate-300 transition-colors"
+          >
+            Refresh
+          </button>
         </h3>
         <ImportHistory refreshKey={historyKey} />
       </div>

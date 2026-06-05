@@ -30,11 +30,9 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) 
     originalName,
     metricsBefore
   );
-  let backupTaken = false;
   if (backupRequested) {
     try {
       await runPostgresBackup({ uploadToS3: true });
-      backupTaken = true;
       if (historyId) {
         await adminImportHistoryService.markImportBackupTaken(historyId);
       }
@@ -56,15 +54,26 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) 
     return res.status(400).json({ ok: false, error: err.message });
   }
   const p = spawn(cmd, args, { cwd: PROJECT_ROOT, env });
+
+  res.status(202).json({
+    ok: true,
+    status: 'started',
+    historyId,
+    sourceTag,
+    filename: originalName,
+    message: 'Import started in background. Monitor import history for completion.',
+  });
+
   let output = '',
     errorOutput = '';
   p.stdout.on('data', (d) => (output += d));
   p.stderr.on('data', (d) => (errorOutput += d));
   p.on('error', async (err) => {
+    logger.error(`SQL import process error: ${err.message}`);
     if (historyId) {
       await adminImportHistoryService.failImportHistory(historyId, err.message, '0');
     }
-    res.status(500).json({ ok: false, error: err.message });
+    await fs.unlink(sqlFile).catch(() => {});
   });
   p.on('close', async (code) => {
     await fs.unlink(sqlFile).catch(() => {});
@@ -80,17 +89,8 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) 
           metricsAfter
         );
       }
-      res.json({
-        ok: true,
-        sourceTag,
-        backupTaken,
-        historyId,
-        durationSec: durationS,
-        metricsBefore,
-        metricsAfter,
-        output: output.slice(-10000),
-      });
     } else {
+      logger.error(`SQL import failed with exit status ${code}. Error: ${errorOutput}`);
       if (historyId) {
         await adminImportHistoryService.failImportHistory(
           historyId,
@@ -98,13 +98,6 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) 
           durationS
         );
       }
-      res.status(500).json({
-        ok: false,
-        error: 'SQL import failed',
-        code,
-        output: output.slice(-10000),
-        errorOutput: errorOutput.slice(-10000),
-      });
     }
   });
 });

@@ -134,6 +134,10 @@ describe('admin/import-sqlite route', () => {
     jest.resetModules();
     jest.clearAllMocks();
 
+    const fs = require('fs');
+    fs.promises.unlink = jest.fn().mockResolvedValue(undefined);
+    fs.promises.rm = jest.fn().mockResolvedValue(undefined);
+
     spawn = require('child_process').spawn;
     importHelpers = require('../../server/src/services/admin/adminHelpers');
     container = require('../../server/src/config/container');
@@ -169,6 +173,9 @@ describe('admin/import-sqlite route', () => {
 
     expect(container.backupService.runPostgresBackup).toHaveBeenCalledWith({ uploadToS3: true });
     expect(container.adminImportHistoryService.markImportBackupTaken).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
     expect(container.adminImportHistoryService.completeImportSuccess).toHaveBeenCalledWith(
       42,
       9789,
@@ -176,11 +183,9 @@ describe('admin/import-sqlite route', () => {
       expect.any(String),
       { observations: 629350, networks: 187854 }
     );
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(202);
     expect(res.body.ok).toBe(true);
-    expect(res.body.backupTaken).toBe(false);
-    expect(res.body.imported).toBe('9789');
-    expect(res.body.failed).toBe('0');
+    expect(res.body.status).toBe('started');
   });
 
   test('records failure when the import process exits non-zero', async () => {
@@ -202,13 +207,15 @@ describe('admin/import-sqlite route', () => {
     await handler(req, res, jest.fn());
     await done;
 
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
     expect(container.adminImportHistoryService.failImportHistory).toHaveBeenCalledWith(
       42,
       expect.stringContaining('permission denied for schema app'),
       expect.any(String)
     );
-    expect(res.statusCode).toBe(500);
-    expect(res.body.ok).toBe(false);
-    expect(res.body.error).toBe('Import failed');
+    expect(res.statusCode).toBe(202);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.status).toBe('started');
   });
 });

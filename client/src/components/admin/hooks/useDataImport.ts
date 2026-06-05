@@ -56,7 +56,8 @@ export const useDataImport = () => {
       setLastResult(result);
       setImportStatus(
         result.ok
-          ? `Imported ${(result.imported ?? 0).toLocaleString()} observations (${result.failed ?? 0} failed)`
+          ? result.message ||
+              `Imported ${(result.imported ?? 0).toLocaleString()} observations (${result.failed ?? 0} failed)`
           : `Failed: ${result.error || 'Unknown error'}`
       );
     } catch {
@@ -127,7 +128,8 @@ export const useDataImport = () => {
       const skipped = Number(result.skipped || 0);
       setKmlImportStatus(
         result.ok
-          ? `Imported ${Number(result.filesImported || 0).toLocaleString()} KML file(s) into ${Number(result.pointsImported || 0).toLocaleString()} staged points${skipped ? ` (${skipped.toLocaleString()} duplicate skipped)` : ''}`
+          ? result.message ||
+              `Imported ${Number(result.filesImported || 0).toLocaleString()} KML file(s) into ${Number(result.pointsImported || 0).toLocaleString()} staged points${skipped ? ` (${skipped.toLocaleString()} duplicate skipped)` : ''}`
           : `Failed: ${result.error || 'Unknown error'}`
       );
       void refreshKmlImports();

@@ -46,11 +46,9 @@ router.post('/admin/import-sqlite', upload.single('database'), async (req, res) 
     originalName,
     metricsBefore
   );
-  let backupTaken = false;
   if (backupRequested) {
     try {
       await runPostgresBackup({ uploadToS3: true });
-      backupTaken = true;
       if (historyId) {
         await adminImportHistoryService.markImportBackupTaken(historyId);
       }
@@ -79,15 +77,26 @@ router.post('/admin/import-sqlite', upload.single('database'), async (req, res) 
       DB_ADMIN_USER: 'shadowcheck_admin',
     },
   });
+
+  res.status(202).json({
+    ok: true,
+    status: 'started',
+    historyId,
+    sourceTag,
+    filename: originalName,
+    message: 'Import started in background. Monitor import history for completion.',
+  });
+
   let output = '',
     errorOutput = '';
   importProcess.stdout.on('data', (d) => (output += d));
   importProcess.stderr.on('data', (d) => (errorOutput += d));
   importProcess.on('error', async (err) => {
+    logger.error(`SQLite import process error: ${err.message}`);
     if (historyId) {
       await adminImportHistoryService.failImportHistory(historyId, err.message, '0');
     }
-    res.status(500).json({ ok: false, error: err.message });
+    await fs.unlink(sqliteFile).catch(() => {});
   });
   importProcess.on('close', async (code) => {
     await fs.unlink(sqliteFile).catch(() => {});
@@ -105,18 +114,8 @@ router.post('/admin/import-sqlite', upload.single('database'), async (req, res) 
           metricsAfter
         );
       }
-      res.json({
-        ok: true,
-        sourceTag,
-        imported,
-        failed,
-        backupTaken,
-        historyId,
-        metricsBefore,
-        metricsAfter,
-        output,
-      });
     } else {
+      logger.error(`SQLite import failed with exit status ${code}. Error: ${errorOutput}`);
       if (historyId) {
         await adminImportHistoryService.failImportHistory(
           historyId,
@@ -124,7 +123,6 @@ router.post('/admin/import-sqlite', upload.single('database'), async (req, res) 
           durationS
         );
       }
-      res.status(500).json({ ok: false, error: 'Import failed', code, output, errorOutput });
     }
   });
 });
