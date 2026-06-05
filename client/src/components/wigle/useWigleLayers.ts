@@ -12,6 +12,7 @@ export interface WigleLayerState {
   deflockCameras: boolean;
   shotspotterZones: boolean;
   shotspotterSensors: boolean;
+  homeArea: boolean;
 }
 
 function loadLayerState(): WigleLayerState {

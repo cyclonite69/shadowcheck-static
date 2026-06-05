@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
-import { createCirclePolygon, calculateSignalRange, macColor } from '../../../utils/mapHelpers';
+import {
+  calculateSignalRange,
+  macColor,
+  ensureHomeLocationLayers,
+} from '../../../utils/mapHelpers';
 
 const getNumericProperty = (props: Record<string, unknown>, ...keys: string[]): number | null => {
   for (const key of keys) {
@@ -218,66 +222,7 @@ export const useMapLayers = () => {
       }
 
       // 4. Home Location Sources & Layers
-      map.addSource('home-location-point', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              geometry: { type: 'Point', coordinates: homeLocation.center },
-              properties: { title: 'Home' },
-            },
-          ],
-        },
-      });
-
-      map.addSource('home-location-circle', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [createCirclePolygon(homeLocation.center, homeLocation.radius)],
-        },
-      });
-
-      map.addLayer({
-        id: 'home-circle-fill',
-        type: 'fill',
-        source: 'home-location-circle',
-        paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
-      });
-
-      map.addLayer({
-        id: 'home-circle-outline',
-        type: 'line',
-        source: 'home-location-circle',
-        paint: { 'line-color': '#10b981', 'line-width': 2, 'line-opacity': 0.8 },
-      });
-
-      map.addLayer({
-        id: 'home-dot',
-        type: 'circle',
-        source: 'home-location-point',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#10b981',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-
-      map.addLayer({
-        id: 'home-marker',
-        type: 'symbol',
-        source: 'home-location-point',
-        layout: {
-          'text-field': 'H',
-          'text-size': 14,
-          'text-anchor': 'center',
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-        },
-        paint: { 'text-color': '#ffffff' },
-      });
+      ensureHomeLocationLayers(map, homeLocation, true);
 
       // 5. Radius Filter Sources & Layers (empty until radiusFilter is set)
       map.addSource('radius-filter-circle', {

@@ -17,6 +17,7 @@ export const DEFAULT_LAYERS = {
   deflockCameras: false,
   shotspotterZones: false,
   shotspotterSensors: false,
+  homeArea: true,
 } as const;
 
 /**

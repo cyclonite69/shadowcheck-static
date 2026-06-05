@@ -2,7 +2,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { Map as MapboxMap, GeoJSONSource } from 'mapbox-gl';
 import type { NetworkRow, Observation } from '../../../types/network';
 import { MAP_STYLES } from '../../../constants/network';
-import { createCirclePolygon, createGoogleStyle, macColor } from '../../../utils/mapHelpers';
+import { createGoogleStyle, macColor, ensureHomeLocationLayers } from '../../../utils/mapHelpers';
 import { mapboxApi } from '../../../api/mapboxApi';
 
 type HomeLocation = {
@@ -331,84 +331,7 @@ export const useMapStyleControls = ({
       }
 
       // Re-add home location sources and layers
-      mapRef.current.addSource('home-location-point', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: homeLocation.center,
-              },
-              properties: {
-                title: 'Home',
-              },
-            },
-          ],
-        },
-      });
-
-      mapRef.current.addSource('home-location-circle', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [createCirclePolygon(homeLocation.center, homeLocation.radius)],
-        },
-      });
-
-      // Home circle fill
-      mapRef.current.addLayer({
-        id: 'home-circle-fill',
-        type: 'fill',
-        source: 'home-location-circle',
-        paint: {
-          'fill-color': '#10b981',
-          'fill-opacity': 0.15,
-        },
-      });
-
-      // Home circle outline
-      mapRef.current.addLayer({
-        id: 'home-circle-outline',
-        type: 'line',
-        source: 'home-location-circle',
-        paint: {
-          'line-color': '#10b981',
-          'line-width': 2,
-          'line-opacity': 0.8,
-        },
-      });
-
-      // Home marker dot
-      mapRef.current.addLayer({
-        id: 'home-dot',
-        type: 'circle',
-        source: 'home-location-point',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#10b981',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-
-      // Home marker label
-      mapRef.current.addLayer({
-        id: 'home-marker',
-        type: 'symbol',
-        source: 'home-location-point',
-        layout: {
-          'text-field': 'H',
-          'text-size': 14,
-          'text-anchor': 'center',
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-        },
-        paint: {
-          'text-color': '#ffffff',
-        },
-      });
+      ensureHomeLocationLayers(mapRef.current, homeLocation, true);
 
       // Restore layers if they were enabled (or set state for standard styles)
       // Small delay to ensure Mapbox internal state is fully ready for config properties

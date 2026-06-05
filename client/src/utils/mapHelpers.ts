@@ -234,3 +234,118 @@ export const frequencyToChannel = (freqMhz: number | null | undefined): number |
   }
   return null;
 };
+
+/**
+ * Idempotently setup or update the Home Location sources and layers on the Mapbox instance.
+ * Visibility will be controlled based on the active layer visibility.
+ */
+export const ensureHomeLocationLayers = (
+  map: any,
+  homeLocation: { center: [number, number]; radius: number },
+  visible: boolean = true
+) => {
+  if (!map) return;
+
+  const visibility = visible ? 'visible' : 'none';
+
+  // 1. Point Source
+  const pointSource = map.getSource('home-location-point');
+  const pointData = {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: homeLocation.center },
+        properties: { title: 'Home' },
+      },
+    ],
+  };
+
+  if (!pointSource) {
+    map.addSource('home-location-point', {
+      type: 'geojson',
+      data: pointData,
+    });
+  } else {
+    pointSource.setData(pointData);
+  }
+
+  // 2. Circle Source
+  const circleSource = map.getSource('home-location-circle');
+  const circleData = {
+    type: 'FeatureCollection',
+    features: [createCirclePolygon(homeLocation.center, homeLocation.radius)],
+  };
+
+  if (!circleSource) {
+    map.addSource('home-location-circle', {
+      type: 'geojson',
+      data: circleData,
+    });
+  } else {
+    circleSource.setData(circleData);
+  }
+
+  // 3. Fill Layer
+  if (!map.getLayer('home-circle-fill')) {
+    map.addLayer({
+      id: 'home-circle-fill',
+      type: 'fill',
+      source: 'home-location-circle',
+      paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
+      layout: { visibility },
+    });
+  } else {
+    map.setLayoutProperty('home-circle-fill', 'visibility', visibility);
+  }
+
+  // 4. Outline Layer
+  if (!map.getLayer('home-circle-outline')) {
+    map.addLayer({
+      id: 'home-circle-outline',
+      type: 'line',
+      source: 'home-location-circle',
+      paint: { 'line-color': '#10b981', 'line-width': 2, 'line-opacity': 0.8 },
+      layout: { visibility },
+    });
+  } else {
+    map.setLayoutProperty('home-circle-outline', 'visibility', visibility);
+  }
+
+  // 5. Dot Layer
+  if (!map.getLayer('home-dot')) {
+    map.addLayer({
+      id: 'home-dot',
+      type: 'circle',
+      source: 'home-location-point',
+      paint: {
+        'circle-radius': 8,
+        'circle-color': '#10b981',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+      },
+      layout: { visibility },
+    });
+  } else {
+    map.setLayoutProperty('home-dot', 'visibility', visibility);
+  }
+
+  // 6. Marker Label Layer
+  if (!map.getLayer('home-marker')) {
+    map.addLayer({
+      id: 'home-marker',
+      type: 'symbol',
+      source: 'home-location-point',
+      layout: {
+        'text-field': 'H',
+        'text-size': 14,
+        'text-anchor': 'center',
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        visibility,
+      },
+      paint: { 'text-color': '#ffffff' },
+    });
+  } else {
+    map.setLayoutProperty('home-marker', 'visibility', visibility);
+  }
+};

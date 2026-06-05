@@ -121,6 +121,12 @@ export const WigleControlPanel: React.FC<WigleControlPanelProps> = ({
             color="#FF6B00"
           />
           <LayerToggle
+            label="Home Area"
+            enabled={layers.homeArea}
+            onChange={() => onToggleLayer('homeArea')}
+            color="#10b981"
+          />
+          <LayerToggle
             label="ShotSpotter Zones"
             enabled={layers.shotspotterZones}
             onChange={() => onToggleLayer('shotspotterZones')}

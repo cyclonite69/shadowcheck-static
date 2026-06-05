@@ -43,6 +43,7 @@ import { useWigleResize } from './wigle/useWigleResize';
 import { apply3dBuildings, applyTerrain, runWhenStyleReady } from './wigle/mapLifecycle';
 import { useHomeLocationLayer } from './geospatial/hooks/useHomeLocationLayer';
 import { locationApi } from '../api/locationApi';
+import { ensureHomeLocationLayers } from '../utils/mapHelpers';
 import { DEFAULT_HOME_RADIUS } from '../constants/network';
 import { fitBoundsWithZoomInset } from '../utils/geospatial/mapViewUtils';
 
@@ -276,6 +277,8 @@ const WiglePage: React.FC = () => {
           ensureShotspotterSensorLayers(map, shotspotterSensorsData);
         }
 
+        ensureHomeLocationLayers(map, homeLocation, currentLayers.homeArea);
+
         setPointRadius(map, pointSize);
         applyLayerVisibilityCallback();
         updateAllClusterColorsCallback();
@@ -291,6 +294,7 @@ const WiglePage: React.FC = () => {
       courthouseData,
       deflockData,
       ensureAllLayers,
+      homeLocation,
       mapStyle,
       pointSize,
       shotspotterData,
@@ -317,6 +321,8 @@ const WiglePage: React.FC = () => {
     layers.showFieldData,
     layers.v2,
     layers.v3,
+    layers.homeArea,
+    homeLocation,
     mapReady,
     pointSize,
     show3dBuildings,
@@ -340,7 +346,7 @@ const WiglePage: React.FC = () => {
     attachClickHandlersCallback,
     updateAllClusterColorsCallback,
   });
-  useHomeLocationLayer({ mapReady, mapRef, homeLocation });
+  useHomeLocationLayer({ mapReady, mapRef, homeLocation, visible: layers.homeArea });
   const {
     loading: fieldDataLoading,
     error: fieldDataError,
