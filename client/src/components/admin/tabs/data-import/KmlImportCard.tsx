@@ -430,6 +430,17 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
             </div>
           )}
 
+          {syncResult.syncedCount === 0 &&
+            syncResult.skippedCount > 0 &&
+            syncResult.failedCount === 0 &&
+            (syncResult.deferredCount || 0) === 0 && (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-2 text-slate-300 text-[11px] leading-relaxed">
+                Processed {syncResult.skippedCount} transactions: 0 imported,{' '}
+                {syncResult.skippedCount} already present. Local KML staging appears up to date for
+                the current remote transaction window.
+              </div>
+            )}
+
           <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1">
             <span>Batch size: 10</span>
             <span>Processed {syncResult.results.length} transactions this run</span>

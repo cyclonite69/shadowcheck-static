@@ -55,6 +55,7 @@
 * **admin:** add referrerPolicy and correct badge fallback in WigleStatsTab ([33b8a0c](https://github.com/cyclonite69/shadowcheck-web/commit/33b8a0c1fe44b9f3c52946a4904ad58df7983a75))
 * **admin:** clarify WiGLE KML sync status labels ([3b85ef1](https://github.com/cyclonite69/shadowcheck-web/commit/3b85ef111092c36f644e7fe159de745894a29058))
 * **admin:** correct api testing health detection ([a6afd58](https://github.com/cyclonite69/shadowcheck-web/commit/a6afd5854288df21ecd163e37638e7d32504f074))
+* **admin:** display status tip when all sync transactions are skipped ([b38fe54](https://github.com/cyclonite69/shadowcheck-web/commit/b38fe54160690cf38dcf742ec6377355fb436617))
 * **admin:** guard aws/overview against missing credentials and SDK errors ([49e7694](https://github.com/cyclonite69/shadowcheck-web/commit/49e7694b210610c8573fab570731cd6753958501))
 * **admin:** guard aws/overview against missing credentials and unhandled SDK errors ([92b1f72](https://github.com/cyclonite69/shadowcheck-web/commit/92b1f72aeaed2c085cdc4607c1ce601d4a9283a8))
 * **admin:** improve aws and pgadmin reliability ([35d6971](https://github.com/cyclonite69/shadowcheck-web/commit/35d69716c5b88eb044e04a728642555c911cd51c))
