@@ -1,5 +1,39 @@
 # Scripts Directory
 
+## Script Safety Categories
+
+> [!IMPORTANT]
+> **Safety Rule:** Do not assume a script is safe just because it lives under `scripts/`. Check the category, read the script, and prefer dry-run/read-only modes when available.
+
+The tooling in this directory falls into the following functional categories:
+
+| Category                             | Examples                                                   | Risk      | Rule of Thumb                                       |
+| :----------------------------------- | :--------------------------------------------------------- | :-------- | :-------------------------------------------------- |
+| **Safe Read-Only Diagnostics**       | `db-usage-audit.sql`, `generate-audit-report.js`           | 🟢 Low    | Safe to run on live environments to check status.   |
+| **Build/Prebuild Utilities**         | `write-robots.js`, `generate-sitemap.js`                   | 🟢 Low    | Local asset generators.                             |
+| **DB Migration/Deployment**          | `apply-migration.sh`, `setup-ec2.sh`                       | 🟡 Medium | Changes database schema or infrastructure state.    |
+| **Security/Credential Tools**        | `rotate-db-password.sh`, `backup-sm-to-bitwarden.js`       | 🔴 High   | Handles credentials or SSO configuration.           |
+| **Backup/Restore/Disaster Recovery** | `backup-shadowcheck.sh`, `restore-local-backup.sh`         | 🔴 High   | Modifies or restores complete snapshots.            |
+| **Write-Heavy Maintenance**          | `rebuild-networks-precision.ts`, `rebuild-db.sql`          | 🔴 High   | Mass updates that take long locks on active tables. |
+| **Historical/One-Off Scripts**       | `run_targeted_siblings.js`, `run_manufacturer_backfill.js` | 🟡 Medium | Retained for audit log; do not re-run.              |
+
+### High-Risk Scripts Catalog
+
+The following scripts are destructive or carry high operational risk. Exercise caution and verify targets before execution:
+
+- **Credentials:**
+  - `rotate-db-password.sh` / `rotate-grafana-passwords.sh`: Changes administrative role passwords.
+- **Restore:**
+  - `restore-local-backup.sh` / `ec2-restore-backup.sh`: Re-initializes database from backup snapshots.
+- **Destructive Maintenance:**
+  - `rebuild-db.sql`: Drops and recreates schemas/views.
+  - `rebuild-networks-precision.ts`: Runs intensive geographic precision updates across all networks.
+  - `db-cleanup-drop-script.sql` / `db-cleanup-2026-03-28.sql`: Manual row/column drop cleanups.
+- **Obsolete / One-Off Staging Helpers:**
+  - `run_targeted_siblings.js` / `run_manufacturer_backfill.js`: Modifies tables without standard validation pipelines.
+
+---
+
 ## Security & Maintenance
 
 ### Password Rotation
