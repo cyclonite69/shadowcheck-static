@@ -154,7 +154,7 @@ export async function getDetailedDatabaseStats(): Promise<any> {
     const { rows: duplicateIndexGroups } = await adminQuery(`
       SELECT
         indrelid::regclass::text AS table_name,
-        array_agg(indexrelid::regclass::text ORDER BY indexrelid::regclass::text) AS indexes,
+        array_agg(pg_index.indexrelid::regclass::text ORDER BY pg_index.indexrelid::regclass::text) AS indexes,
         count(*)::int AS count
       FROM pg_index
       JOIN pg_stat_user_indexes ON pg_stat_user_indexes.indexrelid = pg_index.indexrelid

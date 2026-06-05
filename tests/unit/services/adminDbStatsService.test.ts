@@ -32,6 +32,14 @@ describe('adminDbStatsService', () => {
     expect(adminQuery).toHaveBeenCalledWith('ANALYZE app.network_sibling_pairs');
     expect(adminQuery).toHaveBeenCalledWith('ANALYZE app.wigle_v3_observations');
     expect(adminQuery).toHaveBeenCalledWith('ANALYZE app.kismet_packets');
+
+    const duplicateIndexQuery = (adminQuery as jest.Mock).mock.calls
+      .map(([query]) => String(query))
+      .find(
+        (query) => query.includes('duplicate_index_groups') || query.includes('HAVING count(*) > 1')
+      );
+    expect(duplicateIndexQuery).toContain('array_agg(pg_index.indexrelid::regclass::text');
+    expect(duplicateIndexQuery).not.toContain('array_agg(indexrelid::regclass::text');
   });
 
   test('getDetailedDatabaseStats handles missing total_size', async () => {
