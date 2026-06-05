@@ -77,7 +77,7 @@
 * **admin:** restore api testing hook import path ([b3554fc](https://github.com/cyclonite69/shadowcheck-web/commit/b3554fceb43329344774fc7d468940579070acc0))
 * **admin:** restore spatial controls and pgadmin lifecycle ([410503d](https://github.com/cyclonite69/shadowcheck-web/commit/410503d9c3c0cede6fc4c032220b8c4bb98ddf9c))
 * **admin:** restore wigle search pagination controls ([d45c9d0](https://github.com/cyclonite69/shadowcheck-web/commit/d45c9d0dfc313e1d25e6d0b4d54f759ee37a123c))
-* **admin:** run import subprocesses in background ([15cf562](https://github.com/cyclonite69/shadowcheck-web/commit/15cf562f3ba2333a1f0138b13c616831a077b302))
+* **admin:** run import subprocesses in background ([5dffafb](https://github.com/cyclonite69/shadowcheck-web/commit/5dffafb0c074368941a236024457f516a25e8550))
 * **admin:** update WiGLE stats field mapping forBt and monthly events ([2b739ad](https://github.com/cyclonite69/shadowcheck-web/commit/2b739adfe02458797bbf341e01dda60c7e29a703))
 * align agencyService field names with frontend Agency interface ([2fe6b1c](https://github.com/cyclonite69/shadowcheck-web/commit/2fe6b1cd75cb990ee5f03c9a7a40232d67db3b65))
 * align compose volumes with host paths and ensure directory permissions on AWS ([5289ec9](https://github.com/cyclonite69/shadowcheck-web/commit/5289ec9a82e22b024e0c9616a68552dadd3756ee))
