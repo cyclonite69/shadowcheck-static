@@ -25,9 +25,10 @@ export async function extractExif(
   let latStr = '';
   let lonStr = '';
   let tsStr = '';
+  let offset = '';
 
   try {
-    const [latRes, lonRes, tsRes] = await Promise.all([
+    const [latRes, lonRes, tsRes, offsetRes] = await Promise.all([
       execFilePromise('exiftool', ['-n', '-p', '$GPSLatitude', imagePath]),
       execFilePromise('exiftool', ['-n', '-p', '$GPSLongitude', imagePath]),
       execFilePromise('exiftool', [
@@ -37,11 +38,15 @@ export async function extractExif(
         '$DateTimeOriginal',
         imagePath,
       ]),
+      execFilePromise('exiftool', ['-p', '$OffsetTimeOriginal', imagePath]).catch(() => ({
+        stdout: '',
+      })),
     ]);
 
     latStr = latRes.stdout.trim();
     lonStr = lonRes.stdout.trim();
     tsStr = tsRes.stdout.trim();
+    offset = offsetRes.stdout.trim();
   } catch (error: any) {
     if (error?.code === 'ENOENT') {
       throw new ExifToolUnavailableError();
@@ -60,7 +65,7 @@ export async function extractExif(
 
   const lat = parseFloat(latStr);
   const lon = parseFloat(lonStr);
-  const timestamp = tsStr;
+  const timestamp = offset ? `${tsStr}${offset}` : tsStr;
 
   if (isNaN(lat) || isNaN(lon)) {
     const badFields: string[] = [];

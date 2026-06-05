@@ -275,6 +275,8 @@ describe('Observation Service', () => {
           callback(null, { stdout: '-83.696\n' });
         } else if (cmdStr.includes('$DateTimeOriginal')) {
           callback(null, { stdout: '2026-05-06 20:29:10\n' });
+        } else if (cmdStr.includes('$OffsetTimeOriginal')) {
+          callback(null, { stdout: '' });
         } else {
           callback(new Error('Unknown command'));
         }
@@ -432,6 +434,8 @@ describe('Observation Service', () => {
         } else if (cmdStr.includes('$GPSLongitude')) {
           callback(null, { stdout: '' });
         } else if (cmdStr.includes('$DateTimeOriginal')) {
+          callback(null, { stdout: '' });
+        } else if (cmdStr.includes('$OffsetTimeOriginal')) {
           callback(null, { stdout: '' });
         } else {
           callback(new Error('Unknown command'));

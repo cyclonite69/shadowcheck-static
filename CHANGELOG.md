@@ -885,6 +885,7 @@
 * **v3enrichment:** make table thead sticky ([5c42d1c](https://github.com/cyclonite69/shadowcheck-web/commit/5c42d1ca71cd6c29575daa92264d3df59fc4d50c))
 * **v3enrichment:** surface first/last seen above fold in forensic preview ([6f01446](https://github.com/cyclonite69/shadowcheck-web/commit/6f01446071fde28e1a8ab40f1ca04528f9ad78ff))
 * **validation:** add missing validateString overload for WiGLE credentials ([01b4308](https://github.com/cyclonite69/shadowcheck-web/commit/01b43087e6d1a23a2caa7ee023a5b3b9afac3d78))
+* **visint:** parse and apply EXIF timezone offset ([952e50d](https://github.com/cyclonite69/shadowcheck-web/commit/952e50dd2467da83f3d7861cde95916411a8bf1a))
 * weather fx and redundant header text ([4f42201](https://github.com/cyclonite69/shadowcheck-web/commit/4f42201bf63f7abe7bcf7f6c860a0636a265e009))
 * weather routes import causing server crash ([e51df81](https://github.com/cyclonite69/shadowcheck-web/commit/e51df816da5a4acdbac4ec4039b6af14a975e060))
 * WEP security encryption filter - reorder detection logic ([38ccb2a](https://github.com/cyclonite69/shadowcheck-web/commit/38ccb2a078ecaa3ec129c933b3c9a0603038843f))
