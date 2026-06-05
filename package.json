@@ -26,6 +26,7 @@
     "lint": "eslint .",
     "policy:secrets": "npm run policy:secret-disk && npm run policy:secret-scan",
     "policy:modularity": "bash scripts/check-doc-line-counts.sh && node scripts/check-modularity.js",
+    "db:audit:report": "node scripts/db-audit/generate-audit-report.js",
     "lint:fix": "eslint . --fix",
     "lint:boundaries": "tsx scripts/check-client-imports.ts",
     "type-check": "npm run type-check:server && npm run type-check:client && npm run type-check:test",

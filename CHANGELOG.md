@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-04)
+# 1.0.0 (2026-06-05)
 
 
 ### Bug Fixes
@@ -1064,7 +1064,7 @@
 * **admin:** add used index report to DB stats tab; move sibling detect to bottom ([fe6247b](https://github.com/cyclonite69/shadowcheck-web/commit/fe6247b0fe96ec4f3c134f4069ae99a5e89c2c09))
 * **admin:** api testing tab with sequential endpoint runner ([d3c17b0](https://github.com/cyclonite69/shadowcheck-web/commit/d3c17b06fe563ee187143a3087c591770842da46))
 * **admin:** center subnav and complete home location config ([391d6ff](https://github.com/cyclonite69/shadowcheck-web/commit/391d6fff01985ddcf9d049ef72c2919e5653a56f))
-* **admin:** enhance DB Stats tab + WiGLE soft-limit controls ([bfbbb12](https://github.com/cyclonite69/shadowcheck-web/commit/bfbbb124b38b718e268b9513fc7467317563fe85))
+* **admin:** enhance DB Stats tab + WiGLE soft-limit controls ([e12b2a2](https://github.com/cyclonite69/shadowcheck-web/commit/e12b2a23e61a1afd2f761502da0dc4ed4cd65870))
 * **admin:** enhance tab styling with 3D shadows and add SSO ephemeral credentials ([3b9db60](https://github.com/cyclonite69/shadowcheck-web/commit/3b9db6067fc2be4f8b1ceb9821ff7763b12e67de))
 * **admin:** fix surveillance scan job card; sibling purge endpoint + button + test ([cae0b7f](https://github.com/cyclonite69/shadowcheck-web/commit/cae0b7fdf436ea80b47b6586d6bb9a5f062d3aa8))
 * **admin:** infinite scroll + column redesign on WiGLE Search results table ([125abe3](https://github.com/cyclonite69/shadowcheck-web/commit/125abe39f795eae162c6f52b8af2fe1243cf5e68))

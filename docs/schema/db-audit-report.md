@@ -1,10 +1,10 @@
 # ShadowCheck DB Architecture Audit
 
-> **Generated:** 2026-06-04 19:33:28 UTC  
-> **Database:** shadowcheck_db · PostgreSQL 18.4 (local Docker)  
-> **Schema Stats:** 3,001 MB app schema · 62 tables · 4 materialized views · 11 views · 70+ functions · 61 sequences · 256 indexes
+> **Generated:** 2026-06-05 00:56:02 UTC<br />
+> **Database:** shadowcheck_db · PostgreSQL 18.4 (local Docker)<br />
+> **Schema Stats:** 2202 MB app schema · 66 tables · 4 materialized views · 11 views · 70+ functions · 45 sequences · 279 indexes
 
-This is a living document. Re-run `scratch/generate_audit_report.js` after schema changes to refresh.
+This is a living document. Re-run `npm run db:audit:report` after schema changes to refresh.
 
 ---
 
@@ -44,12 +44,11 @@ This is a living document. Re-run `scratch/generate_audit_report.js` after schem
 
 ## Schema Size Summary
 
-| Schema     | Total Size | Tables | Mat. Views | Views | Sequences |
-| ---------- | ---------- | ------ | ---------- | ----- | --------- |
-| `app`      | 3001 MB    | 62     | 4          | 11    | 45        |
-| `pg_toast` | 24 MB      | 0      | 0          | 0     | 0         |
-| `public`   | 7352 kB    | 1      | 0          | 4     | 0         |
-| `tiger`    | 3488 kB    | 34     | 0          | 0     | 16        |
+| Schema   | Total Size | Tables | Mat. Views | Views | Sequences |
+| -------- | ---------- | ------ | ---------- | ----- | --------- |
+| `app`    | 2202 MB    | 62     | 4          | 11    | 45        |
+| `public` | 7144 kB    | 1      | 0          | 4     | 0         |
+| `tiger`  | 2440 kB    | 34     | 0          | 0     | 16        |
 
 ---
 
@@ -62,7 +61,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 713 MB                                      |
-| **Est. Rows**        | 2,100,783                                   |
+| **Est. Rows**        | 2,101,641                                   |
 | **Code Coverage**    | ✅ 15 refs                                  |
 | **Origin Migration** | `20260430_add_missing_bootstrap_tables.sql` |
 
@@ -74,7 +73,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
-| **Size**             | 399 MB                                      |
+| **Size**             | 379 MB                                      |
 | **Est. Rows**        | 685,788                                     |
 | **Code Coverage**    | ✅ 453 refs                                 |
 | **Origin Migration** | `20260216_consolidated_002_core_tables.sql` |
@@ -88,7 +87,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                 |
 | -------------------- | ------------------------------------- |
 | **Size**             | 184 MB                                |
-| **Est. Rows**        | 316,445                               |
+| **Est. Rows**        | 22,822                                |
 | **Code Coverage**    | ✅ 17 refs                            |
 | **Origin Migration** | `20260402_add_kml_staging_tables.sql` |
 
@@ -96,12 +95,28 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `client/src/components/admin/tabs/data-import/types.ts`, `client/src/config/apiTestEndpoints.ts`, `etl/load/kml-import.ts`
 
+### `app.api_network_explorer_mv`
+
+**Purpose:** Primary read model for the Network Explorer UI. Denormalized join of `networks`, `network_locations`, `network_tags`, `network_threat_scores`, `geocoding_cache`, `oui_device_groups`, `network_sibling_pairs`, `surveillance_detections`. Refreshed by `refresh_api_network_mvs()` and delta refreshes. Indexed for all Explorer filter dimensions.
+
+| Property             | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Size**             | 148 MB                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Est. Rows**        | 188,961                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Code Coverage**    | ✅ 147 refs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Origin Migration** | `20260423_fix_mv_geocoding_join_precision.sql`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Rebuilt In**       | `20260216_consolidated_008_views_and_materialized_views.sql`, `20260216_consolidated_010_performance_indexes.sql`, `20260331_consolidated_011.sql`, `20260331_consolidated_012_mv_centroid_fields.sql`, `20260403_fix_api_network_explorer_distance_from_home.sql`, `20260404_add_geocoding_to_api_network_explorer_mv.sql`, `20260405_normalize_radio_manufacturers.sql`, `20260423_fix_mv_geocoding_join_precision.sql`, `20260507_fix_mv_ble_exclusion.sql`, `20260524_016_add_sibling_summary_to_api_network_explorer_mv.sql` |
+
+**Purpose:** _(no pg_comment)_
+
+**Code references:** `etl/promote/process-promotion.ts`, `scripts/rebuild-db.sql`, `scripts/score-all-hybrid.ts`
+
 ### `app.network_threat_scores`
 
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
-| **Size**             | 150 MB                                           |
-| **Est. Rows**        | 195,224                                          |
+| **Size**             | 142 MB                                           |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 91 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -114,7 +129,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 142 MB                                           |
-| **Est. Rows**        | 124,188                                          |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 23 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -127,7 +142,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                             |
 | -------------------- | ------------------------------------------------- |
 | **Size**             | 79 MB                                             |
-| **Est. Rows**        | 108,354                                           |
+| **Est. Rows**        | 2,656                                             |
 | **Code Coverage**    | ✅ 36 refs                                        |
 | **Origin Migration** | `20260216_consolidated_006_wigle_integration.sql` |
 
@@ -153,7 +168,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                           |
 | -------------------- | ------------------------------- |
 | **Size**             | 66 MB                           |
-| **Est. Rows**        | 188,961                         |
+| **Est. Rows**        | 0                               |
 | **Code Coverage**    | ✅ 40 refs                      |
 | **Origin Migration** | `20260331_consolidated_011.sql` |
 
@@ -161,12 +176,28 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `server/src/services/filterQueryBuilder/modules/geospatialQueryBuilders.ts`, `server/src/services/filterQueryBuilder/SqlFragmentLibrary.ts`, `server/src/services/networking/filterBuilders/locationFilters.ts`
 
+### `app.api_wigle_networks_mv`
+
+**Purpose:** WiGLE network search result cache. Merges WiFi and Bluetooth WiGLE search results (`wigle_v2_networks_search`, `wigle_v2_bluetooth_search`) into a unified view for the WiGLE map panel.
+
+| Property             | Value                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Size**             | 44 MB                                                                                                                            |
+| **Est. Rows**        | 1,356                                                                                                                            |
+| **Code Coverage**    | ✅ 5 refs                                                                                                                        |
+| **Origin Migration** | `20260419_add_wigle_networks_mv.sql`                                                                                             |
+| **Rebuilt In**       | `20260419_add_wigle_networks_mv.sql`, `20260504b_wigle_networks_mv_add_bluetooth.sql`, `20260506_widen_wigle_bt_type_column.sql` |
+
+**Purpose:** _(no pg_comment)_
+
+**Code references:** `server/src/repositories/wigleQueriesRepository.ts`, `server/src/services/wigleEnrichment/orchestrators/WigleEnrichmentOrchestrator.ts`, `sql/migrations/20260419_add_wigle_networks_mv.sql`
+
 ### `app.wigle_v3_observations`
 
 | Property             | Value                                             |
 | -------------------- | ------------------------------------------------- |
 | **Size**             | 43 MB                                             |
-| **Est. Rows**        | 125,706                                           |
+| **Est. Rows**        | 126,812                                           |
 | **Code Coverage**    | ✅ 63 refs                                        |
 | **Origin Migration** | `20260216_consolidated_006_wigle_integration.sql` |
 
@@ -179,7 +210,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                            |
 | -------------------- | -------------------------------- |
 | **Size**             | 41 MB                            |
-| **Est. Rows**        | 178,053                          |
+| **Est. Rows**        | 0                                |
 | **Code Coverage**    | 🟡 4 refs                        |
 | **Origin Migration** | `20260505_deflock_reference.sql` |
 
@@ -192,7 +223,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 30 MB                                            |
-| **Est. Rows**        | 200,619                                          |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 20 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -205,7 +236,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                        |
 | -------------------- | -------------------------------------------- |
 | **Size**             | 29 MB                                        |
-| **Est. Rows**        | 74,035                                       |
+| **Est. Rows**        | 0                                            |
 | **Code Coverage**    | ✅ 76 refs                                   |
 | **Origin Migration** | `20260405_normalize_radio_manufacturers.sql` |
 
@@ -213,12 +244,25 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `scripts/db-cleanup-drop-script.sql`, `scripts/db-dependency-trace.sql`, `scripts/generate_schema_reference.sql`
 
+### `app.network_sibling_pairs`
+
+| Property             | Value                                            |
+| -------------------- | ------------------------------------------------ |
+| **Size**             | 28 MB                                            |
+| **Est. Rows**        | 58,776                                           |
+| **Code Coverage**    | ✅ 48 refs                                       |
+| **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
+
+**Purpose:** _(no pg_comment)_
+
+**Code references:** `scripts/analyze-sibling-quality.sql`, `scripts/export-sibling-training-data.sql`, `scripts/runSiblingRefreshTest.ts`
+
 ### `app.kismet_devices`
 
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 12 MB                                       |
-| **Est. Rows**        | 2,564                                       |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 11 refs                                  |
 | **Origin Migration** | `20260430_add_missing_bootstrap_tables.sql` |
 
@@ -231,7 +275,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 12 MB                                       |
-| **Est. Rows**        | 37,699                                      |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 142 refs                                 |
 | **Origin Migration** | `20260216_consolidated_002_core_tables.sql` |
 
@@ -243,8 +287,8 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 | Property             | Value                                             |
 | -------------------- | ------------------------------------------------- |
-| **Size**             | 9848 kB                                           |
-| **Est. Rows**        | 2,926                                             |
+| **Size**             | 9912 kB                                           |
+| **Est. Rows**        | 20                                                |
 | **Code Coverage**    | ✅ 26 refs                                        |
 | **Origin Migration** | `20260216_consolidated_006_wigle_integration.sql` |
 
@@ -257,7 +301,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 6248 kB                                          |
-| **Est. Rows**        | 40,966                                           |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 11 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -265,25 +309,12 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `scripts/db-cleanup-2026-03-28.sql`, `server/src/repositories/v2Repository.ts`, `server/src/types/v2Types.ts`
 
-### `app.network_sibling_pairs`
-
-| Property             | Value                                            |
-| -------------------- | ------------------------------------------------ |
-| **Size**             | 5744 kB                                          |
-| **Est. Rows**        | 10,252                                           |
-| **Code Coverage**    | ✅ 48 refs                                       |
-| **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
-
-**Purpose:** _(no pg_comment)_
-
-**Code references:** `scripts/analyze-sibling-quality.sql`, `scripts/export-sibling-training-data.sql`, `scripts/runSiblingRefreshTest.ts`
-
 ### `app.shotspotter_sensors`
 
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 5080 kB                                     |
-| **Est. Rows**        | 20,280                                      |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | 🟡 3 refs                                   |
 | **Origin Migration** | `20260506_shotspotter_sensor_locations.sql` |
 
@@ -296,7 +327,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 2608 kB                                          |
-| **Est. Rows**        | 2,678                                            |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 27 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -309,7 +340,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 1552 kB                                          |
-| **Est. Rows**        | 2,675                                            |
+| **Est. Rows**        | 27                                               |
 | **Code Coverage**    | ✅ 119 refs                                      |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -322,7 +353,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                    |
 | -------------------- | ---------------------------------------- |
 | **Size**             | 1216 kB                                  |
-| **Est. Rows**        | 2,008                                    |
+| **Est. Rows**        | 0                                        |
 | **Code Coverage**    | ✅ 6 refs                                |
 | **Origin Migration** | `20260504_wigle_v2_bluetooth_search.sql` |
 
@@ -335,7 +366,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                     |
 | -------------------- | ----------------------------------------- |
 | **Size**             | 1136 kB                                   |
-| **Est. Rows**        | 3,203                                     |
+| **Est. Rows**        | 0                                         |
 | **Code Coverage**    | ✅ 18 refs                                |
 | **Origin Migration** | `20260404_add_networks_orphans_table.sql` |
 
@@ -348,7 +379,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 1000 kB                                     |
-| **Est. Rows**        | 2,431                                       |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 10 refs                                  |
 | **Origin Migration** | `20260430_add_missing_bootstrap_tables.sql` |
 
@@ -361,7 +392,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 1000 kB                                     |
-| **Est. Rows**        | 3,725                                       |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 10 refs                                  |
 | **Origin Migration** | `20260430_add_missing_bootstrap_tables.sql` |
 
@@ -374,7 +405,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                  |
 | -------------------- | -------------------------------------- |
 | **Size**             | 936 kB                                 |
-| **Est. Rows**        | 325                                    |
+| **Est. Rows**        | 0                                      |
 | **Code Coverage**    | ✅ 21 refs                             |
 | **Origin Migration** | `20260503_surveillance_detections.sql` |
 
@@ -387,7 +418,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | **Size**             | 832 kB                                         |
-| **Est. Rows**        | 391                                            |
+| **Est. Rows**        | 0                                              |
 | **Code Coverage**    | ✅ 126 refs                                    |
 | **Origin Migration** | `20260216_consolidated_007_agency_offices.sql` |
 
@@ -400,7 +431,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                               |
 | -------------------- | --------------------------------------------------- |
 | **Size**             | 416 kB                                              |
-| **Est. Rows**        | 1,350                                               |
+| **Est. Rows**        | 15                                                  |
 | **Code Coverage**    | ✅ 10 refs                                          |
 | **Origin Migration** | `20260405_add_orphan_network_backfill_tracking.sql` |
 
@@ -413,7 +444,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                             |
 | -------------------- | ------------------------------------------------- |
 | **Size**             | 376 kB                                            |
-| **Est. Rows**        | 806                                               |
+| **Est. Rows**        | 28                                                |
 | **Code Coverage**    | ✅ 17 refs                                        |
 | **Origin Migration** | `20260216_consolidated_006_wigle_integration.sql` |
 
@@ -426,7 +457,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 280 kB                                      |
-| **Est. Rows**        | 357                                         |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 11 refs                                  |
 | **Origin Migration** | `20260430_add_missing_bootstrap_tables.sql` |
 
@@ -439,7 +470,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | **Size**             | 248 kB                                         |
-| **Est. Rows**        | 245                                            |
+| **Est. Rows**        | 2                                              |
 | **Code Coverage**    | ✅ 24 refs                                     |
 | **Origin Migration** | `20260216_consolidated_003_auth_and_users.sql` |
 
@@ -447,25 +478,12 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `scripts/verify_db_role_hardening.sql`, `server/src/services/adminUsersService.ts`, `server/src/services/authQueries.ts`
 
-### `app.anchor_points`
-
-| Property             | Value                            |
-| -------------------- | -------------------------------- |
-| **Size**             | 224 kB                           |
-| **Est. Rows**        | 338                              |
-| **Code Coverage**    | 🟡 3 refs                        |
-| **Origin Migration** | `20260403_add_anchor_points.sql` |
-
-**Purpose:** Stationary radio beacons used for device location verification and signal calibration
-
-**Code references:** `sql/migrations/archive/20260403_add_anchor_points.sql`, `sql/baseline_phase3/baseline_003_external_and_reference.sql`, `.claude/worktrees/agent-a6211976/sql/migrations/20260403_add_anchor_points.sql`
-
 ### `app.kml_files`
 
 | Property             | Value                                 |
 | -------------------- | ------------------------------------- |
 | **Size**             | 224 kB                                |
-| **Est. Rows**        | 234                                   |
+| **Est. Rows**        | 5                                     |
 | **Code Coverage**    | ✅ 19 refs                            |
 | **Origin Migration** | `20260402_add_kml_staging_tables.sql` |
 
@@ -473,12 +491,25 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `client/src/components/admin/tabs/data-import/types.ts`, `client/src/config/apiTestEndpoints.ts`, `etl/load/kml-import.ts`
 
+### `app.anchor_points`
+
+| Property             | Value                            |
+| -------------------- | -------------------------------- |
+| **Size**             | 224 kB                           |
+| **Est. Rows**        | 0                                |
+| **Code Coverage**    | 🟡 3 refs                        |
+| **Origin Migration** | `20260403_add_anchor_points.sql` |
+
+**Purpose:** Stationary radio beacons used for device location verification and signal calibration
+
+**Code references:** `sql/migrations/archive/20260403_add_anchor_points.sql`, `sql/baseline_phase3/baseline_003_external_and_reference.sql`, `.claude/worktrees/agent-a6211976/sql/migrations/20260403_add_anchor_points.sql`
+
 ### `app.wigle_import_runs`
 
 | Property             | Value                                             |
 | -------------------- | ------------------------------------------------- |
 | **Size**             | 208 kB                                            |
-| **Est. Rows**        | 166                                               |
+| **Est. Rows**        | 3                                                 |
 | **Code Coverage**    | ✅ 25 refs                                        |
 | **Origin Migration** | `20260216_consolidated_006_wigle_integration.sql` |
 
@@ -491,7 +522,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 192 kB                                           |
-| **Est. Rows**        | 182                                              |
+| **Est. Rows**        | 2                                                |
 | **Code Coverage**    | ✅ 16 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -504,7 +535,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                  |
 | -------------------- | -------------------------------------- |
 | **Size**             | 192 kB                                 |
-| **Est. Rows**        | 126                                    |
+| **Est. Rows**        | 119                                    |
 | **Code Coverage**    | ✅ 6 refs                              |
 | **Origin Migration** | `20260426_add_wigle_ledger_events.sql` |
 
@@ -517,7 +548,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 152 kB                                           |
-| **Est. Rows**        | 379                                              |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 9 refs                                        |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -525,12 +556,28 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `server/src/services/geocoding/jobState.ts`, `sql/migrations/archive/20260216_consolidated_004_network_analysis.sql`, `sql/migrations/archive/20260216_consolidated_010_performance_indexes.sql`
 
+### `app.surveillance_density_zones`
+
+**Purpose:** Geospatial density heatmap of surveillance-tagged networks. Computed as hexbin/cluster zones from `api_network_explorer_mv` filtered to confirmed/suspect threat tags.
+
+| Property             | Value                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Size**             | 136 kB                                                                                                 |
+| **Est. Rows**        | 0                                                                                                      |
+| **Code Coverage**    | ✅ 5 refs                                                                                              |
+| **Origin Migration** | `20260505_surveillance_density_zones_mv.sql`                                                           |
+| **Rebuilt In**       | `20260507_fix_mv_ble_exclusion.sql`, `20260524_016_add_sibling_summary_to_api_network_explorer_mv.sql` |
+
+**Purpose:** _(no pg_comment)_
+
+**Code references:** `server/src/services/backgroundJobs/runners.ts`, `sql/migrations/20260505_surveillance_density_zones_mv.sql`, `sql/migrations/20260507_fix_mv_ble_exclusion.sql`
+
 ### `app.ai_insights`
 
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 128 kB                                      |
-| **Est. Rows**        | 7                                           |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 11 refs                                  |
 | **Origin Migration** | `20260216_consolidated_002_core_tables.sql` |
 
@@ -543,7 +590,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 112 kB                                           |
-| **Est. Rows**        | 15                                               |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 40 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -551,12 +598,25 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `server/src/api/routes/v1/network-tags/manageTags.ts`, `server/src/repositories/baseRepository.ts`, `server/src/repositories/adminNetworkMediaRepository.ts`
 
+### `app.note_media`
+
+| Property             | Value                                            |
+| -------------------- | ------------------------------------------------ |
+| **Size**             | 96 kB                                            |
+| **Est. Rows**        | 0                                                |
+| **Code Coverage**    | ✅ 13 refs                                       |
+| **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
+
+**Purpose:** Media attachments for network notes
+
+**Code references:** `server/src/repositories/adminNetworkMediaRepository.ts`, `sql/migrations/archive/20260216_consolidated_004_network_analysis.sql`, `sql/migrations/archive/20260216_consolidated_009_functions_and_triggers.sql`
+
 ### `app.import_history`
 
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 96 kB                                       |
-| **Est. Rows**        | 15                                          |
+| **Est. Rows**        | 5                                           |
 | **Code Coverage**    | ✅ 23 refs                                  |
 | **Origin Migration** | `20260216_consolidated_002_core_tables.sql` |
 
@@ -569,7 +629,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                      |
 | -------------------- | ------------------------------------------ |
 | **Size**             | 96 kB                                      |
-| **Est. Rows**        | 8                                          |
+| **Est. Rows**        | 0                                          |
 | **Code Coverage**    | ✅ 10 refs                                 |
 | **Origin Migration** | `20260406_create_mobile_uploads_table.sql` |
 
@@ -577,25 +637,12 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `server/src/repositories/mobileIngestRepository.ts`, `server/src/services/adminImportHistoryService.ts`, `sql/migrations/archive/20260406_create_mobile_uploads_table.sql`
 
-### `app.note_media`
-
-| Property             | Value                                            |
-| -------------------- | ------------------------------------------------ |
-| **Size**             | 96 kB                                            |
-| **Est. Rows**        | 1                                                |
-| **Code Coverage**    | ✅ 13 refs                                       |
-| **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
-
-**Purpose:** Media attachments for network notes
-
-**Code references:** `server/src/repositories/adminNetworkMediaRepository.ts`, `sql/migrations/archive/20260216_consolidated_004_network_analysis.sql`, `sql/migrations/archive/20260216_consolidated_009_functions_and_triggers.sql`
-
 ### `app.schema_migrations`
 
 | Property             | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | **Size**             | 88 kB                                          |
-| **Est. Rows**        | 201                                            |
+| **Est. Rows**        | 2                                              |
 | **Code Coverage**    | ✅ 15 refs                                     |
 | **Origin Migration** | `20260216_consolidated_003_auth_and_users.sql` |
 
@@ -608,7 +655,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                   |
 | -------------------- | --------------------------------------- |
 | **Size**             | 80 kB                                   |
-| **Est. Rows**        | 156                                     |
+| **Est. Rows**        | 2                                       |
 | **Code Coverage**    | ✅ 9 refs                               |
 | **Origin Migration** | `20260509_003_sibling_run_tracking.sql` |
 
@@ -621,7 +668,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | **Size**             | 80 kB                                          |
-| **Est. Rows**        | 14                                             |
+| **Est. Rows**        | 0                                              |
 | **Code Coverage**    | 🟡 3 refs                                      |
 | **Origin Migration** | `20260216_consolidated_007_agency_offices.sql` |
 
@@ -634,7 +681,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 80 kB                                            |
-| **Est. Rows**        | 95                                               |
+| **Est. Rows**        | 8                                                |
 | **Code Coverage**    | ✅ 23 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -642,25 +689,12 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `scripts/export-sibling-training-data.sql`, `scripts/analyze-sibling-overrides.sql`, `scripts/explore-sibling-patterns.sql`
 
-### `app.shotspotter_zones`
-
-| Property             | Value                            |
-| -------------------- | -------------------------------- |
-| **Size**             | 72 kB                            |
-| **Est. Rows**        | 11                               |
-| **Code Coverage**    | 🟡 2 refs                        |
-| **Origin Migration** | `20260505_shotspotter_zones.sql` |
-
-**Purpose:** _(no pg_comment)_
-
-**Code references:** `server/src/repositories/shotspotterRepository.ts`, `sql/migrations/20260505_shotspotter_zones.sql`
-
 ### `app.kismet_alerts`
 
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 72 kB                                       |
-| **Est. Rows**        | 30                                          |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 14 refs                                  |
 | **Origin Migration** | `20260430_add_missing_bootstrap_tables.sql` |
 
@@ -668,12 +702,25 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `client/src/components/admin/tabs/data-import/types.ts`, `etl/load/kismet-import.ts`, `scripts/db-cleanup-2026-03-28.sql`
 
+### `app.shotspotter_zones`
+
+| Property             | Value                            |
+| -------------------- | -------------------------------- |
+| **Size**             | 72 kB                            |
+| **Est. Rows**        | 0                                |
+| **Code Coverage**    | 🟡 2 refs                        |
+| **Origin Migration** | `20260505_shotspotter_zones.sql` |
+
+**Purpose:** _(no pg_comment)_
+
+**Code references:** `server/src/repositories/shotspotterRepository.ts`, `sql/migrations/20260505_shotspotter_zones.sql`
+
 ### `app.kismet_datasources`
 
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 64 kB                                       |
-| **Est. Rows**        | 4                                           |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 10 refs                                  |
 | **Origin Migration** | `20260430_add_missing_bootstrap_tables.sql` |
 
@@ -686,7 +733,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 64 kB                                            |
-| **Est. Rows**        | 1                                                |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 64 refs                                       |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -699,7 +746,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                          |
 | -------------------- | ---------------------------------------------- |
 | **Size**             | 64 kB                                          |
-| **Est. Rows**        | 2                                              |
+| **Est. Rows**        | 0                                              |
 | **Code Coverage**    | ✅ 53 refs                                     |
 | **Origin Migration** | `20260216_consolidated_003_auth_and_users.sql` |
 
@@ -707,12 +754,25 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `client/src/api/adminApi.ts`, `client/src/components/wigle/mapHandlers.ts`, `client/src/config/apiTestEndpoints.ts`
 
+### `app.wigle_saved_ssid_terms`
+
+| Property             | Value                                     |
+| -------------------- | ----------------------------------------- |
+| **Size**             | 48 kB                                     |
+| **Est. Rows**        | 0                                         |
+| **Code Coverage**    | ✅ 5 refs                                 |
+| **Origin Migration** | `20260415_add_wigle_saved_ssid_terms.sql` |
+
+**Purpose:** _(no pg_comment)_
+
+**Code references:** `server/src/services/wigleSearchService.ts`, `sql/migrations/archive/20260415_add_wigle_saved_ssid_terms.sql`, `sql/baseline_phase3/baseline_003_external_and_reference.sql`
+
 ### `app.kismet_data`
 
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 48 kB                                       |
-| **Est. Rows**        | 1                                           |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 10 refs                                  |
 | **Origin Migration** | `20260430_add_missing_bootstrap_tables.sql` |
 
@@ -725,39 +785,13 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                       |
 | -------------------- | ------------------------------------------- |
 | **Size**             | 48 kB                                       |
-| **Est. Rows**        | 8                                           |
+| **Est. Rows**        | 0                                           |
 | **Code Coverage**    | ✅ 9 refs                                   |
 | **Origin Migration** | `20260216_consolidated_002_core_tables.sql` |
 
 **Purpose:** _(no pg_comment)_
 
 **Code references:** `etl/load/sqlite/schemaSetup.ts`, `server/src/services/adminDbStatsService.ts`, `server/src/services/adminImportHistoryService.ts`
-
-### `app.wigle_saved_ssid_terms`
-
-| Property             | Value                                     |
-| -------------------- | ----------------------------------------- |
-| **Size**             | 48 kB                                     |
-| **Est. Rows**        | 19                                        |
-| **Code Coverage**    | ✅ 5 refs                                 |
-| **Origin Migration** | `20260415_add_wigle_saved_ssid_terms.sql` |
-
-**Purpose:** _(no pg_comment)_
-
-**Code references:** `server/src/services/wigleSearchService.ts`, `sql/migrations/archive/20260415_add_wigle_saved_ssid_terms.sql`, `sql/baseline_phase3/baseline_003_external_and_reference.sql`
-
-### `app.network_cooccurrence`
-
-| Property             | Value                                               |
-| -------------------- | --------------------------------------------------- |
-| **Size**             | 40 kB                                               |
-| **Est. Rows**        | 0                                                   |
-| **Code Coverage**    | ✅ 9 refs                                           |
-| **Origin Migration** | `20260216_consolidated_010_performance_indexes.sql` |
-
-**Purpose:** Tracks networks that appear together at multiple locations for coordinated surveillance detection
-
-**Code references:** `scripts/generate_schema_docs.sql`, `scripts/test_cooccurrence.sql`, `sql/functions/calculate_threat_score_v4_1_individual.sql`
 
 ### `app.network_media`
 
@@ -772,44 +806,33 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `server/src/repositories/adminNetworkMediaRepository.ts`, `server/src/services/admin/networkNotesAdminService.ts`, `sql/migrations/archive/20260216_consolidated_004_network_analysis.sql`
 
-### `app.settings`
+### `app.analytics_summary_mv`
 
-| Property             | Value                                          |
-| -------------------- | ---------------------------------------------- |
-| **Size**             | 32 kB                                          |
-| **Est. Rows**        | 18                                             |
-| **Code Coverage**    | ✅ 87 refs                                     |
-| **Origin Migration** | `20260216_consolidated_003_auth_and_users.sql` |
+**Purpose:** Per-network-type aggregate counts (network_count, unique_ssids, avg_signal, earliest/latest_seen) from `networks`. Used by Analytics dashboard panel.
 
-**Purpose:** _(no pg_comment)_
-
-**Code references:** `client/src/api/adminApi.ts`, `client/src/components/admin/hooks/useStackActions.ts`, `client/src/components/wigle/hooks/useWigleMapState.ts`
-
-### `app.ml_training_history`
-
-| Property             | Value                                          |
-| -------------------- | ---------------------------------------------- |
-| **Size**             | 32 kB                                          |
-| **Est. Rows**        | 0                                              |
-| **Code Coverage**    | ✅ 7 refs                                      |
-| **Origin Migration** | `20260216_consolidated_005_ml_and_scoring.sql` |
+| Property             | Value                                                        |
+| -------------------- | ------------------------------------------------------------ |
+| **Size**             | 40 kB                                                        |
+| **Est. Rows**        | 0                                                            |
+| **Code Coverage**    | ✅ 15 refs                                                   |
+| **Origin Migration** | `20260216_consolidated_008_views_and_materialized_views.sql` |
 
 **Purpose:** _(no pg_comment)_
 
-**Code references:** `server/src/repositories/baseRepository.ts`, `sql/migrations/archive/20260216_consolidated_005_ml_and_scoring.sql`, `sql/migrations/archive/create_ml_model_metadata.sql`
+**Code references:** `scripts/db-trim-runbook.sql`, `server/src/services/filterQueryBuilder/modules/analyticsQueryBuilders.ts`, `server/src/services/backgroundJobs/mvRefresh.ts`
 
-### `app.ml_model_config`
+### `app.network_cooccurrence`
 
-| Property             | Value                                          |
-| -------------------- | ---------------------------------------------- |
-| **Size**             | 32 kB                                          |
-| **Est. Rows**        | 1                                              |
-| **Code Coverage**    | ✅ 16 refs                                     |
-| **Origin Migration** | `20260216_consolidated_005_ml_and_scoring.sql` |
+| Property             | Value                                               |
+| -------------------- | --------------------------------------------------- |
+| **Size**             | 40 kB                                               |
+| **Est. Rows**        | 0                                                   |
+| **Code Coverage**    | ✅ 9 refs                                           |
+| **Origin Migration** | `20260216_consolidated_010_performance_indexes.sql` |
 
-**Purpose:** Stores trained ML model coefficients for threat scoring
+**Purpose:** Tracks networks that appear together at multiple locations for coordinated surveillance detection
 
-**Code references:** `scripts/score-all-hybrid.ts`, `server/src/services/ml/repository.ts`, `server/src/services/adminSettingsService.ts`
+**Code references:** `scripts/generate_schema_docs.sql`, `scripts/test_cooccurrence.sql`, `sql/functions/calculate_threat_score_v4_1_individual.sql`
 
 ### `app.mac_randomization_suspects`
 
@@ -824,12 +847,51 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 **Code references:** `server/src/repositories/adminNetworkTagOuiRepository.ts`, `server/src/services/admin/networkTagOui.ts`, `server/src/services/ouiGroupingService.ts`
 
+### `app.ml_training_history`
+
+| Property             | Value                                          |
+| -------------------- | ---------------------------------------------- |
+| **Size**             | 32 kB                                          |
+| **Est. Rows**        | 0                                              |
+| **Code Coverage**    | ✅ 7 refs                                      |
+| **Origin Migration** | `20260216_consolidated_005_ml_and_scoring.sql` |
+
+**Purpose:** _(no pg_comment)_
+
+**Code references:** `server/src/repositories/baseRepository.ts`, `sql/migrations/archive/20260216_consolidated_005_ml_and_scoring.sql`, `sql/migrations/archive/create_ml_model_metadata.sql`
+
+### `app.settings`
+
+| Property             | Value                                          |
+| -------------------- | ---------------------------------------------- |
+| **Size**             | 32 kB                                          |
+| **Est. Rows**        | 0                                              |
+| **Code Coverage**    | ✅ 87 refs                                     |
+| **Origin Migration** | `20260216_consolidated_003_auth_and_users.sql` |
+
+**Purpose:** _(no pg_comment)_
+
+**Code references:** `client/src/api/adminApi.ts`, `client/src/components/admin/hooks/useStackActions.ts`, `client/src/components/wigle/hooks/useWigleMapState.ts`
+
+### `app.ml_model_config`
+
+| Property             | Value                                          |
+| -------------------- | ---------------------------------------------- |
+| **Size**             | 32 kB                                          |
+| **Est. Rows**        | 0                                              |
+| **Code Coverage**    | ✅ 16 refs                                     |
+| **Origin Migration** | `20260216_consolidated_005_ml_and_scoring.sql` |
+
+**Purpose:** Stores trained ML model coefficients for threat scoring
+
+**Code references:** `scripts/score-all-hybrid.ts`, `server/src/services/ml/repository.ts`, `server/src/services/adminSettingsService.ts`
+
 ### `app.hardware_inventory`
 
 | Property             | Value     |
 | -------------------- | --------- |
 | **Size**             | 24 kB     |
-| **Est. Rows**        | -1        |
+| **Est. Rows**        | 0         |
 | **Code Coverage**    | ⚠️ 0 refs |
 | **Origin Migration** | `UNKNOWN` |
 
@@ -840,7 +902,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 | Property             | Value                                            |
 | -------------------- | ------------------------------------------------ |
 | **Size**             | 24 kB                                            |
-| **Est. Rows**        | 1                                                |
+| **Est. Rows**        | 0                                                |
 | **Code Coverage**    | ✅ 5 refs                                        |
 | **Origin Migration** | `20260216_consolidated_004_network_analysis.sql` |
 
@@ -867,7 +929,7 @@ Columns: **Name · Size · Rows (est.) · Code Refs · Migration Origin · Purpo
 
 | Name                     | Size    | Est. Rows | Purpose                                                                 |
 | ------------------------ | ------- | --------- | ----------------------------------------------------------------------- |
-| `public.spatial_ref_sys` | 7144 kB | 8,500     | PostGIS spatial reference system table (installed by PostGIS extension) |
+| `public.spatial_ref_sys` | 7144 kB | 0         | PostGIS spatial reference system table (installed by PostGIS extension) |
 
 ---
 
@@ -877,38 +939,38 @@ These tables are installed by the `postgis_tiger_geocoder` extension for US TIGE
 
 | Name                             | Size       | Est. Rows |
 | -------------------------------- | ---------- | --------- |
-| `tiger.pagc_rules`               | 856 kB     | 4,354     |
-| `tiger.pagc_lex`                 | 336 kB     | 2,938     |
-| `tiger.pagc_gaz`                 | 128 kB     | 835       |
-| `tiger.street_type_lookup`       | 128 kB     | 609       |
-| `tiger.state_lookup`             | 104 kB     | 59        |
-| `tiger.loader_lookuptables`      | 64 kB      | 13        |
+| `tiger.pagc_rules`               | 856 kB     | 0         |
+| `tiger.pagc_lex`                 | 336 kB     | 0         |
+| `tiger.pagc_gaz`                 | 128 kB     | 0         |
+| `tiger.street_type_lookup`       | 128 kB     | 0         |
+| `tiger.state_lookup`             | 104 kB     | 0         |
+| `tiger.loader_lookuptables`      | 64 kB      | 0         |
 | `tiger.addrfeat`                 | 48 kB      | 0         |
-| `tiger.direction_lookup`         | 40 kB      | 28        |
-| `tiger.secondary_unit_lookup`    | 40 kB      | 39        |
-| `tiger.state`                    | 40 kB      | 0         |
-| `tiger.edges`                    | 40 kB      | 0         |
 | `tiger.faces`                    | 40 kB      | 0         |
-| `tiger.featnames`                | 32 kB      | 0         |
-| `tiger.geocode_settings_default` | 32 kB      | 7         |
-| `tiger.county`                   | 32 kB      | 0         |
-| `tiger.place`                    | 32 kB      | 0         |
+| `tiger.edges`                    | 40 kB      | 0         |
+| `tiger.state`                    | 40 kB      | 0         |
+| `tiger.secondary_unit_lookup`    | 40 kB      | 0         |
+| `tiger.direction_lookup`         | 40 kB      | 0         |
+| `tiger.geocode_settings_default` | 32 kB      | 0         |
+| `tiger.loader_variables`         | 32 kB      | 0         |
 | `tiger.cousub`                   | 32 kB      | 0         |
-| `tiger.loader_variables`         | 32 kB      | 1         |
-| `tiger.loader_platform`          | 32 kB      | 2         |
+| `tiger.place`                    | 32 kB      | 0         |
+| `tiger.county`                   | 32 kB      | 0         |
+| `tiger.loader_platform`          | 32 kB      | 0         |
+| `tiger.featnames`                | 32 kB      | 0         |
 | `tiger.addr`                     | 24 kB      | 0         |
 | `tiger.countysub_lookup`         | 24 kB      | 0         |
 | `tiger.county_lookup`            | 24 kB      | 0         |
 | `tiger.place_lookup`             | 24 kB      | 0         |
-| `tiger.zcta5`                    | 16 kB      | 0         |
-| `tiger.geocode_settings`         | 16 kB      | 0         |
-| `tiger.tabblock20`               | 16 kB      | 0         |
 | `tiger.tabblock`                 | 16 kB      | 0         |
+| `tiger.tabblock20`               | 16 kB      | 0         |
+| `tiger.zcta5`                    | 16 kB      | 0         |
 | `tiger.bg`                       | 16 kB      | 0         |
 | `tiger.tract`                    | 16 kB      | 0         |
-| `tiger.zip_state_loc`            | 8192 bytes | 0         |
-| `tiger.zip_state`                | 8192 bytes | 0         |
+| `tiger.geocode_settings`         | 16 kB      | 0         |
 | `tiger.zip_lookup`               | 8192 bytes | 0         |
+| `tiger.zip_state`                | 8192 bytes | 0         |
+| `tiger.zip_state_loc`            | 8192 bytes | 0         |
 | `tiger.zip_lookup_base`          | 8192 bytes | 0         |
 | `tiger.zip_lookup_all`           | 0 bytes    | 0         |
 
@@ -917,8 +979,6 @@ These tables are installed by the `postgis_tiger_geocoder` extension for US TIGE
 ## Materialized Views
 
 ### `app.api_network_explorer_mv`
-
-**Purpose:** Primary read model for the Network Explorer UI. Denormalized join of `networks`, `network_locations`, `network_tags`, `network_threat_scores`, `geocoding_cache`, `oui_device_groups`, `network_sibling_pairs`, `surveillance_detections`. Refreshed by `refresh_api_network_mvs()` and delta refreshes. Indexed for all Explorer filter dimensions.
 
 | Property             | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -932,8 +992,6 @@ These tables are installed by the `postgis_tiger_geocoder` extension for US TIGE
 
 ### `app.api_wigle_networks_mv`
 
-**Purpose:** WiGLE network search result cache. Merges WiFi and Bluetooth WiGLE search results (`wigle_v2_networks_search`, `wigle_v2_bluetooth_search`) into a unified view for the WiGLE map panel.
-
 | Property             | Value                                                                                                                            |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Size**             | 44 MB                                                                                                                            |
@@ -946,8 +1004,6 @@ These tables are installed by the `postgis_tiger_geocoder` extension for US TIGE
 
 ### `app.surveillance_density_zones`
 
-**Purpose:** Geospatial density heatmap of surveillance-tagged networks. Computed as hexbin/cluster zones from `api_network_explorer_mv` filtered to confirmed/suspect threat tags.
-
 | Property             | Value                                                                                                  |
 | -------------------- | ------------------------------------------------------------------------------------------------------ |
 | **Size**             | 136 kB                                                                                                 |
@@ -959,8 +1015,6 @@ These tables are installed by the `postgis_tiger_geocoder` extension for US TIGE
 **Code references:** `server/src/services/backgroundJobs/runners.ts`, `sql/migrations/20260505_surveillance_density_zones_mv.sql`, `sql/migrations/20260507_fix_mv_ble_exclusion.sql`
 
 ### `app.analytics_summary_mv`
-
-**Purpose:** Per-network-type aggregate counts (network_count, unique_ssids, avg_signal, earliest/latest_seen) from `networks`. Used by Analytics dashboard panel.
 
 | Property             | Value                                                        |
 | -------------------- | ------------------------------------------------------------ |
@@ -1211,251 +1265,310 @@ Stats from `pg_stat_user_indexes`. "Used" = scan count since last stats reset. I
 
 > **Note:** A fresh Docker restart resets pg_stat counters. An index showing 0 scans may simply not have been exercised since the last restart, not necessarily unused. Cross-reference with query patterns before dropping.
 
-### Hot indexes (≥100 scans) — 13
+### Hot indexes (≥100 scans) — 25
 
-| Table                      | Index                               | Size    | Scans  | Unique |
-| -------------------------- | ----------------------------------- | ------- | ------ | ------ |
-| `networks`                 | `idx_networks_bssid_covering`       | 12 MB   | 37,262 | —      |
-| `user_sessions`            | `idx_user_sessions_expires_at`      | 16 kB   | 15,472 | —      |
-| `wigle_v3_observations`    | `idx_wigle_v3_obs_netid`            | 1176 kB | 12,460 | —      |
-| `networks`                 | `idx_networks_bssid_upper`          | 7984 kB | 6,011  | —      |
-| `network_tags`             | `idx_network_tags_bssid_upper`      | 160 kB  | 4,532  | —      |
-| `radio_manufacturers`      | `idx_radio_manufacturers_oui`       | 1664 kB | 4,517  | —      |
-| `oui_device_groups`        | `idx_oui_device_groups_oui`         | 176 kB  | 4,501  | —      |
-| `wigle_v2_networks_search` | `wigle_v2_networks_search_unique`   | 12 MB   | 2,656  | ✅     |
-| `api_network_explorer_mv`  | `idx_api_network_explorer_mv_bssid` | 9600 kB | 2,380  | ✅     |
-| `radio_manufacturers`      | `idx_radio_manufacturers_prefix24`  | 1352 kB | 1,785  | —      |
-| `wigle_v3_observations`    | `wigle_v3_obs_unique`               | 9136 kB | 1,514  | ✅     |
-| `observations`             | `idx_observations_v2_bssid`         | 12 MB   | 256    | —      |
-| `wigle_import_run_pages`   | `wigle_import_run_pages_unique`     | 48 kB   | 104    | ✅     |
+| Table                       | Index                                    | Size    | Scans     | Unique |
+| --------------------------- | ---------------------------------------- | ------- | --------- | ------ |
+| `observations`              | `idx_observations_v2_bssid`              | 12 MB   | 2,364,898 | —      |
+| `network_sibling_pairs`     | `idx_network_sibling_pairs_bssid2_upper` | 1832 kB | 1,133,768 | —      |
+| `network_sibling_pairs`     | `idx_network_sibling_pairs_bssid1_upper` | 1560 kB | 1,133,768 | —      |
+| `networks`                  | `idx_networks_bssid_covering`            | 12 MB   | 219,300   | —      |
+| `network_sibling_pairs`     | `network_sibling_pairs_pkey`             | 4392 kB | 94,619    | ✅     |
+| `api_network_explorer_mv`   | `idx_api_network_explorer_mv_bssid`      | 9632 kB | 86,894    | ✅     |
+| `network_tags`              | `idx_network_tags_bssid_upper`           | 160 kB  | 75,531    | —      |
+| `users`                     | `users_pkey`                             | 16 kB   | 72,496    | ✅     |
+| `radio_manufacturers`       | `idx_radio_manufacturers_oui`            | 1664 kB | 59,358    | —      |
+| `oui_device_groups`         | `idx_oui_device_groups_oui`              | 176 kB  | 53,602    | —      |
+| `user_sessions`             | `idx_user_sessions_expires_at`           | 16 kB   | 36,248    | —      |
+| `networks`                  | `idx_networks_bssid_upper`               | 7984 kB | 26,117    | —      |
+| `kml_files`                 | `kml_files_pkey`                         | 16 kB   | 22,826    | ✅     |
+| `network_locations`         | `network_locations_pkey`                 | 15 MB   | 17,110    | ✅     |
+| `wigle_v3_observations`     | `idx_wigle_v3_obs_netid`                 | 1192 kB | 13,573    | —      |
+| `networks`                  | `networks_pkey`                          | 7984 kB | 11,007    | ✅     |
+| `wigle_v3_observations`     | `wigle_v3_obs_unique`                    | 9232 kB | 3,423     | ✅     |
+| `wigle_v3_network_details`  | `wigle_v3_network_details_pkey`          | 192 kB  | 2,670     | ✅     |
+| `wigle_v2_networks_search`  | `wigle_v2_networks_search_unique`        | 12 MB   | 2,656     | ✅     |
+| `wigle_v3_observations`     | `wigle_v3_observations_pkey`             | 2808 kB | 2,590     | ✅     |
+| `radio_manufacturers`       | `idx_radio_manufacturers_prefix24`       | 1352 kB | 1,785     | —      |
+| `network_sibling_overrides` | `network_sibling_overrides_pkey`         | 16 kB   | 273       | ✅     |
+| `network_sibling_pairs`     | `idx_network_sibling_pairs_bssid2`       | 1832 kB | 196       | —      |
+| `wigle_import_runs`         | `wigle_import_runs_pkey`                 | 16 kB   | 188       | ✅     |
+| `wigle_import_run_pages`    | `wigle_import_run_pages_unique`          | 48 kB   | 106       | ✅     |
 
-### Active indexes (1–99 scans) — 24
+### Active indexes (1–99 scans) — 48
 
-| Table                      | Index                                          | Size    | Scans | Unique |
-| -------------------------- | ---------------------------------------------- | ------- | ----- | ------ |
-| `wigle_import_run_pages`   | `idx_wigle_import_run_pages_run_fetched_at`    | 48 kB   | 84    | —      |
-| `wigle_ledger_events`      | `idx_wigle_ledger_events_ts_id`                | 32 kB   | 75    | —      |
-| `kml_points`               | `idx_kml_points_kml_file_id`                   | 2472 kB | 38    | —      |
-| `network_tags`             | `network_tags_bssid_unique`                    | 176 kB  | 30    | ✅     |
-| `observations`             | `idx_observations_upper_bssid`                 | 12 MB   | 19    | —      |
-| `api_network_explorer_mv`  | `idx_api_network_explorer_mv_type`             | 1992 kB | 17    | —      |
-| `kml_files`                | `idx_kml_files_imported_at`                    | 16 kB   | 16    | —      |
-| `wigle_v3_observations`    | `idx_wigle_v3_obs_netid_upper`                 | 1176 kB | 15    | —      |
-| `networks_orphans`         | `idx_networks_orphans_moved_at`                | 40 kB   | 15    | —      |
-| `wigle_v2_networks_search` | `idx_wigle_v2_bssid`                           | 7544 kB | 11    | —      |
-| `observations`             | `idx_observations_v2_radio_type`               | 4664 kB | 11    | —      |
-| `networks`                 | `idx_networks_source_device`                   | 1376 kB | 11    | —      |
-| `kismet_packets`           | `idx_packets_phyname`                          | 14 MB   | 10    | —      |
-| `kismet_devices`           | `idx_devices_phyname`                          | 40 kB   | 10    | —      |
-| `kml_files`                | `idx_kml_files_file_hash`                      | 40 kB   | 10    | ✅     |
-| `import_history`           | `idx_import_history_source_tag`                | 16 kB   | 10    | —      |
-| `device_sources`           | `device_sources_code_key`                      | 16 kB   | 10    | ✅     |
-| `wigle_import_runs`        | `idx_wigle_import_runs_started_at`             | 16 kB   | 9     | —      |
-| `kml_files`                | `idx_kml_files_source_file`                    | 32 kB   | 5     | ✅     |
-| `wigle_import_run_pages`   | `idx_wigle_import_run_pages_run_success_page`  | 48 kB   | 3     | —      |
-| `user_sessions`            | `idx_user_sessions_token_hash`                 | 72 kB   | 2     | —      |
-| `wigle_import_runs`        | `idx_wigle_import_runs_fingerprint_started_at` | 40 kB   | 2     | —      |
-| `wigle_saved_ssid_terms`   | `wigle_saved_ssid_terms_normalized_idx`        | 16 kB   | 2     | ✅     |
-| `wigle_import_runs`        | `idx_wigle_import_runs_status_started_at`      | 16 kB   | 1     | —      |
+| Table                          | Index                                                       | Size    | Scans | Unique |
+| ------------------------------ | ----------------------------------------------------------- | ------- | ----- | ------ |
+| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_type`                          | 2000 kB | 93    | —      |
+| `wigle_import_run_pages`       | `idx_wigle_import_run_pages_run_fetched_at`                 | 48 kB   | 85    | —      |
+| `wigle_ledger_events`          | `idx_wigle_ledger_events_ts_id`                             | 32 kB   | 80    | —      |
+| `networks_orphans`             | `networks_orphans_pkey`                                     | 144 kB  | 62    | ✅     |
+| `orphan_network_backfills`     | `orphan_network_backfills_pkey`                             | 96 kB   | 47    | ✅     |
+| `kml_points`                   | `idx_kml_points_kml_file_id`                                | 2472 kB | 44    | —      |
+| `network_tags`                 | `network_tags_bssid_unique`                                 | 176 kB  | 43    | ✅     |
+| `oui_device_groups`            | `oui_device_groups_oui_key`                                 | 184 kB  | 42    | ✅     |
+| `observations`                 | `idx_observations_upper_bssid`                              | 12 MB   | 30    | —      |
+| `wigle_v3_observations`        | `idx_wigle_v3_obs_netid_upper`                              | 1192 kB | 22    | —      |
+| `import_history`               | `import_history_pkey`                                       | 16 kB   | 21    | ✅     |
+| `kml_files`                    | `idx_kml_files_imported_at`                                 | 16 kB   | 19    | —      |
+| `networks_orphans`             | `idx_networks_orphans_moved_at`                             | 40 kB   | 16    | —      |
+| `network_locations`            | `idx_network_locations_bssid_ci`                            | 15 MB   | 14    | —      |
+| `agency_offices`               | `agency_offices_pkey`                                       | 32 kB   | 14    | ✅     |
+| `networks`                     | `idx_networks_source_device`                                | 1376 kB | 12    | —      |
+| `network_tags`                 | `idx_network_tags_bssid`                                    | 160 kB  | 12    | —      |
+| `import_history`               | `idx_import_history_source_tag`                             | 16 kB   | 12    | —      |
+| `device_sources`               | `device_sources_code_key`                                   | 16 kB   | 12    | ✅     |
+| `wigle_v2_networks_search`     | `idx_wigle_v2_bssid`                                        | 7544 kB | 11    | —      |
+| `observations`                 | `idx_observations_v2_radio_type`                            | 4664 kB | 11    | —      |
+| `kismet_packets`               | `idx_packets_phyname`                                       | 14 MB   | 10    | —      |
+| `kismet_devices`               | `idx_devices_phyname`                                       | 40 kB   | 10    | —      |
+| `kml_files`                    | `idx_kml_files_file_hash`                                   | 40 kB   | 10    | ✅     |
+| `wigle_import_runs`            | `idx_wigle_import_runs_started_at`                          | 16 kB   | 9     | —      |
+| `observations`                 | `obs_time_idx`                                              | 9984 kB | 6     | —      |
+| `geocoding_cache`              | `geocoding_cache_round_idx`                                 | 4944 kB | 6     | ✅     |
+| `user_sessions`                | `idx_user_sessions_token_hash`                              | 72 kB   | 6     | —      |
+| `kml_files`                    | `idx_kml_files_source_file`                                 | 32 kB   | 5     | ✅     |
+| `wigle_import_run_pages`       | `idx_wigle_import_run_pages_run_success_page`               | 48 kB   | 4     | —      |
+| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_netid`                                        | 96 kB   | 3     | —      |
+| `background_job_runs`          | `idx_background_job_runs_status`                            | 40 kB   | 3     | —      |
+| `network_threat_scores`        | `network_threat_scores_bssid_key`                           | 7768 kB | 2     | ✅     |
+| `wigle_import_runs`            | `idx_wigle_import_runs_fingerprint_started_at`              | 40 kB   | 2     | —      |
+| `anchor_points`                | `idx_anchor_points_bssid_location_label`                    | 32 kB   | 2     | ✅     |
+| `agency_office_coverage_notes` | `agency_office_coverage_notes_legacy_agency_offices_id_key` | 16 kB   | 2     | ✅     |
+| `network_notes`                | `idx_network_notes_bssid_upper`                             | 16 kB   | 2     | —      |
+| `background_job_runs`          | `background_job_runs_pkey`                                  | 16 kB   | 2     | ✅     |
+| `wigle_saved_ssid_terms`       | `wigle_saved_ssid_terms_normalized_idx`                     | 16 kB   | 2     | ✅     |
+| `kml_points`                   | `idx_kml_points_location`                                   | 14 MB   | 1     | —      |
+| `kml_points`                   | `idx_kml_points_bssid`                                      | 4536 kB | 1     | —      |
+| `deflock_cameras`              | `deflock_cameras_pkey`                                      | 3928 kB | 1     | ✅     |
+| `wigle_v3_observations`        | `idx_wigle_v3_obs_time`                                     | 1176 kB | 1     | —      |
+| `network_sibling_pairs`        | `idx_network_sibling_pairs_source`                          | 392 kB  | 1     | —      |
+| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_bssid`                                        | 96 kB   | 1     | —      |
+| `anchor_points`                | `anchor_points_pkey`                                        | 16 kB   | 1     | ✅     |
+| `sibling_runs`                 | `sibling_runs_pkey`                                         | 16 kB   | 1     | ✅     |
+| `wigle_import_runs`            | `idx_wigle_import_runs_status_started_at`                   | 16 kB   | 1     | —      |
 
-### Unused indexes (0 scans) — unique/constraint — 26
+### Unused indexes (0 scans) — unique/constraint — 66
 
 These enforce data integrity. Zero scans is expected for constraint indexes — they are used by the constraint engine, not by query planning.
 
-| Table                          | Index                                                       | Size    |
-| ------------------------------ | ----------------------------------------------------------- | ------- |
-| `kismet_packets`               | `idx_kismet_packets_forensic_id`                            | 81 MB   |
-| `network_threat_scores`        | `network_threat_scores_bssid_key`                           | 7768 kB |
-| `api_wigle_networks_mv`        | `idx_wigle_networks_mv_bssid`                               | 7640 kB |
-| `observations`                 | `observations_v2_natural_uniq`                              | 75 MB   |
-| `deflock_cameras`              | `deflock_cameras_lat_lon_unique`                            | 7040 kB |
-| `shotspotter_sensors`          | `idx_shotspotter_sensors_latlon`                            | 640 kB  |
-| `geocoding_cache`              | `geocoding_cache_round_idx`                                 | 4944 kB |
-| `agency_offices`               | `agency_offices_agency_office_type_name_city_state_key`     | 48 kB   |
-| `surveillance_detections`      | `uq_surveillance_detections_bssid`                          | 40 kB   |
-| `routes`                       | `routes_natural_uniq`                                       | 3504 kB |
-| `anchor_points`                | `idx_anchor_points_bssid_location_label`                    | 32 kB   |
-| `kismet_messages`              | `idx_kismet_messages_forensic_id`                           | 296 kB  |
-| `oui_device_groups`            | `oui_device_groups_oui_key`                                 | 184 kB  |
-| `agency_office_coverage_notes` | `agency_office_coverage_notes_legacy_agency_offices_id_key` | 16 kB   |
-| `mobile_uploads`               | `mobile_uploads_s3_key_key`                                 | 16 kB   |
-| `users`                        | `users_email_key`                                           | 16 kB   |
-| `users`                        | `users_username_key`                                        | 16 kB   |
-| `agency_office_coverage_notes` | `agency_office_coverage_notes_uniq`                         | 16 kB   |
-| `kismet_alerts`                | `idx_kismet_alerts_forensic_id`                             | 16 kB   |
-| `kismet_data`                  | `idx_kismet_data_forensic_id`                               | 16 kB   |
-| `kismet_datasources`           | `idx_kismet_datasources_forensic_id`                        | 16 kB   |
-| `kml_files`                    | `kml_files_wigle_transid_idx`                               | 16 kB   |
-| `surveillance_density_zones`   | `idx_surveillance_density_zones_id`                         | 16 kB   |
-| `wigle_v2_bluetooth_search`    | `wigle_bt_netid_loc_uniq`                                   | 152 kB  |
-| `kismet_devices`               | `kismet_devices_devkey_key`                                 | 144 kB  |
-| `kismet_snapshots`             | `idx_kismet_snapshots_forensic_id`                          | 128 kB  |
+| Table                          | Index                                                   | Size       |
+| ------------------------------ | ------------------------------------------------------- | ---------- |
+| `network_tags`                 | `network_tags_pkey`                                     | 96 kB      |
+| `ssid_history`                 | `ssid_history_pkey`                                     | 912 kB     |
+| `routes`                       | `routes_pkey`                                           | 840 kB     |
+| `hardware_inventory`           | `hardware_inventory_pkey`                               | 8192 bytes |
+| `network_cooccurrence`         | `network_cooccurrence_pkey`                             | 8192 bytes |
+| `mac_randomization_suspects`   | `mac_randomization_suspects_pkey`                       | 8192 bytes |
+| `ml_training_history`          | `ml_training_history_pkey`                              | 8192 bytes |
+| `ml_model_metadata`            | `ml_model_metadata_pkey`                                | 8192 bytes |
+| `network_media`                | `network_media_pkey`                                    | 8192 bytes |
+| `kismet_packets`               | `idx_kismet_packets_forensic_id`                        | 81 MB      |
+| `kismet_devices`               | `kismet_devices_pkey`                                   | 80 kB      |
+| `threat_scores_cache`          | `threat_scores_cache_pkey`                              | 7984 kB    |
+| `kml_points`                   | `kml_points_pkey`                                       | 7736 kB    |
+| `api_wigle_networks_mv`        | `idx_wigle_networks_mv_bssid`                           | 7640 kB    |
+| `observations`                 | `observations_v2_natural_uniq`                          | 75 MB      |
+| `kismet_snapshots`             | `kismet_snapshots_pkey`                                 | 72 kB      |
+| `deflock_cameras`              | `deflock_cameras_lat_lon_unique`                        | 7040 kB    |
+| `shotspotter_sensors`          | `idx_shotspotter_sensors_latlon`                        | 640 kB     |
+| `wigle_v2_bluetooth_search`    | `wigle_v2_bluetooth_search_pkey`                        | 64 kB      |
+| `agency_offices`               | `agency_offices_agency_office_type_name_city_state_key` | 48 kB      |
+| `shotspotter_sensors`          | `shotspotter_sensors_pkey`                              | 464 kB     |
+| `kismet_packets`               | `kismet_packets_pkey`                                   | 45 MB      |
+| `network_threat_scores`        | `network_threat_scores_pkey`                            | 4328 kB    |
+| `wigle_import_run_pages`       | `wigle_import_run_pages_pkey`                           | 40 kB      |
+| `surveillance_detections`      | `uq_surveillance_detections_bssid`                      | 40 kB      |
+| `surveillance_detections`      | `surveillance_detections_pkey`                          | 40 kB      |
+| `user_sessions`                | `user_sessions_pkey`                                    | 40 kB      |
+| `routes`                       | `routes_natural_uniq`                                   | 3504 kB    |
+| `geocoding_job_runs`           | `geocoding_job_runs_pkey`                               | 32 kB      |
+| `schema_migrations`            | `schema_migrations_pkey`                                | 32 kB      |
+| `kismet_messages`              | `idx_kismet_messages_forensic_id`                       | 296 kB     |
+| `wigle_v2_networks_search`     | `wigle_v2_networks_search_pkey`                         | 2832 kB    |
+| `geocoding_cache`              | `geocoding_cache_pkey`                                  | 2752 kB    |
+| `radio_manufacturers`          | `radio_manufacturers_pkey1`                             | 2304 kB    |
+| `ai_insights`                  | `ai_insights_pkey`                                      | 16 kB      |
+| `agency_office_coverage_notes` | `agency_office_coverage_notes_pkey`                     | 16 kB      |
+| `agency_office_coverage_notes` | `agency_office_coverage_notes_uniq`                     | 16 kB      |
+| `api_mv_refresh_state`         | `api_mv_refresh_state_pkey`                             | 16 kB      |
+| `location_markers`             | `location_markers_pkey`                                 | 16 kB      |
+| `network_notes`                | `network_notes_pkey`                                    | 16 kB      |
+| `device_sources`               | `device_sources_pkey`                                   | 16 kB      |
+| `kismet_alerts`                | `kismet_alerts_pkey`                                    | 16 kB      |
+| `kismet_alerts`                | `idx_kismet_alerts_forensic_id`                         | 16 kB      |
+| `federal_courthouses`          | `federal_courthouses_pkey`                              | 16 kB      |
+| `kismet_data`                  | `kismet_data_pkey`                                      | 16 kB      |
+| `kismet_data`                  | `idx_kismet_data_forensic_id`                           | 16 kB      |
+| `kismet_datasources`           | `kismet_datasources_pkey`                               | 16 kB      |
+| `kismet_datasources`           | `idx_kismet_datasources_forensic_id`                    | 16 kB      |
+| `kml_files`                    | `kml_files_wigle_transid_idx`                           | 16 kB      |
+| `ml_model_config`              | `ml_model_config_pkey`                                  | 16 kB      |
+| `note_media`                   | `note_media_pkey`                                       | 16 kB      |
+| `mobile_uploads`               | `mobile_uploads_pkey`                                   | 16 kB      |
+| `mobile_uploads`               | `mobile_uploads_s3_key_key`                             | 16 kB      |
+| `settings`                     | `settings_pkey`                                         | 16 kB      |
+| `shotspotter_zones`            | `shotspotter_zones_pkey`                                | 16 kB      |
+| `users`                        | `users_email_key`                                       | 16 kB      |
+| `users`                        | `users_username_key`                                    | 16 kB      |
+| `wigle_ledger_events`          | `wigle_ledger_events_pkey`                              | 16 kB      |
+| `wigle_saved_ssid_terms`       | `wigle_saved_ssid_terms_pkey`                           | 16 kB      |
+| `surveillance_density_zones`   | `idx_surveillance_density_zones_id`                     | 16 kB      |
+| `wigle_v2_bluetooth_search`    | `wigle_bt_netid_loc_uniq`                               | 152 kB     |
+| `observations`                 | `observations_v2_pkey`                                  | 15 MB      |
+| `kismet_devices`               | `kismet_devices_devkey_key`                             | 144 kB     |
+| `oui_device_groups`            | `oui_device_groups_pkey`                                | 136 kB     |
+| `kismet_snapshots`             | `idx_kismet_snapshots_forensic_id`                      | 128 kB     |
+| `kismet_messages`              | `kismet_messages_pkey`                                  | 104 kB     |
 
-### Unused indexes (0 scans) — non-unique — 157
+### Unused indexes (0 scans) — non-unique — 140
 
 > These are candidates for investigation. Zero scans could mean: (a) stats reset after last use, (b) the query paths they were built for are no longer in use, or (c) they are redundant to other indexes.
 
 | Table                          | Index                                              | Size       | Notes                                                                        |
 | ------------------------------ | -------------------------------------------------- | ---------- | ---------------------------------------------------------------------------- |
-| `observations`                 | `obs_time_idx`                                     | 9984 kB    | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_channel`                             | 984 kB     | —                                                                            |
 | `api_wigle_networks_mv`        | `idx_wigle_networks_mv_has_v3`                     | 960 kB     | —                                                                            |
-| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_netid`                               | 96 kB      | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_source`                 | 96 kB      | —                                                                            |
-| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_bssid`                               | 96 kB      | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_country`                             | 920 kB     | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_encryption`                          | 912 kB     | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_source`                              | 896 kB     | —                                                                            |
-| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_location`                            | 88 kB      | —                                                                            |
 | `oui_device_groups`            | `idx_oui_device_groups_surveillance`               | 88 kB      | —                                                                            |
+| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_location`                            | 88 kB      | —                                                                            |
 | `geocoding_cache`              | `geocoding_cache_provider_idx`                     | 872 kB     | —                                                                            |
 | `shotspotter_sensors`          | `idx_shotspotter_sensors_geom`                     | 864 kB     | —                                                                            |
+| `hardware_inventory`           | `idx_hardware_inventory_rule`                      | 8192 bytes | —                                                                            |
+| `shotspotter_zones`            | `idx_shotspotter_zones_geom`                       | 8192 bytes | —                                                                            |
+| `mac_randomization_suspects`   | `idx_mac_randomization_oui`                        | 8192 bytes | —                                                                            |
+| `mac_randomization_suspects`   | `idx_mac_randomization_confidence`                 | 8192 bytes | —                                                                            |
+| `network_cooccurrence`         | `idx_cooccurrence_bssid1`                          | 8192 bytes | —                                                                            |
+| `network_cooccurrence`         | `idx_cooccurrence_bssid2`                          | 8192 bytes | —                                                                            |
+| `network_cooccurrence`         | `idx_cooccurrence_count`                           | 8192 bytes | —                                                                            |
+| `ml_training_history`          | `idx_ml_training_history_model_version`            | 8192 bytes | —                                                                            |
+| `ml_training_history`          | `idx_ml_training_history_model`                    | 8192 bytes | —                                                                            |
+| `kismet_alerts`                | `idx_alerts_location`                              | 8192 bytes | —                                                                            |
 | `network_media`                | `idx_network_media_type`                           | 8192 bytes | —                                                                            |
 | `network_media`                | `idx_network_media_created`                        | 8192 bytes | —                                                                            |
 | `network_media`                | `idx_network_media_bssid`                          | 8192 bytes | —                                                                            |
-| `ml_training_history`          | `idx_ml_training_history_model_version`            | 8192 bytes | —                                                                            |
-| `ml_training_history`          | `idx_ml_training_history_model`                    | 8192 bytes | —                                                                            |
-| `mac_randomization_suspects`   | `idx_mac_randomization_oui`                        | 8192 bytes | —                                                                            |
-| `mac_randomization_suspects`   | `idx_mac_randomization_confidence`                 | 8192 bytes | —                                                                            |
 | `location_markers`             | `idx_location_markers_location_3d`                 | 8192 bytes | —                                                                            |
-| `hardware_inventory`           | `idx_hardware_inventory_rule`                      | 8192 bytes | —                                                                            |
 | `location_markers`             | `idx_location_markers_location`                    | 8192 bytes | —                                                                            |
-| `network_cooccurrence`         | `idx_cooccurrence_count`                           | 8192 bytes | —                                                                            |
-| `network_cooccurrence`         | `idx_cooccurrence_bssid2`                          | 8192 bytes | —                                                                            |
-| `network_cooccurrence`         | `idx_cooccurrence_bssid1`                          | 8192 bytes | —                                                                            |
-| `kismet_alerts`                | `idx_alerts_location`                              | 8192 bytes | —                                                                            |
-| `shotspotter_zones`            | `idx_shotspotter_zones_geom`                       | 8192 bytes | —                                                                            |
 | `surveillance_density_zones`   | `idx_surveillance_density_zones_geom`              | 8192 bytes | —                                                                            |
-| `kismet_devices`               | `idx_devices_location`                             | 80 kB      | —                                                                            |
 | `oui_device_groups`            | `idx_oui_device_groups_allocation`                 | 80 kB      | —                                                                            |
+| `kismet_devices`               | `idx_devices_location`                             | 80 kB      | —                                                                            |
 | `network_threat_scores`        | `idx_network_threat_scores_bssid_upper`            | 7768 kB    | —                                                                            |
-| `network_threat_scores`        | `idx_network_threat_scores_bssid`                  | 7768 kB    | —                                                                            |
 | `threat_scores_cache`          | `threat_scores_cache_needs_recompute_idx`          | 752 kB     | —                                                                            |
 | `deflock_cameras`              | `deflock_cameras_geom_idx`                         | 7328 kB    | —                                                                            |
-| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_country_region`                      | 72 kB      | —                                                                            |
 | `networks_orphans`             | `idx_networks_orphans_ssid_trgm`                   | 72 kB      | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_corroborating`          | 64 kB      | —                                                                            |
-| `wigle_v3_network_details`     | `idx_wigle_v3_city`                                | 64 kB      | —                                                                            |
+| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_country_region`                      | 72 kB      | —                                                                            |
 | `wigle_v2_bluetooth_search`    | `idx_wigle_bt_lasttime`                            | 64 kB      | —                                                                            |
+| `wigle_v3_network_details`     | `idx_wigle_v3_city`                                | 64 kB      | —                                                                            |
 | `kml_points`                   | `idx_kml_points_observed_at`                       | 5920 kB    | —                                                                            |
-| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_stationary`           | 5832 kB    | —                                                                            |
-| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_ml_score`             | 5816 kB    | —                                                                            |
+| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_stationary`           | 5888 kB    | —                                                                            |
+| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_ml_score`             | 5848 kB    | —                                                                            |
 | `kismet_packets`               | `idx_packets_location`                             | 57 MB      | Spatial GiST — 57 MB; 0 scans since restart                                  |
-| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_rule_score`           | 5608 kB    | —                                                                            |
-| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_threat`               | 5488 kB    | —                                                                            |
+| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_rule_score`           | 5624 kB    | —                                                                            |
+| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_threat`               | 5496 kB    | —                                                                            |
 | `radio_manufacturers`          | `idx_radio_manufacturers_manufacturer_gin`         | 5304 kB    | —                                                                            |
-| `wigle_v3_observations`        | `idx_wigle_v3_obs_location`                        | 5208 kB    | —                                                                            |
+| `wigle_v3_observations`        | `idx_wigle_v3_obs_location`                        | 5264 kB    | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_location`                            | 5208 kB    | —                                                                            |
 | `api_wigle_networks_mv`        | `idx_wigle_networks_mv_display_coords`             | 5024 kB    | —                                                                            |
 | `api_network_explorer_mv`      | `idx_api_network_explorer_mv_observed_at`          | 4816 kB    | —                                                                            |
 | `observations`                 | `idx_observations_v2_device_id`                    | 4744 kB    | —                                                                            |
-| `kml_points`                   | `idx_kml_points_bssid`                             | 4536 kB    | —                                                                            |
 | `threat_scores_cache`          | `threat_scores_cache_threat_score_idx`             | 4432 kB    | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_location_time`                       | 4392 kB    | —                                                                            |
+| `network_sibling_pairs`        | `idx_network_sibling_pairs_rule`                   | 432 kB     | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_country_region_encryption_lasttime`  | 4096 kB    | —                                                                            |
-| `federal_courthouses`          | `idx_federal_courthouses_location`                 | 40 kB      | —                                                                            |
-| `network_tags`                 | `idx_network_tags_wigle_pending`                   | 40 kB      | —                                                                            |
-| `network_tags`                 | `idx_network_tags_threat`                          | 40 kB      | —                                                                            |
-| `network_tags`                 | `idx_network_tags_tags_gin`                        | 40 kB      | —                                                                            |
-| `background_job_runs`          | `idx_background_job_runs_status`                   | 40 kB      | —                                                                            |
 | `background_job_runs`          | `idx_background_job_runs_job_name_started_at`      | 40 kB      | —                                                                            |
-| `surveillance_detections`      | `idx_surveillance_detections_bssid`                | 40 kB      | —                                                                            |
-| `surveillance_detections`      | `idx_surveillance_detections_threat_score`         | 40 kB      | —                                                                            |
+| `network_tags`                 | `idx_network_tags_threat`                          | 40 kB      | —                                                                            |
 | `wigle_v3_network_details`     | `idx_wigle_v3_region`                              | 40 kB      | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_bssid2`                 | 392 kB     | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_bssid2_upper`           | 392 kB     | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_strength`               | 368 kB     | —                                                                            |
+| `surveillance_detections`      | `idx_surveillance_detections_threat_score`         | 40 kB      | —                                                                            |
+| `surveillance_detections`      | `idx_surveillance_detections_bssid`                | 40 kB      | —                                                                            |
+| `network_tags`                 | `idx_network_tags_wigle_pending`                   | 40 kB      | —                                                                            |
+| `federal_courthouses`          | `idx_federal_courthouses_location`                 | 40 kB      | —                                                                            |
+| `network_tags`                 | `idx_network_tags_tags_gin`                        | 40 kB      | —                                                                            |
+| `network_sibling_pairs`        | `idx_network_sibling_pairs_corroborating`          | 384 kB     | —                                                                            |
+| `network_sibling_pairs`        | `idx_network_sibling_pairs_pair_strength`          | 384 kB     | —                                                                            |
 | `observations`                 | `idx_observations_bssid_time_consolidated`         | 32 MB      | Compound index on bssid+time; 0 scans — covered by idx_observations_v2_bssid |
-| `anchor_points`                | `idx_anchor_points_bssid`                          | 32 kB      | —                                                                            |
-| `geocoding_job_runs`           | `idx_geocoding_job_runs_started_at`                | 32 kB      | —                                                                            |
-| `api_wigle_networks_mv`        | `idx_wigle_networks_mv_network_type`               | 32 kB      | —                                                                            |
-| `api_wigle_networks_mv`        | `idx_wigle_networks_mv_nonstationary`              | 32 kB      | —                                                                            |
+| `agency_offices`               | `idx_agency_offices_normalized_phone`              | 32 kB      | —                                                                            |
+| `agency_offices`               | `idx_agency_offices_location`                      | 32 kB      | —                                                                            |
 | `api_wigle_networks_mv`        | `idx_wigle_networks_mv_has_local_match`            | 32 kB      | —                                                                            |
 | `agency_offices`               | `idx_agency_offices_address_validated_at`          | 32 kB      | —                                                                            |
-| `network_tags`                 | `idx_network_tags_investigate`                     | 32 kB      | —                                                                            |
-| `agency_offices`               | `idx_agency_offices_location`                      | 32 kB      | —                                                                            |
-| `agency_offices`               | `idx_agency_offices_normalized_phone`              | 32 kB      | —                                                                            |
+| `api_wigle_networks_mv`        | `idx_wigle_networks_mv_network_type`               | 32 kB      | —                                                                            |
 | `wigle_ledger_events`          | `idx_wigle_ledger_events_kind_ts`                  | 32 kB      | —                                                                            |
+| `network_tags`                 | `idx_network_tags_investigate`                     | 32 kB      | —                                                                            |
+| `geocoding_job_runs`           | `idx_geocoding_job_runs_started_at`                | 32 kB      | —                                                                            |
+| `anchor_points`                | `idx_anchor_points_bssid`                          | 32 kB      | —                                                                            |
 | `wigle_v2_bluetooth_search`    | `idx_wigle_bt_type`                                | 32 kB      | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_bssid1`                 | 288 kB     | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_bssid1_upper`           | 288 kB     | —                                                                            |
+| `api_wigle_networks_mv`        | `idx_wigle_networks_mv_nonstationary`              | 32 kB      | —                                                                            |
 | `geocoding_cache`              | `idx_geocoding_cache_pending_poi`                  | 2848 kB    | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_conf`                   | 272 kB     | —                                                                            |
 | `observations`                 | `idx_obs_geom_gist`                                | 27 MB      | Spatial index on observations; 0 scans                                       |
 | `oui_device_groups`            | `idx_oui_device_groups_threat`                     | 256 kB     | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_lasttime`                            | 2520 kB    | —                                                                            |
 | `kml_points`                   | `idx_kml_points_network_type`                      | 2408 kB    | —                                                                            |
 | `kismet_packets`               | `idx_packets_timestamp`                            | 21 MB      | —                                                                            |
-| `observations`                 | `idx_obs_lat_lon`                                  | 21 MB      | —                                                                            |
+| `network_sibling_pairs`        | `idx_network_sibling_pairs_strength`               | 1744 kB    | —                                                                            |
 | `geocoding_cache`              | `idx_geocoding_cache_pending_address`              | 1744 kB    | —                                                                            |
 | `ssid_history`                 | `idx_ssid_history_bssid`                           | 1648 kB    | —                                                                            |
-| `network_tags`                 | `idx_network_tags_bssid`                           | 160 kB     | —                                                                            |
-| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_ignored`              | 16 kB      | —                                                                            |
-| `agency_office_coverage_notes` | `idx_agency_office_coverage_notes_field_office_id` | 16 kB      | —                                                                            |
+| `surveillance_density_zones`   | `idx_surveillance_density_zones_ratio`             | 16 kB      | —                                                                            |
+| `ai_insights`                  | `idx_ai_insights_created`                          | 16 kB      | —                                                                            |
+| `ai_insights`                  | `idx_ai_insights_user_created`                     | 16 kB      | —                                                                            |
+| `ai_insights`                  | `idx_ai_insights_user_id`                          | 16 kB      | —                                                                            |
 | `agency_offices`               | `idx_agency_offices_address_validation_provider`   | 16 kB      | —                                                                            |
 | `agency_offices`               | `idx_agency_offices_agency`                        | 16 kB      | —                                                                            |
 | `agency_offices`               | `idx_agency_offices_source_status`                 | 16 kB      | —                                                                            |
 | `agency_offices`               | `idx_agency_offices_state`                         | 16 kB      | —                                                                            |
 | `agency_offices`               | `idx_agency_offices_type`                          | 16 kB      | —                                                                            |
-| `ai_insights`                  | `idx_ai_insights_created`                          | 16 kB      | —                                                                            |
-| `ai_insights`                  | `idx_ai_insights_user_created`                     | 16 kB      | —                                                                            |
-| `ai_insights`                  | `idx_ai_insights_user_id`                          | 16 kB      | —                                                                            |
-| `kismet_alerts`                | `idx_alerts_timestamp`                             | 16 kB      | —                                                                            |
+| `agency_office_coverage_notes` | `idx_agency_office_coverage_notes_field_office_id` | 16 kB      | —                                                                            |
 | `anchor_points`                | `idx_anchor_points_location_label`                 | 16 kB      | —                                                                            |
+| `network_tags`                 | `idx_network_tags_ignored`                         | 16 kB      | —                                                                            |
+| `location_markers`             | `idx_location_markers_type`                        | 16 kB      | —                                                                            |
+| `analytics_summary_mv`         | `idx_analytics_summary_mv_type`                    | 16 kB      | —                                                                            |
+| `network_notes`                | `idx_network_notes_bssid`                          | 16 kB      | —                                                                            |
+| `network_notes`                | `idx_network_notes_bssid_active`                   | 16 kB      | —                                                                            |
+| `network_notes`                | `idx_network_notes_created`                        | 16 kB      | —                                                                            |
+| `network_notes`                | `idx_network_notes_user`                           | 16 kB      | —                                                                            |
+| `import_history`               | `idx_import_history_started_at`                    | 16 kB      | —                                                                            |
+| `api_wigle_networks_mv`        | `idx_wigle_networks_mv_mfgrid`                     | 16 kB      | —                                                                            |
+| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_mfgrid`                              | 16 kB      | —                                                                            |
+| `kismet_alerts`                | `idx_alerts_timestamp`                             | 16 kB      | —                                                                            |
 | `federal_courthouses`          | `idx_federal_courthouses_circuit`                  | 16 kB      | —                                                                            |
 | `federal_courthouses`          | `idx_federal_courthouses_district`                 | 16 kB      | —                                                                            |
 | `federal_courthouses`          | `idx_federal_courthouses_state`                    | 16 kB      | —                                                                            |
 | `federal_courthouses`          | `idx_federal_courthouses_type`                     | 16 kB      | —                                                                            |
-| `import_history`               | `idx_import_history_started_at`                    | 16 kB      | —                                                                            |
-| `location_markers`             | `idx_location_markers_type`                        | 16 kB      | —                                                                            |
-| `mobile_uploads`               | `idx_mobile_uploads_created_at`                    | 16 kB      | —                                                                            |
-| `mobile_uploads`               | `idx_mobile_uploads_source_tag`                    | 16 kB      | —                                                                            |
-| `mobile_uploads`               | `idx_mobile_uploads_status`                        | 16 kB      | —                                                                            |
-| `network_notes`                | `idx_network_notes_bssid`                          | 16 kB      | —                                                                            |
-| `network_notes`                | `idx_network_notes_bssid_active`                   | 16 kB      | —                                                                            |
-| `network_notes`                | `idx_network_notes_bssid_upper`                    | 16 kB      | —                                                                            |
-| `network_notes`                | `idx_network_notes_created`                        | 16 kB      | —                                                                            |
-| `network_notes`                | `idx_network_notes_user`                           | 16 kB      | —                                                                            |
 | `network_sibling_overrides`    | `idx_network_sibling_overrides_relation`           | 16 kB      | —                                                                            |
-| `network_tags`                 | `idx_network_tags_ignored`                         | 16 kB      | —                                                                            |
 | `note_media`                   | `idx_note_media_bssid`                             | 16 kB      | —                                                                            |
 | `note_media`                   | `idx_note_media_created`                           | 16 kB      | —                                                                            |
 | `note_media`                   | `idx_note_media_note_id`                           | 16 kB      | —                                                                            |
 | `note_media`                   | `idx_note_media_note_id_created`                   | 16 kB      | —                                                                            |
+| `mobile_uploads`               | `idx_mobile_uploads_created_at`                    | 16 kB      | —                                                                            |
+| `mobile_uploads`               | `idx_mobile_uploads_source_tag`                    | 16 kB      | —                                                                            |
+| `mobile_uploads`               | `idx_mobile_uploads_status`                        | 16 kB      | —                                                                            |
 | `shotspotter_zones`            | `idx_shotspotter_zones_city`                       | 16 kB      | —                                                                            |
 | `shotspotter_zones`            | `idx_shotspotter_zones_contract_status`            | 16 kB      | —                                                                            |
-| `surveillance_detections`      | `idx_surveillance_detections_device_type`          | 16 kB      | —                                                                            |
 | `user_sessions`                | `idx_user_sessions_user_id`                        | 16 kB      | —                                                                            |
-| `wigle_v2_bluetooth_search`    | `idx_wigle_bt_mfgrid`                              | 16 kB      | —                                                                            |
+| `surveillance_detections`      | `idx_surveillance_detections_device_type`          | 16 kB      | —                                                                            |
 | `wigle_import_runs`            | `idx_wigle_import_runs_state_started_at`           | 16 kB      | —                                                                            |
-| `analytics_summary_mv`         | `idx_analytics_summary_mv_type`                    | 16 kB      | —                                                                            |
-| `api_wigle_networks_mv`        | `idx_wigle_networks_mv_mfgrid`                     | 16 kB      | —                                                                            |
+| `api_network_explorer_mv`      | `idx_api_network_explorer_mv_ignored`              | 16 kB      | —                                                                            |
 | `surveillance_density_zones`   | `idx_surveillance_density_zones_weight`            | 16 kB      | —                                                                            |
-| `surveillance_density_zones`   | `idx_surveillance_density_zones_ratio`             | 16 kB      | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_bssid_oui24_expr`                    | 1584 kB    | —                                                                            |
 | `routes`                       | `idx_routes_geom`                                  | 1504 kB    | —                                                                            |
 | `observations`                 | `idx_obs_device_time`                              | 15 MB      | —                                                                            |
-| `network_locations`            | `idx_network_locations_bssid_ci`                   | 15 MB      | —                                                                            |
 | `wigle_v3_network_details`     | `idx_wigle_v3_trilat_trilon`                       | 144 kB     | —                                                                            |
 | `network_threat_scores`        | `idx_network_threat_scores_scored_at`              | 1432 kB    | —                                                                            |
 | `kismet_packets`               | `idx_packets_sourcemac`                            | 14 MB      | —                                                                            |
-| `kml_points`                   | `idx_kml_points_location`                          | 14 MB      | —                                                                            |
 | `threat_scores_cache`          | `threat_scores_cache_computed_at_idx`              | 1376 kB    | —                                                                            |
 | `threat_scores_cache`          | `threat_scores_cache_threat_level_idx`             | 1368 kB    | —                                                                            |
 | `networks`                     | `idx_networks_threat_updated_at`                   | 1368 kB    | —                                                                            |
 | `network_threat_scores`        | `idx_network_threat_scores_threat_level`           | 1360 kB    | —                                                                            |
+| `network_sibling_pairs`        | `idx_network_sibling_pairs_conf`                   | 1256 kB    | —                                                                            |
 | `deflock_cameras`              | `deflock_cameras_state_idx`                        | 1216 kB    | —                                                                            |
 | `kismet_devices`               | `idx_devices_devmac`                               | 120 kB     | —                                                                            |
-| `wigle_v3_observations`        | `idx_wigle_v3_obs_time`                            | 1160 kB    | —                                                                            |
 | `routes`                       | `idx_routes_device_observed`                       | 1152 kB    | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_pair_strength`          | 112 kB     | —                                                                            |
-| `network_sibling_pairs`        | `idx_network_sibling_pairs_rule`                   | 112 kB     | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_city`                                | 1104 kB    | —                                                                            |
 | `kml_points`                   | `idx_kml_points_network_id`                        | 11 MB      | —                                                                            |
 | `wigle_v2_networks_search`     | `idx_wigle_v2_ssid`                                | 1096 kB    | —                                                                            |
 | `orphan_network_backfills`     | `idx_orphan_network_backfills_status`              | 104 kB     | —                                                                            |
 
-### Tiger schema indexes — 36
+### Tiger schema indexes — 69
 
 All tiger indexes have 0 scans (no TIGER data loaded). Installed by `postgis_tiger_geocoder`.
 
@@ -1500,41 +1613,80 @@ All tiger indexes have 0 scans (no TIGER data loaded). Installed by `postgis_tig
 
 ### Index Health
 
-- **157 non-unique indexes show 0 scans.** Most of these are large data tables (kismet_packets, observations) where stats were reset on Docker restart. Genuine redundancy candidates require longer-running observation.
-- **Known redundancy cluster (network_threat_scores):** Three separate BSSID indexes exist — `idx_network_threat_scores_bssid`, `idx_network_threat_scores_bssid_upper`, and the unique `network_threat_scores_bssid_key`. The non-unique ones duplicate coverage. Tracked in `docs/schema/indexes.md`.
-- **network_sibling_pairs bssid1/bssid2 double-indexing:** Both case-sensitive and upper-case variants exist (`idx_network_sibling_pairs_bssid1` + `idx_network_sibling_pairs_bssid1_upper`). The upper-case variants may be redundant if BSSID is always stored upper-case.
+- **140 non-unique indexes show 0 scans.** Most of these are large data tables (kismet_packets, observations) where stats were reset on Docker restart. Genuine redundancy candidates require longer-running observation.
+- **Consolidated redundancy cluster (network_threat_scores):** Dropped the redundant non-unique `idx_network_threat_scores_bssid`, leaving only the unique constraint index `network_threat_scores_bssid_key` and case-insensitive `idx_network_threat_scores_bssid_upper`.
+- **network_sibling_pairs bssid1 consolidation:** Dropped the redundant case-sensitive `idx_network_sibling_pairs_bssid1` as it is covered by the primary key index. Retained functional upper-case and bssid2 indexes.
+- **Unused observations (lat, lon) index:** Dropped the standard B-tree coordinate index `idx_obs_lat_lon` as geospatial queries are optimized by the PostGIS spatial GiST index `idx_obs_geom_gist`.
 
 ### Zero-Row Tables
 
 The following tables have 0 estimated rows and may be either unused or recently initialized:
 
-- `app.network_cooccurrence` (40 kB) — 9 code refs
+- `app.network_threat_scores` (142 MB) — 91 code refs
+- `app.geocoding_cache` (142 MB) — 23 code refs
+- `app.network_locations` (66 MB) — 40 code refs
+- `app.deflock_cameras` (41 MB) — 4 code refs
+- `app.threat_scores_cache` (30 MB) — 20 code refs
+- `app.radio_manufacturers` (29 MB) — 76 code refs
+- `app.kismet_devices` (12 MB) — 11 code refs
+- `app.routes` (12 MB) — 142 code refs
+- `app.ssid_history` (6248 kB) — 11 code refs
+- `app.shotspotter_sensors` (5080 kB) — 3 code refs
+- `app.oui_device_groups` (2608 kB) — 27 code refs
+- `app.wigle_v2_bluetooth_search` (1216 kB) — 6 code refs
+- `app.networks_orphans` (1136 kB) — 18 code refs
+- `app.kismet_snapshots` (1000 kB) — 10 code refs
+- `app.kismet_messages` (1000 kB) — 10 code refs
+- `app.surveillance_detections` (936 kB) — 21 code refs
+- `app.agency_offices` (832 kB) — 126 code refs
+- `app.federal_courthouses` (280 kB) — 11 code refs
+- `app.anchor_points` (224 kB) — 3 code refs
+- `app.geocoding_job_runs` (152 kB) — 9 code refs
+- `app.surveillance_density_zones` (136 kB) — 5 code refs
+- `app.ai_insights` (128 kB) — 11 code refs
+- `app.network_notes` (112 kB) — 40 code refs
+- `app.note_media` (96 kB) — 13 code refs
+- `app.mobile_uploads` (96 kB) — 10 code refs
+- `app.agency_office_coverage_notes` (80 kB) — 3 code refs
+- `app.kismet_alerts` (72 kB) — 14 code refs
+- `app.shotspotter_zones` (72 kB) — 2 code refs
+- `app.kismet_datasources` (64 kB) — 10 code refs
+- `app.location_markers` (64 kB) — 64 code refs
+- `app.users` (64 kB) — 53 code refs
+- `app.wigle_saved_ssid_terms` (48 kB) — 5 code refs
+- `app.kismet_data` (48 kB) — 10 code refs
+- `app.device_sources` (48 kB) — 9 code refs
 - `app.network_media` (40 kB) — 17 code refs
-- `app.ml_training_history` (32 kB) — 7 code refs
+- `app.analytics_summary_mv` (40 kB) — 15 code refs
+- `app.network_cooccurrence` (40 kB) — 9 code refs
 - `app.mac_randomization_suspects` (32 kB) — 15 code refs
+- `app.ml_training_history` (32 kB) — 7 code refs
+- `app.settings` (32 kB) — 87 code refs
+- `app.ml_model_config` (32 kB) — 16 code refs
 - `app.hardware_inventory` (24 kB) — 0 code refs
+- `app.api_mv_refresh_state` (24 kB) — 5 code refs
 - `app.ml_model_metadata` (16 kB) — 5 code refs
 
 ### Largest Tables
 
 | Table                          | Total Size | Rows (est.) |
 | ------------------------------ | ---------- | ----------- |
-| `app.kismet_packets`           | 713 MB     | 2,100,783   |
-| `app.observations`             | 399 MB     | 685,788     |
-| `app.kml_points`               | 184 MB     | 316,445     |
-| `app.network_threat_scores`    | 150 MB     | 195,224     |
-| `app.geocoding_cache`          | 142 MB     | 124,188     |
-| `app.wigle_v2_networks_search` | 79 MB      | 108,354     |
+| `app.kismet_packets`           | 713 MB     | 2,101,641   |
+| `app.observations`             | 379 MB     | 685,788     |
+| `app.kml_points`               | 184 MB     | 22,822      |
+| `app.api_network_explorer_mv`  | 148 MB     | 188,961     |
+| `app.network_threat_scores`    | 142 MB     | 0           |
+| `app.geocoding_cache`          | 142 MB     | 0           |
+| `app.wigle_v2_networks_search` | 79 MB      | 2,656       |
 | `app.networks`                 | 75 MB      | 200,653     |
-| `app.network_locations`        | 66 MB      | 188,961     |
-| `app.wigle_v3_observations`    | 43 MB      | 125,706     |
-| `app.deflock_cameras`          | 41 MB      | 178,053     |
+| `app.network_locations`        | 66 MB      | 0           |
+| `app.api_wigle_networks_mv`    | 44 MB      | 1,356       |
 
 ### Low Code-Coverage Tables
 
 Tables with 0 code references — may be orphaned, import-only, or accessed via raw SQL:
 
-- `app.hardware_inventory` (24 kB, -1 rows)
+- `app.hardware_inventory` (24 kB, 0 rows)
 
 ### Tiger Geocoder Status
 
@@ -1656,4 +1808,4 @@ These columns have a plausible referent but orphan counts or type mismatches req
 
 ---
 
-_End of audit — generated 2026-06-04 19:33:28 UTC_
+_End of audit — generated 2026-06-05 00:56:02 UTC_
