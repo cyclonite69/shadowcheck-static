@@ -156,6 +156,17 @@ npx tsx scripts/rebuild-networks-precision.ts
 
 Recalculates network location precision from observations.
 
+### Schema Audit Report
+
+```bash
+npm run db:audit:report
+```
+
+Generates the comprehensive database architecture and schema audit report ([docs/schema/db-audit-report.md](file:///home/dbcooper/repos/shadowcheck-web/docs/schema/db-audit-report.md)) using [scripts/db-audit/generate-audit-report.js](file:///home/dbcooper/repos/shadowcheck-web/scripts/db-audit/generate-audit-report.js).
+
+- Reads catalog dump inputs from the gitignored `scratch/` directory (e.g. `scratch/audit_*.txt`, `scratch/cross_ref_results.json`, `scratch/migrations_ref_results.json`).
+- Staging and telemetry logs under `scratch/` remain strictly gitignored and local-only.
+
 ## Development
 
 ### Start Server
@@ -215,7 +226,7 @@ Sets home location for distance calculations.
 ### Generate Sitemap
 
 ```bash
-npx tsx scripts/generate-sitemap.ts
+node scripts/generate-sitemap.js
 ```
 
 Generates sitemap.xml for SEO.
@@ -223,7 +234,7 @@ Generates sitemap.xml for SEO.
 ### Write Robots.txt
 
 ```bash
-npx tsx scripts/write-robots.ts
+node scripts/write-robots.js
 ```
 
 Generates robots.txt (respects ROBOTS_ALLOW_INDEXING env var).
@@ -238,7 +249,7 @@ Generates robots.txt (respects ROBOTS_ALLOW_INDEXING env var).
 - **ML**: `scripts/ml/*.ts`
 - **Database**: `db-*.sh`, `refresh-*.sh`, `rebuild-*.ts`
 - **Development**: `shell/*.sh`, `docker-manage.sh`
-- **Utilities**: `set-home.ts`, `generate-sitemap.ts`, `write-robots.ts`
+- **Utilities**: `set-home.ts`, `generate-sitemap.js`, `write-robots.js`
 
 ## TypeScript Scripts
 
