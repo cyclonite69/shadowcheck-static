@@ -6,10 +6,86 @@ import type { Request, Response, NextFunction } from 'express';
 
 import express from 'express';
 const router = express.Router();
+const multer = require('multer');
 const { observationService } = require('../../../../config/container');
 import logger from '../../../../logging/logger';
 import { validateBSSID } from '../../../../validation/schemas';
 const { asyncHandler } = require('../../../../utils/asyncHandler');
+
+const VISINT_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
+const VISINT_UPLOAD_MAX_MB = VISINT_UPLOAD_MAX_BYTES / (1024 * 1024);
+type UploadedVisintFile = {
+  buffer?: Buffer;
+  originalname?: string;
+};
+
+const visintUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: VISINT_UPLOAD_MAX_BYTES,
+  },
+  fileFilter: (req: any, file: any, cb: any) => {
+    if (
+      file.mimetype === 'image/jpeg' ||
+      file.mimetype === 'image/jpg' ||
+      file.mimetype === 'image/png'
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG and PNG are allowed.'));
+    }
+  },
+});
+
+const parseOptionalNumber = (value: unknown): number | undefined => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const parseOptionalNullableNumber = (value: unknown): number | null => {
+  const parsed = parseOptionalNumber(value);
+  return parsed === undefined ? null : parsed;
+};
+
+const parseBooleanField = (value: unknown, fallback: boolean): boolean => {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  return String(value).toLowerCase() === 'true';
+};
+
+const handleVisintImageUpload = (req: Request, res: Response, next: NextFunction): void => {
+  visintUpload.single('image')(req, res, (error: unknown) => {
+    if (!error) {
+      next();
+      return;
+    }
+    const uploadError = error as { code?: string; message?: string };
+    if (uploadError.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({
+        ok: false,
+        error: `VISINT image exceeds ${VISINT_UPLOAD_MAX_MB} MB limit.`,
+        code: 'PAYLOAD_TOO_LARGE',
+      });
+      return;
+    }
+    if (uploadError.message === 'Invalid file type. Only JPEG and PNG are allowed.') {
+      res.status(400).json({
+        ok: false,
+        error: uploadError.message,
+        code: 'INVALID_FILE_TYPE',
+      });
+      return;
+    }
+    next(error);
+  });
+};
 
 type NetworkObservationsParams = {
   bssid: string;
@@ -280,28 +356,27 @@ router.post(
  * POST /api/observations/correlate-visint
  *
  * Correlates VisINT photo telemetry with nearby observations in the database.
- * Accepts a JSON body containing a base64-encoded image and original filename.
+ * Accepts a multipart/form-data body containing an image file and tuning metadata.
  */
 router.post(
   '/observations/correlate-visint',
+  handleVisintImageUpload,
   asyncHandler(async (req: Request, res: Response) => {
-    const imageBase64 = req.body.image || req.body.image_data_base64;
-    const filename = req.body.filename || req.body.original_filename || 'image.jpg';
-    const commit = req.body.commit !== undefined ? Boolean(req.body.commit) : true;
-    const radiusMeters =
-      req.body.radius_meters !== undefined ? Number(req.body.radius_meters) : undefined;
-    const windowHours =
-      req.body.window_hours !== undefined ? Number(req.body.window_hours) : undefined;
-    const limit = req.body.limit !== undefined ? Number(req.body.limit) : undefined;
+    const uploadedFile = (req as Request & { file?: UploadedVisintFile }).file;
+    const filename =
+      req.body.filename || req.body.original_filename || uploadedFile?.originalname || 'image.jpg';
+    const commit = parseBooleanField(req.body.commit, true);
+    const radiusMeters = parseOptionalNumber(req.body.radius_meters);
+    const windowHours = parseOptionalNumber(req.body.window_hours);
+    const limit = parseOptionalNumber(req.body.limit);
 
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'Image data in base64 format is required.' });
+    if (!uploadedFile?.buffer) {
+      return res.status(400).json({ error: 'VISINT image file field is required.' });
     }
 
     try {
-      const buffer = Buffer.from(imageBase64, 'base64');
       const result = await observationService.correlateVisINT(
-        buffer,
+        uploadedFile.buffer,
         filename,
         commit,
         radiusMeters,
@@ -313,6 +388,13 @@ router.post(
       if (error.name === 'ExifMissingError') {
         return res.status(400).json({ error: error.message, type: 'ExifMissingError' });
       }
+      if (error.name === 'ExifToolUnavailableError') {
+        return res.status(503).json({
+          error: error.message,
+          type: 'ExifToolUnavailableError',
+          code: 'VISINT_EXIF_TOOL_UNAVAILABLE',
+        });
+      }
       logger.error(`VisINT correlation failed: ${error.message}`);
       res.status(500).json({ error: 'VisINT correlation failed', details: error.message });
     }
@@ -323,31 +405,31 @@ router.post(
  * POST /api/observations/attach-visint
  *
  * Commits a VisINT photo attachment and auto-tags to a selected network observation.
- * Accepts a JSON body containing image base64, filename, target BSSID, and matching scores/deltas.
+ * Accepts a multipart/form-data body containing an image file, target BSSID, and scores/deltas.
  */
 router.post(
   '/observations/attach-visint',
+  handleVisintImageUpload,
   asyncHandler(async (req: Request, res: Response) => {
-    const imageBase64 = req.body.image || req.body.image_data_base64;
-    const filename = req.body.filename || req.body.original_filename || 'image.jpg';
+    const uploadedFile = (req as Request & { file?: UploadedVisintFile }).file;
+    const filename =
+      req.body.filename || req.body.original_filename || uploadedFile?.originalname || 'image.jpg';
     const targetBssid = req.body.bssid || 'VISINT_UNMATCHED';
     const status = req.body.status || 'UNMATCHED';
     const detectionScore = parseInt(req.body.detection_score || '0', 10);
-    const distMeters = req.body.dist_meters !== undefined ? parseFloat(req.body.dist_meters) : null;
-    const deltaMinutes =
-      req.body.delta_minutes !== undefined ? parseFloat(req.body.delta_minutes) : null;
-    const lat = req.body.lat !== undefined ? parseFloat(req.body.lat) : undefined;
-    const lon = req.body.lon !== undefined ? parseFloat(req.body.lon) : undefined;
+    const distMeters = parseOptionalNullableNumber(req.body.dist_meters);
+    const deltaMinutes = parseOptionalNullableNumber(req.body.delta_minutes);
+    const lat = parseOptionalNumber(req.body.lat);
+    const lon = parseOptionalNumber(req.body.lon);
     const ts = req.body.ts || undefined;
 
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'Image data in base64 format is required.' });
+    if (!uploadedFile?.buffer) {
+      return res.status(400).json({ error: 'VISINT image file field is required.' });
     }
 
     try {
-      const buffer = Buffer.from(imageBase64, 'base64');
       const tagsApplied = await observationService.saveVisINTAttachment(
-        buffer,
+        uploadedFile.buffer,
         filename,
         targetBssid,
         status,

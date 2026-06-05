@@ -16,7 +16,7 @@ ENV NODE_ENV=development \
 COPY package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN apk add --no-cache python3 make g++ docker-cli docker-cli-compose aws-cli postgresql-client curl && \
+RUN apk add --no-cache python3 make g++ docker-cli docker-cli-compose aws-cli postgresql-client curl exiftool && \
     npm ci --include=dev --legacy-peer-deps
 
 # Copy application files
@@ -33,8 +33,8 @@ RUN npm prune --omit=dev --legacy-peer-deps
 ###########################################
 FROM node:26.2.0-alpine
 
-# Install dumb-init for proper signal handling, pg_dump for backups, AWS CLI for S3, and Docker CLI for PgAdmin management
-RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl
+# Install dumb-init for proper signal handling, pg_dump for backups, AWS CLI for S3, Docker CLI for PgAdmin management, and exiftool for VISINT image parsing
+RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl exiftool
 
 # Install dependencies: gcompat provides the glibc compatibility layer needed for the binary
 RUN apk add --no-cache curl rpm gcompat

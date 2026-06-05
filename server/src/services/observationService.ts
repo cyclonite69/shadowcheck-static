@@ -3,7 +3,7 @@
  * Encapsulates database queries for observation operations
  */
 
-import { extractExif, ExifMissingError } from './visint/visintExif';
+import { extractExif, ExifMissingError, ExifToolUnavailableError } from './visint/visintExif';
 import { correlateVisINT, saveVisINTAttachment } from './visint/visintPipeline';
 
 const { query } = require('../config/database');
@@ -230,7 +230,7 @@ export async function correlateImageBLE(
   };
 }
 
-export { ExifMissingError, correlateVisINT, saveVisINTAttachment };
+export { ExifMissingError, ExifToolUnavailableError, correlateVisINT, saveVisINTAttachment };
 
 module.exports = {
   getHomeLocationForObservations,
@@ -243,4 +243,5 @@ module.exports = {
   correlateVisINT,
   saveVisINTAttachment,
   ExifMissingError,
+  ExifToolUnavailableError,
 };

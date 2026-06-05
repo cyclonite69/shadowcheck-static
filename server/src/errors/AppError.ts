@@ -174,6 +174,15 @@ function toAppError(error: unknown): AppError {
 
   // Handle specific error types
   const err = error as any; // Escape hatch for unknown error shapes
+  if (
+    err.type === 'entity.too.large' ||
+    err.code === 'LIMIT_FILE_SIZE' ||
+    err.status === 413 ||
+    err.statusCode === 413
+  ) {
+    return new AppError('Payload too large', 413, 'PAYLOAD_TOO_LARGE');
+  }
+
   if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
     return new AppError('External service temporarily unavailable', 503, 'EXTERNAL_SERVICE_ERROR');
   }

@@ -25,6 +25,8 @@ export interface ApiEndpointConfig {
   params?: ApiInput[];
   requiresAuth?: boolean;
   defaultBody?: string;
+  contentType?: 'application/json' | 'multipart/form-data';
+  manualOnly?: boolean;
   isDestructive?: boolean;
 }
 
@@ -386,19 +388,24 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   {
     category: 'Networks v1',
     label: 'VisINT Auto-Correlation',
+    description:
+      'Multipart/form-data VISINT image upload. Use the VisINT uploader or a manual multipart request with image, filename, commit, radius_meters, window_hours, and limit fields.',
     path: '/api/observations/correlate-visint',
     method: 'POST',
     requiresAuth: true,
-    defaultBody: '{\n  "image": "",\n  "filename": "image.jpg"\n}',
+    contentType: 'multipart/form-data',
+    manualOnly: true,
   },
   {
     category: 'Networks v1',
     label: 'VisINT Attachment',
+    description:
+      'Multipart/form-data VISINT attachment upload. Use the VisINT uploader or a manual multipart request with image, filename, bssid, status, scores, coordinates, and timestamp fields.',
     path: '/api/observations/attach-visint',
     method: 'POST',
     requiresAuth: true,
-    defaultBody:
-      '{\n  "image": "",\n  "filename": "image.jpg",\n  "bssid": "VISINT_UNMATCHED",\n  "status": "UNMATCHED",\n  "detection_score": 0,\n  "dist_meters": null,\n  "delta_minutes": null\n}',
+    contentType: 'multipart/form-data',
+    manualOnly: true,
   },
   {
     category: 'Networks v1',

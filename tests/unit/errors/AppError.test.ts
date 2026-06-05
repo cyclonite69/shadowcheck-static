@@ -153,6 +153,23 @@ describe('toAppError', () => {
     expect(result.code).toBe('TIMEOUT');
   });
 
+  test('preserves payload-too-large errors as 413', () => {
+    const bodyParserResult = toAppError({
+      type: 'entity.too.large',
+      status: 413,
+      message: 'request entity too large',
+    });
+    expect(bodyParserResult.statusCode).toBe(413);
+    expect(bodyParserResult.code).toBe('PAYLOAD_TOO_LARGE');
+
+    const multerResult = toAppError({
+      code: 'LIMIT_FILE_SIZE',
+      message: 'File too large',
+    });
+    expect(multerResult.statusCode).toBe(413);
+    expect(multerResult.code).toBe('PAYLOAD_TOO_LARGE');
+  });
+
   test('converts "has not been populated" to 503 DB_INITIALIZING', () => {
     const result = toAppError({ message: 'View has not been populated' });
     expect(result.statusCode).toBe(503);

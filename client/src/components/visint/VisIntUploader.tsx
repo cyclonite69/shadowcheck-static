@@ -27,6 +27,26 @@ interface VisIntResult {
   candidates?: CandidateObservation[];
 }
 
+const VISINT_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
+const VISINT_UPLOAD_MAX_MB = VISINT_UPLOAD_MAX_BYTES / (1024 * 1024);
+
+const getApiErrorMessage = (err: unknown, fallback: string): string => {
+  const apiError = err as {
+    message?: string;
+    data?: { error?: unknown; message?: unknown };
+    response?: { data?: { error?: unknown; message?: unknown } };
+  };
+  const rawMessage =
+    apiError.response?.data?.error ||
+    apiError.response?.data?.message ||
+    apiError.data?.error ||
+    apiError.data?.message ||
+    apiError.message ||
+    fallback;
+
+  return typeof rawMessage === 'string' ? rawMessage : fallback;
+};
+
 export default function VisIntUploader() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -38,7 +58,6 @@ export default function VisIntUploader() {
   const [copied, setCopied] = useState(false);
 
   // Interaction Flow State
-  const [cachedBase64, setCachedBase64] = useState<string | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -52,20 +71,43 @@ export default function VisIntUploader() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPEG or PNG).');
-      return;
-    }
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+  const clearCorrelationState = () => {
     setResult(null);
-    setError(null);
-    setErrorType(null);
-    setCachedBase64(null);
     setSelectedCandidateId(null);
     setSaveSuccess(false);
     setSaveTags([]);
+  };
+
+  const clearSelectedImageState = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    clearCorrelationState();
+  };
+
+  const handleFileChange = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      clearSelectedImageState();
+      setError('Please select a valid image file (JPEG or PNG).');
+      setErrorType(null);
+      return;
+    }
+    if (file.size > VISINT_UPLOAD_MAX_BYTES) {
+      clearSelectedImageState();
+      setError(`VISINT images must be ${VISINT_UPLOAD_MAX_MB} MB or smaller.`);
+      setErrorType('PayloadTooLarge');
+      return;
+    }
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    clearCorrelationState();
+    setError(null);
+    setErrorType(null);
   };
 
   const onDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -105,30 +147,17 @@ export default function VisIntUploader() {
     setSaveTags([]);
 
     try {
-      let base64 = cachedBase64;
-      if (!base64) {
-        const reader = new FileReader();
-        base64 = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => {
-            const resultStr = reader.result as string;
-            resolve(resultStr.split(',')[1]);
-          };
-          reader.onerror = () => reject(new Error('Failed to read file.'));
-          reader.readAsDataURL(selectedFile);
-        });
-        setCachedBase64(base64);
-      }
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      formData.append('filename', selectedFile.name);
+      formData.append('commit', 'false');
+      formData.append('radius_meters', String(radiusMeters));
+      formData.append('window_hours', String(windowHours));
+      formData.append('limit', String(limit));
 
       const response = await apiClient.post<{ ok: boolean } & VisIntResult>(
-        '/api/observations/correlate-visint',
-        {
-          image: base64,
-          filename: selectedFile.name,
-          commit: false, // Pure search lookup, do not auto-save on initial upload
-          radius_meters: radiusMeters,
-          window_hours: windowHours,
-          limit: limit,
-        }
+        '/observations/correlate-visint',
+        formData
       );
 
       setResult(response);
@@ -141,8 +170,11 @@ export default function VisIntUploader() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.error || err.message || 'An error occurred during upload.');
-      if (err.response?.data?.type === 'ExifMissingError') {
+      setError(getApiErrorMessage(err, 'An error occurred during upload.'));
+      if (
+        err.response?.data?.type === 'ExifMissingError' ||
+        err.data?.type === 'ExifMissingError'
+      ) {
         setErrorType('ExifMissingError');
       }
     } finally {
@@ -151,7 +183,7 @@ export default function VisIntUploader() {
   };
 
   const saveCorrelation = async () => {
-    if (!selectedFile || !result || !cachedBase64 || !selectedCandidateId) return;
+    if (!selectedFile || !result || !selectedCandidateId) return;
 
     setSaveLoading(true);
     setError(null);
@@ -160,24 +192,31 @@ export default function VisIntUploader() {
       const isUnmatched = selectedCandidateId === 'unmatched';
       const candidate = result.candidates?.find((c) => String(c.id) === selectedCandidateId);
 
-      const payload = {
-        image: cachedBase64,
-        filename: selectedFile.name,
-        bssid: isUnmatched ? 'VISINT_UNMATCHED' : candidate?.bssid || 'VISINT_UNMATCHED',
-        status: isUnmatched ? 'UNMATCHED' : 'MATCHED',
-        detection_score: isUnmatched ? 0 : Number(candidate?.detection_score || 0),
-        dist_meters: isUnmatched ? null : Number(candidate?.dist_meters || 0),
-        delta_minutes: isUnmatched ? null : Number(candidate?.delta_minutes || 0),
-        lat: result.exif.lat,
-        lon: result.exif.lon,
-        ts: result.exif.ts,
-      };
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      formData.append('filename', selectedFile.name);
+      formData.append(
+        'bssid',
+        isUnmatched ? 'VISINT_UNMATCHED' : candidate?.bssid || 'VISINT_UNMATCHED'
+      );
+      formData.append('status', isUnmatched ? 'UNMATCHED' : 'MATCHED');
+      formData.append(
+        'detection_score',
+        String(isUnmatched ? 0 : Number(candidate?.detection_score || 0))
+      );
+      if (!isUnmatched) {
+        formData.append('dist_meters', String(Number(candidate?.dist_meters || 0)));
+        formData.append('delta_minutes', String(Number(candidate?.delta_minutes || 0)));
+      }
+      formData.append('lat', String(result.exif.lat));
+      formData.append('lon', String(result.exif.lon));
+      formData.append('ts', result.exif.ts);
 
       const response = await apiClient.post<{
         ok: boolean;
         success: boolean;
         tags_applied: string[];
-      }>('/api/observations/attach-visint', payload);
+      }>('/observations/attach-visint', formData);
 
       if (response.success) {
         setSaveSuccess(true);
@@ -185,7 +224,7 @@ export default function VisIntUploader() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.error || err.message || 'Failed to save correlation.');
+      setError(getApiErrorMessage(err, 'Failed to save correlation.'));
     } finally {
       setSaveLoading(false);
     }
@@ -294,7 +333,7 @@ export default function VisIntUploader() {
                   Drag and drop tactical image, or <span className="text-cyan-400">browse</span>
                 </div>
                 <div className="text-xs text-slate-500">
-                  Supports JPEG and PNG images up to 20MB
+                  Supports JPEG and PNG images up to {VISINT_UPLOAD_MAX_MB}MB
                 </div>
               </div>
             )}
@@ -315,15 +354,9 @@ export default function VisIntUploader() {
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedFile(null);
-                    setPreviewUrl(null);
-                    setResult(null);
+                    clearSelectedImageState();
                     setError(null);
                     setErrorType(null);
-                    setCachedBase64(null);
-                    setSelectedCandidateId(null);
-                    setSaveSuccess(false);
-                    setSaveTags([]);
                   }}
                   className="text-red-400 hover:text-red-300 transition-colors"
                 >
@@ -582,15 +615,9 @@ export default function VisIntUploader() {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedFile(null);
-                  setPreviewUrl(null);
-                  setResult(null);
+                  clearSelectedImageState();
                   setError(null);
                   setErrorType(null);
-                  setCachedBase64(null);
-                  setSelectedCandidateId(null);
-                  setSaveSuccess(false);
-                  setSaveTags([]);
                 }}
                 className="mt-4 px-4 py-2 border border-emerald-800 hover:bg-emerald-950/30 text-emerald-300 hover:text-emerald-200 rounded-lg text-xs font-semibold transition-all text-center"
               >

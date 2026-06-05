@@ -10,6 +10,7 @@ import {
   correlateImageBLE,
   correlateVisINT,
   ExifMissingError,
+  ExifToolUnavailableError,
 } from '../../server/src/services/observationService';
 
 const { query } = require('../../server/src/config/database');
@@ -242,6 +243,14 @@ describe('Observation Service', () => {
       await expect(correlateImageBLE('dummy.jpg')).rejects.toThrow(
         'Failed to parse EXIF payload for dummy.jpg'
       );
+    });
+
+    it('should throw ExifToolUnavailableError if exiftool is missing from runtime', async () => {
+      (execFile as unknown as jest.Mock).mockImplementation((file, args, callback) => {
+        callback(Object.assign(new Error('spawn exiftool ENOENT'), { code: 'ENOENT' }));
+      });
+
+      await expect(correlateImageBLE('dummy.jpg')).rejects.toBeInstanceOf(ExifToolUnavailableError);
     });
   });
 

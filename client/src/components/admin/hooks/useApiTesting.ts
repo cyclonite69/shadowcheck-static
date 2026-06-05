@@ -267,6 +267,24 @@ export const useApiTesting = () => {
       const queryString = queryParams.toString();
       const resolvedUrl = queryString ? `${finalUrl}?${queryString}` : finalUrl;
 
+      if (preset.manualOnly) {
+        const outcome = {
+          label: preset.label,
+          category: preset.category,
+          method: preset.method,
+          path: resolvedUrl,
+          ok: true,
+          status: 'SKIPPED',
+          resultStatus: 'skipped' as const,
+          durationMs: 0,
+          body: `Skipped (Manual ${preset.contentType || 'request'} endpoint).`,
+          usedAuth: useAuthentication && isAuthenticated,
+        };
+        results.push(outcome);
+        setTestAllResults([...results]);
+        continue;
+      }
+
       if (preset.isDestructive && !runDestructive) {
         const outcome = {
           label: preset.label,

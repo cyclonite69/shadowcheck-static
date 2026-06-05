@@ -9,6 +9,13 @@ export class ExifMissingError extends Error {
   }
 }
 
+export class ExifToolUnavailableError extends Error {
+  constructor() {
+    super('VISINT EXIF parser is unavailable. Install exiftool in the API runtime.');
+    this.name = 'ExifToolUnavailableError';
+  }
+}
+
 /**
  * Extracts GPS telemetry and timestamp from a JPEG image using exiftool
  */
@@ -36,6 +43,9 @@ export async function extractExif(
     lonStr = lonRes.stdout.trim();
     tsStr = tsRes.stdout.trim();
   } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      throw new ExifToolUnavailableError();
+    }
     throw new Error(`Failed to parse EXIF payload for ${imagePath}: ${error.message}`);
   }
 

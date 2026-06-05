@@ -10,6 +10,8 @@ const mockContainer = {
     getWigleObservationsByBSSID: jest.fn().mockResolvedValue([]),
     getOurObservationCount: jest.fn().mockResolvedValue(0),
     getWigleObservationsBatch: jest.fn().mockResolvedValue([]),
+    correlateVisINT: jest.fn(),
+    saveVisINTAttachment: jest.fn(),
   },
 };
 
@@ -27,7 +29,7 @@ jest.mock('../../../../server/src/logging/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn(),
-  }
+  },
 }));
 
 // Use commonjs require and handle possible .default from ts-node/esm
@@ -51,7 +53,15 @@ describe('Observations API v1', () => {
       const bssid = '00:11:22:33:44:55';
       const mockHome = { lon: -122.4194, lat: 37.7749 };
       const mockObservations = [
-        { id: 1, bssid, ssid: 'TestNet', lat: 37.775, lon: -122.419, level: -50, time: 1600000000000 }
+        {
+          id: 1,
+          bssid,
+          ssid: 'TestNet',
+          lat: 37.775,
+          lon: -122.419,
+          level: -50,
+          time: 1600000000000,
+        },
       ];
 
       mockContainer.observationService.getHomeLocationForObservations.mockResolvedValue(mockHome);
@@ -85,8 +95,8 @@ describe('Observations API v1', () => {
           level: -60,
           ssid: 'TestNet',
           is_matched: true,
-          distance_from_our_center_m: 2.5
-        }
+          distance_from_our_center_m: 2.5,
+        },
       ];
 
       mockContainer.observationService.checkWigleTableExists.mockResolvedValue(true);
@@ -98,6 +108,128 @@ describe('Observations API v1', () => {
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(res.body.stats.wigle_total).toBe(1);
+    });
+  });
+
+  describe('POST /api/observations/correlate-visint', () => {
+    it('accepts multipart VISINT image uploads', async () => {
+      const image = Buffer.from('fake-visint-image');
+      mockContainer.observationService.correlateVisINT.mockResolvedValue({
+        status: 'UNMATCHED',
+        observation_id: null,
+        detection_score: 0,
+        dist_meters: null,
+        delta_minutes: null,
+        tags_applied: [],
+        exif: { lat: 1, lon: 2, ts: '2026-06-05T00:00:00.000Z' },
+        candidates: [],
+      });
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('filename', 'visint.jpg')
+        .field('commit', 'false')
+        .field('radius_meters', '75')
+        .field('window_hours', '3')
+        .field('limit', '7');
+
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
+      const call = mockContainer.observationService.correlateVisINT.mock.calls[0];
+      expect(Buffer.isBuffer(call[0])).toBe(true);
+      expect(call[0].equals(image)).toBe(true);
+      expect(call.slice(1)).toEqual(['visint.jpg', false, 75, 3, 7]);
+    });
+
+    it('returns 413 for VISINT images over the route-specific limit', async () => {
+      const oversizedImage = Buffer.alloc(25 * 1024 * 1024 + 1);
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', oversizedImage, 'too-large.jpg');
+
+      expect(res.status).toBe(413);
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          ok: false,
+          code: 'PAYLOAD_TOO_LARGE',
+        })
+      );
+      expect(mockContainer.observationService.correlateVisINT).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 for invalid VISINT file types (non-image)', async () => {
+      const textFile = Buffer.from('some text data');
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', textFile, 'not-an-image.txt');
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        ok: false,
+        error: 'Invalid file type. Only JPEG and PNG are allowed.',
+        code: 'INVALID_FILE_TYPE',
+      });
+      expect(mockContainer.observationService.correlateVisINT).not.toHaveBeenCalled();
+    });
+
+    it('returns 503 when the VISINT EXIF parser is unavailable', async () => {
+      const image = Buffer.from('fake-visint-image');
+      const error = new Error(
+        'VISINT EXIF parser is unavailable. Install exiftool in the API runtime.'
+      );
+      error.name = 'ExifToolUnavailableError';
+      mockContainer.observationService.correlateVisINT.mockRejectedValue(error);
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'visint.jpg');
+
+      expect(res.status).toBe(503);
+      expect(res.body).toEqual({
+        error: 'VISINT EXIF parser is unavailable. Install exiftool in the API runtime.',
+        type: 'ExifToolUnavailableError',
+        code: 'VISINT_EXIF_TOOL_UNAVAILABLE',
+      });
+    });
+  });
+
+  describe('POST /api/observations/attach-visint', () => {
+    it('accepts multipart VISINT attachment uploads', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+      mockContainer.observationService.saveVisINTAttachment.mockResolvedValue(['VISINT_VERIFIED']);
+
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('filename', 'visint.jpg')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('status', 'MATCHED')
+        .field('detection_score', '3')
+        .field('dist_meters', '12.5')
+        .field('delta_minutes', '4.25')
+        .field('lat', '39.1')
+        .field('lon', '-76.2')
+        .field('ts', '2026-06-05T00:00:00.000Z');
+
+      expect(res.status).toBe(200);
+      expect(res.body.tags_applied).toEqual(['VISINT_VERIFIED']);
+      const call = mockContainer.observationService.saveVisINTAttachment.mock.calls[0];
+      expect(Buffer.isBuffer(call[0])).toBe(true);
+      expect(call[0].equals(image)).toBe(true);
+      expect(call.slice(1)).toEqual([
+        'visint.jpg',
+        'AA:BB:CC:DD:EE:FF',
+        'MATCHED',
+        3,
+        12.5,
+        4.25,
+        39.1,
+        -76.2,
+        '2026-06-05T00:00:00.000Z',
+      ]);
     });
   });
 });
