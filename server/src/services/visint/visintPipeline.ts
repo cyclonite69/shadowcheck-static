@@ -13,6 +13,77 @@ const {
   insertNetworkTagWithNotes,
 } = require('../../repositories/adminNetworkTagOuiRepository');
 
+/**
+ * Derive the tag set to apply for a VISINT attachment.
+ *
+ * Rules:
+ *  - Explicit unmatched (targetBssid === 'VISINT_UNMATCHED'): UNMATCHED_NODE + VISINT_UNMATCHED
+ *  - Manual attachment to a real BSSID: VISINT_SPATIAL_MATCH + VISINT_MANUAL_MATCH + VISINT_CONFIRMED
+ *    + GROUND_TRUTH_IMAGE, plus device-type tag if known
+ *  - Auto-matched with score ≥ 1: score-based Flock/ShotSpotter tags + VISINT_VERIFIED/PENDING
+ *  - Auto-matched with score 0 but real BSSID: VISINT_SPATIAL_MATCH only
+ */
+export function deriveVisintTags(
+  targetBssid: string,
+  detectionScore: number,
+  deviceType: string | null,
+  isManualOverride: boolean
+): string[] {
+  // Fallback/unmatched path — sentinel BSSID only
+  if (targetBssid === 'VISINT_UNMATCHED') {
+    return ['UNMATCHED_NODE', 'VISINT_UNMATCHED'];
+  }
+
+  // Manual attachment to a real candidate — ground-truth evidence path
+  if (isManualOverride) {
+    const tags: string[] = [
+      'VISINT_SPATIAL_MATCH',
+      'VISINT_MANUAL_MATCH',
+      'VISINT_CONFIRMED',
+      'GROUND_TRUTH_IMAGE',
+    ];
+    if (deviceType === 'SHOTSPOTTER_SENSOR') {
+      tags.push('SHOTSPOTTER_SENSOR');
+    } else if (deviceType === 'FLOCK_SAFETY_CAMERA') {
+      // Retain Flock score-based specificity even on manual override
+      if (detectionScore >= 4) {
+        tags.push('FLOCK_NEW_FIRMWARE');
+      } else if (detectionScore >= 3) {
+        tags.push('FLOCK_LEGACY');
+      } else {
+        tags.push('FLOCK_CANDIDATE');
+      }
+    }
+    return tags;
+  }
+
+  // Auto-matched paths — score-based tagging
+  if (deviceType === 'SHOTSPOTTER_SENSOR') {
+    if (detectionScore >= 2) {
+      return ['SHOTSPOTTER_SENSOR', 'VISINT_VERIFIED'];
+    }
+    return ['SHOTSPOTTER_SENSOR', 'VISINT_PENDING'];
+  }
+
+  if (deviceType === 'FLOCK_SAFETY_CAMERA') {
+    if (detectionScore >= 4) {
+      return ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'];
+    } else if (detectionScore >= 3) {
+      return ['FLOCK_LEGACY', 'VISINT_VERIFIED'];
+    } else if (detectionScore >= 1) {
+      return ['FLOCK_CANDIDATE', 'VISINT_PENDING'];
+    }
+  }
+
+  // Score ≥ 1 but no recognised device type
+  if (detectionScore >= 1) {
+    return ['VISINT_PENDING'];
+  }
+
+  // Real BSSID, score 0, auto-selected — spatial proximity only
+  return ['VISINT_SPATIAL_MATCH'];
+}
+
 export async function saveVisINTAttachment(
   imageBuffer: Buffer,
   filename: string,
@@ -23,55 +94,34 @@ export async function saveVisINTAttachment(
   deltaMinutes: number | null,
   lat?: number,
   lon?: number,
-  ts?: string
+  ts?: string,
+  isManualOverride: boolean = false,
+  deviceType: string | null = null
 ): Promise<string[]> {
   const mimeType = String(filename).toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-  let tagsToApply: string[] = [];
 
-  if (status === 'MATCHED') {
-    // Attach to matched network BSSID
-    await insertNetworkMedia(
-      targetBssid,
-      'image',
-      filename,
-      imageBuffer.length,
-      mimeType,
-      imageBuffer,
-      `VisINT Correlation Matched: dist_meters=${distMeters}, delta_minutes=${deltaMinutes}, score=${detectionScore}`
-    );
+  const isUnmatched = targetBssid === 'VISINT_UNMATCHED';
 
-    // Apply matched tags
-    if (detectionScore === 3) {
-      tagsToApply = ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'];
-    } else if (detectionScore === 2) {
-      tagsToApply = ['FLOCK_LEGACY', 'VISINT_VERIFIED'];
-    } else if (detectionScore === 1) {
-      tagsToApply = ['FLOCK_CANDIDATE', 'VISINT_PENDING'];
-    }
-  } else {
-    // Unmatched fallback
-    const metadataDesc = JSON.stringify({
-      extracted_lat: lat || 0,
-      extracted_lon: lon || 0,
-      extracted_ts: ts || '',
-      status: 'UNMATCHED',
-    });
-    await insertNetworkMedia(
-      targetBssid,
-      'image',
-      filename,
-      imageBuffer.length,
-      mimeType,
-      imageBuffer,
-      metadataDesc
-    );
+  const mediaDesc = isUnmatched
+    ? JSON.stringify({
+        extracted_lat: lat || 0,
+        extracted_lon: lon || 0,
+        extracted_ts: ts || '',
+        status: 'UNMATCHED',
+      })
+    : `VisINT Correlation: dist_meters=${distMeters}, delta_minutes=${deltaMinutes}, score=${detectionScore}, manual=${isManualOverride}`;
 
-    tagsToApply = ['UNMATCHED_NODE', 'VISINT_UNMATCHED'];
-  }
+  await insertNetworkMedia(
+    targetBssid,
+    'image',
+    filename,
+    imageBuffer.length,
+    mimeType,
+    imageBuffer,
+    mediaDesc
+  );
 
-  if (/shot|spotter/i.test(filename)) {
-    tagsToApply.push('SHOTSPOTTER');
-  }
+  const tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, isManualOverride);
 
   // Save tags
   const existing = await getNetworkTagsByBssid(targetBssid);
@@ -123,7 +173,7 @@ export async function correlateVisINT(
     }
   }
 
-  // Query database using custom spatial-temporal parameters and signature scoring
+  // Query database using spatial-temporal parameters and signature scoring
   const rows = await queryCorrelatedObservations(
     query,
     lon,
@@ -140,6 +190,7 @@ export async function correlateVisINT(
   let distMeters: number | null = null;
   let deltaMinutes: number | null = null;
   let targetBssid = 'VISINT_UNMATCHED';
+  let deviceType: string | null = null;
   let tagsToApply: string[] = [];
 
   if (rows.length > 0 && parseInt(rows[0].detection_score, 10) >= 1) {
@@ -150,6 +201,7 @@ export async function correlateVisINT(
     distMeters = parseFloat(bestMatch.dist_meters);
     deltaMinutes = parseFloat(bestMatch.delta_minutes);
     targetBssid = String(bestMatch.bssid).toUpperCase();
+    deviceType = bestMatch.device_type || null;
   }
 
   if (commit) {
@@ -163,24 +215,13 @@ export async function correlateVisINT(
       deltaMinutes,
       lat,
       lon,
-      ts
+      ts,
+      false, // correlateVisINT is always auto — not manual
+      deviceType
     );
   } else {
-    // Determine preview tags to return
-    if (status === 'MATCHED') {
-      if (detectionScore === 3) {
-        tagsToApply = ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'];
-      } else if (detectionScore === 2) {
-        tagsToApply = ['FLOCK_LEGACY', 'VISINT_VERIFIED'];
-      } else if (detectionScore === 1) {
-        tagsToApply = ['FLOCK_CANDIDATE', 'VISINT_PENDING'];
-      }
-    } else {
-      tagsToApply = ['UNMATCHED_NODE', 'VISINT_UNMATCHED'];
-    }
-    if (/shot|spotter/i.test(filename)) {
-      tagsToApply.push('SHOTSPOTTER');
-    }
+    // Preview tags — derive without committing
+    tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, false);
   }
 
   return {

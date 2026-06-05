@@ -283,7 +283,7 @@ describe('Observation Service', () => {
       });
     });
 
-    it('should successfully MATCH correlation with score 3 (new firmware)', async () => {
+    it('should successfully MATCH correlation with score 4 (new firmware / BLE UUID)', async () => {
       const mockRow = {
         id: 12345,
         bssid: 'aa:bb:cc:dd:ee:ff',
@@ -295,7 +295,8 @@ describe('Observation Service', () => {
         lon: -83.696,
         dist_meters: 5.4,
         delta_minutes: 0.1,
-        detection_score: '3',
+        detection_score: '4',
+        device_type: 'FLOCK_SAFETY_CAMERA',
       };
       (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
@@ -305,7 +306,7 @@ describe('Observation Service', () => {
       expect(result).toEqual({
         status: 'MATCHED',
         observation_id: '12345',
-        detection_score: 3,
+        detection_score: 4,
         dist_meters: 5.4,
         delta_minutes: 0.1,
         tags_applied: ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'],
@@ -320,7 +321,7 @@ describe('Observation Service', () => {
         5,
         'image/jpeg',
         expect.any(Buffer),
-        expect.stringContaining('score=3')
+        expect.stringContaining('score=4')
       );
 
       expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
@@ -330,7 +331,7 @@ describe('Observation Service', () => {
       );
     });
 
-    it('should successfully MATCH correlation with score 2 (legacy firmware)', async () => {
+    it('should successfully MATCH correlation with score 3 (legacy firmware / Penguin SSID)', async () => {
       const mockRow = {
         id: 12345,
         bssid: 'aa:bb:cc:dd:ee:ff',
@@ -342,7 +343,8 @@ describe('Observation Service', () => {
         lon: -83.696,
         dist_meters: 5.4,
         delta_minutes: 0.1,
-        detection_score: '2',
+        detection_score: '3',
+        device_type: 'FLOCK_SAFETY_CAMERA',
       };
       (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce({ tags: ['SOME_TAG'] });
@@ -373,6 +375,7 @@ describe('Observation Service', () => {
         dist_meters: 5.4,
         delta_minutes: 0.1,
         detection_score: '1',
+        device_type: 'FLOCK_SAFETY_CAMERA',
       };
       (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
@@ -416,13 +419,27 @@ describe('Observation Service', () => {
       );
     });
 
-    it('should apply SHOTSPOTTER tag if filename contains shot or spotter', async () => {
-      (query as jest.Mock).mockResolvedValueOnce({ rows: [] });
+    it('should apply SHOTSPOTTER_SENSOR tag when SSID matches ShotSpotter prefix', async () => {
+      const mockRow = {
+        id: 99,
+        bssid: 'bb:cc:dd:ee:ff:00',
+        ssid: 'ShotSpotter-Unit7',
+        radio_type: 'W',
+        level: -65,
+        observed_at: '2026-05-06 20:29:10',
+        lat: 43.023,
+        lon: -83.696,
+        dist_meters: 12.0,
+        delta_minutes: 0.5,
+        detection_score: '2',
+        device_type: 'SHOTSPOTTER_SENSOR',
+      };
+      (query as jest.Mock).mockResolvedValueOnce({ rows: [mockRow] });
       (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
 
       const result = await correlateVisINT(Buffer.from('dummy'), 'shotspotter_capture.jpg');
 
-      expect(result.tags_applied).toContain('SHOTSPOTTER');
+      expect(result.tags_applied).toContain('SHOTSPOTTER_SENSOR');
     });
 
     it('should throw ExifMissingError if EXIF fields are missing', async () => {

@@ -191,6 +191,9 @@ export default function VisIntUploader() {
     try {
       const isUnmatched = selectedCandidateId === 'unmatched';
       const candidate = result.candidates?.find((c) => String(c.id) === selectedCandidateId);
+      // manual_override = true when the user picked a different candidate than the scorer's auto-top-pick
+      const autoTopId = result.candidates?.[0] ? String(result.candidates[0].id) : null;
+      const isManualOverride = !isUnmatched && selectedCandidateId !== autoTopId;
 
       const formData = new FormData();
       formData.append('image', selectedFile);
@@ -204,6 +207,10 @@ export default function VisIntUploader() {
         'detection_score',
         String(isUnmatched ? 0 : Number(candidate?.detection_score || 0))
       );
+      formData.append('manual_override', String(isManualOverride));
+      if (candidate?.device_type) {
+        formData.append('device_type', candidate.device_type);
+      }
       if (!isUnmatched) {
         formData.append('dist_meters', String(Number(candidate?.dist_meters || 0)));
         formData.append('delta_minutes', String(Number(candidate?.delta_minutes || 0)));
@@ -235,28 +242,48 @@ export default function VisIntUploader() {
 
     const isUnmatched = selectedCandidateId === 'unmatched';
     const candidate = result.candidates?.find((c) => String(c.id) === selectedCandidateId);
+    const autoTopId = result.candidates?.[0] ? String(result.candidates[0].id) : null;
+    const isManualOverride = !isUnmatched && selectedCandidateId !== autoTopId;
+    const bssid = isUnmatched ? 'VISINT_UNMATCHED' : candidate?.bssid || 'VISINT_UNMATCHED';
+    const score = Number(candidate?.detection_score || 0);
+    const deviceType: string | null = candidate?.device_type || null;
 
-    let tags: string[] = [];
-    if (isUnmatched || !candidate) {
-      tags = ['UNMATCHED_NODE', 'VISINT_UNMATCHED'];
-    } else {
-      const score = Number(candidate.detection_score || 0);
-      if (score === 3) {
-        tags = ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'];
-      } else if (score === 2) {
-        tags = ['FLOCK_LEGACY', 'VISINT_VERIFIED'];
-      } else if (score === 1) {
-        tags = ['FLOCK_CANDIDATE', 'VISINT_PENDING'];
-      } else {
-        tags = ['UNMATCHED_NODE', 'VISINT_UNMATCHED'];
+    // Mirrors server-side deriveVisintTags logic
+    if (bssid === 'VISINT_UNMATCHED') {
+      return ['UNMATCHED_NODE', 'VISINT_UNMATCHED'];
+    }
+
+    if (isManualOverride) {
+      const tags = [
+        'VISINT_SPATIAL_MATCH',
+        'VISINT_MANUAL_MATCH',
+        'VISINT_CONFIRMED',
+        'GROUND_TRUTH_IMAGE',
+      ];
+      if (deviceType === 'SHOTSPOTTER_SENSOR') {
+        tags.push('SHOTSPOTTER_SENSOR');
+      } else if (deviceType === 'FLOCK_SAFETY_CAMERA') {
+        tags.push(
+          score >= 4 ? 'FLOCK_NEW_FIRMWARE' : score >= 3 ? 'FLOCK_LEGACY' : 'FLOCK_CANDIDATE'
+        );
       }
+      return tags;
     }
 
-    if (selectedFile && /shot|spotter/i.test(selectedFile.name)) {
-      tags.push('SHOTSPOTTER');
+    if (deviceType === 'SHOTSPOTTER_SENSOR') {
+      return score >= 2
+        ? ['SHOTSPOTTER_SENSOR', 'VISINT_VERIFIED']
+        : ['SHOTSPOTTER_SENSOR', 'VISINT_PENDING'];
     }
 
-    return tags;
+    if (deviceType === 'FLOCK_SAFETY_CAMERA') {
+      if (score >= 4) return ['FLOCK_NEW_FIRMWARE', 'VISINT_VERIFIED'];
+      if (score >= 3) return ['FLOCK_LEGACY', 'VISINT_VERIFIED'];
+      if (score >= 1) return ['FLOCK_CANDIDATE', 'VISINT_PENDING'];
+    }
+
+    if (score >= 1) return ['VISINT_PENDING'];
+    return ['VISINT_SPATIAL_MATCH'];
   };
 
   const copyToClipboard = (text: string) => {

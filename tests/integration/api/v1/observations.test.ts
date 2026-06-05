@@ -212,7 +212,9 @@ describe('Observations API v1', () => {
         .field('delta_minutes', '4.25')
         .field('lat', '39.1')
         .field('lon', '-76.2')
-        .field('ts', '2026-06-05T00:00:00.000Z');
+        .field('ts', '2026-06-05T00:00:00.000Z')
+        .field('manual_override', 'false');
+      // Note: device_type not sent → null on server side
 
       expect(res.status).toBe(200);
       expect(res.body.tags_applied).toEqual(['VISINT_VERIFIED']);
@@ -229,6 +231,8 @@ describe('Observations API v1', () => {
         39.1,
         -76.2,
         '2026-06-05T00:00:00.000Z',
+        false,
+        null,
       ]);
     });
   });

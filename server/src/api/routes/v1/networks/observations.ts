@@ -405,7 +405,8 @@ router.post(
  * POST /api/observations/attach-visint
  *
  * Commits a VisINT photo attachment and auto-tags to a selected network observation.
- * Accepts a multipart/form-data body containing an image file, target BSSID, and scores/deltas.
+ * Accepts a multipart/form-data body containing an image file, target BSSID, scores/deltas,
+ * and optional manual_override + device_type fields that gate ground-truth evidence tagging.
  */
 router.post(
   '/observations/attach-visint',
@@ -422,6 +423,8 @@ router.post(
     const lat = parseOptionalNumber(req.body.lat);
     const lon = parseOptionalNumber(req.body.lon);
     const ts = req.body.ts || undefined;
+    const isManualOverride = req.body.manual_override === 'true';
+    const deviceType: string | null = req.body.device_type || null;
 
     if (!uploadedFile?.buffer) {
       return res.status(400).json({ error: 'VISINT image file field is required.' });
@@ -438,7 +441,9 @@ router.post(
         deltaMinutes,
         lat,
         lon,
-        ts
+        ts,
+        isManualOverride,
+        deviceType
       );
       res.json({ ok: true, success: true, tags_applied: tagsApplied });
     } catch (error: any) {
