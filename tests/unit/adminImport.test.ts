@@ -292,6 +292,21 @@ describe('admin/import routes', () => {
       expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
 
+    it('should return 400 if getImportCommand throws an error', async () => {
+      const { getImportCommand } = require('../../server/src/services/admin/adminHelpers');
+      getImportCommand.mockImplementationOnce(() => {
+        throw new Error('Test script resolution failure');
+      });
+
+      const res = await request(app).post('/api/admin/import-sqlite').send({ source_tag: 'test' });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        ok: false,
+        error: 'Test script resolution failure',
+      });
+      expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
+    });
+
     it('should handle kismet import successfully', async () => {
       (spawn as jest.Mock).mockImplementationOnce(() => {
         setTimeout(() => {
@@ -365,6 +380,21 @@ describe('admin/import routes', () => {
 
       const res = await request(app).post('/api/admin/import-sql').send({});
       expect(res.status).toBe(500);
+    });
+
+    it('should return 400 if getSqlImportCommand throws an error', async () => {
+      const { getSqlImportCommand } = require('../../server/src/services/admin/adminHelpers');
+      getSqlImportCommand.mockImplementationOnce(() => {
+        throw new Error('Test SQL script resolution failure');
+      });
+
+      const res = await request(app).post('/api/admin/import-sql').send({});
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        ok: false,
+        error: 'Test SQL script resolution failure',
+      });
+      expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
   });
 
@@ -549,6 +579,21 @@ describe('admin/import routes', () => {
 
       const res = await request(app).post('/api/admin/import-kml').send({});
       expect(res.status).toBe(500);
+    });
+
+    it('should return 400 if getKmlImportCommand throws an error', async () => {
+      const { getKmlImportCommand } = require('../../server/src/services/admin/adminHelpers');
+      getKmlImportCommand.mockImplementationOnce(() => {
+        throw new Error('Test KML script resolution failure');
+      });
+
+      const res = await request(app).post('/api/admin/import-kml').send({});
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        ok: false,
+        error: 'Test KML script resolution failure',
+      });
+      expect(adminImportHistoryService.failImportHistory).toHaveBeenCalled();
     });
   });
 

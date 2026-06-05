@@ -34,7 +34,6 @@ jest.mock('fs', () => ({
   },
 }));
 
-
 describe('adminHelpers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -64,10 +63,28 @@ describe('adminHelpers', () => {
   });
 
   describe('getSqlImportCommand', () => {
-    it('should return SQL import command', () => {
+    it('should return SQL import command executing psql directly', () => {
+      const result = getSqlImportCommand('test.sql');
+      expect(result.cmd).toBe('psql');
+      expect(result.command).toBe('psql');
+      expect(result.args).toContain('-f');
+      expect(result.args).toContain('test.sql');
+      expect(result.env).toBeDefined();
+    });
+  });
+
+  describe('getImportCommand', () => {
+    it('should map .kismet files to kismet-import', () => {
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      const result = getSqlImportCommand('test.sql', 'admin-tag');
-      expect(result.command).toBe('node');
+      const result = getImportCommand('test.kismet', 'test-tag', 'test.kismet');
+      expect(result.cmd).toBe('node');
+      expect(result.args[0]).toContain('kismet-import.js');
+    });
+
+    it('should map other files to sqlite-import', () => {
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+      const result = getImportCommand('test.db', 'test-tag', 'test.db');
+      expect(result.cmd).toBe('node');
       expect(result.args[0]).toContain('sqlite-import.js');
     });
   });
@@ -75,7 +92,9 @@ describe('adminHelpers', () => {
   describe('sanitizeRelativePath', () => {
     it('should sanitize paths and remove dots', () => {
       const result = sanitizeRelativePath('../folder/nested/./capture.kml');
-      expect(path.normalize(result.replace(/\\/g, '/'))).toBe(path.normalize('folder/nested/capture.kml'));
+      expect(path.normalize(result.replace(/\\/g, '/'))).toBe(
+        path.normalize('folder/nested/capture.kml')
+      );
     });
 
     it('should handle empty or dot-only segments', () => {
@@ -86,11 +105,11 @@ describe('adminHelpers', () => {
 
   describe('getKmlImportHistoryContext', () => {
     it('should fallback to defaults', () => {
-        const result = getKmlImportHistoryContext('', [], []);
-        expect(result).toEqual({
-            sourceTag: 'kml_',
-            filename: 'batch.kml'
-        });
+      const result = getKmlImportHistoryContext('', [], []);
+      expect(result).toEqual({
+        sourceTag: 'kml_',
+        filename: 'batch.kml',
+      });
     });
   });
 });

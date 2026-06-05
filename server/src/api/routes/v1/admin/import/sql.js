@@ -42,7 +42,19 @@ router.post('/admin/import-sql', sqlUpload.single('sql_file'), async (req, res) 
       logger.warn(`Backup failed: ${e.message}`);
     }
   }
-  const { cmd, args, env } = getSqlImportCommand(sqlFile);
+  let cmd, args, env;
+  try {
+    const commandSpec = getSqlImportCommand(sqlFile);
+    cmd = commandSpec.cmd || commandSpec.command;
+    args = commandSpec.args;
+    env = commandSpec.env;
+  } catch (err) {
+    if (historyId) {
+      await adminImportHistoryService.failImportHistory(historyId, err.message, '0');
+    }
+    await fs.unlink(sqlFile).catch(() => {});
+    return res.status(400).json({ ok: false, error: err.message });
+  }
   const p = spawn(cmd, args, { cwd: PROJECT_ROOT, env });
   let output = '',
     errorOutput = '';

@@ -76,23 +76,25 @@ export function resolveEtlCommand(scriptBase: string, ...scriptArgs: string[]) {
     path.join(PROJECT_ROOT, `etl/load/${scriptBase}.js`),
     path.join(`/app/dist/server/etl/load/${scriptBase}.js`),
   ];
-  const tsxCandidates = [
-    path.join(PROJECT_ROOT, `etl/load/${scriptBase}.ts`),
-  ];
+  const tsxCandidates = [path.join(PROJECT_ROOT, `etl/load/${scriptBase}.ts`)];
 
   const candidate = [...compiledCandidates, ...tsxCandidates].find((c) => fs.existsSync(c));
   if (!candidate) {
     throw new Error(`${scriptBase} script not found (checked consolidated tsx and compiled paths)`);
   }
-  
+
+  const runner = candidate.endsWith('.ts') ? 'tsx' : 'node';
   return {
-    command: candidate.endsWith('.ts') ? 'tsx' : 'node',
+    cmd: runner,
+    command: runner,
     args: [candidate, ...scriptArgs],
   };
 }
 
 export function getImportCommand(sqliteFile: string, sourceTag: string, originalName: string) {
-  const scriptBase = originalName.toLowerCase().endsWith('.kismet') ? 'kismet' : 'wigle';
+  const scriptBase = originalName.toLowerCase().endsWith('.kismet')
+    ? 'kismet-import'
+    : 'sqlite-import';
   return resolveEtlCommand(scriptBase, sqliteFile, sourceTag);
 }
 
@@ -100,8 +102,40 @@ export function getKmlImportCommand(kmlFile: string, sourceTag: string) {
   return resolveEtlCommand('kml-import', kmlFile, sourceTag);
 }
 
-export function getSqlImportCommand(sqlFile: string, sourceTag: string) {
-  return resolveEtlCommand('sqlite-import', sqlFile, sourceTag);
+function getSecretsManager() {
+  return require('../../config/container').secretsManager;
+}
+
+export function getSqlImportCommand(sqlFile: string) {
+  const dbHost = process.env.DB_HOST || 'localhost';
+  const dbPort = process.env.DB_PORT || '5432';
+  const dbName = process.env.DB_NAME || 'shadowcheck_db';
+  const dbUser = process.env.DB_ADMIN_USER || 'shadowcheck_admin';
+  const dbPassword =
+    getSecretsManager().get('db_admin_password') || getSecretsManager().get('db_password') || '';
+
+  return {
+    cmd: 'psql',
+    command: 'psql',
+    args: [
+      '-h',
+      dbHost,
+      '-p',
+      dbPort,
+      '-U',
+      dbUser,
+      '-d',
+      dbName,
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-f',
+      sqlFile,
+    ],
+    env: {
+      ...process.env,
+      PGPASSWORD: dbPassword,
+    },
+  };
 }
 
 export function sanitizeRelativePath(pathStr: string): string {
@@ -117,21 +151,27 @@ export function parseRelativePathsPayload(payload: string): string[] {
   }
 }
 
-export function getKmlImportHistoryContext(filename: string, uploadedFiles: any[], filePaths: string[]) {
+export function getKmlImportHistoryContext(
+  filename: string,
+  uploadedFiles: any[],
+  filePaths: string[]
+) {
   const firstPath = filePaths[0] || '';
   const safeSourceType = filename.toLowerCase().replace(/[^a-z0-9]/g, '_');
-  
+
   return {
     sourceTag: `kml_${safeSourceType}`.slice(0, 50),
     filename:
-      uploadedFiles.length <= 1 ? (firstPath || 'batch.kml') : `${firstPath || 'batch.kml'} (+${uploadedFiles.length - 1} more)`,
+      uploadedFiles.length <= 1
+        ? firstPath || 'batch.kml'
+        : `${firstPath || 'batch.kml'} (+${uploadedFiles.length - 1} more)`,
   };
 }
 
 export function parseKmlImportCounts(output: string, fallbackFileCount: number): KmlImportCounts {
   const filesMatch = output.match(/Files:\s+([\d,]+)/);
   const pointsMatch = output.match(/Points:\s+([\d,]+)/);
-  
+
   return {
     filesImported: filesMatch ? parseInt(filesMatch[1].replace(/,/g, ''), 10) : fallbackFileCount,
     pointsImported: pointsMatch ? parseInt(pointsMatch[1].replace(/,/g, ''), 10) : 0,

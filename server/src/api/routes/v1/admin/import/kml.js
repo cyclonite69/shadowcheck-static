@@ -140,9 +140,18 @@ router.post('/admin/import-kml', kmlUpload.array('files', 1000), async (req, res
         await runAwsCliJson(['s3', 'cp', dest, `s3://${bucketName}/${prefix}/${batchId}/${rel}`]);
       }
     }
-    const commandSpec = getKmlImportCommand(tempBatchDir, sourceType);
-    const cmd = commandSpec.cmd || commandSpec.command;
-    const { args } = commandSpec;
+    let cmd, args;
+    try {
+      const commandSpec = getKmlImportCommand(tempBatchDir, sourceType);
+      cmd = commandSpec.cmd || commandSpec.command;
+      args = commandSpec.args;
+    } catch (err) {
+      if (historyId) {
+        await adminImportHistoryService.failImportHistory(historyId, err.message, '0');
+      }
+      await cleanupPaths(cleanupTargets);
+      return res.status(400).json({ ok: false, error: err.message });
+    }
     const importResult = await new Promise((resolve, reject) => {
       const p = spawn(cmd, args, {
         cwd: PROJECT_ROOT,

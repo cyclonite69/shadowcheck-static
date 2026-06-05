@@ -58,7 +58,19 @@ router.post('/admin/import-sqlite', upload.single('database'), async (req, res) 
       logger.warn(`Backup failed: ${e.message}`);
     }
   }
-  const { cmd, args } = getImportCommand(sqliteFile, sourceTag, originalName);
+  let cmd, args;
+  try {
+    const commandSpec = getImportCommand(sqliteFile, sourceTag, originalName);
+    cmd = commandSpec.cmd || commandSpec.command;
+    args = commandSpec.args;
+  } catch (err) {
+    if (historyId) {
+      await adminImportHistoryService.failImportHistory(historyId, err.message, '0');
+    }
+    await fs.unlink(sqliteFile).catch(() => {});
+    return res.status(400).json({ ok: false, error: err.message });
+  }
+
   const importProcess = spawn(cmd, args, {
     cwd: PROJECT_ROOT,
     env: {
