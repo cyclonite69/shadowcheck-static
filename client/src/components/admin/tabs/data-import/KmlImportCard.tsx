@@ -64,8 +64,8 @@ export const KmlImportCard = ({
     <AdminCard icon={UploadIcon} title="KML Import" color="from-sky-500 to-cyan-600">
       <div className="space-y-4">
         <p className="text-sm text-slate-400">
-          Upload WiGLE KML exports into staged `app.kml_*` tables and copy the raw files to S3 for
-          later reconciliation.
+          Upload WiGLE KML exports into staged `app.kml_*` tables for later reconciliation. Raw file
+          archiving is optional and depends on storage configuration.
         </p>
 
         <div className="grid grid-cols-1 gap-3">
@@ -358,21 +358,21 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <input
-          id="wigle-sync-force"
-          type="checkbox"
-          checked={force}
-          onChange={(e) => setForce(e.target.checked)}
-          disabled={syncLoading || txsLoading}
-          className="rounded border-slate-700 bg-slate-800 text-sky-500 focus:ring-sky-500 text-xs cursor-pointer"
-        />
-        <label
-          htmlFor="wigle-sync-force"
-          className="text-xs text-slate-400 cursor-pointer select-none"
-        >
-          Force reimport (reprocess duplicates)
-        </label>
+      <div className="flex justify-between items-center text-xs text-slate-500">
+        <div className="flex items-center gap-2">
+          <input
+            id="wigle-sync-force"
+            type="checkbox"
+            checked={force}
+            onChange={(e) => setForce(e.target.checked)}
+            disabled={syncLoading || txsLoading}
+            className="rounded border-slate-700 bg-slate-800 text-sky-500 focus:ring-sky-500 text-xs cursor-pointer"
+          />
+          <label htmlFor="wigle-sync-force" className="text-slate-400 cursor-pointer select-none">
+            Force reimport (reprocess duplicates)
+          </label>
+        </div>
+        <span>Batch size: 10</span>
       </div>
 
       {txsError && <p className="text-xs text-red-300">{txsError}</p>}
@@ -430,13 +430,20 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
             </div>
           )}
 
+          <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1">
+            <span>Batch size: 10</span>
+            <span>Processed {syncResult.results.length} transactions this run</span>
+          </div>
+
           <div className="grid grid-cols-4 gap-2 text-center text-[11px] py-1 border-y border-slate-700/50">
             <div>
-              <p className="text-slate-500">Synced</p>
+              <p className="text-slate-500">Imported</p>
               <p className="font-mono text-emerald-400 font-bold">{syncResult.syncedCount}</p>
             </div>
             <div>
-              <p className="text-slate-500">Skipped</p>
+              <p className="text-slate-500" title="Already Present / Associated">
+                Already Present
+              </p>
               <p className="font-mono text-amber-400 font-bold">{syncResult.skippedCount}</p>
             </div>
             <div>
@@ -469,7 +476,7 @@ const WiGLEActiveSyncPanel = ({ onRefreshImports }: ActiveSyncPanelProps) => {
                             : 'bg-rose-500/20 text-rose-300'
                     }`}
                   >
-                    {res.status}
+                    {res.status === 'skipped' ? 'already present' : res.status}
                   </span>
                   {res.pointsImported !== undefined && (
                     <span className="text-[10px] text-slate-500 ml-1">
