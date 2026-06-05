@@ -62,6 +62,27 @@ describe('wigleRequestLedger', () => {
         expect(error.status).toBe(429);
       }
     });
+
+    it('falls back to 49 for stats soft limit when environment variable is absent', () => {
+      const originalEnv = process.env.WIGLE_SOFT_LIMIT_STATS;
+      delete process.env.WIGLE_SOFT_LIMIT_STATS;
+
+      try {
+        for (let i = 0; i < 48; i++) {
+          recordRequest('stats');
+        }
+        expect(() => assertCanRequest('stats', 'interactive')).not.toThrow();
+
+        recordRequest('stats');
+        expect(() => assertCanRequest('stats', 'interactive')).toThrow(
+          /soft limit reached.*49\/49/
+        );
+      } finally {
+        if (originalEnv !== undefined) {
+          process.env.WIGLE_SOFT_LIMIT_STATS = originalEnv;
+        }
+      }
+    });
   });
 
   describe('rolling window pruning', () => {

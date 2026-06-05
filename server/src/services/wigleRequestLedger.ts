@@ -10,7 +10,7 @@ const WINDOW_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_SOFT_LIMITS: Record<WigleRequestKind, number> = {
   search: 50,
   detail: 200,
-  stats: 10,
+  stats: 49,
 };
 
 const requestLedger: Record<WigleRequestKind, number[]> = {
