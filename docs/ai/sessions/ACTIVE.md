@@ -46,6 +46,23 @@ Prevention patch pushed as commit `271fda48`.
 
 ---
 
+## ⛔ HARD RULE — COMMIT HOOK INTEGRITY (added 2026-06-07)
+
+Commit hooks are part of the commit process. Agents must not bypass them or
+second-guess their generated output.
+
+Never use `--no-verify`.
+Never set `HUSKY=0` to bypass hooks.
+Never amend a commit to remove hook-generated files.
+
+Hooks run. Their output is part of the commit. Accept it.
+
+If hooks generate or update files such as `CHANGELOG.md`,
+`docs/metrics/lines-of-code.md`, or formatted staged files, those changes belong
+in the commit.
+
+---
+
 ## Current Operating Environment (as of 2026-05-31)
 
 **Mode: Local Development Only**
