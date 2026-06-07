@@ -63,6 +63,18 @@ in the commit.
 
 ---
 
+## ⛔ HARD RULE — AUDIT REPORT REGENERATION (added 2026-06-07)
+
+Do not regenerate `docs/schema/db-audit-report.md`, modularity audits, schema
+reports, or architecture audit reports unless explicitly instructed.
+
+Do not create new dated versions of existing audit reports as a substitute.
+
+Read existing reports for context. Do not refresh or rewrite them as part of
+ordinary DB, backend, or architecture investigations.
+
+---
+
 ## Current Operating Environment (as of 2026-05-31)
 
 **Mode: Local Development Only**
