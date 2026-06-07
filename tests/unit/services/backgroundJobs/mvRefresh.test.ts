@@ -25,13 +25,20 @@ describe('mvRefresh service', () => {
         { full_name: 'app.api_network_latest_mv' },
         { full_name: 'app.analytics_summary_mv' },
         { full_name: 'app.mv_network_timeline' },
+        { full_name: 'app.mv_sibling_groups' },
       ],
     });
     runAdminQuery.mockResolvedValue({ rows: [] }); // refresh calls
 
     const result = await refreshMaterializedViews(runAdminQuery);
 
-    expect(result.refreshedViews).toHaveLength(4);
+    expect(result.refreshedViews).toEqual([
+      'app.api_network_explorer_mv',
+      'app.api_network_latest_mv',
+      'app.analytics_summary_mv',
+      'app.mv_network_timeline',
+      'app.mv_sibling_groups',
+    ]);
     expect(runAdminQuery).toHaveBeenCalledWith('SELECT app.refresh_network_locations()');
     expect(runAdminQuery).toHaveBeenCalledWith(
       'REFRESH MATERIALIZED VIEW CONCURRENTLY app.api_network_explorer_mv'
