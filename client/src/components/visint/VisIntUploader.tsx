@@ -13,6 +13,7 @@ interface CandidateObservation {
   dist_meters: string | number;
   delta_minutes: string | number;
   detection_score: string | number;
+  device_type?: string | null;
   radio_service?: string;
 }
 

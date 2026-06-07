@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { Map as MapboxMap, GeoJSONSource, MapLayerMouseEvent } from 'mapbox-gl';
 import {
   calculateSignalRange,
+  createCirclePolygon,
   macColor,
   ensureHomeLocationLayers,
 } from '../../../utils/mapHelpers';
