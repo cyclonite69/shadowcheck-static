@@ -886,7 +886,7 @@
 * **v3enrichment:** surface first/last seen above fold in forensic preview ([6f01446](https://github.com/cyclonite69/shadowcheck-web/commit/6f01446071fde28e1a8ab40f1ca04528f9ad78ff))
 * **validation:** add missing validateString overload for WiGLE credentials ([01b4308](https://github.com/cyclonite69/shadowcheck-web/commit/01b43087e6d1a23a2caa7ee023a5b3b9afac3d78))
 * **visint:** parse and apply EXIF timezone offset ([5c8bcf8](https://github.com/cyclonite69/shadowcheck-web/commit/5c8bcf8bf7da8385e915a0148446528368c0fd2a))
-* **visint:** prevent silent fallback writes ([74f0ad2](https://github.com/cyclonite69/shadowcheck-web/commit/74f0ad28bc47383b9c35ab22ad101fd8e61c9a58))
+* **visint:** prevent silent fallback writes ([271fda4](https://github.com/cyclonite69/shadowcheck-web/commit/271fda4881daf66de2ce0dff6fa8a0242a52bc7d))
 * weather fx and redundant header text ([4f42201](https://github.com/cyclonite69/shadowcheck-web/commit/4f42201bf63f7abe7bcf7f6c860a0636a265e009))
 * weather routes import causing server crash ([e51df81](https://github.com/cyclonite69/shadowcheck-web/commit/e51df816da5a4acdbac4ec4039b6af14a975e060))
 * WEP security encryption filter - reorder detection logic ([38ccb2a](https://github.com/cyclonite69/shadowcheck-web/commit/38ccb2a078ecaa3ec129c933b3c9a0603038843f))

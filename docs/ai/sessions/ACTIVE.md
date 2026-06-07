@@ -2,6 +2,50 @@
 
 Update this file manually when handing off a task or starting a new session. Agents read it at session start to avoid stepping on in-progress work.
 
+---
+
+## ⛔ HARD RULE — DATABASE WRITE PROTECTION (added 2026-06-07)
+
+**This is not a disposable local dev database. This is THE working database —
+the evidence and source-of-truth for the project.**
+
+**No agent may perform any write operation against this database without
+explicit operator approval of the exact command first.**
+
+Write operations requiring approval before execution:
+
+- INSERT / UPDATE / DELETE / TRUNCATE
+- Applying migrations (`run-migrations.sh` or direct SQL)
+- Seed data inserts
+- Direct service function calls that persist rows (e.g. `saveVisINTAttachment`)
+- curl or API calls to any write-capable endpoint
+- Runtime QA that persists rows into `app.*` tables
+- Any command that mutates live application tables
+
+Allowed without approval:
+
+- SELECT-only queries
+- Code inspection and file reads
+- `git diff` / `git status` / `git log`
+- Tests using mocked DB or `shadowcheck_test` database
+- Dry-run SQL shown to operator but not executed
+
+Before any write, agent must:
+
+1. Show the exact SQL or command
+2. State exactly which rows/tables will change
+3. State the rollback plan
+4. Wait for explicit operator confirmation
+
+**Background:** On 2026-06-05, Gemini CLI and Kiro both wrote agent-created
+test/QA rows into the live database without operator approval. Gemini created
+`network_media` ids 5/6/7 via `correlate-visint` curl calls with `commit`
+omitted (defaulted `true`). Kiro created ids 9/10 via direct `saveVisINTAttachment`
+runtime QA calls. All five rows were subsequently deleted by operator instruction.
+Prevention patch pushed as commit `271fda48`.
+
+---
+
 ## Current Operating Environment (as of 2026-05-31)
 
 **Mode: Local Development Only**
