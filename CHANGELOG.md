@@ -1268,6 +1268,7 @@
 * **sibling-detection:** add xfinity_sig modality (fleet_unit rejected, 0 detections) ([eb1ef34](https://github.com/cyclonite69/shadowcheck-web/commit/eb1ef3404e9ba79216310eb4f80b6bd3cdb90701))
 * **sibling-detection:** implement total octet counting & retain cluster ceiling ([d6267b6](https://github.com/cyclonite69/shadowcheck-web/commit/d6267b65278cb91d0d7e2b25cbe2decbec3dc4ca))
 * **sibling:** add 5 detection rules, remove LA-MAC exclusion, consolidate fleet SSIDs ([bdb5829](https://github.com/cyclonite69/shadowcheck-web/commit/bdb5829c82491fe6ee910f30aff8d7aca1b81bde))
+* **sibling:** add HP Aruba cross-band rule to find_sibling_radios ([bf7f5c5](https://github.com/cyclonite69/shadowcheck-web/commit/bf7f5c5d0a12b5bbeafc0eb85506c24129839871))
 * **siblings:** add manual pairing from explorer context menu ([3fc4928](https://github.com/cyclonite69/shadowcheck-web/commit/3fc49280d15b311aea9224694269816279b1d432))
 * **siblings:** add middle_octets_sequential rule for multi-BSSID APs ([888cb80](https://github.com/cyclonite69/shadowcheck-web/commit/888cb800028988e491cd01accc1fba857b09bd59))
 * **siblings:** consolidate asymmetric twins and purge SSID blacklists ([35ad8d5](https://github.com/cyclonite69/shadowcheck-web/commit/35ad8d5e6f6b35ba178396644a6d1c0c6d4ffa9d))
