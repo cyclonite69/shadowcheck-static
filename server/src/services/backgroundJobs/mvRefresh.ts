@@ -16,6 +16,7 @@ const MATERIALIZED_VIEWS = [
   { name: 'app.api_network_latest_mv', concurrent: false },
   { name: 'app.analytics_summary_mv', concurrent: false },
   { name: 'app.mv_network_timeline', concurrent: false },
+  { name: 'app.mv_sibling_groups', concurrent: true },
 ];
 
 const loadExistingViews = async (runAdminQuery: AdminQuery): Promise<Set<string>> => {

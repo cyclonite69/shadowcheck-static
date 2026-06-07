@@ -211,6 +211,17 @@ export class SiblingDetectionOrchestrator {
     await this.deps.longRunningAdminQuery('ANALYZE app.networks');
     logger.info('[Siblings] Database stats analyzed for networks and sibling pairs');
 
+    // Refresh the materialized view for sibling groups
+    try {
+      logger.info('[Siblings] Refreshing app.mv_sibling_groups...');
+      await this.deps.longRunningAdminQuery(
+        'REFRESH MATERIALIZED VIEW CONCURRENTLY app.mv_sibling_groups'
+      );
+      logger.info('[Siblings] Refreshed app.mv_sibling_groups');
+    } catch (err: any) {
+      logger.error('[Siblings] Failed to refresh app.mv_sibling_groups:', err?.message);
+    }
+
     return {
       success: true,
       batchesRun,
