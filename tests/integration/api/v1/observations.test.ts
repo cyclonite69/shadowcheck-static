@@ -142,6 +142,54 @@ describe('Observations API v1', () => {
       expect(call.slice(1)).toEqual(['visint.jpg', false, 75, 3, 7]);
     });
 
+    it('defaults commit to false when commit field is omitted — does not write media', async () => {
+      const image = Buffer.from('fake-visint-image');
+      mockContainer.observationService.correlateVisINT.mockResolvedValue({
+        status: 'UNMATCHED',
+        observation_id: null,
+        detection_score: 0,
+        dist_meters: null,
+        delta_minutes: null,
+        tags_applied: [],
+        exif: { lat: 1, lon: 2, ts: '2026-06-05T00:00:00.000Z' },
+        candidates: [],
+      });
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'visint.jpg');
+
+      expect(res.status).toBe(200);
+      // commit arg passed to service must be false (the default)
+      const call = mockContainer.observationService.correlateVisINT.mock.calls[0];
+      expect(call[2]).toBe(false);
+      // saveVisINTAttachment must never be called on a correlate request
+      expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
+    });
+
+    it('passes commit=true to service when explicitly requested', async () => {
+      const image = Buffer.from('fake-visint-image');
+      mockContainer.observationService.correlateVisINT.mockResolvedValue({
+        status: 'MATCHED',
+        observation_id: '99',
+        detection_score: 3,
+        dist_meters: 5.0,
+        delta_minutes: 0.5,
+        tags_applied: ['FLOCK_LEGACY', 'VISINT_VERIFIED'],
+        exif: { lat: 1, lon: 2, ts: '2026-06-05T00:00:00.000Z' },
+        candidates: [],
+      });
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('commit', 'true');
+
+      expect(res.status).toBe(200);
+      const call = mockContainer.observationService.correlateVisINT.mock.calls[0];
+      expect(call[2]).toBe(true);
+    });
+
     it('returns 413 for VISINT images over the route-specific limit', async () => {
       const oversizedImage = Buffer.alloc(25 * 1024 * 1024 + 1);
 
@@ -234,6 +282,53 @@ describe('Observations API v1', () => {
         false,
         null,
       ]);
+    });
+
+    it('rejects VISINT_UNMATCHED target without confirm_fallback', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'VISINT_UNMATCHED')
+        .field('status', 'UNMATCHED');
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('VISINT_FALLBACK_REQUIRES_CONFIRMATION');
+      expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects VISINT_UNMATCHED target when confirm_fallback=false', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'VISINT_UNMATCHED')
+        .field('confirm_fallback', 'false');
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('VISINT_FALLBACK_REQUIRES_CONFIRMATION');
+      expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
+    });
+
+    it('allows VISINT_UNMATCHED target when confirm_fallback=true', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+      mockContainer.observationService.saveVisINTAttachment.mockResolvedValue([
+        'UNMATCHED_NODE',
+        'VISINT_UNMATCHED',
+      ]);
+
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'VISINT_UNMATCHED')
+        .field('status', 'UNMATCHED')
+        .field('confirm_fallback', 'true');
+
+      expect(res.status).toBe(200);
+      expect(res.body.tags_applied).toEqual(['UNMATCHED_NODE', 'VISINT_UNMATCHED']);
+      expect(mockContainer.observationService.saveVisINTAttachment).toHaveBeenCalled();
     });
   });
 });

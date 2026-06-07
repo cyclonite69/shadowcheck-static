@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-05)
+# 1.0.0 (2026-06-07)
 
 
 ### Bug Fixes
@@ -886,6 +886,7 @@
 * **v3enrichment:** surface first/last seen above fold in forensic preview ([6f01446](https://github.com/cyclonite69/shadowcheck-web/commit/6f01446071fde28e1a8ab40f1ca04528f9ad78ff))
 * **validation:** add missing validateString overload for WiGLE credentials ([01b4308](https://github.com/cyclonite69/shadowcheck-web/commit/01b43087e6d1a23a2caa7ee023a5b3b9afac3d78))
 * **visint:** parse and apply EXIF timezone offset ([5c8bcf8](https://github.com/cyclonite69/shadowcheck-web/commit/5c8bcf8bf7da8385e915a0148446528368c0fd2a))
+* **visint:** prevent silent fallback writes ([74f0ad2](https://github.com/cyclonite69/shadowcheck-web/commit/74f0ad28bc47383b9c35ab22ad101fd8e61c9a58))
 * weather fx and redundant header text ([4f42201](https://github.com/cyclonite69/shadowcheck-web/commit/4f42201bf63f7abe7bcf7f6c860a0636a265e009))
 * weather routes import causing server crash ([e51df81](https://github.com/cyclonite69/shadowcheck-web/commit/e51df816da5a4acdbac4ec4039b6af14a975e060))
 * WEP security encryption filter - reorder detection logic ([38ccb2a](https://github.com/cyclonite69/shadowcheck-web/commit/38ccb2a078ecaa3ec129c933b3c9a0603038843f))
@@ -1343,7 +1344,7 @@
 * **visint:** add VisINT auto-correlation pipeline ([d149d1e](https://github.com/cyclonite69/shadowcheck-web/commit/d149d1efbc688b2c8ef7cde080b79603da9c0f07))
 * **visint:** migrate to multipart uploads and add exiftool dependency ([658acd4](https://github.com/cyclonite69/shadowcheck-web/commit/658acd46d82eb2130b7747f60760d5f88c7339f1))
 * **visint:** prioritize tightest time delta and implement parameterized search bounds tuning ([11b4f99](https://github.com/cyclonite69/shadowcheck-web/commit/11b4f99bfe7271c6c8cf8df2599bca983a3c5879))
-* **visint:** support confirmed ShotSpotter attachments ([78307ce](https://github.com/cyclonite69/shadowcheck-web/commit/78307cecbdd1075b9112c25d5e622916399ff05d))
+* **visint:** support confirmed ShotSpotter attachments ([5664e94](https://github.com/cyclonite69/shadowcheck-web/commit/5664e94c8e7c0e4e9c2170f5512ddcf993f6826a))
 * **wigle-detail:** remove Recent Imports & Resumption section from v3 tab ([c064f80](https://github.com/cyclonite69/shadowcheck-web/commit/c064f802977ca3df441fdebfcfff02e2808e901d))
 * **wigle/kepler:** icon buttons, point size slider, crosshair cursor, filter panel position ([41e9231](https://github.com/cyclonite69/shadowcheck-web/commit/41e9231f7c46d9a20647c2c32a839dae348b73bc))
 * **wigle:** add aggregatedLayers.ts unified layer set (Phase 3) ([09ec8e2](https://github.com/cyclonite69/shadowcheck-web/commit/09ec8e224898987e3eb28a8421e3c356baf7da1a))

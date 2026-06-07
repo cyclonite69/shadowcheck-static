@@ -365,7 +365,7 @@ router.post(
     const uploadedFile = (req as Request & { file?: UploadedVisintFile }).file;
     const filename =
       req.body.filename || req.body.original_filename || uploadedFile?.originalname || 'image.jpg';
-    const commit = parseBooleanField(req.body.commit, true);
+    const commit = parseBooleanField(req.body.commit, false);
     const radiusMeters = parseOptionalNumber(req.body.radius_meters);
     const windowHours = parseOptionalNumber(req.body.window_hours);
     const limit = parseOptionalNumber(req.body.limit);
@@ -425,6 +425,16 @@ router.post(
     const ts = req.body.ts || undefined;
     const isManualOverride = req.body.manual_override === 'true';
     const deviceType: string | null = req.body.device_type || null;
+
+    // Sentinel guard: attaching to the fallback BSSID requires explicit opt-in.
+    // Prevents agent/curl calls from silently writing unmatched fallback rows.
+    if (targetBssid === 'VISINT_UNMATCHED' && req.body.confirm_fallback !== 'true') {
+      return res.status(400).json({
+        error:
+          'Attaching to the VISINT_UNMATCHED fallback BSSID requires explicit confirmation. Set confirm_fallback=true to proceed.',
+        code: 'VISINT_FALLBACK_REQUIRES_CONFIRMATION',
+      });
+    }
 
     if (!uploadedFile?.buffer) {
       return res.status(400).json({ error: 'VISINT image file field is required.' });
