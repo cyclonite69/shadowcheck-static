@@ -143,6 +143,9 @@ _No active workstreams. Decoupling hook logic (Gap 2), database-driven surveilla
 - **Local Dev Configs**: Commit `.env.example`, `.gitignore`, `docker-compose.dev.yml`, and `local-dev-aliases.sh` as a separate, clean commit.
 - **Sibling Verification**: Run/verify `20260528_prune_invalid_laa_vehicle_class_b_siblings.sql` against migration `030`, then commit sibling test changes separately.
 - **Credential Rotation**: Verify Grafana credential rotation script (written, never executed on EC2).
+- **Modularity Health Monitor**: Define threshold metrics from existing
+  `scripts/check-modularity.js` output, add a scheduled GitHub Actions run,
+  alert on threshold breach, and supersede ad-hoc agent-generated audit files.
 
 ---
 
