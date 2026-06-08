@@ -5,7 +5,7 @@ function makeCandidate(overrides: Partial<CandidateRow> = {}): CandidateRow {
   return {
     bssid: '08:3A:88:D2:E1:60',
     ssid: null,
-    type: 'W',
+    type: 'E',
     bestlevel: -70,
     service: null,
     mfgrid: null,
@@ -31,6 +31,16 @@ function makeCandidate(overrides: Partial<CandidateRow> = {}): CandidateRow {
 
 describe('surveillanceScoring', () => {
   describe('scoreSurveillanceCandidates', () => {
+    it('excludes WiFi Flock candidates while preserving BLE Flock candidates', () => {
+      const wifi = makeCandidate({ bssid: '08:3A:88:64:01:62', type: 'W' });
+      const ble = makeCandidate({ bssid: '08:3A:88:64:01:63', type: 'E' });
+
+      const results = scoreSurveillanceCandidates([wifi, ble]);
+
+      expect(results.map((result) => result.bssid)).toEqual(['08:3A:88:64:01:63']);
+      expect(results[0].device_type).toBe('FLOCK_SAFETY_CAMERA');
+    });
+
     it('penalizes weak RSSI (-92 dBm) compared to strong RSSI (-45 dBm)', () => {
       const weak = makeCandidate({ bssid: 'AA:BB:CC:01:01:01', bestlevel: -92 });
       const strong = makeCandidate({ bssid: 'AA:BB:CC:02:02:02', bestlevel: -45 });
@@ -180,6 +190,7 @@ describe('surveillanceScoring', () => {
       const wifiHit = makeCandidate({
         bssid: 'FF:00:FF:01:01:01',
         type: 'W',
+        device_type: 'FS_EXT_BATTERY',
         detection_method: 'oui_match',
         priority: 1,
         tier_hit_count: 2,
@@ -187,6 +198,7 @@ describe('surveillanceScoring', () => {
       const bleHit = makeCandidate({
         bssid: 'FF:00:FF:01:01:01',
         type: 'E',
+        device_type: 'FS_EXT_BATTERY',
         detection_method: 'mfgrid_match',
         base_likelihood: 80,
         priority: 5,

@@ -12,7 +12,7 @@ function makeRow(overrides: Partial<CandidateRow> = {}): CandidateRow {
   return {
     bssid: 'AA:BB:CC:DD:EE:FF',
     ssid: 'TestNet',
-    type: 'W',
+    type: 'E',
     bestlevel: -65,
     service: null,
     mfgrid: null,
@@ -39,6 +39,15 @@ function makeRow(overrides: Partial<CandidateRow> = {}): CandidateRow {
 describe('scoreSurveillanceCandidates', () => {
   test('returns empty array for empty input', () => {
     expect(scoreSurveillanceCandidates([])).toEqual([]);
+  });
+
+  test('excludes WiFi Flock candidates while preserving BLE Flock candidates', () => {
+    const wifi = makeRow({ bssid: 'AA:BB:CC:DD:EE:01', type: 'W' });
+    const ble = makeRow({ bssid: 'AA:BB:CC:DD:EE:02', type: 'E' });
+
+    const results = scoreSurveillanceCandidates([wifi, ble]);
+
+    expect(results.map((result) => result.bssid)).toEqual(['AA:BB:CC:DD:EE:02']);
   });
 
   test('produces one result per unique bssid', () => {
@@ -106,12 +115,25 @@ describe('scoreSurveillanceCandidates', () => {
 
   test('cross-protocol WiFi+BLE adds 0.3 confidence bonus', () => {
     // Use base_likelihood=40 so the 0.3 bonus is visible without hitting the 1.0 cap
-    const wifiOnly = [makeRow({ bssid: 'AA:BB:CC:DD:EE:01', type: 'W', base_likelihood: 40 })];
+    const wifiOnly = [
+      makeRow({
+        bssid: 'AA:BB:CC:DD:EE:01',
+        type: 'W',
+        device_type: 'FS_EXT_BATTERY',
+        base_likelihood: 40,
+      }),
+    ];
     const crossProtocol = [
-      makeRow({ bssid: 'AA:BB:CC:DD:EE:02', type: 'W', base_likelihood: 40 }),
+      makeRow({
+        bssid: 'AA:BB:CC:DD:EE:02',
+        type: 'W',
+        device_type: 'FS_EXT_BATTERY',
+        base_likelihood: 40,
+      }),
       makeRow({
         bssid: 'AA:BB:CC:DD:EE:02',
         type: 'E',
+        device_type: 'FS_EXT_BATTERY',
         base_likelihood: 40,
         detection_method: 'ble_name_pattern',
       }),

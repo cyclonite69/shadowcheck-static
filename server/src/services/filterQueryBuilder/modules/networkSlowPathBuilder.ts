@@ -135,7 +135,8 @@ export function buildNetworkSlowPathListQuery(
       COALESCE(nts.ml_threat_score, ne.ml_threat_score) AS ml_threat_score,
       COALESCE((nts.ml_feature_values->>'evidence_weight')::numeric, ne.ml_weight, 0) AS ml_weight,
       COALESCE((nts.ml_feature_values->>'ml_boost')::numeric, ne.ml_boost, 0) AS ml_boost,
-      ${SqlFragmentLibrary.selectSurveillanceDetectionFields('sd')},
+      sd.device_type AS surveillance_device_type,
+      sd.detection_method AS surveillance_detection_method,
       ${SqlFragmentLibrary.selectDeviceClassFields('sd', 'odg')},
       NULL::text AS network_id,
       n.bestlat AS raw_lat,
@@ -145,7 +146,7 @@ export function buildNetworkSlowPathListQuery(
       LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = l.bssid
       LEFT JOIN app.networks n ON n.bssid = l.bssid
       LEFT JOIN app.network_threat_scores nts ON nts.bssid = l.bssid
-      ${SqlFragmentLibrary.joinSurveillanceDetections('l', 'sd')}
+      LEFT JOIN app.surveillance_detections sd ON UPPER(sd.bssid) = UPPER(l.bssid) AND sd.false_positive = FALSE
       ${SqlFragmentLibrary.joinOuiDeviceGroups('l', 'odg')}
       ${SqlFragmentLibrary.joinNetworkLocations('l', locationMode)}
       ${SqlFragmentLibrary.joinNetworkTagsLateral('l', 'nt')}

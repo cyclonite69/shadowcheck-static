@@ -165,29 +165,14 @@ export class SqlFragmentLibrary {
     return `LEFT JOIN app.oui_device_groups ${ouiAlias} ON ${ouiAlias}.oui = ${SqlFragmentLibrary.normalizedOuiExpression(sourceBssidAlias)}`;
   }
 
-  static joinSurveillanceDetections(sourceBssidAlias: string, sdAlias = 'sd'): string {
-    return `LEFT JOIN app.surveillance_detections ${sdAlias} ON UPPER(${sdAlias}.bssid) = UPPER(${sourceBssidAlias}.bssid)`;
-  }
-
-  static selectSurveillanceDetectionFields(sdAlias = 'sd'): string {
-    return `
-      CASE WHEN ${sdAlias}.false_positive = TRUE THEN NULL ELSE ${sdAlias}.device_type END AS surveillance_device_type,
-      CASE WHEN ${sdAlias}.false_positive = TRUE THEN NULL ELSE ${sdAlias}.detection_method END AS surveillance_detection_method
-    `.trim();
-  }
-
   /**
-   * Returns Device Class SELECT fields. BSSID-level false-positive detections
-   * suppress OUI fallback so a known FP cannot be reclassified by OUI.
-   * The sdAlias must already be joined before calling this.
+   * Returns Device Class SELECT fields using the merged
+   * COALESCE(surveillance_detections.device_type, oui_device_groups.surveillance_type)
+   * pattern.  The sdAlias must already be joined before calling this.
    */
   static selectDeviceClassFields(sdAlias = 'sd', ouiAlias = 'odg'): string {
     return `
-      CASE
-        WHEN ${sdAlias}.false_positive = TRUE THEN NULL
-        WHEN ${sdAlias}.false_positive = FALSE THEN ${sdAlias}.device_type
-        ELSE ${ouiAlias}.surveillance_type
-      END AS device_class,
+      COALESCE(${sdAlias}.device_type, ${ouiAlias}.surveillance_type) AS device_class,
       ${ouiAlias}.surveillance_type AS oui_surveillance_type,
       ${ouiAlias}.surveillance_confidence AS oui_surveillance_confidence
     `.trim();
@@ -199,9 +184,8 @@ export class SqlFragmentLibrary {
     includeFalsePositiveFilter = true
   ): string {
     const falsePositiveFilter = includeFalsePositiveFilter ? 'AND sd2.false_positive = FALSE' : '';
-    const suppressOuiWhenDetectionExists = includeFalsePositiveFilter
-      ? `AND NOT EXISTS (SELECT 1 FROM app.surveillance_detections sd3
-           WHERE UPPER(sd3.bssid) = UPPER(${sourceBssidAlias}.bssid))`
+    const noDetectionFalsePositiveFilter = includeFalsePositiveFilter
+      ? 'AND sd3.false_positive = FALSE'
       : '';
 
     return `(EXISTS (SELECT 1 FROM app.surveillance_detections sd2
@@ -211,7 +195,9 @@ export class SqlFragmentLibrary {
        OR EXISTS (SELECT 1 FROM app.oui_device_groups odg2
          WHERE odg2.oui = ${SqlFragmentLibrary.normalizedOuiExpression(sourceBssidAlias)}
          AND odg2.surveillance_type = ANY(${valuesParam})
-         ${suppressOuiWhenDetectionExists}))`;
+         AND NOT EXISTS (SELECT 1 FROM app.surveillance_detections sd3
+           WHERE UPPER(sd3.bssid) = UPPER(${sourceBssidAlias}.bssid)
+             ${noDetectionFalsePositiveFilter})))`;
   }
 
   /**

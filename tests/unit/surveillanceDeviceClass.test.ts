@@ -151,7 +151,7 @@ describe('BADGE_DEFAULTS - device_class', () => {
 });
 
 describe('deviceClass filter predicate', () => {
-  test('generates merged device-class predicate for single value', () => {
+  test('generates merged COALESCE-equivalent predicate for single value', () => {
     const ctx = makeCtx({ deviceClass: ['FLOCK_SAFETY_CAMERA'] }, { deviceClass: true });
     const where = buildFastPathSupplementalPredicates(ctx, { addUnsupportedWigleIgnored: false });
     const combined = where.join(' ');
@@ -160,8 +160,6 @@ describe('deviceClass filter predicate', () => {
     expect(combined).toContain('surveillance_type');
     expect(combined).toContain('device_type');
     expect(combined).toContain('NOT EXISTS');
-    expect(combined).toContain('sd2.false_positive = FALSE');
-    expect(combined).not.toContain('sd3.false_positive = FALSE');
   });
 
   test('generates predicate for multiple values', () => {
@@ -219,41 +217,20 @@ describe('SqlFragmentLibrary OUI Device Class helpers', () => {
     expect(sql).toContain('SUBSTRING(l.bssid, 1, 8)');
   });
 
-  test('selectDeviceClassFields suppresses OUI fallback for false-positive detections', () => {
+  test('selectDeviceClassFields exposes merged device_class and internal OUI support fields', () => {
     const sql = SqlFragmentLibrary.selectDeviceClassFields('sd', 'odg');
-    expect(sql).toContain('WHEN sd.false_positive = TRUE THEN NULL');
-    expect(sql).toContain('WHEN sd.false_positive = FALSE THEN sd.device_type');
-    expect(sql).toContain('ELSE odg.surveillance_type');
+    expect(sql).toContain('COALESCE(sd.device_type, odg.surveillance_type) AS device_class');
     expect(sql).toContain('odg.surveillance_type AS oui_surveillance_type');
     expect(sql).toContain('odg.surveillance_confidence AS oui_surveillance_confidence');
-  });
-
-  test('selectSurveillanceDetectionFields hides false-positive detection support fields', () => {
-    const sql = SqlFragmentLibrary.selectSurveillanceDetectionFields('sd');
-    expect(sql).toContain(
-      'CASE WHEN sd.false_positive = TRUE THEN NULL ELSE sd.device_type END AS surveillance_device_type'
-    );
-    expect(sql).toContain(
-      'CASE WHEN sd.false_positive = TRUE THEN NULL ELSE sd.detection_method END AS surveillance_detection_method'
-    );
   });
 });
 
 describe('Explorer Device Class query paths', () => {
   const assertDeviceClassProjection = (sql: string) => {
-    expect(sql).toContain('WHEN sd.false_positive = TRUE THEN NULL');
-    expect(sql).toContain('WHEN sd.false_positive = FALSE THEN sd.device_type');
-    expect(sql).toContain('ELSE odg.surveillance_type');
-    expect(sql).toContain(
-      'CASE WHEN sd.false_positive = TRUE THEN NULL ELSE sd.device_type END AS surveillance_device_type'
-    );
+    expect(sql).toContain('COALESCE(sd.device_type, odg.surveillance_type) AS device_class');
     expect(sql).toContain('odg.surveillance_type AS oui_surveillance_type');
     expect(sql).toContain('odg.surveillance_confidence AS oui_surveillance_confidence');
     expect(sql).toContain('LEFT JOIN app.oui_device_groups odg');
-    expect(sql).toContain('LEFT JOIN app.surveillance_detections sd ON');
-    expect(sql).not.toContain(
-      'LEFT JOIN app.surveillance_detections sd ON UPPER(sd.bssid) = UPPER(ne.bssid) AND sd.false_positive = FALSE'
-    );
   };
 
   test('networkFastPathListBuilder includes Device Class fields', () => {

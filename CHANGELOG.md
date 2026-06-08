@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-07)
+# 1.0.0 (2026-06-08)
 
 
 ### Bug Fixes
@@ -274,7 +274,7 @@
 * **explorer:** preserve timespan fields for hydrated network rows ([8f109b8](https://github.com/cyclonite69/shadowcheck-web/commit/8f109b8a52011bebb4d820c82287b7cfc648da52))
 * **explorer:** remove unknown security pseudo-type ([42c8d08](https://github.com/cyclonite69/shadowcheck-web/commit/42c8d084d99df257704933e5d1ab3fd8ab3540df))
 * **explorer:** suppress open tooltip for dashed security cells ([3ae9473](https://github.com/cyclonite69/shadowcheck-web/commit/3ae9473b4a326629d144158bb0613a8da68aec4b))
-* **explorer:** suppress OUI device-class fallback for false-positive detections ([83cf772](https://github.com/cyclonite69/shadowcheck-web/commit/83cf772905892e205d8deac9e317b70482100a00))
+* **explorer:** suppress OUI device-class fallback for false-positive detections ([9a0518b](https://github.com/cyclonite69/shadowcheck-web/commit/9a0518b7ea498d09f0f8b805f204611c2a800495))
 * **explorer:** surface geocoded address fields in filtered lists ([b1f1835](https://github.com/cyclonite69/shadowcheck-web/commit/b1f18352a8f3378be414aa3986a51ca5209053f7))
 * export SECRET_JSON and eval'd secrets in entrypoint.sh ([77cde6b](https://github.com/cyclonite69/shadowcheck-web/commit/77cde6b5c914b888b5bee0d5823007dd0168d29d))
 * expose public pattern bonus in threat details ([5681bcd](https://github.com/cyclonite69/shadowcheck-web/commit/5681bcdfc8e54f3619ee3c97380be75898f7f94c))
@@ -780,6 +780,7 @@
 * surveillance tag assignment and detection evidence panel ([bdfadac](https://github.com/cyclonite69/shadowcheck-web/commit/bdfadac390a8e5f7c60af5fe77b2b9cf96603608))
 * **surveillance:** debug and fix scan job execution pipeline end to end ([04ee68c](https://github.com/cyclonite69/shadowcheck-web/commit/04ee68c7c0daad60d8ee59f699211565a7b2b864))
 * **surveillance:** exclude false positives from detection query results ([724c969](https://github.com/cyclonite69/shadowcheck-web/commit/724c969c5039140b1bf83b5742cc22ba3c108a37))
+* **surveillance:** exclude WiFi networks from Flock detection and revert Explorer COALESCE ([ee9f7b0](https://github.com/cyclonite69/shadowcheck-web/commit/ee9f7b028188a348507b30730fa927aed2242464))
 * switch Bedrock model to Claude 3.5 Haiku ([82d67bb](https://github.com/cyclonite69/shadowcheck-web/commit/82d67bb04bbde0632e5b849836e5dcbdd10b8096))
 * switch Bedrock model to Claude Sonnet 4 inference profile ([4bd6575](https://github.com/cyclonite69/shadowcheck-web/commit/4bd65759e4316f59ae92c65ab309be148f360441))
 * sync zustand version between package.json and lockfile to fix build ([55eb9fc](https://github.com/cyclonite69/shadowcheck-web/commit/55eb9fc936bf32b7d8413b3a53b12df52066658f))

@@ -251,6 +251,10 @@ function scoreSurveillanceCandidates(rows: CandidateRow[]): ScoredDetection[] {
       matchedSignals.ambiguous_note = penaltyReason;
     }
 
+    if (best.type === 'W' && deviceType === 'FLOCK_SAFETY_CAMERA') {
+      continue;
+    }
+
     results.push({
       bssid,
       device_type: deviceType,

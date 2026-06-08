@@ -94,7 +94,7 @@ export interface Filters {
   shotspotter?: boolean;
   bwc?: boolean;
   flock?: boolean;
-  /** Multi-value enum matching BSSID detection class, with OUI fallback only when no detection exists */
+  /** Multi-value enum matching COALESCE(surveillance_detections.device_type, oui_device_groups.surveillance_type) */
   deviceClass?: string[];
 }
 
