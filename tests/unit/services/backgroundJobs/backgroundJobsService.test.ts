@@ -137,6 +137,28 @@ describe('BackgroundJobsService', () => {
   });
 
   describe('scheduler toggling', () => {
+    it('logs scheduled job failures without rejecting the scheduler callback', async () => {
+      const task = jest.fn().mockRejectedValue(new Error('sibling detection job already running'));
+      let scheduledCallback: (() => Promise<void>) | undefined;
+      mockSchedule.scheduleJob.mockImplementationOnce(
+        (_cron: string, callback: () => Promise<void>) => {
+          scheduledCallback = callback;
+          return { cancel: jest.fn() };
+        }
+      );
+
+      BackgroundJobsService.updateJob(
+        'siblingDetection',
+        { enabled: true, cron: '0 5 * * *' },
+        task
+      );
+
+      await expect(scheduledCallback?.()).resolves.toBeUndefined();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "[Background Jobs] Scheduled job 'siblingDetection' failed: sibling detection job already running"
+      );
+    });
+
     it('should cancel existing jobs when scheduler is disabled', async () => {
       const mockJob = { cancel: jest.fn() };
       BackgroundJobsService.jobs = { backup: mockJob };

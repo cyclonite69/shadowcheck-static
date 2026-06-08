@@ -179,7 +179,12 @@ class BackgroundJobsService {
 
     if (config.enabled) {
       this.jobs[name] = schedule.scheduleJob(config.cron, async () => {
-        await task();
+        try {
+          await task();
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(`[Background Jobs] Scheduled job '${name}' failed: ${errorMessage}`);
+        }
       });
       logger.info(`[Background Jobs] Job '${name}' scheduled: ${config.cron}`);
     } else {
