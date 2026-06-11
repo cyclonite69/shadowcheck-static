@@ -33,7 +33,6 @@ interface NetworkTableBodyGridProps {
   hasMore: boolean;
   onLoadMore: () => void;
   onHorizontalScroll?: (scrollLeft: number) => void;
-  quickSearch?: string;
   badgeConfigs?: Record<string, ColumnBadgeConfig>;
 }
 
@@ -59,7 +58,6 @@ export const NetworkTableBodyGrid = ({
   hasMore,
   onLoadMore,
   onHorizontalScroll,
-  quickSearch = '',
   badgeConfigs,
 }: NetworkTableBodyGridProps) => {
   // Canonical membership from siblingGroupMap; row presence is a render concern only.
@@ -160,6 +158,13 @@ export const NetworkTableBodyGrid = ({
     return result;
   }, [filteredNetworks, patternGroups]);
 
+  // Set of visible BSSIDs present in sortedDisplayNetworks before collapse is applied
+  const visibleBssids = React.useMemo(() => {
+    return new Set(
+      sortedDisplayNetworks.map((net) => (net.bssid ?? '').toUpperCase()).filter(Boolean)
+    );
+  }, [sortedDisplayNetworks]);
+
   const handleSelectExclusive = React.useCallback(
     (bssid: string) => {
       if (bssid && onSelectGroup) {
@@ -186,10 +191,8 @@ export const NetworkTableBodyGrid = ({
   );
 
   // Filter out collapsed sibling rows (keep parent).
-  // When a search is active, bypass collapse entirely so search results are never hidden.
   const displayNetworks = React.useMemo(() => {
-    if (patternGroups.groupMap.size === 0 || quickSearch.trim().length > 0)
-      return sortedDisplayNetworks;
+    if (patternGroups.groupMap.size === 0) return sortedDisplayNetworks;
     return sortedDisplayNetworks.filter((net) => {
       const bssid = (net.bssid ?? '').toUpperCase();
       const groupId = patternGroups.groupMap.get(bssid);
@@ -199,9 +202,10 @@ export const NetworkTableBodyGrid = ({
         : collapsedGroups.has(groupId);
       if (!isCollapsed) return true;
       const members = patternGroups.groupMembers.get(groupId) ?? [];
-      return bssid === members[0];
+      const firstVisibleMember = members.find((m) => visibleBssids.has(m));
+      return bssid === firstVisibleMember;
     });
-  }, [sortedDisplayNetworks, patternGroups, collapseAllActive, collapsedGroups, quickSearch]);
+  }, [sortedDisplayNetworks, patternGroups, collapseAllActive, collapsedGroups, visibleBssids]);
 
   const prevRenderLogKey = React.useRef('');
   React.useEffect(() => {
@@ -367,7 +371,8 @@ export const NetworkTableBodyGrid = ({
           const patternMembers = patternGroupId
             ? (patternGroups.groupMembers.get(patternGroupId) ?? [])
             : [];
-          const isPatternParent = patternGroupId !== null && patternMembers[0] === bssidUpper;
+          const firstVisibleMember = patternMembers.find((m) => visibleBssids.has(m));
+          const isPatternParent = patternGroupId !== null && firstVisibleMember === bssidUpper;
           const isPatternSibling = patternGroupId !== null && !isPatternParent;
           const patternSiblingCount = patternGroupId !== null ? patternMembers.length - 1 : 0;
           const isPatternGroupCollapsed =

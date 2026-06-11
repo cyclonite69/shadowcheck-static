@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-08)
+# 1.0.0 (2026-06-11)
 
 
 ### Bug Fixes
@@ -270,6 +270,7 @@
 * **explorer/search:** check historical obs SSIDs in fast-path SSID filter ([eb58286](https://github.com/cyclonite69/shadowcheck-web/commit/eb58286091ef8adce1e94793afc0448da2c161d3))
 * **explorer/search:** match historical observation SSIDs, not just current network SSID ([5f312bd](https://github.com/cyclonite69/shadowcheck-web/commit/5f312bdbe060ac6092ef91ab1c6e2f4a0cc7b9e5))
 * **explorer:** align network table sort mappings ([805092e](https://github.com/cyclonite69/shadowcheck-web/commit/805092e4eaa135af375874bcf07e7c4432f66f08))
+* **explorer:** fix sibling group collapse under active filters ([c643172](https://github.com/cyclonite69/shadowcheck-web/commit/c64317286620b8fac638641f9c7c38329fd622a9))
 * **explorer:** normalize table security tooltips ([91c53ef](https://github.com/cyclonite69/shadowcheck-web/commit/91c53ef4601311d556928efc025d2019609fc7f2))
 * **explorer:** preserve timespan fields for hydrated network rows ([8f109b8](https://github.com/cyclonite69/shadowcheck-web/commit/8f109b8a52011bebb4d820c82287b7cfc648da52))
 * **explorer:** remove unknown security pseudo-type ([42c8d08](https://github.com/cyclonite69/shadowcheck-web/commit/42c8d084d99df257704933e5d1ab3fd8ab3540df))
@@ -486,7 +487,7 @@
 * inline v4 function in migration for Docker deployment ([e2f459e](https://github.com/cyclonite69/shadowcheck-web/commit/e2f459e5ca131e3a24aae3a80bcbf57514d8b2eb))
 * **jobs:** add surveillance_scan to settings SQL, fix default, seed enable_background_jobs flag ([77db0c5](https://github.com/cyclonite69/shadowcheck-web/commit/77db0c5c0cf070f272abb69a3a3b4694f9355cfa))
 * **jobs:** add surveillanceScan to background_job_runs check constraint ([a0f5084](https://github.com/cyclonite69/shadowcheck-web/commit/a0f5084a9c0ad9f62a932c331a502c725b40de06))
-* **jobs:** catch scheduled job rejections to prevent server crash on overlap ([25a5b16](https://github.com/cyclonite69/shadowcheck-web/commit/25a5b1694247b173f5548a079e529a458dd4eb10))
+* **jobs:** catch scheduled job rejections to prevent server crash on overlap ([7a6d18f](https://github.com/cyclonite69/shadowcheck-web/commit/7a6d18f0da77f0c43a723075b41bfd3fca055514))
 * kepler timeout, api testing params, threat severity counts ([2f349ac](https://github.com/cyclonite69/shadowcheck-web/commit/2f349ac383f22dc420475ed9d0b05e339b0e14b4))
 * **kepler:** debounce filter-driven data reloads ([bb2de2d](https://github.com/cyclonite69/shadowcheck-web/commit/bb2de2d442d072dee2f2e10ff1cc0a65aba30b57))
 * **kepler:** keep filters interactive during background refresh ([ec6cc74](https://github.com/cyclonite69/shadowcheck-web/commit/ec6cc74aab1b632cc70c74f0e55efbc5c1a04408))
