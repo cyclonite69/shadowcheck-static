@@ -159,3 +159,28 @@ After running the full sibling detection job with the corrected ruleset:
    ORDER BY pairs DESC;
    ```
    **Expected**: Should return minimal or zero results (SSID-based rules still filter fleet SSIDs).
+
+---
+
+## Why Sibling Detection Is an Inference Layer
+
+Sibling detection is not only a UI grouping feature. It is ShadowCheck’s relationship layer for reasoning about physical devices, fleet infrastructure, and vendor families from noisy radio observations.
+
+A single BSSID often represents only one radio, SSID, band, or virtual interface. Many real devices expose several related BSSIDs across 2.4 GHz, 5 GHz, guest networks, hidden SSIDs, public hotspot SSIDs, and fleet-management SSIDs. The sibling pipeline converts those isolated radio observations into probable device-level clusters.
+
+The current architecture separates the process into several stages:
+
+1. `app.find_sibling_radios` produces raw candidate relationships.
+2. The refresh query layer writes canonical undirected pairs into `app.network_sibling_pairs`.
+3. Confidence caps and rule-specific demotions prevent generic or ambiguous patterns from becoming over-trusted.
+4. `app.network_sibling_overrides` allows analysts to manually confirm or block relationships.
+5. `app.network_siblings_effective` exposes the resolved graph used by APIs and the Geospatial Explorer.
+
+### Key Advantages of the Sibling Inference Architecture
+
+- **Device-level reasoning**: Multiple BSSIDs can be interpreted as one probable physical device or device family.
+- **Graph-level context**: Pairwise edges can form connected sibling chains, allowing cluster summaries rather than isolated radio rows.
+- **False-positive reduction**: Generic fallback patterns can exist as candidates without surfacing as trusted effective siblings.
+- **Negative inference**: When a cluster strongly resembles an ordinary consumer gateway, campus AP, or known fleet device, the system can reduce the likelihood that it is exotic or surveillance-oriented equipment.
+- **Better UI hydration**: Explorer searches and filters can preserve sibling context even when only one endpoint is visible.
+- **Future product inference**: Stable sibling clusters provide the foundation for matching device families to vendor manuals, radio layouts, model behavior, and known deployment patterns.
