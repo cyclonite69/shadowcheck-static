@@ -23,7 +23,7 @@ ShadowCheck is structured around three primary layers: Frontend (Client), Backen
 - **Sibling Detection Engine:** Background worker and SQL procedures evaluating MAC address proximity rules (e.g., Mist AP patterns, Sierra/AirLink criteria) to pair related network radios.
 - **VISINT Pipeline:** Visual Intelligence service extracting metadata from uploaded media and managing draft-preview logic before committing to database storage.
 - **Surveillance Repository:** Ingestion service cataloging target OUIs, matching detected networks against known signature files, and populating alerts.
-- **Import & Coverage Services:** ETL controllers orchestrating WiGLE page iteration, updating local tables, and querying geocoding daemons.
+- **Import & Ingestion Orchestrators:** Run state managers and paginated fetch orchestrators handling checkpoint resumes, cluster guards, and adaptive request ledgers to mitigate rate-limit exposure.
 
 ### 🗄️ Data Subsystems (Storage)
 

@@ -709,6 +709,47 @@ Return the current WiGLE request-ledger quota status (daily call counts, remaini
 }
 ```
 
+### GET /api/v1/wigle/search-api/import-runs 🔒
+
+List and query WiGLE V2 search import runs. Requires admin role.
+
+**Parameters:**
+
+- `limit` (int, default: 20)
+- `offset` (int, default: 0)
+- `status` (string, optional) — Filter by state: `running`, `paused`, `failed`, `completed`, `cancelled`
+- `state` (string, optional) — Filter by US state code (e.g., `VA`)
+- `searchTerm` (string, optional) — Filter search query terms
+- `incompleteOnly` (boolean, optional) — Only show active/failed runs
+- `sortBy` (string, optional) — Sort column
+- `sortDir` (string, optional) — Sort direction (`asc` | `desc`)
+
+### POST /api/v1/wigle/search-api/import-runs/:id/resume 🔒
+
+Resume a paused or failed WiGLE import run from its last saved cursor checkpoint. Requires admin role.
+
+### POST /api/v1/wigle/search-api/import-runs/:id/pause 🔒
+
+Pause a running WiGLE import run at the next page iteration boundary. Requires admin role.
+
+### POST /api/v1/wigle/search-api/import-runs/:id/cancel 🔒
+
+Permanently cancel/stop an import run. Requires admin role.
+
+### PATCH /api/wigle/soft-limits 🔒
+
+Update soft limits in the running server process dynamically. Requires admin role.
+
+**Body:**
+
+```json
+{
+  "search": 75,
+  "detail": 200,
+  "stats": 50
+}
+```
+
 ### GET /api/wigle/page/network/:netid
 
 Local database lookup returning the full enriched network record used by the WiGLE page detail panel. Tries the materialized view first, falls back to a live four-query fan-out if the MV is unavailable or returns no row.

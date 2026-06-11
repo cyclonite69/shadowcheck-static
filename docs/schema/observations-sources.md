@@ -167,6 +167,7 @@ Future updates must strictly distinguish between **Import Run Progress** and **D
 - **Import Run Progress** tracks the percentage of a specific paging run relative to the API results count (`rowCompletenessPct` and `insertedRowCompletenessPct`). Here, `rows_inserted` is a measure of paging progress and write velocity, **not** coverage.
 - **Database Coverage** is the actual count of unique, distinct BSSIDs successfully stored locally in the database.
 - **Source of Truth**: Always calculate network/BSSID coverage by running a `COUNT(DISTINCT bssid)` against `app.wigle_v2_networks_search` or checking `stored_count`. Never use `rows_inserted` from `app.wigle_import_runs` as a measure of total network coverage, as it will undercount existing networks skipped during idempotent duplicates checks.
+- See [WiGLE Import Player & V2 Ingestion Subsystem](../features/wigle-import-player.md) for full execution lifecycle, status transitions, and rate-limiting details.
 
 ---
 

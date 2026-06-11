@@ -25,6 +25,7 @@ Use this map to avoid duplicating content and to decide when docs should link to
 - `docs/API_REFERENCE.md` → link to `.github/wiki/API-Reference.md`
 - `docs/DEPLOYMENT.md` → link to `.github/wiki/Deployment-Guide.md`
 - `docs/FEATURES.md` → link to `.github/wiki/Features.md`
+- `docs/features/wigle-import-player.md` → link to `.github/wiki/Data-Flow.md` (ingestion workflows) and `.github/wiki/Database-Schema.md` (ledger tables)
 - `docs/DATABASE_RADIO_ARCHITECTURE.md` → link to `.github/wiki/Database.md` and `Database-Schema.md`
 - `docs/DEVELOPMENT.md` → link to `.github/wiki/Development.md` and `Installation.md`
 - `docs/SECURITY_POLICY.md` → link to `.github/wiki/Security.md`

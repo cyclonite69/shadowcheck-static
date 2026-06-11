@@ -16,6 +16,7 @@ Reference the following documentation files when reviewing changes to respective
 | **Sibling Detection** | [SIBLING_RULESET_ANALYSIS.md](../SIBLING_RULESET_ANALYSIS.md)                                                     | `app.network_siblings_effective` view and [siblingDetectionQueries.ts](../../server/src/services/admin/siblingDetectionQueries.ts)                                                                                      |
 | **Badge Studio**      | [badge-studio.md](../features/badge-studio.md)                                                                    | `useBadgeConfigs.ts` and `NetworkTableRow.tsx`                                                                                                                                                                          |
 | **Surveillance Gear** | [surveillance-detection.md](../features/surveillance-detection.md)                                                | `app.surveillance_detections` and `surveillanceDetectionRepository.ts`                                                                                                                                                  |
+| **WiGLE Import**      | [wigle-import-player.md](../features/wigle-import-player.md)                                                      | `WigleImportRunOrchestrator.ts` and `wigleRequestLedger.ts`                                                                                                                                                             |
 
 ---
 

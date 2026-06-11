@@ -498,13 +498,19 @@ WiGLE ingestion queries external APIs and registers local observations. Note tha
 
 ```mermaid
 flowchart TD
-    A[WiGLE API Pages Request] --> B[Import Runs Tracker]
-    B -->|rows_inserted tracks API page progress| C[Local Network Ingestion Tables]
-    C --> D[Coverage Probe & Stored Counts]
-    D --> E[Explorer Coverage Display]
+    A[WiGLE API Pages Request] --> B[Ingestion Orchestrator]
+    B -->|Adaptive delays & Circuit Breakers| C[Wigle Request Ledger]
+    C -->|Persists Events| D[(app.wigle_ledger_events)]
+    B -->|Page-by-page transaction| E[runRepository]
+    E -->|Updates checkpoint cursors| F[(app.wigle_import_runs & pages Ledger)]
+    E -->|ON CONFLICT DO NOTHING upserts| G[(app.wigle_v2_networks_search)]
+    G --> H[Coverage Probe & stored_count]
+    H --> I[Explorer Coverage Display]
 
-    style B fill:#ed8936,stroke:#c05621,color:#fff
-    style D fill:#48bb78,stroke:#2f855a,color:#fff
+    style C fill:#f56565,stroke:#c53030,color:#fff
+    style F fill:#ed8936,stroke:#c05621,color:#fff
+    style G fill:#4299e1,stroke:#2b6cb0,color:#fff
+    style H fill:#48bb78,stroke:#2f855a,color:#fff
 ```
 
 ### Geospatial Explorer Data Flow

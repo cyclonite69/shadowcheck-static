@@ -20,6 +20,11 @@ The database comprises several distinct tables and views that manage threat fore
    - `app.network_media` — VISINT uploads linked to observations, including EXIF metadata.
    - `app.deflock_cameras` & `app.shotspotter_sensors` — External reference layers containing geolocated surveillance hardware.
 
+3. **WiGLE Ingestion Ledger:**
+   - `app.wigle_import_runs` — Parent runs recording parameters, status, pagination cursors, and row metrics.
+   - `app.wigle_import_run_pages` — Page-by-page transaction records of successful and failed page chunks.
+   - `app.wigle_ledger_events` — Rolling request log used to calculate and enforce daily API soft limits.
+
 ---
 
 ## Complete Database Schema Diagram
