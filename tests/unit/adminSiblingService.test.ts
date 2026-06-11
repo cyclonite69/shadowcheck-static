@@ -132,4 +132,73 @@ describe('adminSiblingService', () => {
       expect(result).toEqual(mockRows);
     });
   });
+
+  // ── P5: Endpoint symmetry ──────────────────────────────────────────────────
+
+  describe('endpoint symmetry – SQL uses OR to cover both pair orientations', () => {
+    test('getNetworkSiblingLinks SQL uses bssid1=$1 OR bssid2=$1 (symmetric lookup)', async () => {
+      adminDbService.adminQuery.mockResolvedValue({ rows: [] });
+      await svc.getNetworkSiblingLinks('AA:BB:CC:DD:EE:FF');
+      const [sql] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toMatch(/bssid1\s*=\s*\$1\s+OR\s+bssid2\s*=\s*\$1/i);
+    });
+
+    test('getNetworkSiblingLinks resolves sibling_bssid for both pair orientations', async () => {
+      // When queried as bssid1
+      adminDbService.adminQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            sibling_bssid: '11:22:33:44:55:66',
+            source: 'heuristic',
+            rule: 'Class A',
+            pair_strength: 'candidate',
+            confidence: 0.9,
+          },
+        ],
+      });
+      const fromA = await svc.getNetworkSiblingLinks('AA:BB:CC:DD:EE:FF');
+      expect(fromA[0].sibling_bssid).toBe('11:22:33:44:55:66');
+
+      // When queried as bssid2
+      adminDbService.adminQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            sibling_bssid: 'AA:BB:CC:DD:EE:FF',
+            source: 'heuristic',
+            rule: 'Class A',
+            pair_strength: 'candidate',
+            confidence: 0.9,
+          },
+        ],
+      });
+      const fromB = await svc.getNetworkSiblingLinks('11:22:33:44:55:66');
+      expect(fromB[0].sibling_bssid).toBe('AA:BB:CC:DD:EE:FF');
+    });
+
+    test('getNetworkSiblingLinksBatch SQL uses OR ANY for both bssid columns (symmetric)', async () => {
+      adminDbService.adminQuery.mockResolvedValue({ rows: [] });
+      await svc.getNetworkSiblingLinksBatch(['AA:BB:CC:DD:EE:FF']);
+      const [sql] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toMatch(/bssid1\s*=\s*ANY/i);
+      expect(sql).toMatch(/bssid2\s*=\s*ANY/i);
+      expect(sql).toMatch(/OR/i);
+    });
+
+    test('getNetworkSiblingLinksBatch returns pair when requested BSSID is bssid2', async () => {
+      const mockRows = [
+        {
+          bssid_a: 'AA:BB:CC:DD:EE:FF',
+          bssid_b: '11:22:33:44:55:66',
+          source: 'heuristic',
+          rule: 'Mist Systems VAP (Class A)',
+          pair_strength: 'strong',
+          confidence: 0.98,
+        },
+      ];
+      adminDbService.adminQuery.mockResolvedValue({ rows: mockRows });
+      // Query for the bssid2 endpoint — should still return the pair
+      const result = await svc.getNetworkSiblingLinksBatch(['11:22:33:44:55:66']);
+      expect(result).toEqual(mockRows);
+    });
+  });
 });

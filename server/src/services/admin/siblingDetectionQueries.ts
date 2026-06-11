@@ -180,37 +180,47 @@ const REFRESH_CHUNK_SQL_CORE = `
       s.bssid1,
       s.bssid2,
       s.rule,
-      LEAST(1.000, CASE WHEN s.rule IN ('Class A', 'Unnamed Recursive (Class A)', 'Class B', 'Unnamed Recursive (Class B)', 'Class C', 'Unnamed Recursive (Class C)', 'AIRLINK_DELTA1_TWIN', 'SIERRA_DELTA1_TWIN', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential') THEN s.confidence
-      ELSE GREATEST(0, (
-        s.confidence
-        - s.distance_penalty
-        + CASE
-            WHEN s.n1 <> '' AND s.n2 <> ''
-             AND (s.n1 = s.n2 OR s.n1 LIKE s.n2 || '%' OR s.n2 LIKE s.n1 || '%') THEN ${SIBLING_SCORING.SSID_FUZZY_MATCH_BONUS}
-            ELSE 0
-          END
-        - CASE
-            WHEN s.ssid_same AND s.ssid_common THEN
-              CASE
-                WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[0]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[0]}
-                WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[1]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[1]}
-                WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[2]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[2]}
-                WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[3]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[3]}
-                ELSE 0
-              END
-            ELSE 0
-          END
-        - CASE
-            WHEN s.ssid_same AND s.ssid_common THEN
-              CASE
-                WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[0]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[0]}
-                WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[1]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[1]}
-                WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[2]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[2]}
-                ELSE 0
-              END
-            ELSE 0
-          END
-      ))
+      LEAST(1.000, CASE
+        WHEN s.rule IN ('Class A', 'Unnamed Recursive (Class A)') THEN LEAST(0.900, s.confidence)
+        WHEN s.rule IN ('Class B', 'Unnamed Recursive (Class B)') THEN LEAST(0.850, s.confidence)
+        WHEN s.rule IN ('Class C', 'Unnamed Recursive (Class C)') THEN LEAST(0.800, s.confidence)
+        -- Mist VAP/Cross-Band: cap at 0.900 when both SSIDs are non-empty and unrelated (no prefix match).
+        -- Prevents cross-org fleet pairs like meijer-corp ↔ paxar from reaching confidence 1.0.
+        WHEN s.rule IN ('Mist Systems VAP (Class A)', 'Mist Systems Cross-Band (Class A)')
+             AND s.n1 <> '' AND s.n2 <> ''
+             AND NOT (s.n1 = s.n2 OR s.n1 LIKE s.n2 || '%' OR s.n2 LIKE s.n1 || '%')
+             THEN LEAST(0.900, s.confidence)
+        WHEN s.rule IN ('AIRLINK_DELTA1_TWIN', 'SIERRA_DELTA1_TWIN', 'last_octet_sequential', 'ssid_exact_sequential', 'middle_octets_sequential') THEN s.confidence
+        ELSE GREATEST(0, (
+          s.confidence
+          - s.distance_penalty
+          + CASE
+              WHEN s.n1 <> '' AND s.n2 <> ''
+               AND (s.n1 = s.n2 OR s.n1 LIKE s.n2 || '%' OR s.n2 LIKE s.n1 || '%') THEN ${SIBLING_SCORING.SSID_FUZZY_MATCH_BONUS}
+              ELSE 0
+            END
+          - CASE
+              WHEN s.ssid_same AND s.ssid_common THEN
+                CASE
+                  WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[0]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[0]}
+                  WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[1]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[1]}
+                  WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[2]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[2]}
+                  WHEN GREATEST(COALESCE(ps1.common_partner_count, 0), COALESCE(ps2.common_partner_count, 0)) >= ${SIBLING_SCORING.PARTNER_PENALTY_COUNTS[3]} THEN ${SIBLING_SCORING.PARTNER_PENALTY_VALUES[3]}
+                  ELSE 0
+                END
+              ELSE 0
+            END
+          - CASE
+              WHEN s.ssid_same AND s.ssid_common THEN
+                CASE
+                  WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[0]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[0]}
+                  WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[1]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[1]}
+                  WHEN COALESCE(fs.family_radio_count, 0) >= ${SIBLING_SCORING.FAMILY_PENALTY_COUNTS[2]} THEN ${SIBLING_SCORING.FAMILY_PENALTY_VALUES[2]}
+                  ELSE 0
+                END
+              ELSE 0
+            END
+        ))
       END) AS final_conf,
       s.d_last_octet,
       s.d_third_octet,
@@ -360,4 +370,30 @@ const SIBLING_STATS_BY_RULE_SQL = `
   ORDER BY pair_count DESC
 `;
 
-export { buildRefreshChunkSql, REFRESH_CHUNK_SQL, SIBLING_STATS_SQL, SIBLING_STATS_BY_RULE_SQL };
+const SIBLING_COVERAGE_SQL = `
+  WITH stats AS (
+    SELECT
+      (SELECT COUNT(*)::double precision FROM app.networks WHERE type = 'W') AS total_wifi_bssids,
+      (SELECT COUNT(DISTINCT bssid)::double precision FROM (
+        SELECT bssid1 AS bssid FROM app.network_sibling_pairs
+        UNION
+        SELECT bssid2 AS bssid FROM app.network_sibling_pairs
+      ) s) AS bssids_with_siblings
+  )
+  SELECT
+    total_wifi_bssids::int,
+    bssids_with_siblings::int,
+    CASE
+      WHEN total_wifi_bssids = 0 THEN 0.00
+      ELSE ROUND((bssids_with_siblings * 100.0 / total_wifi_bssids)::numeric, 2)::float
+    END AS coverage_pct
+  FROM stats
+`;
+
+export {
+  buildRefreshChunkSql,
+  REFRESH_CHUNK_SQL,
+  SIBLING_STATS_SQL,
+  SIBLING_STATS_BY_RULE_SQL,
+  SIBLING_COVERAGE_SQL,
+};
