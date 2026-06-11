@@ -22,7 +22,7 @@ ShadowCheck is structured around three primary layers: Frontend (Client), Backen
 - **Filter Query Builders:** Universal filter parser that converts API queries into secure, parameterized PostGIS SQL queries (handling temporal, address, and device type bounds).
 - **Sibling Detection Engine:** Background worker and SQL procedures evaluating MAC address proximity rules (e.g., Mist AP patterns, Sierra/AirLink criteria) to pair related network radios.
 - **VISINT Pipeline:** Visual Intelligence service extracting metadata from uploaded media and managing draft-preview logic before committing to database storage.
-- **Surveillance Repository:** Ingestion service cataloging target OUIs, matching detected networks against known signature files, and populating alerts.
+- **Surveillance Repository:** Ingestion service cataloging target OUIs, matching detected networks against known signature files (including bodycams and fixed cameras), managing alerts, and serving the vendor reference guides library.
 - **Import & Ingestion Orchestrators:** Run state managers and paginated fetch orchestrators handling checkpoint resumes, cluster guards, and adaptive request ledgers to mitigate rate-limit exposure.
 
 ### 🗄️ Data Subsystems (Storage)

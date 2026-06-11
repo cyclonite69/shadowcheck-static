@@ -78,7 +78,7 @@ These docs live directly in the codebase repository and act as the technical sou
 - **Subsystems & Features:**
   - [Badge Studio](../../docs/features/badge-studio.md) — Configuration flags, persistence, and UI rendering details.
   - [Geospatial Explorer](../../docs/features/geospatial.md) — Materialized view queries, column choosers, and nearest-place hydration.
-  - [Surveillance Detection](../../docs/features/surveillance-detection.md) — Target OUI signatures, camera lists, and scoring factors.
+  - [Surveillance Detection](../../docs/features/surveillance-detection.md) — Target OUI signatures, bodycam (BWC) classifiers, camera lists, and the SIGINT reference library.
   - [WiGLE Import Player](../../docs/features/wigle-import-player.md) — Paginated V2 ingestion lifecycle, run/page ledgers, and rate-limiting safety.
 - **Database & Query Reference:**
   - [Universal Filters](../../docs/FILTERS.md) — 20+ query parameters mapped from API endpoints to PostgreSQL queries.

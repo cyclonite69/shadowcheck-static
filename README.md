@@ -60,7 +60,7 @@ solely to demonstrate system capabilities at scale.
 - **Sibling Detection** — Canonical undirected sibling-pair storage, effective view override filters, confidence demotions, and endpoint-symmetric APIs. See [docs/SIBLING_RULESET_ANALYSIS.md](docs/SIBLING_RULESET_ANALYSIS.md) and [docs/schema/network-tables.md](docs/schema/network-tables.md).
 - **VISINT / Evidence Integrity** — Image/evidence correlation defaults to preview mode unless `commit=true` is explicit; route validation rejects malformed numeric inputs. See [docs/ai/decisions/20260607_visint_evidence_integrity_incident.md](docs/ai/decisions/20260607_visint_evidence_integrity_incident.md).
 - **Badge Studio** — Feature-gated badge rendering configuration for Explorer columns. See [docs/features/badge-studio.md](docs/features/badge-studio.md).
-- **Surveillance Detection** — OUI/device classification, network media, DeFlock/Flock/ShotSpotter matching, and leak-map overlays. See [docs/features/surveillance-detection.md](docs/features/surveillance-detection.md).
+- **Surveillance Detection & SIGINT Library** — OUI/device classification, bodycam (BWC) signatures, VISINT media integration, DeFlock/Flock/ShotSpotter matching, and the vendor equipment guides reference library. See [docs/features/surveillance-detection.md](docs/features/surveillance-detection.md).
 - **WiGLE Import & Ingestion** — Paginated V2 ingestion loops, checkpoint resumes, rate-limiting safety, and coverage accounting. See [docs/features/wigle-import-player.md](docs/features/wigle-import-player.md) and [docs/schema/observations-sources.md](docs/schema/observations-sources.md).
 
 ## Documentation Map
