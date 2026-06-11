@@ -1,7 +1,7 @@
 /** Dev-only sibling topology traces (set VITE_SIBLING_TOPOLOGY_DEBUG=false to disable). */
 export const SIBLING_TOPOLOGY_DEBUG_ENABLED =
   import.meta.env.DEV &&
-  String(import.meta.env.VITE_SIBLING_TOPOLOGY_DEBUG ?? 'true').toLowerCase() !== 'false';
+  String(import.meta.env.VITE_SIBLING_TOPOLOGY_DEBUG ?? 'false').toLowerCase() === 'true';
 
 export function logSiblingTopology(stage: string, payload: Record<string, unknown>): void {
   if (!SIBLING_TOPOLOGY_DEBUG_ENABLED) return;
