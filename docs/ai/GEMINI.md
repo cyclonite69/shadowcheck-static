@@ -40,6 +40,7 @@ Before starting work, understand the subsystem layouts and workflow guides:
 - **Sibling Operations**: Sibling pairs are undirected; readers and query builders must check both `bssid1` and `bssid2`.
 - **Sibling Validity**: Generic sibling candidates are not automatically truth; effective siblings must resolve through confidence metrics and override policies.
 - **Maintenance lanes**: Documentation updates, unit/integration testing, modularity refactoring, and cruft cleanup are recurring development lanes, not optional afterthoughts.
+- **Documentation Audits**: For serious docs updates, use git-history-assisted drift audits; see [docs/maintenance/maintenance-cadence.md](../maintenance/maintenance-cadence.md).
 
 ---
 
