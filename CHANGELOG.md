@@ -271,7 +271,7 @@
 * **explorer/search:** match historical observation SSIDs, not just current network SSID ([5f312bd](https://github.com/cyclonite69/shadowcheck-web/commit/5f312bdbe060ac6092ef91ab1c6e2f4a0cc7b9e5))
 * **explorer:** align network table sort mappings ([805092e](https://github.com/cyclonite69/shadowcheck-web/commit/805092e4eaa135af375874bcf07e7c4432f66f08))
 * **explorer:** fix sibling group collapse under active filters ([fe8c295](https://github.com/cyclonite69/shadowcheck-web/commit/fe8c295f80ff0a70f19da8aea0c60726618196d7))
-* **explorer:** make sibling topology debug UI and logs opt-in ([7ed0a98](https://github.com/cyclonite69/shadowcheck-web/commit/7ed0a98aedc7f8c2af92f5dd6b59614513d578c2))
+* **explorer:** make sibling topology debug UI and logs opt-in ([279b96d](https://github.com/cyclonite69/shadowcheck-web/commit/279b96dded1f8f737b376c8fdaae9d997dc3b116))
 * **explorer:** normalize table security tooltips ([91c53ef](https://github.com/cyclonite69/shadowcheck-web/commit/91c53ef4601311d556928efc025d2019609fc7f2))
 * **explorer:** preserve timespan fields for hydrated network rows ([8f109b8](https://github.com/cyclonite69/shadowcheck-web/commit/8f109b8a52011bebb4d820c82287b7cfc648da52))
 * **explorer:** remove unknown security pseudo-type ([42c8d08](https://github.com/cyclonite69/shadowcheck-web/commit/42c8d084d99df257704933e5d1ab3fd8ab3540df))

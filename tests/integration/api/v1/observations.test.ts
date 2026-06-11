@@ -242,6 +242,18 @@ describe('Observations API v1', () => {
         code: 'VISINT_EXIF_TOOL_UNAVAILABLE',
       });
     });
+
+    it('rejects malformed radius/window/limit on correlate-visint', async () => {
+      const image = Buffer.from('fake-visint-image');
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('radius_meters', 'abc');
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('VISINT_INVALID_NUMERIC_PARAMS');
+      expect(mockContainer.observationService.correlateVisINT).not.toHaveBeenCalled();
+    });
   });
 
   describe('POST /api/observations/attach-visint', () => {
@@ -329,6 +341,32 @@ describe('Observations API v1', () => {
       expect(res.status).toBe(200);
       expect(res.body.tags_applied).toEqual(['UNMATCHED_NODE', 'VISINT_UNMATCHED']);
       expect(mockContainer.observationService.saveVisINTAttachment).toHaveBeenCalled();
+    });
+
+    it('rejects malformed detection_score instead of passing NaN into saveVisINTAttachment', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('detection_score', 'invalid-score');
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('VISINT_INVALID_DETECTION_SCORE');
+      expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
+    });
+
+    it('rejects malformed lat/lon on attach-visint instead of passing NaN', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('lat', 'invalid-lat');
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('VISINT_INVALID_NUMERIC_PARAMS');
+      expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
     });
   });
 });

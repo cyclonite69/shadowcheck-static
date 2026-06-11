@@ -235,4 +235,72 @@ describe('mergeNearestPlaces', () => {
     expect(result[0].observationCount).toBe(1);
     expect(result[0].hasWigleObs).toBe(true);
   });
+
+  test('does not erase a valid courthouse match when matching agency row has null name/coords for same cluster', () => {
+    const agencyNullMatch: Agency = {
+      cluster_id: 10,
+      cluster_count: 5,
+      cluster_lat: 45.0,
+      cluster_lon: -90.0,
+      has_wigle_obs: true,
+      has_local_obs: false,
+      name: null,
+      latitude: null,
+      longitude: null,
+    };
+    const courthouseValid: CourthouseMatch = {
+      cluster_id: 10,
+      cluster_count: 5,
+      cluster_lat: 45.0,
+      cluster_lon: -90.0,
+      has_wigle_obs: true,
+      has_local_obs: false,
+      id: 999,
+      name: 'Valid Courthouse',
+      latitude: 45.0,
+      longitude: -90.0,
+      distance_meters: 100,
+    };
+
+    const result = mergeNearestPlaces([agencyNullMatch], [courthouseValid]);
+    expect(result).toHaveLength(1);
+    expect(result[0].clusterId).toBe(10);
+    expect(result[0].courthouse).toBeDefined();
+    expect(result[0].courthouse!.name).toBe('Valid Courthouse');
+    expect(result[0].agency).toBeUndefined();
+  });
+
+  test('does not erase a valid agency match when matching courthouse row has null name/coords for same cluster', () => {
+    const agencyValid: Agency = {
+      cluster_id: 11,
+      cluster_count: 5,
+      cluster_lat: 45.0,
+      cluster_lon: -90.0,
+      has_wigle_obs: true,
+      has_local_obs: false,
+      name: 'Valid Agency',
+      latitude: 45.0,
+      longitude: -90.0,
+      distance_meters: 100,
+    };
+    const courthouseNullMatch: CourthouseMatch = {
+      cluster_id: 11,
+      cluster_count: 5,
+      cluster_lat: 45.0,
+      cluster_lon: -90.0,
+      has_wigle_obs: true,
+      has_local_obs: false,
+      id: null,
+      name: null,
+      latitude: null,
+      longitude: null,
+    };
+
+    const result = mergeNearestPlaces([agencyValid], [courthouseNullMatch]);
+    expect(result).toHaveLength(1);
+    expect(result[0].clusterId).toBe(11);
+    expect(result[0].agency).toBeDefined();
+    expect(result[0].agency!.name).toBe('Valid Agency');
+    expect(result[0].courthouse).toBeUndefined();
+  });
 });

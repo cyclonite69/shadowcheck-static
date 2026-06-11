@@ -602,4 +602,48 @@ describe('useSiblingLinks Hook Performance and Optimization', () => {
     const uniqueElements = Array.from(new Set(nonRenderableArg));
     expect(nonRenderableArg.length).toBe(uniqueElements.length);
   });
+
+  test('hydrates off-visible siblings and adds them to missingSiblingNetworks when quickSearch matches only visible node', async () => {
+    const networks: NetworkRow[] = [
+      {
+        bssid: '8C:61:A3:7C:BD:08',
+        ssid: 'undertaker',
+        sibling_bssids: ['BE:61:A3:7C:BD:09'],
+      } as NetworkRow,
+    ];
+
+    mockNetworkApi.getNetworksByBssids.mockImplementation(async (bssids: string[]) => {
+      return {
+        data: bssids.map((bssid) => ({ bssid, ssid: 'xfinitywifi' })),
+        unresolved: {},
+      };
+    });
+
+    useSiblingLinks({
+      isAdmin: true,
+      selectedAnchorBssid: null,
+      networks,
+      quickSearch: 'undertaker',
+    });
+
+    // Run the registered effects
+    for (const effect of mockEffects) {
+      await effect.effectFn();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // 1. groupMap has both BSSIDs in same group
+    expect(mockSetStates[1]).toHaveBeenCalled();
+    const groupMap = mockSetStates[1].mock.calls[mockSetStates[1].mock.calls.length - 1][0];
+    expect(groupMap.get('8C:61:A3:7C:BD:08')).toBe(groupMap.get('BE:61:A3:7C:BD:09'));
+
+    // 2. hydration requested BE:61:A3:7C:BD:09
+    expect(mockNetworkApi.getNetworksByBssids).toHaveBeenCalledWith(['BE:61:A3:7C:BD:09']);
+
+    // 3. expanded rows include BE:61:A3:7C:BD:09
+    expect(mockSetStates[2]).toHaveBeenCalled();
+    const hydratedNetworks = mockSetStates[2].mock.calls[mockSetStates[2].mock.calls.length - 1][0];
+    const hydratedBssids = hydratedNetworks.map((n: NetworkRow) => n.bssid);
+    expect(hydratedBssids).toContain('BE:61:A3:7C:BD:09');
+  });
 });

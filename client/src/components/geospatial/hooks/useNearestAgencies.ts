@@ -19,13 +19,17 @@ export interface Agency {
   cluster_lon?: number;
 }
 
+export function getNearestAgenciesBssidKey(bssid: string | string[] | null): string {
+  return Array.isArray(bssid) ? [...bssid].sort().join(',') : bssid || '';
+}
+
 export const useNearestAgencies = (bssid: string | string[] | null) => {
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Create stable key for dependency tracking
-  const bssidKey = Array.isArray(bssid) ? bssid.sort().join(',') : bssid || '';
+  const bssidKey = getNearestAgenciesBssidKey(bssid);
 
   useEffect(() => {
     if (!bssid || (Array.isArray(bssid) && bssid.length === 0)) {

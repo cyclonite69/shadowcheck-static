@@ -139,7 +139,7 @@ export async function saveVisINTAttachment(
 export async function correlateVisINT(
   imageBuffer: Buffer,
   filename: string,
-  commit = true,
+  commit = false,
   radiusMeters = 50,
   windowHours = 2,
   limit = 5

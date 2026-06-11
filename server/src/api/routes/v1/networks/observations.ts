@@ -50,6 +50,14 @@ const parseOptionalNullableNumber = (value: unknown): number | null => {
   return parsed === undefined ? null : parsed;
 };
 
+const isProvidedAndInvalid = (value: unknown): boolean => {
+  if (value === undefined || value === null || value === '') {
+    return false;
+  }
+  const parsed = Number(value);
+  return !Number.isFinite(parsed);
+};
+
 const parseBooleanField = (value: unknown, fallback: boolean): boolean => {
   if (value === undefined || value === null) {
     return fallback;
@@ -366,6 +374,18 @@ router.post(
     const filename =
       req.body.filename || req.body.original_filename || uploadedFile?.originalname || 'image.jpg';
     const commit = parseBooleanField(req.body.commit, false);
+    if (
+      isProvidedAndInvalid(req.body.radius_meters) ||
+      isProvidedAndInvalid(req.body.window_hours) ||
+      isProvidedAndInvalid(req.body.limit)
+    ) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid numeric parameters for VisINT correlation.',
+        code: 'VISINT_INVALID_NUMERIC_PARAMS',
+      });
+    }
+
     const radiusMeters = parseOptionalNumber(req.body.radius_meters);
     const windowHours = parseOptionalNumber(req.body.window_hours);
     const limit = parseOptionalNumber(req.body.limit);
@@ -417,7 +437,35 @@ router.post(
       req.body.filename || req.body.original_filename || uploadedFile?.originalname || 'image.jpg';
     const targetBssid = req.body.bssid || 'VISINT_UNMATCHED';
     const status = req.body.status || 'UNMATCHED';
-    const detectionScore = parseInt(req.body.detection_score || '0', 10);
+    if (
+      isProvidedAndInvalid(req.body.dist_meters) ||
+      isProvidedAndInvalid(req.body.delta_minutes) ||
+      isProvidedAndInvalid(req.body.lat) ||
+      isProvidedAndInvalid(req.body.lon)
+    ) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid numeric parameters on attach-visint.',
+        code: 'VISINT_INVALID_NUMERIC_PARAMS',
+      });
+    }
+
+    let detectionScore = 0;
+    if (
+      req.body.detection_score !== undefined &&
+      req.body.detection_score !== null &&
+      req.body.detection_score !== ''
+    ) {
+      detectionScore = parseInt(req.body.detection_score, 10);
+      if (isNaN(detectionScore)) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid detection_score value.',
+          code: 'VISINT_INVALID_DETECTION_SCORE',
+        });
+      }
+    }
+
     const distMeters = parseOptionalNullableNumber(req.body.dist_meters);
     const deltaMinutes = parseOptionalNullableNumber(req.body.delta_minutes);
     const lat = parseOptionalNumber(req.body.lat);
