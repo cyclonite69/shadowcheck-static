@@ -36,7 +36,7 @@ npm test
 
 - Runs Jest unit and integration tests
 - All tests must pass unless explicitly skipped with documented justification
-- Coverage threshold: 70% (branches, functions, lines, statements)
+- Coverage threshold: 60% (branches, functions, lines, statements)
 - Check coverage: `npm run test:cov`
 
 ---
@@ -51,7 +51,7 @@ npm test
 
 ### New Features
 
-- **Requirement**: Full test coverage (70% threshold enforced)
+- **Requirement**: Full test coverage (60% threshold enforced)
 - **Scope**: Unit tests for isolated logic + integration tests for API endpoints
 - **Example**: New endpoint requires entry in `client/src/config/apiTestEndpoints.ts` + tests
 
@@ -157,7 +157,7 @@ import { mockDatabase, mockSecrets, createMockRequest } from '../setup';
 
 ## Coverage Threshold
 
-**Project enforcement**: 70% (branches, functions, lines, statements)
+**Project enforcement**: 60% (branches, functions, lines, statements) (as defined in [jest.config.js](../../jest.config.js))
 
 **How to check**:
 
@@ -168,9 +168,26 @@ open coverage/index.html  # View in browser
 
 **If coverage drops**:
 
-1. Add tests to bring coverage back above 70%
+1. Add tests to bring coverage back above 60%
 2. Or revert the change
 3. Or document why lower coverage is acceptable (rare exceptions only)
+
+---
+
+## Focused Test Commands
+
+Run focused unit and integration tests to avoid running the full suite:
+
+```bash
+# All sibling integration tests (requires shadowcheck_test DB)
+RUN_INTEGRATION_TESTS=true DB_NAME=shadowcheck_test npx jest --testPathPattern="siblingRuleQuality|siblingCoverage" --no-coverage
+
+# Sibling unit tests only (no DB required)
+DB_NAME=shadowcheck_test npx jest tests/unit/siblingDetectionQueries.test.ts tests/unit/adminSiblingService.test.ts --no-coverage
+
+# Full sibling integration suite including find_sibling_radios
+RUN_INTEGRATION_TESTS=true DB_NAME=shadowcheck_test npx jest --testPathPattern="findSiblingRadios|siblingRuleQuality|siblingCoverage" --no-coverage
+```
 
 ---
 

@@ -92,7 +92,7 @@ The SSID match covers both the network's current SSID and any SSID observed hist
 | `stationaryConfidenceMin` | `number`           | Minimum stationary confidence (0.0 to 1.0).                   |
 | `stationaryConfidenceMax` | `number`           | Maximum stationary confidence (0.0 to 1.0).                   |
 
-### H. Geocoding & Address (NEW)
+### H. Geocoding & Address
 
 | Key                     | Type     | Description                                           |
 | :---------------------- | :------- | :---------------------------------------------------- |
@@ -108,7 +108,7 @@ The SSID match covers both the network's current SSID and any SSID observed hist
 | `geocodedConfidenceMin` | `number` | Minimum geocoding resolution confidence (0.0 to 1.0). |
 | `geocodedConfidenceMax` | `number` | Maximum geocoding resolution confidence (0.0 to 1.0). |
 
-### I. Forensic Activity (NEW)
+### I. Forensic Activity
 
 | Key                    | Type     | Description                                                |
 | :--------------------- | :------- | :--------------------------------------------------------- |
@@ -119,7 +119,7 @@ The SSID match covers both the network's current SSID and any SSID observed hist
 | `maxDistanceMetersMin` | `number` | Minimum mobility breadth (meters between furthest points). |
 | `maxDistanceMetersMax` | `number` | Maximum mobility breadth (meters between furthest points). |
 
-### J. Machine Learning & Scoring (NEW)
+### J. Machine Learning & Threat Scoring
 
 | Key                 | Type       | Description                           |
 | :------------------ | :--------- | :------------------------------------ |
@@ -133,7 +133,7 @@ The SSID match covers both the network's current SSID and any SSID observed hist
 | `mlBoostMax`        | `number`   | Maximum ML model boost applied.       |
 | `modelVersion`      | `string[]` | Specific ML model version strings.    |
 
-### K. WiGLE Persistence (Universal)
+### K. WiGLE Persistence
 
 | Key                              | Type     | Description                                         |
 | :------------------------------- | :------- | :-------------------------------------------------- |
@@ -141,6 +141,16 @@ The SSID match covers both the network's current SSID and any SSID observed hist
 | `wigle_v3_observation_count_max` | `number` | Maximum WiGLE external observations.                |
 | `wigleV3LastImportBefore`        | `string` | Observations imported before date (ISO/YYYY-MM-DD). |
 | `wigleV3LastImportAfter`         | `string` | Observations imported after date (ISO/YYYY-MM-DD).  |
+
+### L. Surveillance Gear & Classification
+
+| Key            | Type      | Description                                                       |
+| :------------- | :-------- | :---------------------------------------------------------------- |
+| `surveillance` | `boolean` | Gated filter to return only networks with matching detections.    |
+| `shotspotter`  | `boolean` | Matches ShotSpotter sensor detections.                            |
+| `bwc`          | `boolean` | Matches Body Worn Camera (BWC) detections.                        |
+| `flock`        | `boolean` | Matches Flock Safety camera detections.                           |
+| `deviceClass`  | `string`  | Filter by threat class type string (e.g. `'FLOCK_NEW_FIRMWARE'`). |
 
 ## Implementation Notes
 

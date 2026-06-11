@@ -193,10 +193,10 @@ _Note: The global minimums are enforced in `jest.config.js` and were recently ra
 
 | Type       | Minimum (Enforced) | Target |
 | ---------- | ------------------ | ------ |
-| Statements | 52%                | 80%    |
-| Branches   | 42%                | 70%    |
-| Functions  | 47%                | 80%    |
-| Lines      | 53%                | 80%    |
+| Statements | 60%                | 80%    |
+| Branches   | 60%                | 70%    |
+| Functions  | 60%                | 80%    |
+| Lines      | 60%                | 80%    |
 
 Run `npm run test:cov` to generate coverage reports.
 
@@ -247,8 +247,14 @@ npm run test:cov
 # Watch mode
 npm test -- --watch
 
-# Run integration tests only
-npm test -- --testPathPattern=integration
+# Run integration tests only (requires live DB at DB_NAME=shadowcheck_test)
+RUN_INTEGRATION_TESTS=true DB_NAME=shadowcheck_test npm test
+
+# Focused sibling integration tests
+RUN_INTEGRATION_TESTS=true DB_NAME=shadowcheck_test npx jest --testPathPattern="siblingRuleQuality|siblingCoverage" --no-coverage
+
+# Focused sibling unit tests
+DB_NAME=shadowcheck_test npx jest tests/unit/siblingDetectionQueries.test.ts tests/unit/adminSiblingService.test.ts --no-coverage
 ```
 
 ### CI/CD Integration

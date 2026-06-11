@@ -153,6 +153,21 @@ All geometry columns are `geometry(Point,4326)` with GIST indexes. No migrations
 **Row count:** ~1,854 — per-network lookup (one row per netid).  
 Join to get enriched fields (manufacturer, public flags, geocoded address, etc.) for tooltip rendering. Not needed for spatial aggregation queries.
 
+### WiGLE Import Semantics
+
+WiGLE imports are idempotent based on `(netid, latitude, longitude, observed_at)`.
+
+- If a record is imported that matches an existing unique constraint, the import process will skip or update (depending on the upsert configuration).
+- The `imported_at` column tracks when the record was processed into the system, whereas `observed_at` reflects the actual timestamp of the capture.
+
+#### WiGLE Ingestion: Import Progress vs Database Coverage
+
+Future updates must strictly distinguish between **Import Run Progress** and **Database Coverage**:
+
+- **Import Run Progress** tracks the percentage of a specific paging run relative to the API results count (`rowCompletenessPct` and `insertedRowCompletenessPct`). Here, `rows_inserted` is a measure of paging progress and write velocity, **not** coverage.
+- **Database Coverage** is the actual count of unique, distinct BSSIDs successfully stored locally in the database.
+- **Source of Truth**: Always calculate network/BSSID coverage by running a `COUNT(DISTINCT bssid)` against `app.wigle_v2_networks_search` or checking `stored_count`. Never use `rows_inserted` from `app.wigle_import_runs` as a measure of total network coverage, as it will undercount existing networks skipped during idempotent duplicates checks.
+
 ---
 
 ## `app.kml_points` — KML Import Data
