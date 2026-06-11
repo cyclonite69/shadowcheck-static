@@ -73,7 +73,7 @@ router.post('/admin/network-tags/toggle', async (req: any, res: any, next: any) 
 });
 
 // DELETE /api/admin/network-tags/remove - Remove tag from network
-router.delete('/api/admin/network-tags/remove', async (req: any, res: any, next: any) => {
+router.delete('/admin/network-tags/remove', async (req: any, res: any, next: any) => {
   try {
     const { bssid, tag } = req.body;
 

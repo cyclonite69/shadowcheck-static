@@ -17,7 +17,14 @@ interface GeospatialOverlaysProps {
   tagLoading: boolean;
   contextMenuRef: React.RefObject<HTMLDivElement | null>;
   onTagAction: (
-    action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear'
+    action:
+      | 'ignore'
+      | 'threat'
+      | 'suspect'
+      | 'false_positive'
+      | 'investigate'
+      | 'clear'
+      | 'clear-threat'
   ) => Promise<void>;
   onCloseContextMenu: () => void;
   onOpenTimeFrequency: () => void;

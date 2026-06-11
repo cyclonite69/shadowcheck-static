@@ -84,6 +84,10 @@ These docs live directly in the codebase repository and act as the technical sou
   - [Universal Filters](../../docs/FILTERS.md) — 20+ query parameters mapped from API endpoints to PostgreSQL queries.
   - [Network Tables Schema](../../docs/schema/network-tables.md) — Database structures including sibling pairs, overrides, and detection logs.
   - [Observation & WiGLE Sources](../../docs/schema/observations-sources.md) — WiGLE import accounting and VISINT evidence details.
+- **REST API Reference & Route Maps:**
+  - [Curated API Reference](../../docs/API_REFERENCE.md) — Curated stable/operator-facing reference.
+  - [API Route Inventory](../../docs/api/route-inventory.md) — Exhaustive Express route inventory.
+  - [Manual-Only & Dangerous Endpoints](../../docs/api/manual-only-endpoints.md) — Dangerous/manual endpoints and automation restrictions.
 - **Engineering Workflows:**
   - [Testing Standards](../../docs/TESTING.md) — Jest test suites, execution commands, and the 60% coverage gate.
   - [Documentation Maintenance](../../docs/maintenance/documentation-workflow.md) — Guidelines and procedures for updating repository docs and the wiki.

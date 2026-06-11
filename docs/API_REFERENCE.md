@@ -1,8 +1,12 @@
 # API Reference
 
-**Wiki version (diagrams):** [API Reference](../.github/wiki/API-Reference.md)
+**Sub-Guides:**
 
-Complete REST API documentation for ShadowCheck SIGINT Forensics Platform.
+- **[Exhaustive Express Route Inventory](api/route-inventory.md)** — The complete list of all route mounts, modules, and classifications.
+- **[Manual-Only Safety Guide](api/manual-only-endpoints.md)** — Dangerous/destructive operations and test automation rules.
+- **Wiki version (diagrams):** [API Reference](../.github/wiki/API-Reference.md)
+
+This document serves as the curated, operator-facing REST API reference for the ShadowCheck platform. For a complete mapping of all developer routes, see the route inventory linked above.
 
 ## Base URL
 
@@ -35,9 +39,9 @@ Pass the token returned by `POST /api/auth/login` in the `Authorization` header 
 
 ---
 
-## Infrastructure Endpoints
+## Infrastructure & Reference Layers
 
-Public GeoJSON endpoints for geospatial visualization. Note: These are mounted at the root level to bypass standard API auth for map display.
+Public GeoJSON endpoints for geospatial visualization. Note: `/agency-offices` and `/federal-courthouses` are mounted at the root level to bypass standard API auth for map display. The ALPR/ShotSpotter layers require standard user authentication.
 
 ### GET /agency-offices
 
@@ -65,6 +69,24 @@ Returns a GeoJSON FeatureCollection of all FBI Field Offices and Resident Agenci
 ### GET /federal-courthouses
 
 Returns a GeoJSON FeatureCollection of all Federal Courthouses.
+
+---
+
+### GET /api/v1/surveillance/deflock-cameras 🔒
+
+Returns a GeoJSON FeatureCollection of Flock Safety ALPR (Automatic License Plate Reader) camera locations.
+
+---
+
+### GET /api/v1/surveillance/shotspotter-zones 🔒
+
+Returns a GeoJSON FeatureCollection of acoustic gunshot detection coverage zones.
+
+---
+
+### GET /api/v1/surveillance/shotspotter-sensors 🔒
+
+Returns a GeoJSON FeatureCollection of ShotSpotter acoustic sensor points (from the WIRED 2024 leaked dataset).
 
 ---
 
@@ -236,6 +258,44 @@ Tag multiple networks as threats.
 
 ---
 
+### GET /api/networks/nearest-agencies/:bssid
+
+Retrieves the nearest law enforcement agency offices for a specific network observation point.
+
+---
+
+### POST /api/networks/nearest-agencies/batch 🔒
+
+Batch retrieves nearest agencies for multiple BSSIDs.
+
+**Request:**
+
+```json
+{
+  "bssids": ["00:11:22:33:44:55"]
+}
+```
+
+---
+
+### POST /api/networks/nearest-courthouses/batch 🔒
+
+Batch retrieves nearest federal courthouses for multiple BSSIDs.
+
+---
+
+### GET /api/networks/:bssid/notes 🔒
+
+Get notes for a network (user-facing view).
+
+---
+
+### POST /api/networks/:bssid/notes 🔒
+
+Add a new note to a network.
+
+---
+
 ## v2 Networks API
 
 ### GET /api/v2/networks
@@ -366,23 +426,15 @@ Export tags for ML training.
 
 ### GET /api/explorer/networks
 
-List explorer networks.
+List explorer networks (legacy endpoint).
 
 ### GET /api/explorer/networks-v2
 
-Enhanced explorer with additional fields.
+Enhanced explorer with additional geocoding and physical-measurement fields, compiled from the database explorer materialized view.
 
-### GET /api/explorer/timeline/:bssid
+### GET /api/explorer/network/:bssid
 
-Get observation timeline for network.
-
-### GET /api/explorer/heatmap
-
-Get heatmap data.
-
-### GET /api/explorer/routes
-
-Get route data.
+Retrieves the complete, geocoded materialized view record for a single network. Alias fields (`first_observed_at`, `last_observed_at`) are provided to match standard geospatial payloads.
 
 ---
 
@@ -780,7 +832,7 @@ Return the current WiGLE request-ledger quota status (daily call counts, remaini
 }
 ```
 
-### GET /api/v1/wigle/search-api/import-runs 🔒
+### GET /api/wigle/search-api/import-runs 🔒
 
 List and query WiGLE V2 search import runs. Requires admin role.
 
@@ -795,15 +847,15 @@ List and query WiGLE V2 search import runs. Requires admin role.
 - `sortBy` (string, optional) — Sort column
 - `sortDir` (string, optional) — Sort direction (`asc` | `desc`)
 
-### POST /api/v1/wigle/search-api/import-runs/:id/resume 🔒
+### POST /api/wigle/search-api/import-runs/:id/resume 🔒
 
 Resume a paused or failed WiGLE import run from its last saved cursor checkpoint. Requires admin role.
 
-### POST /api/v1/wigle/search-api/import-runs/:id/pause 🔒
+### POST /api/wigle/search-api/import-runs/:id/pause 🔒
 
 Pause a running WiGLE import run at the next page iteration boundary. Requires admin role.
 
-### POST /api/v1/wigle/search-api/import-runs/:id/cancel 🔒
+### POST /api/wigle/search-api/import-runs/:id/cancel 🔒
 
 Permanently cancel/stop an import run. Requires admin role.
 
@@ -849,35 +901,31 @@ Get networks layer data.
 
 ---
 
-## Geospatial Endpoints
+## Geospatial & Map Proxies
 
-### GET /api/geospatial/api/mapbox-token
+### GET /api/mapbox-token
 
-Get Mapbox token.
+Get the currently configured Mapbox access token.
 
-### GET /api/geospatial/api/mapbox-style
+### GET /api/mapbox-style
 
-Get Mapbox style configuration.
+Get the styled Mapbox layer configurations (e.g. satellite background).
 
-### GET /api/geospatial/api/mapbox-proxy
+### GET /api/mapbox-proxy
 
-Proxy requests to Mapbox API.
+Proxies style asset requests directly to Mapbox API.
 
-### GET /api/geospatial/api/google-maps-token
+### GET /api/google-maps-token
 
-Get Google Maps API token.
+Get the currently configured Google Maps API token.
 
-### GET /api/geospatial/api/google-maps-tile/:type/:z/:x/:y
+### GET /api/google-maps-tile/:type/:z/:x/:y
 
-Get Google Maps tiles.
+Proxies Google Maps tiles to bypass browser CORS gates.
 
 ---
 
 ## Utilities
-
-### GET /api/mapbox-token
-
-Get Mapbox token.
 
 ### GET /api/manufacturer/:bssid
 
@@ -1108,22 +1156,6 @@ Aggregate statistics for the sibling detection dataset.
 
 ---
 
-## Threat Scoring Admin
-
-### POST /api/admin/threat-scoring/compute 🔒
-
-Manual threat score computation.
-
-### POST /api/admin/threat-scoring/recompute-all 🔒
-
-Mark all for recomputation.
-
-### GET /api/admin/threat-scoring/stats 🔒
-
-Threat scoring statistics.
-
----
-
 ## OUI Management Admin
 
 ### GET /api/admin/oui/groups 🔒
@@ -1160,7 +1192,30 @@ Toggle tag.
 
 ### DELETE /api/admin/network-tags/remove 🔒
 
-Remove tag.
+Remove a specific tag from a network. Unlike the general tag clearing endpoint, this endpoint selectively removes a single tag from the BSSID's tag list.
+
+**Request Body:**
+
+```json
+{
+  "bssid": "AA:BB:CC:DD:EE:FF",
+  "tag": "SUSPECT"
+}
+```
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "message": "Tag 'SUSPECT' removed from network AA:BB:CC:DD:EE:FF",
+  "network": {
+    "bssid": "AA:BB:CC:DD:EE:FF",
+    "tags": ["THREAT"],
+    "notes": "Network notes content"
+  }
+}
+```
 
 ---
 
@@ -1377,21 +1432,27 @@ User logout.
 
 Get current user.
 
-### POST /api/auth/create-user 🔒
+### POST /api/admin/users 🔒
 
-Create new user (admin only).
+Create a new user profile (admin only).
 
 ---
 
 ## Settings & Export
 
-### GET /api/settings
+### GET /api/settings/aws 🔒
 
-Get settings.
+Retrieve the currently configured AWS configuration settings (region, profile).
 
-### POST /api/settings
+### POST /api/settings/aws 🔒
 
-Update settings.
+Update the AWS configurations.
+
+### POST /api/settings/reload-secrets 🔒
+
+Reload cached secrets dynamically from AWS Secrets Manager.
+
+---
 
 ### POST /api/admin/backup
 
@@ -1410,6 +1471,53 @@ Export observations + networks as JSON (full dataset).
 Export observations as GeoJSON (full dataset).
 
 > Note: Backups/exports are currently unauthenticated and intended for trusted environments only.
+
+---
+
+## Mobile Ingest API
+
+API-key authorized endpoints used by mobile capture units to request upload links and log completed SQLite captures.
+
+### POST /api/v1/ingest/request-upload
+
+Generates a presigned S3 upload URL for uploading a mobile SQLite database file. Requires `SHADOWCHECK_API_KEY` in headers.
+
+**Request:**
+
+```json
+{
+  "fileName": "capture_20260611.sqlite",
+  "case_id": "case_101",
+  "filesize": 10485760
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "uploadUrl": "https://shadowcheck-bucket.s3.amazonaws.com/uploads/...",
+  "s3Key": "uploads/case_101/20260611/capture_20260611.sqlite"
+}
+```
+
+---
+
+### POST /api/v1/ingest/complete
+
+Registers a successfully uploaded S3 SQLite key for the ETL background ingestion queue. Requires `SHADOWCHECK_API_KEY` in headers.
+
+**Request:**
+
+```json
+{
+  "s3Key": "uploads/case_101/20260611/capture_20260611.sqlite",
+  "sourceTag": "mobile-unit-alpha",
+  "deviceModel": "Pixel 9 Pro",
+  "deviceId": "dev_abc123"
+}
+```
 
 ---
 

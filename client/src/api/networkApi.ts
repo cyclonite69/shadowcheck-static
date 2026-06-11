@@ -64,6 +64,12 @@ export const networkApi = {
     return apiClient.delete(`/network-tags/${encodeURIComponent(bssid)}`);
   },
 
+  async removeNetworkTag(bssid: string, tag: string): Promise<any> {
+    return apiClient.delete('/admin/network-tags/remove', {
+      body: JSON.stringify({ bssid, tag }),
+    });
+  },
+
   async investigateNetwork(bssid: string): Promise<any> {
     return apiClient.patch(`/network-tags/${encodeURIComponent(bssid)}/investigate`);
   },

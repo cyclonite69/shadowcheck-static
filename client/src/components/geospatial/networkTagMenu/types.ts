@@ -4,7 +4,14 @@ export interface NetworkTagMenuAdminActionProps {
   tag: NetworkTag | null;
   tagLoading: boolean;
   onTagAction: (
-    action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear'
+    action:
+      | 'ignore'
+      | 'threat'
+      | 'suspect'
+      | 'false_positive'
+      | 'investigate'
+      | 'clear'
+      | 'clear-threat'
   ) => void;
   manualSiblingTarget?: {
     bssid: string;

@@ -6,6 +6,8 @@ jest.mock('../../../../server/src/config/container', () => ({
   adminNetworkTagsService: {
     checkDuplicateObservations: jest.fn(),
     getNetworkSummary: jest.fn(),
+    removeTagFromNetwork: jest.fn(),
+    getNetworkTagsAndNotes: jest.fn(),
   },
   mlScoringService: {
     scoreAllNetworks: jest.fn(),
@@ -91,6 +93,27 @@ describe('Admin API Integration Tests', () => {
       const res = await request(app).get('/api/v1/admin/network-summary/AA:BB:CC:DD:EE:FF');
       expect(res.status).toBe(200);
       expect(res.body.network.bssid).toBe('AA:BB:CC:DD:EE:FF');
+    });
+  });
+
+  describe('DELETE /api/v1/admin/network-tags/remove', () => {
+    it('should call removeTagFromNetwork and return 200', async () => {
+      container.adminNetworkTagsService.removeTagFromNetwork.mockResolvedValue();
+      container.adminNetworkTagsService.getNetworkTagsAndNotes.mockResolvedValue({
+        bssid: 'AA:BB:CC:DD:EE:FF',
+        tags: [],
+      });
+
+      const res = await request(app)
+        .delete('/api/v1/admin/network-tags/remove')
+        .send({ bssid: 'AA:BB:CC:DD:EE:FF', tag: 'SUSPECT' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
+      expect(container.adminNetworkTagsService.removeTagFromNetwork).toHaveBeenCalledWith(
+        'AA:BB:CC:DD:EE:FF',
+        'SUSPECT'
+      );
     });
   });
 });

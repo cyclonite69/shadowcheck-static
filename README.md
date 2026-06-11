@@ -185,7 +185,8 @@ See [deploy/aws/DEPLOYMENT_CHECKLIST.md](deploy/aws/DEPLOYMENT_CHECKLIST.md) for
 
 ## API Reference
 
-Full endpoint documentation: **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)**
+Curated endpoint documentation: **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)**
+Exhaustive Express route inventory: **[docs/api/route-inventory.md](docs/api/route-inventory.md)**
 
 Key endpoint groups:
 
@@ -324,7 +325,9 @@ Core rules (Ten Commandments in AGENTS.md):
 | [docs/features/badge-studio.md](docs/features/badge-studio.md)                           | Badge rendering configuration                                  |
 | [docs/SIBLING_RULESET_ANALYSIS.md](docs/SIBLING_RULESET_ANALYSIS.md)                     | Sibling inference architecture, vendor rules                   |
 | [docs/FILTERS.md](docs/FILTERS.md)                                                       | Universal filter parameter reference                           |
-| [docs/API_REFERENCE.md](docs/API_REFERENCE.md)                                           | REST API endpoint reference                                    |
+| [docs/API_REFERENCE.md](docs/API_REFERENCE.md)                                           | Curated REST API endpoint reference                            |
+| [docs/api/route-inventory.md](docs/api/route-inventory.md)                               | Complete, exhaustive Express route mapping                     |
+| [docs/api/manual-only-endpoints.md](docs/api/manual-only-endpoints.md)                   | Dangerous/destructive endpoints and automation safety rules    |
 | [docs/schema/network-tables.md](docs/schema/network-tables.md)                           | Core wireless database tables                                  |
 | [docs/schema/observations-sources.md](docs/schema/observations-sources.md)               | Observation sources, WiGLE accounting                          |
 | [docs/TESTING.md](docs/TESTING.md)                                                       | Test strategy and commands                                     |

@@ -165,7 +165,14 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
   };
 
   const handleTagActionWrapper = async (
-    action: 'ignore' | 'threat' | 'suspect' | 'false_positive' | 'investigate' | 'clear'
+    action:
+      | 'ignore'
+      | 'threat'
+      | 'suspect'
+      | 'false_positive'
+      | 'investigate'
+      | 'clear'
+      | 'clear-threat'
   ) => {
     if (!contextMenu.network) return;
 
@@ -182,11 +189,16 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
 
     setTagLoading(true);
     try {
-      const result = await handleTagAction(action, contextMenu.network);
+      const result = await handleTagAction(
+        action,
+        contextMenu.network,
+        contextMenu.tag?.threat_tag
+      );
       if (result.error) throw new Error(result.error);
 
       if (result.tag) {
-        setContextMenu((prev: any) => ({ ...prev, tag: { ...result.tag!, exists: true } }));
+        const existsVal = result.tag.exists !== undefined ? result.tag.exists : true;
+        setContextMenu((prev: any) => ({ ...prev, tag: { ...result.tag!, exists: existsVal } }));
       } else if (result.deleted) {
         setContextMenu((prev: any) => ({
           ...prev,
@@ -209,6 +221,7 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
     handleTagAction: handleTagActionWrapper,
     closeContextMenu,
     openContextMenu: async (e: any, n: any) => {
+      const bssid = n?.bssid;
       setContextMenu({
         visible: true,
         x: e.originalEvent?.clientX ?? e.clientX,
@@ -219,6 +232,21 @@ export const useNetworkContextMenu = ({ logError, onTagUpdated }: any) => {
         position: 'below',
         wigleObservations: contextMenu.wigleObservations,
       });
+
+      if (bssid) {
+        try {
+          const tagData = await networkApi.getNetworkTags(bssid);
+          setContextMenu((prev: any) => {
+            if (prev.network?.bssid !== bssid) return prev;
+            return {
+              ...prev,
+              tag: tagData,
+            };
+          });
+        } catch (err) {
+          console.error('Error fetching network tags for context menu', err);
+        }
+      }
     },
     handleGenerateThreatReportPdf: async () => {
       const network = contextMenu.network;

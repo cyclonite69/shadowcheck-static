@@ -29,6 +29,8 @@ IF YOU ARE CHANGING:                   THEN YOU MUST UPDATE:
 +------------------------+             +--------------------------------------+
 | An Express API route   | ------------> | client/src/config/apiTestEndpoints.ts |
 | or its parameters      |             | docs/API_REFERENCE.md                |
+|                        |             | docs/api/route-inventory.md          |
+|                        |             | docs/api/manual-only-endpoints.md    |
 +------------------------+             +--------------------------------------+
 | An SQL table column,   | ------------> | JSDoc on the query function          |
 | view, function, index  |             | docs/schema/network-tables.md        |
@@ -45,11 +47,9 @@ IF YOU ARE CHANGING:                   THEN YOU MUST UPDATE:
 
 ## 3. Drift Verification Checklist
 
-Before submitting a pull request or requesting git commit approvals, run these checks to catch documentation drift:
-
-1. **New Route Check**: Run the command below to ensure all routes in `server/src/api/routes` are registered in `client/src/config/apiTestEndpoints.ts`:
+1. **New Route Check**: Ensure all routes in `server/src/api/routes` are registered in `client/src/config/apiTestEndpoints.ts`, documented in `docs/api/route-inventory.md`, and marked in `docs/api/manual-only-endpoints.md` if unsafe for automation:
    ```bash
-   grep -rE "router\.(get|post|put|delete)\(" server/src/api/routes/
+   grep -rE "router\.(get|post|put|delete|patch)\(" server/src/api/routes/
    ```
 2. **New Filter Constants**: Ensure that any new query parameters matches the constant arrays:
    ```bash

@@ -49,6 +49,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "region": "us-east-1"\n}',
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -56,6 +57,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/settings/reload-secrets',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -77,6 +79,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "api_name": "",\n  "api_token": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -99,6 +102,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "label": "default",\n  "token": "pk.eyJ1..."\n}',
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -108,6 +112,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'label', label: 'Label', placeholder: 'default' }],
     isDestructive: true,
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -123,6 +128,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "auth_id": "",\n  "auth_token": ""\n}',
+    manualOnly: true,
   },
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -261,6 +267,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "lat": 38.9,\n  "lon": -77.0\n}',
+    manualOnly: true,
   },
   {
     category: 'Geospatial',
@@ -269,6 +276,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     isDestructive: true,
+    manualOnly: true,
   },
   {
     category: 'Geospatial',
@@ -277,6 +285,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "lat": 38.9,\n  "lon": -77.0,\n  "label": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Geospatial',
@@ -285,6 +294,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     params: [{ name: 'id', label: 'Marker ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'Geospatial',
@@ -300,6 +310,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "lat": 38.9,\n  "lon": -77.0\n}',
+    manualOnly: true,
   },
   {
     category: 'Geospatial',
@@ -422,6 +433,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
     defaultBody: '{\n  "note": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Networks v1',
@@ -434,6 +446,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       { name: 'noteId', label: 'Note ID', placeholder: '1', type: 'number' },
     ],
     defaultBody: '{\n  "note": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Networks v1',
@@ -445,6 +458,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       { name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' },
       { name: 'noteId', label: 'Note ID', placeholder: '1', type: 'number' },
     ],
+    manualOnly: true,
   },
   {
     category: 'Networks v1',
@@ -512,6 +526,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
     defaultBody: '{\n  "threat_tag": "SUSPECT",\n  "threat_confidence": 0.7\n}',
+    manualOnly: true,
   },
   {
     category: 'Network Tags',
@@ -521,6 +536,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
     defaultBody: '{\n  "is_ignored": true\n}',
+    manualOnly: true,
   },
   {
     category: 'Network Tags',
@@ -530,6 +546,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
     defaultBody: '{\n  "notes": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Network Tags',
@@ -539,6 +556,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
     defaultBody: '{\n  "investigate": true\n}',
+    manualOnly: true,
   },
   {
     category: 'Network Tags',
@@ -547,6 +565,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
+    manualOnly: true,
   },
   {
     category: 'Network Tags',
@@ -581,6 +600,15 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/v2/networks/:bssid',
     method: 'GET',
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
+  },
+  {
+    category: 'Networks v2',
+    label: 'Batch Network Details (v2)',
+    description: 'Retrieve details for multiple BSSIDs simultaneously.',
+    path: '/api/v2/networks/batch',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "bssids": ["00:11:22:33:44:55"]\n}',
   },
   {
     category: 'Networks v2',
@@ -743,6 +771,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       },
     ],
     defaultBody: '{\n  "threat_tag": "SUSPECT",\n  "threat_confidence": 0.7\n}',
+    manualOnly: true,
   },
   {
     category: 'Threats & Analytics',
@@ -837,6 +866,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/wigle/quota-reset',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -913,6 +943,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     params: [],
     defaultBody: '{\n  "bssids": ["00:11:22:33:44:55", "AA:BB:CC:DD:EE:FF"],\n  "import": true\n}',
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -930,6 +961,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       },
     ],
     defaultBody: '{\n  "import": false\n}',
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -947,6 +979,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       },
     ],
     defaultBody: '{\n  "import": false\n}',
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -969,6 +1002,16 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       },
       { name: 'source', label: 'Source', defaultValue: 'all', placeholder: 'all|import|event' },
     ],
+  },
+  {
+    category: 'WiGLE',
+    label: 'WiGLE Soft Limits Update',
+    description: 'Update soft limits for WiGLE daily quotas.',
+    path: '/api/wigle/soft-limits',
+    method: 'PATCH',
+    requiresAuth: true,
+    manualOnly: true,
+    defaultBody: '{\n  "dailyLimit": 1000\n}',
   },
   {
     category: 'WiGLE',
@@ -1021,6 +1064,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     label: 'WiGLE Resume Latest',
     path: '/api/wigle/search-api/import-runs/resume-latest',
     method: 'POST',
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1042,6 +1086,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'id', label: 'Run ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1050,6 +1095,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'id', label: 'Run ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1058,6 +1104,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'id', label: 'Run ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1065,6 +1112,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/wigle/search-api/import-all',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1075,6 +1123,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     defaultBody:
       '{\n  "country": "US",\n  "mfgrIdMinimum": 2504,\n  "mfgrIdMaximum": 2504,\n  "showBt": true,\n  "showBle": true\n}',
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1119,6 +1168,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/wigle/enrichment/start',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1127,6 +1177,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'runId', label: 'Run ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1135,6 +1186,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'runId', label: 'Run ID', placeholder: '116', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1143,6 +1195,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "netid": "00:11:22:33:44:55"\n}',
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1211,6 +1264,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       },
     ],
     defaultBody: '{\n  "limit": 100,\n  "overwrite_final": true\n}',
+    manualOnly: true,
   },
   {
     category: 'Machine Learning',
@@ -1219,6 +1273,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "limit": 1000\n}',
+    manualOnly: true,
   },
   {
     category: 'Machine Learning',
@@ -1324,6 +1379,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1332,6 +1388,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/import-sqlite',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1340,6 +1397,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/import-sql',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1348,6 +1406,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/import-kml',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1386,6 +1445,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "limit": 10,\n  "dryRun": false,\n  "force": false\n}',
+    manualOnly: true,
   },
 
   {
@@ -1403,6 +1463,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'uploadId', label: 'Upload ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
 
   // ── Mobile Ingest ─────────────────────────────────────────────────────────
@@ -1415,6 +1476,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     defaultBody:
       '{\n  "fileName": "scan.sqlite",\n  "case_id": "case001",\n  "filesize": 1048576\n}',
+    manualOnly: true,
   },
   {
     category: 'Mobile Ingest',
@@ -1425,6 +1487,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     defaultBody:
       '{\n  "s3Key": "uploads/case001/20260601/upload-id-scan.sqlite",\n  "sourceTag": "mobile-unit-1",\n  "deviceModel": "Pixel 9",\n  "deviceId": "abc123"\n}',
+    manualOnly: true,
   },
 
   // ── Admin System ──────────────────────────────────────────────────────────
@@ -1505,6 +1568,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "username": "",\n  "password": "",\n  "role": "user"\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1514,6 +1578,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'id', label: 'User ID', placeholder: '1', type: 'number' }],
     defaultBody: '{\n  "active": true\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1523,6 +1588,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'id', label: 'User ID', placeholder: '1', type: 'number' }],
     defaultBody: '{\n  "password": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1530,6 +1596,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/backup',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1538,6 +1605,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     params: [{ name: 'key', label: 'S3 Key', placeholder: 'backups/shadowcheck_20260101.dump' }],
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1545,6 +1613,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/geocoding/daemon',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1552,6 +1621,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/geocoding/daemon',
     method: 'DELETE',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1559,6 +1629,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/geocoding/run',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1574,6 +1645,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/geocoding/requeue',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1581,6 +1653,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/pgadmin/start',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1588,6 +1661,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/pgadmin/stop',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1595,6 +1669,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/pgadmin/destroy',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1619,6 +1694,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'key', label: 'Key', placeholder: 'enable_background_jobs' }],
     defaultBody: '{\n  "value": "true"\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1635,6 +1711,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
         options: ['mvRefresh', 'mlScoring', 'backup', 'siblingDetection', 'surveillanceScan'],
       },
     ],
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1642,6 +1719,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/settings/ml-blending/toggle',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1658,6 +1736,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'key', label: 'Key', placeholder: 'mapbox_token' }],
     defaultBody: '{\n  "value": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1666,6 +1745,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     params: [{ name: 'key', label: 'Key', placeholder: 'mapbox_token' }],
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1673,6 +1753,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/cleanup-duplicates',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1680,6 +1761,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/refresh-colocation',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1704,6 +1786,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'instanceId', label: 'Instance ID', placeholder: 'i-0123456789abcdef0' }],
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1712,6 +1795,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'instanceId', label: 'Instance ID', placeholder: 'i-0123456789abcdef0' }],
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1720,6 +1804,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'instanceId', label: 'Instance ID', placeholder: 'i-0123456789abcdef0' }],
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1729,6 +1814,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'instanceId', label: 'Instance ID', placeholder: 'i-0123456789abcdef0' }],
     defaultBody: '{\n  "confirm": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1746,6 +1832,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
         options: ['recreate-api', 'rebuild-frontend', 'rebuild-stack'],
       },
     ],
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1755,15 +1842,17 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "bssid": "00:11:22:33:44:55",\n  "tag": "SUSPECT",\n  "notes": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
     label: 'Remove Network Tag (admin)',
     description: 'Remove tag from a network.',
-    path: '/api/api/admin/network-tags/remove',
+    path: '/api/admin/network-tags/remove',
     method: 'DELETE',
     requiresAuth: true,
     defaultBody: '{\n  "bssid": "00:11:22:33:44:55",\n  "tag": "SUSPECT"\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1798,6 +1887,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "bssid": "00:11:22:33:44:55",\n  "content": "Test note"\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1829,6 +1919,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     isDestructive: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -1875,6 +1966,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "oui": "AABBCC"\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -1883,6 +1975,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "bssid_a": "00:11:22:33:44:55",\n  "bssid_b": "AA:BB:CC:DD:EE:FF"\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -1890,6 +1983,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/siblings/refresh',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -1914,6 +2008,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "sampleLimit": 100\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -1930,6 +2025,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/network-media/upload',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -1983,6 +2079,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     defaultBody:
       '{\n  "bssid": "00:11:22:33:44:55",\n  "content": "",\n  "note_type": "general"\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -1991,6 +2088,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     params: [{ name: 'noteId', label: 'Note ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -2000,6 +2098,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     params: [{ name: 'noteId', label: 'Note ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -2016,6 +2115,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     params: [{ name: 'mediaId', label: 'Media ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -2039,6 +2139,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/siblings/cancel',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
 
   // ── Claude / AI ───────────────────────────────────────────────────────────

@@ -90,9 +90,25 @@ export const NetworkTagMenuAdminActions = ({
     {tag?.exists && (
       <>
         <Divider />
+        {tag.threat_tag && (
+          <>
+            <NetworkTagMenuActionButton
+              label={`🗑️ Remove Tag: ${tag.threat_tag}`}
+              onClick={() => onTagAction('clear-threat')}
+              disabled={tagLoading}
+              textColor="#f87171"
+              hoverBackground="rgba(248, 113, 113, 0.2)"
+            />
+            <Divider />
+          </>
+        )}
         <NetworkTagMenuActionButton
           label="🗑️ Clear All Tags"
-          onClick={() => onTagAction('clear')}
+          onClick={() => {
+            if (window.confirm('Are you sure you want to clear ALL tags for this network?')) {
+              onTagAction('clear');
+            }
+          }}
           disabled={tagLoading}
           textColor="#94a3b8"
           hoverBackground="#475569"
