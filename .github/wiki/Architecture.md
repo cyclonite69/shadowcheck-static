@@ -8,18 +8,28 @@
 
 ## Overview
 
-ShadowCheck uses a modern modular architecture combining:
+ShadowCheck is structured around three primary layers: Frontend (Client), Backend (Server), and Storage (Data). Below is the high-level mapping of components and subsystems:
 
-- **React/Vite frontend** with TypeScript and Tailwind CSS
-- **Node.js/Express backend** with service/repository pattern
-- **PostgreSQL + PostGIS** for geospatial data processing
-- **Redis** for caching, sessions, and rate limiting
+### 💻 Client Subsystems (Frontend)
 
-Additional reference assets:
+- **Geospatial Explorer:** Multi-layered spatial interface driven by Mapbox GL JS and Deck.gl for real-time tracking, clustering, and threat overlays.
+- **Badge Studio:** Dynamic configuration dashboard for managing spatial feature badges, visualization layers, and UI overrides.
+- **WiGLE Operations Page:** Dedicated dashboard for controlling WiGLE API queries, monitoring download runs, and initiating spatial coverage refreshes.
+- **Map Layers:** Overlay visualizations, including public flock security cameras, Wired magazine leaks, and nearest law enforcement/courthouse agencies.
 
-- [Architecture assets index](https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/architecture/README.md)
+### ⚙️ Server Subsystems (Backend)
 
-Standalone architecture PDF/PNG exports are not currently versioned in the repo; use the Mermaid diagrams on this page and the repo docs as the current source of truth.
+- **Filter Query Builders:** Universal filter parser that converts API queries into secure, parameterized PostGIS SQL queries (handling temporal, address, and device type bounds).
+- **Sibling Detection Engine:** Background worker and SQL procedures evaluating MAC address proximity rules (e.g., Mist AP patterns, Sierra/AirLink criteria) to pair related network radios.
+- **VISINT Pipeline:** Visual Intelligence service extracting metadata from uploaded media and managing draft-preview logic before committing to database storage.
+- **Surveillance Repository:** Ingestion service cataloging target OUIs, matching detected networks against known signature files, and populating alerts.
+- **Import & Coverage Services:** ETL controllers orchestrating WiGLE page iteration, updating local tables, and querying geocoding daemons.
+
+### 🗄️ Data Subsystems (Storage)
+
+- **PostgreSQL & PostGIS:** Canonical database engine performing geodetic calculations (via `ST_Distance` spheroid functions), spatial indexing, and table updates.
+- **Redis Cache & Session Store:** In-memory store handling session tracking, rate-limiting counters, and caching heavy analytics/threat queries.
+- **Materialized Views & Search Tables:** Optimized tables (e.g., `api_network_explorer_mv`) refreshed periodically to accelerate frontend rendering without querying deep transaction logs.
 
 ---
 

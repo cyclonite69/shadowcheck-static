@@ -71,6 +71,22 @@ ShadowCheck is a comprehensive SIGINT (Signals Intelligence) forensics platform 
 - [Features](Features) - Complete feature catalog
 - [Geocoding Daemon](https://github.com/cyclonite69/shadowcheck-web/blob/master/docs/GEOCODING_DAEMON.md) - Background enrichment guide
 
+### 🗃️ Repository Documentation (Canonical)
+
+These docs live directly in the codebase repository and act as the technical source of truth for runtime logic:
+
+- **Subsystems & Features:**
+  - [Badge Studio](../../docs/features/badge-studio.md) — Configuration flags, persistence, and UI rendering details.
+  - [Geospatial Explorer](../../docs/features/geospatial.md) — Materialized view queries, column choosers, and nearest-place hydration.
+  - [Surveillance Detection](../../docs/features/surveillance-detection.md) — Target OUI signatures, camera lists, and scoring factors.
+- **Database & Query Reference:**
+  - [Universal Filters](../../docs/FILTERS.md) — 20+ query parameters mapped from API endpoints to PostgreSQL queries.
+  - [Network Tables Schema](../../docs/schema/network-tables.md) — Database structures including sibling pairs, overrides, and detection logs.
+  - [Observation & WiGLE Sources](../../docs/schema/observations-sources.md) — WiGLE import accounting and VISINT evidence details.
+- **Engineering Workflows:**
+  - [Testing Standards](../../docs/TESTING.md) — Jest test suites, execution commands, and the 60% coverage gate.
+  - [Documentation Maintenance](../../docs/maintenance/documentation-workflow.md) — Guidelines and procedures for updating repository docs and the wiki.
+
 ### Advanced Topics
 
 - [Machine Learning](Machine-Learning) - ML threat detection system

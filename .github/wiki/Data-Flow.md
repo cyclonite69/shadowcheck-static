@@ -445,4 +445,82 @@ flowchart TD
 
 ---
 
-_Last Updated: 2026-02-07_
+## Subsystem Data Flows
+
+### Sibling Detection Pipeline
+
+The sibling detection pipeline identifies BSSIDs that belong to the same hardware device or Access Point (e.g., matching first 5 octets, specific SSID suffix patterns, Mist AP rules, and AirLink configurations):
+
+```mermaid
+flowchart TD
+    subgraph Rule Execution
+        A[app.networks Seed] --> B(app.find_sibling_radios Function)
+        B --> C[buildRefreshChunkSql Helper]
+        C --> D[(app.network_sibling_pairs Table)]
+    end
+
+    subgraph Override & Resolution
+        E[(app.network_sibling_overrides Table)] --> F[app.network_siblings_effective View]
+        D --> F
+    end
+
+    subgraph Consumption
+        F --> G[Admin APIs]
+        G --> H[Geospatial Explorer Hydration & Table]
+    end
+
+    style D fill:#4299e1,stroke:#2b6cb0,color:#fff
+    style E fill:#ed8936,stroke:#c05621,color:#fff
+    style F fill:#48bb78,stroke:#2f855a,color:#fff
+```
+
+### VISINT Evidence Flow
+
+Visual Intelligence (VISINT) uploads process image files to extract metadata (EXIF/GPS) and present evidence to analysts. Files are stored in preview mode by default until explicitly committed to safeguard data integrity:
+
+```mermaid
+flowchart TD
+    A[Image Upload / API Request] --> B[Extract EXIF & Geolocation Metadata]
+    B --> C[Set Preview Mode by Default]
+    C --> D{Explicit commit=true parameter?}
+    D -->|No| E[Return metadata for preview verification]
+    D -->|Yes| F[Write to app.network_media]
+    F --> G[Link with app.network_tags]
+    G --> H[Update app.surveillance_detections]
+
+    style C fill:#f6e05e,stroke:#d69e2e,color:#000
+    style H fill:#f56565,stroke:#c53030,color:#fff
+```
+
+### WiGLE Import & Coverage Flow
+
+WiGLE ingestion queries external APIs and registers local observations. Note that `rows_inserted` tracks download batch progress and is not a representation of coverage truth:
+
+```mermaid
+flowchart TD
+    A[WiGLE API Pages Request] --> B[Import Runs Tracker]
+    B -->|rows_inserted tracks API page progress| C[Local Network Ingestion Tables]
+    C --> D[Coverage Probe & Stored Counts]
+    D --> E[Explorer Coverage Display]
+
+    style B fill:#ed8936,stroke:#c05621,color:#fff
+    style D fill:#48bb78,stroke:#2f855a,color:#fff
+```
+
+### Geospatial Explorer Data Flow
+
+Geospatial queries build queries dynamically, hydrate sibling relationships, and overlay infrastructure layers:
+
+```mermaid
+flowchart TD
+    A[User Filters] --> B[Query Builders / Materialized Path]
+    B --> C[Fetch Table & Map Rows]
+    C --> D[Sibling Hydration Layer]
+    D --> E[Nearest Infrastructure Layers: Agencies / Courthouses / Leak Overlays]
+
+    style E fill:#4299e1,stroke:#2b6cb0,color:#fff
+```
+
+---
+
+_Last Updated: 2026-06-11_
