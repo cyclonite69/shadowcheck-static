@@ -65,3 +65,9 @@ To eliminate manual checking, future workstreams should implement the following 
 
 - **Coverage Sync Check**: A lint-level task that reads `jest.config.js` `coverageThreshold` and fails if it mismatch the threshold tables in `docs/TESTING.md`.
 - **API Registry Check**: A script that crawls route modules and alerts if any route is missing from `apiTestEndpoints.ts`.
+
+---
+
+## 5. Maintenance Cadence
+
+For a structured view of ShadowCheck's four recurring maintenance lanes, invalidation checklists, and audit prompts for future agents, see the [Maintenance Cadence Guide](maintenance-cadence.md).

@@ -87,6 +87,7 @@ These docs live directly in the codebase repository and act as the technical sou
 - **Engineering Workflows:**
   - [Testing Standards](../../docs/TESTING.md) — Jest test suites, execution commands, and the 60% coverage gate.
   - [Documentation Maintenance](../../docs/maintenance/documentation-workflow.md) — Guidelines and procedures for updating repository docs and the wiki.
+  - [Maintenance Cadence](../../docs/maintenance/maintenance-cadence.md) — Standing checklists, four cadence lanes, and AI audit prompts.
 
 ### Advanced Topics
 

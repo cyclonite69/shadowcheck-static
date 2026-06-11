@@ -11,6 +11,38 @@ Gemini CLI does not auto-read context files. Paste this entire file at the start
 
 ---
 
+## Current Source-of-Truth Map
+
+Before starting work, understand the subsystem layouts and workflow guides:
+
+- [README.md](../../README.md) — Root entry point and system overview.
+- [docs/ai/sessions/ACTIVE.md](sessions/ACTIVE.md) — Active session status and hard safety constraints.
+- [docs/maintenance/documentation-workflow.md](../maintenance/documentation-workflow.md) — How docs and wiki synchronization is structured.
+- [docs/maintenance/maintenance-cadence.md](../maintenance/maintenance-cadence.md) — Four maintenance lanes and audit check templates.
+- [docs/features/geospatial.md](../features/geospatial.md) — Materialized views and Mapbox GL JS frontend.
+- [docs/features/wigle-import-player.md](../features/wigle-import-player.md) — Ingest queues, ledgers, and rate-limiting.
+- [docs/features/surveillance-detection.md](../features/surveillance-detection.md) — Surveillance classifications, equipment guides, and bodycam detection signatures.
+- [docs/features/badge-studio.md](../features/badge-studio.md) — Badge styling rules.
+- [docs/SIBLING_RULESET_ANALYSIS.md](../SIBLING_RULESET_ANALYSIS.md) — Sibling pair graphs, confidence scales, and chained inference rules.
+- [docs/schema/network-tables.md](../schema/network-tables.md) — Core wireless database structure.
+- [docs/schema/observations-sources.md](../schema/observations-sources.md) — WiGLE, KML, and mobile scans observation schemas.
+- [docs/FILTERS.md](../FILTERS.md) — Universal pipeline filters query syntax.
+- [docs/TESTING.md](../TESTING.md) — Frontend & backend test environments.
+- [docs/workflow/TESTING_STANDARDS.md](../workflow/TESTING_STANDARDS.md) — Comprehensive coverage and regression test standards.
+
+---
+
+## Safety Guardrails for Future Agents
+
+- **Operational Operations**: Do not run WiGLE imports, external API calls, VISINT correlation commits, sibling refresh jobs, migrations, or DB mutation jobs unless the user explicitly asks.
+- **VISINT Pipeline**: VISINT defaults to preview/no-write behavior unless `commit=true` parameter is explicitly passed.
+- **WiGLE Coverage**: WiGLE import progress is not coverage; never use `rows_inserted` as coverage truth. Reference the correct coverage tables instead.
+- **Sibling Operations**: Sibling pairs are undirected; readers and query builders must check both `bssid1` and `bssid2`.
+- **Sibling Validity**: Generic sibling candidates are not automatically truth; effective siblings must resolve through confidence metrics and override policies.
+- **Maintenance lanes**: Documentation updates, unit/integration testing, modularity refactoring, and cruft cleanup are recurring development lanes, not optional afterthoughts.
+
+---
+
 ## Context Loading (Read in this order)
 
 1. Root `GEMINI.md` — foundational project rules & mandates.

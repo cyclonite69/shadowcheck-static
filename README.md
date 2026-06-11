@@ -69,7 +69,7 @@ solely to demonstrate system capabilities at scale.
 - **Universal Filters**: [docs/FILTERS.md](docs/FILTERS.md)
 - **Database Schema References**: [docs/schema/network-tables.md](docs/schema/network-tables.md) and [docs/schema/observations-sources.md](docs/schema/observations-sources.md)
 - **Feature Guides**: [docs/features/badge-studio.md](docs/features/badge-studio.md), [docs/features/geospatial.md](docs/features/geospatial.md), [docs/features/surveillance-detection.md](docs/features/surveillance-detection.md), and [docs/features/wigle-import-player.md](docs/features/wigle-import-player.md)
-- **Documentation Maintenance**: [docs/maintenance/documentation-workflow.md](docs/maintenance/documentation-workflow.md)
+- **Documentation Maintenance**: [docs/maintenance/documentation-workflow.md](docs/maintenance/documentation-workflow.md) and [docs/maintenance/maintenance-cadence.md](docs/maintenance/maintenance-cadence.md)
 - **Active AI Workspace State**: [docs/ai/sessions/ACTIVE.md](docs/ai/sessions/ACTIVE.md)
 
 ## Features
