@@ -46,10 +46,19 @@ The Admin Page contains a **SIGINT Library** tab ([SigintLibraryTab.tsx](../../c
 
 ## 4. Media & VISINT Integration
 
-Visual Intelligence (VISINT) uploads allow operators to link physical evidence (e.g., photos, screenshots) to observed BSSIDs:
+Visual Intelligence (VISINT) is a separate evidence pipeline for operator-uploaded field images.
+It uses EXIF GPS/timestamp to correlate against `app.observations`, produce scored candidates, and
+(optionally, with `commit=true`) persist results to `app.network_media` and `app.network_tags`.
 
-- **Storage**: Evidence files and extracted EXIF metadata are recorded in the `app.network_media` table.
-- **Preview Mode Default**: To prevent accidental data contamination, VISINT pipelines run with `commit=false` by default, presenting a preview to the operator. Saving requires an explicit `commit=true` parameter.
+Full documentation, including the full scoring table, tag derivation logic, confirmed ShotSpotter
+attachment path, safety contract, and test coverage:
+
+**→ [docs/features/visint-evidence-pipeline.md](visint-evidence-pipeline.md)**
+
+Key safety rule: VISINT correlation **defaults to preview mode** (`commit=false`). Omitting the
+`commit` parameter never writes to any table. See the
+[VISINT Evidence Integrity Incident ADR](../ai/decisions/20260607_visint_evidence_integrity_incident.md)
+for the root-cause and prevention details.
 
 ---
 

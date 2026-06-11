@@ -568,6 +568,77 @@ Set home location and radius.
 
 ---
 
+## VISINT Evidence Correlation
+
+Visual Intelligence (VISINT) endpoints correlate uploaded field images against local
+observations. Both endpoints accept `multipart/form-data`. Full pipeline documentation
+(EXIF extraction, scoring, tag derivation, safety contract) is in
+[docs/features/visint-evidence-pipeline.md](../features/visint-evidence-pipeline.md).
+
+> **Safety:** Both endpoints are marked `manualOnly: true` in `apiTestEndpoints.ts`.
+> Automated test runners must not call them against the working database.
+
+### POST /api/observations/correlate-visint 🔒
+
+Auto-correlates an uploaded image against `app.observations` via PostGIS spatial-temporal
+query. **Defaults to preview mode** — pass `commit=true` to persist.
+
+**Request:** `multipart/form-data`
+
+| Field           | Required | Notes                                                   |
+| --------------- | -------- | ------------------------------------------------------- |
+| `image`         | ✅       | JPEG or PNG, max 25 MB                                  |
+| `commit`        | No       | `"true"` to persist. Default: `"false"` (preview only). |
+| `radius_meters` | No       | Spatial radius (default 50 m)                           |
+| `window_hours`  | No       | Time window ± (default 2 h)                             |
+| `limit`         | No       | Max candidates (default 5)                              |
+
+**Response (preview):**
+
+```json
+{
+  "ok": true,
+  "status": "MATCHED",
+  "observation_id": "1234",
+  "detection_score": 2,
+  "dist_meters": 12.5,
+  "delta_minutes": 4.3,
+  "tags_applied": ["SHOTSPOTTER_SENSOR", "VISINT_VERIFIED"],
+  "exif": { "lat": 40.712, "lon": -74.006, "ts": "2026-06-01 14:23:00-05:00" },
+  "candidates": [...]
+}
+```
+
+**Error codes:** `ExifMissingError` (400), `ExifToolUnavailableError` (503),
+`VISINT_INVALID_NUMERIC_PARAMS` (400), payload too large (413).
+
+---
+
+### POST /api/observations/attach-visint 🔒
+
+Commits a VISINT image to a specific operator-selected BSSID. Always writes to
+`app.network_media` and `app.network_tags`. Requires `confirm_fallback=true` when
+targeting the `VISINT_UNMATCHED` sentinel.
+
+**Request:** `multipart/form-data`
+
+| Field              | Required | Notes                                         |
+| ------------------ | -------- | --------------------------------------------- |
+| `image`            | ✅       | JPEG or PNG, max 25 MB                        |
+| `bssid`            | No       | Target BSSID. Defaults to `VISINT_UNMATCHED`. |
+| `detection_score`  | No       | Score from correlate response                 |
+| `manual_override`  | No       | `"true"` for ground-truth evidence path       |
+| `device_type`      | No       | `SHOTSPOTTER_SENSOR` or `FLOCK_SAFETY_CAMERA` |
+| `confirm_fallback` | No       | Required when `bssid=VISINT_UNMATCHED`        |
+
+**Response:**
+
+```json
+{ "ok": true, "success": true, "tags_applied": ["VISINT_CONFIRMED", "GROUND_TRUTH_IMAGE"] }
+```
+
+---
+
 ## WiGLE Integration
 
 ### GET /api/networks/:bssid/wigle-observations

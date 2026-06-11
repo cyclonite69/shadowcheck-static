@@ -1,16 +1,13 @@
-# ShadowCheck - SIGINT Forensics Platform
+# ShadowCheck — SIGINT Forensics Platform
 
-[![GitHub stars](https://img.shields.io/github/stars/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/network)
-[![GitHub issues](https://img.shields.io/github/issues/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/issues)
-[![GitHub license](https://img.shields.io/github/license/cyclonite69/shadowcheck-web?style=flat-square)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
-[![PostgreSQL](https://img.shields.io/badge/postgresql-%3E%3D18-blue?style=flat-square)](https://www.postgresql.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen?style=flat-square)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-18%2BPostGIS-blue?style=flat-square)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/redis-%3E%3D7.0.0-red?style=flat-square)](https://redis.io/)
-[![GitHub last commit](https://img.shields.io/github/last-commit/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web/commits)
-[![GitHub repo size](https://img.shields.io/github/repo-size/cyclonite69/shadowcheck-web?style=flat-square)](https://github.com/cyclonite69/shadowcheck-web)
 
-🛡️ **Production-grade SIGINT forensics and wireless network analysis platform.** Real-time threat detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
+**Production-grade SIGINT forensics and wireless network analysis platform.** Real-time threat
+detection, geospatial correlation via PostGIS, and interactive analysis dashboards.
+
+---
 
 ## Purpose & Ethical Use
 
@@ -18,14 +15,9 @@ ShadowCheck is a **defensive, evidentiary network intelligence platform**.
 It is not an offensive tool and is not designed or intended for nefarious,
 harmful, or unauthorized use.
 
-**Data:** This platform is designed for operators to analyze their own
-legally collected wardriving observations. You bring your own data.
-The system does not collect data on your behalf.
-
-**Case study:** The demonstration dataset included in documentation and
-screenshots reflects the primary operator's personally collected wardriving
-data gathered legally in accordance with applicable law. This data is used
-solely to demonstrate system capabilities at scale.
+**Data:** This platform is designed for operators to analyze their own legally collected
+wardriving observations. You bring your own data. The system does not collect data on
+your behalf.
 
 **Intended use:**
 
@@ -40,159 +32,87 @@ solely to demonstrate system capabilities at scale.
 - Targeting individuals or organizations without consent
 - Any activity that violates local, state, or federal law
 
+---
+
 ## Current System Status
 
-- **React/Vite frontend** with TypeScript support is fully integrated (`client/src/` routes like `/geospatial-explorer`, `/analytics`, `/wigle`, `/kepler`)
-- **Modern modular backend architecture** with organized services in `server/src/api/`, `server/src/services/`, and `server/src/repositories/`
-- **Integrated Asset Serving**: The main Express server natively serves compiled frontend assets from `dist/` with optimized security headers.
-- **Universal filter system** with 25+ filter types supporting complex queries across all pages (including temporal scopes and WiGLE persistence)
-- **Unified Forensic Tooltips**: High-fidelity, rich tooltips with lazy-loading support in Kepler.
-- **DevContainer support** for consistent development environments with VS Code integration
-- **Integrated asset serving** via the main Express server plus an optional static server for Lighthouse/security-header benchmarking
-- **PostGIS materialized views** for fast explorer pages with precomputed threat intelligence and geocoding data
-- **ETL pipeline** lives in `etl/` with modular load/transform/promote steps feeding the explorer views; staging tables remain UNLOGGED for ingestion speed
-- **Machine learning** with multiple algorithms (Logistic Regression, Random Forest, Gradient Boosting) and hyperparameter optimization
-- **Redis Integration** handles caching, session management, and rate limiting.
+- **React 19 + Vite 8** frontend with TypeScript (`/geospatial-explorer`, `/analytics`, `/wigle`, `/kepler`, `/admin`)
+- **Express + Node.js 22** backend with modular services/repositories architecture
+- **PostgreSQL 18 + PostGIS 3.6** with materialized views powering Explorer, sibling graphs, and coverage metrics
+- **Redis 7** for session management, rate limiting, and analytics caching
+- **Universal filter system** with 30+ filter types across all pages (temporal scopes, spatial, behavioral, surveillance)
+- **AWS Secrets Manager** integration for production credentials (Mapbox, WiGLE, DB passwords)
+- **DevContainer** support for consistent VS Code development environments
+
+---
 
 ## Current Major Subsystems
 
-- **Geospatial Explorer** — Interactive map/table explorer with pre-calculated materialized-query paths, sibling summaries, nearest agency/courthouse overlays, and filter-aware hydration. See [docs/features/geospatial.md](docs/features/geospatial.md).
-- **Sibling Detection** — Canonical undirected sibling-pair storage, effective view override filters, confidence demotions, and endpoint-symmetric APIs. See [docs/SIBLING_RULESET_ANALYSIS.md](docs/SIBLING_RULESET_ANALYSIS.md) and [docs/schema/network-tables.md](docs/schema/network-tables.md).
-- **VISINT / Evidence Integrity** — Image/evidence correlation defaults to preview mode unless `commit=true` is explicit; route validation rejects malformed numeric inputs. See [docs/ai/decisions/20260607_visint_evidence_integrity_incident.md](docs/ai/decisions/20260607_visint_evidence_integrity_incident.md).
-- **Badge Studio** — Feature-gated badge rendering configuration for Explorer columns. See [docs/features/badge-studio.md](docs/features/badge-studio.md).
-- **Surveillance Detection & SIGINT Library** — OUI/device classification, bodycam (BWC) signatures, VISINT media integration, DeFlock/Flock/ShotSpotter matching, and the vendor equipment guides reference library. See [docs/features/surveillance-detection.md](docs/features/surveillance-detection.md).
-- **WiGLE Import & Ingestion** — Paginated V2 ingestion loops, checkpoint resumes, rate-limiting safety, and coverage accounting. See [docs/features/wigle-import-player.md](docs/features/wigle-import-player.md) and [docs/schema/observations-sources.md](docs/schema/observations-sources.md).
+- **Geospatial Explorer** — Map/table explorer with pre-computed materialized views, sibling topology, pin-drop radius filter, nearest agency/courthouse overlays, activity metrics, and filter-aware hydration. See [docs/features/geospatial.md](docs/features/geospatial.md).
+- **Sibling Detection** — Undirected sibling-pair storage, vendor-specific cross-band rules (HP Aruba, Mist, Qualcomm LAA), effective view confidence filtering, and analyst override policy. See [docs/SIBLING_RULESET_ANALYSIS.md](docs/SIBLING_RULESET_ANALYSIS.md).
+- **VISINT Evidence Pipeline** — Field image upload, EXIF extraction, spatial-temporal correlation scoring, preview-by-default safety, and explicit-commit persistence. See [docs/features/visint-evidence-pipeline.md](docs/features/visint-evidence-pipeline.md).
+- **WiGLE Import Player** — Paginated V2 ingestion, ledger-based resume, rate-limit-safe circuit breakers, quota ledger, Home Area overlay, and Kepler export. See [docs/features/wigle-import-player.md](docs/features/wigle-import-player.md).
+- **Surveillance Detection & SIGINT Library** — OUI/device classification, bodycam (BWC) signatures, DeFlock/Flock/ShotSpotter reference layer matching, and vendor equipment guide reference library. See [docs/features/surveillance-detection.md](docs/features/surveillance-detection.md).
+- **Badge Studio** — Feature-gated badge rendering configuration for Explorer table columns. See [docs/features/badge-studio.md](docs/features/badge-studio.md).
+- **Universal Filters** — 30+ filter types: SSID/BSSID with pipe-OR syntax, temporal scopes, spatial radius, per-category surveillance, WiGLE date ranges, forensic activity metrics. See [docs/FILTERS.md](docs/FILTERS.md).
+- **Machine Learning** — Admin-gated logistic regression threat model with tagging-driven training and `scripts/ml/ml-iterate.py` for multi-algorithm hyperparameter iteration.
 
-## Documentation Map
-
-- **Testing & Gates**: [docs/TESTING.md](docs/TESTING.md) and [docs/workflow/TESTING_STANDARDS.md](docs/workflow/TESTING_STANDARDS.md)
-- **Universal Filters**: [docs/FILTERS.md](docs/FILTERS.md)
-- **Database Schema References**: [docs/schema/network-tables.md](docs/schema/network-tables.md) and [docs/schema/observations-sources.md](docs/schema/observations-sources.md)
-- **Feature Guides**: [docs/features/badge-studio.md](docs/features/badge-studio.md), [docs/features/geospatial.md](docs/features/geospatial.md), [docs/features/surveillance-detection.md](docs/features/surveillance-detection.md), and [docs/features/wigle-import-player.md](docs/features/wigle-import-player.md)
-- **Documentation Maintenance**: [docs/maintenance/documentation-workflow.md](docs/maintenance/documentation-workflow.md) and [docs/maintenance/maintenance-cadence.md](docs/maintenance/maintenance-cadence.md)
-- **Active AI Workspace State**: [docs/ai/sessions/ACTIVE.md](docs/ai/sessions/ACTIVE.md)
-
-## Features
-
-- **Dashboard:** Real-time network environment overview with threat indicators and interactive metrics cards.
-- **Geospatial Analysis:** Interactive Mapbox visualization with spatial correlation, clustering, heatmaps, routes, and **Unified Network Tooltips**.
-- **Geospatial Explorer:** Unified map-based exploration with integrated network table, forensic overlays, and timeline views.
-- **Infrastructure Datasets:** 56 FBI Field Offices, 334 Resident Agencies, and 357 Federal Courthouses with 100% PostGIS coordinate coverage for geospatial correlation. In the operator's case study dataset, 566,400+ location records across 173,326+ unique networks are present — demonstrating the system's capability to handle large-scale wardriving datasets at production volume. Your dataset will vary based on your own collected observations.
-- **Threat Detection**: ML-powered identification of surveillance devices using Logistic Regression, with additional algorithm support planned.
-- **Analytics:** Advanced charts and graphs for network pattern analysis with Chart.js visualizations.
-- **Address Enrichment:** Multi-API venue and geocoded address identification (OpenCage, LocationIQ, Abstract, Overpass).
-- **Device Classification:** Standardized OUI-to-vendor resolution (74k+ records) with behavioral profiling and integrated manufacturer info.
-- **Network Tagging:** Manual classification, forensic note-taking, and media attachments for networks.
-- **Trilateration:** AP location calculation from multiple observations with accuracy estimation.
-- **Machine Learning:** Multi-algorithm threat detection with hyperparameter optimization and model versioning.
-- **Universal Filters:** 25+ filter types supporting complex temporal (`FIRST_SEEN`, `LAST_SEEN`), spatial, and behavioral queries.
-- **WiGLE Integration:** Local WiGLE database search (v2/v3) with live API lookups and forensic enrichment.
-- **Kepler Integration:** Kepler.gl-ready GeoJSON endpoints with filter support and lazy-loaded tooltips.
-- **Home Location & Markers:** Saved locations and distance-from-home filters.
-- **Data Export & Backup:** CSV/JSON/GeoJSON exports plus admin-protected backups and SQLite imports.
-- **Authentication & Roles:** Session-based login with admin-gated operations and forced password rotation support.
-- **Admin Settings:** AWS Secrets Manager-backed Mapbox/WiGLE/Google Maps configuration.
-- **DevContainer Support:** Consistent development environment with VS Code integration.
-- **Security Headers:** Production-ready deployment with CSP, HTTPS enforcement, and Lighthouse optimization.
-- **Admin Features:** Comprehensive system administration interface including Automation (Jobs), DB Stats, Geocoding Daemon control, and Orphan Network management.
-- **Admin Database Security**: Multi-user model with read-only `shadowcheck_user` and privileged `shadowcheck_admin`.
-
-See `docs/FEATURES.md` for the full feature catalog.
-
-## Project Commandments
-
-ShadowCheck’s core engineering constraints live in:
-
-- [AGENTS.md](AGENTS.md) for repository-local automation and coding agents
-- [CONTRIBUTING.md](CONTRIBUTING.md) for human contributors
-
-Those “Ten Commandments” are the canonical short-form rules for:
-
-- secrets handling and AWS Secrets Manager usage
-- canonical core data versus enrichment data boundaries
-- precision preservation and presentation-only rounding
-- refactor cleanliness and test expectations
-- separate validation of bootstrap, restore, import, and upgrade paths
-
-Security enforcement now includes:
-
-- local pre-commit secret scanning
-- CI secret scanning on push and pull request
-- scheduled full-history secret scanning in CI
-- database rotation support via [scripts/rotate-db-password.sh](<your-repo-path>/scripts/rotate-db-password.sh)
-
-## Kepler.gl Data Policy
-
-- **No default limits** on Kepler endpoints unless explicitly requested via query params.
-- Filters are used instead of caps; Kepler.gl is designed for large datasets.
-
-## Recent Improvements (February 2026)
-
-✅ **Agency Offices Dataset Completion**
-
-- **Field Offices**: 56 total, 56 ZIP+4 (100%), 0 ZIP5-only.
-- **Resident Agencies**: 334 total, 312 ZIP+4 (93.4%), 22 ZIP5-only.
-- **Data Completeness**: 0 missing cities, states, postal codes, phones, websites, or coordinates across all 390 primary records.
-- **Normalization**: Full address and phone normalization (10 digits) with original value preservation.
-
-✅ **TypeScript Migration & Build Pipeline**
-
-- **Complete TypeScript migration**: Converted 60+ files including server utilities, middleware, ETL scripts, and build tools
-- **Production build pipeline**: Compiled TypeScript server for Docker deployment eliminates runtime ts-node overhead
-- **Type safety**: Added comprehensive interfaces and types for database operations, API responses, and service layers
-- **Build optimization**: Frontend and server compile separately with proper path resolution for containerized deployment
-
-✅ **Redis Implementation**
-
-- **Threat Score Caching**: Redis caches threat scores at 5-minute intervals.
-- **Analytics Caching**: Redis caches analytics aggregations.
-- **Session Management**: Redis handles session storage.
-- **Rate Limiting**: Redis backend enforces 50000 req/15min per IP.
-
-✅ **Data Integrity Fixes**
-
-- Fixed GeoSpatial table showing incorrect default values (signal: 0 dBm, channel: 0, frequency: 0 MHz)
-- Resolved analytics widgets failures (Temporal Activity, Radio Types Over Time, Threat Score Trends)
-- Fixed max distance calculation to use real PostGIS geographic distances instead of ~238m signal approximation
-- Resolved threat score column sorting issues (rule_score, ml_score, ml_weight, ml_boost now sortable)
-
-✅ **API & Backend Improvements**
-
-- Networks API now uses latest observation data for accurate real-time information
-- Added manufacturer field population via radio_manufacturers table with OUI prefix matching
-- Fixed WiGLE observation points rendering with correct schema namespace (app vs public)
-- Enhanced analytics endpoints with proper null value handling and appropriate data sources
-
-✅ **Frontend Enhancements**
-
-- Fixed data transformer field name mismatches (network_type → type, avg_score → avgScore)
-- Added missing API calls for temporal, radio-time, and threat-trends analytics
-- Improved geographic distance display and invalid value handling
-
-✅ **Testing & Quality**
-
-- Added comprehensive regression tests for networks API data integrity
-- Enhanced error handling and validation across all endpoints
+---
 
 ## Architecture
 
-**Backend:** Node.js/Express REST API with PostgreSQL + PostGIS + Redis (Modular architecture with Repositories and Services)
-**Frontend:** React 19 + Vite 7 with TypeScript (explorers and dashboards)
-**Database:** PostgreSQL 18 with PostGIS extension. In the operator's case study dataset, 566,400+ location records across 173,326+ unique networks are present — demonstrating the system's capability to handle large-scale wardriving datasets at production volume. Your dataset will vary based on your own collected observations.
-**Cache:** Redis v7 for sessions, rate limiting, and analytics
-**Development:** DevContainer support with VS Code integration
-**Deployment:** Production builds are served via the integrated asset handler in `server/server.ts`.
+**Frontend:** React 19 + Vite 8 + TypeScript (`client/src/`). Component-based UI with Zustand state, Mapbox GL JS + Deck.gl spatial visualization, and Kepler.gl GeoJSON integration.
 
-## Prerequisites
+**Backend:** Node.js 22 + Express (CommonJS, TypeScript). Three-tier: Routes validate → Services hold logic → Repositories hold SQL. No raw SQL in route handlers.
+
+**Data:** PostgreSQL 18 + PostGIS 3.6 for spatial data. Materialized views (`app.api_network_explorer_mv`, `app.mv_sibling_groups`) pre-compute expensive joins. Redis 7 for sessions, rate limiting, analytics caching.
+
+**Module systems:**
+
+- Backend: CommonJS (`require`/`module.exports`)
+- Frontend: ES modules (`import`/`export`)
+- Never mix them across boundaries.
+
+**Database roles:**
+
+- `shadowcheck_admin` — DDL owner. Use for all psql/migration operations.
+- `shadowcheck_user` — App runtime (read-limited). Default query pool.
+- `postgres` superuser does **not** exist in this container setup.
+
+---
+
+## Safety & Operator Constraints
+
+> These apply to all operators and coding agents working in this repo.
+
+**VISINT:** `POST /api/observations/correlate-visint` defaults to `commit=false`. Omitting
+`commit` never writes to any table. Pass explicit `commit=true` only after reviewing the
+preview. See [docs/features/visint-evidence-pipeline.md](docs/features/visint-evidence-pipeline.md).
+
+**WiGLE imports:** Always use the ledger-based resume flow. Do not re-run imports blindly.
+`rows_inserted` is not coverage truth — use `stored_count` from network tables.
+See [docs/features/wigle-import-player.md](docs/features/wigle-import-player.md).
+
+**DB mutations / migrations:** Do not run DDL against `shadowcheck_db` without explicit approval.
+Use `scs_rebuild.sh` for any rebuild or redeploy on EC2 — never raw `docker build` / `docker compose up`.
+See [docs/SSM_ACCESS.md](docs/SSM_ACCESS.md) and [AGENTS.md](AGENTS.md).
+
+**Sibling graph:** Sibling pairs are undirected. Readers and query builders must check
+both `bssid1` and `bssid2`. Heuristic candidates are not truth until validated through the
+effective view's confidence and override policy.
+
+---
+
+## Quick Start
+
+### Prerequisites
 
 - Node.js 22+
 - PostgreSQL 18+ with PostGIS
 - Redis 7.0+
-- TypeScript 5.0+ (included in devDependencies)
+- Docker (for local stack)
 
-## Quick Start
-
-### Local Development
+### Local Development (Docker)
 
 ```bash
 git clone https://github.com/cyclonite69/shadowcheck-web.git
@@ -201,484 +121,238 @@ npm install
 docker compose up -d
 ```
 
-`docker compose up -d` starts a self-contained local PostgreSQL, Redis, API, and
-frontend stack. Local Docker uses `DB_HOST=postgres` by default. No `.env` file
-is required unless you want to override ports, AWS settings, or other defaults.
+`docker compose up -d` starts a self-contained PostgreSQL, Redis, API, and frontend
+stack. No `.env` file required for container-to-container connectivity.
 
-### Local Shell Helpers
+### Dev Server (host-based)
 
-For frequent local development tasks, source the included helper aliases:
+```bash
+npm run dev          # Nodemon backend on :3001
+npm run dev:frontend # Vite frontend on :5173
+```
+
+### Shell Helpers
 
 ```bash
 source ./scripts/local-dev-aliases.sh
 ```
 
-Available helpers:
+| Alias       | Action                                       |
+| ----------- | -------------------------------------------- |
+| `sclocal`   | `docker compose up -d --build`               |
+| `scapi`     | Recreate API container with AWS dev defaults |
+| `scdb`      | `psql` as `shadowcheck_user`                 |
+| `scdba`     | `psql` as `shadowcheck_admin`                |
+| `scsecrets` | Restart API + reload secrets from AWS        |
 
-- `scroot` - `cd` to the repository root.
-- `sclocal` - Wrapper for `docker compose up -d --build`.
-- `scapi` - Recreate the API container with standard AWS development defaults.
-- `scgrafana` - Start local Grafana with AWS-backed secrets and reader-role sync.
-- `scps` - Formatted `docker ps` view for ShadowCheck services.
-- `scdb` - Open `psql` as `shadowcheck_user` on the local database.
-- `scdba` - Open `psql` as `shadowcheck_admin` on the local database.
-- `scsecrets` - Restart the API + reload frontend so the stack re-reads AWS Secrets Manager before you log in.
-
-### Home Lab Deployment
+### Homelab Deployment
 
 ```bash
-git clone https://github.com/cyclonite69/shadowcheck-web.git
-cd shadowcheck-web
 ./deploy/homelab/scripts/setup.sh
 ```
 
-See [deploy/homelab/README.md](deploy/homelab/README.md) for hardware requirements and detailed setup.
+See [deploy/homelab/README.md](deploy/homelab/README.md) for hardware requirements.
 
-### AWS Production
-
-**🚀 Quick Start:** See [deploy/aws/QUICKSTART.md](deploy/aws/QUICKSTART.md)
+### AWS EC2 Production
 
 ```bash
-# 1. Launch instance (from local machine)
-./deploy/aws/scripts/launch-shadowcheck-spot.sh
-
-# 2. Connect via SSM
+# Connect via SSM
 aws ssm start-session --target INSTANCE_ID --region us-east-1
 
-# 3. Run automated setup
-bash
-curl -fsSL https://raw.githubusercontent.com/cyclonite69/shadowcheck-web/master/deploy/aws/scripts/setup-instance.sh | sudo bash
-cd /home/ssm-user
-git clone https://github.com/cyclonite69/shadowcheck-web.git shadowcheck
-cd shadowcheck
-./deploy/aws/scripts/deploy-complete.sh
-
-# 4. Update deployments
-git pull origin master
-./deploy/aws/scripts/scs_rebuild.sh
+# Rebuild/redeploy (ONLY approved rebuild method — protects SSL, EBS, permissions)
+export HOME=/home/ssm-user && cd /home/ssm-user/shadowcheck && bash deploy/aws/scripts/scs_rebuild.sh
 ```
 
-**Documentation:**
-
-- [QUICKSTART.md](deploy/aws/QUICKSTART.md) - Complete deployment guide
-- [WORKFLOW.md](deploy/aws/WORKFLOW.md) - Development workflow
-- [README.md](deploy/aws/README.md) - AWS infrastructure details
-- [DEPLOYMENT_CHECKLIST.md](deploy/aws/DEPLOYMENT_CHECKLIST.md) - Verification checklist
-- [ssm-embedded-session-policy.json](deploy/aws/iam/ssm-embedded-session-policy.json) - IAM policy required for Admin UI embedded SSM
+See [deploy/aws/QUICKSTART.md](deploy/aws/QUICKSTART.md) for full setup.
+See [deploy/aws/WORKFLOW.md](deploy/aws/WORKFLOW.md) for the development workflow.
+See [deploy/aws/DEPLOYMENT_CHECKLIST.md](deploy/aws/DEPLOYMENT_CHECKLIST.md) for verification.
 
 ---
 
-## Detailed Setup
-
-### 1. Clone and Install
-
-```bash
-git clone https://github.com/your-username/shadowcheck-web.git
-cd shadowcheck-web
-npm install
-```
-
-### 2. Database & Redis Setup
-
-Use Docker for local setup (recommended) so PostGIS, Redis, bootstrap grants, and
-migrations stay in sync:
-
-```bash
-docker compose up -d
-```
-
-For AWS/EC2, use the deployment scripts in `deploy/aws/scripts/` (especially `scs_rebuild.sh`) rather than running legacy SQL manually.
-
-### 3. Environment Configuration
-
-Use the example env files to keep local dev separate from AWS/deployed settings:
-
-- `.env.example`
-  For shared non-secret defaults.
-- `.env.local.example`
-  For local-machine overrides when your backend runs on the host instead of inside Docker.
-
-Local Docker behavior:
-
-- `docker compose up -d` starts a local `postgres` service and uses `DB_HOST=postgres` by default
-- `docker compose up -d` also starts the backend API on `127.0.0.1:3001` and the frontend on `http://127.0.0.1:5173`
-- No `.env` file is required for container-to-container DB connectivity
-- PostgreSQL data is stored in the local `postgres_data` volume
-- Preferred local secrets path: export `AWS_PROFILE=shadowcheck-sso`,
-  `AWS_REGION=us-east-1`, and optionally `SHADOWCHECK_AWS_SECRET`, then let the
-  API container read `shadowcheck/config` through the read-only `${HOME}/.aws`
-  mount
-- Alternative local secrets path: export `AWS_ACCESS_KEY_ID`,
-  `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` directly in your shell before
-  `docker compose up`
-- Local-only mock path: if you intentionally do not use AWS Secrets Manager,
-  export `DB_PASSWORD`, `DB_ADMIN_PASSWORD`, and any needed API keys such as
-  `MAPBOX_TOKEN` or `OPENCAGE_API_KEY` in your shell before `docker compose up`
-- Optional shell helpers can be loaded with `source ./scripts/local-dev-aliases.sh`
-- `sclocal` runs `docker compose up -d --build`
-- `scapi` recreates the local `api` container with AWS defaults:
-  `AWS_PROFILE=shadowcheck-sso`, `AWS_REGION=us-east-1`,
-  `SHADOWCHECK_AWS_SECRET=shadowcheck/config`
-- `sclocal api` will refuse to run unless those three env vars are already set
-- `scdb` opens `psql` as `shadowcheck_user`
-- `scdba` opens `psql` as `shadowcheck_admin`
-
-Host-based local development behavior:
-
-- The server now defaults to `DB_HOST=postgres`, which is correct for local Docker
-- If your backend runs on the host, set `DB_HOST=localhost` explicitly so it can
-  use Postgres published on `127.0.0.1:5432`
-
-Typical local dev values when PostgreSQL and Redis are published on localhost:
-
-```bash
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=shadowcheck_user
-DB_ADMIN_USER=shadowcheck_admin
-DB_NAME=shadowcheck_db
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-PORT=3001
-NODE_ENV=development
-```
-
-Credentials needed for local dev:
-
-- `DB_PASSWORD`
-  Required for the normal application DB pool.
-- `DB_ADMIN_PASSWORD`
-  Required for admin DB routes, including `/api/admin/geocoding/daemon`.
-
-If the backend runs inside Docker, `DB_HOST=postgres` is the expected local value.
-
-Production/deployed environments can keep an explicit `.env` with the deployed
-database host, for example:
-
-```bash
-DB_HOST=<your-ec2-ip>
-```
-
-Production keeps Secrets Manager as the source of truth for `db_password`,
-`db_admin_password`, `mapbox_token`, `opencage_api_key`, and related keys. The
-production `.env` should point at the deployed DB host, not duplicate those secrets.
-
-Do not point local `.env` at the deployed EC2 database unless you intentionally want your local app
-to use the remote environment.
-
-`S3_BACKUP_BUCKET` is configuration, not a secret. For local work, export it in your shell only if
-you plan to use S3 backup features. On EC2, it can come from `.env` or AWS SSM Parameter Store.
-
-To test locally against production-derived data, pull the latest `.dump` backup from S3 and restore
-it into the local Docker PostgreSQL container:
-
-```bash
-docker compose up -d postgres redis api
-export AWS_PROFILE=shadowcheck-sso
-export AWS_REGION=us-east-1
-export S3_BACKUP_BUCKET=<your-s3-bucket>
-./scripts/fetch-latest-s3-backup.sh
-./scripts/restore-local-backup.sh ./backups/s3/<latest-backup>.dump
-```
-
-If explorer/network list endpoints still fail after restoring a snapshot, refresh the
-materialized view that powers them:
-
-```bash
-docker exec shadowcheck_postgres_local psql -U shadowcheck_user -d shadowcheck_db -c \
-  "REFRESH MATERIALIZED VIEW app.api_network_explorer_mv;"
-```
-
-### 4. Run Migrations
-
-Migrations are applied by the standard runners:
-
-```bash
-# Local/dev
-docker compose up -d
-
-# AWS/EC2
-./deploy/aws/scripts/scs_rebuild.sh
-```
-
-If you must run manually, use `sql/run-migrations.sh` with the same credentials and schema/search_path settings used by deployment scripts.
-
-### 5. Start Server
-
-```bash
-npm start
-```
-
-Server runs on `http://localhost:3001`
-
 ## Pages
 
-- Dashboard (React): `/` and `/dashboard`
-- Start Page (React): `/start`
-- Geospatial Explorer (React): `/geospatial-explorer`
-- Analytics (React): `/analytics`
-- API Test (React): `/endpoint-test`
-- Admin: `/admin`
-- WiGLE (React): `/wigle`
-- Kepler (React): `/kepler`
+| Route                  | Description                                                      |
+| ---------------------- | ---------------------------------------------------------------- |
+| `/` `/dashboard`       | Network environment overview, threat metrics                     |
+| `/geospatial-explorer` | Map + table explorer with filters, sibling topology              |
+| `/wigle`               | WiGLE import player, enrichment catalog, map layers              |
+| `/kepler`              | Kepler.gl visualization with lazy-loaded tooltips                |
+| `/analytics`           | Signal, temporal, threat, and network analytics                  |
+| `/admin`               | Admin tools: jobs, geocoding, siblings, SIGINT library, settings |
+| `/endpoint-test`       | API endpoint tester                                              |
 
-## API Endpoints
+---
 
-### Networks & Observations
+## API Reference
 
-- `GET /api/networks` - Paginated network list with universal filtering
-- `GET /api/v2/networks` - Version 2 paginated networks API
-- `GET /api/networks/observations/:bssid` - All observation records for a specific network
-- `GET /api/networks/search/:ssid` - Search networks by SSID
-- `GET /api/networks/tagged` - List user-tagged networks
-- `GET /api/location-markers` - Retrieve saved map markers
-- `GET /api/home-location` - Get current home/base coordinates
+Full endpoint documentation: **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)**
 
-### Threat Analysis & ML
+Key endpoint groups:
 
-- `GET /api/threats/quick` - High-performance threat detection overview
-- `GET /api/threats/detect` - Detailed movement-based forensic analysis
-- `GET /api/ml/status` - Check ML model training status and stats
-- `POST /api/ml/train` - Trigger ML model retraining on tagged data
+- `GET /api/networks` — Paginated network list with universal filtering
+- `GET /api/v2/networks/filtered` — Filtered networks (Explorer, WiGLE, geospatial variants)
+- `POST /api/observations/correlate-visint` — VISINT auto-correlation (preview-safe)
+- `POST /api/observations/attach-visint` — VISINT explicit commit
+- `GET /api/explorer/networks` — Explorer with sibling summaries
+- `GET /api/wigle/*` — WiGLE import, enrichment, ledger, search
+- `GET /api/admin/siblings/*` — Sibling refresh, override, pairs
+- `POST /api/ml/train` — ML model training (admin)
+- `POST /api/auth/login` — Session authentication
 
-### Analytics & Intelligence
-
-- `GET /api/analytics/dashboard-metrics` - Key metrics for dashboard cards
-- `GET /api/analytics/*` - Various statistical distribution endpoints (temporal, signal, etc.)
-- `GET /api/wigle/api-status` - Check WiGLE API connectivity
-- `GET /api/mapbox-token` - Securely retrieve Mapbox API token
-
-### Data Management & Admin
-
-- `POST /api/network-tags/:bssid` - Manually classify a network (admin)
-- `POST /api/admin/import-sqlite` - Turbo SQLite database import (admin)
-- `POST /api/admin/cleanup-duplicates` - Remove redundant observation data (admin)
-- `GET /api/csv` - Export observations as CSV (full dataset)
-- `GET /api/json` - Export observations + networks as JSON (full dataset)
-- `GET /api/geojson` - Export observations as GeoJSON (full dataset)
-- `POST /api/admin/aws/instances/:id/start` - Start EC2 instance (admin)
-- `POST /api/admin/aws/instances/:id/stop` - Stop EC2 instance (admin)
-
-### Authentication
-
-- `POST /api/auth/login` - Session-based authentication
-- `POST /api/auth/logout` - Invalidate current session
-- `GET /api/auth/status` - Check current authentication state
-
-See `server/server.ts` and `server/src/utils/routeMounts.ts` for implementation details.
-
-## Machine Learning
-
-ShadowCheck includes multi-algorithm threat detection with model training and hyperparameter optimization.
-
-### Training Endpoint
-
-**POST** `/api/ml/train`
-
-Trains logistic regression model on all tagged networks in database.
-
-**Request:**
-
-```bash
-curl -X POST http://localhost:3001/api/ml/train
-```
-
-**Response:**
-
-```json
-{
-  "ok": true,
-  "model": {
-    "type": "logistic_regression",
-    "accuracy": 0.92,
-    "precision": 0.88,
-    "recall": 0.95,
-    "f1": 0.91,
-    "rocAuc": 0.94
-  },
-  "trainingData": {
-    "totalNetworks": 45,
-    "threats": 18,
-    "falsePositives": 27
-  },
-  "message": "Model trained successfully"
-}
-```
-
-**Errors:**
-
-- `400`: Fewer than 10 tagged networks (minimum required)
-- `503`: ML model module unavailable
-
-### Status Endpoint
-
-**GET** `/api/ml/status`
-
-Check model training status and tag statistics.
-
-### Advanced ML Iteration
-
-Test multiple algorithms with grid search and cross-validation:
-
-```bash
-pip install -r scripts/ml/requirements.txt
-python3 scripts/ml/ml-iterate.py
-```
-
-Tests Logistic Regression, Random Forest, and Gradient Boosting with hyperparameter tuning.
-
-### Features Used for Training
-
-- Observation count (network detections)
-- Unique days seen
-- Geographic distribution (location clustering)
-- Signal strength (RSSI max)
-- Distance range from home location
-- Behavioral flags (seen at home vs. away)
+---
 
 ## Project Structure
 
 ```
 shadowcheck-web/
 ├── client/
-│   ├── src/
-│   │   ├── components/    # ⚛️ React components (TypeScript)
-│   │   ├── App.tsx        # ⚛️ Main React app
-│   │   └── main.tsx       # ⚛️ Frontend entry point
-│   └── vite.config.ts     # ⚛️ Frontend build config (TypeScript)
+│   └── src/
+│       ├── components/    # React components (TypeScript)
+│       ├── stores/        # Zustand state management
+│       ├── hooks/         # Shared React hooks
+│       ├── config/        # API endpoint registry, feature flags
+│       └── App.tsx        # Main React app
 ├── server/
-│   ├── src/
-│   │   ├── api/           # 🔧 REST API routes (TypeScript)
-│   │   ├── services/      # 🔧 Business logic (TypeScript)
-│   │   ├── middleware/    # 🔧 Express middleware (TypeScript)
-│   │   └── utils/         # 🔧 Server utilities (TypeScript)
-│   ├── server.ts          # 🔧 Main server entry point
-│   └── static-server.ts   # 🛠️ Benchmark static server
-├── deploy/                # 🚀 Deployment configs (AWS, etc.)
-│   └── aws/               # AWS-specific deployment
-├── etl/                   # 📊 ETL pipeline (TypeScript)
-├── scripts/               # 🛠️ Utility scripts (TypeScript)
-├── tests/                 # 🧪 Jest tests (TypeScript)
-├── sql/                   # 🗄️ Database migrations & functions
-├── docs/                  # 📚 Documentation
-├── tsconfig.json          # ⚙️ TypeScript config (client)
-├── tsconfig.server.json   # ⚙️ TypeScript config (server)
-└── docker-compose.yml     # 🐳 Docker configuration
+│   └── src/
+│       ├── api/routes/v1/ # REST API routes (TypeScript)
+│       ├── services/      # Business logic
+│       ├── services/visint/     # VISINT pipeline (pipeline, exif, scorer)
+│       ├── repositories/  # Data access layer (SQL lives here only)
+│       └── config/        # DI container, database config
+├── etl/                   # ETL pipeline scripts
+├── scripts/               # Utility and maintenance scripts
+├── tests/                 # Jest unit and integration tests
+│   ├── unit/
+│   └── integration/
+├── sql/
+│   ├── migrations/        # Live migration runner — do not touch without approval
+│   └── functions/         # PostgreSQL stored functions
+├── docs/                  # Feature guides, schema refs, API reference, maintenance
+├── .github/wiki/          # Diagram-heavy wiki docs
+├── deploy/
+│   ├── aws/               # AWS EC2 deployment scripts
+│   └── homelab/           # Self-hosted deployment
+└── docker-compose.yml
 ```
 
-**📖 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed frontend/backend organization.**
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed module organization.
 
-Also see [docs/README.md](docs/README.md) for the documentation index.
+---
 
 ## Development
 
-**Run dev server:**
-
 ```bash
-npm run dev
+npm run dev           # Backend dev server (nodemon, :3001)
+npm run dev:frontend  # Vite frontend (:5173)
+npm run build         # Production build (client + server → dist/)
+npm test              # Jest suite
+npm run test:cov      # Coverage report (70% threshold enforced)
+npm run lint          # ESLint
+npm run lint:fix      # Auto-fix lint
+npx tsc --noEmit      # TypeScript type check
 ```
 
-**Run tests:**
+See [docs/TESTING.md](docs/TESTING.md) and [docs/workflow/TESTING_STANDARDS.md](docs/workflow/TESTING_STANDARDS.md)
+for full test strategy, coverage requirements, and regression standards.
 
-```bash
-npm test
-```
+---
 
-## Configuration
+## Environment Configuration
 
-Key environment variables (see `.env.example`):
+Key variables (see `.env.example` — never commit `.env`):
 
-- `DB_*` - PostgreSQL connection
-- `REDIS_*` - Redis connection
-- `PORT` - Server port (default: 3001)
-- `NODE_ENV` - development or production
+| Variable                              | Purpose                                      |
+| ------------------------------------- | -------------------------------------------- |
+| `DB_HOST` / `DB_PORT` / `DB_NAME`     | PostgreSQL connection                        |
+| `DB_USER` / `DB_PASSWORD`             | App runtime credentials (`shadowcheck_user`) |
+| `DB_ADMIN_USER` / `DB_ADMIN_PASSWORD` | Admin operations                             |
+| `REDIS_HOST` / `REDIS_PORT`           | Redis connection                             |
+| `PORT`                                | API port (default: `3001`)                   |
+| `NODE_ENV`                            | `development` or `production`                |
+| `MAPBOX_TOKEN`                        | Map visualization                            |
+| `WIGLE_API_NAME` / `WIGLE_API_TOKEN`  | WiGLE API credentials                        |
+
+In production, all secrets come from **AWS Secrets Manager** (`shadowcheck/config`).
+See [docs/DATABASE_CONNECTION.md](docs/DATABASE_CONNECTION.md) and [docs/SSM_ACCESS.md](docs/SSM_ACCESS.md).
+
+For local-only dev without AWS, export `DB_PASSWORD`, `DB_ADMIN_PASSWORD`, and any
+needed API keys in your shell before `docker compose up`.
+
+---
 
 ## Security
 
-- Use strong database credentials in production.
-- Rotate passwords every 60-90 days (see `deploy/aws/docs/PASSWORD_ROTATION.md`).
-- Enable HTTPS/TLS at reverse proxy layer.
-- Restrict API access via rate limiting (enabled via Redis).
-- See `SECURITY.md` for detailed security guidelines.
+- Never write secrets to disk. Use AWS Secrets Manager in production.
+- Use strong database credentials. Rotate passwords regularly (see `scripts/rotate-db-password.sh`).
+- Enable HTTPS/TLS at the reverse proxy layer.
+- Redis rate limiting enforces 50,000 req/15 min per IP.
+- Multi-user DB model: `shadowcheck_admin` for DDL, `shadowcheck_user` for app runtime.
+- See [SECURITY.md](SECURITY.md) for the full security posture.
 
-### Security Headers & Lighthouse Audits
+---
 
-For accurate Lighthouse Best Practices audits, use the benchmark static server:
+## Project Commandments
 
-```bash
-npm run build
-npm run serve:dist
-# Then run Lighthouse against http://localhost:4000
-```
+Engineering constraints and safety rules live in:
 
-The integrated server (`server/server.ts`) also applies high-security headers by default.
+- **[AGENTS.md](AGENTS.md)** — Coding agent rules, EC2 safety, approved shell patterns
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Human contributor standards
 
-### Third-Party Cookies Notice
+Core rules (Ten Commandments in AGENTS.md):
 
-**Expected Lighthouse warning:** "Uses third-party cookies" from `api.mapbox.com`.
+1. Secrets shall never be written to disk.
+2. AWS Secrets Manager is the source of truth for secrets.
+3. Core tables shall remain canonical.
+4. Enrichment data shall live in separate source-owned tables.
+5. Cross-source merging happens in views or materialized views, not core tables.
+6. Source precision is preserved end-to-end.
+7. Rounding and truncation are presentation concerns only.
+8. Refactors shall not leave cruft, duplicate paths, or half-migrated code.
+9. Behavior changes require regression tests; new features require test coverage.
+10. Bootstrap, restore, import, and upgrade are separate contracts.
 
-This is an expected behavior when using Mapbox GL JS. Mapbox sets cookies for:
+---
 
-- Session management and rate limiting
-- Telemetry (can be disabled via `mapboxgl.config.COLLECT_TELEMETRY = false`)
-- Tile caching
+## Documentation Map
 
-These cookies are required for Mapbox functionality and cannot be eliminated without self-hosting all map tiles.
+| Doc                                                                                      | Purpose                                                        |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [docs/features/visint-evidence-pipeline.md](docs/features/visint-evidence-pipeline.md)   | VISINT upload, EXIF, scoring, safety contract                  |
+| [docs/features/geospatial.md](docs/features/geospatial.md)                               | Explorer materialized views, sibling hydration, nearest places |
+| [docs/features/wigle-import-player.md](docs/features/wigle-import-player.md)             | WiGLE ingestion lifecycle, ledger, rate-limit safety           |
+| [docs/features/surveillance-detection.md](docs/features/surveillance-detection.md)       | BWC signatures, SIGINT library, Flock/ShotSpotter matching     |
+| [docs/features/badge-studio.md](docs/features/badge-studio.md)                           | Badge rendering configuration                                  |
+| [docs/SIBLING_RULESET_ANALYSIS.md](docs/SIBLING_RULESET_ANALYSIS.md)                     | Sibling inference architecture, vendor rules                   |
+| [docs/FILTERS.md](docs/FILTERS.md)                                                       | Universal filter parameter reference                           |
+| [docs/API_REFERENCE.md](docs/API_REFERENCE.md)                                           | REST API endpoint reference                                    |
+| [docs/schema/network-tables.md](docs/schema/network-tables.md)                           | Core wireless database tables                                  |
+| [docs/schema/observations-sources.md](docs/schema/observations-sources.md)               | Observation sources, WiGLE accounting                          |
+| [docs/TESTING.md](docs/TESTING.md)                                                       | Test strategy and commands                                     |
+| [docs/workflow/TESTING_STANDARDS.md](docs/workflow/TESTING_STANDARDS.md)                 | Coverage and regression standards                              |
+| [docs/maintenance/maintenance-cadence.md](docs/maintenance/maintenance-cadence.md)       | Four maintenance lanes, audit workflow                         |
+| [docs/maintenance/documentation-workflow.md](docs/maintenance/documentation-workflow.md) | Docs/wiki sync process                                         |
+| [docs/ai/sessions/ACTIVE.md](docs/ai/sessions/ACTIVE.md)                                 | Active session state for AI agents                             |
+| [.github/wiki/Home.md](.github/wiki/Home.md)                                             | Diagram-heavy wiki hub                                         |
+| [.github/wiki/Architecture.md](.github/wiki/Architecture.md)                             | Architecture diagrams                                          |
+| [.github/wiki/Data-Flow.md](.github/wiki/Data-Flow.md)                                   | Data flow diagrams                                             |
 
-### SEO Indexing
+---
 
-By default, `robots.txt` disallows all crawling (dev/staging). For production:
+## Kepler.gl Data Policy
 
-```bash
-npm run build:public  # Sets ROBOTS_ALLOW_INDEXING=true
-```
+No default row limits on Kepler endpoints unless explicitly requested via query params.
+Filters are the primary data control mechanism. Kepler.gl is designed for large datasets.
 
-## Documentation
-
-Additional documentation is available in the `docs` directory. See [docs/README.md](docs/README.md) for navigation.
-
-## Wiki (Diagrams & Visual Docs)
-
-The wiki in `.github/wiki/` contains diagram-heavy documentation and is the primary source for architecture and flow visuals.
-
-- [Wiki Home](.github/wiki/Home.md)
-- [Architecture (Wiki)](.github/wiki/Architecture.md)
-- [Data Flow (Wiki)](.github/wiki/Data-Flow.md)
-- [Deployment Guide (Wiki)](.github/wiki/Deployment-Guide.md)
+---
 
 ## Contributing
 
-See `CONTRIBUTING.md` for code standards and workflow.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for code standards and workflow.
 
 ## Code of Conduct
 
-See `CODE_OF_CONDUCT.md`.
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT. See `LICENSE` for details.
-
-## EC2 Infrastructure Deployment
-
-For production deployment on AWS EC2 (Graviton/ARM64):
-
-1. **Clone & Prep:**
-
-   ```bash
-   git clone <repo_url> /home/ssm-user/shadowcheck
-   cd /home/ssm-user/shadowcheck
-   # Do not write secrets to .env. Use AWS Secrets Manager or runtime env injection.
-   ```
-
-2. **Bootstrap:**
-
-   ```bash
-   chmod +x scripts/setup-ec2.sh
-   ./scripts/setup-ec2.sh
-   ```
-
-3. **Start Services:**
-   ```bash
-   cd docker/infrastructure
-   docker-compose -f docker-compose.postgres.yml up -d
-   ```
+MIT. See [LICENSE](LICENSE) for details.

@@ -16,6 +16,7 @@ Before starting work, understand the subsystem layouts and workflow guides:
 - [docs/features/wigle-import-player.md](docs/features/wigle-import-player.md) — Ingest queues, ledgers, and rate-limiting.
 - [docs/features/surveillance-detection.md](docs/features/surveillance-detection.md) — Surveillance classifications, equipment guides, and bodycam detection signatures.
 - [docs/features/badge-studio.md](docs/features/badge-studio.md) — Badge styling rules.
+- [docs/features/visint-evidence-pipeline.md](docs/features/visint-evidence-pipeline.md) — VISINT upload, EXIF extraction, spatial-temporal scoring, and commit-safety contract.
 - [docs/SIBLING_RULESET_ANALYSIS.md](docs/SIBLING_RULESET_ANALYSIS.md) — Sibling pair graphs, confidence scales, and chained inference rules.
 - [docs/schema/network-tables.md](docs/schema/network-tables.md) — Core wireless database structure.
 - [docs/schema/observations-sources.md](docs/schema/observations-sources.md) — WiGLE, KML, and mobile scans observation schemas.
