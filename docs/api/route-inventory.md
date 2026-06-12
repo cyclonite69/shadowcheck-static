@@ -88,7 +88,7 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | Method | Full Path                                  | Source Line | Classification | Documented | Notes                       |
 | ------ | ------------------------------------------ | ----------- | -------------- | ---------- | --------------------------- |
 | GET    | `/agency-offices`                          | L10         | Stable Public  | Yes        | FBI Field/Resident agencies |
-| GET    | `/agency-offices/count`                    | L27         | Stable Public  | No         | FBI offices metadata counts |
+| GET    | `/agency-offices/count`                    | L27         | Stable Public  | Yes        | FBI offices metadata counts |
 | GET    | `/federal-courthouses`                     | L10         | Stable Public  | Yes        | Federal courthouse markers  |
 | GET    | `/api/v1/surveillance/deflock-cameras`     | L10         | Stable Public  | No         | DeFlock ALPR layers         |
 | GET    | `/api/v1/surveillance/shotspotter-zones`   | L10         | Stable Public  | No         | Gunshot detection coverages |
@@ -98,23 +98,25 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 
 ### F. Settings
 
-- Mounted at `/api` (Gated by `userGate`).
-- Source: `server/src/api/routes/v1/settings.ts` & `settingsMultiSecretRoutes.ts`
+- Mounted at `/api` (Gated by `adminGate`).
+- Source: `server/src/api/routes/v1/settings.ts`, `settingsSecretRoutes.ts`, and `settingsMultiSecretRoutes.ts`
 
-| Method | Full Path                      | Source Line | Classification              | Documented | Notes                      |
-| ------ | ------------------------------ | ----------- | --------------------------- | ---------- | -------------------------- |
-| GET    | `/api/settings/aws`            | L24         | Stable Public               | Yes        |                            |
-| POST   | `/api/settings/aws`            | L40         | Stable Public               | Yes        |                            |
-| POST   | `/api/settings/reload-secrets` | L61         | Stable Public               | Yes        | Reloads AWS cache          |
-| GET    | `/api/settings/list`           | L172        | Stable Public               | No         | Settings registry          |
-| GET    | `/api/settings/wigle`          | L17         | Stable Public               | No         |                            |
-| POST   | `/api/settings/wigle`          | L31         | Stable Public               | No         |                            |
-| GET    | `/api/settings/wigle/test`     | L95         | Stable Public               | No         | Tests WiGLE API connection |
-| GET    | `/api/settings/mapbox`         | L126        | Stable Public               | No         |                            |
-| POST   | `/api/settings/mapbox`         | L139        | Stable Public               | No         |                            |
-| DELETE | `/api/settings/mapbox/:label`  | L163        | Stable Public / Destructive | No         |                            |
-| GET    | `/api/settings/smarty`         | L183        | Stable Public               | No         | Address normalization keys |
-| POST   | `/api/settings/smarty`         | L197        | Stable Public               | No         |                            |
+| Method | Full Path                        | Source Line | Classification              | Documented | Notes                      |
+| ------ | -------------------------------- | ----------- | --------------------------- | ---------- | -------------------------- |
+| GET    | `/api/settings/aws`              | L24         | Stable Public               | Yes        |                            |
+| POST   | `/api/settings/aws`              | L40         | Stable Public               | Yes        |                            |
+| POST   | `/api/settings/reload-secrets`   | L61         | Stable Public               | Yes        | Reloads AWS cache          |
+| GET    | `/api/settings/mapbox-unlimited` | L57         | Admin / Operator / Manual   | Yes        | Provider setting status    |
+| POST   | `/api/settings/mapbox-unlimited` | L57         | Admin / Operator / Manual   | Yes        | Updates provider setting   |
+| GET    | `/api/settings/list`             | L172        | Stable Public               | No         | Settings registry          |
+| GET    | `/api/settings/wigle`            | L17         | Stable Public               | No         |                            |
+| POST   | `/api/settings/wigle`            | L31         | Stable Public               | No         |                            |
+| GET    | `/api/settings/wigle/test`       | L95         | Stable Public               | No         | Tests WiGLE API connection |
+| GET    | `/api/settings/mapbox`           | L126        | Stable Public               | No         |                            |
+| POST   | `/api/settings/mapbox`           | L139        | Stable Public               | No         |                            |
+| DELETE | `/api/settings/mapbox/:label`    | L163        | Stable Public / Destructive | No         |                            |
+| GET    | `/api/settings/smarty`           | L183        | Stable Public               | No         | Address normalization keys |
+| POST   | `/api/settings/smarty`           | L197        | Stable Public               | No         |                            |
 
 ---
 
@@ -250,6 +252,7 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | POST   | `/api/location-markers/home` | `location-markers.ts` (L27) | Stable Public               | Yes        |       |
 | DELETE | `/api/location-markers/home` | `location-markers.ts` (L65) | Stable Public / Destructive | Yes        |       |
 | GET    | `/api/home-location`         | `home-location.ts` (L23)    | Stable Public               | Yes        |       |
+| GET    | `/api/admin/home-location`   | `home-location.ts` (L40)    | Admin / Operator            | Yes        |       |
 
 ---
 
@@ -294,6 +297,7 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | POST   | `/api/wigle/detail/:netid`                               | `detail.ts` (L99)       | Admin / Operator               | Yes        |                                  |
 | POST   | `/api/wigle/detail/bt/:netid`                            | `detail.ts` (L115)      | Admin / Operator               | Yes        |                                  |
 | POST   | `/api/wigle/import/v3`                                   | `detail.ts` (L131)      | Admin / Operator               | Yes        |                                  |
+| GET    | `/api/wigle/search-api`                                  | `search.ts` (L28)       | Admin / Operator / Manual      | Yes        | Remote API search                |
 | POST   | `/api/wigle/search-api/import-all`                       | `search.ts` (L61)       | Admin / Operator / Dangerous   | No         |                                  |
 | GET    | `/api/wigle/search-api/import-runs`                      | `search.ts` (L101)      | Admin / Operator               | Yes        | Docs had stale `/api/v1/` prefix |
 | GET    | `/api/wigle/search-api/import-runs/completeness/summary` | `search.ts` (L134)      | Admin / Operator               | No         |                                  |
@@ -409,6 +413,20 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | DELETE | `/api/admin/siblings/pairs`                      | `admin/siblings.ts` (L232)         | Admin / Operator / Destructive | No         | Purges the sibling pair graph |
 | GET    | `/api/admin/networks/:bssid/detection-evidence`  | `admin/detectionEvidence.ts` (L25) | Admin / Operator               | No         |                               |
 | POST   | `/api/admin/surveillance-detections/dry-run`     | `admin/detectionEvidence.ts` (L71) | Admin / Operator / Dangerous   | No         |                               |
+
+---
+
+### Q. Dashboard & Exports
+
+- Mounted at `/api` (Gated by `userGate`; full JSON export also requires admin).
+- Source: `server/src/api/routes/v1/dashboard.ts` and `export.ts`
+
+| Method | Full Path                | Source File           | Classification     | Documented | Notes                     |
+| ------ | ------------------------ | --------------------- | ------------------ | ---------- | ------------------------- |
+| GET    | `/api/dashboard/summary` | `dashboard.ts` (L144) | Authenticated User | Yes        | Dashboard summary metrics |
+| GET    | `/api/dashboard/threats` | `dashboard.ts` (L126) | Authenticated User | Yes        | Dashboard threat list     |
+| GET    | `/api/json/full`         | `export.ts` (L96)     | Admin / Operator   | Yes        | Full JSON snapshot        |
+| GET    | `/api/kml`               | `export.ts` (L161)    | Authenticated User | Yes        | KML export                |
 
 ---
 

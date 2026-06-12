@@ -66,6 +66,10 @@ Returns a GeoJSON FeatureCollection of all FBI Field Offices and Resident Agenci
 }
 ```
 
+### GET /agency-offices/count
+
+Returns public, read-only agency office counts grouped by office type.
+
 ### GET /federal-courthouses
 
 Returns a GeoJSON FeatureCollection of all Federal Courthouses.
@@ -108,6 +112,14 @@ Platform statistics (canonical v1 route).
 ```
 
 > **Note:** `GET /api/dashboard-metrics` was a legacy alias for this route and has been removed. Use `/api/dashboard/metrics` (v1) or `/api/v2/dashboard/metrics` (v2).
+
+### GET /api/dashboard/threats
+
+Returns the current dashboard threat list. Requires an authenticated user.
+
+### GET /api/dashboard/summary
+
+Returns summary counts for networks, threats, critical threats, and active surveillance. Requires an authenticated user.
 
 ### GET /api/v2/dashboard/metrics
 
@@ -628,6 +640,10 @@ Remove home marker.
 
 Get current home location.
 
+### GET /api/admin/home-location 🔒
+
+Get the current home location and radius for the admin panel. Requires admin access.
+
 ### POST /api/admin/home-location
 
 Set home location and radius.
@@ -790,6 +806,14 @@ Fetch WiGLE v2 networks for map testing.
 ### GET /api/wigle/networks-v3
 
 Fetch WiGLE v3 networks for map testing. **Forensic Note:** Results are automatically enriched with local threat scores, geocoding, and capture metrics when a BSSID match exists in the local database.
+
+### GET /api/wigle/kml-points
+
+Returns filtered, paginated KML point data for map display. Requires an authenticated user.
+
+### GET /api/wigle/search-api 🔒
+
+Search the remote WiGLE API with query parameters. This admin endpoint is manual-only on the API Test Page.
 
 ### POST /api/wigle/search-api 🔒
 
@@ -1478,6 +1502,14 @@ Update the AWS configurations.
 
 Reload cached secrets dynamically from AWS Secrets Manager.
 
+### GET /api/settings/mapbox-unlimited 🔒
+
+Retrieve the configured Mapbox Unlimited provider setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### POST /api/settings/mapbox-unlimited 🔒
+
+Update the Mapbox Unlimited provider setting. This admin settings endpoint is manual-only on the API Test Page.
+
 ---
 
 ### POST /api/admin/backup
@@ -1497,6 +1529,14 @@ Export observations + networks as JSON (full dataset).
 Export observations as GeoJSON (full dataset).
 
 > Note: Backups/exports are currently unauthenticated and intended for trusted environments only.
+
+### GET /api/json/full 🔒
+
+Download a full app-schema snapshot in JSON format. Requires admin access.
+
+### GET /api/kml 🔒
+
+Download observations for requested BSSIDs in KML format. Requires an authenticated user.
 
 ---
 
