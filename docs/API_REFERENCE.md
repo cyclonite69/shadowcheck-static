@@ -584,15 +584,9 @@ Threat distribution analysis.
 
 **Note:** All analytics endpoints now properly handle null values and use appropriate data sources (materialized views for aggregated data, observations table for temporal data).
 
-### GET /api/analytics-public/filtered
-
-Filtered analytics (public endpoint).
-
----
-
 ## Public Analytics
 
-### GET /api/analytics-public/filtered
+### GET /analytics-public/filtered
 
 Filtered analytics (public endpoint).
 
@@ -1039,6 +1033,10 @@ Import WiGLE data.
 
 Data quality metrics.
 
+### GET /data-quality
+
+Legacy root-mounted alias for data quality metrics.
+
 ---
 
 ## Health Check
@@ -1086,6 +1084,18 @@ Behavior:
 Admin UI:
 
 - `Admin -> Data Import -> Import SQLite`
+
+### POST /api/admin/import-kml 🔒
+
+Import KML files (WiGLE/KML) into the observations pipeline and summarize imported BSSIDs.
+
+### POST /api/admin/import-sql 🔒
+
+Run a raw SQL import script into the staging schema (admin-only, use with caution).
+
+### POST /api/admin/import/mobile/:uploadId/start 🔒
+
+Start processing of a previously uploaded mobile capture (by uploadId) into the ETL pipeline.
 
 Related endpoints:
 
@@ -1343,6 +1353,14 @@ Delete note.
 
 Upload media to note.
 
+### GET /api/admin/network-notes/:noteId/media 🔒
+
+Get media attachments for a specific note.
+
+### DELETE /api/admin/network-notes/media/:mediaId 🔒
+
+Delete a media attachment associated with a network note.
+
 ---
 
 ## Network Media Admin
@@ -1454,6 +1472,10 @@ Start a background job to update the geocoding cache.
 - `limit`: Maximum records to process.
 - `perMinute`: Rate limit for the provider.
 
+### POST /api/admin/geocoding/requeue 🔒
+
+Requeue failed or stalled geocoding jobs for reprocessing.
+
 ### GET /api/admin/geocoding/daemon 🔒
 
 Get status of the persistent geocoding daemon.
@@ -1493,6 +1515,22 @@ Stop pgAdmin.
 ### GET /api/admin/aws/overview 🔒
 
 AWS resources overview.
+
+### POST /api/admin/aws/instances/:instanceId/reboot 🔒
+
+Request a reboot of an EC2 instance (admin only).
+
+### POST /api/admin/aws/instances/:instanceId/start 🔒
+
+Start an EC2 instance.
+
+### POST /api/admin/aws/instances/:instanceId/stop 🔒
+
+Stop an EC2 instance.
+
+### POST /api/admin/aws/instances/:instanceId/terminate 🔒
+
+Terminate an EC2 instance (destructive).
 
 ---
 
@@ -1640,6 +1678,14 @@ Update the Mapbox token setting. This admin settings endpoint is manual-only on 
 
 Run a full database backup (no auth yet).
 
+### GET /api/backup 🔒
+
+Download a legacy JSON backup of observations, networks, and network tags. Requires admin access.
+
+### POST /api/restore 🔒
+
+Upload a legacy JSON backup file for restore staging. Requires admin access and performs destructive restore preparation.
+
 ### GET /api/csv
 
 Export observations as CSV (full dataset).
@@ -1668,6 +1714,10 @@ Download observations for requested BSSIDs in KML format. Requires an authentica
 
 API-key authorized endpoints used by mobile capture units to request upload links and log completed SQLite captures.
 
+### POST /v1/ingest/request-upload
+
+Canonical mobile ingest endpoint for generating a presigned S3 upload URL. Requires `SHADOWCHECK_API_KEY` in headers.
+
 ### POST /api/v1/ingest/request-upload
 
 Generates a presigned S3 upload URL for uploading a mobile SQLite database file. Requires `SHADOWCHECK_API_KEY` in headers.
@@ -1693,6 +1743,10 @@ Generates a presigned S3 upload URL for uploading a mobile SQLite database file.
 ```
 
 ---
+
+### POST /v1/ingest/complete
+
+Canonical mobile ingest endpoint for registering a completed S3 SQLite upload. Requires `SHADOWCHECK_API_KEY` in headers.
 
 ### POST /api/v1/ingest/complete
 
