@@ -8,14 +8,30 @@ export async function insertNetworkMedia(
   fileSize: number,
   mimeType: string,
   mediaBuffer: Buffer,
-  description: string
+  description: string,
+  exifLat: number | null = null,
+  exifLon: number | null = null,
+  exifCapturedAt: string | null = null,
+  thumbnail: Buffer | null = null
 ): Promise<any> {
   const result = await adminQuery(
     `INSERT INTO app.network_media
-      (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin')
+      (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by, exif_lat, exif_lon, exif_captured_at, thumbnail)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11)
      RETURNING id, filename, file_size, created_at`,
-    [bssid, mediaType, filename, fileSize, mimeType, mediaBuffer, description]
+    [
+      bssid,
+      mediaType,
+      filename,
+      fileSize,
+      mimeType,
+      mediaBuffer,
+      description,
+      exifLat,
+      exifLon,
+      exifCapturedAt,
+      thumbnail,
+    ]
   );
   return result.rows[0];
 }
@@ -31,7 +47,7 @@ export async function selectNetworkMediaList(bssid: string): Promise<any[]> {
 
 export async function selectNetworkMediaFile(id: string): Promise<any | null> {
   const result = await query(
-    'SELECT filename, mime_type, media_data FROM app.network_media WHERE id = $1',
+    'SELECT filename, mime_type, media_data, thumbnail FROM app.network_media WHERE id = $1',
     [id]
   );
   return result.rows.length > 0 ? result.rows[0] : null;

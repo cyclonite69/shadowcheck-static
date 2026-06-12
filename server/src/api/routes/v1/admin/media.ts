@@ -95,4 +95,39 @@ router.get('/admin/network-media/download/:id', async (req: any, res: any, next:
   }
 });
 
+/**
+ * Serve network media file inline for rendering (optionally fetching a thumbnail)
+ * GET /api/admin/network-media/:id/inline
+ *
+ * @param {string} req.params.id Media record ID
+ * @param {string} [req.query.thumbnail] Set to 'true' to request thumbnail fallback
+ */
+router.get('/admin/network-media/:id/inline', async (req: any, res: any, next: any) => {
+  try {
+    const { id } = req.params;
+    const thumbnailRequested = req.query.thumbnail === 'true';
+
+    const media = await adminNetworkMediaService.getNetworkMediaFile(id);
+
+    if (!media) {
+      return res.status(404).json({
+        error: { message: 'Media not found' },
+      });
+    }
+
+    // Determine whether to serve thumbnail (if requested and present) or full image
+    const serveThumbnail = thumbnailRequested && media.thumbnail;
+    const dataToSend = serveThumbnail ? media.thumbnail : media.media_data;
+
+    res.set({
+      'Content-Type': media.mime_type || 'image/jpeg',
+      'Content-Disposition': 'inline',
+    });
+
+    res.send(dataToSend);
+  } catch (error: any) {
+    next(error);
+  }
+});
+
 module.exports = router;

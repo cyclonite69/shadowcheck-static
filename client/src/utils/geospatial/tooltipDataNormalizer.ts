@@ -237,5 +237,6 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     wigle_precision_warning: Boolean(raw.wigle_precision_warning),
     public_nonstationary_flag: Boolean(raw.public_nonstationary_flag),
     public_ssid_variant_flag: Boolean(raw.public_ssid_variant_flag),
+    media_count: toNumberOrNull(raw.media_count),
   };
 };

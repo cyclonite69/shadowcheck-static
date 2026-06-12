@@ -158,4 +158,21 @@ describe('normalizeTooltipData', () => {
     expect(withIntel).toContain('data-vendor-intel="L3HARRIS_STINGRAY"');
     expect(withoutIntel).not.toContain('data-vendor-intel');
   });
+
+  it('renders evidence counts without exposing admin media URLs', () => {
+    const normalized = normalizeTooltipData({
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      media_count: '3',
+      media_ids: [1, 2, 3],
+    });
+    const html = renderNetworkTooltip({
+      ...normalized,
+      triggerElement: mockTriggerElement,
+    });
+
+    expect(normalized.media_count).toBe(3);
+    expect('media_ids' in normalized).toBe(false);
+    expect(html).toContain('Evidence Attachments: 3');
+    expect(html).not.toContain('/api/admin/network-media/');
+  });
 });

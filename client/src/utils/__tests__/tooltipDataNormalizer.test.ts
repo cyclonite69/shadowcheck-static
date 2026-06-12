@@ -64,4 +64,17 @@ describe('tooltipDataNormalizer', () => {
     expect(html).toContain('BLE Device');
     expect(html).not.toContain('⋮⋮');
   });
+
+  it('renders an attachment count without embedding admin-only media URLs', () => {
+    const normalized = normalizeTooltipData({ media_count: 2, media_ids: [11, 12] });
+    const html = renderNetworkTooltip({
+      ...normalized,
+      triggerElement: mockTriggerElement,
+    });
+
+    expect(normalized.media_count).toBe(2);
+    expect('media_ids' in normalized).toBe(false);
+    expect(html).toContain('Evidence Attachments: 2');
+    expect(html).not.toContain('/api/admin/network-media/');
+  });
 });

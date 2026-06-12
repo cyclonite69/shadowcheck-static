@@ -199,8 +199,17 @@ Stores VisINT and forensic photo evidence attachments.
   - `bssid` (text)
   - `media_type` (text, strictly `'image'` or `'video'`)
   - `filename`, `file_size`, `mime_type`
-  - `data` (bytea binary blob)
-  - `description` (text, contains EXIF coordinates, manual flags, or correlation distances)
+  - `media_data` (bytea binary blob)
+  - `thumbnail` (bytea preview blob, optional)
+  - `description` (text, contains correlation distances or manual notes)
+  - `exif_lat` (numeric, GPS latitude extracted from image EXIF)
+  - `exif_lon` (numeric, GPS longitude extracted from image EXIF)
+  - `exif_captured_at` (timestamptz, image capture timestamp from EXIF)
+
+### `app.network_media_summary`
+
+Read-only view that exposes `media_count` grouped by matched `bssid`. Rows attached to
+the `VISINT_UNMATCHED` sentinel are excluded.
 
 ---
 

@@ -25,6 +25,8 @@ describe('geospatial query builders', () => {
     expect(context.selectClause).toContain('ne.sibling_max_confidence');
     expect(context.selectClause).toContain('ne.has_strong_sibling');
     expect(context.selectClause).toContain('ne.sibling_bssids');
+    expect(context.selectClause).toContain('COALESCE(nms.media_count, 0) AS media_count');
+    expect(context.selectClause).not.toContain('media_ids');
     expect(context.params).toEqual([['HIGH'], 25, 10]);
   });
 
@@ -38,6 +40,7 @@ describe('geospatial query builders', () => {
     const result = buildGeospatialListQuery(ctx, context);
 
     expect(result.sql).toContain('JOIN rollup r');
+    expect(result.sql).toContain('LEFT JOIN app.network_media_summary nms');
     expect(result.sql).toContain('WHERE ne.threat_level = ANY(');
     expect(result.params).toEqual([['HIGH']]);
   });

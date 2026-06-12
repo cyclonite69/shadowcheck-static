@@ -2189,6 +2189,19 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin Analysis',
+    label: 'Network Media Inline',
+    description: 'Serve a specific media attachment inline (optionally as a thumbnail).',
+    path: '/api/admin/network-media/:id/inline',
+    method: 'GET',
+    requiresAuth: true,
+    params: [
+      { name: 'id', label: 'Media ID', placeholder: '1', type: 'number' },
+      { name: 'thumbnail', label: 'Request Thumbnail', placeholder: 'true', type: 'text' },
+    ],
+  },
+
+  {
+    category: 'Admin Analysis',
     label: 'Network Notes (admin)',
     path: '/api/admin/network-notes/:bssid',
     method: 'GET',

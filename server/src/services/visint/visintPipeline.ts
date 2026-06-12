@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { extractExif } from './visintExif';
 import { queryCorrelatedObservations } from './visintScorer';
 
@@ -84,6 +85,58 @@ export function deriveVisintTags(
   return ['VISINT_SPATIAL_MATCH'];
 }
 
+async function extractExifFromBuffer(
+  imageBuffer: Buffer,
+  filename: string
+): Promise<{ lat: number | null; lon: number | null; timestamp: string | null }> {
+  const tempFilePath = path.join(os.tmpdir(), `visint-exif-${Date.now()}-${filename}`);
+  fs.writeFileSync(tempFilePath, imageBuffer);
+  try {
+    const exifData = await extractExif(tempFilePath);
+    return {
+      lat: exifData.lat ?? null,
+      lon: exifData.lon ?? null,
+      timestamp: exifData.timestamp ?? null,
+    };
+  } catch (error) {
+    logger.debug(
+      `EXIF extraction skipped or failed for ${filename}: ${error instanceof Error ? error.message : String(error)}`
+    );
+    return { lat: null, lon: null, timestamp: null };
+  } finally {
+    try {
+      fs.unlinkSync(tempFilePath);
+    } catch (cleanupErr) {
+      // ignore
+    }
+  }
+}
+
+export async function generateThumbnail(buffer: Buffer, mimeType: string): Promise<Buffer | null> {
+  if (mimeType.startsWith('image/')) {
+    try {
+      return await sharp(buffer)
+        .resize({
+          width: 400,
+          height: 400,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    } catch (err) {
+      logger.error(
+        `Thumbnail generation failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+      return null;
+    }
+  } else if (mimeType.startsWith('video/')) {
+    logger.debug('video thumbnail generation not yet supported');
+    return null;
+  }
+  return null;
+}
+
 export async function saveVisINTAttachment(
   imageBuffer: Buffer,
   filename: string,
@@ -100,13 +153,28 @@ export async function saveVisINTAttachment(
 ): Promise<string[]> {
   const mimeType = String(filename).toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
 
+  // Extract EXIF if not provided
+  let resolvedLat: number | null = lat !== undefined && lat !== null ? lat : null;
+  let resolvedLon: number | null = lon !== undefined && lon !== null ? lon : null;
+  let resolvedTs: string | null = ts !== undefined && ts !== null ? ts : null;
+
+  if (resolvedLat === null || resolvedLon === null || resolvedTs === null) {
+    const extracted = await extractExifFromBuffer(imageBuffer, filename);
+    if (resolvedLat === null) resolvedLat = extracted.lat;
+    if (resolvedLon === null) resolvedLon = extracted.lon;
+    if (resolvedTs === null) resolvedTs = extracted.timestamp;
+  }
+
+  // Generate thumbnail
+  const thumbnailBuffer = await generateThumbnail(imageBuffer, mimeType);
+
   const isUnmatched = targetBssid === 'VISINT_UNMATCHED';
 
   const mediaDesc = isUnmatched
     ? JSON.stringify({
-        extracted_lat: lat || 0,
-        extracted_lon: lon || 0,
-        extracted_ts: ts || '',
+        extracted_lat: resolvedLat || 0,
+        extracted_lon: resolvedLon || 0,
+        extracted_ts: resolvedTs || '',
         status: 'UNMATCHED',
       })
     : `VisINT Correlation: dist_meters=${distMeters}, delta_minutes=${deltaMinutes}, score=${detectionScore}, manual=${isManualOverride}`;
@@ -118,7 +186,11 @@ export async function saveVisINTAttachment(
     imageBuffer.length,
     mimeType,
     imageBuffer,
-    mediaDesc
+    mediaDesc,
+    resolvedLat,
+    resolvedLon,
+    resolvedTs,
+    thumbnailBuffer
   );
 
   const tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, isManualOverride);

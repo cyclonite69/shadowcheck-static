@@ -438,8 +438,17 @@ export const renderNetworkTooltip = (props: any): any => {
         ? '#facc15'
         : '#f87171';
 
+  const evidenceCount = Number(props.media_count);
+  const evidenceHtml =
+    Number.isFinite(evidenceCount) && evidenceCount > 0
+      ? `
+      <div style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.01);">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);">Evidence Attachments: ${evidenceCount}</div>
+      </div>`
+      : '';
+
   return `
-<div style="width:288px;max-width:min(340px, 90vw);max-height:min(600px, 90vh);background:#1a1d23;border:2px solid ${bc};border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;">
+<div style="width:288px;max-width:min(340px, 90vw);max-height:min(600px, 90vh);background:#1a1d23;border:2px solid ${bc};border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;overflow:hidden;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 6px;">
     <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;display:flex;align-items:center;gap:6px;">
@@ -553,6 +562,8 @@ export const renderNetworkTooltip = (props: any): any => {
       ? `<div style="padding:4px 12px 6px;font-size:10px;color:rgba(255,255,255,0.45);font-style:italic;border-top:1px solid rgba(255,255,255,0.05);">${normalizeDisplay(props.notes)}</div>`
       : ''
   }
+
+  ${evidenceHtml}
 
   ${
     showVendorIntel && surveillanceType

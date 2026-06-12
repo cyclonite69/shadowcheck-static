@@ -19,7 +19,9 @@ jest.mock('../../../../server/src/config/container', () => ({
   },
   adminDbStatsService: {},
   adminMaintenanceService: {},
-  adminNetworkMediaService: {},
+  adminNetworkMediaService: {
+    getNetworkMediaFile: jest.fn(),
+  },
   adminUsersService: {},
   awsService: {},
   backgroundJobsService: {},
@@ -93,6 +95,38 @@ describe('Admin API Integration Tests', () => {
       const res = await request(app).get('/api/admin/network-summary/AA:BB:CC:DD:EE:FF');
       expect(res.status).toBe(200);
       expect(res.body.network.bssid).toBe('AA:BB:CC:DD:EE:FF');
+    });
+  });
+
+  describe('GET /api/admin/network-media/:id/inline', () => {
+    it('serves the thumbnail when requested and available', async () => {
+      container.adminNetworkMediaService.getNetworkMediaFile.mockResolvedValue({
+        filename: 'evidence.jpg',
+        mime_type: 'image/jpeg',
+        media_data: Buffer.from('full-image'),
+        thumbnail: Buffer.from('thumbnail'),
+      });
+
+      const res = await request(app).get('/api/admin/network-media/42/inline?thumbnail=true');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('image/jpeg');
+      expect(res.headers['content-disposition']).toBe('inline');
+      expect(res.body).toEqual(Buffer.from('thumbnail'));
+    });
+
+    it('falls back to full media when no thumbnail is stored', async () => {
+      container.adminNetworkMediaService.getNetworkMediaFile.mockResolvedValue({
+        filename: 'evidence.jpg',
+        mime_type: 'image/jpeg',
+        media_data: Buffer.from('full-image'),
+        thumbnail: null,
+      });
+
+      const res = await request(app).get('/api/admin/network-media/42/inline?thumbnail=true');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(Buffer.from('full-image'));
     });
   });
 

@@ -118,6 +118,7 @@ export interface GeospatialRow {
   radio_capabilities: string | null;
   radio_type: string | null;
   threat?: ThreatObject;
+  media_count?: number;
 }
 
 export const DEBUG_GEOSPATIAL = process.env.DEBUG_GEOSPATIAL === 'true';

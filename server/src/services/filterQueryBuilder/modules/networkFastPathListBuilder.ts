@@ -88,10 +88,12 @@ function buildFastPathListSql(
         ${SqlFragmentLibrary.selectDeviceClassFields('sd', 'odg')},
         NULL::text AS network_id,
         n.bestlat AS raw_lat,
-        n.bestlon AS raw_lon
+        n.bestlon AS raw_lon,
+        COALESCE(nms.media_count, 0)::integer AS media_count
       FROM app.api_network_explorer_mv ne
       LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
       LEFT JOIN app.surveillance_detections sd ON UPPER(sd.bssid) = UPPER(ne.bssid) AND sd.false_positive = FALSE
+      LEFT JOIN app.network_media_summary nms ON UPPER(nms.bssid) = UPPER(ne.bssid)
       ${SqlFragmentLibrary.joinOuiDeviceGroups('ne', 'odg')}
       ${SqlFragmentLibrary.joinNetworkLocations('ne', locationMode)}
       ${SqlFragmentLibrary.joinNetworkTagsLateral('ne', 'nt')}

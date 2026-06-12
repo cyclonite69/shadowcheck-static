@@ -97,6 +97,7 @@ export const createGeospatialHandler =
           threatReasons: transparency.threatReasons,
           threatEvidence: transparency.threatEvidence,
           threatTransparencyError: transparency.transparencyError,
+          media_count: Number(effectiveRow.media_count || 0),
         },
       };
     });

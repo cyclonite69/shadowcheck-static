@@ -358,6 +358,7 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | POST   | `/api/admin/network-media/upload`                | `admin/media.ts` (L14)             | Admin / Operator               | Yes        |                               |
 | GET    | `/api/admin/network-media/:bssid`                | `admin/media.ts` (L57)             | Admin / Operator               | Yes        |                               |
 | GET    | `/api/admin/network-media/download/:id`          | `admin/media.ts` (L75)             | Admin / Operator               | Yes        |                               |
+| GET    | `/api/admin/network-media/:id/inline`            | `admin/media.ts` (L105)            | Admin / Operator               | Yes        | Inline full/thumbnail media   |
 | POST   | `/api/admin/network-notations/add`               | `admin/notes.ts` (L15)             | Deprecated / Legacy            | Yes        |                               |
 | GET    | `/api/admin/network-notations/:bssid`            | `admin/notes.ts` (L47)             | Deprecated / Legacy            | Yes        |                               |
 | POST   | `/api/admin/network-notes/add`                   | `admin/notes.ts` (L65)             | Admin / Operator               | Yes        | Right-click context note      |

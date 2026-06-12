@@ -1355,6 +1355,7 @@
 * **vendor-intel:** add Ability Inc + Elbit/Tadiran; extend Verint & Rohde & Schwarz with new docs ([bd0fc7c](https://github.com/cyclonite69/shadowcheck-web/commit/bd0fc7c179102ead40824279200dfa5a5e7d9159))
 * **vendor-intel:** add extracted vendor docs and extraction script ([87854bd](https://github.com/cyclonite69/shadowcheck-web/commit/87854bd29c2ea86f0669f749f6ee1a20deb7af8c))
 * **vendor-intel:** redesign vendor docs with ShadowCheck theme and informed stubs ([a080112](https://github.com/cyclonite69/shadowcheck-web/commit/a0801123436aff23f071a5fc0386e6daf9af0e7d))
+* **visint:** add media thumbnails and evidence counts ([9d24ab7](https://github.com/cyclonite69/shadowcheck-web/commit/9d24ab7dbac58a6ffdd5f5a31d77ebe72c027ca0))
 * **visint:** add VisINT auto-correlation pipeline ([d149d1e](https://github.com/cyclonite69/shadowcheck-web/commit/d149d1efbc688b2c8ef7cde080b79603da9c0f07))
 * **visint:** migrate to multipart uploads and add exiftool dependency ([658acd4](https://github.com/cyclonite69/shadowcheck-web/commit/658acd46d82eb2130b7747f60760d5f88c7339f1))
 * **visint:** prioritize tightest time delta and implement parameterized search bounds tuning ([11b4f99](https://github.com/cyclonite69/shadowcheck-web/commit/11b4f99bfe7271c6c8cf8df2599bca983a3c5879))

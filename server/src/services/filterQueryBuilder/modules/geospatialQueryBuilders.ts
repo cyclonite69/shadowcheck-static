@@ -26,6 +26,7 @@ export function buildGeospatialListQuery(
         FROM filtered_obs o
         LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid
         LEFT JOIN app.network_locations nl ON nl.bssid = o.bssid
+        LEFT JOIN app.network_media_summary nms ON UPPER(nms.bssid) = UPPER(o.bssid)
         ORDER BY o.time DESC
         ${limitClause}
       `,
@@ -45,6 +46,7 @@ export function buildGeospatialListQuery(
       JOIN rollup r ON r.bssid = o.bssid
       LEFT JOIN app.api_network_explorer_mv ne ON ne.bssid = o.bssid
       LEFT JOIN app.network_locations nl ON nl.bssid = o.bssid
+      LEFT JOIN app.network_media_summary nms ON UPPER(nms.bssid) = UPPER(o.bssid)
       WHERE ${networkWhere.join(' AND ')}
       ORDER BY o.time DESC
       ${limitClause}

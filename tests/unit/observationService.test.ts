@@ -9,6 +9,7 @@ import {
   getWigleObservationsBatch,
   correlateImageBLE,
   correlateVisINT,
+  saveVisINTAttachment,
   ExifMissingError,
   ExifToolUnavailableError,
 } from '../../server/src/services/observationService';
@@ -283,6 +284,48 @@ describe('Observation Service', () => {
       });
     });
 
+    it('persists generated thumbnail and supplied EXIF metadata', async () => {
+      const sharp = require('sharp');
+      const png = await sharp({
+        create: {
+          width: 2,
+          height: 2,
+          channels: 3,
+          background: { r: 255, g: 0, b: 0 },
+        },
+      })
+        .png()
+        .toBuffer();
+      (getNetworkTagsByBssid as jest.Mock).mockResolvedValueOnce(null);
+
+      await saveVisINTAttachment(
+        png,
+        'evidence.png',
+        'AA:BB:CC:DD:EE:FF',
+        'MATCHED',
+        2,
+        4.5,
+        1.2,
+        43.023,
+        -83.696,
+        '2026-05-06 20:29:10'
+      );
+
+      expect(insertNetworkMedia).toHaveBeenCalledWith(
+        'AA:BB:CC:DD:EE:FF',
+        'image',
+        'evidence.png',
+        png.length,
+        'image/png',
+        png,
+        expect.stringContaining('score=2'),
+        43.023,
+        -83.696,
+        '2026-05-06 20:29:10',
+        expect.any(Buffer)
+      );
+    });
+
     it('should successfully MATCH correlation with score 4 (new firmware / BLE UUID)', async () => {
       const mockRow = {
         id: 12345,
@@ -321,7 +364,11 @@ describe('Observation Service', () => {
         5,
         'image/jpeg',
         expect.any(Buffer),
-        expect.stringContaining('score=4')
+        expect.stringContaining('score=4'),
+        43.023,
+        -83.696,
+        '2026-05-06 20:29:10',
+        null
       );
 
       expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
@@ -409,7 +456,11 @@ describe('Observation Service', () => {
         5,
         'image/jpeg',
         expect.any(Buffer),
-        expect.stringContaining('extracted_lat')
+        expect.stringContaining('extracted_lat'),
+        43.023,
+        -83.696,
+        '2026-05-06 20:29:10',
+        null
       );
 
       expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(

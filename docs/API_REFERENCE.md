@@ -1303,6 +1303,10 @@ Get media list for network.
 
 Download media file.
 
+### GET /api/admin/network-media/:id/inline 🔒
+
+Serve media inline, using the stored thumbnail when `thumbnail=true`. Requires admin access.
+
 ---
 
 ## Network Notations Admin
