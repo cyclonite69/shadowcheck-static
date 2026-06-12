@@ -207,6 +207,21 @@ export const useMapStyleControls = ({
         },
       });
 
+      // Media highlight ring layer for observation points with attachments
+      mapRef.current.addLayer({
+        id: 'observation-media-highlight',
+        type: 'circle',
+        source: 'observations',
+        filter: ['>', ['get', 'media_count'], 0],
+        paint: {
+          'circle-radius': 7,
+          'circle-color': 'transparent',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#F59E0B',
+          'circle-opacity': 0.9,
+        },
+      });
+
       // Number labels on observation points
       mapRef.current.addLayer({
         id: 'observation-labels',
@@ -374,6 +389,7 @@ export const useMapStyleControls = ({
                   typeof network?.timespanDays === 'number' ? network.timespanDays : null,
                 type: network?.type || null,
                 radio_type: network?.type || null,
+                media_count: network?.media_count ?? 0,
                 number: index + 1,
                 color: macColor(obs.bssid),
               },

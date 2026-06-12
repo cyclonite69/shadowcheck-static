@@ -31,6 +31,7 @@ describe('buildObservationTooltipProps', () => {
         threat_level: 'HIGH',
         manufacturer: 'AUMOVIO Systems, Inc.',
         max_distance_meters: 9879.58093146,
+        media_count: 5,
       },
       threatLevel: 'HIGH',
       deltaMeters: 9853,
@@ -44,5 +45,6 @@ describe('buildObservationTooltipProps', () => {
     expect(props.channel).toBe(9);
     expect(props.distance_from_home_km).toBeCloseTo(7.6931, 4);
     expect(props.max_distance_km).toBeCloseTo(9.8796, 4);
+    expect(props.media_count).toBe(5);
   });
 });

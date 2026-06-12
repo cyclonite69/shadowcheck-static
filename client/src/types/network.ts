@@ -107,6 +107,8 @@ export type NetworkRow = {
   device_class?: string | null;
   oui_surveillance_type?: string | null;
   oui_surveillance_confidence?: string | null;
+  media_count?: number | null;
+  media_ids?: string[] | null;
 };
 
 export type Observation = {

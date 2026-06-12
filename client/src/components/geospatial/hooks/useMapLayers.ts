@@ -68,6 +68,20 @@ export const useMapLayers = () => {
       });
 
       map.addLayer({
+        id: 'observation-media-highlight',
+        type: 'circle',
+        source: 'observations',
+        filter: ['>', ['get', 'media_count'], 0],
+        paint: {
+          'circle-radius': 7,
+          'circle-color': 'transparent',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#F59E0B',
+          'circle-opacity': 0.9,
+        },
+      });
+
+      map.addLayer({
         id: 'observation-labels',
         type: 'symbol',
         source: 'observations',

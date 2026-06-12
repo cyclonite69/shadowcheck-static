@@ -53,6 +53,7 @@ export const buildObservationTooltipProps = ({
     time_since_prior: timeSincePrior,
     time_since_prior_ms: timeSincePriorMs,
     observation_count: network?.observations ?? 0,
+    media_count: network?.media_count ?? 0,
     accuracy: obs.acc ?? network?.accuracy ?? null,
     unique_days: (network as any)?.unique_days ?? null,
     type: network?.type || null,
