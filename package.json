@@ -88,7 +88,7 @@
     "node-schedule": "2.1.1",
     "pdfkit": "0.18.0",
     "pg": "8.21.0",
-    "preact": "10.29.1",
+    "preact": "10.29.2",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-is": "19.2.6",
