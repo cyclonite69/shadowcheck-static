@@ -106,7 +106,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "21.0.2",
-    "@commitlint/config-conventional": "20.5.3",
+    "@commitlint/config-conventional": "21.0.2",
     "@eslint/eslintrc": "3.3.5",
     "@eslint/js": "10.0.1",
     "@jest/globals": "30.4.1",
