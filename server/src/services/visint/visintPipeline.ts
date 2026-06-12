@@ -116,6 +116,7 @@ export async function generateThumbnail(buffer: Buffer, mimeType: string): Promi
   if (mimeType.startsWith('image/')) {
     try {
       return await sharp(buffer)
+        .rotate()
         .resize({
           width: 400,
           height: 400,
