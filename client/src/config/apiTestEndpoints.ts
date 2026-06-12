@@ -806,6 +806,23 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       },
     ],
   },
+  {
+    category: 'Public Analytics',
+    label: 'Data Quality Metrics (Legacy Root Alias)',
+    description:
+      'Legacy root-mounted alias for data quality metrics. Deprecated; use /api/data-quality instead.',
+    path: '/data-quality',
+    method: 'GET',
+    params: [
+      {
+        name: 'filter',
+        label: 'Filter',
+        defaultValue: 'none',
+        type: 'select',
+        options: ['none', 'temporal', 'extreme', 'duplicate', 'all'],
+      },
+    ],
+  },
 
   // ── Threats & Analytics ───────────────────────────────────────────────────
   {
