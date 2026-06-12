@@ -1069,6 +1069,10 @@ Remove duplicate observations.
 
 Refresh colocation data.
 
+### POST /api/admin/add-note 🔒
+
+Add a free-form administrative note to the system audit log (admin-only). Useful for tagging runs, import notes, or operator annotations.
+
 ### POST /api/admin/import-sqlite 🔒
 
 Import a SQLite backup file into the canonical observation pipeline.
@@ -1103,6 +1107,46 @@ Related endpoints:
 - `GET /api/admin/device-sources`
 - `GET /api/admin/orphan-networks`
 - `POST /api/admin/orphan-networks/:bssid/check-wigle`
+
+### GET /api/admin/demo/oui-grouping 🔒
+
+Retrieve a demo OUI grouping visualization used by the admin demo pages (non-production).
+
+### GET /api/admin/networks/:bssid/detection-evidence 🔒
+
+Fetch detection evidence for a specific network BSSID, including observations and scoring factors used by the detection pipeline.
+
+### GET /api/admin/secrets 🔒
+
+List secret keys currently known to the Secrets Manager integration (admin-only).
+
+### DELETE /api/admin/secrets/:key 🔒
+
+Remove a secret entry by key from the runtime Secrets Manager cache. Use with caution.
+
+### POST /api/admin/secrets/:key 🔒
+
+Create or update a secret key in the runtime cache (does not persist to AWS unless configured).
+
+### POST /api/admin/settings/jobs/:jobName/run 🔒
+
+Trigger a named background job immediately (admin-only). `:jobName` is the registered job identifier.
+
+### POST /api/admin/settings/local-stack/:action 🔒
+
+Perform local-stack actions for development (e.g., `start`, `stop`, `restart`) — admin-only and intended for safe, non-production environments.
+
+### POST /api/admin/siblings/cancel 🔒
+
+Cancel a running sibling-detection background job.
+
+### GET /api/admin/siblings/component/:bssid 🔒
+
+Retrieve the sibling component (connected graph) for a single BSSID.
+
+### DELETE /api/admin/siblings/pairs 🔒
+
+Bulk delete sibling pairs using request criteria (destructive; admin-only).
 
 ### GET /api/admin/import-history 🔒
 
@@ -1507,6 +1551,10 @@ Start pgAdmin.
 ### POST /api/admin/pgadmin/stop 🔒
 
 Stop pgAdmin.
+
+### POST /api/admin/pgadmin/destroy 🔒
+
+Destroy all pgAdmin containers and associated temporary state (admin-only, destructive). Use with caution.
 
 ---
 
