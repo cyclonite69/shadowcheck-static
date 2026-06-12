@@ -412,13 +412,15 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 
 ---
 
-## 3. Mount Refactoring & Cleanup Backlog (Deferred)
+## 3. Mount Refactoring & Cleanup Backlog
 
 The following helper, duplicate, and legacy route mounts are flagged for potential removal or refactoring to keep the Express router clean and avoid exposure of unauthenticated testing interfaces:
 
-1. **`GET /api/dashboard-metrics` (in `dashboard.ts`)**
-   - _Status_: Legacy duplicate alias of `/api/dashboard/metrics` (already registered and fully covered under `/api/dashboard/metrics` and `/api/v2/dashboard/metrics`).
-   - _Reasoning_: Unused in production UI. Can be safely pruned once usage by external scripts is confirmed negative.
+1. **`GET /api/dashboard-metrics` (in `dashboard.ts`)** — **REMOVED**
+   - _Status_: Legacy duplicate alias removed. Canonical route is `/api/dashboard/metrics` (v1) and `/api/v2/dashboard/metrics` (v2).
+   - _Client callers migrated_: `client/src/api/dashboardApi.ts` → `/dashboard/metrics`.
+   - _Integration tests migrated_: `tests/integration/dashboard-threat-parity.test.ts`.
+   - _Scripts migrated_: `scripts/test-dashboard-filters.sh`.
 
 2. **`GET /api/demo/oui-grouping` (in `dataQuality.ts`)**
    - _Status_: Duplicate public demo HTML page route.

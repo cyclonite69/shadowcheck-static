@@ -115,27 +115,14 @@ describe('API test endpoint safety registry', () => {
       { method: 'GET', path: '/api/test-location' },
       { method: 'GET', path: '/api/admin/notes-test' },
       { method: 'GET', path: '/api/admin/simple-test' },
+      // Removed: legacy duplicate alias; canonical route is /api/dashboard/metrics
+      { method: 'GET', path: '/api/dashboard-metrics' },
     ];
 
     staleEntries.forEach((stale) => {
       const match = API_ENDPOINTS.find(
         (endpoint) =>
           endpoint.method === stale.method && normalizePath(endpoint.path) === stale.path
-      );
-      expect(match).toBeUndefined();
-    });
-  });
-
-  test('intentional API registry omissions remain excluded', () => {
-    // These routes exist in the Express backend codebase but are intentionally
-    // omitted from the testing registry. Parity should not cover:
-    // - Duplicate aliases (/api/dashboard-metrics)
-    const intentionalOmissions = [{ method: 'GET', path: '/api/dashboard-metrics' }];
-
-    intentionalOmissions.forEach((omission) => {
-      const match = API_ENDPOINTS.find(
-        (endpoint) =>
-          endpoint.method === omission.method && normalizePath(endpoint.path) === omission.path
       );
       expect(match).toBeUndefined();
     });

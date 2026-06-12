@@ -92,9 +92,9 @@ Returns a GeoJSON FeatureCollection of ShotSpotter acoustic sensor points (from 
 
 ## Dashboard
 
-### GET /api/dashboard-metrics
+### GET /api/dashboard/metrics
 
-Platform statistics.
+Platform statistics (canonical v1 route).
 
 **Response:**
 
@@ -106,6 +106,8 @@ Platform statistics.
   "enrichedCount": 45123
 }
 ```
+
+> **Note:** `GET /api/dashboard-metrics` was a legacy alias for this route and has been removed. Use `/api/dashboard/metrics` (v1) or `/api/v2/dashboard/metrics` (v2).
 
 ### GET /api/v2/dashboard/metrics
 

@@ -81,7 +81,7 @@ const fetchParityBundle = async (payload: {
   };
 
   const [dashboardRes, severityRes, filteredRes] = await Promise.all([
-    request(app).get('/api/dashboard-metrics').query(query),
+    request(app).get('/api/dashboard/metrics').query(query),
     request(app).get('/api/v2/threats/severity-counts').query(query),
     request(app)
       .get('/api/v2/networks/filtered')

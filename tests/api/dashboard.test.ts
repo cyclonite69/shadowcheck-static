@@ -178,7 +178,7 @@ describe('Dashboard API Integration', () => {
     // const app = require('../../server');
     //
     // const response = await request(app)
-    //   .get('/api/dashboard-metrics')
+    //   .get('/api/dashboard/metrics')
     //   .expect(200)
     //   .expect('Content-Type', /json/);
     //

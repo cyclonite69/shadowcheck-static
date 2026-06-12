@@ -122,7 +122,6 @@ const sendDashboardMetrics = async (req: Request, res: Response) => {
 };
 
 router.get('/dashboard/metrics', sendDashboardMetrics);
-router.get('/dashboard-metrics', sendDashboardMetrics);
 
 router.get('/dashboard/threats', async (req: Request, res: Response) => {
   try {

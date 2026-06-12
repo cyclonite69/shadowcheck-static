@@ -44,7 +44,7 @@ interface ThreatSeverityCounts {
 
 export const dashboardApi = {
   async getMetrics(filters: DashboardFilters, signal?: AbortSignal): Promise<DashboardMetrics> {
-    return apiClient.get<DashboardMetrics>('/dashboard-metrics', {
+    return apiClient.get<DashboardMetrics>('/dashboard/metrics', {
       params: {
         filters: JSON.stringify(filters.filters),
         enabled: JSON.stringify(filters.enabled),

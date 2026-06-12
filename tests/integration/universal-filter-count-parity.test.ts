@@ -111,7 +111,7 @@ describeIfIntegration('Universal Filter Count Parity - Phase 1', () => {
     withInvariantContext(
       'list-vs-dashboard Wi-Fi total parity',
       payload,
-      '/api/v2/networks/filtered <-> /api/dashboard-metrics',
+      '/api/v2/networks/filtered <-> /api/dashboard/metrics',
       listTotal,
       dashboardWifi,
       listBssids

@@ -32,7 +32,7 @@ fetch_dashboard() {
     curl_args+=(-b "$COOKIE_JAR")
   fi
   curl "${curl_args[@]}" \
-    "$BASE/api/dashboard-metrics?filters=${f_enc}&enabled=${e_enc}"
+    "$BASE/api/dashboard/metrics?filters=${f_enc}&enabled=${e_enc}"
 }
 
 record_pass() {
