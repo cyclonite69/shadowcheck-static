@@ -8,4 +8,12 @@ export type {
   ApiEndpointConfig as ApiPreset,
   HttpMethod,
 } from '../../../config/apiTestEndpoints';
-export { API_ENDPOINTS as API_PRESETS } from '../../../config/apiTestEndpoints';
+import { API_ENDPOINTS } from '../../../config/apiTestEndpoints';
+
+export const API_PRESETS = API_ENDPOINTS;
+export const MANUAL_API_PRESETS = API_PRESETS.filter(
+  (preset) => preset.manualOnly || preset.isDestructive
+);
+export const AUTOMATED_API_PRESETS = API_PRESETS.filter(
+  (preset) => !preset.manualOnly && !preset.isDestructive
+);

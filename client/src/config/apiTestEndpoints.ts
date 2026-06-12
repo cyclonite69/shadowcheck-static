@@ -41,6 +41,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     label: 'App Settings (AWS)',
     path: '/api/settings/aws',
     method: 'GET',
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -64,6 +65,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     label: 'Settings Inventory',
     path: '/api/settings/list',
     method: 'GET',
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -71,6 +73,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/settings/wigle',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -87,6 +90,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/settings/wigle/test',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -94,6 +98,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/settings/mapbox',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -120,6 +125,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/settings/smarty',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Health & Core',
@@ -128,6 +134,90 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "auth_id": "",\n  "auth_token": ""\n}',
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'Mapbox Unlimited Settings',
+    path: '/api/settings/mapbox-unlimited',
+    method: 'GET',
+    requiresAuth: true,
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'Mapbox Unlimited Settings Update',
+    path: '/api/settings/mapbox-unlimited',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "apiKey": ""\n}',
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'Google Maps Settings',
+    path: '/api/settings/google-maps',
+    method: 'GET',
+    requiresAuth: true,
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'Google Maps Settings Update',
+    path: '/api/settings/google-maps',
+    method: 'POST',
+    defaultBody: '{\n  "apiKey": ""\n}',
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'OpenCage Settings',
+    path: '/api/settings/opencage',
+    method: 'GET',
+    requiresAuth: true,
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'OpenCage Settings Update',
+    path: '/api/settings/opencage',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "apiKey": ""\n}',
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'Geocodio Settings',
+    path: '/api/settings/geocodio',
+    method: 'GET',
+    requiresAuth: true,
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'Geocodio Settings Update',
+    path: '/api/settings/geocodio',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "apiKey": ""\n}',
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'LocationIQ Settings',
+    path: '/api/settings/locationiq',
+    method: 'GET',
+    requiresAuth: true,
+    manualOnly: true,
+  },
+  {
+    category: 'Health & Core',
+    label: 'LocationIQ Settings Update',
+    path: '/api/settings/locationiq',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "apiKey": ""\n}',
     manualOnly: true,
   },
 
@@ -154,6 +244,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "currentPassword": "",\n  "newPassword": ""\n}',
+    manualOnly: true,
   },
 
   // ── Public Reference ──────────────────────────────────────────────────────
@@ -214,6 +305,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/mapbox-style',
     method: 'GET',
     params: [{ name: 'style', label: 'Style', defaultValue: 'satellite' }],
+    manualOnly: true,
   },
   {
     category: 'Geospatial',
@@ -221,6 +313,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/mapbox-proxy',
     method: 'GET',
     params: [{ name: 'url', label: 'Mapbox URL', placeholder: 'mapbox://styles/...' }],
+    manualOnly: true,
   },
   {
     category: 'Geospatial',
@@ -228,6 +321,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     description: 'Proxies Google Maps tiles. Requires google_maps_api_key to be configured.',
     path: '/api/google-maps-tile/:type/:z/:x/:y',
     method: 'GET',
+    manualOnly: true,
     params: [
       {
         name: 'type',
@@ -319,6 +413,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "address": "1600 Pennsylvania Ave NW, Washington DC"\n}',
+    manualOnly: true,
   },
 
   // ── Explorer (legacy list + platinum single-network) ─────────────────────
@@ -496,6 +591,34 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "bssids": ["00:11:22:33:44:55"]\n}',
+  },
+  {
+    category: 'Network Tags',
+    label: 'Tag Network (legacy)',
+    path: '/api/tag-network',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody:
+      '{\n  "bssid": "00:11:22:33:44:55",\n  "tag_type": "INVESTIGATE",\n  "confidence": 70,\n  "notes": ""\n}',
+    manualOnly: true,
+  },
+  {
+    category: 'Network Tags',
+    label: 'Delete Network Tag (legacy)',
+    path: '/api/tag-network/:bssid',
+    method: 'DELETE',
+    requiresAuth: true,
+    params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
+    manualOnly: true,
+  },
+  {
+    category: 'Network Tags',
+    label: 'Bulk Tag Threats',
+    path: '/api/networks/tag-threats',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "bssids": ["00:11:22:33:44:55"],\n  "reason": "Manual threat tag"\n}',
+    manualOnly: true,
   },
 
   // ── Network Tags ──────────────────────────────────────────────────────────
@@ -880,6 +1003,34 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'WiGLE',
+    label: 'WiGLE Search API (GET)',
+    path: '/api/wigle/search-api',
+    method: 'GET',
+    requiresAuth: true,
+    params: [
+      { name: 'ssid', label: 'SSID', placeholder: 'Network Name' },
+      { name: 'bssid', label: 'BSSID', placeholder: '00:11:22...' },
+      {
+        name: 'import',
+        label: 'Import?',
+        defaultValue: 'false',
+        type: 'select',
+        options: ['true', 'false'],
+      },
+    ],
+    manualOnly: true,
+  },
+  {
+    category: 'WiGLE',
+    label: 'WiGLE Search API (POST)',
+    path: '/api/wigle/search-api',
+    method: 'POST',
+    requiresAuth: true,
+    defaultBody: '{\n  "import": false\n}',
+    manualOnly: true,
+  },
+  {
+    category: 'WiGLE',
     label: 'WiGLE DB Network',
     path: '/api/wigle/network/:bssid',
     method: 'GET',
@@ -935,6 +1086,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/wigle/live/:bssid',
     method: 'GET',
     params: [{ name: 'bssid', label: 'BSSID', placeholder: '00:11:22:33:44:55' }],
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -986,6 +1138,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     label: 'WiGLE User Stats',
     path: '/api/wigle/user-stats',
     method: 'GET',
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1033,6 +1186,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/wigle/search-api/import-runs/:id',
     method: 'DELETE',
     params: [{ name: 'id', label: 'Run ID', placeholder: '123', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1131,6 +1285,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/wigle/search-api/import-runs/cluster-cleanup',
     method: 'DELETE',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1146,6 +1301,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "term": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1154,6 +1310,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'DELETE',
     requiresAuth: true,
     params: [{ name: 'id', label: 'Term ID', placeholder: '1', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'WiGLE',
@@ -1350,6 +1507,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/import-history',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1357,6 +1515,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/device-sources',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1371,6 +1530,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       { name: 'sortBy', label: 'Sort By', placeholder: 'moved_at,bssid,observations_imported' },
       { name: 'sortDir', label: 'Sort Dir', placeholder: 'desc,asc' },
     ],
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1416,6 +1576,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'GET',
     requiresAuth: true,
     params: [{ name: 'limit', label: 'Limit', defaultValue: '500', type: 'number' }],
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1424,6 +1585,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/wigle-kml-sync/status',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1436,6 +1598,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       { name: 'limit', label: 'Limit', defaultValue: '100', type: 'number' },
       { name: 'pageStart', label: 'Page Start', defaultValue: '0', type: 'number' },
     ],
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1454,6 +1617,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/import/wigle',
     method: 'POST',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Import',
@@ -1489,6 +1653,28 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       '{\n  "s3Key": "uploads/case001/20260601/upload-id-scan.sqlite",\n  "sourceTag": "mobile-unit-1",\n  "deviceModel": "Pixel 9",\n  "deviceId": "abc123"\n}',
     manualOnly: true,
   },
+  {
+    category: 'Mobile Ingest',
+    label: 'Request Upload URL (root alias)',
+    description:
+      'Root-mounted alias for generating a presigned S3 URL. Requires Bearer API key (SHADOWCHECK_API_KEY).',
+    path: '/v1/ingest/request-upload',
+    method: 'POST',
+    defaultBody:
+      '{\n  "fileName": "scan.sqlite",\n  "case_id": "case001",\n  "filesize": 1048576\n}',
+    manualOnly: true,
+  },
+  {
+    category: 'Mobile Ingest',
+    label: 'Complete Upload (root alias)',
+    description:
+      'Root-mounted alias that verifies an S3 upload and records it for ETL. Requires Bearer API key (SHADOWCHECK_API_KEY).',
+    path: '/v1/ingest/complete',
+    method: 'POST',
+    defaultBody:
+      '{\n  "s3Key": "uploads/case001/20260601/upload-id-scan.sqlite",\n  "sourceTag": "mobile-unit-1",\n  "deviceModel": "Pixel 9",\n  "deviceId": "abc123"\n}',
+    manualOnly: true,
+  },
 
   // ── Admin System ──────────────────────────────────────────────────────────
   {
@@ -1504,6 +1690,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/settings/runtime',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1511,6 +1698,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/settings/jobs/status',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1518,6 +1706,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/db-stats',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1525,6 +1714,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/pgadmin/status',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1532,6 +1722,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/geocoding/stats',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1539,6 +1730,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/geocoding/daemon',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1546,6 +1738,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/backup/s3',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1553,6 +1746,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/aws/overview',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1600,6 +1794,26 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin System',
+    label: 'Legacy JSON Backup',
+    description: 'Export database records as a JSON download.',
+    path: '/api/backup',
+    method: 'GET',
+    requiresAuth: true,
+    manualOnly: true,
+  },
+  {
+    category: 'Admin System',
+    label: 'Legacy JSON Restore',
+    description: 'Upload a JSON backup and truncate existing data before restore processing.',
+    path: '/api/restore',
+    method: 'POST',
+    requiresAuth: true,
+    contentType: 'multipart/form-data',
+    manualOnly: true,
+    isDestructive: true,
+  },
+  {
+    category: 'Admin System',
     label: 'Delete S3 Backup',
     path: '/api/admin/backup/s3/:key',
     method: 'DELETE',
@@ -1638,6 +1852,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "address": "1600 Pennsylvania Ave NW, Washington DC"\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1677,6 +1892,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/settings/',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1685,6 +1901,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'GET',
     requiresAuth: true,
     params: [{ name: 'key', label: 'Key', placeholder: 'enable_background_jobs' }],
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1727,6 +1944,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/secrets',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin System',
@@ -1904,6 +2122,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/admin/siblings/refresh/status',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -2061,6 +2280,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'POST',
     requiresAuth: true,
     defaultBody: '{\n  "bssid": "00:11:22:33:44:55",\n  "note": ""\n}',
+    manualOnly: true,
   },
   {
     category: 'Admin Analysis',
@@ -2151,6 +2371,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     defaultBody:
       '{\n  "networks": [{"bssid":"AA:BB:CC:DD:EE:FF","ssid":"TestNet","threat_score":75}],\n  "question": "Is this a surveillance threat?"\n}',
+    manualOnly: true,
   },
   {
     category: 'Claude / AI',
@@ -2167,6 +2388,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     params: [{ name: 'id', label: 'Insight ID', placeholder: '1', type: 'number' }],
     defaultBody: '{\n  "useful": true\n}',
+    manualOnly: true,
   },
   {
     category: 'Claude / AI',
@@ -2174,6 +2396,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     path: '/api/claude/test',
     method: 'GET',
     requiresAuth: true,
+    manualOnly: true,
   },
 
   // ── Sibling Detection ──────────────────────────────────────────────────────

@@ -1,13 +1,17 @@
-# Manual-Only & Dangerous Endpoints
+# Operator-Gated Manual API Endpoints
 
-This document defines the REST API endpoints that are marked **`manualOnly: true`** or classified as **Dangerous/Destructive** in the ShadowCheck platform. It outlines the safety contracts for testing and automated runs.
+This document defines the REST API endpoints marked **`manualOnly: true`** or classified as
+**Dangerous/Destructive** in ShadowCheck. These endpoints remain visible and individually testable
+in the API Test Page, but are isolated from automated bulk verification.
 
 ---
 
 ## 1. Automation Safety Policy
 
 > [!CAUTION]
-> **Automated test suites, continuous integration (CI) runners, and automated QA scripts MUST NOT invoke these endpoints against any active or production database.**
+> **Bulk API Test Page runs, continuous integration (CI) runners, and automated QA scripts MUST
+> NOT invoke these endpoints. Operators may deliberately test them only against an isolated test
+> database.**
 >
 > Doing so can result in:
 >
@@ -18,13 +22,17 @@ This document defines the REST API endpoints that are marked **`manualOnly: true
 
 ### Verification & Testing Gates
 
-All integration test suites must run on mocked databases or the isolated `shadowcheck_test` database (where mutations are safe or rolled back in transactions). Any automated test verifying these endpoints must do so via unit mocks only.
+The API Test Page displays these routes in its **Manual / Destructive / External-Effect Endpoints**
+section. Selecting a preset keeps it available to the individual request panel; it does not add the
+route to bulk verification. Integration tests must use mocked databases or the isolated
+`shadowcheck_test` database, with mutations rolled back where applicable.
 
 ---
 
 ## 2. Inventory of Manual-Only / Dangerous Endpoints
 
-The following endpoints are explicitly marked `manualOnly: true` in the API Test tab (`client/src/config/apiTestEndpoints.ts`) or require manual analyst confirmation:
+The following endpoints are explicitly marked `manualOnly: true` in the API Test Page registry
+(`client/src/config/apiTestEndpoints.ts`) or otherwise belong in its operator-selected manual bucket:
 
 ### A. VISINT Evidence Ingestion
 
@@ -87,10 +95,56 @@ The following endpoints are explicitly marked `manualOnly: true` in the API Test
   - `POST /api/admin/pgadmin/destroy`
 - **Why it's unsafe**: Interacts directly with AWS EC2 resources and S3 buckets. Destroying pgAdmin deletes the active management container on the host.
 
+### F. Credentials, Settings, and External Services
+
+- **Settings reads/writes**: `/api/settings/aws`, `/api/settings/list`,
+  `/api/settings/wigle`, `/api/settings/wigle/test`, `/api/settings/mapbox`,
+  `/api/settings/smarty`, and both `GET`/`POST` forms of
+  `/api/settings/{mapbox-unlimited,google-maps,opencage,geocodio,locationiq}`.
+- **External-effect endpoints**: `GET /api/mapbox-style`, `GET /api/mapbox-proxy`,
+  `GET /api/google-maps-tile/:type/:z/:x/:y`, `POST /api/geocode`,
+  `GET|POST /api/wigle/search-api`, `GET /api/wigle/live/:bssid`,
+  `GET /api/wigle/user-stats`, `POST /api/claude/analyze-networks`,
+  `PATCH /api/claude/insights/:id/useful`, and `GET /api/claude/test`.
+- **Why it's unsafe**: These routes can expose credential-backed configuration, consume paid or
+  rate-limited services, import remote results, or write AI feedback.
+
+### G. Sensitive Operator Reads
+
+- **Admin state**: `GET /api/admin/{db-stats,pgadmin/status,secrets,settings}`,
+  `GET /api/admin/settings/:key`, `GET /api/admin/settings/jobs/status`,
+  `GET /api/admin/settings/runtime`, `GET /api/admin/aws/overview`,
+  `GET /api/admin/backup/s3`, `GET /api/admin/geocoding/{stats,daemon}`, and
+  `GET /api/admin/siblings/refresh/status`.
+- **Import state**: `GET /api/admin/{import-history,device-sources,orphan-networks,kml-imports}`,
+  `GET /api/admin/wigle-kml-sync/status`, and
+  `GET /api/admin/wigle-kml-sync/transactions`.
+- **Why it's unsafe**: Read-only HTTP semantics do not make these safe for an automated sweep;
+  they inspect privileged infrastructure, secrets, import state, or external service status.
+
+### H. Data Mutation and Legacy Aliases
+
+- **Network and account mutations**: `POST /api/auth/change-password`,
+  `POST /api/admin/network-notations/add`, `POST /api/tag-network`,
+  `DELETE /api/tag-network/:bssid`, and `POST /api/networks/tag-threats`.
+- **Import and cleanup mutations**: `POST /api/import/wigle`,
+  `DELETE /api/wigle/search-api/import-runs/:id`,
+  `DELETE /api/wigle/search-api/import-runs/cluster-cleanup`,
+  `POST /api/wigle/search-api/saved-ssid-terms`, and
+  `DELETE /api/wigle/search-api/saved-ssid-terms/:id`.
+- **Backup and mobile ingest aliases**: `GET /api/backup`, `POST /api/restore`,
+  `POST /v1/ingest/request-upload`, and `POST /v1/ingest/complete`.
+- **Why it's unsafe**: These routes change credentials or database records, delete import state,
+  truncate/restore data, create S3 upload URLs, or register uploaded artifacts.
+
 ---
 
 ## 3. Enforcement Mechanisms
 
-1. **`apiTestEndpoints.ts` Gating**: Endpoints marked `manualOnly: true` or `isDestructive: true` require manual confirmation or are hidden from automated script sweeps.
+1. **API Test Page Buckets**: Endpoints marked `manualOnly: true` or `isDestructive: true` remain
+   visible in the operator-selected manual bucket and are absent from automated bulk inputs.
 2. **`requireAdmin` Middleware**: Gated endpoints require the `admin` role, ensuring only authenticated operators with credentials stored in AWS Secrets Manager can trigger them.
 3. **Sentinels**: Sentinel actions (e.g. attaching to `VISINT_UNMATCHED`) require explicit confirmation parameters (e.g. `confirm_fallback=true`) to block silent automated executions.
+4. **Registry Regression Test**: `tests/unit/apiTestEndpointsSafety.test.ts` asserts that the
+   safety-alignment batch remains registered exactly once, appears in the manual bucket, and is
+   absent from automated bulk inputs.

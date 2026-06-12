@@ -80,7 +80,8 @@ export const ApiTestingTab: React.FC = () => {
     apiResult,
     apiError,
     runApiRequest,
-    API_PRESETS,
+    AUTOMATED_API_PRESETS,
+    MANUAL_API_PRESETS,
     testingAll,
     testAllResults,
     runAllTests,
@@ -94,8 +95,6 @@ export const ApiTestingTab: React.FC = () => {
     logout,
     apiHealth,
     loadApiHealth,
-    runDestructive,
-    setRunDestructive,
   } = useApiTesting();
 
   React.useEffect(() => {
@@ -279,15 +278,15 @@ export const ApiTestingTab: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <span className="text-xs text-slate-400">
-              Run automated check sequences against all registered endpoints sequentially with local
-              mock data.
+              Run automated checks against safe registered endpoints. Manual, destructive, and
+              external-effect presets are never included.
             </span>
             <button
               onClick={runAllTests}
               disabled={testingAll || apiLoading}
               className={`px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-500 hover:to-emerald-600 transition-all disabled:opacity-50 text-xs shadow-md shrink-0`}
             >
-              {testingAll ? 'Running Checks...' : 'Test All Endpoints'}
+              {testingAll ? 'Running Checks...' : 'Run Automated Presets'}
             </button>
           </div>
 
@@ -345,15 +344,12 @@ export const ApiTestingTab: React.FC = () => {
                                   ? 'text-slate-400'
                                   : res.resultStatus === 'validation'
                                     ? 'text-amber-400'
-                                    : res.resultStatus === 'skipped'
-                                      ? 'text-slate-500 font-normal italic'
-                                      : 'text-red-400'
+                                    : 'text-red-400'
                             }
                           >
                             {res.resultStatus === 'pass' && '✅ '}
                             {res.resultStatus === 'auth' && '🔒 '}
                             {res.resultStatus === 'validation' && '⚠️ '}
-                            {res.resultStatus === 'skipped' && '🚫 '}
                             {res.resultStatus === 'fail' && '❌ '}
                             {res.status}
                           </span>
@@ -368,17 +364,13 @@ export const ApiTestingTab: React.FC = () => {
               </div>
               <div className="bg-slate-800/80 p-2 text-right border-t border-slate-700 text-[10px] text-slate-400">
                 Tested: <strong className="text-slate-200">{testAllResults.length}</strong> /{' '}
-                {API_PRESETS.length} | ✅ Pass:{' '}
+                {AUTOMATED_API_PRESETS.length} | ✅ Pass:{' '}
                 <strong className="text-green-400">
                   {testAllResults.filter((r) => r.resultStatus === 'pass').length}
                 </strong>{' '}
                 | 🔒 Auth:{' '}
                 <strong className="text-slate-400">
                   {testAllResults.filter((r) => r.resultStatus === 'auth').length}
-                </strong>{' '}
-                | 🚫 Skipped:{' '}
-                <strong className="text-slate-500">
-                  {testAllResults.filter((r) => r.resultStatus === 'skipped').length}
                 </strong>{' '}
                 | ⚠️ Validation:{' '}
                 <strong className="text-amber-400">
@@ -391,41 +383,21 @@ export const ApiTestingTab: React.FC = () => {
               </div>
             </div>
           )}
-          <div className="flex items-center gap-2.5 bg-slate-950/30 p-3 rounded-lg border border-slate-800/50 mt-4">
-            <input
-              id="run-destructive"
-              type="checkbox"
-              checked={runDestructive}
-              onChange={(e) => setRunDestructive(e.target.checked)}
-              className="h-4.5 w-4.5 rounded border-slate-700 bg-slate-900 text-emerald-600 focus:ring-emerald-500/50 cursor-pointer"
-            />
-            <div className="flex flex-col">
-              <label
-                htmlFor="run-destructive"
-                className="text-xs font-semibold text-slate-200 select-none cursor-pointer flex items-center gap-1.5"
-              >
-                Include Destructive Tests
-                {runDestructive && (
-                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-red-950/50 text-red-400 border border-red-900/30 animate-pulse">
-                    ⚠️ Destructive Mode Active
-                  </span>
-                )}
-              </label>
-              <span className="text-[10px] text-slate-400 mt-0.5 leading-normal">
-                If enabled, destructive endpoints (e.g. Mapbox config delete, home location marker
-                delete, sibling pairs purge) will execute on the targeted database.
-              </span>
-            </div>
+          <div className="bg-slate-950/30 p-3 rounded-lg border border-slate-800/50 mt-4">
+            <span className="text-[10px] text-slate-400 leading-normal">
+              Bulk verification contains {AUTOMATED_API_PRESETS.length} safe presets. The{' '}
+              {MANUAL_API_PRESETS.length} operator-effect presets remain available below for
+              deliberate individual testing.
+            </span>
           </div>
         </div>
       </AdminCard>
 
-      {/* Quick Presets — full width */}
-      <AdminCard icon={ApiIcon} title="Quick Presets" color="from-blue-500 to-blue-600" compact>
+      <AdminCard icon={ApiIcon} title="Automated Presets" color="from-blue-500 to-blue-600" compact>
         <div className="flex flex-wrap gap-2">
-          {API_PRESETS.map((preset) => (
+          {AUTOMATED_API_PRESETS.map((preset) => (
             <button
-              key={preset.label}
+              key={`${preset.method}-${preset.path}`}
               onClick={() => selectPreset(preset)}
               className={`px-3 py-1.5 rounded-lg border text-xs text-white transition-colors font-medium ${
                 activePreset?.label === preset.label
@@ -439,11 +411,45 @@ export const ApiTestingTab: React.FC = () => {
         </div>
       </AdminCard>
 
+      <AdminCard
+        icon={LockIcon}
+        title="Manual / Destructive / External-Effect Endpoints"
+        color="from-amber-500 to-red-600"
+        compact
+      >
+        <div className="mb-3 rounded-lg border border-amber-700/50 bg-amber-950/30 p-3 text-xs text-amber-200">
+          Operator-selected testing only. Confirm the target shown above is an isolated test
+          database before sending a request. These presets are never included in bulk verification.
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {MANUAL_API_PRESETS.map((preset) => (
+            <button
+              key={`${preset.method}-${preset.path}`}
+              onClick={() => selectPreset(preset)}
+              className={`px-3 py-1.5 rounded-lg border text-xs text-white transition-colors font-medium ${
+                activePreset?.method === preset.method && activePreset?.path === preset.path
+                  ? 'bg-amber-700 border-amber-400 shadow-md'
+                  : 'border-amber-800/60 bg-amber-950/30 hover:border-amber-500/70'
+              }`}
+            >
+              <span className="mr-1 text-[9px] font-mono text-amber-300">{preset.method}</span>
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </AdminCard>
+
       {/* Request/Response — equal split */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Request Panel */}
         <AdminCard icon={UploadIcon} title="Request" color="from-purple-500 to-purple-600">
           <div className="space-y-4">
+            {(activePreset?.manualOnly || activePreset?.isDestructive) && (
+              <div className="rounded-lg border border-amber-700/50 bg-amber-950/30 p-3 text-xs text-amber-200">
+                Manual operator-effect preset selected. Verify this request targets the isolated
+                test database before sending it.
+              </div>
+            )}
             {/* Dynamic Inputs for Preset */}
             {activePreset && activePreset.params && activePreset.params.length > 0 && (
               <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50 space-y-3">

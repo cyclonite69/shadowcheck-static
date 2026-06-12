@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { ApiHealth } from '../../../types/admin';
-import { API_PRESETS, ApiPreset, HttpMethod } from './apiTestingPresets';
+import {
+  AUTOMATED_API_PRESETS,
+  MANUAL_API_PRESETS,
+  ApiPreset,
+  HttpMethod,
+} from './apiTestingPresets';
 
 export type { ApiInput, ApiPreset } from './apiTestingPresets';
 
@@ -76,7 +81,6 @@ export const useApiTesting = () => {
   const [apiResult, setApiResult] = useState<any>(null);
   const [apiError, setApiError] = useState('');
   const [apiHealth, setApiHealth] = useState<ApiHealth | null>(null);
-  const [runDestructive, setRunDestructive] = useState(false);
 
   const loadApiHealth = async () => {
     const candidates = ['/health', '/api/health'];
@@ -235,7 +239,7 @@ export const useApiTesting = () => {
       type: 'satellite',
     };
 
-    for (const preset of API_PRESETS) {
+    for (const preset of AUTOMATED_API_PRESETS) {
       let finalUrl = preset.path;
       const queryParams = new URLSearchParams();
       const replacedParams = new Set<string>();
@@ -266,42 +270,6 @@ export const useApiTesting = () => {
 
       const queryString = queryParams.toString();
       const resolvedUrl = queryString ? `${finalUrl}?${queryString}` : finalUrl;
-
-      if (preset.manualOnly) {
-        const outcome = {
-          label: preset.label,
-          category: preset.category,
-          method: preset.method,
-          path: resolvedUrl,
-          ok: true,
-          status: 'SKIPPED',
-          resultStatus: 'skipped' as const,
-          durationMs: 0,
-          body: `Skipped (Manual ${preset.contentType || 'request'} endpoint).`,
-          usedAuth: useAuthentication && isAuthenticated,
-        };
-        results.push(outcome);
-        setTestAllResults([...results]);
-        continue;
-      }
-
-      if (preset.isDestructive && !runDestructive) {
-        const outcome = {
-          label: preset.label,
-          category: preset.category,
-          method: preset.method,
-          path: resolvedUrl,
-          ok: true,
-          status: 'SKIPPED',
-          resultStatus: 'skipped' as const,
-          durationMs: 0,
-          body: 'Skipped (Destructive endpoint). Check "Include Destructive Tests" to run.',
-          usedAuth: useAuthentication && isAuthenticated,
-        };
-        results.push(outcome);
-        setTestAllResults([...results]);
-        continue;
-      }
 
       const start = performance.now();
       try {
@@ -369,7 +337,8 @@ export const useApiTesting = () => {
     apiHealth,
     loadApiHealth,
     runApiRequest,
-    API_PRESETS,
+    AUTOMATED_API_PRESETS,
+    MANUAL_API_PRESETS,
     testingAll,
     testAllResults,
     runAllTests,
@@ -381,7 +350,5 @@ export const useApiTesting = () => {
     loginError,
     login,
     logout,
-    runDestructive,
-    setRunDestructive,
   };
 };
