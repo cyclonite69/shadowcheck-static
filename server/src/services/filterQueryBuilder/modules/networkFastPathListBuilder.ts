@@ -89,7 +89,8 @@ function buildFastPathListSql(
         NULL::text AS network_id,
         n.bestlat AS raw_lat,
         n.bestlon AS raw_lon,
-        COALESCE(nms.media_count, 0)::integer AS media_count
+        COALESCE(nms.media_count, 0)::integer AS media_count,
+        nms.media_ids
       FROM app.api_network_explorer_mv ne
       LEFT JOIN app.networks n ON UPPER(n.bssid) = UPPER(ne.bssid)
       LEFT JOIN app.surveillance_detections sd ON UPPER(sd.bssid) = UPPER(ne.bssid) AND sd.false_positive = FALSE

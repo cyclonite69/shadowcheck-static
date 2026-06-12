@@ -26,7 +26,7 @@ describe('geospatial query builders', () => {
     expect(context.selectClause).toContain('ne.has_strong_sibling');
     expect(context.selectClause).toContain('ne.sibling_bssids');
     expect(context.selectClause).toContain('COALESCE(nms.media_count, 0) AS media_count');
-    expect(context.selectClause).not.toContain('media_ids');
+    expect(context.selectClause).toContain('media_ids');
     expect(context.params).toEqual([['HIGH'], 25, 10]);
   });
 

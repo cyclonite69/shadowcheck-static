@@ -64,7 +64,8 @@ export function buildGeospatialQueryContext(
         ne.has_strong_sibling,
         ne.sibling_bssids,
         ${includeStationaryConfidence ? 'ne.stationary_confidence' : 'NULL::numeric AS stationary_confidence'},
-        COALESCE(nms.media_count, 0) AS media_count
+        COALESCE(nms.media_count, 0) AS media_count,
+        nms.media_ids
       `;
 
   return {
