@@ -3,7 +3,7 @@ import { ROUTE_CONFIG } from '../../../config/routeConfig';
 
 const express = require('express');
 const router = express.Router();
-const { v2Service } = require('../../../config/container');
+const { v2Service, adminNetworkMediaService } = require('../../../config/container');
 const { asyncHandler } = require('../../../utils/asyncHandler');
 const { validators } = require('../../../utils/validators');
 
@@ -92,6 +92,39 @@ router.post(
     }
 
     res.json({ data: result, unresolved });
+  })
+);
+
+/**
+ * Serve network media thumbnail inline under user permissions
+ * GET /api/v2/networks/media/:id/thumbnail
+ *
+ * @param {string} req.params.id Media record ID
+ */
+router.get(
+  '/v2/networks/media/:id/thumbnail',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const media = await adminNetworkMediaService.getNetworkMediaThumbnail(id);
+
+    if (!media) {
+      return res.status(404).json({
+        error: { message: 'Media not found' },
+      });
+    }
+
+    if (!media.thumbnail) {
+      return res.status(404).json({
+        error: { message: 'Thumbnail not found' },
+      });
+    }
+
+    res.set({
+      'Content-Type': media.mime_type || 'image/jpeg',
+      'Content-Disposition': 'inline',
+    });
+
+    res.send(media.thumbnail);
   })
 );
 

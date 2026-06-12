@@ -439,13 +439,44 @@ export const renderNetworkTooltip = (props: any): any => {
         : '#f87171';
 
   const evidenceCount = Number(props.media_count);
-  const evidenceHtml =
-    Number.isFinite(evidenceCount) && evidenceCount > 0
-      ? `
+  let evidenceHtml = '';
+  if (Number.isFinite(evidenceCount) && evidenceCount > 0) {
+    const mediaIds = Array.isArray(props.media_ids) ? props.media_ids : [];
+    const displayedIds = mediaIds.slice(0, 3);
+    const remainingCount = mediaIds.length - displayedIds.length;
+
+    const imgElements = displayedIds
+      .map(
+        (id: string) => `
+        <div style="position:relative;width:56px;height:56px;background:#0f172a;border-radius:4px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <img 
+            src="/api/v2/networks/media/${id}/thumbnail" 
+            style="max-width:100%;max-height:100%;object-fit:cover;"
+            data-media-id="${id}"
+            loading="lazy"
+            alt="thumbnail"
+          />
+        </div>`
+      )
+      .join('');
+
+    const remainingBadge =
+      remainingCount > 0
+        ? `
+        <div style="width:56px;height:56px;background:rgba(255,255,255,0.05);border-radius:4px;border:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:rgba(255,255,255,0.7);font-family:monospace;font-weight:bold;">
+          +${remainingCount}
+        </div>`
+        : '';
+
+    evidenceHtml = `
       <div style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.01);">
-        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);">Evidence Attachments: ${evidenceCount}</div>
-      </div>`
-      : '';
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.3);margin-bottom:6px;">Evidence Attachments (${evidenceCount})</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${imgElements}
+          ${remainingBadge}
+        </div>
+      </div>`;
+  }
 
   return `
 <div style="width:288px;max-width:min(340px, 90vw);max-height:min(600px, 90vh);background:#1a1d23;border:2px solid ${bc};border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#fff;box-sizing:border-box;overflow:hidden;">

@@ -775,6 +775,14 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
       { name: 'enabled', label: 'Enabled (JSON)', defaultValue: '{}' },
     ],
   },
+  {
+    category: 'Networks v2',
+    label: 'Network Media Thumbnail (v2)',
+    description: 'Get thumbnail raw bytes for a network media record under user permissions.',
+    path: '/api/v2/networks/media/:id/thumbnail',
+    method: 'GET',
+    params: [{ name: 'id', label: 'Media ID', placeholder: '123' }],
+  },
 
   // ── Public Analytics ────────────────────────────────────────────────────────
   {

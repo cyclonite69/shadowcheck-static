@@ -53,6 +53,19 @@ export async function selectNetworkMediaFile(id: string): Promise<any | null> {
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
+/**
+ * Select only mime_type and thumbnail columns for a media record to avoid transferring the large media_data blob.
+ *
+ * @param {string} id Media record ID
+ * @returns {Promise<any | null>} Object with mime_type and thumbnail bytes, or null
+ */
+export async function selectNetworkMediaThumbnail(id: string): Promise<any | null> {
+  const result = await query('SELECT mime_type, thumbnail FROM app.network_media WHERE id = $1', [
+    id,
+  ]);
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
 export async function insertNetworkNotation(
   bssid: string,
   text: string,

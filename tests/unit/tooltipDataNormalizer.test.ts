@@ -159,11 +159,11 @@ describe('normalizeTooltipData', () => {
     expect(withoutIntel).not.toContain('data-vendor-intel');
   });
 
-  it('renders evidence counts without exposing admin media URLs', () => {
+  it('renders evidence counts and exposes user-accessible thumbnail URLs in the tooltip', () => {
     const normalized = normalizeTooltipData({
       bssid: 'AA:BB:CC:DD:EE:FF',
       media_count: '3',
-      media_ids: [1, 2, 3],
+      media_ids: ['1', '2', '3'],
     });
     const html = renderNetworkTooltip({
       ...normalized,
@@ -171,8 +171,10 @@ describe('normalizeTooltipData', () => {
     });
 
     expect(normalized.media_count).toBe(3);
-    expect('media_ids' in normalized).toBe(false);
-    expect(html).toContain('Evidence Attachments: 3');
-    expect(html).not.toContain('/api/admin/network-media/');
+    expect(normalized.media_ids).toEqual(['1', '2', '3']);
+    expect(html).toContain('Evidence Attachments (3)');
+    expect(html).toContain('/api/v2/networks/media/1/thumbnail');
+    expect(html).toContain('/api/v2/networks/media/2/thumbnail');
+    expect(html).toContain('/api/v2/networks/media/3/thumbnail');
   });
 });

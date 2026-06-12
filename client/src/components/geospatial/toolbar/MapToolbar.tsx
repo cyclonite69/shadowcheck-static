@@ -50,6 +50,8 @@ interface MapToolbarProps {
   onToggleCourthousesPanel?: () => void;
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
+  showPhotoLocations?: boolean;
+  onTogglePhotoLocations?: (value: boolean) => void;
   onResetBearing?: () => void;
   onResetPitch?: () => void;
 }
@@ -134,6 +136,8 @@ export const MapToolbar = ({
   onToggleCourthousesPanel,
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
+  showPhotoLocations = false,
+  onTogglePhotoLocations,
   onResetBearing,
   onResetPitch,
 }: MapToolbarProps) => {
@@ -215,6 +219,8 @@ export const MapToolbar = ({
           wigleLoading={wigleLoading}
           wigleActive={wigleActive}
           selectedCount={selectedCount}
+          showPhotoLocations={showPhotoLocations}
+          onTogglePhotoLocations={onTogglePhotoLocations}
         />
 
         <Separator />

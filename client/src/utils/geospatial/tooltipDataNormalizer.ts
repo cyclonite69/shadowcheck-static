@@ -238,5 +238,6 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     public_nonstationary_flag: Boolean(raw.public_nonstationary_flag),
     public_ssid_variant_flag: Boolean(raw.public_ssid_variant_flag),
     media_count: toNumberOrNull(raw.media_count),
+    media_ids: raw.media_ids || null,
   };
 };

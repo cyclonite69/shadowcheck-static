@@ -22,7 +22,7 @@ export const createUnmatchedMediaHandler =
         bssid: point.bssid,
         filename: point.filename,
         captured_at: point.exif_captured_at,
-        thumbnail_url: `/api/admin/network-media/${point.id}/inline?thumbnail=true`,
+        thumbnail_url: `/api/v2/networks/media/${point.id}/thumbnail`,
       },
     }));
 

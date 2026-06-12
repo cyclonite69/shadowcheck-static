@@ -86,6 +86,8 @@ interface OverlayTogglesProps {
   wigleLoading?: boolean;
   wigleActive?: boolean;
   selectedCount?: number;
+  showPhotoLocations?: boolean;
+  onTogglePhotoLocations?: (value: boolean) => void;
 }
 
 export const OverlayToggles = ({
@@ -96,6 +98,8 @@ export const OverlayToggles = ({
   wigleLoading,
   wigleActive,
   selectedCount,
+  showPhotoLocations = false,
+  onTogglePhotoLocations,
 }: OverlayTogglesProps) => {
   return (
     <div
@@ -124,6 +128,26 @@ export const OverlayToggles = ({
       >
         <span className="hidden-narrow">Markers</span>
       </button>
+      {onTogglePhotoLocations && (
+        <button
+          onClick={() => onTogglePhotoLocations(!showPhotoLocations)}
+          title="Show/hide photo precise locations from unmatched VISINT media attachments"
+          style={{
+            height: '30px',
+            padding: '0 10px',
+            borderRadius: '6px',
+            border: 'none',
+            fontSize: '11px',
+            ...mono,
+            letterSpacing: '0.04em',
+            cursor: 'pointer',
+            background: showPhotoLocations ? 'rgba(236,72,153,0.12)' : 'transparent',
+            color: showPhotoLocations ? '#ec4899' : 'var(--nav-text-inactive)',
+          }}
+        >
+          <span className="hidden-narrow">Photos</span>
+        </button>
+      )}
       {onWigle && (
         <button
           onClick={onWigle}

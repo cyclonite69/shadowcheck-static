@@ -259,4 +259,9 @@ export const networkApi = {
       return { data: [], unresolved: {} };
     }
   },
+
+  /** Fetch unmatched media features as GeoJSON */
+  async getUnmatchedMediaGeoJson(): Promise<any> {
+    return apiClient.get<any>('/v2/networks/filtered/unmatched-media');
+  },
 };

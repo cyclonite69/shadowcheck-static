@@ -58,6 +58,22 @@ export const useMapPopups = (_mapRef: any, mapboxRef: any) => {
         // Register this popup and close any previous one (single tooltip at a time)
         popupStateManager.setActive(popup);
 
+        // Click delegation for media thumbnail preview expand
+        const popupEl = popup.getElement();
+        if (popupEl) {
+          popupEl.addEventListener('click', (ev: MouseEvent) => {
+            const target = (ev.target as HTMLElement).closest(
+              '[data-media-id]'
+            ) as HTMLElement | null;
+            if (target) {
+              const mediaId = target.getAttribute('data-media-id');
+              if (mediaId) {
+                window.open(`/api/admin/network-media/${mediaId}/inline`, '_blank');
+              }
+            }
+          });
+        }
+
         // Setup drag functionality
         dragStateRef.current = setupPopupDrag(popup, (_offset) => {
           // Drag handler (tether line removed)
