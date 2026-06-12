@@ -170,6 +170,10 @@ Fast paginated threat detection.
 
 Advanced threat detection with speed calculations.
 
+### GET /api/reports/threat/:bssid
+
+Generate a threat report for one network in JSON, Markdown, HTML, or PDF format.
+
 ### GET /api/v2/threats/map
 
 Threat data optimized for map display.
@@ -787,6 +791,10 @@ Check WiGLE API connectivity and status.
 }
 ```
 
+### GET /api/wigle/user-stats
+
+Retrieve cached WiGLE account statistics and rank.
+
 ### GET /api/wigle/live/:bssid
 
 Live WiGLE data for a BSSID.
@@ -810,6 +818,10 @@ Fetch WiGLE v3 networks for map testing. **Forensic Note:** Results are automati
 ### GET /api/wigle/kml-points
 
 Returns filtered, paginated KML point data for map display. Requires an authenticated user.
+
+### GET /api/wigle/kml-bssid-summary
+
+Retrieve aggregate KML observation statistics for one BSSID.
 
 ### GET /api/wigle/search-api 🔒
 
@@ -870,6 +882,10 @@ Return the current WiGLE request-ledger quota status (daily call counts, remaini
 }
 ```
 
+### GET /api/wigle/ledger 🔒
+
+List WiGLE request-ledger events and import runs with cursor pagination.
+
 ### GET /api/wigle/search-api/import-runs 🔒
 
 List and query WiGLE V2 search import runs. Requires admin role.
@@ -885,6 +901,18 @@ List and query WiGLE V2 search import runs. Requires admin role.
 - `sortBy` (string, optional) — Sort column
 - `sortDir` (string, optional) — Sort direction (`asc` | `desc`)
 
+### GET /api/wigle/search-api/import-runs/completeness/summary 🔒
+
+Retrieve import-run completeness reporting by search term and state.
+
+### GET /api/wigle/search-api/import-runs/:id 🔒
+
+Retrieve one WiGLE import run by ID.
+
+### GET /api/wigle/search-api/import-runs/resumable/latest 🔒
+
+Retrieve the latest resumable WiGLE import run matching the query.
+
 ### POST /api/wigle/search-api/import-runs/:id/resume 🔒
 
 Resume a paused or failed WiGLE import run from its last saved cursor checkpoint. Requires admin role.
@@ -896,6 +924,10 @@ Pause a running WiGLE import run at the next page iteration boundary. Requires a
 ### POST /api/wigle/search-api/import-runs/:id/cancel 🔒
 
 Permanently cancel/stop an import run. Requires admin role.
+
+### GET /api/wigle/search-api/saved-ssid-terms 🔒
+
+List saved SSID search terms used by WiGLE imports.
 
 ### PATCH /api/wigle/soft-limits 🔒
 
@@ -1073,6 +1105,14 @@ List configured observation device sources.
 ### GET /api/admin/kml-imports 🔒
 
 List local KML import files and their processing status.
+
+### GET /api/admin/wigle-kml-sync/status 🔒
+
+Retrieve WiGLE KML sync readiness and local KML import totals.
+
+### GET /api/admin/wigle-kml-sync/transactions 🔒
+
+List remote WiGLE KML upload transactions.
 
 ### GET /api/admin/orphan-networks 🔒
 
