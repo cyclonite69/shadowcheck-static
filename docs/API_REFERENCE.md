@@ -969,10 +969,6 @@ Lookup manufacturer from MAC OUI.
 
 Check for duplicate observations.
 
-### GET /api/demo/oui-grouping
-
-OUI grouping demo page.
-
 ### POST /api/geocode
 
 Geocode an address.
@@ -1063,12 +1059,6 @@ Get complete network summary.
 ### GET /api/admin/test
 
 Test admin routes.
-
-### GET /api/admin/simple-test
-
-Simple test route.
-
----
 
 ## Network Siblings Admin
 

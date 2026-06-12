@@ -7,14 +7,6 @@ const logger = require('../../../logging/logger');
 const router = Router();
 
 /**
- * GET /demo/oui-grouping
- * Serves the OUI grouping demo page.
- */
-router.get('/demo/oui-grouping', (req: Request, res: Response) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'oui-grouping-demo.html'));
-});
-
-/**
  * GET /api/data-quality
  * Returns data quality metrics for observations.
  */

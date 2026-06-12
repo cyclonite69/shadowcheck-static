@@ -103,6 +103,7 @@
 * **api:** optimize filtered network-only queries and notes predicate ([782e59d](https://github.com/cyclonite69/shadowcheck-web/commit/782e59dfd342be44af8b8de63b1244c4dda7b52d))
 * **api:** prevent filtered dashboard metrics fallback to zeros ([7a0c94f](https://github.com/cyclonite69/shadowcheck-web/commit/7a0c94fb5dc2c69343f8314b69fb5724641c8ca0))
 * **api:** qualify sort columns with ne. alias to prevent 500 ambiguity errors ([dbf0db2](https://github.com/cyclonite69/shadowcheck-web/commit/dbf0db21f582d06af77b08362c47750a37ed9aec))
+* **api:** remove obsolete helper routes ([0db57ec](https://github.com/cyclonite69/shadowcheck-web/commit/0db57ec47b751430c891989204c5cc492d1aa2a5))
 * **api:** resolve /api/json and ml score-all query failures ([ddedc7d](https://github.com/cyclonite69/shadowcheck-web/commit/ddedc7dadecfde7b75941ee62c559c5462c2b72c))
 * **api:** restore /admin prefix to admin routes to fix 404s ([17840fa](https://github.com/cyclonite69/shadowcheck-web/commit/17840fae1c476f26a92a6d3b83592b39a4f18a15))
 * **api:** scope threat severity counts by radioTypes filter ([adf27b2](https://github.com/cyclonite69/shadowcheck-web/commit/adf27b28467954ce6c4a481af5c526b148755dd2))

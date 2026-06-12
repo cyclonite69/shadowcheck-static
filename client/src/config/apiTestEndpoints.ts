@@ -2032,20 +2032,6 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Admin System',
-    label: 'Admin Simple Test',
-    path: '/api/admin/simple-test',
-    method: 'GET',
-    requiresAuth: true,
-  },
-  {
-    category: 'Admin System',
-    label: 'Admin Notes Test',
-    path: '/api/admin/notes-test',
-    method: 'GET',
-    requiresAuth: true,
-  },
-  {
-    category: 'Admin System',
     label: 'Admin Add Note (legacy)',
     path: '/api/admin/add-note',
     method: 'POST',

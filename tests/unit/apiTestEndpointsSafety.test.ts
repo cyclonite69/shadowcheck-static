@@ -111,6 +111,10 @@ describe('API test endpoint safety registry', () => {
       { method: 'DELETE', path: '/api/location-markers/:id' },
       { method: 'GET', path: '/api/wigle/observations/aggregated' },
       { method: 'GET', path: '/api/wigle/observations/extent' },
+      { method: 'GET', path: '/api/demo/oui-grouping' },
+      { method: 'GET', path: '/api/test-location' },
+      { method: 'GET', path: '/api/admin/notes-test' },
+      { method: 'GET', path: '/api/admin/simple-test' },
     ];
 
     staleEntries.forEach((stale) => {
@@ -126,13 +130,7 @@ describe('API test endpoint safety registry', () => {
     // These routes exist in the Express backend codebase but are intentionally
     // omitted from the testing registry. Parity should not cover:
     // - Duplicate aliases (/api/dashboard-metrics)
-    // - Developer/test helper routes (/api/test-location)
-    // - Duplicate demo page routes (/api/demo/oui-grouping)
-    const intentionalOmissions = [
-      { method: 'GET', path: '/api/dashboard-metrics' },
-      { method: 'GET', path: '/api/demo/oui-grouping' },
-      { method: 'GET', path: '/api/test-location' },
-    ];
+    const intentionalOmissions = [{ method: 'GET', path: '/api/dashboard-metrics' }];
 
     intentionalOmissions.forEach((omission) => {
       const match = API_ENDPOINTS.find(

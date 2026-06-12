@@ -242,14 +242,14 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 
 - Mounted at `/api` (Gated by `userGate`).
 - Source: `server/src/api/routes/v1/location-markers.ts` & `home-location.ts`
-  | Method | Full Path | Source File | Classification | Documented | Notes |
-  | ------ | ---------------------------- | --------------------------- | --------------------------- | ---------- | ------------------------- |
-  | GET | `/api/location-markers` | `location-markers.ts` (L9) | Stable Public | Yes | |
-  | GET | `/api/location-markers/home` | `location-markers.ts` (L18) | Stable Public | Yes | |
-  | POST | `/api/location-markers/home` | `location-markers.ts` (L27) | Stable Public | Yes | |
-  | DELETE | `/api/location-markers/home` | `location-markers.ts` (L65) | Stable Public / Destructive | Yes | |
-  | GET | `/api/test-location` | `location-markers.ts` (L74) | Internal Detail / Test-only | No | Mock coordinate generator |
-  | GET | `/api/home-location` | `home-location.ts` (L23) | Stable Public | Yes | |
+
+| Method | Full Path                    | Source File                 | Classification              | Documented | Notes |
+| ------ | ---------------------------- | --------------------------- | --------------------------- | ---------- | ----- |
+| GET    | `/api/location-markers`      | `location-markers.ts` (L9)  | Stable Public               | Yes        |       |
+| GET    | `/api/location-markers/home` | `location-markers.ts` (L18) | Stable Public               | Yes        |       |
+| POST   | `/api/location-markers/home` | `location-markers.ts` (L27) | Stable Public               | Yes        |       |
+| DELETE | `/api/location-markers/home` | `location-markers.ts` (L65) | Stable Public / Destructive | Yes        |       |
+| GET    | `/api/home-location`         | `home-location.ts` (L23)    | Stable Public               | Yes        |       |
 
 ---
 
@@ -326,8 +326,6 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | ------ | ------------------------------------------------ | ---------------------------------- | ------------------------------ | ---------- | ----------------------------- |
 | GET    | `/api/observations/check-duplicates/:bssid`      | `admin.ts` (L83)                   | Admin / Operator               | Yes        |                               |
 | GET    | `/api/admin/test`                                | `admin.ts` (L118)                  | Internal / Test-only           | Yes        |                               |
-| GET    | `/api/admin/simple-test`                         | `admin.ts` (L123)                  | Internal / Test-only           | Yes        |                               |
-| GET    | `/api/admin/notes-test`                          | `admin.ts` (L128)                  | Internal / Test-only           | No         |                               |
 | POST   | `/api/admin/add-note`                            | `admin.ts` (L133)                  | Deprecated / Legacy            | Yes        | Replaced by network-notes     |
 | GET    | `/api/admin/network-summary/:bssid`              | `admin.ts` (L145)                  | Admin / Operator               | Yes        |                               |
 | GET    | `/api/demo/context-menu`                         | `admin.ts` (L169)                  | Internal Detail                | Yes        | Context menu html page        |

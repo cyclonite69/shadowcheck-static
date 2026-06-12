@@ -119,16 +119,6 @@ router.get('/admin/test', async (req: any, res: any) => {
   res.json({ message: 'Admin routes are working!' });
 });
 
-// Simple test route to verify new routes work
-router.get('/admin/simple-test', (req: any, res: any) => {
-  res.json({ ok: true, message: 'Simple test route working' });
-});
-
-// Test notes route
-router.get('/admin/notes-test', (req: any, res: any) => {
-  res.json({ ok: true, message: 'Notes route working' });
-});
-
 // Add note endpoint
 router.post('/admin/add-note', async (req: any, res: any) => {
   try {

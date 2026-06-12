@@ -70,9 +70,4 @@ router.delete(
   })
 );
 
-// TEST endpoint
-router.get('/test-location', async (req: Request, res: Response) => {
-  res.json({ message: 'Location routes working!' });
-});
-
 module.exports = router;
