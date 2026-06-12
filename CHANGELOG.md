@@ -103,7 +103,7 @@
 * **api:** optimize filtered network-only queries and notes predicate ([782e59d](https://github.com/cyclonite69/shadowcheck-web/commit/782e59dfd342be44af8b8de63b1244c4dda7b52d))
 * **api:** prevent filtered dashboard metrics fallback to zeros ([7a0c94f](https://github.com/cyclonite69/shadowcheck-web/commit/7a0c94fb5dc2c69343f8314b69fb5724641c8ca0))
 * **api:** qualify sort columns with ne. alias to prevent 500 ambiguity errors ([dbf0db2](https://github.com/cyclonite69/shadowcheck-web/commit/dbf0db21f582d06af77b08362c47750a37ed9aec))
-* **api:** remove /api/dashboard-metrics legacy alias ([cb0b1d6](https://github.com/cyclonite69/shadowcheck-web/commit/cb0b1d6036594d6b0b7ad6a7871982588823b6fe))
+* **api:** remove /api/dashboard-metrics legacy alias ([83027d6](https://github.com/cyclonite69/shadowcheck-web/commit/83027d6a2000372055201cd04cd77c99a4115ffb))
 * **api:** remove obsolete helper routes ([4137011](https://github.com/cyclonite69/shadowcheck-web/commit/4137011be2ad7b48c3a57c203adea28eb3f6d4ce))
 * **api:** resolve /api/json and ml score-all query failures ([ddedc7d](https://github.com/cyclonite69/shadowcheck-web/commit/ddedc7dadecfde7b75941ee62c559c5462c2b72c))
 * **api:** restore /admin prefix to admin routes to fix 404s ([17840fa](https://github.com/cyclonite69/shadowcheck-web/commit/17840fae1c476f26a92a6d3b83592b39a4f18a15))
