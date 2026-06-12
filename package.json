@@ -57,10 +57,10 @@
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "3.1045.0",
     "@aws-sdk/client-ec2": "3.1058.0",
-    "@aws-sdk/client-s3": "3.1041.0",
+    "@aws-sdk/client-s3": "3.1058.0",
     "@aws-sdk/client-secrets-manager": "3.1048.0",
     "@aws-sdk/client-sts": "3.1047.0",
-    "@aws-sdk/s3-request-presigner": "3.1045.0",
+    "@aws-sdk/s3-request-presigner": "3.1058.0",
     "@deck.gl/core": "9.3.1",
     "@deck.gl/layers": "9.3.2",
     "@deck.gl/react": "9.3.2",

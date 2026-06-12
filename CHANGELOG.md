@@ -1361,7 +1361,7 @@
 * **visint:** add media thumbnails and evidence counts ([3d07a3b](https://github.com/cyclonite69/shadowcheck-web/commit/3d07a3b24035b6701812de1469ee7f29a8073c88))
 * **visint:** add media-count highlight layer to geospatial explorer ([e3a020a](https://github.com/cyclonite69/shadowcheck-web/commit/e3a020ae810806af1dd752d999aa8acd03c05038))
 * **visint:** add unmatched-media GeoJSON endpoint ([1b66815](https://github.com/cyclonite69/shadowcheck-web/commit/1b66815b7befc92d02c177a0b1c746aec9cd0dda))
-* **visint:** add user-gated thumbnail endpoint for map tooltip previews ([54869a7](https://github.com/cyclonite69/shadowcheck-web/commit/54869a760a313e382d295c87c41742967bb5a8f5))
+* **visint:** add user-gated thumbnail endpoint for map tooltip previews ([4fe2d3a](https://github.com/cyclonite69/shadowcheck-web/commit/4fe2d3aeed0e01da70126bcb4d7136d28931527d))
 * **visint:** add VisINT auto-correlation pipeline ([d149d1e](https://github.com/cyclonite69/shadowcheck-web/commit/d149d1efbc688b2c8ef7cde080b79603da9c0f07))
 * **visint:** extend network_media_summary view with media_ids array ([55b2faf](https://github.com/cyclonite69/shadowcheck-web/commit/55b2fafb1872eeacd6f2e322d2d1b5ed10c0e7fe))
 * **visint:** migrate to multipart uploads and add exiftool dependency ([658acd4](https://github.com/cyclonite69/shadowcheck-web/commit/658acd46d82eb2130b7747f60760d5f88c7339f1))
