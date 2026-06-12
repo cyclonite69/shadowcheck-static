@@ -59,6 +59,8 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 
 | Method | Full Path                       | Source Line | Classification | Documented | Notes               |
 | ------ | ------------------------------- | ----------- | -------------- | ---------- | ------------------- |
+| POST   | `/v1/ingest/request-upload`     | L70         | Stable Public  | Yes        | Presigned S3 upload |
+| POST   | `/v1/ingest/complete`           | L117        | Stable Public  | Yes        | Records ETL job     |
 | POST   | `/api/v1/ingest/request-upload` | L70         | Stable Public  | No         | Presigned S3 upload |
 | POST   | `/api/v1/ingest/complete`       | L117        | Stable Public  | No         | Records ETL job     |
 
@@ -77,6 +79,9 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | GET    | `/api/google-maps-token`               | L224        | Stable Public  | Yes        |                               |
 | GET    | `/api/google-maps-tile/:type/:z/:x/:y` | L246        | Stable Public  | Yes        |                               |
 | POST   | `/api/geocode`                         | L11         | Stable Public  | Yes        | Mounted via `v1/geocoding.ts` |
+| POST   | `/api/import/wigle`                    | L13         | Stable Public  | Yes        | Imports local WiGLE files     |
+| GET    | `/api/data-quality`                    | L13         | Stable Public  | Yes        | Observation quality metrics   |
+| GET    | `/data-quality`                        | L13         | Stable Public  | Yes        | Legacy root-mounted alias     |
 
 ---
 
@@ -184,20 +189,21 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 - Mounted at `/api` & `/api/v2` (Gated by `userGate`).
 - Source: `server/src/api/routes/v2/`
 
-| Method | Full Path                                | Source File         | Classification  | Documented | Notes                   |
-| ------ | ---------------------------------------- | ------------------- | --------------- | ---------- | ----------------------- |
-| GET    | `/api/v2/networks`                       | `networks.ts` (L12) | Stable Public   | Yes        |                         |
-| GET    | `/api/v2/networks/:bssid`                | `networks.ts` (L26) | Stable Public   | Yes        | Details + timeline + ML |
-| GET    | `/api/v2/dashboard/metrics`              | `networks.ts` (L35) | Stable Public   | Yes        |                         |
-| GET    | `/api/v2/threats/map`                    | `networks.ts` (L43) | Stable Public   | Yes        |                         |
-| POST   | `/api/v2/networks/batch`                 | `networks.ts` (L53) | Stable Public   | No         | Batch lookup            |
-| GET    | `/api/v2/networks/filtered`              | `filtered.ts` (L32) | Stable Public   | Yes        | Universal filters list  |
-| GET    | `/api/v2/networks/filtered/geospatial`   | `filtered.ts` (L33) | Stable Public   | Yes        |                         |
-| GET    | `/api/v2/networks/filtered/observations` | `filtered.ts` (L34) | Stable Public   | Yes        |                         |
-| POST   | `/api/v2/networks/filtered/observations` | `filtered.ts` (L35) | Stable Public   | Yes        | POST-body filter        |
-| GET    | `/api/v2/networks/filtered/analytics`    | `filtered.ts` (L36) | Stable Public   | Yes        |                         |
-| GET    | `/api/v2/networks/filtered/debug`        | `filtered.ts` (L37) | Internal Detail | No         | SQL debugging output    |
-| GET    | `/api/v2/threats/severity-counts`        | `threats.ts` (L19)  | Stable Public   | Yes        |                         |
+| Method | Full Path                                | Source File           | Classification  | Documented | Notes                   |
+| ------ | ---------------------------------------- | --------------------- | --------------- | ---------- | ----------------------- |
+| GET    | `/api/v2/networks`                       | `networks.ts` (L12)   | Stable Public   | Yes        |                         |
+| GET    | `/api/v2/networks/:bssid`                | `networks.ts` (L26)   | Stable Public   | Yes        | Details + timeline + ML |
+| GET    | `/api/dashboard/metrics`                 | `dashboard.ts` (L124) | Stable Public   | Yes        | Canonical v1 metrics    |
+| GET    | `/api/v2/dashboard/metrics`              | `networks.ts` (L35)   | Stable Public   | Yes        |                         |
+| GET    | `/api/v2/threats/map`                    | `networks.ts` (L43)   | Stable Public   | Yes        |                         |
+| POST   | `/api/v2/networks/batch`                 | `networks.ts` (L53)   | Stable Public   | No         | Batch lookup            |
+| GET    | `/api/v2/networks/filtered`              | `filtered.ts` (L32)   | Stable Public   | Yes        | Universal filters list  |
+| GET    | `/api/v2/networks/filtered/geospatial`   | `filtered.ts` (L33)   | Stable Public   | Yes        |                         |
+| GET    | `/api/v2/networks/filtered/observations` | `filtered.ts` (L34)   | Stable Public   | Yes        |                         |
+| POST   | `/api/v2/networks/filtered/observations` | `filtered.ts` (L35)   | Stable Public   | Yes        | POST-body filter        |
+| GET    | `/api/v2/networks/filtered/analytics`    | `filtered.ts` (L36)   | Stable Public   | Yes        |                         |
+| GET    | `/api/v2/networks/filtered/debug`        | `filtered.ts` (L37)   | Internal Detail | No         | SQL debugging output    |
+| GET    | `/api/v2/threats/severity-counts`        | `threats.ts` (L19)    | Stable Public   | Yes        |                         |
 
 ---
 
@@ -309,6 +315,7 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | POST   | `/api/wigle/detail/bt/:netid`                            | `detail.ts` (L115)      | Admin / Operator               | Yes        |                                  |
 | POST   | `/api/wigle/import/v3`                                   | `detail.ts` (L131)      | Admin / Operator               | Yes        |                                  |
 | GET    | `/api/wigle/search-api`                                  | `search.ts` (L28)       | Admin / Operator / Manual      | Yes        | Remote API search                |
+| POST   | `/api/wigle/search-api`                                  | `search.ts` (L28)       | Admin / Operator / Manual      | Yes        | Remote API search with import    |
 | POST   | `/api/wigle/search-api/import-all`                       | `search.ts` (L61)       | Admin / Operator / Dangerous   | No         |                                  |
 | GET    | `/api/wigle/search-api/import-runs`                      | `search.ts` (L101)      | Admin / Operator               | Yes        | Docs had stale `/api/v1/` prefix |
 | GET    | `/api/wigle/search-api/import-runs/completeness/summary` | `search.ts` (L134)      | Admin / Operator               | No         |                                  |
@@ -411,6 +418,8 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | POST   | `/api/admin/aws/instances/:instanceId/stop`      | `admin/awsInstances.ts` (L40)      | Admin / Operator / Dangerous   | No         |                                    |
 | POST   | `/api/admin/aws/instances/:instanceId/reboot`    | `admin/awsInstances.ts` (L58)      | Admin / Operator / Dangerous   | No         |                                    |
 | POST   | `/api/admin/aws/instances/:instanceId/terminate` | `admin/awsInstances.ts` (L76)      | Admin / Operator / Destructive | No         |                                    |
+| GET    | `/api/backup`                                    | `backup.ts` (L9)                   | Admin / Operator               | Yes        | Legacy JSON backup export          |
+| POST   | `/api/restore`                                   | `backup.ts` (L42)                  | Admin / Operator / Destructive | Yes        | Legacy JSON restore upload         |
 | POST   | `/api/admin/backup`                              | `admin/backup.ts` (L11)            | Admin / Operator / Dangerous   | Yes        |                                    |
 | GET    | `/api/admin/backup/s3`                           | `admin/backup.ts` (L24)            | Admin / Operator               | Yes        |                                    |
 | DELETE | `/api/admin/backup/s3/:key`                      | `admin/backup.ts` (L52)            | Admin / Operator / Destructive | Yes        |                                    |

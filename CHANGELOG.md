@@ -896,7 +896,7 @@
 * **v3enrichment:** make table thead sticky ([5c42d1c](https://github.com/cyclonite69/shadowcheck-web/commit/5c42d1ca71cd6c29575daa92264d3df59fc4d50c))
 * **v3enrichment:** surface first/last seen above fold in forensic preview ([6f01446](https://github.com/cyclonite69/shadowcheck-web/commit/6f01446071fde28e1a8ab40f1ca04528f9ad78ff))
 * **validation:** add missing validateString overload for WiGLE credentials ([01b4308](https://github.com/cyclonite69/shadowcheck-web/commit/01b43087e6d1a23a2caa7ee023a5b3b9afac3d78))
-* **visint:** auto-rotate thumbnails using EXIF orientation tag ([d634336](https://github.com/cyclonite69/shadowcheck-web/commit/d6343365946b1d2951f6e1f9400e190f1b2e5dec))
+* **visint:** auto-rotate thumbnails using EXIF orientation tag ([00dee4c](https://github.com/cyclonite69/shadowcheck-web/commit/00dee4c79f36b6994a5b8b844b4523c6471d90e3))
 * **visint:** parse and apply EXIF timezone offset ([5c8bcf8](https://github.com/cyclonite69/shadowcheck-web/commit/5c8bcf8bf7da8385e915a0148446528368c0fd2a))
 * **visint:** prevent silent fallback writes ([271fda4](https://github.com/cyclonite69/shadowcheck-web/commit/271fda4881daf66de2ce0dff6fa8a0242a52bc7d))
 * weather fx and redundant header text ([4f42201](https://github.com/cyclonite69/shadowcheck-web/commit/4f42201bf63f7abe7bcf7f6c860a0636a265e009))
