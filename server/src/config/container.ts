@@ -20,7 +20,6 @@ const adminNetworkTagsService = require('../services/adminNetworkTagsService');
 const networkTagsAdminService = require('../services/admin/networkTagsAdminService');
 const settingsAdminService = require('../services/admin/settingsAdminService');
 const importExportAdminService = require('../services/admin/importExportAdminService');
-const networkNotesAdminService = require('../services/admin/networkNotesAdminService');
 const dataQualityAdminService = require('../services/admin/dataQualityAdminService');
 const siblingDetectionAdminService = require('../services/admin/siblingDetectionAdminService');
 const agencyService = require('../services/agencyService');
@@ -80,7 +79,6 @@ const container = {
   networkTagsAdminService,
   settingsAdminService,
   importExportAdminService,
-  networkNotesAdminService,
   dataQualityAdminService,
   siblingDetectionAdminService,
   agencyService,

@@ -11,7 +11,6 @@ const mockContainer = {
   },
   networkTagService: {},
   observationService: {},
-  networkNotesAdminService: {},
 };
 
 // Mock the container
