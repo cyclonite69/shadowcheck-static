@@ -296,6 +296,18 @@ Add a new note to a network.
 
 ---
 
+### PATCH /api/networks/:bssid/notes/:noteId 🔒
+
+Update an existing note for a network. Requires admin privileges.
+
+---
+
+### DELETE /api/networks/:bssid/notes/:noteId 🔒
+
+Delete a note by its ID. Requires admin privileges.
+
+---
+
 ## v2 Networks API
 
 ### GET /api/v2/networks
@@ -882,6 +894,28 @@ Local database lookup returning the full enriched network record used by the WiG
 - `:netid` (path, required) — BSSID / network ID (MAC address format validated by `macParamMiddleware`)
 
 **Response:** Enriched network object, or `404` if not found in the local WiGLE database.
+
+---
+
+### GET /api/wigle/enrichment/stats 🔒
+
+Get statistics on the number of networks that need WiGLE database enrichment. Requires admin role.
+
+### GET /api/wigle/enrichment/catalog 🔒
+
+Get a list of recent enrichment runs and execution history. Requires admin role.
+
+### POST /api/wigle/enrichment/start 🔒
+
+Start a new WiGLE v3 offline database enrichment batch run. Requires admin role.
+
+### POST /api/wigle/enrichment/resume/:runId 🔒
+
+Resume a paused or failed enrichment run by ID. Requires admin role.
+
+### POST /api/wigle/enrichment/force-clear/:runId 🔒
+
+Force clear an enrichment run state to allow starting new runs. Requires admin role.
 
 ---
 

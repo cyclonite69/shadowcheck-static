@@ -242,15 +242,14 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 
 - Mounted at `/api` (Gated by `userGate`).
 - Source: `server/src/api/routes/v1/location-markers.ts` & `home-location.ts`
-
-| Method | Full Path                             | Source File                 | Classification              | Documented | Notes                     |
-| ------ | ------------------------------------- | --------------------------- | --------------------------- | ---------- | ------------------------- |
-| GET    | `/api/location-markers`               | `location-markers.ts` (L9)  | Stable Public               | Yes        |                           |
-| GET    | `/api/location-markers/home`          | `location-markers.ts` (L18) | Stable Public               | Yes        |                           |
-| POST   | `/api/location-markers/home`          | `location-markers.ts` (L27) | Stable Public               | Yes        |                           |
-| DELETE | `/api/location-markers/home`          | `location-markers.ts` (L65) | Stable Public / Destructive | Yes        |                           |
-| GET    | `/api/location-markers/test-location` | `location-markers.ts` (L74) | Internal Detail / Test-only | No         | Mock coordinate generator |
-| GET    | `/api/home-location`                  | `home-location.ts` (L23)    | Stable Public               | Yes        |                           |
+  | Method | Full Path | Source File | Classification | Documented | Notes |
+  | ------ | ---------------------------- | --------------------------- | --------------------------- | ---------- | ------------------------- |
+  | GET | `/api/location-markers` | `location-markers.ts` (L9) | Stable Public | Yes | |
+  | GET | `/api/location-markers/home` | `location-markers.ts` (L18) | Stable Public | Yes | |
+  | POST | `/api/location-markers/home` | `location-markers.ts` (L27) | Stable Public | Yes | |
+  | DELETE | `/api/location-markers/home` | `location-markers.ts` (L65) | Stable Public / Destructive | Yes | |
+  | GET | `/api/test-location` | `location-markers.ts` (L74) | Internal Detail / Test-only | No | Mock coordinate generator |
+  | GET | `/api/home-location` | `home-location.ts` (L23) | Stable Public | Yes | |
 
 ---
 
@@ -412,3 +411,25 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 | DELETE | `/api/admin/siblings/pairs`                      | `admin/siblings.ts` (L232)         | Admin / Operator / Destructive | No         | Purges the sibling pair graph |
 | GET    | `/api/admin/networks/:bssid/detection-evidence`  | `admin/detectionEvidence.ts` (L25) | Admin / Operator               | No         |                               |
 | POST   | `/api/admin/surveillance-detections/dry-run`     | `admin/detectionEvidence.ts` (L71) | Admin / Operator / Dangerous   | No         |                               |
+
+---
+
+## 3. Mount Refactoring & Cleanup Backlog (Deferred)
+
+The following helper, duplicate, and legacy route mounts are flagged for potential removal or refactoring to keep the Express router clean and avoid exposure of unauthenticated testing interfaces:
+
+1. **`GET /api/dashboard-metrics` (in `dashboard.ts`)**
+   - _Status_: Legacy duplicate alias of `/api/dashboard/metrics` (already registered and fully covered under `/api/dashboard/metrics` and `/api/v2/dashboard/metrics`).
+   - _Reasoning_: Unused in production UI. Can be safely pruned once usage by external scripts is confirmed negative.
+
+2. **`GET /api/demo/oui-grouping` (in `dataQuality.ts`)**
+   - _Status_: Duplicate public demo HTML page route.
+   - _Reasoning_: Safe to omit from test endpoints registry. The secure version is already fully registered as `/api/admin/demo/oui-grouping` under Admin controls. The public route should be removed to prevent exposing developer demo tools.
+
+3. **`GET /api/test-location` (in `location-markers.ts`)**
+   - _Status_: Developer debug endpoint.
+   - _Reasoning_: Simple JSON debug response `{ message: "Location routes working!" }`. Offers no production value.
+
+4. **`GET /api/admin/notes-test` and `GET /api/admin/simple-test` (in `admin.ts`)**
+   - _Status_: Early-development test controllers.
+   - _Reasoning_: Return dummy string messages. Safe to prune from the admin router.
