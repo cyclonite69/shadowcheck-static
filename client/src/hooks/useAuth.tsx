@@ -123,6 +123,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [clearIdleTimer]);
 
+  // Expose logout to non-React modules (ApiClient) via authController bridge
+  useEffect(() => {
+    // lazy import to avoid circular references at module-eval time
+    import('./authController').then(({ authController }) => {
+      authController.setLogout(logout);
+      return () => authController.setLogout(async () => Promise.resolve());
+    });
+  }, [logout]);
+
   const resetIdleTimer = useCallback(() => {
     if (!user || loading) return;
 

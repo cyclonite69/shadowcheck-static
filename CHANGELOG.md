@@ -126,6 +126,7 @@
 * **auth:** pass admin hash to psql bootstrap ([68a7140](https://github.com/cyclonite69/shadowcheck-web/commit/68a7140fa8406d38d734ae976265c7cdb521ddab))
 * **auth:** preserve admin password hash during bootstrap ([c4fb0a3](https://github.com/cyclonite69/shadowcheck-web/commit/c4fb0a3a79416beca64c900ea3da56ce477bb35f))
 * **auth:** prevent silent failure in updateUserPassword when user not found ([c1d10c2](https://github.com/cyclonite69/shadowcheck-web/commit/c1d10c27fedb8be893f3eb0b12208569b4690cd5))
+* **auth:** redirect to login on 401 response instead of blank screen ([d45dbd2](https://github.com/cyclonite69/shadowcheck-web/commit/d45dbd2d861ab140e92585210b653fc9733b8267))
 * **auth:** revert Gemini regression in /auth/me, /auth/logout, /auth/change-password ([776dc1c](https://github.com/cyclonite69/shadowcheck-web/commit/776dc1cf07cce576d1a18aba3894d16ec34871ab))
 * **auth:** stop export gate from blocking login ([0a7e265](https://github.com/cyclonite69/shadowcheck-web/commit/0a7e265f17eb51769f1f074dec011f20787f51c2))
 * **auth:** support password change fallback on legacy schema ([d441918](https://github.com/cyclonite69/shadowcheck-web/commit/d44191866ae62aa160cdc38cecdaa76b2254d6bd))

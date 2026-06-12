@@ -2,7 +2,7 @@
  * Base API client with centralized fetch wrapper
  */
 
-const BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api';
+const BASE_URL = (typeof process !== 'undefined' && (process.env as any)?.VITE_API_URL) || '/api';
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
@@ -33,8 +33,7 @@ class ApiClient {
     const finalSignal = signal || controller.signal;
 
     try {
-      const isFormData =
-        typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
+      const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
       const headers = new Headers(fetchOptions.headers);
 
       if (fetchOptions.body !== undefined && fetchOptions.body !== null && !isFormData) {
@@ -49,6 +48,31 @@ class ApiClient {
       });
 
       clearTimeout(timeoutId);
+
+      // Handle 401 globally (except for auth login/logout endpoints)
+      if (response.status === 401) {
+        const lowerUrl = url.toLowerCase();
+        const isLogin = lowerUrl.includes('/auth/login');
+        const isLogout = lowerUrl.includes('/auth/logout');
+        if (!isLogin && !isLogout) {
+          try {
+            // lazy import to avoid circular deps
+            const { authController } = await import('../hooks/authController');
+            // Trigger provider logout and redirect to login (hard reload)
+            await authController.logout();
+          } catch {
+            // swallow any logout errors — we'll still redirect
+          }
+          try {
+            window.location.href = '/';
+          } catch {
+            // ignore if not available in this environment
+          }
+          const HANDLED_401 = new Error('401 handled');
+          (HANDLED_401 as any).handled = true;
+          throw HANDLED_401;
+        }
+      }
 
       const text = await response.text();
       let data: any = null;
