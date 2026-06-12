@@ -1069,6 +1069,46 @@ Remove duplicate observations.
 
 Refresh colocation data.
 
+### POST /api/admin/surveillance-detections/dry-run 🔒
+
+Run the surveillance-detection pipeline in dry-run (preview) mode. No data is persisted when `dry-run=true`.
+
+### PUT /api/admin/users/:id/active 🔒
+
+Set the active state for a user (activate/deactivate account). Request body: `{ "active": true|false }`.
+
+### PUT /api/admin/users/:id/password 🔒
+
+Force a user password reset. Admins may set a temporary password or trigger a reset email.
+
+### POST /api/admin/wigle-kml-sync/sync 🔒
+
+Trigger an immediate WiGLE KML synchronization job (admin-only).
+
+### POST /api/auth/change-password
+
+Change the current authenticated user's password. Requires current password confirmation.
+
+### GET /api/demo/context-menu
+
+Return demo context-menu payload used by UI prototypes (non-production/demo use).
+
+### GET /api/manufacturer/:bssid/networks
+
+List networks associated with the given manufacturer's OUI (useful for vendor grouping and analytics).
+
+### GET /api/media/:filename
+
+Serve a stored media file (image/video) by filename.
+
+### DELETE /api/settings/mapbox/:label 🔒
+
+Remove a configured Mapbox token identified by `:label` from the runtime config.
+
+### POST /api/settings/smarty 🔒
+
+Update Smarty (address verification) integration settings (admin-only).
+
 ### POST /api/admin/add-note 🔒
 
 Add a free-form administrative note to the system audit log (admin-only). Useful for tagging runs, import notes, or operator annotations.
