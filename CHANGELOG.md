@@ -347,6 +347,7 @@
 * **geospatial:** add column layout reset and activity tooltips ([7ea4dbf](https://github.com/cyclonite69/shadowcheck-web/commit/7ea4dbfa3b7d26aa784386058e029eb980d7cc12))
 * **geospatial:** add error logging to WiGLE observation fetch ([1704685](https://github.com/cyclonite69/shadowcheck-web/commit/1704685c1b66515888d1b0a30917f37f8a1cd0a2))
 * **geospatial:** add explorer sort mappings for activity fields ([9985196](https://github.com/cyclonite69/shadowcheck-web/commit/9985196bf27b90a673982e3cf01f00f052c6bb16))
+* **geospatial:** add tag, x, y coordinates to context menu layout dependencies ([5820746](https://github.com/cyclonite69/shadowcheck-web/commit/58207467ae41bb466c2453f4334f967deaff7249))
 * **geospatial:** add WiGLE enrichment fields to explorer tooltip pipeline ([bb58cc4](https://github.com/cyclonite69/shadowcheck-web/commit/bb58cc4d263397717aa78ca47ff6a5b7a3dca376))
 * **geospatial:** align header offset and standardize temporal heatmap labeling ([3a7e0db](https://github.com/cyclonite69/shadowcheck-web/commit/3a7e0dbcfa042d53059b320eccdc648faf2489e8))
 * **geospatial:** avoid duplicate sibling unresolved warnings ([ef38729](https://github.com/cyclonite69/shadowcheck-web/commit/ef38729dc0af5e82126e5dc2dc7afd1551fad432))
