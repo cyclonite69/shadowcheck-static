@@ -1062,6 +1062,18 @@ Related endpoints:
 - `GET /api/admin/orphan-networks`
 - `POST /api/admin/orphan-networks/:bssid/check-wigle`
 
+### GET /api/admin/import-history 🔒
+
+List recent administrative data import runs.
+
+### GET /api/admin/device-sources 🔒
+
+List configured observation device sources.
+
+### GET /api/admin/kml-imports 🔒
+
+List local KML import files and their processing status.
+
 ### GET /api/admin/orphan-networks 🔒
 
 List preserved orphan network rows from `app.networks_orphans` plus backfill status from `app.orphan_network_backfills`.
@@ -1081,6 +1093,10 @@ Behavior:
 ### GET /api/admin/network-summary/:bssid 🔒
 
 Get complete network summary.
+
+### GET /api/admin/db-stats 🔒
+
+Retrieve database table, storage, and activity statistics.
 
 ### GET /api/admin/test
 
@@ -1339,6 +1355,14 @@ Update setting.
 
 Toggle ML blending.
 
+### GET /api/admin/settings/jobs/status 🔒
+
+Retrieve background job runtime status and recent history.
+
+### GET /api/admin/settings/runtime 🔒
+
+Retrieve runtime feature flags and environment-backed settings.
+
 ---
 
 ## Geocoding Admin
@@ -1486,6 +1510,10 @@ User logout.
 
 Get current user.
 
+### GET /api/admin/users 🔒
+
+List user profiles available to administrators.
+
 ### POST /api/admin/users 🔒
 
 Create a new user profile (admin only).
@@ -1505,6 +1533,18 @@ Update the AWS configurations.
 ### POST /api/settings/reload-secrets 🔒
 
 Reload cached secrets dynamically from AWS Secrets Manager.
+
+### GET /api/settings/list 🔒
+
+List configured secret-setting keys.
+
+### GET /api/settings/wigle 🔒
+
+Retrieve the configured WiGLE credential status.
+
+### GET /api/settings/smarty 🔒
+
+Retrieve the configured Smarty credential status.
 
 ### GET /api/settings/mapbox-unlimited 🔒
 
