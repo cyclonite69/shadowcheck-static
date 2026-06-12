@@ -1510,6 +1510,46 @@ Retrieve the configured Mapbox Unlimited provider setting. This admin settings e
 
 Update the Mapbox Unlimited provider setting. This admin settings endpoint is manual-only on the API Test Page.
 
+### GET /api/settings/google-maps 🔒
+
+Retrieve the configured Google Maps API key setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### POST /api/settings/google-maps 🔒
+
+Update the Google Maps API key setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### GET /api/settings/opencage 🔒
+
+Retrieve the configured OpenCage API key setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### POST /api/settings/opencage 🔒
+
+Update the OpenCage API key setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### GET /api/settings/geocodio 🔒
+
+Retrieve the configured Geocodio API key setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### POST /api/settings/geocodio 🔒
+
+Update the Geocodio API key setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### GET /api/settings/locationiq 🔒
+
+Retrieve the configured LocationIQ API key setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### POST /api/settings/locationiq 🔒
+
+Update the LocationIQ API key setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### GET /api/settings/mapbox 🔒
+
+Retrieve the configured Mapbox token setting. This admin settings endpoint is manual-only on the API Test Page.
+
+### POST /api/settings/mapbox 🔒
+
+Update the Mapbox token setting. This admin settings endpoint is manual-only on the API Test Page.
+
 ---
 
 ### POST /api/admin/backup

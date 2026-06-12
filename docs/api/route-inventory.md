@@ -101,22 +101,30 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 - Mounted at `/api` (Gated by `adminGate`).
 - Source: `server/src/api/routes/v1/settings.ts`, `settingsSecretRoutes.ts`, and `settingsMultiSecretRoutes.ts`
 
-| Method | Full Path                        | Source Line | Classification              | Documented | Notes                      |
-| ------ | -------------------------------- | ----------- | --------------------------- | ---------- | -------------------------- |
-| GET    | `/api/settings/aws`              | L24         | Stable Public               | Yes        |                            |
-| POST   | `/api/settings/aws`              | L40         | Stable Public               | Yes        |                            |
-| POST   | `/api/settings/reload-secrets`   | L61         | Stable Public               | Yes        | Reloads AWS cache          |
-| GET    | `/api/settings/mapbox-unlimited` | L57         | Admin / Operator / Manual   | Yes        | Provider setting status    |
-| POST   | `/api/settings/mapbox-unlimited` | L57         | Admin / Operator / Manual   | Yes        | Updates provider setting   |
-| GET    | `/api/settings/list`             | L172        | Stable Public               | No         | Settings registry          |
-| GET    | `/api/settings/wigle`            | L17         | Stable Public               | No         |                            |
-| POST   | `/api/settings/wigle`            | L31         | Stable Public               | No         |                            |
-| GET    | `/api/settings/wigle/test`       | L95         | Stable Public               | No         | Tests WiGLE API connection |
-| GET    | `/api/settings/mapbox`           | L126        | Stable Public               | No         |                            |
-| POST   | `/api/settings/mapbox`           | L139        | Stable Public               | No         |                            |
-| DELETE | `/api/settings/mapbox/:label`    | L163        | Stable Public / Destructive | No         |                            |
-| GET    | `/api/settings/smarty`           | L183        | Stable Public               | No         | Address normalization keys |
-| POST   | `/api/settings/smarty`           | L197        | Stable Public               | No         |                            |
+| Method | Full Path                        | Source Line | Classification              | Documented | Notes                       |
+| ------ | -------------------------------- | ----------- | --------------------------- | ---------- | --------------------------- |
+| GET    | `/api/settings/aws`              | L24         | Stable Public               | Yes        |                             |
+| POST   | `/api/settings/aws`              | L40         | Stable Public               | Yes        |                             |
+| POST   | `/api/settings/reload-secrets`   | L61         | Stable Public               | Yes        | Reloads AWS cache           |
+| GET    | `/api/settings/mapbox-unlimited` | L57         | Admin / Operator / Manual   | Yes        | Provider setting status     |
+| POST   | `/api/settings/mapbox-unlimited` | L57         | Admin / Operator / Manual   | Yes        | Updates provider setting    |
+| GET    | `/api/settings/google-maps`      | L66         | Admin / Operator / Manual   | Yes        | Provider credential status  |
+| POST   | `/api/settings/google-maps`      | L66         | Admin / Operator / Manual   | Yes        | Updates provider credential |
+| GET    | `/api/settings/opencage`         | L76         | Admin / Operator / Manual   | Yes        | Provider credential status  |
+| POST   | `/api/settings/opencage`         | L76         | Admin / Operator / Manual   | Yes        | Updates provider credential |
+| GET    | `/api/settings/geocodio`         | L85         | Admin / Operator / Manual   | Yes        | Provider credential status  |
+| POST   | `/api/settings/geocodio`         | L85         | Admin / Operator / Manual   | Yes        | Updates provider credential |
+| GET    | `/api/settings/locationiq`       | L94         | Admin / Operator / Manual   | Yes        | Provider credential status  |
+| POST   | `/api/settings/locationiq`       | L94         | Admin / Operator / Manual   | Yes        | Updates provider credential |
+| GET    | `/api/settings/list`             | L172        | Stable Public               | No         | Settings registry           |
+| GET    | `/api/settings/wigle`            | L17         | Stable Public               | No         |                             |
+| POST   | `/api/settings/wigle`            | L31         | Stable Public               | No         |                             |
+| GET    | `/api/settings/wigle/test`       | L95         | Stable Public               | No         | Tests WiGLE API connection  |
+| GET    | `/api/settings/mapbox`           | L126        | Admin / Operator / Manual   | Yes        | Provider credential status  |
+| POST   | `/api/settings/mapbox`           | L139        | Admin / Operator / Manual   | Yes        | Updates provider credential |
+| DELETE | `/api/settings/mapbox/:label`    | L163        | Stable Public / Destructive | No         |                             |
+| GET    | `/api/settings/smarty`           | L183        | Stable Public               | No         | Address normalization keys  |
+| POST   | `/api/settings/smarty`           | L197        | Stable Public               | No         |                             |
 
 ---
 
