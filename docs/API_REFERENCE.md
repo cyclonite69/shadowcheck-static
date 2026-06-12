@@ -2090,4 +2090,32 @@ Kick off a Bluetooth import run using the WiGLE search API (admin-only).
 
 ---
 
+### POST /api/wigle/search-api/import-all 🔒
+
+Trigger a full import across all saved WiGLE search terms. Starts a background import run and returns a run identifier (admin-only).
+
+### DELETE /api/wigle/search-api/import-runs/:id 🔒
+
+Delete a saved WiGLE import run and its associated artifacts by run ID. Destructive; admin-only.
+
+### DELETE /api/wigle/search-api/import-runs/cluster-cleanup 🔒
+
+Remove temporary cluster-cleanup artifacts produced during import post-processing (admin-only).
+
+### POST /api/wigle/search-api/import-runs/resume-latest 🔒
+
+Resume the most recent resumable WiGLE import run. Useful for automated recovery after failures (admin-only).
+
+### POST /api/wigle/search-api/saved-ssid-terms 🔒
+
+Create or update a saved SSID search term used for scheduled WiGLE imports.
+
+### DELETE /api/wigle/search-api/saved-ssid-terms/:id 🔒
+
+Delete a saved SSID search term by ID (admin-only).
+
+### GET /health
+
+Legacy root health-check endpoint (alias for `GET /api/health`). Returns basic service checks (database, memory).
+
 🔒 = Requires authentication (session or API key)
