@@ -104,4 +104,42 @@ describe('API test endpoint safety registry', () => {
       API_ENDPOINTS.length
     );
   });
+
+  test('stale/obsolete entries are explicitly removed from the registry', () => {
+    const staleEntries = [
+      { method: 'POST', path: '/api/location-markers' },
+      { method: 'DELETE', path: '/api/location-markers/:id' },
+      { method: 'GET', path: '/api/wigle/observations/aggregated' },
+      { method: 'GET', path: '/api/wigle/observations/extent' },
+    ];
+
+    staleEntries.forEach((stale) => {
+      const match = API_ENDPOINTS.find(
+        (endpoint) =>
+          endpoint.method === stale.method && normalizePath(endpoint.path) === stale.path
+      );
+      expect(match).toBeUndefined();
+    });
+  });
+
+  test('intentional API registry omissions remain excluded', () => {
+    // These routes exist in the Express backend codebase but are intentionally
+    // omitted from the testing registry. Parity should not cover:
+    // - Duplicate aliases (/api/dashboard-metrics)
+    // - Developer/test helper routes (/api/test-location)
+    // - Duplicate demo page routes (/api/demo/oui-grouping)
+    const intentionalOmissions = [
+      { method: 'GET', path: '/api/dashboard-metrics' },
+      { method: 'GET', path: '/api/demo/oui-grouping' },
+      { method: 'GET', path: '/api/test-location' },
+    ];
+
+    intentionalOmissions.forEach((omission) => {
+      const match = API_ENDPOINTS.find(
+        (endpoint) =>
+          endpoint.method === omission.method && normalizePath(endpoint.path) === omission.path
+      );
+      expect(match).toBeUndefined();
+    });
+  });
 });

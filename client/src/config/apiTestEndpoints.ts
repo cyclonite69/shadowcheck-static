@@ -372,24 +372,7 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     isDestructive: true,
     manualOnly: true,
   },
-  {
-    category: 'Geospatial',
-    label: 'Add Location Marker',
-    path: '/api/location-markers',
-    method: 'POST',
-    requiresAuth: true,
-    defaultBody: '{\n  "lat": 38.9,\n  "lon": -77.0,\n  "label": ""\n}',
-    manualOnly: true,
-  },
-  {
-    category: 'Geospatial',
-    label: 'Delete Location Marker',
-    path: '/api/location-markers/:id',
-    method: 'DELETE',
-    requiresAuth: true,
-    params: [{ name: 'id', label: 'Marker ID', placeholder: '1', type: 'number' }],
-    manualOnly: true,
-  },
+
   {
     category: 'Geospatial',
     label: 'Admin Home Location',
@@ -1353,43 +1336,6 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     requiresAuth: true,
     defaultBody: '{\n  "netid": "00:11:22:33:44:55"\n}',
     manualOnly: true,
-  },
-  {
-    category: 'WiGLE',
-    label: 'Aggregated Observations',
-    description:
-      'Zoom-aware spatial aggregation across active sources. Returns GeoJSON FeatureCollection of grid-cell centroids.',
-    path: '/api/wigle/observations/aggregated',
-    method: 'GET',
-    params: [
-      { name: 'west', label: 'West', defaultValue: '-125', type: 'number' },
-      { name: 'south', label: 'South', defaultValue: '24', type: 'number' },
-      { name: 'east', label: 'East', defaultValue: '-66', type: 'number' },
-      { name: 'north', label: 'North', defaultValue: '50', type: 'number' },
-      { name: 'zoom', label: 'Zoom', defaultValue: '5', type: 'number' },
-      {
-        name: 'sources',
-        label: 'Sources',
-        defaultValue: 'wigle-v2,wigle-v3,field,kml',
-        placeholder: 'wigle-v2,wigle-v3,field,kml',
-      },
-    ],
-  },
-  {
-    category: 'WiGLE',
-    label: 'Observations Extent',
-    description:
-      'Returns ST_Extent bounding box across active sources. Used by the Fit Bounds button to fly the map to data.',
-    path: '/api/wigle/observations/extent',
-    method: 'GET',
-    params: [
-      {
-        name: 'sources',
-        label: 'Sources',
-        defaultValue: 'wigle-v2,wigle-v3,field,kml',
-        placeholder: 'wigle-v2,wigle-v3,field,kml',
-      },
-    ],
   },
 
   {
