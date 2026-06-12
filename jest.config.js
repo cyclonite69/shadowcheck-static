@@ -41,6 +41,11 @@ module.exports = {
   // Module paths
   modulePaths: ['<rootDir>'],
 
+  // Map client-side modules that use Vite-specific globals to test shims
+  moduleNameMapper: {
+    '^client/src/api/client$': '<rootDir>/tests/__mocks__/apiClient.ts',
+  },
+
   // Clear mocks between tests
   clearMocks: true,
   resetMocks: true,
