@@ -131,30 +131,32 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 ### G. Networks v1
 
 - Mounted at `/api` (Gated by `userGate`).
-- Source: `server/src/api/routes/v1/networks/` (index mounts sub-files)
+- Source: `server/src/api/routes/v1/networks/` (index mounts sub-files) & `threats.ts`
 
-| Method | Full Path                                 | Source File                    | Classification              | Documented | Notes                 |
-| ------ | ----------------------------------------- | ------------------------------ | --------------------------- | ---------- | --------------------- |
-| GET    | `/api/networks`                           | `list/index.ts` (L12)          | Stable Public               | Yes        | Paginated list        |
-| GET    | `/api/networks/observations/:bssid`       | `observations.ts` (L147)       | Stable Public               | Yes        |                       |
-| GET    | `/api/networks/:bssid/wigle-observations` | `observations.ts` (L182)       | Stable Public               | Yes        |                       |
-| POST   | `/api/networks/wigle-observations/batch`  | `observations.ts` (L260)       | Stable Public               | Yes        |                       |
-| POST   | `/api/observations/correlate-visint`      | `observations.ts` (L369)       | Manual-Only / Dangerous     | Yes        | Defaults to preview   |
-| POST   | `/api/observations/attach-visint`         | `observations.ts` (L431)       | Manual-Only / Dangerous     | Yes        | Persistence           |
-| GET    | `/api/networks/search/:ssid`              | `search.ts` (L28)              | Stable Public               | Yes        |                       |
-| GET    | `/api/networks/tagged`                    | `tags.ts` (L42)                | Stable Public               | Yes        |                       |
-| POST   | `/api/tag-network`                        | `tags.ts` (L106)               | Stable Public               | No         |                       |
-| DELETE | `/api/tag-network/:bssid`                 | `tags.ts` (L157)               | Stable Public / Destructive | No         |                       |
-| POST   | `/api/networks/tag-threats`               | `tags.ts` (L180)               | Stable Public               | Yes        |                       |
-| GET    | `/api/networks/:bssid/notes`              | `notes.ts` (L27)               | Stable Public               | No         |                       |
-| POST   | `/api/networks/:bssid/notes`              | `notes.ts` (L43)               | Stable Public               | No         |                       |
-| PATCH  | `/api/networks/:bssid/notes/:noteId`      | `notes.ts` (L71)               | Stable Public               | No         |                       |
-| DELETE | `/api/networks/:bssid/notes/:noteId`      | `notes.ts` (L99)               | Stable Public / Destructive | No         |                       |
-| GET    | `/api/manufacturer/:bssid`                | `manufacturer.ts` (L40)        | Stable Public               | Yes        |                       |
-| GET    | `/api/manufacturer/:bssid/networks`       | `manufacturer.ts` (L79)        | Stable Public               | No         |                       |
-| GET    | `/api/networks/nearest-agencies/:bssid`   | `v1/network-agencies.ts` (L12) | Stable Public               | No         | Powers tooltip layers |
-| POST   | `/api/networks/nearest-agencies/batch`    | `v1/network-agencies.ts` (L34) | Stable Public               | No         |                       |
-| POST   | `/api/networks/nearest-courthouses/batch` | `v1/network-agencies.ts` (L64) | Stable Public               | No         |                       |
+| Method | Full Path                                 | Source File                    | Classification              | Documented | Notes                      |
+| ------ | ----------------------------------------- | ------------------------------ | --------------------------- | ---------- | -------------------------- |
+| GET    | `/api/networks`                           | `list/index.ts` (L12)          | Stable Public               | Yes        | Paginated list             |
+| GET    | `/api/networks/observations/:bssid`       | `observations.ts` (L147)       | Stable Public               | Yes        |                            |
+| GET    | `/api/networks/:bssid/wigle-observations` | `observations.ts` (L182)       | Stable Public               | Yes        |                            |
+| POST   | `/api/networks/wigle-observations/batch`  | `observations.ts` (L260)       | Stable Public               | Yes        |                            |
+| POST   | `/api/observations/correlate-visint`      | `observations.ts` (L369)       | Manual-Only / Dangerous     | Yes        | Defaults to preview        |
+| POST   | `/api/observations/attach-visint`         | `observations.ts` (L431)       | Manual-Only / Dangerous     | Yes        | Persistence                |
+| GET    | `/api/networks/search/:ssid`              | `search.ts` (L28)              | Stable Public               | Yes        |                            |
+| GET    | `/api/networks/tagged`                    | `tags.ts` (L42)                | Stable Public               | Yes        |                            |
+| POST   | `/api/tag-network`                        | `tags.ts` (L106)               | Stable Public               | No         |                            |
+| DELETE | `/api/tag-network/:bssid`                 | `tags.ts` (L157)               | Stable Public / Destructive | No         |                            |
+| POST   | `/api/networks/tag-threats`               | `tags.ts` (L180)               | Stable Public               | Yes        |                            |
+| GET    | `/api/networks/:bssid/notes`              | `notes.ts` (L27)               | Stable Public               | No         |                            |
+| POST   | `/api/networks/:bssid/notes`              | `notes.ts` (L43)               | Stable Public               | No         |                            |
+| PATCH  | `/api/networks/:bssid/notes/:noteId`      | `notes.ts` (L71)               | Stable Public               | No         |                            |
+| DELETE | `/api/networks/:bssid/notes/:noteId`      | `notes.ts` (L99)               | Stable Public / Destructive | No         |                            |
+| GET    | `/api/manufacturer/:bssid`                | `manufacturer.ts` (L40)        | Stable Public               | Yes        |                            |
+| GET    | `/api/manufacturer/:bssid/networks`       | `manufacturer.ts` (L79)        | Stable Public               | No         |                            |
+| GET    | `/api/networks/nearest-agencies/:bssid`   | `v1/network-agencies.ts` (L12) | Stable Public               | No         | Powers tooltip layers      |
+| POST   | `/api/networks/nearest-agencies/batch`    | `v1/network-agencies.ts` (L34) | Stable Public               | No         |                            |
+| POST   | `/api/networks/nearest-courthouses/batch` | `v1/network-agencies.ts` (L64) | Stable Public               | No         |                            |
+| GET    | `/api/threats/quick`                      | `threats.ts` (L33)             | Authenticated User          | Yes        | Paginated threat detection |
+| GET    | `/api/threats/detect`                     | `threats.ts` (L76)             | Authenticated User          | Yes        | Detailed threat analysis   |
 
 ---
 
@@ -253,14 +255,15 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 - Mounted at `/api` (Gated by `userGate`).
 - Source: `server/src/api/routes/v1/location-markers.ts` & `home-location.ts`
 
-| Method | Full Path                    | Source File                 | Classification              | Documented | Notes |
-| ------ | ---------------------------- | --------------------------- | --------------------------- | ---------- | ----- |
-| GET    | `/api/location-markers`      | `location-markers.ts` (L9)  | Stable Public               | Yes        |       |
-| GET    | `/api/location-markers/home` | `location-markers.ts` (L18) | Stable Public               | Yes        |       |
-| POST   | `/api/location-markers/home` | `location-markers.ts` (L27) | Stable Public               | Yes        |       |
-| DELETE | `/api/location-markers/home` | `location-markers.ts` (L65) | Stable Public / Destructive | Yes        |       |
-| GET    | `/api/home-location`         | `home-location.ts` (L23)    | Stable Public               | Yes        |       |
-| GET    | `/api/admin/home-location`   | `home-location.ts` (L40)    | Admin / Operator            | Yes        |       |
+| Method | Full Path                    | Source File                 | Classification              | Documented | Notes                            |
+| ------ | ---------------------------- | --------------------------- | --------------------------- | ---------- | -------------------------------- |
+| GET    | `/api/location-markers`      | `location-markers.ts` (L9)  | Stable Public               | Yes        |                                  |
+| GET    | `/api/location-markers/home` | `location-markers.ts` (L18) | Stable Public               | Yes        |                                  |
+| POST   | `/api/location-markers/home` | `location-markers.ts` (L27) | Stable Public               | Yes        |                                  |
+| DELETE | `/api/location-markers/home` | `location-markers.ts` (L65) | Stable Public / Destructive | Yes        |                                  |
+| GET    | `/api/home-location`         | `home-location.ts` (L23)    | Stable Public               | Yes        |                                  |
+| GET    | `/api/admin/home-location`   | `home-location.ts` (L40)    | Admin / Operator            | Yes        |                                  |
+| POST   | `/api/admin/home-location`   | `home-location.ts` (L58)    | Admin / Operator / Manual   | Yes        | Sets home coordinates and radius |
 
 ---
 
@@ -334,108 +337,115 @@ Previously, due to a prefix mismatch in child router nesting, the tag removal en
 - Mounted at `/api` (Gated by `adminGate` / `requireAdmin`).
 - Source: `server/src/api/routes/v1/admin/` & `admin.ts`
 
-| Method | Full Path                                        | Source File / Line                 | Classification                 | Documented | Notes                         |
-| ------ | ------------------------------------------------ | ---------------------------------- | ------------------------------ | ---------- | ----------------------------- |
-| GET    | `/api/observations/check-duplicates/:bssid`      | `admin.ts` (L83)                   | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/test`                                | `admin.ts` (L118)                  | Internal / Test-only           | Yes        |                               |
-| POST   | `/api/admin/add-note`                            | `admin.ts` (L133)                  | Deprecated / Legacy            | Yes        | Replaced by network-notes     |
-| GET    | `/api/admin/network-summary/:bssid`              | `admin.ts` (L145)                  | Admin / Operator               | Yes        |                               |
-| GET    | `/api/demo/context-menu`                         | `admin.ts` (L169)                  | Internal Detail                | Yes        | Context menu html page        |
-| POST   | `/api/admin/cleanup-duplicates`                  | `admin/maintenance.ts` (L14)       | Admin / Destructive            | Yes        |                               |
-| POST   | `/api/admin/refresh-colocation`                  | `admin/maintenance.ts` (L37)       | Admin / Dangerous              | Yes        |                               |
-| POST   | `/api/admin/import-sqlite`                       | `admin/import/sqlite.js` (L19)     | Manual-Only / Dangerous        | Yes        | SQLite wardrive upload        |
-| POST   | `/api/admin/import-sql`                          | `admin/import/sql.js` (L14)        | Manual-Only / Dangerous        | No         | SQL dump upload               |
-| POST   | `/api/admin/import-kml`                          | `admin/import/kml.js` (L48)        | Manual-Only / Dangerous        | No         | KML file list upload          |
-| GET    | `/api/admin/kml-imports`                         | `admin/import/kml.js` (L38)        | Admin / Operator               | No         |                               |
-| GET    | `/api/admin/wigle-kml-sync/status`               | `admin/import/kml.js` (L238)       | Admin / Operator               | No         |                               |
-| GET    | `/api/admin/wigle-kml-sync/transactions`         | `admin/import/kml.js` (L280)       | Admin / Operator               | No         |                               |
-| POST   | `/api/admin/wigle-kml-sync/sync`                 | `admin/import/kml.js` (L296)       | Admin / Operator / Dangerous   | No         |                               |
-| GET    | `/api/admin/orphan-networks`                     | `admin/import/orphans.js` (L14)    | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/orphan-networks/:bssid/check-wigle`  | `admin/import/orphans.js` (L40)    | Admin / Operator / Dangerous   | Yes        |                               |
-| GET    | `/api/admin/import-history`                      | `admin/import/history.js` (L9)     | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/device-sources`                      | `admin/import/history.js` (L41)    | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/import/mobile/:uploadId/start`       | `admin/import/history.js` (L19)    | Admin / Operator / Dangerous   | No         |                               |
-| POST   | `/api/admin/network-media/upload`                | `admin/media.ts` (L14)             | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/network-media/:bssid`                | `admin/media.ts` (L57)             | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/network-media/download/:id`          | `admin/media.ts` (L75)             | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/network-media/:id/inline`            | `admin/media.ts` (L105)            | Admin / Operator               | Yes        | Inline full/thumbnail media   |
-| POST   | `/api/admin/network-notations/add`               | `admin/notes.ts` (L15)             | Deprecated / Legacy            | Yes        |                               |
-| GET    | `/api/admin/network-notations/:bssid`            | `admin/notes.ts` (L47)             | Deprecated / Legacy            | Yes        |                               |
-| POST   | `/api/admin/network-notes/add`                   | `admin/notes.ts` (L65)             | Admin / Operator               | Yes        | Right-click context note      |
-| GET    | `/api/admin/network-notes/:bssid`                | `admin/notes.ts` (L100)            | Admin / Operator               | Yes        |                               |
-| DELETE | `/api/admin/network-notes/:noteId`               | `admin/notes.ts` (L123)            | Admin / Destructive            | Yes        |                               |
-| POST   | `/api/admin/network-notes/:noteId/media`         | `admin/notes.ts` (L138)            | Admin / Operator               | No         |                               |
-| GET    | `/api/admin/network-notes/:noteId/media`         | `admin/notes.ts` (L145)            | Admin / Operator               | No         |                               |
-| DELETE | `/api/admin/network-notes/media/:mediaId`        | `admin/notes.ts` (L166)            | Admin / Destructive            | No         |                               |
-| GET    | `/api/media/:filename`                           | `admin/notes.ts` (L191)            | Stable Public                  | Yes        | Serves general media files    |
-| POST   | `/api/admin/network-tags/toggle`                 | `admin/tags.ts` (L14)              | Admin / Operator / Dangerous   | Yes        | Toggle tag on/off             |
-| DELETE | `/api/admin/network-tags/remove`                 | `admin/tags.ts` (L76)              | Admin / Operator / Destructive | Yes        | Corrected from double-prefix  |
-| GET    | `/api/admin/network-tags/search`                 | `admin/tags.ts` (L104)             | Admin / Operator               | Yes        | Search networks by tags       |
-| GET    | `/api/admin/network-tags/:bssid`                 | `admin/tags.ts` (L148)             | Admin / Operator               | Yes        | Get all tags for network      |
-| GET    | `/api/admin/oui/groups`                          | `admin/oui.ts` (L21)               | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/oui/:oui/details`                    | `admin/oui.ts` (L40)               | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/oui/randomization/suspects`          | `admin/oui.ts` (L63)               | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/oui/analyze`                         | `admin/oui.ts` (L82)               | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/demo/oui-grouping`                   | `admin/oui.ts` (L102)              | Internal Detail                | No         |                               |
-| GET    | `/api/admin/pgadmin/status`                      | `admin/pgadmin.ts` (L10)           | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/pgadmin/start`                       | `admin/pgadmin.ts` (L28)           | Admin / Operator / Dangerous   | Yes        |                               |
-| POST   | `/api/admin/pgadmin/stop`                        | `admin/pgadmin.ts` (L55)           | Admin / Operator / Dangerous   | Yes        |                               |
-| POST   | `/api/admin/pgadmin/destroy`                     | `admin/pgadmin.ts` (L79)           | Admin / Operator / Destructive | No         | Removes pgadmin container     |
-| GET    | `/api/admin/secrets`                             | `admin/secrets.ts` (L16)           | Admin / Operator               | No         |                               |
-| POST   | `/api/admin/secrets/:key`                        | `admin/secrets.ts` (L29)           | Admin / Operator / Dangerous   | No         |                               |
-| DELETE | `/api/admin/secrets/:key`                        | `admin/secrets.ts` (L44)           | Admin / Operator / Destructive | No         |                               |
-| GET    | `/api/admin/settings`                            | `admin/settings.ts` (L60)          | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/settings/jobs/status`                | `admin/settings.ts` (L82)          | Admin / Operator               | No         |                               |
-| POST   | `/api/admin/settings/jobs/:jobName/run`          | `admin/settings.ts` (L92)          | Admin / Operator / Dangerous   | Yes        |                               |
-| GET    | `/api/admin/settings/runtime`                    | `admin/settings.ts` (L134)         | Admin / Operator               | No         |                               |
-| POST   | `/api/admin/settings/local-stack/:action`        | `admin/settings.ts` (L171)         | Admin / Operator / Dangerous   | No         | Rebuilds local containers     |
-| GET    | `/api/admin/settings/:key`                       | `admin/settings.ts` (L242)         | Admin / Operator               | Yes        |                               |
-| PUT    | `/api/admin/settings/:key`                       | `admin/settings.ts` (L260)         | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/settings/ml-blending/toggle`         | `admin/settings.ts` (L329)         | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/users`                               | `admin/users.ts` (L17)             | Admin / Operator               | No         |                               |
-| POST   | `/api/admin/users`                               | `admin/users.ts` (L27)             | Admin / Operator               | No         |                               |
-| PUT    | `/api/admin/users/:id/active`                    | `admin/users.ts` (L60)             | Admin / Operator               | No         |                               |
-| PUT    | `/api/admin/users/:id/password`                  | `admin/users.ts` (L89)             | Admin / Operator               | No         |                               |
-| GET    | `/api/admin/geocoding/stats`                     | `admin/geocoding.ts` (L25)         | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/geocoding/run`                       | `admin/geocoding.ts` (L39)         | Admin / Operator / Dangerous   | Yes        |                               |
-| GET    | `/api/admin/geocoding/daemon`                    | `admin/geocoding.ts` (L74)         | Admin / Operator / Dangerous   | Yes        |                               |
-| POST   | `/api/admin/geocoding/daemon`                    | `admin/geocoding.ts` (L93)         | Admin / Operator / Dangerous   | Yes        |                               |
-| DELETE | `/api/admin/geocoding/daemon`                    | `admin/geocoding.ts` (L116)        | Admin / Operator / Dangerous   | Yes        |                               |
-| POST   | `/api/admin/geocoding/test`                      | `admin/geocoding.ts` (L129)        | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/geocoding/requeue`                   | `admin/geocoding.ts` (L146)        | Admin / Operator / Dangerous   | No         |                               |
-| POST   | `/api/admin/aws/instances/:instanceId/start`     | `admin/awsInstances.ts` (L22)      | Admin / Operator / Dangerous   | No         |                               |
-| POST   | `/api/admin/aws/instances/:instanceId/stop`      | `admin/awsInstances.ts` (L40)      | Admin / Operator / Dangerous   | No         |                               |
-| POST   | `/api/admin/aws/instances/:instanceId/reboot`    | `admin/awsInstances.ts` (L58)      | Admin / Operator / Dangerous   | No         |                               |
-| POST   | `/api/admin/aws/instances/:instanceId/terminate` | `admin/awsInstances.ts` (L76)      | Admin / Operator / Destructive | No         |                               |
-| POST   | `/api/admin/backup`                              | `admin/backup.ts` (L11)            | Admin / Operator / Dangerous   | Yes        |                               |
-| GET    | `/api/admin/backup/s3`                           | `admin/backup.ts` (L24)            | Admin / Operator               | Yes        |                               |
-| DELETE | `/api/admin/backup/s3/:key`                      | `admin/backup.ts` (L52)            | Admin / Operator / Destructive | Yes        |                               |
-| GET    | `/api/admin/db-stats`                            | `admin/dbStats.ts` (L14)           | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/siblings/override`                   | `admin/siblings.ts` (L12)          | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/siblings/linked/:bssid`              | `admin/siblings.ts` (L66)          | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/siblings/component/:bssid`           | `admin/siblings.ts` (L98)          | Admin / Operator               | No         | Sibling graph traversal       |
-| POST   | `/api/admin/siblings/linked-batch`               | `admin/siblings.ts` (L127)         | Admin / Operator               | Yes        |                               |
-| POST   | `/api/admin/siblings/refresh`                    | `admin/siblings.ts` (L163)         | Admin / Operator / Dangerous   | Yes        | Sibling pair detection        |
-| POST   | `/api/admin/siblings/cancel`                     | `admin/siblings.ts` (L193)         | Admin / Operator / Dangerous   | No         |                               |
-| GET    | `/api/admin/siblings/refresh/status`             | `admin/siblings.ts` (L203)         | Admin / Operator               | Yes        |                               |
-| GET    | `/api/admin/siblings/stats`                      | `admin/siblings.ts` (L216)         | Admin / Operator               | Yes        |                               |
-| DELETE | `/api/admin/siblings/pairs`                      | `admin/siblings.ts` (L232)         | Admin / Operator / Destructive | No         | Purges the sibling pair graph |
-| GET    | `/api/admin/networks/:bssid/detection-evidence`  | `admin/detectionEvidence.ts` (L25) | Admin / Operator               | No         |                               |
-| POST   | `/api/admin/surveillance-detections/dry-run`     | `admin/detectionEvidence.ts` (L71) | Admin / Operator / Dangerous   | No         |                               |
+| Method | Full Path                                        | Source File / Line                 | Classification                 | Documented | Notes                              |
+| ------ | ------------------------------------------------ | ---------------------------------- | ------------------------------ | ---------- | ---------------------------------- |
+| GET    | `/api/observations/check-duplicates/:bssid`      | `admin.ts` (L83)                   | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/test`                                | `admin.ts` (L118)                  | Internal / Test-only           | Yes        |                                    |
+| POST   | `/api/admin/add-note`                            | `admin.ts` (L133)                  | Deprecated / Legacy            | Yes        | Replaced by network-notes          |
+| GET    | `/api/admin/network-summary/:bssid`              | `admin.ts` (L145)                  | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/demo/context-menu`                         | `admin.ts` (L169)                  | Internal Detail                | Yes        | Context menu html page             |
+| POST   | `/api/admin/cleanup-duplicates`                  | `admin/maintenance.ts` (L14)       | Admin / Destructive            | Yes        |                                    |
+| POST   | `/api/admin/refresh-colocation`                  | `admin/maintenance.ts` (L37)       | Admin / Dangerous              | Yes        |                                    |
+| POST   | `/api/admin/import-sqlite`                       | `admin/import/sqlite.js` (L19)     | Manual-Only / Dangerous        | Yes        | SQLite wardrive upload             |
+| POST   | `/api/admin/import-sql`                          | `admin/import/sql.js` (L14)        | Manual-Only / Dangerous        | No         | SQL dump upload                    |
+| POST   | `/api/admin/import-kml`                          | `admin/import/kml.js` (L48)        | Manual-Only / Dangerous        | No         | KML file list upload               |
+| GET    | `/api/admin/kml-imports`                         | `admin/import/kml.js` (L38)        | Admin / Operator               | No         |                                    |
+| GET    | `/api/admin/wigle-kml-sync/status`               | `admin/import/kml.js` (L238)       | Admin / Operator               | No         |                                    |
+| GET    | `/api/admin/wigle-kml-sync/transactions`         | `admin/import/kml.js` (L280)       | Admin / Operator               | No         |                                    |
+| POST   | `/api/admin/wigle-kml-sync/sync`                 | `admin/import/kml.js` (L296)       | Admin / Operator / Dangerous   | No         |                                    |
+| GET    | `/api/admin/orphan-networks`                     | `admin/import/orphans.js` (L14)    | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/orphan-networks/:bssid/check-wigle`  | `admin/import/orphans.js` (L40)    | Admin / Operator / Dangerous   | Yes        |                                    |
+| GET    | `/api/admin/import-history`                      | `admin/import/history.js` (L9)     | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/device-sources`                      | `admin/import/history.js` (L41)    | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/import/mobile/:uploadId/start`       | `admin/import/history.js` (L19)    | Admin / Operator / Dangerous   | No         |                                    |
+| POST   | `/api/admin/network-media/upload`                | `admin/media.ts` (L14)             | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/network-media/:bssid`                | `admin/media.ts` (L57)             | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/network-media/download/:id`          | `admin/media.ts` (L75)             | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/network-media/:id/inline`            | `admin/media.ts` (L105)            | Admin / Operator               | Yes        | Inline full/thumbnail media        |
+| POST   | `/api/admin/network-notations/add`               | `admin/notes.ts` (L15)             | Deprecated / Legacy            | Yes        |                                    |
+| GET    | `/api/admin/network-notations/:bssid`            | `admin/notes.ts` (L47)             | Deprecated / Legacy            | Yes        |                                    |
+| POST   | `/api/admin/network-notes/add`                   | `admin/notes.ts` (L65)             | Admin / Operator               | Yes        | Right-click context note           |
+| GET    | `/api/admin/network-notes/:bssid`                | `admin/notes.ts` (L100)            | Admin / Operator               | Yes        |                                    |
+| DELETE | `/api/admin/network-notes/:noteId`               | `admin/notes.ts` (L123)            | Admin / Destructive            | Yes        |                                    |
+| POST   | `/api/admin/network-notes/:noteId/media`         | `admin/notes.ts` (L138)            | Admin / Operator               | No         |                                    |
+| GET    | `/api/admin/network-notes/:noteId/media`         | `admin/notes.ts` (L145)            | Admin / Operator               | No         |                                    |
+| DELETE | `/api/admin/network-notes/media/:mediaId`        | `admin/notes.ts` (L166)            | Admin / Destructive            | No         |                                    |
+| GET    | `/api/media/:filename`                           | `admin/notes.ts` (L191)            | Stable Public                  | Yes        | Serves general media files         |
+| POST   | `/api/admin/network-tags/toggle`                 | `admin/tags.ts` (L14)              | Admin / Operator / Dangerous   | Yes        | Toggle tag on/off                  |
+| DELETE | `/api/admin/network-tags/remove`                 | `admin/tags.ts` (L76)              | Admin / Operator / Destructive | Yes        | Corrected from double-prefix       |
+| GET    | `/api/admin/network-tags/search`                 | `admin/tags.ts` (L104)             | Admin / Operator               | Yes        | Search networks by tags            |
+| GET    | `/api/admin/network-tags/:bssid`                 | `admin/tags.ts` (L148)             | Admin / Operator               | Yes        | Get all tags for network           |
+| GET    | `/api/admin/oui/groups`                          | `admin/oui.ts` (L21)               | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/oui/:oui/details`                    | `admin/oui.ts` (L40)               | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/oui/randomization/suspects`          | `admin/oui.ts` (L63)               | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/oui/analyze`                         | `admin/oui.ts` (L82)               | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/demo/oui-grouping`                   | `admin/oui.ts` (L102)              | Internal Detail                | No         |                                    |
+| GET    | `/api/admin/pgadmin/status`                      | `admin/pgadmin.ts` (L10)           | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/pgadmin/start`                       | `admin/pgadmin.ts` (L28)           | Admin / Operator / Dangerous   | Yes        |                                    |
+| POST   | `/api/admin/pgadmin/stop`                        | `admin/pgadmin.ts` (L55)           | Admin / Operator / Dangerous   | Yes        |                                    |
+| POST   | `/api/admin/pgadmin/destroy`                     | `admin/pgadmin.ts` (L79)           | Admin / Operator / Destructive | No         | Removes pgadmin container          |
+| GET    | `/api/admin/secrets`                             | `admin/secrets.ts` (L16)           | Admin / Operator               | No         |                                    |
+| POST   | `/api/admin/secrets/:key`                        | `admin/secrets.ts` (L29)           | Admin / Operator / Dangerous   | No         |                                    |
+| DELETE | `/api/admin/secrets/:key`                        | `admin/secrets.ts` (L44)           | Admin / Operator / Destructive | No         |                                    |
+| GET    | `/api/admin/settings`                            | `admin/settings.ts` (L60)          | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/settings/jobs/status`                | `admin/settings.ts` (L82)          | Admin / Operator               | No         |                                    |
+| POST   | `/api/admin/settings/jobs/:jobName/run`          | `admin/settings.ts` (L92)          | Admin / Operator / Dangerous   | Yes        |                                    |
+| GET    | `/api/admin/settings/runtime`                    | `admin/settings.ts` (L134)         | Admin / Operator               | No         |                                    |
+| POST   | `/api/admin/settings/local-stack/:action`        | `admin/settings.ts` (L171)         | Admin / Operator / Dangerous   | No         | Rebuilds local containers          |
+| GET    | `/api/admin/settings/:key`                       | `admin/settings.ts` (L242)         | Admin / Operator               | Yes        |                                    |
+| PUT    | `/api/admin/settings/:key`                       | `admin/settings.ts` (L260)         | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/settings/ml-blending/toggle`         | `admin/settings.ts` (L329)         | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/users`                               | `admin/users.ts` (L17)             | Admin / Operator               | No         |                                    |
+| POST   | `/api/admin/users`                               | `admin/users.ts` (L27)             | Admin / Operator               | No         |                                    |
+| PUT    | `/api/admin/users/:id/active`                    | `admin/users.ts` (L60)             | Admin / Operator               | No         |                                    |
+| PUT    | `/api/admin/users/:id/password`                  | `admin/users.ts` (L89)             | Admin / Operator               | No         |                                    |
+| GET    | `/api/admin/geocoding/stats`                     | `admin/geocoding.ts` (L25)         | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/geocoding/run`                       | `admin/geocoding.ts` (L39)         | Admin / Operator / Dangerous   | Yes        |                                    |
+| GET    | `/api/admin/geocoding/daemon`                    | `admin/geocoding.ts` (L74)         | Admin / Operator / Dangerous   | Yes        |                                    |
+| POST   | `/api/admin/geocoding/daemon`                    | `admin/geocoding.ts` (L93)         | Admin / Operator / Dangerous   | Yes        |                                    |
+| DELETE | `/api/admin/geocoding/daemon`                    | `admin/geocoding.ts` (L116)        | Admin / Operator / Dangerous   | Yes        |                                    |
+| POST   | `/api/admin/geocoding/test`                      | `admin/geocoding.ts` (L129)        | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/geocoding/requeue`                   | `admin/geocoding.ts` (L146)        | Admin / Operator / Dangerous   | No         |                                    |
+| GET    | `/api/admin/aws/overview`                        | `admin/aws.ts` (L21)               | Admin / Operator / Manual      | Yes        | AWS identity and instance overview |
+| POST   | `/api/admin/aws/instances/:instanceId/start`     | `admin/awsInstances.ts` (L22)      | Admin / Operator / Dangerous   | No         |                                    |
+| POST   | `/api/admin/aws/instances/:instanceId/stop`      | `admin/awsInstances.ts` (L40)      | Admin / Operator / Dangerous   | No         |                                    |
+| POST   | `/api/admin/aws/instances/:instanceId/reboot`    | `admin/awsInstances.ts` (L58)      | Admin / Operator / Dangerous   | No         |                                    |
+| POST   | `/api/admin/aws/instances/:instanceId/terminate` | `admin/awsInstances.ts` (L76)      | Admin / Operator / Destructive | No         |                                    |
+| POST   | `/api/admin/backup`                              | `admin/backup.ts` (L11)            | Admin / Operator / Dangerous   | Yes        |                                    |
+| GET    | `/api/admin/backup/s3`                           | `admin/backup.ts` (L24)            | Admin / Operator               | Yes        |                                    |
+| DELETE | `/api/admin/backup/s3/:key`                      | `admin/backup.ts` (L52)            | Admin / Operator / Destructive | Yes        |                                    |
+| GET    | `/api/admin/db-stats`                            | `admin/dbStats.ts` (L14)           | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/siblings/override`                   | `admin/siblings.ts` (L12)          | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/siblings/linked/:bssid`              | `admin/siblings.ts` (L66)          | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/siblings/component/:bssid`           | `admin/siblings.ts` (L98)          | Admin / Operator               | No         | Sibling graph traversal            |
+| POST   | `/api/admin/siblings/linked-batch`               | `admin/siblings.ts` (L127)         | Admin / Operator               | Yes        |                                    |
+| POST   | `/api/admin/siblings/refresh`                    | `admin/siblings.ts` (L163)         | Admin / Operator / Dangerous   | Yes        | Sibling pair detection             |
+| POST   | `/api/admin/siblings/cancel`                     | `admin/siblings.ts` (L193)         | Admin / Operator / Dangerous   | No         |                                    |
+| GET    | `/api/admin/siblings/refresh/status`             | `admin/siblings.ts` (L203)         | Admin / Operator               | Yes        |                                    |
+| GET    | `/api/admin/siblings/stats`                      | `admin/siblings.ts` (L216)         | Admin / Operator               | Yes        |                                    |
+| DELETE | `/api/admin/siblings/pairs`                      | `admin/siblings.ts` (L232)         | Admin / Operator / Destructive | No         | Purges the sibling pair graph      |
+| GET    | `/api/admin/networks/:bssid/detection-evidence`  | `admin/detectionEvidence.ts` (L25) | Admin / Operator               | No         |                                    |
+| POST   | `/api/admin/surveillance-detections/dry-run`     | `admin/detectionEvidence.ts` (L71) | Admin / Operator / Dangerous   | No         |                                    |
 
 ---
 
 ### Q. Dashboard & Exports
 
 - Mounted at `/api` (Gated by `userGate`; full JSON export also requires admin).
-- Source: `server/src/api/routes/v1/dashboard.ts` and `export.ts`
+- Source: `server/src/api/routes/v1/dashboard.ts`, `export.ts`, and `kepler.ts`
 
-| Method | Full Path                | Source File           | Classification     | Documented | Notes                     |
-| ------ | ------------------------ | --------------------- | ------------------ | ---------- | ------------------------- |
-| GET    | `/api/dashboard/summary` | `dashboard.ts` (L144) | Authenticated User | Yes        | Dashboard summary metrics |
-| GET    | `/api/dashboard/threats` | `dashboard.ts` (L126) | Authenticated User | Yes        | Dashboard threat list     |
-| GET    | `/api/json/full`         | `export.ts` (L96)     | Admin / Operator   | Yes        | Full JSON snapshot        |
-| GET    | `/api/kml`               | `export.ts` (L161)    | Authenticated User | Yes        | KML export                |
+| Method | Full Path                  | Source File           | Classification     | Documented | Notes                       |
+| ------ | -------------------------- | --------------------- | ------------------ | ---------- | --------------------------- |
+| GET    | `/api/dashboard/summary`   | `dashboard.ts` (L144) | Authenticated User | Yes        | Dashboard summary metrics   |
+| GET    | `/api/dashboard/threats`   | `dashboard.ts` (L126) | Authenticated User | Yes        | Dashboard threat list       |
+| GET    | `/api/csv`                 | `export.ts` (L25)     | Authenticated User | Yes        | CSV observation export      |
+| GET    | `/api/json`                | `export.ts` (L69)     | Authenticated User | Yes        | JSON data export            |
+| GET    | `/api/json/full`           | `export.ts` (L96)     | Admin / Operator   | Yes        | Full JSON snapshot          |
+| GET    | `/api/geojson`             | `export.ts` (L115)    | Authenticated User | Yes        | GeoJSON observation export  |
+| GET    | `/api/kml`                 | `export.ts` (L161)    | Authenticated User | Yes        | KML export                  |
+| GET    | `/api/kepler/data`         | `kepler.ts` (L18)     | Authenticated User | Yes        | Latest network observations |
+| GET    | `/api/kepler/observations` | `kepler.ts` (L45)     | Authenticated User | Yes        | Kepler observation dataset  |
+| GET    | `/api/kepler/networks`     | `kepler.ts` (L69)     | Authenticated User | Yes        | Kepler network summaries    |
 
 ---
 
