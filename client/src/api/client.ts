@@ -2,7 +2,7 @@
  * Base API client with centralized fetch wrapper
  */
 
-const BASE_URL = (typeof process !== 'undefined' && (process.env as any)?.VITE_API_URL) || '/api';
+const BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api';
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
