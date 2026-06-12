@@ -2048,4 +2048,46 @@ import { validateBSSID, validateCoordinates } from '../validation/schemas';
 
 ---
 
+### POST /api/settings/wigle 🔒
+
+Update WiGLE integration settings (admin-only).
+
+### GET /api/settings/wigle/test 🔒
+
+Run a test WiGLE connectivity check using current credentials (admin-only).
+
+### POST /api/tag-network 🔒
+
+Apply one or more tags to a network. Request body: `{ "bssid": "AA:BB:CC:DD:EE:FF", "tags": ["THREAT"] }`.
+
+### DELETE /api/tag-network/:bssid 🔒
+
+Remove tags from a network or clear all tags for the provided BSSID (admin-only).
+
+### POST /api/v2/networks/batch
+
+Batch fetch multiple v2 networks by BSSID list. Use for large multi-BSSID queries.
+
+### GET /api/v2/networks/filtered/debug
+
+Debug endpoint returning additional diagnostic metadata (SQL/explain) for filtered v2 queries. Developer/admin use only.
+
+### POST /api/v2/networks/filtered/observations
+
+POST variant of the filtered observations endpoint for large filter payloads (accepts complex JSON filters).
+
+### POST /api/wigle/detail/batch 🔒
+
+Fetch WiGLE detail records for multiple netids in a single batch request (admin-only).
+
+### POST /api/wigle/quota-reset 🔒
+
+Reset WiGLE quota counters and ledger state (admin-only).
+
+### POST /api/wigle/search-api/bt-import-start 🔒
+
+Kick off a Bluetooth import run using the WiGLE search API (admin-only).
+
+---
+
 🔒 = Requires authentication (session or API key)
