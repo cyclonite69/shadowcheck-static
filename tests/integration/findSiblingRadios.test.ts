@@ -124,6 +124,9 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     '02:92:A5:12:AF:17',
     '02:92:A5:12:CB:17',
     '02:92:A5:12:AF:18',
+    '00:92:A5:A5:54:F8',
+    '00:92:A5:A5:54:F9',
+    '00:92:A5:A5:6A:F9',
     // Netgear Dual-Band tests
     '6C:CD:D6:35:CE:CC',
     '6C:CD:D6:38:3F:CC',
@@ -296,6 +299,9 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
         ('02:92:A5:12:AF:17', 'myChevrolet6472', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('02:92:A5:12:CB:17', 'myBuick8689',     'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('02:92:A5:12:AF:18', 'myChevrolet6472', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:92:A5:A5:54:F8', 'myChevrolet1234', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:92:A5:A5:54:F9', 'myChevrolet1234', 'W', 5180, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
+        ('00:92:A5:A5:6A:F9', 'myChevrolet5678', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         -- Netgear Dual-Band test networks
         ('6C:CD:D6:35:CE:CC', 'NETGEAR73', 'W', 2412, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
         ('6C:CD:D6:38:3F:CC', 'NETGEAR73', 'W', 5765, '', 1716500000000, 42.123, -83.123, 42.123, -83.123),
@@ -687,7 +693,19 @@ describeIfIntegration('Unified Sibling Sieve (find_sibling_radios)', () => {
     const res = await query(`SELECT * FROM app.find_sibling_radios('02:92:A5:12:AF:17')`);
     const sibling = res.rows.find((r) => r.sibling_bssid === '02:92:A5:12:AF:18');
     expect(sibling).toBeDefined();
-    expect(sibling.rule).toBe('Unnamed Recursive (Class A)');
+    expect(sibling.rule).toBe('GM Vehicle Hotspot Seq (Class A)');
+  });
+
+  test('GM Vehicle Hotspots: preserves valid same-vehicle global OUI pairing (00:92:A5:A5:54:F8 ↔ 00:92:A5:A5:54:F9)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:92:A5:A5:54:F8')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:92:A5:A5:54:F9');
+    expect(sibling).toBeDefined();
+  });
+
+  test('GM Vehicle Hotspots: rejects cross-vehicle global OUI pair with different SSIDs (00:92:A5:A5:54:F9 ↔ 00:92:A5:A5:6A:F9)', async () => {
+    const res = await query(`SELECT * FROM app.find_sibling_radios('00:92:A5:A5:54:F9')`);
+    const sibling = res.rows.find((r) => r.sibling_bssid === '00:92:A5:A5:6A:F9');
+    expect(sibling).toBeUndefined(); // Different SSIDs: myChevrolet1234 vs myChevrolet5678
   });
 
   // ── Netgear Dual-Band Sibling Rule Tests ────────────────────────────────────
