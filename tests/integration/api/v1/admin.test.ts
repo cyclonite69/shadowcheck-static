@@ -54,7 +54,7 @@ const adminRouter = require('../../../../server/src/api/routes/v1/admin');
 
 const app = express();
 app.use(express.json());
-app.use('/api/v1', adminRouter);
+app.use('/api', adminRouter);
 
 describe('Admin API Integration Tests', () => {
   beforeEach(() => {
@@ -69,18 +69,18 @@ describe('Admin API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/v1/observations/check-duplicates/:bssid', () => {
+  describe('GET /api/observations/check-duplicates/:bssid', () => {
     it('should return 400 if BSSID is invalid', async () => {
       // Use a BSSID with characters that fail the validation regex
       const res = await request(app).get(
-        '/api/v1/observations/check-duplicates/invalid!bssid?time=' + new Date().toISOString()
+        '/api/observations/check-duplicates/invalid!bssid?time=' + new Date().toISOString()
       );
       expect(res.status).toBe(400);
     });
 
     it('should return 200 and duplicate data for valid BSSID', async () => {
       const res = await request(app).get(
-        '/api/v1/observations/check-duplicates/AA:BB:CC:DD:EE:FF?time=' + new Date().toISOString()
+        '/api/observations/check-duplicates/AA:BB:CC:DD:EE:FF?time=' + new Date().toISOString()
       );
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
@@ -88,15 +88,15 @@ describe('Admin API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/v1/admin/network-summary/:bssid', () => {
+  describe('GET /api/admin/network-summary/:bssid', () => {
     it('should return 200 and network summary', async () => {
-      const res = await request(app).get('/api/v1/admin/network-summary/AA:BB:CC:DD:EE:FF');
+      const res = await request(app).get('/api/admin/network-summary/AA:BB:CC:DD:EE:FF');
       expect(res.status).toBe(200);
       expect(res.body.network.bssid).toBe('AA:BB:CC:DD:EE:FF');
     });
   });
 
-  describe('DELETE /api/v1/admin/network-tags/remove', () => {
+  describe('DELETE /api/admin/network-tags/remove', () => {
     it('should call removeTagFromNetwork and return 200', async () => {
       container.adminNetworkTagsService.removeTagFromNetwork.mockResolvedValue();
       container.adminNetworkTagsService.getNetworkTagsAndNotes.mockResolvedValue({
@@ -105,7 +105,7 @@ describe('Admin API Integration Tests', () => {
       });
 
       const res = await request(app)
-        .delete('/api/v1/admin/network-tags/remove')
+        .delete('/api/admin/network-tags/remove')
         .send({ bssid: 'AA:BB:CC:DD:EE:FF', tag: 'SUSPECT' });
 
       expect(res.status).toBe(200);

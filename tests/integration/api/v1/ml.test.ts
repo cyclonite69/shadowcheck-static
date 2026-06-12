@@ -45,13 +45,13 @@ const mlRouter = require('../../../../server/src/api/routes/v1/ml');
 
 const app = express();
 app.use(express.json());
-app.use('/api/v1', mlRouter);
+app.use('/api', mlRouter);
 
 describe('ML API Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     featureFlagService.getFlag.mockReturnValue(true);
-    
+
     mockTrain.mockResolvedValue({
       coefficients: [0.1, 0.2],
       intercept: 0.5,
@@ -63,26 +63,26 @@ describe('ML API Integration Tests', () => {
     });
   });
 
-  describe('GET /api/v1/ml/status', () => {
+  describe('GET /api/ml/status', () => {
     it('should return model status', async () => {
       container.mlScoringService.getMLModelStatus.mockResolvedValue({
         lastTrained: '2023-01-01T00:00:00Z',
         networkCount: 100,
       });
 
-      const res = await request(app).get('/api/v1/ml/status');
+      const res = await request(app).get('/api/ml/status');
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
     });
   });
 
-  describe('POST /api/v1/ml/train', () => {
+  describe('POST /api/ml/train', () => {
     it('should train the model successfully', async () => {
       container.mlTrainingLock.acquire.mockReturnValue(true);
       container.mlScoringService.getMLTrainingData.mockResolvedValue(new Array(10).fill({}));
-      
-      const res = await request(app).post('/api/v1/ml/train').send({ auto_score: false });
-      
+
+      const res = await request(app).post('/api/ml/train').send({ auto_score: false });
+
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
     });

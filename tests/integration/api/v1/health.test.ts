@@ -41,12 +41,12 @@ beforeAll(() => {
 });
 
 const app = express();
-app.use('/api/v1', healthRouter);
+app.use('/api', healthRouter);
 
-describe('GET /api/v1/health', () => {
+describe('GET /api/health', () => {
   it('should return 200 and healthy status', async () => {
     (pool.query as jest.Mock).mockResolvedValue({ rows: [{ db_name: 'shadowcheck_test' }] });
-    const res = await request(app).get('/api/v1/health');
+    const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('healthy');
   });

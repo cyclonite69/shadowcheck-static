@@ -58,9 +58,9 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Mount routes
-app.use('/api/v1/admin/users', adminUsersRouter);
-app.use('/api/v1', maintenanceRouter);
-app.use('/api/v1/admin/settings', settingsRouter);
+app.use('/api/admin/users', adminUsersRouter);
+app.use('/api', maintenanceRouter);
+app.use('/api/admin/settings', settingsRouter);
 
 describe('Admin Management API Integration', () => {
   beforeEach(() => {
@@ -68,11 +68,11 @@ describe('Admin Management API Integration', () => {
   });
 
   describe('User Management (Admin Users Routes)', () => {
-    it('GET /api/v1/admin/users should list users', async () => {
+    it('GET /api/admin/users should list users', async () => {
       const mockUsers = [{ username: 'user1', role: 'user' }];
       mockContainer.adminUsersService.listUsers.mockResolvedValue(mockUsers);
 
-      const res = await request(app).get('/api/v1/admin/users');
+      const res = await request(app).get('/api/admin/users');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -81,14 +81,14 @@ describe('Admin Management API Integration', () => {
   });
 
   describe('Maintenance Routes', () => {
-    it('POST /api/v1/admin/cleanup-duplicates should trigger cleanup', async () => {
+    it('POST /api/admin/cleanup-duplicates should trigger cleanup', async () => {
       mockContainer.adminMaintenanceService.getDuplicateObservationStats.mockResolvedValue({
         total: 20,
       });
       mockContainer.adminMaintenanceService.deleteDuplicateObservations.mockResolvedValue(10);
       mockContainer.adminMaintenanceService.getObservationCount.mockResolvedValue(100);
 
-      const res = await request(app).post('/api/v1/admin/cleanup-duplicates');
+      const res = await request(app).post('/api/admin/cleanup-duplicates');
 
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
@@ -97,13 +97,13 @@ describe('Admin Management API Integration', () => {
   });
 
   describe('Settings Routes', () => {
-    it('GET /api/v1/admin/settings should fetch settings', async () => {
+    it('GET /api/admin/settings should fetch settings', async () => {
       const mockSettingsRows = [
         { key: 'site_name', value: 'ShadowCheck', description: 'Test', updated_at: new Date() },
       ];
       mockContainer.settingsAdminService.getAllSettings.mockResolvedValue(mockSettingsRows);
 
-      const res = await request(app).get('/api/v1/admin/settings');
+      const res = await request(app).get('/api/admin/settings');
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);

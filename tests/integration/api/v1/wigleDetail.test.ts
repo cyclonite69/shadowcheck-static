@@ -73,8 +73,8 @@ const enrichmentRouter = require('../../../../server/src/api/routes/v1/wigle/enr
 
 const app = express();
 app.use(express.json());
-app.use('/api/v1/wigle', detailRouter);
-app.use('/api/v1/wigle', enrichmentRouter);
+app.use('/api/wigle', detailRouter);
+app.use('/api/wigle', enrichmentRouter);
 
 describe('WiGLE Detail API v1', () => {
   beforeEach(() => {
@@ -94,7 +94,7 @@ describe('WiGLE Detail API v1', () => {
         failedObservations: 0,
       });
 
-      const res = await request(app).post('/api/v1/wigle/detail/00:11:22:33:44:55').send({
+      const res = await request(app).post('/api/wigle/detail/00:11:22:33:44:55').send({
         import: false,
       });
 
@@ -117,7 +117,7 @@ describe('WiGLE Detail API v1', () => {
         failedObservations: 0,
       });
 
-      const res = await request(app).post('/api/v1/wigle/detail/00:11:22:33:44:55').send({
+      const res = await request(app).post('/api/wigle/detail/00:11:22:33:44:55').send({
         import: true,
       });
 
@@ -132,7 +132,7 @@ describe('WiGLE Detail API v1', () => {
     it('GET /enrichment/stats should return pending count', async () => {
       mockWigleEnrichmentService.getPendingEnrichmentCount.mockResolvedValue(42);
 
-      const res = await request(app).get('/api/v1/wigle/enrichment/stats');
+      const res = await request(app).get('/api/wigle/enrichment/stats');
 
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
@@ -146,7 +146,7 @@ describe('WiGLE Detail API v1', () => {
       });
 
       const res = await request(app)
-        .post('/api/v1/wigle/enrichment/start')
+        .post('/api/wigle/enrichment/start')
         .send({
           bssids: ['00:11:22:33:44:55'],
         });

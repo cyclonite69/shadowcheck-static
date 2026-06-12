@@ -34,7 +34,7 @@ const networksRouter = require('../../../../server/src/api/routes/v1/networks/in
 
 const app = express();
 app.use(express.json());
-app.use('/api/v1', networksRouter);
+app.use('/api', networksRouter);
 
 describe('Networks API v1', () => {
   beforeEach(() => {
@@ -64,10 +64,10 @@ describe('Networks API v1', () => {
     });
   });
 
-  describe('GET /api/v1/networks', () => {
+  describe('GET /api/networks', () => {
     it('should list networks with pagination', async () => {
-      const res = await request(app).get('/api/v1/networks?limit=10&offset=0');
-      
+      const res = await request(app).get('/api/networks?limit=10&offset=0');
+
       expect(res.status).toBe(200);
       expect(res.body.rows).toBeDefined();
       expect(res.body.total).toBe(1);
@@ -75,16 +75,16 @@ describe('Networks API v1', () => {
     });
 
     it('should return 400 for missing limit', async () => {
-      const res = await request(app).get('/api/v1/networks?offset=0');
+      const res = await request(app).get('/api/networks?offset=0');
       expect(res.status).toBe(400);
       expect(res.body.error).toBeDefined();
     });
   });
 
-  describe('GET /api/v1/networks/search/:ssid', () => {
+  describe('GET /api/networks/search/:ssid', () => {
     it('should search networks by SSID', async () => {
-      const res = await request(app).get('/api/v1/networks/search/TestNet');
-      
+      const res = await request(app).get('/api/networks/search/TestNet');
+
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(res.body.networks).toBeDefined();

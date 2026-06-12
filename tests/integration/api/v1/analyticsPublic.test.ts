@@ -17,13 +17,17 @@ jest.mock('../../../../server/src/config/container', () => ({
   },
 }));
 
-const { parseAndValidateFilters, isParseValidatedFiltersError, assertHomeExistsIfNeeded } = require('../../../../server/src/api/routes/v2/filteredHelpers');
+const {
+  parseAndValidateFilters,
+  isParseValidatedFiltersError,
+  assertHomeExistsIfNeeded,
+} = require('../../../../server/src/api/routes/v2/filteredHelpers');
 const { filteredAnalyticsService } = require('../../../../server/src/config/container');
 const analyticsPublicRouter = require('../../../../server/src/api/routes/v1/analytics-public');
 
 const app = express();
 app.use(express.json());
-app.use('/api/analytics-public', analyticsPublicRouter);
+app.use('/analytics-public', analyticsPublicRouter);
 
 describe('analytics-public', () => {
   beforeEach(() => {
@@ -39,7 +43,7 @@ describe('analytics-public', () => {
       queryDurationMs: 10,
     });
 
-    const res = await request(app).get('/api/analytics-public/filtered');
+    const res = await request(app).get('/analytics-public/filtered');
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);

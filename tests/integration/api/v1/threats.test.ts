@@ -31,7 +31,7 @@ const threatsRouter = require('../../../../server/src/api/routes/v1/threats');
 
 const app = express();
 app.use(express.json());
-app.use('/api/v1', threatsRouter);
+app.use('/api', threatsRouter);
 
 describe('Threats API v1', () => {
   beforeEach(() => {
@@ -103,9 +103,9 @@ describe('Threats API v1', () => {
     ]);
   });
 
-  describe('GET /api/v1/threats/quick', () => {
+  describe('GET /api/threats/quick', () => {
     it('should return quick threats with pagination', async () => {
-      const res = await request(app).get('/api/v1/threats/quick?limit=10&page=1');
+      const res = await request(app).get('/api/threats/quick?limit=10&page=1');
 
       expect(res.status).toBe(200);
       expect(res.body.threats).toBeDefined();
@@ -115,19 +115,19 @@ describe('Threats API v1', () => {
     });
 
     it('should respect custom thresholds', async () => {
-      const res = await request(app).get('/api/v1/threats/quick?minObs=10&minScore=50');
+      const res = await request(app).get('/api/threats/quick?minObs=10&minScore=50');
       expect(res.status).toBe(200);
     });
 
     it('should return 400 for invalid parameters', async () => {
-      const res = await request(app).get('/api/v1/threats/quick?minObs=invalid');
+      const res = await request(app).get('/api/threats/quick?minObs=invalid');
       expect(res.status).toBe(400);
     });
   });
 
-  describe('GET /api/v1/threats/detect', () => {
+  describe('GET /api/threats/detect', () => {
     it('should return detailed threats', async () => {
-      const res = await request(app).get('/api/v1/threats/detect');
+      const res = await request(app).get('/api/threats/detect');
 
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);

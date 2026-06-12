@@ -56,7 +56,7 @@ const searchRouter = require('../../../../server/src/api/routes/v1/wigle/search'
 
 const app = express();
 app.use(express.json());
-app.use('/api/v1/wigle', searchRouter);
+app.use('/api/wigle', searchRouter);
 
 // Mock global fetch
 const mockFetch = jest.fn();
@@ -86,7 +86,7 @@ describe('WiGLE Search API v1', () => {
         }),
       });
 
-      const res = await request(app).get('/api/v1/wigle/search-api?ssid=TestNet');
+      const res = await request(app).get('/api/wigle/search-api?ssid=TestNet');
 
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
@@ -109,7 +109,7 @@ describe('WiGLE Search API v1', () => {
       mockContainer.wigleService.importWigleV2SearchResult.mockResolvedValue(1);
       db.query.mockResolvedValueOnce({ rows: [{ id: 1 }] }).mockResolvedValueOnce({ rowCount: 1 });
 
-      const res = await request(app).post('/api/v1/wigle/search-api?import=true').send({
+      const res = await request(app).post('/api/wigle/search-api?import=true').send({
         ssid: 'TestNet',
       });
 
@@ -123,7 +123,7 @@ describe('WiGLE Search API v1', () => {
       const secretsManager = require('../../../../server/src/services/secretsManager').default;
       secretsManager.get.mockReturnValue(null);
 
-      const res = await request(app).get('/api/v1/wigle/search-api?ssid=TestNet');
+      const res = await request(app).get('/api/wigle/search-api?ssid=TestNet');
 
       expect(res.status).toBe(503);
       expect(res.body.error).toContain('WiGLE API credentials not configured');
@@ -143,7 +143,7 @@ describe('WiGLE Search API v1', () => {
         totalPages: 10,
       });
 
-      const res = await request(app).post('/api/v1/wigle/search-api/import-all').send({
+      const res = await request(app).post('/api/wigle/search-api/import-all').send({
         ssid: 'TestNet',
       });
 
@@ -161,7 +161,7 @@ describe('WiGLE Search API v1', () => {
         total: 1,
       });
 
-      const res = await request(app).get('/api/v1/wigle/search-api/import-runs');
+      const res = await request(app).get('/api/wigle/search-api/import-runs');
 
       expect(res.status).toBe(200);
       expect(res.body.runs).toHaveLength(1);
@@ -176,7 +176,7 @@ describe('WiGLE Search API v1', () => {
         rows: [{ id: 1, term: 'test-term' }],
       });
 
-      const res = await request(app).get('/api/v1/wigle/search-api/saved-ssid-terms');
+      const res = await request(app).get('/api/wigle/search-api/saved-ssid-terms');
 
       expect(res.status).toBe(200);
       expect(res.body.terms).toHaveLength(1);
@@ -191,7 +191,7 @@ describe('WiGLE Search API v1', () => {
         rows: [{ id: 1, term: 'new-term', last_used_at: new Date().toISOString() }],
       });
 
-      const res = await request(app).post('/api/v1/wigle/search-api/saved-ssid-terms').send({
+      const res = await request(app).post('/api/wigle/search-api/saved-ssid-terms').send({
         term: 'new-term',
       });
 
@@ -201,7 +201,7 @@ describe('WiGLE Search API v1', () => {
     });
 
     it('should reject short terms', async () => {
-      const res = await request(app).post('/api/v1/wigle/search-api/saved-ssid-terms').send({
+      const res = await request(app).post('/api/wigle/search-api/saved-ssid-terms').send({
         term: 'ab',
       });
 
@@ -217,14 +217,14 @@ describe('WiGLE Search API v1', () => {
         status: 'completed',
       });
 
-      const res = await request(app).get('/api/v1/wigle/search-api/import-runs/123');
+      const res = await request(app).get('/api/wigle/search-api/import-runs/123');
 
       expect(res.status).toBe(200);
       expect(res.body.run.id).toBe(123);
     });
 
     it('should return 400 for invalid id', async () => {
-      const res = await request(app).get('/api/v1/wigle/search-api/import-runs/abc');
+      const res = await request(app).get('/api/wigle/search-api/import-runs/abc');
 
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('Invalid run id');

@@ -19,7 +19,7 @@ initDashboardRoutes({ dashboardService: mockDashboardService });
 
 const app = express();
 app.use(express.json());
-app.use('/api/v1', router);
+app.use('/api', router);
 
 describe('Dashboard API Integration Tests', () => {
   beforeEach(() => {
@@ -37,36 +37,36 @@ describe('Dashboard API Integration Tests', () => {
     });
 
     mockDashboardService.getThreats.mockResolvedValue([
-      { id: 1, bssid: 'AA:BB:CC:DD:EE:FF', severity: 'critical' }
+      { id: 1, bssid: 'AA:BB:CC:DD:EE:FF', severity: 'critical' },
     ]);
   });
 
-  describe('GET /api/v1/dashboard/metrics', () => {
+  describe('GET /api/dashboard/metrics', () => {
     it('should return 200 and metrics', async () => {
-      const res = await request(app).get('/api/v1/dashboard/metrics');
+      const res = await request(app).get('/api/dashboard/metrics');
       expect(res.status).toBe(200);
       expect(res.body.threats.critical).toBe(1);
       expect(res.body.networks.total).toBe(10);
     });
 
     it('should handle invalid JSON query filters', async () => {
-      const res = await request(app).get('/api/v1/dashboard/metrics?filters=invalid-json');
+      const res = await request(app).get('/api/dashboard/metrics?filters=invalid-json');
       expect(res.status).toBe(400);
     });
   });
 
-  describe('GET /api/v1/dashboard/summary', () => {
+  describe('GET /api/dashboard/summary', () => {
     it('should return 200 and summary', async () => {
-      const res = await request(app).get('/api/v1/dashboard/summary');
+      const res = await request(app).get('/api/dashboard/summary');
       expect(res.status).toBe(200);
       expect(res.body.summary.criticalThreats).toBe(1);
       expect(res.body.summary.totalNetworks).toBe(10);
     });
   });
 
-  describe('GET /api/v1/dashboard/threats', () => {
+  describe('GET /api/dashboard/threats', () => {
     it('should return 200 and threats list', async () => {
-      const res = await request(app).get('/api/v1/dashboard/threats');
+      const res = await request(app).get('/api/dashboard/threats');
       expect(res.status).toBe(200);
       expect(res.body.total).toBe(1);
       expect(res.body.threats[0].bssid).toBe('AA:BB:CC:DD:EE:FF');

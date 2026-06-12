@@ -14,7 +14,7 @@ const agencyOfficesRouter = require('../../../../server/src/api/routes/v1/agency
 
 const app = express();
 app.use(express.json());
-app.use('/api/agency-offices', agencyOfficesRouter);
+app.use('/agency-offices', agencyOfficesRouter);
 
 describe('agencyOffices', () => {
   beforeEach(() => {
@@ -22,15 +22,18 @@ describe('agencyOffices', () => {
   });
 
   it('should return geojson', async () => {
-    agencyService.getAgencyOfficesGeoJSON.mockResolvedValue({ type: 'FeatureCollection', features: [] });
-    const res = await request(app).get('/api/agency-offices');
+    agencyService.getAgencyOfficesGeoJSON.mockResolvedValue({
+      type: 'FeatureCollection',
+      features: [],
+    });
+    const res = await request(app).get('/agency-offices');
     expect(res.status).toBe(200);
     expect(res.body.type).toBe('FeatureCollection');
   });
 
   it('should return counts', async () => {
     agencyService.getAgencyOfficeCountByType.mockResolvedValue([{ type: 'FO', count: '5' }]);
-    const res = await request(app).get('/api/agency-offices/count');
+    const res = await request(app).get('/agency-offices/count');
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(5);
   });

@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-11)
+# 1.0.0 (2026-06-12)
 
 
 ### Bug Fixes
@@ -91,6 +91,7 @@
 * altitude/sort/manufacturer issues in geospatial explorer ([6c4ee02](https://github.com/cyclonite69/shadowcheck-web/commit/6c4ee024da423bc8d87bf343424cd169e3675c29))
 * **analytics:** replace static filtered analytics with live queries ([cc27d7a](https://github.com/cyclonite69/shadowcheck-web/commit/cc27d7aa069ed16eca804fa1ef3a96362d9c1a28))
 * **api-test:** deduplicate WiGLE Observations label ([4a58703](https://github.com/cyclonite69/shadowcheck-web/commit/4a587031c16743b3cae4c3f7c84bc1ead3ec74b4))
+* **api-testing:** separate manual endpoints from bulk verification ([7a25294](https://github.com/cyclonite69/shadowcheck-web/commit/7a25294342ff8c99233042613ba6604d041642aa))
 * **api:** align threat category filtering with computed threat level ([7118977](https://github.com/cyclonite69/shadowcheck-web/commit/7118977847f1a21cd0f783e9f476971061ee8751))
 * **api:** correct column sorting for threat, channel, and timespan ([0d33fb5](https://github.com/cyclonite69/shadowcheck-web/commit/0d33fb5c86ed419be85a706a8dbcaba7349f6674))
 * **api:** correct db-stats routing mount point ([41b9fbb](https://github.com/cyclonite69/shadowcheck-web/commit/41b9fbb291a9cafbb416eb3e462bfb8375fd3968))
@@ -1308,7 +1309,7 @@
 * **surveillance:** surface shotspotter sensors as wigle map layer ([36f14fb](https://github.com/cyclonite69/shadowcheck-web/commit/36f14fbaa27bb47e85dc28950df340ee55a9171f))
 * **table:** pin key columns during horizontal scroll ([af9f9a5](https://github.com/cyclonite69/shadowcheck-web/commit/af9f9a52038a6a0331b5934aab92b5d5f2f16f84))
 * **tagging:** expose network tag fields end-to-end (Priority 1 fixes) ([69c21e0](https://github.com/cyclonite69/shadowcheck-web/commit/69c21e0edc52d6bf571009782a87c08b40a568cb))
-* **tags:** restore selective context-menu tag removal ([e2a0910](https://github.com/cyclonite69/shadowcheck-web/commit/e2a09100989a13358d795a5aa92a3e2a6c723d34))
+* **tags:** restore selective context-menu tag removal ([fce09fd](https://github.com/cyclonite69/shadowcheck-web/commit/fce09fdcc4bfbc5cb1e29ed4ed65de12b0ec2d57))
 * **test:** add and stabilize unit tests for wigle enrichment service and client ([ad3c69b](https://github.com/cyclonite69/shadowcheck-web/commit/ad3c69b6ab8735ca1e1175eca0ff11b39065cf2e))
 * **test:** add expanded unit test coverage for threat report service ([72bb0da](https://github.com/cyclonite69/shadowcheck-web/commit/72bb0da6adf3f472a5988f16d811961f4f38ff94))
 * threat model v4.1 with co-occurrence detection ([fcd0139](https://github.com/cyclonite69/shadowcheck-web/commit/fcd01398bfbdcbca0c49a875ff9f4eec74dd61d9))

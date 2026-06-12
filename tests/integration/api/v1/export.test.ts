@@ -31,14 +31,14 @@ const exportRouter = require('../../../../server/src/api/routes/v1/export');
 
 const app = express();
 app.use(express.json());
-app.use('/api/v1', exportRouter);
+app.use('/api', exportRouter);
 
 describe('Export API Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('GET /api/v1/csv', () => {
+  describe('GET /api/csv', () => {
     it('should return observations as CSV', async () => {
       const mockRows = [
         {
@@ -56,14 +56,18 @@ describe('Export API Integration Tests', () => {
       ];
       container.exportService.getObservationsForCSV.mockResolvedValue(mockRows);
 
-      const res = await request(app).get('/api/v1/csv');
+      const res = await request(app).get('/api/csv');
 
       expect(res.status).toBe(200);
       expect(res.header['content-type']).toContain('text/csv');
       expect(res.header['content-disposition']).toContain('attachment');
       expect(res.header['content-disposition']).toContain('.csv"');
-      expect(res.text).toContain('bssid,ssid,latitude,longitude,signal_dbm,observed_at,radio_type,frequency,capabilities,accuracy');
-      expect(res.text).toContain('AA:BB:CC:DD:EE:FF,Test SSID,45,-75,-60,2023-01-01T00:00:00Z,W,2412,[WPA2-PSK-CCMP][ESS],10');
+      expect(res.text).toContain(
+        'bssid,ssid,latitude,longitude,signal_dbm,observed_at,radio_type,frequency,capabilities,accuracy'
+      );
+      expect(res.text).toContain(
+        'AA:BB:CC:DD:EE:FF,Test SSID,45,-75,-60,2023-01-01T00:00:00Z,W,2412,[WPA2-PSK-CCMP][ESS],10'
+      );
     });
 
     it('should handle CSV values with commas', async () => {
@@ -83,7 +87,7 @@ describe('Export API Integration Tests', () => {
       ];
       container.exportService.getObservationsForCSV.mockResolvedValue(mockRows);
 
-      const res = await request(app).get('/api/v1/csv');
+      const res = await request(app).get('/api/csv');
 
       expect(res.status).toBe(200);
       expect(res.text).toContain('"Comma, SSID"');
@@ -92,14 +96,14 @@ describe('Export API Integration Tests', () => {
     it('should return 500 if export service fails', async () => {
       container.exportService.getObservationsForCSV.mockRejectedValue(new Error('DB Error'));
 
-      const res = await request(app).get('/api/v1/csv');
+      const res = await request(app).get('/api/csv');
 
       expect(res.status).toBe(500);
       expect(res.body.error).toBe('DB Error');
     });
   });
 
-  describe('GET /api/v1/json', () => {
+  describe('GET /api/json', () => {
     it('should return observations and networks as JSON', async () => {
       const mockData = {
         observations: [{ bssid: 'AA:BB:CC:DD:EE:FF' }],
@@ -107,7 +111,7 @@ describe('Export API Integration Tests', () => {
       };
       container.exportService.getObservationsAndNetworksForJSON.mockResolvedValue(mockData);
 
-      const res = await request(app).get('/api/v1/json');
+      const res = await request(app).get('/api/json');
 
       expect(res.status).toBe(200);
       expect(res.header['content-type']).toContain('application/json');
@@ -119,16 +123,18 @@ describe('Export API Integration Tests', () => {
     });
 
     it('should return 500 if export service fails', async () => {
-      container.exportService.getObservationsAndNetworksForJSON.mockRejectedValue(new Error('DB Error'));
+      container.exportService.getObservationsAndNetworksForJSON.mockRejectedValue(
+        new Error('DB Error')
+      );
 
-      const res = await request(app).get('/api/v1/json');
+      const res = await request(app).get('/api/json');
 
       expect(res.status).toBe(500);
       expect(res.body.error).toBe('DB Error');
     });
   });
 
-  describe('GET /api/v1/json/full', () => {
+  describe('GET /api/json/full', () => {
     it('should return full database snapshot as JSON', async () => {
       const mockSnapshot = {
         tables: {
@@ -138,7 +144,7 @@ describe('Export API Integration Tests', () => {
       };
       container.exportService.getFullDatabaseSnapshot.mockResolvedValue(mockSnapshot);
 
-      const res = await request(app).get('/api/v1/json/full');
+      const res = await request(app).get('/api/json/full');
 
       expect(res.status).toBe(200);
       expect(res.header['content-type']).toContain('application/json');
@@ -150,14 +156,14 @@ describe('Export API Integration Tests', () => {
     it('should return 500 if export service fails', async () => {
       container.exportService.getFullDatabaseSnapshot.mockRejectedValue(new Error('Access Denied'));
 
-      const res = await request(app).get('/api/v1/json/full');
+      const res = await request(app).get('/api/json/full');
 
       expect(res.status).toBe(500);
       expect(res.body.error).toBe('Access Denied');
     });
   });
 
-  describe('GET /api/v1/geojson', () => {
+  describe('GET /api/geojson', () => {
     it('should return observations as GeoJSON', async () => {
       const mockRows = [
         {
@@ -175,7 +181,7 @@ describe('Export API Integration Tests', () => {
       ];
       container.exportService.getObservationsForGeoJSON.mockResolvedValue(mockRows);
 
-      const res = await request(app).get('/api/v1/geojson');
+      const res = await request(app).get('/api/geojson');
 
       expect(res.status).toBe(200);
       expect(res.header['content-type']).toContain('application/json');
@@ -190,38 +196,43 @@ describe('Export API Integration Tests', () => {
     it('should return 500 if export service fails', async () => {
       container.exportService.getObservationsForGeoJSON.mockRejectedValue(new Error('Geo Error'));
 
-      const res = await request(app).get('/api/v1/geojson');
+      const res = await request(app).get('/api/geojson');
 
       expect(res.status).toBe(500);
       expect(res.body.error).toBe('Geo Error');
     });
   });
 
-  describe('GET /api/v1/kml', () => {
+  describe('GET /api/kml', () => {
     it('should return observations as KML for valid BSSIDs', async () => {
       const bssids = 'AA:BB:CC:DD:EE:FF,00:11:22:33:44:55';
       const mockObservations = [{ bssid: 'AA:BB:CC:DD:EE:FF', latitude: 45, longitude: -75 }];
       container.exportService.getObservationsForKML.mockResolvedValue(mockObservations);
-      container.exportService.generateKML.mockReturnValue('<?xml version="1.0" encoding="UTF-8"?><kml>...</kml>');
+      container.exportService.generateKML.mockReturnValue(
+        '<?xml version="1.0" encoding="UTF-8"?><kml>...</kml>'
+      );
 
-      const res = await request(app).get('/api/v1/kml').query({ bssids });
+      const res = await request(app).get('/api/kml').query({ bssids });
 
       expect(res.status).toBe(200);
       expect(res.header['content-type']).toContain('application/vnd.google-earth.kml+xml');
       expect(res.header['content-disposition']).toContain('attachment');
       expect(res.header['content-disposition']).toContain('.kml"');
       expect(res.text).toBe('<?xml version="1.0" encoding="UTF-8"?><kml>...</kml>');
-      expect(container.exportService.getObservationsForKML).toHaveBeenCalledWith(['AA:BB:CC:DD:EE:FF', '00:11:22:33:44:55']);
+      expect(container.exportService.getObservationsForKML).toHaveBeenCalledWith([
+        'AA:BB:CC:DD:EE:FF',
+        '00:11:22:33:44:55',
+      ]);
     });
 
     it('should return 400 if bssids parameter is missing', async () => {
-      const res = await request(app).get('/api/v1/kml');
+      const res = await request(app).get('/api/kml');
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('bssids parameter is required');
     });
 
     it('should return 400 if no valid BSSIDs provided', async () => {
-      const res = await request(app).get('/api/v1/kml').query({ bssids: 'invalid-bssid' });
+      const res = await request(app).get('/api/kml').query({ bssids: 'invalid-bssid' });
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('No valid BSSIDs provided');
     });
@@ -229,7 +240,7 @@ describe('Export API Integration Tests', () => {
     it('should return 404 if no observations found', async () => {
       container.exportService.getObservationsForKML.mockResolvedValue([]);
 
-      const res = await request(app).get('/api/v1/kml').query({ bssids: 'AA:BB:CC:DD:EE:FF' });
+      const res = await request(app).get('/api/kml').query({ bssids: 'AA:BB:CC:DD:EE:FF' });
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('No observations found for the specified networks');
@@ -238,7 +249,7 @@ describe('Export API Integration Tests', () => {
     it('should return 500 if export service fails', async () => {
       container.exportService.getObservationsForKML.mockRejectedValue(new Error('KML Error'));
 
-      const res = await request(app).get('/api/v1/kml').query({ bssids: 'AA:BB:CC:DD:EE:FF' });
+      const res = await request(app).get('/api/kml').query({ bssids: 'AA:BB:CC:DD:EE:FF' });
 
       expect(res.status).toBe(500);
       expect(res.body.error).toBe('KML Error');
