@@ -1,19 +1,19 @@
 # Coverage Report
 
-- Generated: 2026-06-13T13:40:25.283Z
-- Git SHA: `232665dc`
+- Generated: 2026-06-13T14:48:29.680Z
+- Git SHA: `b2d7671e`
 - Source: `coverage/coverage-summary.json`
-- Coverage artifact modified: 2026-06-13T13:40:24.700Z
+- Coverage artifact modified: 2026-06-13T14:48:29.188Z
 - Global threshold: 60% per metric
 
 ## Global Totals
 
 | Metric     | Covered / Total | Actual | Threshold | Status |
 | ---------- | --------------: | -----: | --------: | ------ |
-| Statements |   15077 / 24549 | 61.41% |       60% | PASS   |
-| Branches   |    8704 / 15445 | 56.35% |       60% | FAIL   |
-| Functions  |     2119 / 3724 | 56.90% |       60% | FAIL   |
-| Lines      |   14651 / 23323 | 62.81% |       60% | PASS   |
+| Statements |   15309 / 24549 | 62.36% |       60% | PASS   |
+| Branches   |    8800 / 15445 | 56.97% |       60% | FAIL   |
+| Functions  |     2158 / 3724 | 57.94% |       60% | FAIL   |
+| Lines      |   14878 / 23323 | 63.79% |       60% | PASS   |
 
 > Coverage totals reflect the collection scope of the source artifact. Layer aggregates are calculated from covered and total counters, not averages of file percentages.
 
@@ -159,10 +159,10 @@ Files: 106
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     3707 / 4745 |   78.12% |
-| Branches   |     1849 / 2722 |   67.92% |
-| Functions  |       395 / 519 |   76.10% |
-| Lines      |     3652 / 4671 |   78.18% |
+| Statements |     3875 / 4745 |   81.66% |
+| Branches   |     1920 / 2722 |   70.53% |
+| Functions  |       408 / 519 |   78.61% |
+| Lines      |     3818 / 4671 |   81.73% |
 
 | File                                                                |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -184,7 +184,7 @@ Files: 106
 | `server/src/api/routes/v1/admin/import/sql.js`                      |  98.18% |   75.00% |    50.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/import/sqlite.js`                   | 100.00% |   76.47% |    54.54% | PARTIAL   |
 | `server/src/api/routes/v1/admin/maintenance.ts`                     |  64.00% |  100.00% |    50.00% | PARTIAL   |
-| `server/src/api/routes/v1/admin/media.ts`                           |  41.30% |   30.00% |    25.00% | UNCOVERED |
+| `server/src/api/routes/v1/admin/media.ts`                           |  97.82% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/notes.ts`                           | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/oui.ts`                             |  33.33% |  100.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/admin/pgadmin.ts`                         |  28.20% |    0.00% |     0.00% | UNCOVERED |
@@ -199,8 +199,8 @@ Files: 106
 | `server/src/api/routes/v1/auth.ts`                                  |  59.32% |   35.71% |    75.00% | UNCOVERED |
 | `server/src/api/routes/v1/backup.ts`                                |  92.85% |   60.00% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/claude.ts`                                |  98.03% |   79.16% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/dashboard.ts`                             |  63.23% |   70.65% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/dataQuality.ts`                           |  36.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/dashboard.ts`                             |  98.52% |   88.04% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/dataQuality.ts`                           | 100.00% |   91.66% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/deflockCameras.ts`                        |   0.00% |  100.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/explorer.ts`                              |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `server/src/api/routes/v1/explorer/index.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -208,16 +208,16 @@ Files: 106
 | `server/src/api/routes/v1/explorer/shared.ts`                       |  98.98% |   98.64% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/export.ts`                                | 100.00% |   68.75% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/federalCourthouses.ts`                    |   0.00% |  100.00% |     0.00% | UNCOVERED |
-| `server/src/api/routes/v1/geocoding.ts`                             |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/geocoding.ts`                             | 100.00% |   90.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/geospatial.ts`                            |  93.33% |   79.22% |    69.23% | PARTIAL   |
-| `server/src/api/routes/v1/health.ts`                                |  89.18% |   73.52% |    69.23% | PARTIAL   |
+| `server/src/api/routes/v1/health.ts`                                |  86.48% |   67.64% |    69.23% | PARTIAL   |
 | `server/src/api/routes/v1/home-location.ts`                         |  90.62% |   86.36% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/kepler.ts`                                |  91.66% |   69.04% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/keplerHelpers.ts`                         | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/location-markers.ts`                      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/ml.ts`                                    |  84.25% |   76.92% |    88.88% | PARTIAL   |
 | `server/src/api/routes/v1/mobileIngest.ts`                          |  73.41% |   64.58% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/network-agencies.ts`                      |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/network-agencies.ts`                      | 100.00% |   92.85% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/network-tags.ts`                          |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `server/src/api/routes/v1/network-tags/index.ts`                    |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `server/src/api/routes/v1/network-tags/listTags.ts`                 | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -234,7 +234,7 @@ Files: 106
 | `server/src/api/routes/v1/networks/list/parsers/spatialFilters.ts`  |  84.21% |   81.81% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks/list/parsers/threatFilters.ts`   |  44.11% |   14.28% |    50.00% | UNCOVERED |
 | `server/src/api/routes/v1/networks/manufacturer.ts`                 |  93.18% |   82.60% |   100.00% | COVERED   |
-| `server/src/api/routes/v1/networks/notes.ts`                        |  51.06% |   33.33% |    50.00% | UNCOVERED |
+| `server/src/api/routes/v1/networks/notes.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks/observations.ts`                 |  69.87% |   66.11% |    93.75% | PARTIAL   |
 | `server/src/api/routes/v1/networks/search.ts`                       |  85.71% |   78.94% |    50.00% | PARTIAL   |
 | `server/src/api/routes/v1/networks/tags.ts`                         |  95.55% |   84.21% |   100.00% | COVERED   |
@@ -271,7 +271,7 @@ Files: 106
 | `server/src/api/routes/v2/filteredHandlers.ts`                      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filteredHelpers.ts`                       |  97.72% |   88.05% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/networks.ts`                              |  59.32% |   55.00% |    50.00% | PARTIAL   |
-| `server/src/api/routes/v2/threats.ts`                               |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v2/threats.ts`                               | 100.00% |  100.00% |   100.00% | COVERED   |
 
 ### `server/src/services/`
 
@@ -279,10 +279,10 @@ Files: 224
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     8421 / 9117 |   92.36% |
-| Branches   |     5131 / 6180 |   83.02% |
+| Statements |     8422 / 9117 |   92.37% |
+| Branches   |     5132 / 6180 |   83.04% |
 | Functions  |     1243 / 1397 |   88.97% |
-| Lines      |     8142 / 8749 |   93.06% |
+| Lines      |     8143 / 8749 |   93.07% |
 
 | File                                                                                        |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -427,7 +427,7 @@ Files: 224
 | `server/src/services/ml/scoringService.ts`                                                  | 100.00% |   94.44% |   100.00% | COVERED   |
 | `server/src/services/ml/trainer.ts`                                                         |  97.67% |   91.89% |   100.00% | COVERED   |
 | `server/src/services/mlTrainingLock.ts`                                                     | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/mobileIngestService.ts`                                                |  83.59% |   68.26% |    78.26% | PARTIAL   |
+| `server/src/services/mobileIngestService.ts`                                                |  84.37% |   69.23% |    78.26% | PARTIAL   |
 | `server/src/services/networking/filterBuilders.ts`                                          | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/networking/filterBuilders/locationFilters.ts`                          | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/networking/filterBuilders/securityRadioFilters.ts`                     | 100.00% |   91.66% |   100.00% | COVERED   |
@@ -517,26 +517,26 @@ Files: 23
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |       671 / 834 |   80.45% |
-| Branches   |       328 / 472 |   69.49% |
-| Functions  |       152 / 204 |   74.50% |
-| Lines      |       641 / 787 |   81.44% |
+| Statements |       734 / 834 |   88.00% |
+| Branches   |       352 / 472 |   74.57% |
+| Functions  |       178 / 204 |   87.25% |
+| Lines      |       701 / 787 |   89.07% |
 
 | File                                                         |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------ | ------: | -------: | --------: | --------- |
 | `server/src/repositories/adminNetworkMediaRepository.ts`     | 100.00% |   84.00% |   100.00% | COVERED   |
-| `server/src/repositories/adminNetworkTagOuiRepository.ts`    |  41.66% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/repositories/adminNetworkTagOuiRepository.ts`    | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/repositories/adminNetworkTagRepository.ts`       | 100.00% |   83.33% |   100.00% | COVERED   |
 | `server/src/repositories/agencyRepository.ts`                |  84.21% |   50.00% |    75.00% | PARTIAL   |
 | `server/src/repositories/baseRepository.ts`                  |  89.83% |   51.42% |   100.00% | PARTIAL   |
 | `server/src/repositories/courthouseRepository.ts`            | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/repositories/deflockRepository.ts`               |  50.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/repositories/exportRepository.ts`                |  38.23% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/repositories/exportRepository.ts`                | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/repositories/jobRunRepository.ts`                | 100.00% |   83.33% |   100.00% | COVERED   |
 | `server/src/repositories/keplerRepository.ts`                | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/repositories/kmlImportRepository.ts`             | 100.00% |   78.37% |   100.00% | PARTIAL   |
 | `server/src/repositories/mobileIngestRepository.ts`          |  85.36% |   50.00% |    92.30% | PARTIAL   |
-| `server/src/repositories/networkRepository.ts`               |  59.09% |   71.21% |    62.50% | PARTIAL   |
+| `server/src/repositories/networkRepository.ts`               | 100.00% |   89.39% |   100.00% | COVERED   |
 | `server/src/repositories/shotspotterRepository.ts`           |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/repositories/shotspotterSensorsRepository.ts`    |  50.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/repositories/siblingPruningRepository.ts`        | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -622,18 +622,18 @@ Files: 56
 
 Limited to `server/src/`; ETL and CLI scripts are excluded. Files are ranked by uncovered executable lines. The per-file verdict is determined by the weakest of Lines, Branches, and Functions coverage.
 
-| Rank | File                                           | Uncovered Lines |  Lines | Branches | Functions |
-| ---: | ---------------------------------------------- | --------------: | -----: | -------: | --------: |
-|    1 | `server/src/api/routes/v1/admin/pgadmin.ts`    |              28 | 28.20% |    0.00% |     0.00% |
-|    2 | `server/src/api/routes/v1/network-agencies.ts` |              27 |  0.00% |    0.00% |     0.00% |
-|    3 | `server/src/api/routes/v1/admin/aws.ts`        |              27 | 25.00% |   11.11% |     0.00% |
-|    4 | `server/src/api/routes/v1/admin/media.ts`      |              27 | 41.30% |   30.00% |    25.00% |
-|    5 | `server/src/api/routes/v1/geocoding.ts`        |              26 |  0.00% |    0.00% |     0.00% |
-|    6 | `server/src/api/routes/v2/threats.ts`          |              26 |  0.00% |    0.00% |     0.00% |
-|    7 | `server/src/api/routes/v1/admin/backup.ts`     |              26 | 27.77% |    0.00% |     0.00% |
-|    8 | `server/src/api/routes/v1/wigle/index.ts`      |              24 |  0.00% |    0.00% |     0.00% |
-|    9 | `server/src/api/routes/v1/admin/oui.ts`        |              24 | 33.33% |  100.00% |     0.00% |
-|   10 | `server/src/api/routes/v1/auth.ts`             |              24 | 59.32% |   35.71% |    75.00% |
+| Rank | File                                                                | Uncovered Lines |  Lines | Branches | Functions |
+| ---: | ------------------------------------------------------------------- | --------------: | -----: | -------: | --------: |
+|    1 | `server/src/api/routes/v1/admin/pgadmin.ts`                         |              28 | 28.20% |    0.00% |     0.00% |
+|    2 | `server/src/api/routes/v1/admin/aws.ts`                             |              27 | 25.00% |   11.11% |     0.00% |
+|    3 | `server/src/api/routes/v1/admin/backup.ts`                          |              26 | 27.77% |    0.00% |     0.00% |
+|    4 | `server/src/api/routes/v1/wigle/index.ts`                           |              24 |  0.00% |    0.00% |     0.00% |
+|    5 | `server/src/api/routes/v1/admin/oui.ts`                             |              24 | 33.33% |  100.00% |     0.00% |
+|    6 | `server/src/api/routes/v1/auth.ts`                                  |              24 | 59.32% |   35.71% |    75.00% |
+|    7 | `server/src/api/routes/v1/admin/adminAwsHelpers.ts`                 |              23 | 28.12% |    0.00% |     0.00% |
+|    8 | `server/src/api/routes/v1/networks/list/parsers/networkIdentity.ts` |              22 | 52.17% |   20.93% |    40.00% |
+|    9 | `server/src/services/wigleImport/btPageProcessor.ts`                |              20 | 25.92% |    0.00% |     0.00% |
+|   10 | `server/src/api/routes/v1/wigle/observations.ts`                    |              19 |  0.00% |    0.00% |     0.00% |
 
 ## Verdict Scale
 
