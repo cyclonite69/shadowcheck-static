@@ -196,15 +196,16 @@ export const normalizeThreatTransparency = (threat: unknown): ThreatTransparency
   const score = Number(threatObj.score || 0);
   const level = String(threatObj.level || 'NONE').toUpperCase();
   const flagged = score > 0 || level !== 'NONE';
+  const transparencyError = flagged && reasons.length === 0;
 
-  if (flagged && reasons.length === 0) {
+  if (transparencyError) {
     reasons = ['MISSING_THREAT_REASONS'];
   }
 
   return {
     threatReasons: reasons,
     threatEvidence: evidence,
-    transparencyError: flagged && reasons.length === 0,
+    transparencyError,
   };
 };
 

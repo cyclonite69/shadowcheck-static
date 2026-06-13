@@ -27,7 +27,7 @@ router.get('/kepler/data', async (req: Request, res: Response) => {
     const result = await keplerService.getKeplerData(filters, enabled, limit, offset);
     res.json(result);
   } catch (error: any) {
-    if (error.status === 400) {
+    if (error.status === 400 || error.message?.includes('Invalid JSON')) {
       return res.status(400).json({ ok: false, errors: error.errors || [error.message] });
     }
     const msg = error.message || String(error);
@@ -53,7 +53,7 @@ router.get('/kepler/observations', async (req: Request, res: Response) => {
     const result = await keplerService.getKeplerObservations(filters, enabled, limit);
     res.json(result);
   } catch (error: any) {
-    if (error.status === 400) {
+    if (error.status === 400 || error.message?.includes('Invalid JSON')) {
       return res.status(400).json({ ok: false, errors: error.errors || [error.message] });
     }
     const msg = error.message || String(error);
@@ -78,7 +78,7 @@ router.get('/kepler/networks', async (req: Request, res: Response) => {
     const result = await keplerService.getKeplerNetworks(filters, enabled, limit, offset);
     res.json(result);
   } catch (error: any) {
-    if (error.status === 400) {
+    if (error.status === 400 || error.message?.includes('Invalid JSON')) {
       return res.status(400).json({ ok: false, errors: error.errors || [error.message] });
     }
     const msg = error.message || String(error);
