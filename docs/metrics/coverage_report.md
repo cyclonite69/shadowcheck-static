@@ -1,19 +1,19 @@
 # Coverage Report
 
-- Generated: 2026-06-13T00:30:39.833Z
-- Git SHA: `2c0dd2d6`
+- Generated: 2026-06-13T04:11:56.407Z
+- Git SHA: `75076e60`
 - Source: `coverage/coverage-summary.json`
-- Coverage artifact modified: 2026-06-13T00:24:31.117Z
+- Coverage artifact modified: 2026-06-13T04:11:55.913Z
 - Global threshold: 60% per metric
 
 ## Global Totals
 
 | Metric     | Covered / Total | Actual | Threshold | Status |
 | ---------- | --------------: | -----: | --------: | ------ |
-| Statements |   13747 / 24435 | 56.25% |       60% | FAIL   |
-| Branches   |    7792 / 15409 | 50.56% |       60% | FAIL   |
-| Functions  |     1937 / 3686 | 52.55% |       60% | FAIL   |
-| Lines      |   13340 / 23213 | 57.46% |       60% | FAIL   |
+| Statements |   14364 / 24543 | 58.52% |       60% | FAIL   |
+| Branches   |    8165 / 15439 | 52.88% |       60% | FAIL   |
+| Functions  |     2005 / 3723 | 53.85% |       60% | FAIL   |
+| Lines      |   13953 / 23317 | 59.84% |       60% | FAIL   |
 
 > Coverage totals reflect the collection scope of the source artifact. Layer aggregates are calculated from covered and total counters, not averages of file percentages.
 
@@ -91,66 +91,67 @@ Files: 56
 
 ### `scripts/`
 
-Files: 49
+Files: 50
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |       68 / 4400 |    1.54% |
-| Branches   |       60 / 2524 |    2.37% |
-| Functions  |        10 / 747 |    1.33% |
-| Lines      |       67 / 3982 |    1.68% |
+| Statements |       68 / 4508 |    1.50% |
+| Branches   |       60 / 2554 |    2.34% |
+| Functions  |        10 / 784 |    1.27% |
+| Lines      |       67 / 4086 |    1.63% |
 
-| File                                                       |   Lines | Branches | Functions | Verdict   |
-| ---------------------------------------------------------- | ------: | -------: | --------: | --------- |
-| `scripts/audit/api-route-audit.ts`                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/backup-sm-to-bitwarden.js`                        |  44.96% |   50.84% |    43.47% | PARTIAL   |
-| `scripts/check-client-imports.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/check-modularity.js`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/db-audit/generate-audit-report.js`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/debug-smarty-one.ts`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-addresses-fast.ts`              |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-addresses-multi.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-business-names.ts`              |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-multi-source.ts`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-overpass-optimized.ts`          |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrichment-system.ts`                  |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/generate-overpass-queries.ts`          |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/monitor-enrichment.ts`                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/forensic/siblingPairAuditBatch.ts`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/forensic/siblingPairAuditTargeted.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/generate-password.ts`                             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/generate-sitemap.js`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/export-missing-geocodes.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/geocode-addresses.ts`                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/geocode-batch.ts`                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/geocode-wigle.ts`                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-ap-addresses.ts`                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-final-geocodes.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-geocodes.ts`                     |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-missing-geocodes.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-network-addresses.ts`            |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-batch.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-observations-sample.ts` |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-parallel.ts`            |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-smart.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/import/import-wigle-parallel.ts`                  |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/loadEnv.ts`                                       |   0.00% |  100.00% |   100.00% | UNCOVERED |
-| `scripts/manual-ingest.js`                                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/manual/run-geocoding-sample.ts`                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/ml/ml-logistic-regression.d.ts`                   | 100.00% |  100.00% |   100.00% | COVERED   |
-| `scripts/ml/ml-trainer.ts`                                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/rebuild-networks-precision.ts`                    |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/run_manufacturer_backfill.js`                     |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/run_targeted_siblings.js`                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/run-migration.ts`                                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/runSiblingRefreshTest.ts`                         |   0.00% |  100.00% |     0.00% | UNCOVERED |
-| `scripts/score-all-hybrid.ts`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/set-home.ts`                                      |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/test-smarty-us-street.ts`                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/trigger-report.js`                                |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/vendor-docs-extract.ts`                           |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/wigle-daemon.ts`                                  |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/write-robots.js`                                  |   0.00% |    0.00% |   100.00% | UNCOVERED |
+| File                                                       |  Lines | Branches | Functions | Verdict   |
+| ---------------------------------------------------------- | -----: | -------: | --------: | --------- |
+| `scripts/audit/api-route-audit.ts`                         |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/backup-sm-to-bitwarden.js`                        | 44.96% |   50.84% |    43.47% | PARTIAL   |
+| `scripts/check-client-imports.ts`                          |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/check-modularity.js`                              |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/db-audit/generate-audit-report.js`                |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/debug-smarty-one.ts`                              |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-addresses-fast.ts`              |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-addresses-multi.ts`             |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-business-names.ts`              |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-multi-source.ts`                |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-overpass-optimized.ts`          |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrichment-system.ts`                  |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/generate-overpass-queries.ts`          |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/monitor-enrichment.ts`                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/forensic/siblingPairAuditBatch.ts`                |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/forensic/siblingPairAuditTargeted.ts`             |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/generate-coverage-report.js`                      |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/generate-password.ts`                             |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/generate-sitemap.js`                              |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/export-missing-geocodes.ts`             |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/geocode-addresses.ts`                   |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/geocode-batch.ts`                       |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/geocode-wigle.ts`                       |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-ap-addresses.ts`                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-final-geocodes.ts`               |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-geocodes.ts`                     |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-missing-geocodes.ts`             |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-network-addresses.ts`            |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/reverse-geocode-batch.ts`               |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/reverse-geocode-observations-sample.ts` |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/reverse-geocode-parallel.ts`            |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/reverse-geocode-smart.ts`               |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/import/import-wigle-parallel.ts`                  |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/loadEnv.ts`                                       |  0.00% |  100.00% |   100.00% | UNCOVERED |
+| `scripts/manual-ingest.js`                                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/manual/run-geocoding-sample.ts`                   |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/ml/ml-logistic-regression.d.ts`                   |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/ml/ml-trainer.ts`                                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/rebuild-networks-precision.ts`                    |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/run_manufacturer_backfill.js`                     |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/run_targeted_siblings.js`                         |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/run-migration.ts`                                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/runSiblingRefreshTest.ts`                         |  0.00% |  100.00% |     0.00% | UNCOVERED |
+| `scripts/score-all-hybrid.ts`                              |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/set-home.ts`                                      |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/test-smarty-us-street.ts`                         |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/trigger-report.js`                                |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/vendor-docs-extract.ts`                           |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/wigle-daemon.ts`                                  |  0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/write-robots.js`                                  |  0.00% |    0.00% |   100.00% | UNCOVERED |
 
 ### `server/src/api/routes/`
 
@@ -158,16 +159,16 @@ Files: 106
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     2534 / 4744 |   53.41% |
-| Branches   |     1110 / 2718 |   40.83% |
-| Functions  |       263 / 519 |   50.67% |
-| Lines      |     2492 / 4670 |   53.36% |
+| Statements |     3147 / 4744 |   66.33% |
+| Branches   |     1481 / 2718 |   54.48% |
+| Functions  |       330 / 519 |   63.58% |
+| Lines      |     3101 / 4670 |   66.40% |
 
 | File                                                                |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
 | `server/src/api/routes/v1/admin.ts`                                 |  81.31% |   66.66% |    33.33% | UNCOVERED |
 | `server/src/api/routes/v1/admin/adminAwsHelpers.ts`                 |  28.12% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/api/routes/v1/admin/adminGeocodingHelpers.ts`           |  94.44% |   64.40% |    84.61% | PARTIAL   |
+| `server/src/api/routes/v1/admin/adminGeocodingHelpers.ts`           |  98.14% |   77.96% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/adminNotesHelpers.ts`               |  53.73% |   27.65% |    57.14% | UNCOVERED |
 | `server/src/api/routes/v1/admin/adminSecretsHelpers.ts`             |  50.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/admin/aws.ts`                             |  25.00% |   11.11% |     0.00% | UNCOVERED |
@@ -175,7 +176,7 @@ Files: 106
 | `server/src/api/routes/v1/admin/backup.ts`                          |  27.77% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/admin/dbStats.ts`                         |  64.28% |   85.71% |    50.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/detectionEvidence.ts`               |  36.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/api/routes/v1/admin/geocoding.ts`                       |  22.72% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/admin/geocoding.ts`                       | 100.00% |   72.22% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/import.ts`                          | 100.00% |   50.00% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/import/history.js`                  |  70.00% |   50.00% |    75.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/import/kml.js`                      |  91.54% |   78.94% |    83.33% | PARTIAL   |
@@ -184,12 +185,12 @@ Files: 106
 | `server/src/api/routes/v1/admin/import/sqlite.js`                   | 100.00% |   76.47% |    54.54% | PARTIAL   |
 | `server/src/api/routes/v1/admin/maintenance.ts`                     |  64.00% |  100.00% |    50.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/media.ts`                           |  41.30% |   30.00% |    25.00% | UNCOVERED |
-| `server/src/api/routes/v1/admin/notes.ts`                           |  23.52% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/admin/notes.ts`                           | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/oui.ts`                             |  33.33% |  100.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/admin/pgadmin.ts`                         |  28.20% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/admin/secrets.ts`                         |  41.37% |   46.15% |    25.00% | UNCOVERED |
 | `server/src/api/routes/v1/admin/settings.ts`                        |  78.03% |   63.29% |    88.23% | PARTIAL   |
-| `server/src/api/routes/v1/admin/siblings.ts`                        |  18.75% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/admin/siblings.ts`                        |  97.50% |   72.41% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/tags.ts`                            |  25.37% |    9.67% |    16.66% | UNCOVERED |
 | `server/src/api/routes/v1/admin/users.ts`                           |  22.03% |    0.00% |    20.00% | UNCOVERED |
 | `server/src/api/routes/v1/agencyOffices.ts`                         |  77.77% |  100.00% |   100.00% | PARTIAL   |
@@ -204,22 +205,22 @@ Files: 106
 | `server/src/api/routes/v1/explorer.ts`                              |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `server/src/api/routes/v1/explorer/index.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/explorer/networks.ts`                     |  75.75% |   64.51% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/explorer/shared.ts`                       |  46.46% |   53.37% |    80.00% | PARTIAL   |
+| `server/src/api/routes/v1/explorer/shared.ts`                       |  98.98% |   98.64% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/export.ts`                                | 100.00% |   68.75% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/federalCourthouses.ts`                    |   0.00% |  100.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/geocoding.ts`                             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/api/routes/v1/geospatial.ts`                            |  50.83% |   28.57% |    38.46% | UNCOVERED |
-| `server/src/api/routes/v1/health.ts`                                |  89.18% |   73.52% |    69.23% | PARTIAL   |
+| `server/src/api/routes/v1/geospatial.ts`                            |  93.33% |   79.22% |    69.23% | PARTIAL   |
+| `server/src/api/routes/v1/health.ts`                                |  86.48% |   67.64% |    69.23% | PARTIAL   |
 | `server/src/api/routes/v1/home-location.ts`                         |  90.62% |   86.36% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/kepler.ts`                                |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/keplerHelpers.ts`                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/location-markers.ts`                      |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/api/routes/v1/ml.ts`                                    |  46.29% |   46.15% |    44.44% | PARTIAL   |
+| `server/src/api/routes/v1/ml.ts`                                    |  84.25% |   76.92% |    88.88% | PARTIAL   |
 | `server/src/api/routes/v1/mobileIngest.ts`                          |  73.41% |   64.58% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/network-agencies.ts`                      |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/network-tags.ts`                          |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `server/src/api/routes/v1/network-tags/index.ts`                    |   0.00% |  100.00% |   100.00% | UNCOVERED |
-| `server/src/api/routes/v1/network-tags/listTags.ts`                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/network-tags/listTags.ts`                 | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/network-tags/manageTags.ts`               |  87.36% |   90.56% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks.ts`                              | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks/index.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -236,7 +237,7 @@ Files: 106
 | `server/src/api/routes/v1/networks/notes.ts`                        |  51.06% |   33.33% |    50.00% | UNCOVERED |
 | `server/src/api/routes/v1/networks/observations.ts`                 |  69.87% |   66.11% |    93.75% | PARTIAL   |
 | `server/src/api/routes/v1/networks/search.ts`                       |  85.71% |   78.94% |    50.00% | PARTIAL   |
-| `server/src/api/routes/v1/networks/tags.ts`                         |  18.88% |   10.52% |    14.28% | UNCOVERED |
+| `server/src/api/routes/v1/networks/tags.ts`                         |  95.55% |   84.21% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/settings.ts`                              |  75.67% |   44.44% |    66.66% | PARTIAL   |
 | `server/src/api/routes/v1/settingsHelpers.ts`                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/settingsMultiSecretRoutes.ts`             |  80.80% |   61.70% |   100.00% | PARTIAL   |
@@ -250,10 +251,10 @@ Files: 106
 | `server/src/api/routes/v1/wigle/detail.ts`                          |  32.75% |   22.85% |    20.00% | UNCOVERED |
 | `server/src/api/routes/v1/wigle/enrichment.ts`                      |  68.57% |   58.82% |    66.66% | PARTIAL   |
 | `server/src/api/routes/v1/wigle/index.ts`                           |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/api/routes/v1/wigle/ledger.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/wigle/ledger.ts`                          |  98.05% |   92.75% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/wigle/live.ts`                            |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/api/routes/v1/wigle/observations.ts`                    |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/api/routes/v1/wigle/search.ts`                          |  37.29% |   47.82% |    41.17% | UNCOVERED |
+| `server/src/api/routes/v1/wigle/search.ts`                          |  80.00% |   84.78% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/wigle/stats.ts`                           |  92.00% |   72.22% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/wigle/status.ts`                          | 100.00% |   88.88% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/wigle/validation.ts`                      |  50.00% |  100.00% |     0.00% | UNCOVERED |
@@ -278,10 +279,10 @@ Files: 224
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     8374 / 9112 |   91.90% |
+| Statements |     8376 / 9112 |   91.92% |
 | Branches   |     5033 / 6178 |   81.46% |
-| Functions  |     1235 / 1396 |   88.46% |
-| Lines      |     8100 / 8744 |   92.63% |
+| Functions  |     1236 / 1396 |   88.53% |
+| Lines      |     8102 / 8744 |   92.65% |
 
 | File                                                                                        |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -506,7 +507,7 @@ Files: 224
 | `server/src/services/wigleRequestUtils.ts`                                                  | 100.00% |   97.14% |   100.00% | COVERED   |
 | `server/src/services/wigleSearchApiService.ts`                                              |  92.85% |   89.47% |   100.00% | COVERED   |
 | `server/src/services/wigleSearchCache.ts`                                                   | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/wigleSearchService.ts`                                                 |  83.33% |   63.33% |    85.71% | PARTIAL   |
+| `server/src/services/wigleSearchService.ts`                                                 |  86.36% |   63.33% |   100.00% | PARTIAL   |
 | `server/src/services/wigleSearchTransforms.ts`                                              |  80.43% |   62.26% |    76.92% | PARTIAL   |
 | `server/src/services/wigleService.ts`                                                       |  86.66% |   66.66% |    75.00% | PARTIAL   |
 
@@ -553,10 +554,10 @@ Files: 56
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     1759 / 1855 |   94.82% |
-| Branches   |     1091 / 1212 |   90.01% |
+| Statements |     1761 / 1855 |   94.93% |
+| Branches   |     1093 / 1212 |   90.18% |
 | Functions  |       244 / 275 |   88.72% |
-| Lines      |     1741 / 1829 |   95.18% |
+| Lines      |     1743 / 1829 |   95.29% |
 
 | File                                                   |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------ | ------: | -------: | --------: | --------- |
@@ -583,8 +584,8 @@ Files: 56
 | `server/src/middleware/securityHeaders.ts`             | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/middleware/spaFallback.ts`                 | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/middleware/staticAssets.ts`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/types/express.d.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/types/ml-logistic-regression.d.ts`         | 100.00% |  100.00% |   100.00% | COVERED   |
+| `server/src/types/express.d.ts`                        |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/types/ml-logistic-regression.d.ts`         |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/types/surveillanceScan.ts`                 |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `server/src/types/v2Types.ts`                          |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `server/src/utils/asyncHandler.ts`                     | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -609,10 +610,10 @@ Files: 56
 | `server/src/validation/middleware.ts`                  | 100.00% |   92.47% |   100.00% | COVERED   |
 | `server/src/validation/parameterParsers.ts`            | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/validation/schemas.ts`                     |  97.59% |   91.95% |    93.75% | COVERED   |
-| `server/src/validation/schemas/commonSchemas.ts`       |  93.70% |   89.76% |   100.00% | COVERED   |
+| `server/src/validation/schemas/commonSchemas.ts`       |  94.40% |   90.55% |   100.00% | COVERED   |
 | `server/src/validation/schemas/complexValidators.ts`   |  99.37% |   96.26% |   100.00% | COVERED   |
 | `server/src/validation/schemas/geospatialSchemas.ts`   |  96.90% |   97.43% |   100.00% | COVERED   |
-| `server/src/validation/schemas/networkSchemas.ts`      |  96.58% |   95.45% |   100.00% | COVERED   |
+| `server/src/validation/schemas/networkSchemas.ts`      |  97.43% |   96.59% |   100.00% | COVERED   |
 | `server/src/validation/schemas/temporalSchemas.ts`     |  93.20% |   92.85% |   100.00% | COVERED   |
 | `server/src/views/ouiGroupingDemo.ts`                  | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/websocket/ssmTerminal.ts`                  |  93.22% |   83.87% |    89.47% | COVERED   |
@@ -621,18 +622,18 @@ Files: 56
 
 Limited to `server/src/`; ETL and CLI scripts are excluded. Files are ranked by uncovered executable lines. The per-file verdict is determined by the weakest of Lines, Branches, and Functions coverage.
 
-| Rank | File                                                | Uncovered Lines |  Lines | Branches | Functions |
-| ---: | --------------------------------------------------- | --------------: | -----: | -------: | --------: |
-|    1 | `server/src/api/routes/v1/wigle/search.ts`          |             116 | 37.29% |   47.82% |    41.17% |
-|    2 | `server/src/api/routes/v1/wigle/ledger.ts`          |             103 |  0.00% |    0.00% |     0.00% |
-|    3 | `server/src/api/routes/v1/networks/tags.ts`         |              73 | 18.88% |   10.52% |    14.28% |
-|    4 | `server/src/api/routes/v1/admin/siblings.ts`        |              65 | 18.75% |    0.00% |     0.00% |
-|    5 | `server/src/api/routes/v1/geospatial.ts`            |              59 | 50.83% |   28.57% |    38.46% |
-|    6 | `server/src/api/routes/v1/admin/notes.ts`           |              52 | 23.52% |    0.00% |     0.00% |
-|    7 | `server/src/api/routes/v1/admin/geocoding.ts`       |              51 | 22.72% |    0.00% |     0.00% |
-|    8 | `server/src/api/routes/v1/network-tags/listTags.ts` |              50 |  0.00% |    0.00% |     0.00% |
-|    9 | `server/src/api/routes/v1/admin/tags.ts`            |              50 | 25.37% |    9.67% |    16.66% |
-|   10 | `server/src/api/routes/v1/kepler.ts`                |              48 |  0.00% |    0.00% |     0.00% |
+| Rank | File                                                 | Uncovered Lines |  Lines | Branches | Functions |
+| ---: | ---------------------------------------------------- | --------------: | -----: | -------: | --------: |
+|    1 | `server/src/api/routes/v1/admin/tags.ts`             |              50 | 25.37% |    9.67% |    16.66% |
+|    2 | `server/src/api/routes/v1/kepler.ts`                 |              48 |  0.00% |    0.00% |     0.00% |
+|    3 | `server/src/api/routes/v2/filtered/handlers/list.ts` |              48 | 12.72% |    0.00% |    14.28% |
+|    4 | `server/src/api/routes/v1/admin/awsInstances.ts`     |              48 | 20.00% |    0.00% |     0.00% |
+|    5 | `server/src/api/routes/v1/admin/users.ts`            |              46 | 22.03% |    0.00% |    20.00% |
+|    6 | `server/src/api/routes/v1/threat-report.ts`          |              43 |  0.00% |    0.00% |     0.00% |
+|    7 | `server/src/api/routes/v1/wigle/detail.ts`           |              39 | 32.75% |   22.85% |    20.00% |
+|    8 | `server/src/api/routes/v2/filteredHelpers.ts`        |              38 | 56.32% |   18.84% |    78.57% |
+|    9 | `server/src/api/routes/v1/wigle/live.ts`             |              34 |  0.00% |    0.00% |     0.00% |
+|   10 | `server/src/api/routes/v1/settingsHelpers.ts`        |              33 |  0.00% |    0.00% |     0.00% |
 
 ## Verdict Scale
 

@@ -102,6 +102,19 @@ npm run test:watch
 npm run test:cov
 ```
 
+### Refresh Coverage Report During Commit
+
+Use the transient Git config flag when the commit should include a freshly
+generated `docs/metrics/coverage_report.md`:
+
+```bash
+git -c shadowcheck.refreshCoverage=true commit -m "test: improve route coverage"
+```
+
+The pre-commit hook runs the full suite with coverage, regenerates and formats
+the report, and stages it into the same commit. Normal commits skip this
+expensive step. Use the flag for coverage milestones rather than every commit.
+
 ---
 
 ## Test Structure

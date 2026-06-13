@@ -148,6 +148,29 @@ router.get(
   }
 );
 
+/**
+ * DELETE /search-api/import-runs/cluster-cleanup
+ */
+router.delete(
+  '/search-api/import-runs/cluster-cleanup',
+  requireAdmin,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (req.body?.confirm !== true) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'Pass { confirm: true } to confirm deletion' });
+      }
+      const deleted = await wigleImportRunService.bulkDeleteGlobalCancelledCluster();
+      logger.info('[WiGLE] Cluster cleanup completed', { deleted });
+      return res.json({ ok: true, deleted });
+    } catch (err: any) {
+      logger.error(`[WiGLE] Cluster cleanup error: ${err.message}`, { error: err });
+      next(err);
+    }
+  }
+);
+
 router.get(
   '/search-api/import-runs/:id',
   requireAdmin,
@@ -384,29 +407,6 @@ router.post(
       logger.error(`[WiGLE BT] Import-start error: ${err.message}`, { error: err });
       if (err?.status === 403)
         return res.status(403).json({ ok: false, error: err.message, code: err.code });
-      next(err);
-    }
-  }
-);
-
-/**
- * DELETE /search-api/import-runs/cluster-cleanup
- */
-router.delete(
-  '/search-api/import-runs/cluster-cleanup',
-  requireAdmin,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      if (req.body?.confirm !== true) {
-        return res
-          .status(400)
-          .json({ ok: false, error: 'Pass { confirm: true } to confirm deletion' });
-      }
-      const deleted = await wigleImportRunService.bulkDeleteGlobalCancelledCluster();
-      logger.info('[WiGLE] Cluster cleanup completed', { deleted });
-      return res.json({ ok: true, deleted });
-    } catch (err: any) {
-      logger.error(`[WiGLE] Cluster cleanup error: ${err.message}`, { error: err });
       next(err);
     }
   }

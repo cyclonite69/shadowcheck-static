@@ -30,7 +30,7 @@ module.exports = {
   },
 
   // Coverage reporters
-  coverageReporters: ['text', 'text-summary', 'html', 'lcov', 'json'],
+  coverageReporters: ['text', 'text-summary', 'html', 'lcov', 'json', 'json-summary'],
 
   // Coverage directory
   coverageDirectory: 'coverage',

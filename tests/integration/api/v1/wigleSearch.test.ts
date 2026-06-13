@@ -14,10 +14,16 @@ const mockContainer = {
     listImportRuns: jest.fn(),
     getImportCompletenessReport: jest.fn(),
     getImportRun: jest.fn(),
+    deleteImportRun: jest.fn(),
     getLatestResumableImportRun: jest.fn(),
     pauseImportRun: jest.fn(),
     cancelImportRun: jest.fn(),
     bulkDeleteGlobalCancelledCluster: jest.fn(),
+  },
+  wigleBluetoothImportService: {
+    validateBtImportQuery: jest.fn(),
+    startBluetoothImportRun: jest.fn(),
+    resumeBluetoothImportRun: jest.fn(),
   },
 };
 
@@ -152,6 +158,63 @@ describe('WiGLE Search API v1', () => {
       expect(res.body.run.id).toBe(123);
       expect(mockContainer.wigleImportRunService.startImportRun).toHaveBeenCalled();
     });
+
+    it('validates import queries before starting', async () => {
+      mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue('invalid query');
+
+      const res = await request(app).post('/api/wigle/search-api/import-all').send({
+        ssid: 'TestNet',
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ ok: false, error: 'invalid query' });
+      expect(mockContainer.wigleImportRunService.startImportRun).not.toHaveBeenCalled();
+    });
+
+    it('resumes a specific import run', async () => {
+      mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
+      mockContainer.wigleImportRunService.resumeImportRun.mockResolvedValue({
+        id: 44,
+        status: 'running',
+      });
+
+      const res = await request(app).post('/api/wigle/search-api/import-all').send({ runId: '44' });
+
+      expect(res.status).toBe(200);
+      expect(mockContainer.wigleImportRunService.resumeImportRun).toHaveBeenCalledWith(44);
+    });
+
+    it('resumes the latest matching import run', async () => {
+      mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
+      mockContainer.wigleImportRunService.resumeLatestImportRun.mockResolvedValue({
+        id: 45,
+        status: 'running',
+      });
+
+      const res = await request(app)
+        .post('/api/wigle/search-api/import-all')
+        .send({ resumeLatest: true, state: 'NY' });
+
+      expect(res.status).toBe(200);
+      expect(mockContainer.wigleImportRunService.resumeLatestImportRun).toHaveBeenCalledWith({
+        resumeLatest: true,
+        state: 'NY',
+      });
+    });
+
+    it('returns structured forbidden errors', async () => {
+      mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
+      mockContainer.wigleImportRunService.startImportRun.mockRejectedValue(
+        Object.assign(new Error('quota exhausted'), { status: 403, code: 'QUOTA' })
+      );
+
+      const res = await request(app).post('/api/wigle/search-api/import-all').send({
+        ssid: 'TestNet',
+      });
+
+      expect(res.status).toBe(403);
+      expect(res.body).toEqual({ ok: false, error: 'quota exhausted', code: 'QUOTA' });
+    });
   });
 
   describe('GET /search-api/import-runs', () => {
@@ -166,6 +229,56 @@ describe('WiGLE Search API v1', () => {
       expect(res.status).toBe(200);
       expect(res.body.runs).toHaveLength(1);
       expect(mockContainer.wigleImportRunService.listImportRuns).toHaveBeenCalled();
+    });
+
+    it('passes pagination, filters, and sorting to the service', async () => {
+      mockContainer.wigleImportRunService.listImportRuns.mockResolvedValue({
+        data: [{ id: 2 }, { id: 3 }],
+        total: 10,
+      });
+
+      const res = await request(app).get('/api/wigle/search-api/import-runs').query({
+        page: '2',
+        limit: '2',
+        status: 'failed',
+        state: 'ny',
+        searchTerm: 'fleet',
+        incompleteOnly: 'true',
+        sortBy: 'status,started_at',
+        sortDir: 'asc,desc',
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockContainer.wigleImportRunService.listImportRuns).toHaveBeenCalledWith({
+        limit: 2,
+        offset: 2,
+        status: 'failed',
+        state: 'ny',
+        searchTerm: 'fleet',
+        incompleteOnly: true,
+        sortBy: 'status,started_at',
+        sortDir: 'asc,desc',
+      });
+      expect(res.body.hasMore).toBe(true);
+    });
+  });
+
+  describe('GET /search-api/import-runs/completeness/summary', () => {
+    it('returns a filtered completeness report', async () => {
+      mockContainer.wigleImportRunService.getImportCompletenessReport.mockResolvedValue({
+        storedCount: 12,
+      });
+
+      const res = await request(app)
+        .get('/api/wigle/search-api/import-runs/completeness/summary')
+        .query({ searchTerm: 'fleet', state: 'ny' });
+
+      expect(res.status).toBe(200);
+      expect(mockContainer.wigleImportRunService.getImportCompletenessReport).toHaveBeenCalledWith({
+        searchTerm: 'fleet',
+        state: 'NY',
+      });
+      expect(res.body.report).toEqual({ storedCount: 12 });
     });
   });
 
@@ -228,6 +341,208 @@ describe('WiGLE Search API v1', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('Invalid run id');
+    });
+  });
+
+  describe('DELETE /search-api/import-runs/:id', () => {
+    it('deletes a completed import run', async () => {
+      mockContainer.wigleImportRunService.deleteImportRun.mockResolvedValue(true);
+
+      const res = await request(app).delete('/api/wigle/search-api/import-runs/123');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, deleted: 123 });
+    });
+
+    it('rejects invalid ids and missing runs', async () => {
+      const invalid = await request(app).delete('/api/wigle/search-api/import-runs/bad');
+      expect(invalid.status).toBe(400);
+
+      mockContainer.wigleImportRunService.deleteImportRun.mockResolvedValue(false);
+      const missing = await request(app).delete('/api/wigle/search-api/import-runs/123');
+      expect(missing.status).toBe(404);
+    });
+  });
+
+  describe('import run lifecycle routes', () => {
+    beforeEach(() => {
+      mockContainer.wigleImportRunService.validateImportQuery.mockReturnValue(null);
+    });
+
+    it('resumes the latest matching run', async () => {
+      mockContainer.wigleImportRunService.resumeLatestImportRun.mockResolvedValue({
+        id: 9,
+        status: 'running',
+      });
+
+      const res = await request(app)
+        .post('/api/wigle/search-api/import-runs/resume-latest')
+        .send({ state: 'CA' });
+
+      expect(res.status).toBe(200);
+      expect(mockContainer.wigleImportRunService.resumeLatestImportRun).toHaveBeenCalledWith({
+        state: 'CA',
+      });
+    });
+
+    it('validates latest resume queries and reports forbidden responses', async () => {
+      mockContainer.wigleImportRunService.validateImportQuery.mockReturnValueOnce('invalid');
+      const invalid = await request(app).post('/api/wigle/search-api/import-runs/resume-latest');
+      expect(invalid.status).toBe(400);
+
+      mockContainer.wigleImportRunService.resumeLatestImportRun.mockRejectedValue(
+        Object.assign(new Error('quota exhausted'), { status: 403, code: 'QUOTA' })
+      );
+      const forbidden = await request(app).post('/api/wigle/search-api/import-runs/resume-latest');
+      expect(forbidden.status).toBe(403);
+      expect(forbidden.body.code).toBe('QUOTA');
+    });
+
+    it('returns the latest resumable run', async () => {
+      mockContainer.wigleImportRunService.getLatestResumableImportRun.mockResolvedValue({
+        id: 10,
+      });
+
+      const res = await request(app)
+        .get('/api/wigle/search-api/import-runs/resumable/latest')
+        .query({ state: 'TX' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.run).toEqual({ id: 10 });
+    });
+
+    it('resumes, pauses, and cancels a run by id', async () => {
+      mockContainer.wigleImportRunService.resumeImportRun.mockResolvedValue({
+        id: 11,
+        status: 'running',
+      });
+      mockContainer.wigleImportRunService.pauseImportRun.mockResolvedValue({
+        id: 11,
+        status: 'paused',
+      });
+      mockContainer.wigleImportRunService.cancelImportRun.mockResolvedValue({
+        id: 11,
+        status: 'cancelled',
+      });
+
+      const resumed = await request(app).post('/api/wigle/search-api/import-runs/11/resume');
+      const paused = await request(app).post('/api/wigle/search-api/import-runs/11/pause');
+      const cancelled = await request(app).post('/api/wigle/search-api/import-runs/11/cancel');
+
+      expect(resumed.status).toBe(200);
+      expect(paused.body.run.status).toBe('paused');
+      expect(cancelled.body.run.status).toBe('cancelled');
+    });
+
+    it.each(['resume', 'pause', 'cancel'])('rejects invalid ids for %s', async (action) => {
+      const res = await request(app).post(`/api/wigle/search-api/import-runs/bad/${action}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Invalid run id');
+    });
+  });
+
+  describe('DELETE /search-api/saved-ssid-terms/:id', () => {
+    it('deletes an existing saved term', async () => {
+      const db = require('../../../../server/src/config/database');
+      db.query.mockResolvedValue({ rowCount: 1 });
+
+      const res = await request(app).delete('/api/wigle/search-api/saved-ssid-terms/5');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, deleted: 5 });
+    });
+
+    it('rejects invalid ids and returns 404 for missing terms', async () => {
+      const invalid = await request(app).delete('/api/wigle/search-api/saved-ssid-terms/bad');
+      expect(invalid.status).toBe(400);
+
+      const db = require('../../../../server/src/config/database');
+      db.query.mockResolvedValue({ rowCount: 0 });
+      const missing = await request(app).delete('/api/wigle/search-api/saved-ssid-terms/5');
+      expect(missing.status).toBe(404);
+    });
+  });
+
+  describe('POST /search-api/bt-import-start', () => {
+    it('starts a validated Bluetooth import', async () => {
+      mockContainer.wigleBluetoothImportService.validateBtImportQuery.mockReturnValue(null);
+      mockContainer.wigleBluetoothImportService.startBluetoothImportRun.mockResolvedValue({
+        id: 21,
+        status: 'running',
+      });
+
+      const res = await request(app)
+        .post('/api/wigle/search-api/bt-import-start')
+        .send({ namelike: 'sensor' });
+
+      expect(res.status).toBe(200);
+      expect(
+        mockContainer.wigleBluetoothImportService.startBluetoothImportRun
+      ).toHaveBeenCalledWith({
+        namelike: 'sensor',
+      });
+    });
+
+    it('resumes a Bluetooth import and validates run ids', async () => {
+      mockContainer.wigleBluetoothImportService.resumeBluetoothImportRun.mockResolvedValue({
+        id: 22,
+        status: 'running',
+      });
+
+      const resumed = await request(app)
+        .post('/api/wigle/search-api/bt-import-start')
+        .send({ runId: '22' });
+      const invalid = await request(app)
+        .post('/api/wigle/search-api/bt-import-start')
+        .send({ runId: 'bad' });
+
+      expect(resumed.status).toBe(200);
+      expect(
+        mockContainer.wigleBluetoothImportService.resumeBluetoothImportRun
+      ).toHaveBeenCalledWith(22);
+      expect(invalid.status).toBe(400);
+    });
+
+    it('returns validation and forbidden errors', async () => {
+      mockContainer.wigleBluetoothImportService.validateBtImportQuery.mockReturnValueOnce(
+        'invalid bluetooth query'
+      );
+      const invalid = await request(app).post('/api/wigle/search-api/bt-import-start');
+      expect(invalid.status).toBe(400);
+
+      mockContainer.wigleBluetoothImportService.validateBtImportQuery.mockReturnValue(null);
+      mockContainer.wigleBluetoothImportService.startBluetoothImportRun.mockRejectedValue(
+        Object.assign(new Error('quota exhausted'), { status: 403, code: 'QUOTA' })
+      );
+      const forbidden = await request(app).post('/api/wigle/search-api/bt-import-start');
+      expect(forbidden.status).toBe(403);
+    });
+  });
+
+  describe('DELETE /search-api/import-runs/cluster-cleanup', () => {
+    it('requires explicit confirmation before cleanup', async () => {
+      const res = await request(app).delete('/api/wigle/search-api/import-runs/cluster-cleanup');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('confirm: true');
+      expect(
+        mockContainer.wigleImportRunService.bulkDeleteGlobalCancelledCluster
+      ).not.toHaveBeenCalled();
+    });
+
+    it('deletes the cancelled global cluster after confirmation', async () => {
+      mockContainer.wigleImportRunService.bulkDeleteGlobalCancelledCluster.mockResolvedValue(14);
+
+      const res = await request(app)
+        .delete('/api/wigle/search-api/import-runs/cluster-cleanup')
+        .send({ confirm: true });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, deleted: 14 });
+      expect(
+        mockContainer.wigleImportRunService.bulkDeleteGlobalCancelledCluster
+      ).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -7,6 +7,13 @@ npm run type-check:test
 npm run lint
 npx lint-staged
 
+refresh_coverage="$(git config --bool shadowcheck.refreshCoverage 2>/dev/null || true)"
+if [ "${GENERATED_DOCS_AMEND:-}" != "1" ] && [ "$refresh_coverage" = "true" ]; then
+  echo "Refreshing coverage report for this commit..."
+  npm run coverage:refresh
+  git add docs/metrics/coverage_report.md
+fi
+
 if git diff --cached --name-only | grep -q "routes/v1/"; then
   echo "⚠️  Route file changed — did you update client/src/config/apiTestEndpoints.ts?"
 fi
