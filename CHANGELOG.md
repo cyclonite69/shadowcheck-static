@@ -948,7 +948,7 @@
 - **wigle:** count field offices and resident agencies separately ([fed6b42](https://github.com/cyclonite69/shadowcheck-web/commit/fed6b42eb56edb193754d783f31b173c7083df36))
 - **wigle:** display BSSID correctly in search results ([80fc0ea](https://github.com/cyclonite69/shadowcheck-web/commit/80fc0ea9963779e53fd5fc275ec9855aafde28bb))
 - **wigle:** don't show cached address for distant WiGLE points ([707a6bb](https://github.com/cyclonite69/shadowcheck-web/commit/707a6bb986f1a704dda042b68e269e4f21d27882))
-- **wigle:** enforce ISO country code input ([c9d039e](https://github.com/cyclonite69/shadowcheck-web/commit/c9d039e54171e6489159ac214608715344cb53cf))
+- **wigle:** enforce ISO country code input ([232665d](https://github.com/cyclonite69/shadowcheck-web/commit/232665dc8f7ce12f692c48c2b9d70d7b6da3b3d5))
 - **wigle:** enforce stats soft limit at gateway before upstream fetch ([cb57269](https://github.com/cyclonite69/shadowcheck-web/commit/cb57269457959e324c839b41bbd19bfb13af2276))
 - **wigleEnrichmentRepository:** lazy-load adminQuery to prevent crash at module load time ([37da085](https://github.com/cyclonite69/shadowcheck-web/commit/37da085c91579dac36c6bf23f6ba19f577c76b37))
 - **wigleEnrichment:** unify batch import path and surface silent failures ([3a554e9](https://github.com/cyclonite69/shadowcheck-web/commit/3a554e9ef9b178fbfc1c1042653228fcbdfb7b7e))
