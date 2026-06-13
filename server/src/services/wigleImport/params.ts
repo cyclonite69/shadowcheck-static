@@ -47,6 +47,10 @@ const stableStringify = (value: unknown): string => {
   return JSON.stringify(value);
 };
 
+const normalizeCountryCode = (country: string): string => {
+  return country.trim().toUpperCase();
+};
+
 export const normalizeImportParams = (raw: Record<string, unknown>): WigleImportParams => {
   const normalized: WigleImportParams = {};
   for (const key of allowedParams) {
@@ -61,6 +65,10 @@ export const normalizeImportParams = (raw: Record<string, unknown>): WigleImport
     }
     if (key === 'version') {
       normalized.version = 'v2';
+      continue;
+    }
+    if (key === 'country') {
+      normalized.country = normalizeCountryCode(String(value));
       continue;
     }
     normalized[key] = String(value);
@@ -102,7 +110,7 @@ export const buildSearchParams = (
   if (query.latrange2) params.append('latrange2', query.latrange2);
   if (query.longrange1) params.append('longrange1', query.longrange1);
   if (query.longrange2) params.append('longrange2', query.longrange2);
-  if (query.country) params.append('country', query.country);
+  if (query.country) params.append('country', normalizeCountryCode(query.country));
   if (query.region) params.append('region', query.region);
   if (query.city) params.append('city', query.city);
   params.append('resultsPerPage', String(query.resultsPerPage || DEFAULT_RESULTS_PER_PAGE));

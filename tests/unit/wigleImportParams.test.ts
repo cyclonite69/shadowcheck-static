@@ -6,6 +6,7 @@ import {
   normalizeImportParams,
   validateImportQuery,
 } from '../../server/src/services/wigleImport/params';
+import { WigleValidationError } from '../../server/src/services/wigleImport/wigleApiSpec';
 
 describe('wigleImport params helpers', () => {
   it('normalizes defaults and clamps resultsPerPage', () => {
@@ -27,6 +28,42 @@ describe('wigleImport params helpers', () => {
       resultsPerPage: 1,
       version: 'v2',
     });
+
+    expect(normalizeImportParams({ country: '  us  ' })).toEqual({
+      country: 'US',
+      resultsPerPage: DEFAULT_RESULTS_PER_PAGE,
+      version: 'v2',
+    });
+
+    expect(normalizeImportParams({ country: 'FR' })).toEqual({
+      country: 'FR',
+      resultsPerPage: DEFAULT_RESULTS_PER_PAGE,
+      version: 'v2',
+    });
+
+    expect(normalizeImportParams({ country: 'United States' })).toEqual({
+      country: 'UNITED STATES',
+      resultsPerPage: DEFAULT_RESULTS_PER_PAGE,
+      version: 'v2',
+    });
+
+    expect(normalizeImportParams({ country: 'usa' })).toEqual({
+      country: 'USA',
+      resultsPerPage: DEFAULT_RESULTS_PER_PAGE,
+      version: 'v2',
+    });
+
+    expect(normalizeImportParams({ country: 'germany' })).toEqual({
+      country: 'GERMANY',
+      resultsPerPage: DEFAULT_RESULTS_PER_PAGE,
+      version: 'v2',
+    });
+
+    expect(normalizeImportParams({ country: ' Australia ' })).toEqual({
+      country: 'AUSTRALIA',
+      resultsPerPage: DEFAULT_RESULTS_PER_PAGE,
+      version: 'v2',
+    });
   });
 
   it('builds search params with searchAfter when present', () => {
@@ -40,6 +77,53 @@ describe('wigleImport params helpers', () => {
     );
 
     expect(params.toString()).toBe('ssidlike=fbi&region=IL&resultsPerPage=25&searchAfter=cursor-2');
+  });
+
+  it('buildSearchParams country parameter normalization and validation', () => {
+    // 1. Omitted country remains absent
+    const paramsOmitted = buildSearchParams({ ssid: 'fbi' });
+    expect(paramsOmitted.has('country')).toBe(false);
+    expect(paramsOmitted.get('ssidlike')).toBe('fbi');
+
+    // 2. Existing US code remains US
+    const paramsUS = buildSearchParams({ ssid: 'fbi', country: 'US' });
+    expect(paramsUS.get('country')).toBe('US');
+    expect(paramsUS.get('ssidlike')).toBe('fbi');
+
+    // 3. Lowercase valid codes normalize appropriately
+    const paramsLowercase = buildSearchParams({ ssid: 'fbi', country: 'us' });
+    expect(paramsLowercase.get('country')).toBe('US');
+    expect(paramsLowercase.get('ssidlike')).toBe('fbi');
+
+    // 4. Padded codes normalize appropriately
+    const paramsPadded = buildSearchParams({ ssid: 'fbi', country: '   us   ' });
+    expect(paramsPadded.get('country')).toBe('US');
+    expect(paramsPadded.get('ssidlike')).toBe('fbi');
+
+    // 5. Invalid values such as USA, United States, and XYZ fail clearly (throw WigleValidationError)
+    expect(() => {
+      buildSearchParams({ ssid: 'fbi', country: 'United States' });
+    }).toThrow(WigleValidationError);
+
+    expect(() => {
+      buildSearchParams({ ssid: 'fbi', country: 'USA' });
+    }).toThrow(WigleValidationError);
+
+    expect(() => {
+      buildSearchParams({ ssid: 'fbi', country: 'XYZ' });
+    }).toThrow(WigleValidationError);
+
+    // 6. Unrelated fields remain unchanged
+    const paramsUnrelated = buildSearchParams({
+      ssid: 'fbi',
+      country: 'us',
+      region: 'IL',
+      city: 'Chicago',
+    });
+    expect(paramsUnrelated.get('country')).toBe('US');
+    expect(paramsUnrelated.get('ssidlike')).toBe('fbi');
+    expect(paramsUnrelated.get('region')).toBe('IL');
+    expect(paramsUnrelated.get('city')).toBe('Chicago');
   });
 
   it('stableStringify handles arrays correctly', () => {

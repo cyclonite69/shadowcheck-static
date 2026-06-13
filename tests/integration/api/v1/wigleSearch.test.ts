@@ -134,6 +134,119 @@ describe('WiGLE Search API v1', () => {
       expect(res.status).toBe(503);
       expect(res.body.error).toContain('WiGLE API credentials not configured');
     });
+
+    it('should normalize padded lowercase country "  us  " to "US" at route level', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          totalResults: 10,
+          results: [],
+        }),
+      });
+
+      const res = await request(app).get('/api/wigle/search-api?ssid=fbi&country=%20%20us%20%20');
+
+      expect(res.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalled();
+      const calledUrl = mockFetch.mock.calls[0][0];
+      expect(calledUrl).toContain('country=US');
+      expect(calledUrl).toContain('ssidlike=fbi');
+    });
+
+    it('should keep omitted country absent in URLSearchParams', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          totalResults: 10,
+          results: [],
+        }),
+      });
+
+      const res = await request(app).get('/api/wigle/search-api?ssid=fbi');
+
+      expect(res.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalled();
+      const calledUrl = mockFetch.mock.calls[0][0];
+      expect(calledUrl).not.toContain('country=');
+      expect(calledUrl).toContain('ssidlike=fbi');
+    });
+
+    it('should keep existing "US" country code unchanged', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          totalResults: 10,
+          results: [],
+        }),
+      });
+
+      const res = await request(app).get('/api/wigle/search-api?ssid=fbi&country=US');
+
+      expect(res.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalled();
+      const calledUrl = mockFetch.mock.calls[0][0];
+      expect(calledUrl).toContain('country=US');
+    });
+
+    it('should capitalize lowercase valid country codes', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          totalResults: 10,
+          results: [],
+        }),
+      });
+
+      const res = await request(app).get('/api/wigle/search-api?ssid=fbi&country=us');
+
+      expect(res.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalled();
+      const calledUrl = mockFetch.mock.calls[0][0];
+      expect(calledUrl).toContain('country=US');
+    });
+
+    it('should return 400 Bad Request for country names like "United States" under the ISO contract', async () => {
+      const res = await request(app).get('/api/wigle/search-api?ssid=fbi&country=United%20States');
+
+      expect(res.status).toBe(400);
+      expect(res.body.ok).toBe(false);
+      expect(res.body.error).toContain('failed validation');
+    });
+
+    it('should return 400 Bad Request for invalid country codes like "USA"', async () => {
+      const res = await request(app).get('/api/wigle/search-api?ssid=fbi&country=USA');
+
+      expect(res.status).toBe(400);
+      expect(res.body.ok).toBe(false);
+      expect(res.body.error).toContain('failed validation');
+    });
+
+    it('should leave unrelated search fields unchanged', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          totalResults: 10,
+          results: [],
+        }),
+      });
+
+      const res = await request(app).get(
+        '/api/wigle/search-api?ssid=fbi&region=IL&city=Chicago&country=us'
+      );
+
+      expect(res.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalled();
+      const calledUrl = mockFetch.mock.calls[0][0];
+      expect(calledUrl).toContain('ssidlike=fbi');
+      expect(calledUrl).toContain('region=IL');
+      expect(calledUrl).toContain('city=Chicago');
+      expect(calledUrl).toContain('country=US');
+    });
   });
 
   describe('POST /search-api/import-all', () => {

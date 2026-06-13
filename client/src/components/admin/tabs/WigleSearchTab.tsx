@@ -408,12 +408,19 @@ export const WigleSearchTab: React.FC = () => {
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Country</label>
+                <label className="block text-xs text-slate-400 mb-1">Country (ISO Code)</label>
                 <input
                   type="text"
+                  maxLength={2}
                   value={searchParams.country}
-                  onChange={(e) => setSearchParams({ ...searchParams, country: e.target.value })}
-                  placeholder="US"
+                  onChange={(e) => {
+                    const clean = e.target.value
+                      .replace(/[^a-zA-Z]/g, '')
+                      .toUpperCase()
+                      .slice(0, 2);
+                    setSearchParams({ ...searchParams, country: clean });
+                  }}
+                  placeholder="US (2 letters)"
                   className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-600/60 rounded text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
                 />
               </div>
