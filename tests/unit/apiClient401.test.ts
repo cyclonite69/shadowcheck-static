@@ -12,7 +12,7 @@ describe('ApiClient 401 handling', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    // reset authController logout to noop
+    authController.markAuthenticated();
     authController.setLogout(async () => Promise.resolve());
     // @ts-ignore ensure window.location exists for tests
     // create writable location object
@@ -42,7 +42,7 @@ describe('ApiClient 401 handling', () => {
     }
   });
 
-  test('triggers logout and redirects on 401 from non-auth endpoint', async () => {
+  test('handles one unauthorized protected request without reloading', async () => {
     const logoutSpy = jest.fn(async () => Promise.resolve());
     authController.setLogout(logoutSpy);
 
@@ -57,8 +57,49 @@ describe('ApiClient 401 handling', () => {
       message: '401 handled',
       handled: true,
     });
-    expect(logoutSpy).toHaveBeenCalled();
-    // @ts-ignore
+    expect(logoutSpy).toHaveBeenCalledTimes(1);
+    expect(window.location.href).toBe('/');
+  });
+
+  test('deduplicates simultaneous 401 responses from protected endpoints', async () => {
+    const logoutSpy = jest.fn(async () => Promise.resolve());
+    authController.setLogout(logoutSpy);
+
+    global.fetch = jest.fn(async () => ({
+      status: 401,
+      ok: false,
+      text: async () => JSON.stringify({ error: 'unauth' }),
+      statusText: 'Unauthorized',
+    })) as any;
+
+    const results = await Promise.allSettled([
+      apiClient.get('/networks/1'),
+      apiClient.get('/networks/2'),
+      apiClient.get('/networks/3'),
+    ]);
+
+    expect(results).toHaveLength(3);
+    expect(results.every((result) => result.status === 'rejected')).toBe(true);
+    expect(logoutSpy).toHaveBeenCalledTimes(1);
+    expect(window.location.href).toBe('/');
+  });
+
+  test('lets /auth/me settle normally without logout or navigation', async () => {
+    const logoutSpy = jest.fn(async () => Promise.resolve());
+    authController.setLogout(logoutSpy);
+
+    global.fetch = jest.fn(async () => ({
+      status: 401,
+      ok: false,
+      text: async () => JSON.stringify({ error: 'not authenticated' }),
+      statusText: 'Unauthorized',
+    })) as any;
+
+    await expect(apiClient.get('/auth/me')).rejects.toMatchObject({
+      message: 'not authenticated',
+      status: 401,
+    });
+    expect(logoutSpy).not.toHaveBeenCalled();
     expect(window.location.href).toBe('/');
   });
 
@@ -90,6 +131,27 @@ describe('ApiClient 401 handling', () => {
 
     await expect(apiClient.post('/auth/logout')).rejects.toThrow();
     expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
+  test('successful authentication reset allows a later expired session to be handled', async () => {
+    const logoutSpy = jest.fn(async () => Promise.resolve());
+    authController.setLogout(logoutSpy);
+
+    global.fetch = jest.fn(async () => ({
+      status: 401,
+      ok: false,
+      text: async () => JSON.stringify({ error: 'unauth' }),
+      statusText: 'Unauthorized',
+    })) as any;
+
+    await expect(apiClient.get('/networks/1')).rejects.toMatchObject({ handled: true });
+    await expect(apiClient.get('/networks/2')).rejects.toMatchObject({ handled: true });
+    expect(logoutSpy).toHaveBeenCalledTimes(1);
+
+    authController.markAuthenticated();
+
+    await expect(apiClient.get('/networks/3')).rejects.toMatchObject({ handled: true });
+    expect(logoutSpy).toHaveBeenCalledTimes(2);
   });
 
   test('non-401 errors are re-thrown normally', async () => {

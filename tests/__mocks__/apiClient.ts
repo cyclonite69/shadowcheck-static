@@ -9,16 +9,8 @@ class ApiClientMock {
     const res: any = await (global as any).fetch(url, options);
 
     if (res.status === 401) {
-      const lowerUrl = (url || '').toLowerCase();
-      const isLogin = lowerUrl.includes('/auth/login');
-      const isLogout = lowerUrl.includes('/auth/logout');
-      if (!isLogin && !isLogout) {
-        try {
-          await require('../../client/src/hooks/authController').authController.logout();
-        } catch {}
-        try {
-          (global as any).window.location.href = '/';
-        } catch {}
+      const { authController } = require('../../client/src/hooks/authController');
+      if (await authController.handleUnauthorized(url)) {
         const HANDLED_401 = new Error('401 handled');
         (HANDLED_401 as any).handled = true;
         throw HANDLED_401;

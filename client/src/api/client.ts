@@ -2,6 +2,8 @@
  * Base API client with centralized fetch wrapper
  */
 
+import { authController } from '../hooks/authController';
+
 const BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api';
 
 interface RequestOptions extends RequestInit {
@@ -49,25 +51,10 @@ class ApiClient {
 
       clearTimeout(timeoutId);
 
-      // Handle 401 globally (except for auth login/logout endpoints)
+      // Expired protected sessions are handled once by the auth provider.
+      // Authentication endpoints must return their own 401s to their callers.
       if (response.status === 401) {
-        const lowerUrl = url.toLowerCase();
-        const isLogin = lowerUrl.includes('/auth/login');
-        const isLogout = lowerUrl.includes('/auth/logout');
-        if (!isLogin && !isLogout) {
-          try {
-            // lazy import to avoid circular deps
-            const { authController } = await import('../hooks/authController');
-            // Trigger provider logout and redirect to login (hard reload)
-            await authController.logout();
-          } catch {
-            // swallow any logout errors — we'll still redirect
-          }
-          try {
-            window.location.href = '/';
-          } catch {
-            // ignore if not available in this environment
-          }
+        if (await authController.handleUnauthorized(url)) {
           const HANDLED_401 = new Error('401 handled');
           (HANDLED_401 as any).handled = true;
           throw HANDLED_401;

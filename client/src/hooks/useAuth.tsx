@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { apiClient } from '../api/client';
 import type { AuthUserResponse, LoginResponse } from '../api/authApi';
+import { authController } from './authController';
 
 interface User extends AuthUserResponse {}
 
@@ -66,6 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const data = await apiClient.get<AuthStatusResponse>('/auth/me');
       if (data.authenticated) {
+        authController.markAuthenticated();
         if (data.forcePasswordChange) {
           setUser(null);
           setMustChangePassword(true);
@@ -95,6 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [checkAuthStatus]);
 
   const login = useCallback((result: LoginResponse) => {
+    authController.markAuthenticated();
     if (result.forcePasswordChange) {
       setUser(null);
       setMustChangePassword(true);
@@ -125,11 +128,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Expose logout to non-React modules (ApiClient) via authController bridge
   useEffect(() => {
-    // lazy import to avoid circular references at module-eval time
-    import('./authController').then(({ authController }) => {
-      authController.setLogout(logout);
-      return () => authController.setLogout(async () => Promise.resolve());
-    });
+    authController.setLogout(logout);
+    return () => authController.setLogout(async () => Promise.resolve());
   }, [logout]);
 
   const resetIdleTimer = useCallback(() => {
