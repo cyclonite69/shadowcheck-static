@@ -73,12 +73,127 @@ function getExplorerNetworksV2Handler() {
   return layer.route.stack[layer.route.stack.length - 1].handle;
 }
 
+function getExplorerNetworksHandler() {
+  const router = require('../../server/src/api/routes/v1/explorer/networks');
+  const layer = router.stack.find((entry: any) => entry.route?.path === '/explorer/networks');
+  if (!layer) {
+    throw new Error('Could not find /explorer/networks route');
+  }
+  return layer.route.stack[layer.route.stack.length - 1].handle;
+}
+
 function getNetworkByBssidHandler() {
   const router = require('../../server/src/api/routes/v1/explorer/networks');
   const layer = router.stack.find((entry: any) => entry.route?.path === '/explorer/network/:bssid');
   if (!layer) throw new Error('Could not find /explorer/network/:bssid route');
   return layer.route.stack[layer.route.stack.length - 1].handle;
 }
+
+describe('explorer/networks route', () => {
+  let container: any;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    container = require('../../server/src/config/container');
+  });
+
+  test.each([
+    ['temporal', 'temporal'],
+    ['extreme', 'extreme'],
+    ['duplicate', 'duplicate'],
+    ['all', 'all'],
+  ])('maps the %s quality filter', async (qualityFilter, expectedWhere) => {
+    container.homeLocationService.getCurrentHomeLocation.mockResolvedValue({
+      longitude: -83.7,
+      latitude: 43.0,
+    });
+    container.explorerService.listNetworks.mockResolvedValue({
+      total: 1,
+      rows: [
+        {
+          bssid: 'aa:bb:cc:dd:ee:ff',
+          ssid: null,
+          level: -55,
+          frequency: 2412,
+          capabilities: '[WPA2-PSK-CCMP][ESS]',
+          type: 'W',
+        },
+      ],
+    });
+
+    const handler = getExplorerNetworksHandler();
+    const req: any = {
+      query: {
+        qualityFilter,
+        limit: '25',
+        offset: '5',
+        search: 'needle',
+        sort: 'ssid',
+        order: 'asc',
+      },
+    };
+    const { res, done } = createRes();
+
+    await handler(req, res, jest.fn());
+    await done;
+
+    expect(container.explorerService.listNetworks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        homeLon: -83.7,
+        homeLat: 43.0,
+        qualityWhere: expectedWhere,
+        limit: 25,
+        offset: 5,
+        search: 'needle',
+        sort: 'ssid',
+        order: 'ASC',
+      })
+    );
+    expect(res.body.rows[0]).toEqual(
+      expect.objectContaining({
+        bssid: 'AA:BB:CC:DD:EE:FF',
+        ssid: '(hidden)',
+        signal: -55,
+      })
+    );
+  });
+
+  test('continues without a home location when lookup fails', async () => {
+    container.homeLocationService.getCurrentHomeLocation.mockRejectedValue(new Error('failed'));
+    container.explorerService.listNetworks.mockResolvedValue({ total: 0, rows: [] });
+
+    const handler = getExplorerNetworksHandler();
+    const { res, done } = createRes();
+
+    await handler({ query: {} } as any, res, jest.fn());
+    await done;
+
+    expect(container.explorerService.listNetworks).toHaveBeenCalledWith(
+      expect.objectContaining({ homeLon: null, homeLat: null })
+    );
+  });
+
+  test('returns structured query failures', async () => {
+    const error: NodeJS.ErrnoException = new Error('database unavailable');
+    error.code = 'ECONNREFUSED';
+    container.homeLocationService.getCurrentHomeLocation.mockResolvedValue(null);
+    container.explorerService.listNetworks.mockRejectedValue(error);
+
+    const handler = getExplorerNetworksHandler();
+    const { res, done } = createRes();
+
+    await handler({ query: {} } as any, res, jest.fn());
+    await done;
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toEqual({
+      error: 'networks query failed',
+      code: 'ECONNREFUSED',
+      message: 'database unavailable',
+    });
+  });
+});
 
 // ---------------------------------------------------------------------------
 // /explorer/networks-v2
@@ -173,6 +288,17 @@ describe('explorer/networks-v2 route', () => {
     );
     expect(res.headers['X-Total-Count']).toBe('1');
   });
+
+  test('passes service failures to next', async () => {
+    container.explorerService.listNetworksV2.mockRejectedValue(new Error('failed'));
+    const handler = getExplorerNetworksV2Handler();
+    const next = jest.fn();
+    const { res } = createRes();
+
+    await handler({ query: {} } as any, res, next);
+
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: 'failed' }));
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -247,5 +373,27 @@ describe('GET /explorer/network/:bssid route', () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.body).toEqual({ error: 'Network not found' });
+  });
+
+  test('requires a BSSID', async () => {
+    const handler = getNetworkByBssidHandler();
+    const { res, done } = createRes();
+
+    await handler({ params: { bssid: '' } } as any, res, jest.fn());
+    await done;
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'bssid is required' });
+  });
+
+  test('passes detail lookup failures to next', async () => {
+    container.explorerService.getNetworkByBssid.mockRejectedValue(new Error('failed'));
+    const handler = getNetworkByBssidHandler();
+    const next = jest.fn();
+    const { res } = createRes();
+
+    await handler({ params: { bssid: 'AA:BB:CC:DD:EE:FF' } } as any, res, next);
+
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: 'failed' }));
   });
 });

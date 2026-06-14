@@ -87,6 +87,15 @@ describe('admin settings routes', () => {
       const res = await request(app).get('/api/admin/settings/jobs/status');
       expect(res.status).toBe(200);
     });
+
+    it('should report status lookup failures', async () => {
+      backgroundJobsService.getJobStatus.mockRejectedValueOnce(new Error('status failed'));
+
+      const res = await request(app).get('/api/admin/settings/jobs/status');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('status failed');
+    });
   });
 
   describe('POST /api/admin/settings/jobs/:jobName/run', () => {
@@ -102,6 +111,38 @@ describe('admin settings routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
     });
+
+    it('should map sibling detection form fields', async () => {
+      backgroundJobsService.startJobNow.mockResolvedValueOnce(true);
+      backgroundJobsService.getJobStatus.mockResolvedValueOnce({});
+
+      const res = await request(app).post('/api/admin/settings/jobs/siblingDetection/run').send({
+        seed_limit: 50,
+        max_octet_delta: 3,
+        max_distance_m: 250,
+        min_candidate_conf: 0.75,
+      });
+
+      expect(res.status).toBe(200);
+      expect(backgroundJobsService.startJobNow).toHaveBeenCalledWith(
+        'siblingDetection',
+        expect.objectContaining({
+          batchSize: 50,
+          maxOctetDelta: 3,
+          maxDistanceM: 250,
+          minCandidateConf: 0.75,
+        })
+      );
+    });
+
+    it('should report manual job failures', async () => {
+      backgroundJobsService.startJobNow.mockRejectedValueOnce(new Error('job failed'));
+
+      const res = await request(app).post('/api/admin/settings/jobs/backup/run');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('job failed');
+    });
   });
 
   describe('GET /api/admin/settings/runtime', () => {
@@ -114,6 +155,15 @@ describe('admin settings routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.featureFlags.adminAllowDocker).toBe(true);
       expect(res.body.featureFlags.badgeStudio).toBe(true);
+    });
+
+    it('should report runtime setting failures', async () => {
+      featureFlagService.refreshCache.mockRejectedValueOnce(new Error('refresh failed'));
+
+      const res = await request(app).get('/api/admin/settings/runtime');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('refresh failed');
     });
   });
 
@@ -170,6 +220,22 @@ describe('admin settings routes', () => {
       expect(res.status).toBe(200);
       expect(spawnCount).toBe(2);
     });
+
+    it('should report compose command failures', async () => {
+      featureFlagService.getFlag.mockReturnValueOnce(true);
+      (spawn as jest.Mock).mockImplementationOnce(() => {
+        setTimeout(() => {
+          mockChildProcessSpawn.stderr.emit('data', Buffer.from('compose failed'));
+          mockChildProcessSpawn.emit('close', 1);
+        }, 5);
+        return mockChildProcessSpawn;
+      });
+
+      const res = await request(app).post('/api/admin/settings/local-stack/rebuild-frontend');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('compose failed');
+    });
   });
 
   describe('GET /api/admin/settings/:key', () => {
@@ -184,6 +250,15 @@ describe('admin settings routes', () => {
       settingsAdminService.getSettingByKey.mockResolvedValueOnce(null);
       const res = await request(app).get('/api/admin/settings/my_key');
       expect(res.status).toBe(404);
+    });
+
+    it('should report setting lookup failures', async () => {
+      settingsAdminService.getSettingByKey.mockRejectedValueOnce(new Error('lookup failed'));
+
+      const res = await request(app).get('/api/admin/settings/my_key');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('lookup failed');
     });
   });
 
@@ -209,6 +284,23 @@ describe('admin settings routes', () => {
         .send({ value: 'newval' });
       expect(res.status).toBe(200);
       expect(backgroundJobsService.rescheduleJobs).toHaveBeenCalled();
+    });
+
+    it('should stringify object job configuration', async () => {
+      settingsAdminService.updateSetting.mockResolvedValueOnce({ value: '{}' });
+      featureFlagService.isDbBackedFlagKey.mockReturnValue(false);
+      backgroundJobsService.isSchedulerEnabled.mockReturnValueOnce(false);
+
+      const res = await request(app)
+        .put('/api/admin/settings/sibling_detection_job_config')
+        .send({ value: { seed_limit: 25 } });
+
+      expect(res.status).toBe(200);
+      expect(settingsAdminService.updateSetting).toHaveBeenCalledWith(
+        'sibling_detection_job_config',
+        '{"seed_limit":25}'
+      );
+      expect(backgroundJobsService.rescheduleJobs).not.toHaveBeenCalled();
     });
 
     it('should handle enable_background_jobs update', async () => {
@@ -240,6 +332,25 @@ describe('admin settings routes', () => {
       );
       expect(featureFlagService.refreshCache).toHaveBeenCalled();
     });
+
+    it('should return 404 when an update target does not exist', async () => {
+      featureFlagService.isDbBackedFlagKey.mockReturnValue(false);
+      settingsAdminService.updateSetting.mockResolvedValueOnce(null);
+
+      const res = await request(app).put('/api/admin/settings/missing').send({ value: 'value' });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('should report update failures', async () => {
+      featureFlagService.isDbBackedFlagKey.mockReturnValue(false);
+      settingsAdminService.updateSetting.mockRejectedValueOnce(new Error('update failed'));
+
+      const res = await request(app).put('/api/admin/settings/my_key').send({ value: 'value' });
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('update failed');
+    });
   });
 
   describe('POST /api/admin/settings/ml-blending/toggle', () => {
@@ -248,6 +359,15 @@ describe('admin settings routes', () => {
       const res = await request(app).post('/api/admin/settings/ml-blending/toggle');
       expect(res.status).toBe(200);
       expect(res.body.ml_blending_enabled).toBe(true);
+    });
+
+    it('should report toggle failures', async () => {
+      settingsAdminService.toggleMLBlending.mockRejectedValueOnce(new Error('toggle failed'));
+
+      const res = await request(app).post('/api/admin/settings/ml-blending/toggle');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('toggle failed');
     });
   });
 });
