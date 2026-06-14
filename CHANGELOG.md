@@ -959,6 +959,7 @@
 - **wigle:** fix missing kmlRowsToGeoJSON import ([5633036](https://github.com/cyclonite69/shadowcheck-web/commit/5633036c8b08d0c6c6a8b61be075ede70e5f49c5))
 - **wigle:** handle epoch timestamp strings in map tooltip time ([6954c31](https://github.com/cyclonite69/shadowcheck-web/commit/6954c31ceeed0d3f2261f98d55ad6f2c2b3fc768))
 - **wigle:** harden v2 imports and add completeness report ([ccb1edb](https://github.com/cyclonite69/shadowcheck-web/commit/ccb1edbc2b576f1501bac77a118193c880c0c01b))
+- **wigle:** implement case-insensitive term deduplication and 56-state skeleton coverage checklist ([6501232](https://github.com/cyclonite69/shadowcheck-web/commit/6501232c5fd8e5c4504fc10d6da936e9aa591e0f))
 - **wigle:** implement stubbed wigle observation loading ([be30c95](https://github.com/cyclonite69/shadowcheck-web/commit/be30c95e9cfeb2ae7905fa38e0c561475ccb5251))
 - **wigle:** include field data layer in setPointRadius ([4cb4004](https://github.com/cyclonite69/shadowcheck-web/commit/4cb40044663e21b0c81f3480d298ac222137452f))
 - **wigle:** make ledger panel sticky bottom so it's visible over the map ([40fc4e7](https://github.com/cyclonite69/shadowcheck-web/commit/40fc4e7ae507528ddf9b9210f36f8389817b5046))

@@ -16,10 +16,22 @@ export interface UseWigleCoverageResult {
 }
 
 export const useWigleCoverage = ({ runs }: UseWigleCoverageOptions): UseWigleCoverageResult => {
-  const coverageTerms = useMemo(
-    () => [...new Set(runs.map((r) => r.searchTerm).filter(Boolean))] as string[],
-    [runs]
-  );
+  const coverageTerms = useMemo(() => {
+    const termsMap = new Map<string, { term: string; startedAtTime: number }>();
+    for (const r of runs) {
+      const term = r.searchTerm;
+      if (!term) continue;
+      const lower = term.toLowerCase();
+      const startedAtTime = r.startedAt ? new Date(r.startedAt).getTime() : 0;
+      const existing = termsMap.get(lower);
+      if (!existing || startedAtTime > existing.startedAtTime) {
+        termsMap.set(lower, { term, startedAtTime });
+      }
+    }
+    return Array.from(termsMap.values())
+      .map((item) => item.term)
+      .sort((a, b) => a.localeCompare(b));
+  }, [runs]);
 
   const [coverageTerm, setCoverageTerm] = useState<string>('');
   const [termReport, setTermReport] = useState<WigleCompletenessReport | null>(null);

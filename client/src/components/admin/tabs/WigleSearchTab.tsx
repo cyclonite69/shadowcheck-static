@@ -176,31 +176,70 @@ export const WigleSearchTab: React.FC = () => {
             </div>
 
             {/* State grid */}
-            {termReportLoading ? (
+            {!coverageTerm ? (
+              <p className="text-xs text-slate-500 py-2">Select a search term to view coverage.</p>
+            ) : termReportLoading ? (
               <p className="text-xs text-slate-500 py-2">Loading coverage…</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                {(termReport?.states ?? [])
-                  .filter((s) => (s.rowsInserted ?? 0 > 0) || s.runId)
-                  .slice(0, 20)
-                  .map((s) => {
-                    const statusMeta = getCoverageStatusMeta(s.status, s.rowsInserted);
+                {(() => {
+                  const reportStatesMap = new Map<string, any>();
+                  if (termReport?.states) {
+                    for (const s of termReport.states) {
+                      if (s.state) {
+                        reportStatesMap.set(s.state.toUpperCase(), s);
+                      }
+                    }
+                  }
+
+                  const mergedStates = US_STATES.map((stateObj) => {
+                    const code = stateObj.code.toUpperCase();
+                    const matched = reportStatesMap.get(code);
+                    return {
+                      state: stateObj.code,
+                      name: stateObj.name,
+                      rowsInserted: matched ? matched.rowsInserted : 0,
+                      runId: matched ? matched.runId : null,
+                      status: matched ? matched.status : null,
+                      lastError: matched ? matched.lastError : null,
+                      isQueried: !!matched,
+                    };
+                  });
+
+                  return mergedStates.map((s) => {
+                    const statusMeta = s.isQueried
+                      ? getCoverageStatusMeta(s.status, s.rowsInserted)
+                      : {
+                          className: 'text-slate-500 bg-slate-500/5',
+                          label: 'Not Queried',
+                          title: 'Not Queried',
+                        };
 
                     return (
                       <div
                         key={s.state}
-                        className="p-2 bg-slate-900/40 rounded border border-slate-800/60 flex flex-col justify-between"
+                        className={`p-2 rounded flex flex-col justify-between ${
+                          s.isQueried
+                            ? 'bg-slate-900/40 border border-slate-800/60'
+                            : 'bg-slate-900/10 border border-slate-800/30 opacity-60'
+                        }`}
                         title={s.lastError ? `Note: ${s.lastError}` : statusMeta.title || undefined}
                       >
                         <div className="flex justify-between items-start mb-1 gap-2">
-                          <span className="text-xs font-black text-white">{s.state}</span>
+                          <span
+                            className={`text-xs font-black ${s.isQueried ? 'text-white' : 'text-slate-400'}`}
+                          >
+                            {s.state}
+                          </span>
                           <span
                             className={`text-[9px] px-1 rounded whitespace-nowrap ${statusMeta.className}`}
                           >
                             {statusMeta.label}
                           </span>
                         </div>
-                        <div className="text-lg font-bold text-slate-100">
+                        <div
+                          className={`text-lg font-bold ${s.isQueried ? 'text-slate-100' : 'text-slate-500'}`}
+                        >
                           {(s.rowsInserted ?? 0).toLocaleString()}
                         </div>
                         <div className="text-[9px] text-slate-500 uppercase font-semibold">
@@ -208,13 +247,8 @@ export const WigleSearchTab: React.FC = () => {
                         </div>
                       </div>
                     );
-                  })}
-                {(termReport?.states ?? []).filter((s) => (s.rowsInserted ?? 0 > 0) || s.runId)
-                  .length === 0 && (
-                  <p className="col-span-5 text-xs text-slate-500 py-2">
-                    No runs found for this search term.
-                  </p>
-                )}
+                  });
+                })()}
               </div>
             )}
           </div>
