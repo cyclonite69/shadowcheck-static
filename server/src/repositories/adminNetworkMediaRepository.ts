@@ -66,6 +66,18 @@ export async function selectNetworkMediaThumbnail(id: string): Promise<any | nul
   return result.rows.length > 0 ? result.rows[0] : null;
 }
 
+export async function selectUnmatchedMediaPoints(): Promise<any[]> {
+  const result = await query(
+    `SELECT id::text AS id, bssid, filename, exif_lat, exif_lon, exif_captured_at
+     FROM app.network_media
+     WHERE bssid = 'VISINT_UNMATCHED'
+       AND exif_lat IS NOT NULL
+       AND exif_lon IS NOT NULL
+     ORDER BY exif_captured_at DESC, id DESC`
+  );
+  return result.rows;
+}
+
 export async function insertNetworkNotation(
   bssid: string,
   text: string,

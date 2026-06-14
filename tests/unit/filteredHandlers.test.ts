@@ -1,5 +1,9 @@
 import { createHandlers } from '../../server/src/api/routes/v2/filteredHandlers';
 
+jest.mock('../../server/src/services/adminNetworkMediaService', () => ({
+  getUnmatchedMediaPoints: jest.fn(),
+}));
+
 describe('filteredHandlers (unit)', () => {
   let mockUniversalFilterQueryBuilder: any;
   let mockV2Service: any;
@@ -71,6 +75,47 @@ describe('filteredHandlers (unit)', () => {
     });
   });
 
-  // Additional unit tests can be added here, testing 'handlers' functions directly
-  // by passing mocked Request/Response objects, avoiding the supertest/express server issues.
+  describe('unmatchedMedia handler', () => {
+    it('should return unmatched media points in GeoJSON format', async () => {
+      const mockPoints = [
+        {
+          id: '123',
+          bssid: 'VISINT_UNMATCHED',
+          filename: 'test.jpg',
+          exif_lat: '43.123',
+          exif_lon: '-83.456',
+          exif_captured_at: '2026-06-12T00:00:00Z',
+        },
+      ];
+
+      const {
+        getUnmatchedMediaPoints,
+      } = require('../../server/src/services/adminNetworkMediaService');
+      getUnmatchedMediaPoints.mockResolvedValue(mockPoints);
+
+      const res = { json: jest.fn() };
+      await handlers.unmatchedMedia({} as any, res as any);
+
+      expect(res.json).toHaveBeenCalledWith({
+        ok: true,
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [-83.456, 43.123],
+            },
+            properties: {
+              id: '123',
+              bssid: 'VISINT_UNMATCHED',
+              filename: 'test.jpg',
+              captured_at: '2026-06-12T00:00:00Z',
+              thumbnail_url: '/api/v2/networks/media/123/thumbnail',
+            },
+          },
+        ],
+      });
+    });
+  });
 });
