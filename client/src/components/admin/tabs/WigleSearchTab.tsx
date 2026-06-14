@@ -11,6 +11,7 @@ import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
 import { wigleApi } from '../../../api/wigleApi';
 import { getCoverageStatusMeta } from './wigleCoverageStatusMeta';
+import { mergeCoverageStates } from '../hooks/wigleCoverageHelpers';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -183,28 +184,7 @@ export const WigleSearchTab: React.FC = () => {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
                 {(() => {
-                  const reportStatesMap = new Map<string, any>();
-                  if (termReport?.states) {
-                    for (const s of termReport.states) {
-                      if (s.state) {
-                        reportStatesMap.set(s.state.toUpperCase(), s);
-                      }
-                    }
-                  }
-
-                  const mergedStates = US_STATES.map((stateObj) => {
-                    const code = stateObj.code.toUpperCase();
-                    const matched = reportStatesMap.get(code);
-                    return {
-                      state: stateObj.code,
-                      name: stateObj.name,
-                      rowsInserted: matched ? matched.rowsInserted : 0,
-                      runId: matched ? matched.runId : null,
-                      status: matched ? matched.status : null,
-                      lastError: matched ? matched.lastError : null,
-                      isQueried: !!matched,
-                    };
-                  });
+                  const mergedStates = mergeCoverageStates(termReport?.states, US_STATES);
 
                   return mergedStates.map((s) => {
                     const statusMeta = s.isQueried
