@@ -6,6 +6,9 @@ if [ -z "${BASH_VERSION:-}" ] && [ -z "${ZSH_VERSION:-}" ]; then
   return 1 2>/dev/null || exit 1
 fi
 
+# Unalias conflicting names to avoid syntax errors if they are already defined as aliases
+unalias scroot sclocal scapi scgrafana scps scdb scdba scsecrets 2>/dev/null || true
+
 scroot() {
   cd /home/dbcooper/repos/shadowcheck-web || return 1
 }

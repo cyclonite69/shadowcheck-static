@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { WigleSearchParams } from '../../../types/admin';
+import { wigleApi } from '../../../api/wigleApi';
 
 export interface BtSearchParams {
   namelike: string;
@@ -54,7 +55,6 @@ export const useWigleBluetooth = ({
       if (btParams.namelike.trim()) payload.namelike = btParams.namelike.trim();
       if (btParams.mfgrIdMinimum.trim()) payload.mfgrIdMinimum = Number(btParams.mfgrIdMinimum);
       if (btParams.mfgrIdMaximum.trim()) payload.mfgrIdMaximum = Number(btParams.mfgrIdMaximum);
-      const { wigleApi } = await import('../../../api/wigleApi');
       await wigleApi.importAllBluetooth(payload);
       await refreshRuns();
     } catch (err: any) {

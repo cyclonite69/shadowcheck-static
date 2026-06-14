@@ -1270,7 +1270,7 @@
 - **reports:** add pdfkit dependency for PDF threat reports ([7f3c3d8](https://github.com/cyclonite69/shadowcheck-web/commit/7f3c3d86aa2205b5c02b36722259e0dc4a29488c))
 - **reports:** add threat report endpoint and geospatial PDF action ([9ab503a](https://github.com/cyclonite69/shadowcheck-web/commit/9ab503a39c5acc9c00ef47635d9eabef8c102722))
 - Restore sectioned tooltip layout with comprehensive temporal data ([f6ed1f7](https://github.com/cyclonite69/shadowcheck-web/commit/f6ed1f7d0155c749377c6b8118490d21263d94da)), closes [#X](https://github.com/cyclonite69/shadowcheck-web/issues/X)
-- **schema:** observation scoping and sibling float-up for media pipeline ([e947ad4](https://github.com/cyclonite69/shadowcheck-web/commit/e947ad4dfedd01012d99b62d024df6a63dc7ee39))
+- **schema:** observation scoping and sibling float-up for media pipeline ([d11a825](https://github.com/cyclonite69/shadowcheck-web/commit/d11a825d03c7d8a9a31d5a2d82fe9e4b82ebab2d))
 - **scoring,wigle:** threat scoring v5.1 + WiGLE API hardening ([4e20870](https://github.com/cyclonite69/shadowcheck-web/commit/4e208708a07f6f2f7dccaaf54e31a361b18001bf))
 - **scoring:** add linear travel gate to threat scoring v5.2 ([44b8f80](https://github.com/cyclonite69/shadowcheck-web/commit/44b8f80d44b117a2ee46c14609eff90bd6696786))
 - **scripts:** add apply-migration.sh for dual-DB migration workflow ([9cf58f0](https://github.com/cyclonite69/shadowcheck-web/commit/9cf58f07f4f509267afb2c53a4b98da63e2e2d59))

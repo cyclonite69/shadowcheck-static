@@ -1,0 +1,13 @@
+{
+  "watch": ["dist/server"],
+  "ext": "js,json",
+  "ignore": [
+    "client/**/*",
+    "dist/server/server/data/**/*",
+    "dist/server/server/logs/**/*",
+    "logs/**/*",
+    "data/**/*",
+    "tests/**/*"
+  ],
+  "delay": "100"
+}
