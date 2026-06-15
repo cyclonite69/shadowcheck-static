@@ -3,46 +3,46 @@ import type { Map as MapboxMap } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { networkApi } from '../../../api/networkApi';
 
-type PhotoLocationProps = {
+type MediaLocationProps = {
   mapReady: boolean;
   mapRef: React.MutableRefObject<MapboxMap | null>;
   mapboxRef: React.MutableRefObject<typeof mapboxglType | null>;
   mapStyle?: string;
-  showPhotoLocations: boolean;
+  showMediaLocations: boolean;
 };
 
 /**
- * Hook to manage unmatched media photo layers and interaction popups.
+ * Hook to manage media location layers and interaction popups.
  */
-export const usePhotoLocationLayers = ({
+export const useMediaLocationLayers = ({
   mapReady,
   mapRef,
   mapboxRef,
   mapStyle,
-  showPhotoLocations,
-}: PhotoLocationProps) => {
+  showMediaLocations,
+}: MediaLocationProps) => {
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
 
-    if (!showPhotoLocations) {
+    if (!showMediaLocations) {
       // Clean up layers and source
-      if (map.getLayer('photo-location-icons')) {
-        map.removeLayer('photo-location-icons');
+      if (map.getLayer('media-location-icons')) {
+        map.removeLayer('media-location-icons');
       }
-      if (map.getLayer('photo-location-markers')) {
-        map.removeLayer('photo-location-markers');
+      if (map.getLayer('media-location-markers')) {
+        map.removeLayer('media-location-markers');
       }
-      if (map.getSource('photo-locations')) {
-        map.removeSource('photo-locations');
+      if (map.getSource('media-locations')) {
+        map.removeSource('media-locations');
       }
       return;
     }
 
     let active = true;
 
-    const handlePhotoClick = (e: any) => {
+    const handleMediaClick = (e: any) => {
       if (!e.features || e.features.length === 0) return;
       const feature = e.features[0];
       const props = feature.properties;
@@ -87,21 +87,21 @@ export const usePhotoLocationLayers = ({
       }
     };
 
-    const loadPhotoLocations = async () => {
+    const loadMediaLocations = async () => {
       try {
         const data = await networkApi.getUnmatchedMediaGeoJson();
         if (!active) return;
 
-        if (!map.getSource('photo-locations')) {
-          map.addSource('photo-locations', {
+        if (!map.getSource('media-locations')) {
+          map.addSource('media-locations', {
             type: 'geojson',
             data,
           });
 
           map.addLayer({
-            id: 'photo-location-markers',
+            id: 'media-location-markers',
             type: 'circle',
-            source: 'photo-locations',
+            source: 'media-locations',
             paint: {
               'circle-radius': 8,
               'circle-color': '#EC4899',
@@ -112,37 +112,37 @@ export const usePhotoLocationLayers = ({
 
           // Circle-based fallback for icons (white lens dot)
           map.addLayer({
-            id: 'photo-location-icons',
+            id: 'media-location-icons',
             type: 'circle',
-            source: 'photo-locations',
+            source: 'media-locations',
             paint: {
               'circle-radius': 3,
               'circle-color': '#ffffff',
             },
           });
 
-          map.on('click', 'photo-location-markers', handlePhotoClick);
+          map.on('click', 'media-location-markers', handleMediaClick);
         }
       } catch (err) {
-        console.error('Failed to load photo locations', err);
+        console.error('Failed to load media locations', err);
       }
     };
 
-    loadPhotoLocations();
+    loadMediaLocations();
 
     return () => {
       active = false;
-      map.off('click', 'photo-location-markers', handlePhotoClick);
+      map.off('click', 'media-location-markers', handleMediaClick);
 
-      if (map.getLayer('photo-location-icons')) {
-        map.removeLayer('photo-location-icons');
+      if (map.getLayer('media-location-icons')) {
+        map.removeLayer('media-location-icons');
       }
-      if (map.getLayer('photo-location-markers')) {
-        map.removeLayer('photo-location-markers');
+      if (map.getLayer('media-location-markers')) {
+        map.removeLayer('media-location-markers');
       }
-      if (map.getSource('photo-locations')) {
-        map.removeSource('photo-locations');
+      if (map.getSource('media-locations')) {
+        map.removeSource('media-locations');
       }
     };
-  }, [mapReady, mapRef, mapboxRef, showPhotoLocations, mapStyle]);
+  }, [mapReady, mapRef, mapboxRef, showMediaLocations, mapStyle]);
 };

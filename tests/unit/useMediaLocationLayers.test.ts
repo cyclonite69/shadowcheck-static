@@ -6,7 +6,7 @@ jest.mock('react', () => ({
   },
 }));
 
-import { usePhotoLocationLayers } from '../../client/src/components/geospatial/hooks/usePhotoLocationLayers';
+import { useMediaLocationLayers } from '../../client/src/components/geospatial/hooks/useMediaLocationLayers';
 import { networkApi } from '../../client/src/api/networkApi';
 
 jest.mock('../../client/src/api/networkApi', () => ({
@@ -15,7 +15,7 @@ jest.mock('../../client/src/api/networkApi', () => ({
   },
 }));
 
-describe('usePhotoLocationLayers', () => {
+describe('useMediaLocationLayers', () => {
   let mockMap: any;
   let mockMapboxgl: any;
   let mapRef: any;
@@ -51,15 +51,15 @@ describe('usePhotoLocationLayers', () => {
     mapboxRef = { current: mockMapboxgl };
   });
 
-  it('does nothing when showPhotoLocations is false and no layers exist', () => {
+  it('does nothing when showMediaLocations is false and no layers exist', () => {
     mockMap.getSource.mockReturnValue(false);
     mockMap.getLayer.mockReturnValue(false);
 
-    usePhotoLocationLayers({
+    useMediaLocationLayers({
       mapReady: true,
       mapRef,
       mapboxRef,
-      showPhotoLocations: false,
+      showMediaLocations: false,
     });
 
     if (effectCallback) {
@@ -70,15 +70,15 @@ describe('usePhotoLocationLayers', () => {
     expect(mockMap.removeLayer).not.toHaveBeenCalled();
   });
 
-  it('removes existing sources/layers when showPhotoLocations becomes false', () => {
+  it('removes existing sources/layers when showMediaLocations becomes false', () => {
     mockMap.getLayer.mockImplementation((id: string) => true);
     mockMap.getSource.mockImplementation((id: string) => true);
 
-    usePhotoLocationLayers({
+    useMediaLocationLayers({
       mapReady: true,
       mapRef,
       mapboxRef,
-      showPhotoLocations: false,
+      showMediaLocations: false,
     });
 
     if (effectCallback) {
@@ -90,18 +90,18 @@ describe('usePhotoLocationLayers', () => {
     expect(mockMap.removeSource).toHaveBeenCalledWith('photo-locations');
   });
 
-  it('fetches GeoJSON and registers layers on the map when showPhotoLocations is true', async () => {
+  it('fetches GeoJSON and registers layers on the map when showMediaLocations is true', async () => {
     const mockGeoJson = {
       type: 'FeatureCollection',
       features: [],
     };
     (networkApi.getUnmatchedMediaGeoJson as jest.Mock).mockResolvedValue(mockGeoJson);
 
-    usePhotoLocationLayers({
+    useMediaLocationLayers({
       mapReady: true,
       mapRef,
       mapboxRef,
-      showPhotoLocations: true,
+      showMediaLocations: true,
     });
 
     expect(effectCallback).toBeDefined();

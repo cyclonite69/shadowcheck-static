@@ -13,8 +13,8 @@ interface GeospatialMapContentProps {
   onOpenContextMenu: (e: React.MouseEvent, network: any) => void;
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
-  showPhotoLocations?: boolean;
-  onTogglePhotoLocations?: (value: boolean) => void;
+  showMediaLocations?: boolean;
+  onToggleMediaLocations?: (value: boolean) => void;
 }
 
 const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
@@ -25,8 +25,8 @@ const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
   onOpenContextMenu,
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
-  showPhotoLocations = false,
-  onTogglePhotoLocations,
+  showMediaLocations = false,
+  onToggleMediaLocations,
 }) => {
   const pinDropActive = usePinDropStore((s) => s.active);
   const cancelPinDrop = usePinDropStore((s) => s.cancel);
@@ -119,8 +119,8 @@ const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
             selectedCount={selectedNetworks.size}
             showNetworkSummaries={showNetworkSummaries}
             onToggleNetworkSummaries={onToggleNetworkSummaries}
-            showPhotoLocations={showPhotoLocations}
-            onTogglePhotoLocations={onTogglePhotoLocations}
+            showMediaLocations={showMediaLocations}
+            onToggleMediaLocations={onToggleMediaLocations}
           />
         }
         mapError={state.mapError}

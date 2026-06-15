@@ -26,7 +26,7 @@ export default function GeospatialExplorer() {
 
   const [locationMode, setLocationMode] = useState('latest_observation');
   const [showNetworkSummaries, setShowNetworkSummaries] = useState(false);
-  const [showPhotoLocations, setShowPhotoLocations] = useState(false);
+  const [showMediaLocations, setShowMediaLocations] = useState(false);
 
   // Basic Data Fetching
   const {
@@ -124,7 +124,7 @@ export default function GeospatialExplorer() {
     locationMode,
     setLocationMode,
     showNetworkSummaries,
-    showPhotoLocations,
+    showMediaLocations,
   });
 
   // Agency Context
@@ -213,8 +213,8 @@ export default function GeospatialExplorer() {
             onOpenContextMenu={openContextMenu}
             showNetworkSummaries={showNetworkSummaries}
             onToggleNetworkSummaries={setShowNetworkSummaries}
-            showPhotoLocations={showPhotoLocations}
-            onTogglePhotoLocations={setShowPhotoLocations}
+            showMediaLocations={showMediaLocations}
+            onToggleMediaLocations={setShowMediaLocations}
           />
           <GeospatialTableContent
             state={state}

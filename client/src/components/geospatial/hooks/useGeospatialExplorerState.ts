@@ -63,7 +63,7 @@ interface UseGeospatialExplorerStateProps {
   locationMode: string;
   setLocationMode: React.Dispatch<React.SetStateAction<string>>;
   showNetworkSummaries?: boolean;
-  showPhotoLocations?: boolean;
+  showMediaLocations?: boolean;
 }
 
 export const useGeospatialExplorerState = ({
@@ -86,7 +86,7 @@ export const useGeospatialExplorerState = ({
   locationMode,
   setLocationMode,
   showNetworkSummaries = false,
-  showPhotoLocations = false,
+  showMediaLocations = false,
 }: UseGeospatialExplorerStateProps) => {
   // UI state
   const [mapHeight, setMapHeight] = useState<number>(500);
@@ -257,7 +257,7 @@ export const useGeospatialExplorerState = ({
     isViewportLocked: effectiveViewportLock,
     onOpenContextMenu,
     showNetworkSummaries,
-    showPhotoLocations,
+    showMediaLocations,
     homeLat: homeLocation.center[1],
     homeLon: homeLocation.center[0],
   });

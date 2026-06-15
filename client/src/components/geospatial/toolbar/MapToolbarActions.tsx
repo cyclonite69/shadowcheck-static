@@ -52,8 +52,8 @@ interface MapToolbarActionsProps {
   // Network summaries
   showNetworkSummaries?: boolean;
   onToggleNetworkSummaries?: (value: boolean) => void;
-  showPhotoLocations?: boolean;
-  onTogglePhotoLocations?: (value: boolean) => void;
+  showMediaLocations?: boolean;
+  onToggleMediaLocations?: (value: boolean) => void;
 }
 
 export const MapToolbarActions = ({
@@ -97,8 +97,8 @@ export const MapToolbarActions = ({
   onToggleCourthousesPanel,
   showNetworkSummaries = false,
   onToggleNetworkSummaries,
-  showPhotoLocations = false,
-  onTogglePhotoLocations,
+  showMediaLocations = false,
+  onToggleMediaLocations,
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
@@ -175,8 +175,8 @@ export const MapToolbarActions = ({
       onToggleCourthousesPanel={onToggleCourthousesPanel}
       showNetworkSummaries={showNetworkSummaries}
       onToggleNetworkSummaries={onToggleNetworkSummaries}
-      showPhotoLocations={showPhotoLocations}
-      onTogglePhotoLocations={onTogglePhotoLocations}
+      showMediaLocations={showMediaLocations}
+      onToggleMediaLocations={onToggleMediaLocations}
       onResetBearing={() => {
         mapRef.current?.resetNorth({ duration: 500 });
       }}

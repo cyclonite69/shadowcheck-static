@@ -51,16 +51,16 @@ Same situation as `network_media.sibling_group_id` above. Exists in `shadowcheck
 
 ---
 
-### Media layer (`usePhotoLocationLayers` → rename to `useMediaLocationLayers`) — only plots `VISINT_UNMATCHED`
+### Media layer (`useMediaLocationLayers`) — only plots `VISINT_UNMATCHED`
 
-| Field             | Value                                                                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Files**         | `client/src/components/geospatial/hooks/usePhotoLocationLayers.ts`, `server/src/repositories/adminNetworkMediaRepository.ts` (`selectUnmatchedMediaPoints`)                                            |
-| **Status**        | `WATCH`                                                                                                                                                                                                |
-| **Why it exists** | Built for the VISINT unmatched sentinel workflow. Only queries `WHERE bssid = 'VISINT_UNMATCHED'`. Hook and Mapbox layer IDs are named `photo-*`; rename to `media-*` when expanded.                   |
-| **Gap**           | Matched media (real BSSIDs with `exif_lat`/`exif_lon` or MV `lat`/`lon`) is not plotted at all. The media layer icon on the geospatial page is therefore misleading — it only shows the fallback case. |
-| **Risk if left**  | Operators cannot see matched media on the map. Feature appears broken.                                                                                                                                 |
-| **Next action**   | Expand `selectUnmatchedMediaPoints` to return all media with plottable coordinates, differentiated by match status. See `docs/workflow/media-evidence-workflow.md` Known Gaps.                         |
+| Field             | Value                                                                                                                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Files**         | `client/src/components/geospatial/hooks/useMediaLocationLayers.ts`, `server/src/repositories/adminNetworkMediaRepository.ts` (`selectUnmatchedMediaPoints`)                                                                    |
+| **Status**        | `WATCH`                                                                                                                                                                                                                        |
+| **Why it exists** | Built for the VISINT unmatched sentinel workflow. Only queries `WHERE bssid = 'VISINT_UNMATCHED'`. Hook renamed to `useMediaLocationLayers`; Mapbox layer IDs renamed to `media-location-*`. Rename complete as of 2026-06-15. |
+| **Gap**           | Matched media (real BSSIDs with `exif_lat`/`exif_lon` or MV `lat`/`lon`) is not plotted at all. The media layer icon on the geospatial page is therefore misleading — it only shows the fallback case.                         |
+| **Risk if left**  | Operators cannot see matched media on the map. Feature appears broken.                                                                                                                                                         |
+| **Next action**   | Expand `selectUnmatchedMediaPoints` to return all media with plottable coordinates, differentiated by match status. See `docs/workflow/media-evidence-workflow.md` Known Gaps.                                                 |
 
 ---
 

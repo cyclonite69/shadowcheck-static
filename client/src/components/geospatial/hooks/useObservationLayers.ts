@@ -5,7 +5,7 @@ import type { NetworkRow, Observation } from '../../../types/network';
 import { useCoreObservationLayers } from './useCoreObservationLayers';
 import { useWigleLayers, type WigleObservationsState } from './useWigleLayers';
 import { useSummaryLayers } from './useSummaryLayers';
-import { usePhotoLocationLayers } from './usePhotoLocationLayers';
+import { useMediaLocationLayers } from './useMediaLocationLayers';
 
 type ObservationSet = {
   bssid: string;
@@ -23,7 +23,7 @@ type ObservationLayerProps = {
   isViewportLocked?: boolean;
   onOpenContextMenu?: (e: any, network: any) => void;
   showNetworkSummaries?: boolean;
-  showPhotoLocations?: boolean;
+  showMediaLocations?: boolean;
   homeLat?: number | null;
   homeLon?: number | null;
 };
@@ -70,11 +70,11 @@ export const useObservationLayers = (props: ObservationLayerProps) => {
   });
 
   // 4. Photo locations layer
-  usePhotoLocationLayers({
+  useMediaLocationLayers({
     mapReady: props.mapReady,
     mapRef: props.mapRef,
     mapboxRef: props.mapboxRef,
     mapStyle: props.mapStyle,
-    showPhotoLocations: !!props.showPhotoLocations,
+    showMediaLocations: !!props.showMediaLocations,
   });
 };
