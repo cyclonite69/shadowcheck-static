@@ -96,7 +96,7 @@ If any of these are undefined, stop and define them before implementing.
 - Always display `source_bssid` — make clear the media belongs to that specific radio, not the whole box
 - Use language like "Media from component members" not "Box media"
 
-### On the geospatial map (photo layer)
+### On the geospatial map (media layer)
 
 Two categories, visually distinct:
 
@@ -195,5 +195,5 @@ Layered by scope, same philosophy as Android's small/medium/large/RC pyramid:
 
 - No `match_method` or `match_confidence` field on `network_media`. These should be added before evidentiary workflows are exposed in the UI.
 - Explorer network popup has no media panel. `GET /api/admin/network-media/:bssid` is unwired from the frontend.
-- Geospatial photo layer only plots `VISINT_UNMATCHED` media. Matched media with known network coordinates is not yet plotted.
+- Geospatial media layer only plots `VISINT_UNMATCHED` media. Matched media with known network coordinates is not yet plotted.
 - No two-step delete UI. The current delete button is a single action.

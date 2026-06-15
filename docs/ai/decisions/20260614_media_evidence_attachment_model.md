@@ -114,7 +114,7 @@ Before any further media UI or API work, the following must be defined first:
 
 - Match method field: how was this media correlated? (EXIF GPS, manual, VISINT pipeline, bssid-direct upload)
 - Confidence field: what is the strength of the correlation?
-- The geospatial photo layer should plot matched media at network `lat`/`lon` and unmatched media at EXIF GPS, with visual distinction.
+- The geospatial media layer should plot matched media at network `lat`/`lon` and unmatched media at EXIF GPS, with visual distinction.
 - The Explorer network popup needs a media panel calling `GET /api/admin/network-media/:bssid`.
 
 See `docs/workflow/media-evidence-workflow.md` for the step-by-step procedure.
