@@ -15,17 +15,46 @@ Label honestly.
 Delete carefully.
 ```
 
+> A feature is not mature when it works once; it is mature when its meaning is stable.
+
+---
+
+## Feature maturity ladder
+
+Before starting any media work, label its maturity level:
+
+| Level | Label        | Meaning                                                 |
+| ----- | ------------ | ------------------------------------------------------- |
+| 0     | Spark        | "This might matter." No code.                           |
+| 1     | Sketch       | Rough notes, maybe no code.                             |
+| 2     | Probe        | Read-only query, scratch helper, prototype UI.          |
+| 3     | Experimental | Works in limited cases; not trusted as core truth.      |
+| 4     | Candidate    | Has definitions, examples, tests, and known tradeoffs.  |
+| 5     | Mature       | Stable schema/API/UI, docs, tests, cleanup done.        |
+| 6     | Legacy/cruft | Was useful once; needs review, replacement, or removal. |
+
+**The danger is not having half-baked ideas. The danger is letting a level-2 artifact become indistinguishable from intentional level-5 architecture.**
+
+Tell the agent explicitly:
+
+- `"This is exploratory. Do not create permanent schema."` — for levels 0–3
+- `"This is committed architecture. Use migrations, tests, docs, and cleanup."` — for levels 4–5
+
+The `sibling_group_id` column rejected in `_054` is a direct example of a level-2 idea that almost became permanent schema.
+
 ---
 
 ## Maturity gate
 
 Before writing any new media code, the following must be answered:
 
-1. Is this casual/reference media or evidentiary/provenance media?
-2. What is the most specific anchor available? (`observation_id` > `bssid`)
-3. How was the correlation made? (EXIF GPS match, VISINT pipeline, manual bssid-direct upload)
-4. Is the match confidence known?
-5. Is deletion safe? Will removing this from a view silently delete the asset?
+1. What is this feature's maturity level? (see ladder above)
+2. Is this casual/reference media or evidentiary/provenance media?
+3. What is the most specific anchor available? (`observation_id` > `bssid`)
+4. How was the correlation made? (EXIF GPS match, VISINT pipeline, manual bssid-direct upload)
+5. Is the match confidence known?
+6. Is deletion safe? Will removing this from a view silently delete the asset?
+7. **Does the operator have enough context to make a meaningful association?** (SSID context, location, timestamp — the operator is always in the loop for the final association decision.)
 
 If any of these are undefined, stop and define them before implementing.
 
@@ -126,6 +155,39 @@ Two distinct operations — never conflate them:
 | `POST /api/observations/correlate-visint`       | VISINT correlation preview (`commit=false`) |
 | `POST /api/observations/attach-visint`          | VISINT explicit commit                      |
 | `GET /api/v2/networks/filtered/unmatched-media` | GeoJSON of unmatched media for map layer    |
+
+---
+
+## Test regimen
+
+Layered by scope, same philosophy as Android's small/medium/large/RC pyramid:
+
+**Small (unit — logic-level, no DB)**
+
+- Does image-match ranking prefer `observation_id` anchor over bssid-only?
+- Does temporal/geospatial scoring produce correct confidence values?
+- Does the sibling component query return all transitive members (A–B, B–C → A,B,C)?
+- Does a singleton BSSID (no siblings) still surface its own media correctly?
+
+**Medium (integration — DB queries, no browser)**
+
+- Does `GET /api/admin/network-media/:bssid` return the correct records?
+- Does `app.v_sibling_group_media` preserve `source_bssid` and `observation_id`?
+- Does the view correctly exclude `VISINT_UNMATCHED` sentinel records?
+- Does deleting a sibling pair row NOT cascade-delete attached media?
+
+**Large (end-to-end — full API + DB flow)**
+
+- Upload image → associate to observation/BSSID → view network → confirm image surfaces with provenance.
+- Upload image to component member B → view from A → confirm image surfaces with `source_bssid = B`.
+- Delete asset → confirm record and binary are gone → confirm view no longer returns it.
+
+**Release candidate (manual)**
+
+- Real browser check with a real sample image.
+- Operator confirms the association is reasonable given SSID/location/timestamp context.
+- Confirm provenance fields (`source_bssid`, `observation_id`, `exif_captured_at`) are visible in the UI.
+- Confirm delete flow shows confirmation naming the file and the BSSID it's anchored to.
 
 ---
 
