@@ -1,25 +1,24 @@
--- Migration: Add sibling_group_id FK to network_notes and network_media
--- 20260614_054_sibling_group_scope.sql
+-- Migration: 20260614_054_sibling_group_scope.sql
+-- STATUS: SUPERSEDED BEFORE APPLICATION TO shadowcheck_db
 --
--- Allows notes and media to be scoped directly to a sibling group
--- (in addition to the existing bssid-scoped records).
--- Nullable — all existing bssid-scoped records are unaffected.
--- ON DELETE CASCADE: removing a sibling pair removes its group-scoped items.
+-- Original intent: add sibling_group_id (FK → network_sibling_pairs.id) to
+-- network_notes and network_media so that notes/media could be "scoped" to a
+-- sibling group.
 --
--- Depends on: 20260614_053_sibling_pairs_surrogate_pk.sql (id column required)
+-- Why this was rejected:
+--   network_sibling_pairs.id is an edge-row handle, not a physical-box/component
+--   identifier. Storing sibling_group_id → pair-edge on a media record conflates
+--   edge membership with component ownership, muddying evidence provenance.
+--
+--   The approved model is:
+--     media → observation_id  (precise anchor, from _052)
+--     media → bssid           (fallback anchor, existing)
+--   Discovery across the physical component is handled by the view layer
+--   (v_sibling_group_media, _055), which routes through app.mv_sibling_groups
+--   (connected-component MV) rather than through pair-edge IDs.
+--
+-- This migration is intentionally a no-op so the ledger can be stamped and
+-- the runner proceeds to _055 without DDL side-effects.
 
-ALTER TABLE app.network_notes
-  ADD COLUMN IF NOT EXISTS sibling_group_id BIGINT
-    REFERENCES app.network_sibling_pairs(id) ON DELETE CASCADE;
-
-ALTER TABLE app.network_media
-  ADD COLUMN IF NOT EXISTS sibling_group_id BIGINT
-    REFERENCES app.network_sibling_pairs(id) ON DELETE CASCADE;
-
-CREATE INDEX IF NOT EXISTS idx_network_notes_sibling_group_id
-  ON app.network_notes (sibling_group_id)
-  WHERE sibling_group_id IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_network_media_sibling_group_id
-  ON app.network_media (sibling_group_id)
-  WHERE sibling_group_id IS NOT NULL;
+-- (intentional no-op)
+SELECT 1;
