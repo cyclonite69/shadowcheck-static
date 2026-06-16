@@ -17,4 +17,12 @@ describe('FilterQueryBuilder Index', () => {
     expect(Index.isOui).toBeDefined();
     expect(Index.coerceOui).toBeDefined();
   });
+
+  test('exports are functions or objects, never undefined', () => {
+    const exports = Object.entries(Index);
+    exports.forEach(([_key, value]) => {
+      expect(value).not.toBeUndefined();
+      expect(value).not.toBeNull();
+    });
+  });
 });

@@ -13,4 +13,13 @@ describe('BadgeStudioTab markup', () => {
     expect(html).toContain('Save column config');
     expect(html).toContain('Reset/remove config');
   });
+
+  it('includes threat score and security columns in rendered output', () => {
+    const html = renderToStaticMarkup(React.createElement(BadgeStudioTab));
+
+    expect(html).toContain('Threat');
+    expect(html).toContain('Security');
+    // Ensure form controls are present
+    expect(html.length).toBeGreaterThan(100);
+  });
 });

@@ -16,4 +16,16 @@ describe('THREAT_LEVEL_EXPR', () => {
     // Fallback still retains computed thresholds when persisted level missing
     expect(expr).toContain(">= 60 THEN 'HIGH'");
   });
+
+  it('generates valid SQL with all threat levels mapped', () => {
+    const expr = THREAT_LEVEL_EXPR('nts', 'nt');
+
+    // Should have mappings for CRITICAL, HIGH, MED, LOW, NONE
+    expect(expr).toContain('CRITICAL');
+    expect(expr).toContain('HIGH');
+    expect(expr).toContain('MED');
+    expect(expr).toContain('LOW');
+    expect(expr).toContain('CASE');
+    expect(expr).toContain('END');
+  });
 });

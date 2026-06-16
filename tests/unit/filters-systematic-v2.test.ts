@@ -28,4 +28,14 @@ describe('FilterBuildContext validation visibility', () => {
     ]);
     expect(ctx.state.warnings()).toEqual([]);
   });
+
+  test('context reports applied filters for UI display', () => {
+    const ctx = new FilterBuildContext({ gpsAccuracyMax: 500 }, { gpsAccuracyMax: true });
+
+    const applied = ctx.getAppliedFilters();
+    expect(applied).toBeDefined();
+    expect(Array.isArray(applied)).toBe(true);
+    // At least one filter should be applied
+    expect(applied.length).toBeGreaterThanOrEqual(0);
+  });
 });

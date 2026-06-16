@@ -158,4 +158,15 @@ describe('Systematic Filter Testing - Global Parity (Every Filter)', () => {
     expect(count.sql).toMatch(matcher);
     expect(dash.sql).toMatch(matcher);
   });
+
+  test('builder with null enabled flags does not crash', () => {
+    const { list, count, dash } = testParity(
+      { ssid: 'test', bssid: 'AA:BB:CC:DD:EE:FF' },
+      { ssid: false, bssid: false }
+    );
+
+    expect(list.sql).toBeDefined();
+    expect(count.sql).toBeDefined();
+    expect(dash.sql).toBeDefined();
+  });
 });
