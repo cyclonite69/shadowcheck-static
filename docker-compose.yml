@@ -55,6 +55,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: api
     container_name: shadowcheck_web_api
     hostname: shadowcheck-local
     restart: unless-stopped
@@ -116,7 +117,8 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: docker/Dockerfile.frontend.local
+      dockerfile: Dockerfile
+      target: frontend
     container_name: shadowcheck_web_frontend
     restart: unless-stopped
     ports:

@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: builder # Use builder stage for development
+      target: api
     container_name: shadowcheck_web_api_dev
     env_file:
       - path: .env.local

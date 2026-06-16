@@ -1,42 +1,47 @@
-# Multi-stage build for optimized production image
-FROM node:26.3.0-alpine AS builder
+# Unified multi-stage build for both API and Frontend services
+# Targets: `api` (Node.js runtime) and `frontend` (nginx runtime)
+# Usage: docker build --target api . or docker build --target frontend .
 
-# Set working directory
+# ============================================================================
+# Stage 1: shared-builder
+# ============================================================================
+# Runs once, produces both /app/dist (frontend) and /app/dist/server (backend)
+FROM node:26.3.0-alpine AS shared-builder
+
 WORKDIR /app
 
-# Prevent Husky from running during install in container builds
-ENV HUSKY=0
-
-# Ensure devDependencies are available for the build step
-ENV NODE_ENV=development \
+ENV HUSKY=0 \
+    NODE_ENV=development \
     NPM_CONFIG_PRODUCTION=false \
     NPM_CONFIG_OMIT=
 
-# Copy package files
-COPY package*.json ./
+# Install build tools required for native modules and system utilities
+RUN apk add --no-cache python3 make g++ docker-cli docker-cli-compose aws-cli postgresql-client curl exiftool
 
-# Install dependencies (including devDependencies for build)
-RUN apk add --no-cache python3 make g++ docker-cli docker-cli-compose aws-cli postgresql-client curl exiftool && \
-    npm ci --include=dev --legacy-peer-deps
+# Copy only package files first (better layer caching)
+COPY package*.json tsconfig*.json ./
 
-# Copy application files
+# Install all dependencies (including devDependencies for build)
+RUN npm ci --include=dev --legacy-peer-deps
+
+# Copy entire codebase
 COPY . .
 
-# Build frontend and server
+# Build both frontend (Vite) and server (TypeScript) — ONCE
 RUN npm run build
 
-# Remove development dependencies
-RUN npm prune --omit=dev --legacy-peer-deps
+# Prune devDependencies for production (removes ~100MB) in a separate layer
+RUN npm ci --omit=dev --legacy-peer-deps
 
-###########################################
-# Production image
-###########################################
-FROM node:26.3.0-alpine
+# ============================================================================
+# Stage 2: api (Node.js production runtime)
+# ============================================================================
+FROM node:26.3.0-alpine AS api
 
-# Install dumb-init for proper signal handling, pg_dump for backups, AWS CLI for S3, Docker CLI for PgAdmin management, and exiftool for VISINT image parsing
+# Install runtime utilities only (no build tools)
 RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl exiftool
 
-# Install dependencies: gcompat provides the glibc compatibility layer needed for the binary
+# Install gcompat for glibc compatibility (required for SSM plugin)
 RUN apk add --no-cache curl rpm gcompat
 
 # Install AWS SSM Session Manager Plugin
@@ -63,15 +68,14 @@ RUN addgroup -g 1001 -S nodejs && \
     mkdir -p /home/nodejs/.aws && \
     chown -R nodejs:nodejs /home/nodejs
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files and installed dependencies from builder
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist/
+# Copy pruned node_modules and built artifacts from shared-builder
+COPY --from=shared-builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=shared-builder --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=shared-builder --chown=nodejs:nodejs /app/dist ./dist/
 
-# Copy application code and built frontend
+# Copy application source (server, scripts, sql, etc.)
 COPY --chown=nodejs:nodejs server ./server/
 COPY --chown=nodejs:nodejs scripts ./scripts/
 COPY --chown=nodejs:nodejs scripts/manual-ingest.js ./scripts/manual-ingest.js
@@ -79,27 +83,39 @@ COPY --chown=nodejs:nodejs sql ./sql/
 COPY --chown=nodejs:nodejs docker/infrastructure ./docker/infrastructure/
 COPY --chown=root:root docker/entrypoint.sh /entrypoint.sh
 
-# Create directories for data and logs with proper ownership
+# Create directories for data and logs
 RUN mkdir -p data/logs data/csv && \
     chown -R nodejs:nodejs /app && \
     chmod +x /entrypoint.sh
 
-# Don't switch to nodejs user yet - entrypoint needs to run as root first
-# USER nodejs will be handled by entrypoint via su-exec after setting up Docker socket permissions
-
-# Set production environment
 ENV NODE_ENV=production \
     HOME=/home/nodejs
 
-# Expose port
 EXPOSE 3001
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:3001/health >/dev/null || exit 1
 
-# Use entrypoint to handle Docker socket permissions, then dumb-init for signals
 ENTRYPOINT ["/entrypoint.sh"]
-
-# Start application with compiled server
 CMD ["node", "dist/server/server/server.js"]
+
+# ============================================================================
+# Stage 3: frontend (nginx runtime)
+# ============================================================================
+FROM nginx:1.27.4-alpine AS frontend
+
+# Copy frontend build from shared-builder (not from api stage)
+COPY --from=shared-builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY docker/nginx.local.conf /etc/nginx/conf.d/default.conf
+
+# Simple health check endpoint
+RUN echo "OK" > /usr/share/nginx/html/health
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost/health >/dev/null 2>&1 || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
