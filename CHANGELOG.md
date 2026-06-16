@@ -1248,7 +1248,7 @@
 - modularize WiglePage with reusable components ([c600e83](https://github.com/cyclonite69/shadowcheck-web/commit/c600e83d58d6be8448bf3a8f4e7b558f60c6c84b))
 - **monitoring:** add standalone Grafana monitoring stack ([770b6af](https://github.com/cyclonite69/shadowcheck-web/commit/770b6af925acdf0bb863749b13f1ad6e4d194720))
 - **monitoring:** gate grafana behind embed cookie ([07cd75a](https://github.com/cyclonite69/shadowcheck-web/commit/07cd75a3597da02dec4469b9607a4afd27de7266))
-- **network-media:** add related media endpoint and sidebar panel ([3ea7191](https://github.com/cyclonite69/shadowcheck-web/commit/3ea7191a95c599caa8ff1152ca8e9ae573f408a3))
+- **network-media:** add related media endpoint and sidebar panel ([a7c7165](https://github.com/cyclonite69/shadowcheck-web/commit/a7c7165e75b4dd6e8fc3b04808b418f1ecb3e804))
 - networks.html uses base-components ([f934168](https://github.com/cyclonite69/shadowcheck-web/commit/f934168ec9f3967821fa6a7f5a4078446e0651ba))
 - **notes:** store note attachments in postgres bytea ([fbfd557](https://github.com/cyclonite69/shadowcheck-web/commit/fbfd557695a1f6a82724d640f922acc6636aee0c))
 - **observability:** add query performance tracking and diagnostics ([2e67c0d](https://github.com/cyclonite69/shadowcheck-web/commit/2e67c0dfc711ad929d6ad584766e742cbf74c704))
