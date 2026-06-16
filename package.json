@@ -101,7 +101,7 @@
     "sqlite3": "6.0.1",
     "ts-node": "10.9.2",
     "winston": "3.19.0",
-    "ws": "8.20.1",
+    "ws": "8.21.0",
     "zod": "4.4.3",
     "zustand": "5.0.14"
   },
@@ -156,7 +156,7 @@
     "npm": ">=11.0.0"
   },
   "overrides": {
-    "tar": ">=7.5.11",
+    "tar": ">=7.5.16",
     "flatted": ">=3.4.0",
     "fast-xml-parser": "5.7.2",
     "serialize-javascript": ">=7.0.5",
