@@ -211,4 +211,122 @@ describe('adminNetworkMediaRepository', () => {
     await expect(repository.deleteNoteMedia('21')).resolves.toEqual(deleted);
     await expect(repository.deleteNoteMedia('99')).resolves.toBeNull();
   });
+
+  describe('selectRelatedNetworkMediaForBssid', () => {
+    const BSSID = 'AA:BB:CC:DD:EE:FF';
+    const directRow = {
+      id: 11,
+      requested_bssid: BSSID,
+      source_bssid: BSSID,
+      observation_id: null,
+      media_type: 'image',
+      filename: 'photo.jpg',
+      mime_type: 'image/jpeg',
+      file_size: 1024,
+      created_at: new Date('2026-06-12'),
+      exif_captured_at: null,
+      is_direct: true,
+      source_kind: 'direct',
+    };
+
+    test('returns direct media when view does not exist (singleton fallback)', async () => {
+      // to_regclass returns null → view absent
+      query
+        .mockResolvedValueOnce({ rows: [{ oid: null }] }) // to_regclass check
+        .mockResolvedValueOnce({ rows: [directRow] }); // direct query
+
+      const result = await repository.selectRelatedNetworkMediaForBssid(BSSID);
+      expect(result).toEqual([directRow]);
+      // First query is the guard; second is the direct-only SELECT
+      expect(query).toHaveBeenCalledTimes(2);
+      expect(query).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("to_regclass('app.v_sibling_group_media')"),
+        []
+      );
+      expect(query).toHaveBeenNthCalledWith(2, expect.stringContaining('FROM app.network_media'), [
+        BSSID,
+      ]);
+    });
+
+    test('returns direct media for singleton BSSID when view exists but has no component rows', async () => {
+      // to_regclass returns non-null → view present
+      query
+        .mockResolvedValueOnce({ rows: [{ oid: 'app.v_sibling_group_media' }] })
+        .mockResolvedValueOnce({ rows: [directRow] }); // combined CTE returns direct only
+
+      const result = await repository.selectRelatedNetworkMediaForBssid(BSSID);
+      expect(result).toEqual([directRow]);
+    });
+
+    test('component media uses record_type = media filter (not notes)', async () => {
+      const componentRow = {
+        id: 42,
+        requested_bssid: BSSID,
+        source_bssid: 'BB:CC:DD:EE:FF:00',
+        observation_id: 7,
+        media_type: 'image',
+        filename: 'sibling.jpg',
+        mime_type: 'image/jpeg',
+        file_size: 2048,
+        created_at: new Date('2026-06-11'),
+        exif_captured_at: null,
+        is_direct: false,
+        source_kind: 'component',
+      };
+
+      query
+        .mockResolvedValueOnce({ rows: [{ oid: 'app.v_sibling_group_media' }] })
+        .mockResolvedValueOnce({ rows: [directRow, componentRow] });
+
+      const result = await repository.selectRelatedNetworkMediaForBssid(BSSID);
+      expect(result).toHaveLength(2);
+      // Verify the query includes record_type = 'media' guard
+      expect(query).toHaveBeenNthCalledWith(2, expect.stringContaining("record_type = 'media'"), [
+        BSSID,
+      ]);
+    });
+
+    test('note rows from v_sibling_group_media cannot collide — record_type filter excludes them', async () => {
+      // The query filters sgm.record_type = 'media', so a note row with the same id
+      // as a media row can never appear in results. We verify this by checking the SQL
+      // contains the guard — not by simulating a note row leaking through, which the
+      // DB itself would prevent.
+      query
+        .mockResolvedValueOnce({ rows: [{ oid: 'app.v_sibling_group_media' }] })
+        .mockResolvedValueOnce({ rows: [directRow] });
+
+      await repository.selectRelatedNetworkMediaForBssid(BSSID);
+      const combinedSql = (query as jest.Mock).mock.calls[1][0] as string;
+      expect(combinedSql).toContain("record_type = 'media'");
+      // Confirm notes are not referenced in the component CTE
+      expect(combinedSql).not.toContain('note_content');
+      expect(combinedSql).not.toContain('app.network_notes');
+    });
+
+    test('direct rows win deduplication — is_direct DESC ordering', async () => {
+      // When the same media id appears in both direct and component CTEs,
+      // the ranked CTE keeps the direct row (rn = 1 on is_direct DESC).
+      // Mock returns only the direct row (DB already de-duped via ranked CTE).
+      query
+        .mockResolvedValueOnce({ rows: [{ oid: 'app.v_sibling_group_media' }] })
+        .mockResolvedValueOnce({ rows: [directRow] });
+
+      const result = await repository.selectRelatedNetworkMediaForBssid(BSSID);
+      expect(result).toHaveLength(1);
+      expect(result[0].is_direct).toBe(true);
+      expect(result[0].source_kind).toBe('direct');
+      // Verify dedup mechanism is in the SQL
+      const sql = (query as jest.Mock).mock.calls[1][0] as string;
+      expect(sql).toContain('ORDER BY is_direct DESC');
+      expect(sql).toContain('PARTITION BY id');
+    });
+
+    test('normalises BSSID to uppercase before querying', async () => {
+      query.mockResolvedValueOnce({ rows: [{ oid: null }] }).mockResolvedValueOnce({ rows: [] });
+
+      await repository.selectRelatedNetworkMediaForBssid('aa:bb:cc:dd:ee:ff');
+      expect(query).toHaveBeenNthCalledWith(2, expect.any(String), ['AA:BB:CC:DD:EE:FF']);
+    });
+  });
 });

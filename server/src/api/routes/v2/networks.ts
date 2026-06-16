@@ -96,6 +96,40 @@ router.post(
 );
 
 /**
+ * Return related media for a BSSID — direct records plus component-surfaced
+ * records from sibling groups. No binary payloads; includes thumbnail/inline URLs.
+ * GET /api/v2/networks/:bssid/media
+ *
+ * @param {string} req.params.bssid Target BSSID
+ */
+router.get(
+  '/v2/networks/:bssid/media',
+  asyncHandler(async (req: Request, res: Response) => {
+    const bssid = String(req.params.bssid || '').toUpperCase();
+    const media = await adminNetworkMediaService.getRelatedNetworkMediaForBssid(bssid);
+
+    const items = media.map((m: any) => ({
+      id: m.id,
+      requested_bssid: m.requested_bssid,
+      source_bssid: m.source_bssid,
+      observation_id: m.observation_id ?? null,
+      media_type: m.media_type,
+      filename: m.filename,
+      mime_type: m.mime_type,
+      file_size: m.file_size,
+      created_at: m.created_at,
+      exif_captured_at: m.exif_captured_at ?? null,
+      is_direct: m.is_direct,
+      source_kind: m.source_kind,
+      thumbnail_url: `/api/v2/networks/media/${m.id}/thumbnail`,
+      inline_url: `/api/admin/network-media/${m.id}/inline`,
+    }));
+
+    res.json({ bssid, media: items, count: items.length });
+  })
+);
+
+/**
  * Serve network media thumbnail inline under user permissions
  * GET /api/v2/networks/media/:id/thumbnail
  *

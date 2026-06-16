@@ -777,6 +777,16 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Networks v2',
+    label: 'Network Media (by BSSID)',
+    description:
+      'Get related media for a BSSID — direct and component-surfaced. No binary payloads.',
+    path: '/api/v2/networks/:bssid/media',
+    method: 'GET',
+    requiresAuth: true,
+    params: [{ name: 'bssid', label: 'BSSID', placeholder: 'AA:BB:CC:DD:EE:FF' }],
+  },
+  {
+    category: 'Networks v2',
     label: 'Network Media Thumbnail (v2)',
     description: 'Get thumbnail raw bytes for a network media record under user permissions.',
     path: '/api/v2/networks/media/:id/thumbnail',

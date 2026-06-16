@@ -11,6 +11,7 @@ const mockV2Service = {
 };
 const mockMediaService = {
   getNetworkMediaThumbnail: jest.fn(),
+  getRelatedNetworkMediaForBssid: jest.fn(),
 };
 
 jest.mock('../../server/src/config/container', () => ({
@@ -113,5 +114,89 @@ describe('v2 network routes', () => {
 
     expect(response.status).toBe(500);
     expect(response.body.error).toBe('metrics failed');
+  });
+
+  describe('GET /api/v2/networks/:bssid/media', () => {
+    const BSSID = 'AA:BB:CC:DD:EE:FF';
+    const directRow = {
+      id: 11,
+      requested_bssid: BSSID,
+      source_bssid: BSSID,
+      observation_id: null,
+      media_type: 'image',
+      filename: '20260602_202827.jpg',
+      mime_type: 'image/jpeg',
+      file_size: 14506231,
+      created_at: '2026-06-12T14:41:59.354Z',
+      exif_captured_at: null,
+      is_direct: true,
+      source_kind: 'direct',
+    };
+
+    test('returns media list with provenance and URL fields', async () => {
+      mockMediaService.getRelatedNetworkMediaForBssid.mockResolvedValue([directRow]);
+
+      const res = await request(app).get(`/api/v2/networks/${BSSID}/media`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.bssid).toBe(BSSID);
+      expect(res.body.count).toBe(1);
+      const item = res.body.media[0];
+      expect(item.id).toBe(11);
+      expect(item.source_bssid).toBe(BSSID);
+      expect(item.is_direct).toBe(true);
+      expect(item.source_kind).toBe('direct');
+      expect(item.thumbnail_url).toBe('/api/v2/networks/media/11/thumbnail');
+      expect(item.inline_url).toBe('/api/admin/network-media/11/inline');
+      expect(item).not.toHaveProperty('media_data');
+    });
+
+    test('normalises BSSID to uppercase', async () => {
+      mockMediaService.getRelatedNetworkMediaForBssid.mockResolvedValue([]);
+
+      await request(app).get('/api/v2/networks/aa:bb:cc:dd:ee:ff/media');
+
+      expect(mockMediaService.getRelatedNetworkMediaForBssid).toHaveBeenCalledWith(BSSID);
+    });
+
+    test('returns empty media array with count 0 when no media exists', async () => {
+      mockMediaService.getRelatedNetworkMediaForBssid.mockResolvedValue([]);
+
+      const res = await request(app).get(`/api/v2/networks/${BSSID}/media`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.media).toEqual([]);
+      expect(res.body.count).toBe(0);
+    });
+
+    test('includes component-sourced row with correct labels', async () => {
+      const componentRow = {
+        ...directRow,
+        id: 42,
+        source_bssid: 'BB:CC:DD:EE:FF:00',
+        is_direct: false,
+        source_kind: 'component',
+        observation_id: 7,
+      };
+      mockMediaService.getRelatedNetworkMediaForBssid.mockResolvedValue([directRow, componentRow]);
+
+      const res = await request(app).get(`/api/v2/networks/${BSSID}/media`);
+
+      expect(res.body.count).toBe(2);
+      const comp = res.body.media.find((m: any) => m.id === 42);
+      expect(comp.source_kind).toBe('component');
+      expect(comp.source_bssid).toBe('BB:CC:DD:EE:FF:00');
+      expect(comp.observation_id).toBe(7);
+      expect(comp.is_direct).toBe(false);
+    });
+
+    test('does not expose binary media_data in response', async () => {
+      const rowWithBinary = { ...directRow, media_data: Buffer.from('raw') };
+      mockMediaService.getRelatedNetworkMediaForBssid.mockResolvedValue([rowWithBinary]);
+
+      const res = await request(app).get(`/api/v2/networks/${BSSID}/media`);
+
+      expect(res.body.media[0]).not.toHaveProperty('media_data');
+    });
   });
 });

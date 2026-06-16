@@ -85,9 +85,9 @@ describe('useMediaLocationLayers', () => {
       effectCallback();
     }
 
-    expect(mockMap.removeLayer).toHaveBeenCalledWith('photo-location-icons');
-    expect(mockMap.removeLayer).toHaveBeenCalledWith('photo-location-markers');
-    expect(mockMap.removeSource).toHaveBeenCalledWith('photo-locations');
+    expect(mockMap.removeLayer).toHaveBeenCalledWith('media-location-icons');
+    expect(mockMap.removeLayer).toHaveBeenCalledWith('media-location-markers');
+    expect(mockMap.removeSource).toHaveBeenCalledWith('media-locations');
   });
 
   it('fetches GeoJSON and registers layers on the map when showMediaLocations is true', async () => {
@@ -113,22 +113,22 @@ describe('useMediaLocationLayers', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(networkApi.getUnmatchedMediaGeoJson).toHaveBeenCalled();
-    expect(mockMap.addSource).toHaveBeenCalledWith('photo-locations', {
+    expect(mockMap.addSource).toHaveBeenCalledWith('media-locations', {
       type: 'geojson',
       data: mockGeoJson,
     });
 
     // Check layer additions
     expect(mockMap.addLayer).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'photo-location-markers', type: 'circle' })
+      expect.objectContaining({ id: 'media-location-markers', type: 'circle' })
     );
     expect(mockMap.addLayer).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'photo-location-icons', type: 'circle' })
+      expect.objectContaining({ id: 'media-location-icons', type: 'circle' })
     );
 
     expect(mockMap.on).toHaveBeenCalledWith(
       'click',
-      'photo-location-markers',
+      'media-location-markers',
       expect.any(Function)
     );
 
@@ -139,12 +139,12 @@ describe('useMediaLocationLayers', () => {
       cleanup();
       expect(mockMap.off).toHaveBeenCalledWith(
         'click',
-        'photo-location-markers',
+        'media-location-markers',
         expect.any(Function)
       );
-      expect(mockMap.removeLayer).toHaveBeenCalledWith('photo-location-icons');
-      expect(mockMap.removeLayer).toHaveBeenCalledWith('photo-location-markers');
-      expect(mockMap.removeSource).toHaveBeenCalledWith('photo-locations');
+      expect(mockMap.removeLayer).toHaveBeenCalledWith('media-location-icons');
+      expect(mockMap.removeLayer).toHaveBeenCalledWith('media-location-markers');
+      expect(mockMap.removeSource).toHaveBeenCalledWith('media-locations');
     }
   });
 });

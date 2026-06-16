@@ -1,6 +1,21 @@
 const { adminQuery } = require('../services/adminDbService');
 const { query } = require('../config/database');
 
+export interface RelatedNetworkMediaRow {
+  id: number;
+  requested_bssid: string;
+  source_bssid: string;
+  observation_id: number | null;
+  media_type: string | null;
+  filename: string | null;
+  mime_type: string | null;
+  file_size: number | null;
+  created_at: Date | string;
+  exif_captured_at: Date | string | null;
+  is_direct: boolean;
+  source_kind: 'direct' | 'component';
+}
+
 export async function insertNetworkMedia(
   bssid: string,
   mediaType: string,
@@ -64,6 +79,97 @@ export async function selectNetworkMediaThumbnail(id: string): Promise<any | nul
     id,
   ]);
   return result.rows.length > 0 ? result.rows[0] : null;
+}
+
+/**
+ * Returns direct and component-surfaced media for a given BSSID.
+ *
+ * Direct media: records in app.network_media owned by the exact BSSID.
+ * Component media: records surfaced from app.v_sibling_group_media where
+ *   member_bssid matches and record_type = 'media' (excludes notes).
+ *
+ * If app.v_sibling_group_media does not exist (pre-migration), returns
+ * direct media only. De-duplicates by media ID, direct rows win.
+ *
+ * @param {string} bssid The requested BSSID (case-insensitive)
+ * @returns {Promise<any[]>} Media rows with provenance fields
+ */
+export async function selectRelatedNetworkMediaForBssid(
+  bssid: string
+): Promise<RelatedNetworkMediaRow[]> {
+  const upperBssid = bssid.toUpperCase();
+
+  // Guard: check whether v_sibling_group_media exists before referencing it
+  const viewCheck = await query(`SELECT to_regclass('app.v_sibling_group_media') AS oid`, []);
+  const viewExists = viewCheck.rows[0]?.oid != null;
+
+  const directSql = `
+    SELECT
+      nm.id,
+      $1::text            AS requested_bssid,
+      nm.bssid            AS source_bssid,
+      nm.observation_id,
+      nm.media_type,
+      nm.filename,
+      nm.mime_type,
+      nm.file_size,
+      nm.created_at,
+      nm.exif_captured_at,
+      true                AS is_direct,
+      'direct'::text      AS source_kind
+    FROM app.network_media nm
+    WHERE UPPER(nm.bssid) = $1
+      AND nm.bssid != 'VISINT_UNMATCHED'
+  `;
+
+  if (!viewExists) {
+    const result = await query(directSql, [upperBssid]);
+    return result.rows;
+  }
+
+  const result = await query(
+    `WITH direct_media AS (${directSql}),
+    component_media AS (
+      SELECT
+        sgm.id,
+        $1::text            AS requested_bssid,
+        sgm.source_bssid,
+        sgm.observation_id,
+        sgm.media_type,
+        sgm.filename,
+        sgm.mime_type,
+        sgm.file_size,
+        sgm.created_at,
+        sgm.exif_captured_at,
+        (UPPER(sgm.source_bssid) = $1) AS is_direct,
+        'component'::text   AS source_kind
+      FROM app.v_sibling_group_media sgm
+      WHERE UPPER(sgm.member_bssid) = $1
+        AND sgm.record_type = 'media'
+        AND sgm.source_bssid != 'VISINT_UNMATCHED'
+    ),
+    combined AS (
+      SELECT * FROM direct_media
+      UNION ALL
+      SELECT * FROM component_media
+    ),
+    ranked AS (
+      SELECT *,
+        row_number() OVER (
+          PARTITION BY id
+          ORDER BY is_direct DESC
+        ) AS rn
+      FROM combined
+    )
+    SELECT id, requested_bssid, source_bssid, observation_id,
+           media_type, filename, mime_type, file_size,
+           created_at, exif_captured_at, is_direct, source_kind
+    FROM ranked
+    WHERE rn = 1
+    ORDER BY is_direct DESC, created_at DESC`,
+    [upperBssid]
+  );
+  return result.rows;
 }
 
 export async function selectUnmatchedMediaPoints(): Promise<any[]> {

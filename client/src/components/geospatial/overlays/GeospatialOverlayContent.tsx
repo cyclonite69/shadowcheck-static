@@ -4,6 +4,7 @@ import { WigleLookupDialog } from '../modals/WigleLookupDialog';
 import { BatchWigleLookupDialog } from '../modals/BatchWigleLookupDialog';
 import { WigleObservationsPanel } from '../panels/WigleObservationsPanel';
 import { NearestPlacesPanel } from '../panels/NearestPlacesPanel';
+import { NetworkMediaPanel } from '../panels/NetworkMediaPanel';
 import { mergeNearestPlaces } from '../../../utils/geospatial/mergeNearestPlaces';
 import type { Map as MapboxMap } from 'mapbox-gl';
 
@@ -248,6 +249,7 @@ const GeospatialOverlayContentComponent: React.FC<GeospatialOverlayContentProps>
         onComplete={handleBatchComplete}
         onClose={() => setBatchDialogBssids([])}
       />
+      <NetworkMediaPanel bssid={contextMenu.network?.bssid ?? null} />
     </>
   );
 };

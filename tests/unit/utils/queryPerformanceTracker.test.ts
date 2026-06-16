@@ -102,35 +102,41 @@ describe('QueryPerformanceTracker', () => {
     expect(logger.info).not.toHaveBeenCalled();
   });
 
-  it('should log a warning if query is slow (>1000ms)', async () => {
-    const tracker = new QueryPerformanceTracker('testQuery');
-    
-    // Force a delay
-    await new Promise(resolve => setTimeout(resolve, 1001));
-    
-    tracker.finish();
+  it('should log a warning if query is slow (>1000ms)', () => {
+    const originalNow = Date.now;
+    let time = 1000000;
+    Date.now = jest.fn().mockImplementation(() => time);
 
-    expect(logger.warn).toHaveBeenCalledWith(
-      '[QueryPerformance] Slow or problematic query',
-      expect.objectContaining({ queryType: 'testQuery' })
-    );
+    try {
+      const tracker = new QueryPerformanceTracker('testQuery');
+      time += 1001; // simulate passage of 1001ms
+
+      tracker.finish();
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        '[QueryPerformance] Slow or problematic query',
+        expect.objectContaining({ queryType: 'testQuery' })
+      );
+    } finally {
+      Date.now = originalNow;
+    }
   });
 
   it('should handle undefined metric arrays safely', () => {
     const tracker = new QueryPerformanceTracker('testQuery');
-    
+
     // Artificially make arrays undefined to test ?. and || [] fallbacks
     (tracker as any).metrics.appliedFilters = undefined;
     (tracker as any).metrics.ignoredFilters = undefined;
     (tracker as any).metrics.warnings = undefined;
-    
+
     // These should not throw thanks to ?.
     tracker.addAppliedFilter('test', true);
     tracker.addIgnoredFilter('test');
     tracker.addWarning('test');
-    
+
     const metrics = tracker.finish();
-    
+
     // These should fall back to empty arrays
     expect(metrics.appliedFilters).toEqual([]);
     expect(metrics.ignoredFilters).toEqual([]);

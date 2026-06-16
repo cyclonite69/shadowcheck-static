@@ -40,6 +40,23 @@ export interface NoteMediaItem {
   created_at: string;
 }
 
+export interface NetworkMediaItem {
+  id: number;
+  requested_bssid: string;
+  source_bssid: string;
+  observation_id: number | null;
+  media_type: string | null;
+  filename: string | null;
+  mime_type: string | null;
+  file_size: number | null;
+  created_at: string;
+  exif_captured_at: string | null;
+  is_direct: boolean;
+  source_kind: 'direct' | 'component';
+  thumbnail_url: string;
+  inline_url: string;
+}
+
 export const networkApi = {
   async getNetworkTags(bssid: string): Promise<NetworkTag> {
     return apiClient.get<NetworkTag>(`/network-tags/${encodeURIComponent(bssid)}`);
@@ -257,6 +274,18 @@ export const networkApi = {
       };
     } catch {
       return { data: [], unresolved: {} };
+    }
+  },
+
+  /** Fetch related media for a BSSID — direct records and component-surfaced siblings. */
+  async getNetworkMedia(bssid: string): Promise<NetworkMediaItem[]> {
+    try {
+      const res = await apiClient.get<{ media: NetworkMediaItem[] }>(
+        `/v2/networks/${encodeURIComponent(bssid)}/media`
+      );
+      return Array.isArray(res?.media) ? res.media : [];
+    } catch {
+      return [];
     }
   },
 
