@@ -8,6 +8,7 @@ import { NetworkTagMenuLoading } from './NetworkTagMenuLoading';
 import { NetworkTagMenuStatus } from './NetworkTagMenuStatus';
 import { NetworkTagMenuViewActions } from './NetworkTagMenuViewActions';
 import { DetectionEvidenceModal } from './DetectionEvidenceModal';
+import { NetworkMediaPanel } from '../panels/NetworkMediaPanel';
 
 interface NetworkTagMenuProps {
   visible: boolean;
@@ -147,6 +148,7 @@ export const NetworkTagMenu = ({
         >
           <NetworkTagMenuHeader network={network} />
           <NetworkTagMenuStatus tag={tag} />
+          {network?.bssid && <NetworkMediaPanel bssid={network.bssid} />}
           <div style={{ padding: '4px 0' }}>
             {isAdmin && (
               <NetworkTagMenuAdminActions

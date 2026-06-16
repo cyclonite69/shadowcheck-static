@@ -396,6 +396,7 @@
 - **geospatial:** project activity metrics in explorer list queries ([a150e6b](https://github.com/cyclonite69/shadowcheck-web/commit/a150e6bb59ff7a98eed7c914e80baf3e9b992c40))
 - **geospatial:** reduce WiGLE marker size and stroke weight ([6f1267d](https://github.com/cyclonite69/shadowcheck-web/commit/6f1267d4764395e264cadaa101d23d31594b0353))
 - **geospatial:** remove header scrollbar and align sticky column offsets ([ba76b6e](https://github.com/cyclonite69/shadowcheck-web/commit/ba76b6ef5e79aeccd15cbbec7139e26ea058c304))
+- **geospatial:** render related media in visible network menu ([1621ab2](https://github.com/cyclonite69/shadowcheck-web/commit/1621ab2f7bcc80ffdb8aecf9fbbbb6022a8086fd))
 - **geospatial:** resolve mapbox 3d/terrain initialization race condition ([e1754fa](https://github.com/cyclonite69/shadowcheck-web/commit/e1754fa1268a23dc3c99790a9ddc1be72b5c5c7e))
 - **geospatial:** resolve note mode from independent notes lookup ([1f0b091](https://github.com/cyclonite69/shadowcheck-web/commit/1f0b0913b09d4d01a91e1396beba332e33bc82db))
 - **geospatial:** resolve stale closure race condition in map context menu ([aeac6f9](https://github.com/cyclonite69/shadowcheck-web/commit/aeac6f940ad81d829c9d6c05bdc412697904d6d0))

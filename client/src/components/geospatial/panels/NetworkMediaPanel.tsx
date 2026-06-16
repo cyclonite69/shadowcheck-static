@@ -1,6 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { networkApi, NetworkMediaItem } from '../../../api/networkApi';
 
+/**
+ * NetworkMediaPanel — Surface app.network_media for a selected BSSID.
+ *
+ * Current placement: NetworkTagMenu context-menu portal, triggered when the user right-clicks a network/BSSID.
+ * Activation: User right-clicks network → contextMenu appears → media panel renders in visible portal.
+ *
+ * Scope: Direct media is immediately visible. Component media surfaces after migration _055 is applied.
+ *
+ * Future: Network Observations Detail architecture (separate feature) will provide persistent
+ * selected-network context with media, observations, notes, and evidence workflow. This panel is
+ * a minimal v1 that does not redesign that flow.
+ */
+
 interface NetworkMediaPanelProps {
   bssid: string | null;
 }
@@ -26,7 +39,7 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
           setLoading(false);
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setError('Could not load media.');
           setLoading(false);
@@ -40,7 +53,7 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
   if (!bssid) return null;
 
   return (
-    <div style={{ marginTop: '12px' }}>
+    <div style={{ marginTop: '12px', paddingBottom: '12px' }}>
       <div
         style={{
           fontSize: '12px',
@@ -51,7 +64,7 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
           letterSpacing: '0.05em',
         }}
       >
-        Related Media
+        📸 Related Media
       </div>
 
       {loading && (
@@ -63,6 +76,12 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
       {!loading && !error && media.length === 0 && (
         <div style={{ fontSize: '12px', color: '#64748b', padding: '4px 0' }}>
           No related media.
+        </div>
+      )}
+
+      {!loading && !error && !Array.isArray(media) && (
+        <div style={{ fontSize: '12px', color: '#fca5a5', padding: '4px 0' }}>
+          ERROR: media is not an array.
         </div>
       )}
 
