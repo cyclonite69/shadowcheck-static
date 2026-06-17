@@ -89,8 +89,12 @@ describe('v2/filtered/utils', () => {
       expect(isIgnoredRow({ is_ignored: 0 })).toBe(false);
     });
 
-    it('returns true when is_ignored is numeric 1', () => {
-      expect(isIgnoredRow({ is_ignored: 1 })).toBe(true);
+    it('returns false when is_ignored is numeric 1', () => {
+      expect(isIgnoredRow({ is_ignored: 1 })).toBe(false);
+    });
+
+    it('does not trim string values before evaluating ignored status', () => {
+      expect(isIgnoredRow({ is_ignored: ' true ' })).toBe(false);
     });
   });
 
@@ -223,6 +227,17 @@ describe('v2/filtered/utils', () => {
       const body = { filters, enabled };
 
       parseAndValidateBodyFilters(body, mockValidatorWithAssert);
+      expect(mockValidatorWithAssert).toHaveBeenCalledWith(filters, enabled);
+    });
+
+    it('passes through array-shaped filters and enabled payloads exactly as supplied', () => {
+      const mockValidatorWithAssert = jest.fn(() => ({ errors: [] }));
+      const filters = ['ssid'];
+      const enabled = ['ssid'];
+
+      const result = parseAndValidateBodyFilters({ filters, enabled }, mockValidatorWithAssert);
+
+      expect(result as any).toEqual({ ok: true, filters, enabled });
       expect(mockValidatorWithAssert).toHaveBeenCalledWith(filters, enabled);
     });
 
