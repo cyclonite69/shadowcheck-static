@@ -1,99 +1,82 @@
 import request from 'supertest';
-import express, { Router } from 'express';
+import express from 'express';
 
-// Mock maintenance service
-const mockMaintenanceService = {
-  getMaintenanceStatus: jest.fn(),
-  runCoLocationView: jest.fn(),
-};
+const mockGetDuplicateObservationStats = jest.fn();
+const mockDeleteDuplicateObservations = jest.fn();
+const mockGetObservationCount = jest.fn();
+const mockRefreshColocationView = jest.fn();
 
-// Create test app
+jest.mock('../../../../../../server/src/config/container', () => ({
+  adminMaintenanceService: {
+    getDuplicateObservationStats: mockGetDuplicateObservationStats,
+    deleteDuplicateObservations: mockDeleteDuplicateObservations,
+    getObservationCount: mockGetObservationCount,
+    refreshColocationView: mockRefreshColocationView,
+  },
+}));
+
+jest.mock('../../../../../../server/src/logging/logger', () => ({
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+}));
+
+const maintenanceRouter = require('../../../../../../server/src/api/routes/v1/admin/maintenance');
+
 const app = express();
 app.use(express.json());
-
-const maintenanceRouter = Router();
-
-maintenanceRouter.get('/admin/maintenance/status', async (req, res, next) => {
-  try {
-    const status = await mockMaintenanceService.getMaintenanceStatus();
-    res.json({ ok: true, status });
-  } catch (err) {
-    next(err);
-  }
-});
-
-maintenanceRouter.post('/admin/maintenance/colocation', async (req, res, next) => {
-  try {
-    const result = await mockMaintenanceService.runCoLocationView();
-    res.json({
-      ok: true,
-      message: 'Co-location materialized view created/refreshed successfully',
-      result,
-    });
-  } catch (err: any) {
-    next(err);
-  }
-});
-
 app.use('/', maintenanceRouter);
 
-describe('maintenance routes', () => {
+describe('Admin Maintenance Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('GET /admin/maintenance/status', () => {
-    it('returns maintenance status', async () => {
-      mockMaintenanceService.getMaintenanceStatus.mockResolvedValue({
-        uptime: 86400,
-        lastMaintenance: '2024-01-01T00:00:00Z',
-      });
+  describe('POST /admin/cleanup-duplicates', () => {
+    it('successfully cleans up duplicates', async () => {
+      mockGetDuplicateObservationStats.mockResolvedValue({ total: 100 });
+      mockDeleteDuplicateObservations.mockResolvedValue(20);
+      mockGetObservationCount.mockResolvedValue(80);
 
-      const response = await request(app).get('/admin/maintenance/status');
+      const response = await request(app).post('/admin/cleanup-duplicates');
 
       expect(response.status).toBe(200);
-      expect(response.body.ok).toBe(true);
-      expect(response.body.status).toBeDefined();
-      expect(response.body.status.uptime).toBeDefined();
+      expect(response.body).toEqual({
+        ok: true,
+        message: 'Duplicate observations removed',
+        before: 100,
+        after: 80,
+        removed: 20,
+      });
     });
 
-    it('handles service errors on status', async () => {
-      mockMaintenanceService.getMaintenanceStatus.mockRejectedValue(new Error('Service error'));
+    it('handles errors during cleanup', async () => {
+      mockGetDuplicateObservationStats.mockRejectedValue(new Error('Cleanup failed'));
 
-      const response = await request(app).get('/admin/maintenance/status');
+      const response = await request(app).post('/admin/cleanup-duplicates');
 
-      expect(response.status).toBeGreaterThanOrEqual(500);
+      expect(response.status).toBe(500);
     });
   });
 
-  describe('POST /admin/maintenance/colocation', () => {
-    it('runs co-location view refresh', async () => {
-      mockMaintenanceService.runCoLocationView.mockResolvedValue({
-        rowsAffected: 1000,
-      });
+  describe('POST /admin/refresh-colocation', () => {
+    it('successfully refreshes colocation view', async () => {
+      mockRefreshColocationView.mockResolvedValue(undefined);
 
-      const response = await request(app).post('/admin/maintenance/colocation');
+      const response = await request(app).post('/admin/refresh-colocation');
 
       expect(response.status).toBe(200);
       expect(response.body.ok).toBe(true);
-      expect(response.body.message).toContain('Co-location');
-      expect(response.body.result).toBeDefined();
+      expect(mockRefreshColocationView).toHaveBeenCalled();
     });
 
-    it('calls maintenance service', async () => {
-      mockMaintenanceService.runCoLocationView.mockResolvedValue({});
+    it('handles errors during refresh', async () => {
+      mockRefreshColocationView.mockRejectedValue(new Error('Refresh failed'));
 
-      await request(app).post('/admin/maintenance/colocation');
+      const response = await request(app).post('/admin/refresh-colocation');
 
-      expect(mockMaintenanceService.runCoLocationView).toHaveBeenCalled();
-    });
-
-    it('handles service errors on colocation', async () => {
-      mockMaintenanceService.runCoLocationView.mockRejectedValue(new Error('View refresh failed'));
-
-      const response = await request(app).post('/admin/maintenance/colocation');
-
-      expect(response.status).toBeGreaterThanOrEqual(500);
+      expect(response.status).toBe(500);
     });
   });
 });
