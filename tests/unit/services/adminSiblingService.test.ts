@@ -10,9 +10,36 @@ const {
   setNetworkSiblingOverride,
   getNetworkSiblingLinks,
   getNetworkSiblingLinksBatch,
+  getSiblingComponentBssids,
 } = require('../../../server/src/services/adminSiblingService');
 
 beforeEach(() => jest.clearAllMocks());
+
+// ── getSiblingComponentBssids ─────────────────────────────────────────────────
+
+describe('getSiblingComponentBssids', () => {
+  test('returns empty array for empty input', async () => {
+    const result = await getSiblingComponentBssids('');
+    expect(mockAdminQuery).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
+  });
+
+  test('normalizes input BSSID', async () => {
+    mockAdminQuery.mockResolvedValue({ rows: [{ bssid: 'AA:BB:CC:DD:EE:FF' }] });
+    await getSiblingComponentBssids('  aa:bb:cc:dd:ee:ff  ');
+    expect(mockAdminQuery).toHaveBeenCalledWith(expect.stringContaining('WITH RECURSIVE'), [
+      'AA:BB:CC:DD:EE:FF',
+    ]);
+  });
+
+  test('returns unique normalized BSSIDs from result rows', async () => {
+    mockAdminQuery.mockResolvedValue({
+      rows: [{ bssid: 'aa:bb:cc:11:22:33' }, { bssid: 'AA:BB:CC:44:55:66 ' }],
+    });
+    const result = await getSiblingComponentBssids('SEED');
+    expect(result).toEqual(['AA:BB:CC:11:22:33', 'AA:BB:CC:44:55:66']);
+  });
+});
 
 // ── setNetworkSiblingOverride ─────────────────────────────────────────────────
 
