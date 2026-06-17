@@ -801,6 +801,7 @@
 - **tests:** fix globalSetup for integration DB_ADMIN_PASSWORD ([34ab154](https://github.com/cyclonite69/shadowcheck-web/commit/34ab154b21035599f74c9460eaf17578bc8a9919))
 - **tests:** fix import shape issues in FIX 5 tests ([81dc2ba](https://github.com/cyclonite69/shadowcheck-web/commit/81dc2bac2084dbec7538eb0649ffaedfaaec2671))
 - **tests:** fix integration test failures on EC2 ([35d2e84](https://github.com/cyclonite69/shadowcheck-web/commit/35d2e84ee1fbc8731d85bc9c8bf2eda54761850f))
+- **tests:** repair 4 pre-existing broken test suites ([b9c35fb](https://github.com/cyclonite69/shadowcheck-web/commit/b9c35fbb853ca9ec55de6dd78159a3f4d02a1ec6))
 - **tests:** repair 7 pre-existing broken test suites ([e058983](https://github.com/cyclonite69/shadowcheck-web/commit/e058983b8bb2763952777d41cd3d18ed79f4683c))
 - **tests:** resolve all TypeScript compilation errors in test suite ([f08b3f4](https://github.com/cyclonite69/shadowcheck-web/commit/f08b3f40dd3c35900bf7b32a49239b2cdbedd67d))
 - **tests:** resolve implicit any[] and null safety errors in wigleImportRunRepository.test.ts ([ad67ba2](https://github.com/cyclonite69/shadowcheck-web/commit/ad67ba2d6125b5de6b1d9a87ba39c058537120df))

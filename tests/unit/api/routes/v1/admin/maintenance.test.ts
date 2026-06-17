@@ -7,10 +7,6 @@ const mockMaintenanceService = {
   runCoLocationView: jest.fn(),
 };
 
-jest.mock('../../../../../server/src/services', () => ({
-  maintenanceService: mockMaintenanceService,
-}));
-
 // Create test app
 const app = express();
 app.use(express.json());
@@ -62,9 +58,7 @@ describe('maintenance routes', () => {
     });
 
     it('handles service errors on status', async () => {
-      mockMaintenanceService.getMaintenanceStatus.mockRejectedValue(
-        new Error('Service error')
-      );
+      mockMaintenanceService.getMaintenanceStatus.mockRejectedValue(new Error('Service error'));
 
       const response = await request(app).get('/admin/maintenance/status');
 
@@ -95,9 +89,7 @@ describe('maintenance routes', () => {
     });
 
     it('handles service errors on colocation', async () => {
-      mockMaintenanceService.runCoLocationView.mockRejectedValue(
-        new Error('View refresh failed')
-      );
+      mockMaintenanceService.runCoLocationView.mockRejectedValue(new Error('View refresh failed'));
 
       const response = await request(app).post('/admin/maintenance/colocation');
 

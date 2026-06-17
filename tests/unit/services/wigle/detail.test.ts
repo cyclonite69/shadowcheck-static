@@ -1,20 +1,21 @@
+jest.mock('../../../../server/src/config/database', () => ({
+  query: jest.fn(),
+}));
+
+jest.mock('../../../../server/src/services/wigle/database', () => ({
+  getWigleNetworkByBSSID: jest.fn(),
+}));
+
+jest.mock('../../../../server/src/services/wigle/persistence', () => ({
+  getStoredWigleDetail: jest.fn(),
+}));
+
 import {
   getWiglePageNetwork,
   getWiglePageNetworkFromMv,
   getWigleDetail,
 } from '../../../../server/src/services/wigle/detail';
 import { query } from '../../../../server/src/config/database';
-
-jest.mock('../../../../server/src/config/database');
-jest.mock('../../../../server/src/repositories/wigleQueriesRepository', () => ({
-  buildWiglePageV3DetailQuery: jest.fn(() => ({ sql: 'SELECT', queryParams: [] })),
-  buildWiglePageV2SummaryQuery: jest.fn(() => ({ sql: 'SELECT', queryParams: [] })),
-  buildWiglePageLocalMatchQuery: jest.fn(() => ({ sql: 'SELECT', queryParams: [] })),
-  buildWiglePageV3TemporalQuery: jest.fn(() => ({ sql: 'SELECT', queryParams: [] })),
-  buildWiglePageMostRecentObsQuery: jest.fn(() => ({ sql: 'SELECT', queryParams: [] })),
-}));
-jest.mock('../../../../../server/src/services/wigle/database');
-jest.mock('../../../../../server/src/services/wigle/persistence');
 
 describe('wigle/detail', () => {
   beforeEach(() => {
@@ -32,6 +33,9 @@ describe('wigle/detail', () => {
     it('normalizes netid to uppercase', async () => {
       (query as jest.Mock)
         .mockResolvedValueOnce({ rows: [{ netid: 'test' }] })
+        .mockResolvedValue({ rows: [] })
+        .mockResolvedValue({ rows: [] })
+        .mockResolvedValue({ rows: [] })
         .mockResolvedValue({ rows: [] });
 
       await getWiglePageNetwork('aa:bb:cc:dd:ee:ff');

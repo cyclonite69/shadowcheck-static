@@ -3,13 +3,13 @@ import request from 'supertest';
 
 const mockGetDetailedDatabaseStats = jest.fn();
 
-jest.mock('../../../../../server/src/config/container', () => ({
+jest.mock('../../../../../../server/src/config/container', () => ({
   adminDbStatsService: {
     getDetailedDatabaseStats: mockGetDetailedDatabaseStats,
   },
 }));
 
-jest.mock('../../server/src/logging/logger', () => ({
+jest.mock('../../../../../../server/src/logging/logger', () => ({
   error: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
@@ -19,7 +19,7 @@ jest.mock('../../server/src/logging/logger', () => ({
 
 const app = express();
 app.use(express.json());
-app.use('/', require('../../server/src/api/routes/v1/admin/dbStats').default);
+app.use('/', require('../../../../../../server/src/api/routes/v1/admin/dbStats').default);
 
 describe('admin dbStats route — GET /', () => {
   beforeEach(() => {

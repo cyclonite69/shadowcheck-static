@@ -8,7 +8,7 @@ const mockImportWigleV3ObservationRow = jest.fn();
 const mockInsertWigleV2SearchResult = jest.fn();
 const mockInsertWigleBtSearchResult = jest.fn();
 
-jest.mock('../../../server/src/repositories/wiglePersistenceRepository', () => ({
+jest.mock('../../../../server/src/repositories/wiglePersistenceRepository', () => ({
   getWigleDetail: mockGetWigleDetail,
   getWigleV3Observations: mockGetWigleV3Observations,
   importWigleV3NetworkDetail: mockImportWigleV3NetworkDetail,
@@ -20,12 +20,12 @@ jest.mock('../../../server/src/repositories/wiglePersistenceRepository', () => (
 const mockMapV3LocationToObservationRow = jest.fn();
 const mockNormalizeMacAddress = jest.fn((mac: string) => mac.toUpperCase());
 
-jest.mock('../../../server/src/services/wigleEnrichment/mappers/enrichmentMapper', () => ({
+jest.mock('../../../../server/src/services/wigleEnrichment/mappers/enrichmentMapper', () => ({
   mapV3LocationToObservationRow: mockMapV3LocationToObservationRow,
   normalizeMacAddress: mockNormalizeMacAddress,
 }));
 
-jest.mock('../../../server/src/services/wigle/shared', () => ({
+jest.mock('../../../../server/src/services/wigle/shared', () => ({
   databaseExecutor: { query: jest.fn() },
 }));
 
