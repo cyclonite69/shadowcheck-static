@@ -2,15 +2,14 @@ import request from 'supertest';
 import express, { Router } from 'express';
 
 // Mock dependencies
-jest.mock('../../../../../server/src/middleware/requestId');
-jest.mock('../../../../../server/src/middleware/errorHandler');
+jest.mock('../../../../../../server/src/middleware/requestId');
 
 const mockNetworkService = {
   getNetworkObservations: jest.fn(),
 };
 
-jest.mock('../../../../../server/src/services', () => ({
-  networkService: mockNetworkService,
+jest.mock('../../../../../../server/src/config/container', () => ({
+  observationService: mockNetworkService,
 }));
 
 // Create minimal express app for testing
@@ -82,9 +81,7 @@ describe('observations route', () => {
   });
 
   it('handles service errors', async () => {
-    mockNetworkService.getNetworkObservations.mockRejectedValue(
-      new Error('Database error')
-    );
+    mockNetworkService.getNetworkObservations.mockRejectedValue(new Error('Database error'));
 
     const response = await request(app).get('/observations/aa:bb:cc:dd:ee:ff');
 

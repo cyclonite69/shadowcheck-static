@@ -1,17 +1,22 @@
-const { listSecretsStatus, storeSecret, deleteSecret } = require('../../../../../../server/src/api/routes/v1/admin/adminSecretsHelpers');
+const mockSecretsManager = {
+  has: jest.fn(),
+  putSecret: jest.fn(),
+  deleteSecret: jest.fn(),
+};
+
+jest.mock('../../../../../../server/src/config/container', () => ({
+  secretsManager: mockSecretsManager,
+}));
+
+const {
+  listSecretsStatus,
+  storeSecret,
+  deleteSecret,
+} = require('../../../../../../server/src/api/routes/v1/admin/adminSecretsHelpers');
 
 describe('adminSecretsHelpers', () => {
-  let mockSecretsManager: any;
-
   beforeEach(() => {
-    mockSecretsManager = {
-      has: jest.fn(),
-      putSecret: jest.fn(),
-      deleteSecret: jest.fn(),
-    };
-    jest.doMock('../../../../../../server/src/config/container', () => ({
-      secretsManager: mockSecretsManager,
-    }));
+    jest.clearAllMocks();
   });
 
   describe('listSecretsStatus', () => {

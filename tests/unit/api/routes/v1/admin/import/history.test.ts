@@ -7,7 +7,7 @@ const mockImportHistoryService = {
   getDeviceSources: jest.fn(),
 };
 
-jest.mock('../../../../../server/src/services', () => ({
+jest.mock('../../../../../../../server/src/config/container', () => ({
   adminImportHistoryService: mockImportHistoryService,
 }));
 
@@ -66,9 +66,7 @@ describe('import history routes', () => {
     });
 
     it('handles service errors', async () => {
-      mockImportHistoryService.getImportHistory.mockRejectedValue(
-        new Error('Database error')
-      );
+      mockImportHistoryService.getImportHistory.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app).get('/admin/import-history');
 
@@ -100,9 +98,7 @@ describe('import history routes', () => {
     });
 
     it('handles service errors', async () => {
-      mockImportHistoryService.getDeviceSources.mockRejectedValue(
-        new Error('Database error')
-      );
+      mockImportHistoryService.getDeviceSources.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app).get('/admin/device-sources');
 

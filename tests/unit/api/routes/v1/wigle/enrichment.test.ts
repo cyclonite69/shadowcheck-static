@@ -1,138 +1,175 @@
+import express from 'express';
 import request from 'supertest';
-import express, { Router } from 'express';
 
-// Mock WiGLE enrichment service
 const mockWigleEnrichmentService = {
-  enrichNetworkWithWigleData: jest.fn(),
+  forceClearEnrichmentRun: jest.fn(),
+  getEnrichmentCatalog: jest.fn(),
+  getPendingEnrichmentCount: jest.fn(),
+  resumeEnrichment: jest.fn(),
+  startBatchEnrichment: jest.fn(),
 };
 
-jest.mock('../../../../../server/src/services', () => ({
+jest.mock('../../../../../../server/src/config/container', () => ({
   wigleEnrichmentService: mockWigleEnrichmentService,
 }));
 
-// Create test app
+jest.mock('../../../../../../server/src/middleware/authMiddleware', () => ({
+  requireAdmin: (_req: any, _res: any, next: any) => next(),
+}));
+
+import enrichmentRouter from '../../../../../../server/src/api/routes/v1/wigle/enrichment';
+
 const app = express();
 app.use(express.json());
+app.use('/wigle', enrichmentRouter);
 
-const enrichmentRouter = Router();
-
-enrichmentRouter.post('/network/:bssid', async (req, res, next) => {
-  try {
-    const { bssid } = req.params;
-    const { force } = req.body;
-
-    if (!bssid) {
-      return res.status(400).json({ ok: false, error: 'BSSID required' });
-    }
-
-    const result = await mockWigleEnrichmentService.enrichNetworkWithWigleData(bssid, {
-      force: !!force,
-    });
-
-    if (!result) {
-      return res.status(404).json({ ok: false, error: 'Network not found' });
-    }
-
-    res.json({ ok: true, enriched: result });
-  } catch (error: any) {
-    if (error?.status === 403) {
-      return res.status(403).json({ ok: false, error: error.message, code: 'FORBIDDEN' });
-    }
-    if (error?.status === 409) {
-      return res.status(409).json({ ok: false, error: error.message, code: 'CONFLICT' });
-    }
-    next(error);
-  }
-});
-
-app.use('/enrichment', enrichmentRouter);
-
-describe('wigle enrichment route', () => {
+describe('wigle enrichment routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('enriches network with WiGLE data', async () => {
-    mockWigleEnrichmentService.enrichNetworkWithWigleData.mockResolvedValue({
-      bssid: 'aa:bb:cc:dd:ee:ff',
-      wigleData: { firsttime: 1234567890, lasttime: 1234567890 },
+  it('returns pending enrichment stats', async () => {
+    mockWigleEnrichmentService.getPendingEnrichmentCount.mockResolvedValue(12);
+
+    const response = await request(app).get('/wigle/enrichment/stats');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ok: true, pendingCount: 12 });
+  });
+
+  it('returns enrichment catalog with normalized pagination defaults', async () => {
+    mockWigleEnrichmentService.getEnrichmentCatalog.mockResolvedValue({
+      rows: [{ bssid: 'AA:BB:CC:DD:EE:FF' }],
+      total: 1,
     });
 
     const response = await request(app)
-      .post('/enrichment/network/aa:bb:cc:dd:ee:ff')
-      .send({});
+      .get('/wigle/enrichment/catalog')
+      .query({ region: 'CA', city: 'Oakland', sortBy: 'lasttime', sortDir: 'desc' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      ok: true,
+      rows: [{ bssid: 'AA:BB:CC:DD:EE:FF' }],
+      total: 1,
+    });
+    expect(mockWigleEnrichmentService.getEnrichmentCatalog).toHaveBeenCalledWith({
+      page: 1,
+      limit: 50,
+      region: 'CA',
+      city: 'Oakland',
+      ssid: undefined,
+      bssid: undefined,
+      sortBy: 'lasttime',
+      sortDir: 'desc',
+    });
+  });
+
+  it('starts batch enrichment and serializes the run', async () => {
+    mockWigleEnrichmentService.startBatchEnrichment.mockResolvedValue({
+      id: 7,
+      source: 'wigle_v3',
+      api_version: 'v3',
+      search_term: 'batch',
+      state: 'CA',
+      request_fingerprint: 'fingerprint',
+      request_params: { bssids: ['AA:BB:CC:DD:EE:FF'] },
+      status: 'running',
+      api_cursor: null,
+      last_error: null,
+      started_at: '2026-06-16T00:00:00.000Z',
+      last_attempted_at: null,
+      completed_at: null,
+      last_successful_page: 0,
+      next_page: 1,
+      api_total_results: null,
+      total_pages: null,
+      page_size: 100,
+      pages_fetched: 0,
+      rows_returned: 0,
+      rows_inserted: 0,
+    });
+
+    const response = await request(app)
+      .post('/wigle/enrichment/start')
+      .send({ bssids: ['AA:BB:CC:DD:EE:FF'] });
 
     expect(response.status).toBe(200);
     expect(response.body.ok).toBe(true);
-    expect(response.body.enriched).toBeDefined();
+    expect(response.body.run).toMatchObject({
+      id: 7,
+      apiVersion: 'v3',
+      requestFingerprint: 'fingerprint',
+      status: 'running',
+    });
+    expect(mockWigleEnrichmentService.startBatchEnrichment).toHaveBeenCalledWith([
+      'AA:BB:CC:DD:EE:FF',
+    ]);
   });
 
-  it('returns 400 when BSSID is missing', async () => {
-    const response = await request(app).post('/enrichment/network/').send({});
+  it('returns 400 when batch enrichment validation fails', async () => {
+    const error: any = new Error('BSSID list is required');
+    error.status = 400;
+    mockWigleEnrichmentService.startBatchEnrichment.mockRejectedValue(error);
+
+    const response = await request(app).post('/wigle/enrichment/start').send({});
 
     expect(response.status).toBe(400);
-    expect(response.body.ok).toBe(false);
+    expect(response.body).toEqual({ ok: false, error: 'BSSID list is required' });
   });
 
-  it('returns 404 when network not found', async () => {
-    mockWigleEnrichmentService.enrichNetworkWithWigleData.mockResolvedValue(null);
-
-    const response = await request(app)
-      .post('/enrichment/network/aa:bb:cc:dd:ee:ff')
-      .send({});
-
-    expect(response.status).toBe(404);
-    expect(response.body.ok).toBe(false);
-  });
-
-  it('returns 403 for forbidden enrichment', async () => {
-    const error: any = new Error('Enrichment forbidden');
+  it('returns 403 when batch enrichment is forbidden', async () => {
+    const error: any = new Error('Forbidden');
     error.status = 403;
-    mockWigleEnrichmentService.enrichNetworkWithWigleData.mockRejectedValue(error);
+    error.code = 'WIGLE_NOT_CONFIGURED';
+    mockWigleEnrichmentService.startBatchEnrichment.mockRejectedValue(error);
 
     const response = await request(app)
-      .post('/enrichment/network/aa:bb:cc:dd:ee:ff')
-      .send({});
+      .post('/wigle/enrichment/start')
+      .send({ bssids: ['AA:BB:CC:DD:EE:FF'] });
 
     expect(response.status).toBe(403);
-    expect(response.body.code).toBe('FORBIDDEN');
+    expect(response.body).toEqual({
+      ok: false,
+      error: 'Forbidden',
+      code: 'WIGLE_NOT_CONFIGURED',
+    });
   });
 
-  it('returns 409 for enrichment conflict', async () => {
-    const error: any = new Error('Enrichment conflict');
+  it('returns 409 when batch enrichment conflicts with an active run', async () => {
+    const error: any = new Error('Run already active');
     error.status = 409;
-    mockWigleEnrichmentService.enrichNetworkWithWigleData.mockRejectedValue(error);
+    mockWigleEnrichmentService.startBatchEnrichment.mockRejectedValue(error);
 
     const response = await request(app)
-      .post('/enrichment/network/aa:bb:cc:dd:ee:ff')
-      .send({});
+      .post('/wigle/enrichment/start')
+      .send({ bssids: ['AA:BB:CC:DD:EE:FF'] });
 
     expect(response.status).toBe(409);
-    expect(response.body.code).toBe('CONFLICT');
+    expect(response.body).toEqual({
+      ok: false,
+      error: 'Run already active',
+      code: 'ENRICHMENT_CONFLICT',
+    });
   });
 
-  it('passes force flag to service', async () => {
-    mockWigleEnrichmentService.enrichNetworkWithWigleData.mockResolvedValue({});
+  it('resumes an enrichment run by id', async () => {
+    mockWigleEnrichmentService.resumeEnrichment.mockResolvedValue({ id: 9, status: 'running' });
 
-    await request(app)
-      .post('/enrichment/network/aa:bb:cc:dd:ee:ff')
-      .send({ force: true });
+    const response = await request(app).post('/wigle/enrichment/resume/9').send({});
 
-    expect(mockWigleEnrichmentService.enrichNetworkWithWigleData).toHaveBeenCalledWith(
-      'aa:bb:cc:dd:ee:ff',
-      { force: true }
-    );
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ok: true, run: { id: 9, status: 'running' } });
+    expect(mockWigleEnrichmentService.resumeEnrichment).toHaveBeenCalledWith(9);
   });
 
-  it('handles service errors', async () => {
-    mockWigleEnrichmentService.enrichNetworkWithWigleData.mockRejectedValue(
-      new Error('Service error')
-    );
+  it('force-clears an enrichment run by id', async () => {
+    mockWigleEnrichmentService.forceClearEnrichmentRun.mockResolvedValue({ cleared: true });
 
-    const response = await request(app)
-      .post('/enrichment/network/aa:bb:cc:dd:ee:ff')
-      .send({});
+    const response = await request(app).post('/wigle/enrichment/force-clear/9').send({});
 
-    expect(response.status).toBeGreaterThanOrEqual(500);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ok: true, cleared: true });
+    expect(mockWigleEnrichmentService.forceClearEnrichmentRun).toHaveBeenCalledWith(9);
   });
 });

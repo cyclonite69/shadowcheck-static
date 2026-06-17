@@ -6,26 +6,40 @@ import {
 
 // Mock the params module so we control fingerprint/search-term logic
 jest.mock('../../../../../server/src/services/wigleImport/params', () => {
-  const crypto = require('crypto');
-  const stableStringify = (v: unknown): string => JSON.stringify(v);
-
   return {
     DEFAULT_RESULTS_PER_PAGE: 100,
-    normalizeImportParams: jest.fn((raw: Record<string, unknown>) => ({
-      ssid: raw.ssid ?? undefined,
-      region: raw.region ?? undefined,
-      resultsPerPage: raw.resultsPerPage ? Number(raw.resultsPerPage) : 100,
-      version: 'v2',
-      country: 'US',
-    })),
-    getSearchTerm: jest.fn((q: Record<string, unknown>) => q.ssid ?? ''),
-    getRequestFingerprint: jest.fn(
-      (q: unknown) => crypto.createHash('sha256').update(stableStringify(q)).digest('hex')
-    ),
-    getRawRequestFingerprint: jest.fn(
-      (q: unknown) => crypto.createHash('sha256').update(stableStringify(q)).digest('hex')
-    ),
+    normalizeImportParams: jest.fn(),
+    getSearchTerm: jest.fn(),
+    getRequestFingerprint: jest.fn(),
+    getRawRequestFingerprint: jest.fn(),
   };
+});
+
+import {
+  getRawRequestFingerprint,
+  getRequestFingerprint,
+  getSearchTerm,
+  normalizeImportParams,
+} from '../../../../../server/src/services/wigleImport/params';
+
+const stableFingerprint = (value: unknown): string => {
+  const crypto = require('crypto');
+  return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+};
+
+beforeEach(() => {
+  (normalizeImportParams as jest.Mock).mockImplementation((raw: Record<string, unknown>) => ({
+    ssid: raw.ssid ?? undefined,
+    region: raw.region ?? undefined,
+    resultsPerPage: raw.resultsPerPage ? Number(raw.resultsPerPage) : 100,
+    version: 'v2',
+    country: 'US',
+  }));
+  (getSearchTerm as jest.Mock).mockImplementation(
+    (query: Record<string, unknown>) => query.ssid ?? ''
+  );
+  (getRequestFingerprint as jest.Mock).mockImplementation(stableFingerprint);
+  (getRawRequestFingerprint as jest.Mock).mockImplementation(stableFingerprint);
 });
 
 describe('clampPageSize', () => {

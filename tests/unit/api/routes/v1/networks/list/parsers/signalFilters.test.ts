@@ -50,14 +50,14 @@ describe('signalFilters', () => {
       const dateStr = '2024-01-15T10:30:00Z';
       const result = parseSignalFilters(dateStr, undefined, undefined, undefined, undefined);
       expect(result.ok).toBe(true);
-      expect((result as any).params.lastSeen).toBe(dateStr);
+      expect((result as any).params.lastSeen).toBe('2024-01-15T10:30:00.000Z');
     });
 
     it('handles array as first element for lastSeen', () => {
       const dateStr = '2024-01-15T10:30:00Z';
       const result = parseSignalFilters([dateStr], undefined, undefined, undefined, undefined);
       expect(result.ok).toBe(true);
-      expect((result as any).params.lastSeen).toBe(dateStr);
+      expect((result as any).params.lastSeen).toBe('2024-01-15T10:30:00.000Z');
     });
 
     it('rejects invalid date for lastSeen', () => {
@@ -196,7 +196,7 @@ describe('signalFilters', () => {
 
       expect(result.ok).toBe(true);
       const params = (result as any).params;
-      expect(params.lastSeen).toBe('2024-01-15T10:30:00Z');
+      expect(params.lastSeen).toBe('2024-01-15T10:30:00.000Z');
       expect(params.minSignal).toBe(-100);
       expect(params.maxSignal).toBe(-30);
       expect(params.minObsCount).toBe(5);
@@ -215,7 +215,7 @@ describe('signalFilters', () => {
 
       const result = parseSignalFilters(undefined, 'invalid', undefined, undefined, undefined);
       expect(result.ok).toBe(false);
-      expect((result as any).error).toBe('First error');
+      expect((result as any).error).toBe('Invalid min_signal parameter.');
     });
   });
 });
