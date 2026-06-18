@@ -1401,7 +1401,7 @@
 - **wigle:** inline tooltip on search result row click ([5678707](https://github.com/cyclonite69/shadowcheck-web/commit/56787079c7dcb4da5972e011bbdc6e7104c71de4))
 - **wigle:** observation row click updates forensic preview ([4066ed7](https://github.com/cyclonite69/shadowcheck-web/commit/4066ed7965d3e60c1584b96e815dedc7386656f9))
 - **wigle:** Phase 5 — click tooltip for aggregated observation layer ([219ffdf](https://github.com/cyclonite69/shadowcheck-web/commit/219ffdfbf46c0576d4f8a615739d9a826427b438))
-- **wigle:** record request ledger provenance and rate-limit hints ([1a059d7](https://github.com/cyclonite69/shadowcheck-web/commit/1a059d73752f14ec0c781a5095cb36b7c8cecbf4))
+- **wigle:** record request ledger provenance and rate-limit hints ([70a08b9](https://github.com/cyclonite69/shadowcheck-web/commit/70a08b93a9852b2d0e90977cdc03fc2e8bf32a6f))
 - **wigle:** render WiGLE v3 import points on map ([ae4ccc7](https://github.com/cyclonite69/shadowcheck-web/commit/ae4ccc7128cae2acae992b7bca3035472a83bef2))
 - **wigle:** replace ST_SnapToGrid with ST_ClusterDBSCAN for organic density hotspots ([809bf64](https://github.com/cyclonite69/shadowcheck-web/commit/809bf6441ec3db0d9aba061b6617795a48bddc10))
 - **wigle:** request ledger panel — migration, API endpoint, gateway instrumentation, UI ([c2ea10f](https://github.com/cyclonite69/shadowcheck-web/commit/c2ea10fc54432324f10795be5bec00271641440c))
