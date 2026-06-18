@@ -1,19 +1,19 @@
 # Coverage Report
 
-- Generated: 2026-06-18T08:23:26.666Z
-- Git SHA: `4158dc0a`
+- Generated: 2026-06-18T12:50:54.946Z
+- Git SHA: `18358ab0`
 - Source: `coverage/coverage-summary.json`
-- Coverage artifact modified: 2026-06-18T08:23:25.963Z
+- Coverage artifact modified: 2026-06-18T12:50:54.370Z
 - Global threshold: 60% per metric
 
 ## Global Totals
 
 | Metric     | Covered / Total | Actual | Threshold | Status |
 | ---------- | --------------: | -----: | --------: | ------ |
-| Statements |   16316 / 24626 | 66.25% |       60% | PASS   |
-| Branches   |    9377 / 15509 | 60.46% |       60% | PASS   |
-| Functions  |     2323 / 3735 | 62.19% |       60% | PASS   |
-| Lines      |   15850 / 23398 | 67.74% |       60% | PASS   |
+| Statements |   16312 / 24627 | 66.23% |       60% | PASS   |
+| Branches   |    9379 / 15511 | 60.46% |       60% | PASS   |
+| Functions  |     2322 / 3735 | 62.16% |       60% | PASS   |
+| Lines      |   15846 / 23399 | 67.72% |       60% | PASS   |
 
 > Coverage totals reflect the collection scope of the source artifact. Layer aggregates are calculated from covered and total counters, not averages of file percentages.
 
@@ -279,10 +279,10 @@ Files: 226
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     8643 / 9173 |   94.22% |
-| Branches   |     5288 / 6236 |   84.79% |
-| Functions  |     1286 / 1404 |   91.59% |
-| Lines      |     8356 / 8804 |   94.91% |
+| Statements |     8639 / 9174 |   94.16% |
+| Branches   |     5290 / 6238 |   84.80% |
+| Functions  |     1285 / 1404 |   91.52% |
+| Lines      |     8352 / 8805 |   94.85% |
 
 | File                                                                                        |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -427,7 +427,7 @@ Files: 226
 | `server/src/services/ml/scoringService.ts`                                                  | 100.00% |   94.44% |   100.00% | COVERED   |
 | `server/src/services/ml/trainer.ts`                                                         |  97.67% |   91.89% |   100.00% | COVERED   |
 | `server/src/services/mlTrainingLock.ts`                                                     | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/mobileIngestService.ts`                                                |  83.59% |   68.26% |    78.26% | PARTIAL   |
+| `server/src/services/mobileIngestService.ts`                                                |  84.37% |   69.23% |    78.26% | PARTIAL   |
 | `server/src/services/networking/filterBuilders.ts`                                          | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/networking/filterBuilders/locationFilters.ts`                          | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/networking/filterBuilders/securityRadioFilters.ts`                     | 100.00% |   91.66% |   100.00% | COVERED   |
@@ -503,7 +503,7 @@ Files: 226
 | `server/src/services/wigleImport/wigleBluetoothImportService.ts`                            |  98.03% |   83.33% |    83.33% | COVERED   |
 | `server/src/services/wigleImportRunService.ts`                                              | 100.00% |  100.00% |    66.66% | PARTIAL   |
 | `server/src/services/wigleImportService.ts`                                                 | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/wigleLimits.ts`                                                        |  73.33% |   52.38% |    80.00% | PARTIAL   |
+| `server/src/services/wigleLimits.ts`                                                        |  54.83% |   52.17% |    60.00% | PARTIAL   |
 | `server/src/services/wigleRequestLedger.ts`                                                 |  98.66% |   88.67% |   100.00% | COVERED   |
 | `server/src/services/wigleRequestUtils.ts`                                                  | 100.00% |   97.14% |   100.00% | COVERED   |
 | `server/src/services/wigleScheduler.ts`                                                     | 100.00% |   92.30% |   100.00% | COVERED   |

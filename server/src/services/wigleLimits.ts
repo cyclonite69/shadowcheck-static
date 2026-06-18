@@ -63,7 +63,9 @@ export function resetLimitsCache(): void {
 
 // Start background refresh at module init (not in test env).
 // Prime the cache immediately, then refresh every 5 minutes.
-if (process.env.NODE_ENV !== 'test') {
+const isTestEnv = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
+
+if (!isTestEnv) {
   void refreshLimits();
   refreshTimer = setInterval(() => void refreshLimits(), REFRESH_INTERVAL_MS);
 }
