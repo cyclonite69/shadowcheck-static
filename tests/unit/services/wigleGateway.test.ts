@@ -16,9 +16,23 @@ jest.mock('../../../server/src/logging/logger', () => ({
 }));
 
 import { wigleGatewayFetch } from '../../../server/src/services/wigle/wigleGateway';
+import { WigleValidationError } from '../../../server/src/services/wigleImport/wigleApiSpec';
 
 const { fetchWigle } = require('../../../server/src/services/wigleClient');
 const wigleRequestLedger = require('../../../server/src/services/wigleRequestLedger');
+const { logWigleAuditEvent } = require('../../../server/src/services/wigleAuditLogger');
+
+// Mock validateWigleSearchParams so we can control validation exceptions
+jest.mock('../../../server/src/services/wigleImport/wigleApiSpec', () => {
+  const original = jest.requireActual('../../../server/src/services/wigleImport/wigleApiSpec');
+  return {
+    ...original,
+    validateWigleSearchParams: jest.fn(),
+  };
+});
+const {
+  validateWigleSearchParams,
+} = require('../../../server/src/services/wigleImport/wigleApiSpec');
 
 describe('wigleGateway — stats quota gate', () => {
   beforeEach(() => {
@@ -58,6 +72,7 @@ describe('wigleGateway — stats quota gate', () => {
       ok: true,
       status: 200,
       clone: () => mockResponse,
+      headers: new Headers(),
     };
     (fetchWigle as jest.Mock).mockResolvedValue({ response: mockResponse, ledgerId: 1 });
 
@@ -70,6 +85,159 @@ describe('wigleGateway — stats quota gate', () => {
     expect(result.ok).toBe(true);
     expect(fetchWigle).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'stats', url: 'https://api.wigle.net/api/v2/profile/user' })
+    );
+  });
+});
+
+describe('wigleGateway — search params validation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('returns false when validateWigleSearchParams throws WigleValidationError', async () => {
+    validateWigleSearchParams.mockImplementationOnce(() => {
+      throw new WigleValidationError('Invalid param', 'testKey', 'testVal');
+    });
+
+    const result = await wigleGatewayFetch({
+      kind: 'search',
+      url: 'https://api.wigle.net/api/v2/network/search',
+      searchParams: new URLSearchParams('testKey=testVal'),
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.validationError).toBe(true);
+      expect(result.error).toBe('Invalid param');
+    }
+    expect(logWigleAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'VALIDATION_ERROR' })
+    );
+  });
+
+  it('throws other errors from validation', async () => {
+    validateWigleSearchParams.mockImplementationOnce(() => {
+      throw new Error('Some unexpected error');
+    });
+
+    await expect(
+      wigleGatewayFetch({
+        kind: 'search',
+        url: 'https://api.wigle.net/api/v2/network/search',
+        searchParams: new URLSearchParams('testKey=testVal'),
+      })
+    ).rejects.toThrow('Some unexpected error');
+  });
+});
+
+describe('wigleGateway — fetchWigle responses and errors', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(wigleRequestLedger, 'updateLedgerOutcome').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('parses Retry-After header correctly on 429 response', async () => {
+    const mockHeaders = new Headers();
+    mockHeaders.set('Retry-After', '60');
+
+    const mockResponse = {
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      clone: () => mockResponse,
+      headers: mockHeaders,
+    };
+    (fetchWigle as jest.Mock).mockResolvedValue({ response: mockResponse, ledgerId: 123 });
+
+    const result = await wigleGatewayFetch({
+      kind: 'search',
+      url: 'https://api.wigle.net/api/v2/network/search',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(wigleRequestLedger.updateLedgerOutcome).toHaveBeenCalledWith(
+      'search',
+      123,
+      expect.objectContaining({
+        http_status: 429,
+        retry_after_hint: 60,
+      })
+    );
+  });
+
+  it('ignores invalid Retry-After header', async () => {
+    const mockHeaders = new Headers();
+    mockHeaders.set('Retry-After', 'invalid');
+
+    const mockResponse = {
+      ok: false,
+      status: 429,
+      clone: () => mockResponse,
+      headers: mockHeaders,
+    };
+    (fetchWigle as jest.Mock).mockResolvedValue({ response: mockResponse, ledgerId: 123 });
+
+    const result = await wigleGatewayFetch({
+      kind: 'search',
+      url: 'https://api.wigle.net/api/v2/network/search',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(wigleRequestLedger.updateLedgerOutcome).toHaveBeenCalledWith(
+      'search',
+      123,
+      expect.objectContaining({ retry_after_hint: null })
+    );
+  });
+
+  it('handles AbortError timeout from fetchWigle', async () => {
+    const abortErr: any = new Error('The operation was aborted');
+    abortErr.name = 'AbortError';
+
+    (fetchWigle as jest.Mock).mockRejectedValue(abortErr);
+
+    const result = await wigleGatewayFetch({
+      kind: 'search',
+      url: 'https://api.wigle.net/api/v2/network/search',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(wigleRequestLedger.updateLedgerOutcome).toHaveBeenCalledWith(
+      'search',
+      null,
+      expect.objectContaining({
+        error_message: expect.stringMatching(/^timeout after/),
+      })
+    );
+  });
+
+  it('handles regular fetch error with status code', async () => {
+    const apiErr: any = new Error('Internal Server Error');
+    apiErr.status = 500;
+
+    (fetchWigle as jest.Mock).mockRejectedValue(apiErr);
+
+    const result = await wigleGatewayFetch({
+      kind: 'search',
+      url: 'https://api.wigle.net/api/v2/network/search',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(wigleRequestLedger.updateLedgerOutcome).toHaveBeenCalledWith(
+      'search',
+      null,
+      expect.objectContaining({
+        http_status: 500,
+        error_message: 'HTTP 500: Internal Server Error',
+      })
     );
   });
 });
