@@ -1,19 +1,19 @@
 # Coverage Report
 
-- Generated: 2026-06-14T06:51:55.945Z
-- Git SHA: `38073926`
+- Generated: 2026-06-18T08:23:26.666Z
+- Git SHA: `4158dc0a`
 - Source: `coverage/coverage-summary.json`
-- Coverage artifact modified: 2026-06-14T06:51:55.300Z
+- Coverage artifact modified: 2026-06-18T08:23:25.963Z
 - Global threshold: 60% per metric
 
 ## Global Totals
 
 | Metric     | Covered / Total | Actual | Threshold | Status |
 | ---------- | --------------: | -----: | --------: | ------ |
-| Statements |   15734 / 24549 | 64.09% |       60% | PASS   |
-| Branches   |    9043 / 15445 | 58.54% |       60% | FAIL   |
-| Functions  |     2210 / 3724 | 59.34% |       60% | FAIL   |
-| Lines      |   15294 / 23323 | 65.57% |       60% | PASS   |
+| Statements |   16316 / 24626 | 66.25% |       60% | PASS   |
+| Branches   |    9377 / 15509 | 60.46% |       60% | PASS   |
+| Functions  |     2323 / 3735 | 62.19% |       60% | PASS   |
+| Lines      |   15850 / 23398 | 67.74% |       60% | PASS   |
 
 > Coverage totals reflect the collection scope of the source artifact. Layer aggregates are calculated from covered and total counters, not averages of file percentages.
 
@@ -25,10 +25,10 @@ Files: 56
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |      449 / 3490 |   12.86% |
-| Branches   |      242 / 2305 |   10.49% |
-| Functions  |        75 / 545 |   13.76% |
-| Lines      |      406 / 3201 |   12.68% |
+| Statements |      549 / 3490 |   15.73% |
+| Branches   |      281 / 2305 |   12.19% |
+| Functions  |        90 / 545 |   16.51% |
+| Lines      |      500 / 3201 |   15.62% |
 
 | File                                                             |   Lines | Branches | Functions | Verdict   |
 | ---------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -40,11 +40,11 @@ Files: 56
 | `etl/load/fbi-resident-agencies-gov.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/load/fbi-resident-agencies-public.ts`                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/load/fbi-training-facilities.ts`                            |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/load/fbi/importer.ts`                                       |   0.00% |  100.00% |     0.00% | UNCOVERED |
+| `etl/load/fbi/importer.ts`                                       | 100.00% |  100.00% |   100.00% | COVERED   |
 | `etl/load/fbi/loader.ts`                                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/load/fbi/parser.ts`                                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `etl/load/fbi/parser.ts`                                         | 100.00% |   92.85% |   100.00% | COVERED   |
 | `etl/load/fbi/scraper.ts`                                        |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/load/fbi/transformer.ts`                                    |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `etl/load/fbi/transformer.ts`                                    | 100.00% |  100.00% |   100.00% | COVERED   |
 | `etl/load/fbi/types.ts`                                          |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `etl/load/json-import.ts`                                        |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/load/kismet-import.ts`                                      |   0.00% |    0.00% |     0.00% | UNCOVERED |
@@ -52,7 +52,7 @@ Files: 56
 | `etl/load/kmlImportUtils.ts`                                     |  86.00% |   72.34% |    76.92% | PARTIAL   |
 | `etl/load/sqlite-import-incremental.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/load/sqlite-import.ts`                                      |  83.07% |   65.07% |    70.00% | PARTIAL   |
-| `etl/load/sqlite/cli.ts`                                         |  83.72% |   75.00% |    72.72% | PARTIAL   |
+| `etl/load/sqlite/cli.ts`                                         |  86.04% |   76.92% |    72.72% | PARTIAL   |
 | `etl/load/sqlite/importObservations.ts`                          |  97.29% |   81.25% |   100.00% | COVERED   |
 | `etl/load/sqlite/insertObservations.ts`                          |   8.82% |    0.00% |     0.00% | UNCOVERED |
 | `etl/load/sqlite/networkReconciliation.ts`                       |  19.56% |   13.33% |    11.11% | UNCOVERED |
@@ -60,13 +60,13 @@ Files: 56
 | `etl/load/sqlite/reader.ts`                                      |  88.63% |   76.00% |   100.00% | PARTIAL   |
 | `etl/load/sqlite/reporting.ts`                                   | 100.00% |   75.00% |   100.00% | PARTIAL   |
 | `etl/load/sqlite/schemaSetup.ts`                                 |  20.00% |  100.00% |     0.00% | UNCOVERED |
-| `etl/load/sqlite/sourceTag.ts`                                   |  82.85% |   63.63% |    75.00% | PARTIAL   |
+| `etl/load/sqlite/sourceTag.ts`                                   |  82.85% |   65.90% |    75.00% | PARTIAL   |
 | `etl/load/sqlite/types.ts`                                       |   0.00% |  100.00% |   100.00% | UNCOVERED |
-| `etl/load/sqlite/validateAndEnrich.ts`                           |  26.31% |    0.00% |     0.00% | UNCOVERED |
+| `etl/load/sqlite/validateAndEnrich.ts`                           |  89.47% |   66.66% |   100.00% | PARTIAL   |
 | `etl/load/wigle/importer.ts`                                     |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/load/wigle/loader.ts`                                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/load/wigle/reader.ts`                                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/load/wigle/transformer.ts`                                  |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `etl/load/wigle/transformer.ts`                                  |  95.00% |   55.55% |   100.00% | PARTIAL   |
 | `etl/load/wigle/types.ts`                                        |   0.00% |  100.00% |   100.00% | UNCOVERED |
 | `etl/loadEnv.ts`                                                 | 100.00% |  100.00% |   100.00% | COVERED   |
 | `etl/promote/process-promotion.ts`                               |   0.00% |    0.00% |     0.00% | UNCOVERED |
@@ -86,7 +86,7 @@ Files: 56
 | `etl/transform/process-agencies.ts`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/transform/process-observations.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/utils/db.ts`                                                |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/utils/deadLetter.ts`                                        |  61.11% |   62.16% |    50.00% | PARTIAL   |
+| `etl/utils/deadLetter.ts`                                        |  83.33% |   62.16% |    70.00% | PARTIAL   |
 | `etl/utils/schemas.ts`                                           | 100.00% |  100.00% |   100.00% | COVERED   |
 
 ### `scripts/`
@@ -95,63 +95,63 @@ Files: 50
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |       68 / 4508 |    1.50% |
-| Branches   |       57 / 2554 |    2.23% |
-| Functions  |        10 / 784 |    1.27% |
-| Lines      |       67 / 4086 |    1.63% |
+| Statements |      119 / 4508 |    2.63% |
+| Branches   |       90 / 2554 |    3.52% |
+| Functions  |        18 / 784 |    2.29% |
+| Lines      |      111 / 4086 |    2.71% |
 
-| File                                                       |  Lines | Branches | Functions | Verdict   |
-| ---------------------------------------------------------- | -----: | -------: | --------: | --------- |
-| `scripts/audit/api-route-audit.ts`                         |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/backup-sm-to-bitwarden.js`                        | 44.96% |   48.30% |    43.47% | PARTIAL   |
-| `scripts/check-client-imports.ts`                          |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/check-modularity.js`                              |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/db-audit/generate-audit-report.js`                |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/debug-smarty-one.ts`                              |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-addresses-fast.ts`              |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-addresses-multi.ts`             |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-business-names.ts`              |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-multi-source.ts`                |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrich-overpass-optimized.ts`          |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/enrichment-system.ts`                  |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/generate-overpass-queries.ts`          |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/enrichment/monitor-enrichment.ts`                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/forensic/siblingPairAuditBatch.ts`                |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/forensic/siblingPairAuditTargeted.ts`             |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/generate-coverage-report.js`                      |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/generate-password.ts`                             |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/generate-sitemap.js`                              |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/export-missing-geocodes.ts`             |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/geocode-addresses.ts`                   |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/geocode-batch.ts`                       |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/geocode-wigle.ts`                       |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-ap-addresses.ts`                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-final-geocodes.ts`               |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-geocodes.ts`                     |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-missing-geocodes.ts`             |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-network-addresses.ts`            |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-batch.ts`               |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-observations-sample.ts` |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-parallel.ts`            |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-smart.ts`               |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/import/import-wigle-parallel.ts`                  |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/loadEnv.ts`                                       |  0.00% |  100.00% |   100.00% | UNCOVERED |
-| `scripts/manual-ingest.js`                                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/manual/run-geocoding-sample.ts`                   |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/ml/ml-logistic-regression.d.ts`                   |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/ml/ml-trainer.ts`                                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/rebuild-networks-precision.ts`                    |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/run_manufacturer_backfill.js`                     |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/run_targeted_siblings.js`                         |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/run-migration.ts`                                 |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/runSiblingRefreshTest.ts`                         |  0.00% |  100.00% |     0.00% | UNCOVERED |
-| `scripts/score-all-hybrid.ts`                              |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/set-home.ts`                                      |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/test-smarty-us-street.ts`                         |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/trigger-report.js`                                |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/vendor-docs-extract.ts`                           |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/wigle-daemon.ts`                                  |  0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/write-robots.js`                                  |  0.00% |    0.00% |   100.00% | UNCOVERED |
+| File                                                       |   Lines | Branches | Functions | Verdict   |
+| ---------------------------------------------------------- | ------: | -------: | --------: | --------- |
+| `scripts/audit/api-route-audit.ts`                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/backup-sm-to-bitwarden.js`                        |  44.96% |   48.30% |    43.47% | PARTIAL   |
+| `scripts/check-client-imports.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/check-modularity.js`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/db-audit/generate-audit-report.js`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/debug-smarty-one.ts`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-addresses-fast.ts`              |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-addresses-multi.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-business-names.ts`              |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-multi-source.ts`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrich-overpass-optimized.ts`          |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/enrichment-system.ts`                  |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/generate-overpass-queries.ts`          |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/enrichment/monitor-enrichment.ts`                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/forensic/siblingPairAuditBatch.ts`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/forensic/siblingPairAuditTargeted.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/generate-coverage-report.js`                      |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/generate-password.ts`                             |  79.31% |   63.15% |    70.00% | PARTIAL   |
+| `scripts/generate-sitemap.js`                              | 100.00% |  100.00% |   100.00% | COVERED   |
+| `scripts/geocoding/export-missing-geocodes.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/geocode-addresses.ts`                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/geocode-batch.ts`                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/geocode-wigle.ts`                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-ap-addresses.ts`                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-final-geocodes.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-geocodes.ts`                     |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-missing-geocodes.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-network-addresses.ts`            |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/reverse-geocode-batch.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/reverse-geocode-observations-sample.ts` |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/reverse-geocode-parallel.ts`            |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/reverse-geocode-smart.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/import/import-wigle-parallel.ts`                  |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/loadEnv.ts`                                       |   0.00% |  100.00% |   100.00% | UNCOVERED |
+| `scripts/manual-ingest.js`                                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/manual/run-geocoding-sample.ts`                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/ml/ml-logistic-regression.d.ts`                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/ml/ml-trainer.ts`                                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/rebuild-networks-precision.ts`                    |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/run_manufacturer_backfill.js`                     |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/run_targeted_siblings.js`                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/run-migration.ts`                                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/runSiblingRefreshTest.ts`                         |   0.00% |  100.00% |     0.00% | UNCOVERED |
+| `scripts/score-all-hybrid.ts`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/set-home.ts`                                      |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/test-smarty-us-street.ts`                         |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/trigger-report.js`                                |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/vendor-docs-extract.ts`                           |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/wigle-daemon.ts`                                  |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/write-robots.js`                                  | 100.00% |   87.50% |   100.00% | COVERED   |
 
 ### `server/src/api/routes/`
 
@@ -159,10 +159,10 @@ Files: 106
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     4254 / 4745 |   89.65% |
-| Branches   |     2152 / 2722 |   79.05% |
-| Functions  |       451 / 519 |   86.89% |
-| Lines      |     4194 / 4671 |   89.78% |
+| Statements |     4418 / 4753 |   92.95% |
+| Branches   |     2236 / 2728 |   81.96% |
+| Functions  |       480 / 521 |   92.13% |
+| Lines      |     4353 / 4678 |   93.05% |
 
 | File                                                                |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -170,11 +170,11 @@ Files: 106
 | `server/src/api/routes/v1/admin/adminAwsHelpers.ts`                 | 100.00% |   93.33% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/adminGeocodingHelpers.ts`           |  98.14% |   77.96% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/adminNotesHelpers.ts`               |  91.04% |   68.08% |    85.71% | PARTIAL   |
-| `server/src/api/routes/v1/admin/adminSecretsHelpers.ts`             |  50.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/admin/adminSecretsHelpers.ts`             | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/aws.ts`                             | 100.00% |   66.66% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/awsInstances.ts`                    |  90.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/backup.ts`                          | 100.00% |   69.56% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/admin/dbStats.ts`                         |  64.28% |   85.71% |    50.00% | PARTIAL   |
+| `server/src/api/routes/v1/admin/dbStats.ts`                         | 100.00% |   85.71% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/detectionEvidence.ts`               | 100.00% |   75.00% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/geocoding.ts`                       | 100.00% |   72.22% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/import.ts`                          | 100.00% |   50.00% |   100.00% | PARTIAL   |
@@ -183,7 +183,7 @@ Files: 106
 | `server/src/api/routes/v1/admin/import/orphans.js`                  |  90.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/import/sql.js`                      |  98.18% |   75.00% |    50.00% | PARTIAL   |
 | `server/src/api/routes/v1/admin/import/sqlite.js`                   | 100.00% |   76.47% |    54.54% | PARTIAL   |
-| `server/src/api/routes/v1/admin/maintenance.ts`                     |  64.00% |  100.00% |    50.00% | PARTIAL   |
+| `server/src/api/routes/v1/admin/maintenance.ts`                     | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/media.ts`                           |  97.82% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/notes.ts`                           | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/oui.ts`                             | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -194,7 +194,7 @@ Files: 106
 | `server/src/api/routes/v1/admin/tags.ts`                            |  98.50% |   90.32% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/admin/users.ts`                           |  88.13% |   94.59% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/agencyOffices.ts`                         |  77.77% |  100.00% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/analytics-public.ts`                      |  80.00% |   33.33% |   100.00% | UNCOVERED |
+| `server/src/api/routes/v1/analytics-public.ts`                      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/analytics.ts`                             |  98.55% |   62.50% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/auth.ts`                                  | 100.00% |   89.28% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/backup.ts`                                |  92.85% |   60.00% |   100.00% | PARTIAL   |
@@ -202,7 +202,7 @@ Files: 106
 | `server/src/api/routes/v1/dashboard.ts`                             |  98.52% |   88.04% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/dataQuality.ts`                           | 100.00% |   91.66% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/deflockCameras.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/api/routes/v1/explorer.ts`                              |   0.00% |  100.00% |   100.00% | UNCOVERED |
+| `server/src/api/routes/v1/explorer.ts`                              | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/explorer/index.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/explorer/networks.ts`                     | 100.00% |   83.87% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/explorer/shared.ts`                       |  98.98% |   98.64% |   100.00% | COVERED   |
@@ -218,8 +218,8 @@ Files: 106
 | `server/src/api/routes/v1/ml.ts`                                    |  84.25% |   76.92% |    88.88% | PARTIAL   |
 | `server/src/api/routes/v1/mobileIngest.ts`                          |  98.73% |   95.83% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/network-agencies.ts`                      | 100.00% |   92.85% |   100.00% | COVERED   |
-| `server/src/api/routes/v1/network-tags.ts`                          |   0.00% |  100.00% |   100.00% | UNCOVERED |
-| `server/src/api/routes/v1/network-tags/index.ts`                    |   0.00% |  100.00% |   100.00% | UNCOVERED |
+| `server/src/api/routes/v1/network-tags.ts`                          | 100.00% |  100.00% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/network-tags/index.ts`                    | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/network-tags/listTags.ts`                 | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/network-tags/manageTags.ts`               |  87.36% |   90.56% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks.ts`                              | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -228,10 +228,10 @@ Files: 106
 | `server/src/api/routes/v1/networks/list/handler.ts`                 |  91.66% |   50.00% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/networks/list/index.ts`                   | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks/list/parseParams.ts`             |  84.61% |   75.00% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/networks/list/parsers/networkIdentity.ts` | 100.00% |   86.04% |   100.00% | COVERED   |
-| `server/src/api/routes/v1/networks/list/parsers/pagination.ts`      |  92.30% |   75.00% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/networks/list/parsers/signalFilters.ts`   |  65.38% |   37.50% |   100.00% | UNCOVERED |
-| `server/src/api/routes/v1/networks/list/parsers/spatialFilters.ts`  |  84.21% |   81.81% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/networks/list/parsers/networkIdentity.ts` | 100.00% |   90.69% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/networks/list/parsers/pagination.ts`      | 100.00% |  100.00% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/networks/list/parsers/signalFilters.ts`   | 100.00% |  100.00% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/networks/list/parsers/spatialFilters.ts`  | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks/list/parsers/threatFilters.ts`   |  97.05% |   89.28% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks/manufacturer.ts`                 |  93.18% |   82.60% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/networks/notes.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -246,50 +246,50 @@ Files: 106
 | `server/src/api/routes/v1/shotspotterZones.ts`                      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/threat-report.ts`                         |  95.34% |   82.75% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/threats.ts`                               |  78.78% |   83.33% |    50.00% | PARTIAL   |
-| `server/src/api/routes/v1/wigle.ts`                                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/api/routes/v1/wigle/database.ts`                        |  67.62% |   58.20% |    50.00% | PARTIAL   |
+| `server/src/api/routes/v1/wigle.ts`                                 | 100.00% |  100.00% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/wigle/database.ts`                        |  74.10% |   64.92% |    62.50% | PARTIAL   |
 | `server/src/api/routes/v1/wigle/detail.ts`                          |  96.55% |   82.85% |   100.00% | COVERED   |
-| `server/src/api/routes/v1/wigle/enrichment.ts`                      |  68.57% |   58.82% |    66.66% | PARTIAL   |
-| `server/src/api/routes/v1/wigle/index.ts`                           |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/wigle/enrichment.ts`                      |  97.14% |   88.23% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/wigle/index.ts`                           | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/wigle/ledger.ts`                          |  98.05% |   92.75% |   100.00% | COVERED   |
-| `server/src/api/routes/v1/wigle/live.ts`                            |  94.11% |   86.95% |   100.00% | COVERED   |
-| `server/src/api/routes/v1/wigle/observations.ts`                    |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/wigle/live.ts`                            |  94.11% |   91.30% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/wigle/observations.ts`                    | 100.00% |   90.90% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/wigle/search.ts`                          |  81.62% |   85.86% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/wigle/stats.ts`                           |  92.00% |   72.22% |   100.00% | PARTIAL   |
-| `server/src/api/routes/v1/wigle/status.ts`                          | 100.00% |   88.88% |   100.00% | COVERED   |
-| `server/src/api/routes/v1/wigle/validation.ts`                      |  50.00% |  100.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v1/wigle/status.ts`                          | 100.00% |  100.00% |   100.00% | COVERED   |
+| `server/src/api/routes/v1/wigle/validation.ts`                      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filtered.ts`                              | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filtered/handlers/analytics.ts`           |  88.23% |   33.33% |   100.00% | UNCOVERED |
 | `server/src/api/routes/v2/filtered/handlers/geospatial.ts`          | 100.00% |   77.77% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v2/filtered/handlers/list.ts`                |  98.18% |   80.64% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filtered/handlers/observations.ts`        | 100.00% |   92.85% |   100.00% | COVERED   |
-| `server/src/api/routes/v2/filtered/handlers/unmatchedMedia.ts`      |   0.00% |  100.00% |     0.00% | UNCOVERED |
+| `server/src/api/routes/v2/filtered/handlers/unmatchedMedia.ts`      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filtered/index.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filtered/observationsBuilder.ts`          | 100.00% |   88.46% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filtered/types.ts`                        |   0.00% |  100.00% |   100.00% | UNCOVERED |
-| `server/src/api/routes/v2/filtered/utils.ts`                        |  62.06% |   13.63% |    60.00% | UNCOVERED |
+| `server/src/api/routes/v2/filtered/utils.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filteredHandlers.ts`                      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/filteredHelpers.ts`                       |  97.72% |   88.05% |   100.00% | COVERED   |
-| `server/src/api/routes/v2/networks.ts`                              | 100.00% |   85.00% |   100.00% | COVERED   |
+| `server/src/api/routes/v2/networks.ts`                              | 100.00% |   84.61% |   100.00% | COVERED   |
 | `server/src/api/routes/v2/threats.ts`                               | 100.00% |  100.00% |   100.00% | COVERED   |
 
 ### `server/src/services/`
 
-Files: 224
+Files: 226
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     8423 / 9117 |   92.38% |
-| Branches   |     5129 / 6180 |   82.99% |
-| Functions  |     1243 / 1397 |   88.97% |
-| Lines      |     8144 / 8749 |   93.08% |
+| Statements |     8643 / 9173 |   94.22% |
+| Branches   |     5288 / 6236 |   84.79% |
+| Functions  |     1286 / 1404 |   91.59% |
+| Lines      |     8356 / 8804 |   94.91% |
 
 | File                                                                                        |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
 | `server/src/services/admin/adminHelpers.ts`                                                 |  71.87% |   67.46% |    68.00% | PARTIAL   |
 | `server/src/services/admin/dataQualityAdminService.ts`                                      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/admin/importExportAdminService.ts`                                     | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/admin/importService.ts`                                                |  35.71% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/services/admin/importService.ts`                                                | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/admin/networkTagCore.ts`                                               | 100.00% |   87.50% |   100.00% | COVERED   |
 | `server/src/services/admin/networkTagOui.ts`                                                | 100.00% |   87.50% |   100.00% | COVERED   |
 | `server/src/services/admin/networkTagsAdminService.ts`                                      | 100.00% |   93.33% |   100.00% | COVERED   |
@@ -297,19 +297,19 @@ Files: 224
 | `server/src/services/admin/siblingDetection/adminQueryAdapter.ts`                           | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/admin/siblingDetection/orchestrators/SiblingDetectionOrchestrator.ts`  |  79.41% |   70.14% |   100.00% | PARTIAL   |
 | `server/src/services/admin/siblingDetection/rules/extraRules.ts`                            | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/admin/siblingDetection/use-cases/cancelSiblingRefresh.ts`              |  26.31% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/services/admin/siblingDetection/use-cases/getSiblingRefreshStatusReconciled.ts` |  50.00% |   46.15% |    50.00% | PARTIAL   |
-| `server/src/services/admin/siblingDetection/use-cases/getSiblingStats.ts`                   | 100.00% |   50.00% |   100.00% | PARTIAL   |
-| `server/src/services/admin/siblingDetection/use-cases/getSiblingStatsByRule.ts`             |  66.66% |  100.00% |     0.00% | UNCOVERED |
+| `server/src/services/admin/siblingDetection/use-cases/cancelSiblingRefresh.ts`              | 100.00% |  100.00% |   100.00% | COVERED   |
+| `server/src/services/admin/siblingDetection/use-cases/getSiblingRefreshStatusReconciled.ts` | 100.00% |   92.30% |   100.00% | COVERED   |
+| `server/src/services/admin/siblingDetection/use-cases/getSiblingStats.ts`                   | 100.00% |  100.00% |   100.00% | COVERED   |
+| `server/src/services/admin/siblingDetection/use-cases/getSiblingStatsByRule.ts`             | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/admin/siblingDetection/use-cases/purgeSiblingPairs.ts`                 | 100.00% |   88.88% |   100.00% | COVERED   |
-| `server/src/services/admin/siblingDetection/use-cases/reconcileSiblingState.ts`             |  43.75% |   46.15% |    50.00% | PARTIAL   |
+| `server/src/services/admin/siblingDetection/use-cases/reconcileSiblingState.ts`             | 100.00% |   92.30% |   100.00% | COVERED   |
 | `server/src/services/admin/siblingDetection/use-cases/runSiblingRefreshJob.ts`              | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/admin/siblingDetection/use-cases/startSiblingRefresh.ts`               |  87.17% |   75.00% |    66.66% | PARTIAL   |
+| `server/src/services/admin/siblingDetection/use-cases/startSiblingRefresh.ts`               | 100.00% |   85.00% |   100.00% | COVERED   |
 | `server/src/services/admin/siblingDetectionAdminService.ts`                                 | 100.00% |  100.00% |     0.00% | UNCOVERED |
 | `server/src/services/admin/siblingDetectionConstants.ts`                                    | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/admin/siblingDetectionQueries.ts`                                      | 100.00% |   72.72% |   100.00% | PARTIAL   |
 | `server/src/services/admin/siblingDetectionState.ts`                                        | 100.00% |   88.23% |   100.00% | COVERED   |
-| `server/src/services/adminDbService.ts`                                                     |  57.14% |   54.16% |    44.44% | PARTIAL   |
+| `server/src/services/adminDbService.ts`                                                     |  93.50% |   75.00% |   100.00% | PARTIAL   |
 | `server/src/services/adminDbStatsService.ts`                                                |  96.29% |  100.00% |    50.00% | PARTIAL   |
 | `server/src/services/adminImportHistoryService.ts`                                          | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/adminMaintenanceService.ts`                                            | 100.00% |   92.30% |   100.00% | COVERED   |
@@ -317,7 +317,7 @@ Files: 224
 | `server/src/services/adminNetworkTagsService.ts`                                            | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/adminOrphanNetworksService.ts`                                         |  98.64% |   90.24% |   100.00% | COVERED   |
 | `server/src/services/adminSettingsService.ts`                                               | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/adminSiblingService.ts`                                                |  70.58% |   66.66% |    66.66% | PARTIAL   |
+| `server/src/services/adminSiblingService.ts`                                                | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/adminUsersService.ts`                                                  | 100.00% |   92.85% |   100.00% | COVERED   |
 | `server/src/services/agencyService.ts`                                                      | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/aiInsightsService.ts`                                                  | 100.00% |   80.00% |   100.00% | COVERED   |
@@ -368,7 +368,7 @@ Files: 224
 | `server/src/services/filterQueryBuilder/engagementPredicates.ts`                            | 100.00% |   90.47% |   100.00% | COVERED   |
 | `server/src/services/filterQueryBuilder/FilterBuildContext.ts`                              |  97.05% |   89.79% |   100.00% | COVERED   |
 | `server/src/services/filterQueryBuilder/FilterPredicateBuilder.ts`                          | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/filterQueryBuilder/index.ts`                                           |  94.73% |   66.66% |    88.88% | PARTIAL   |
+| `server/src/services/filterQueryBuilder/index.ts`                                           |  94.73% |   66.66% |    94.44% | PARTIAL   |
 | `server/src/services/filterQueryBuilder/modules/AnalyticsModule.ts`                         | 100.00% |    0.00% |   100.00% | UNCOVERED |
 | `server/src/services/filterQueryBuilder/modules/analyticsQueryBuilders.ts`                  | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/filterQueryBuilder/modules/analyticsQueryContext.ts`                   | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -377,7 +377,7 @@ Files: 224
 | `server/src/services/filterQueryBuilder/modules/geospatialQueryContext.ts`                  | 100.00% |   87.50% |   100.00% | COVERED   |
 | `server/src/services/filterQueryBuilder/modules/networkFastPathBuilder.ts`                  | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/filterQueryBuilder/modules/networkFastPathCountBuilder.ts`             | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/filterQueryBuilder/modules/networkFastPathIdentityPredicates.ts`       | 100.00% |   93.54% |   100.00% | COVERED   |
+| `server/src/services/filterQueryBuilder/modules/networkFastPathIdentityPredicates.ts`       | 100.00% |   91.93% |   100.00% | COVERED   |
 | `server/src/services/filterQueryBuilder/modules/networkFastPathListBuilder.ts`              | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/filterQueryBuilder/modules/networkFastPathPredicates.ts`               | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/filterQueryBuilder/modules/networkFastPathPredicateTypes.ts`           |   0.00% |  100.00% |   100.00% | UNCOVERED |
@@ -450,7 +450,7 @@ Files: 224
 | `server/src/services/pgadminService.ts`                                                     | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/reports/threatReportRenderers.ts`                                      | 100.00% |   96.15% |   100.00% | COVERED   |
 | `server/src/services/reports/threatReportUtils.ts`                                          | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/secretsManager.ts`                                                     |  90.05% |   76.40% |   100.00% | PARTIAL   |
+| `server/src/services/secretsManager.ts`                                                     |  88.88% |   75.28% |   100.00% | PARTIAL   |
 | `server/src/services/shotspotterSensorsService.ts`                                          | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/threatReportService.ts`                                                |  97.82% |   90.19% |    90.90% | COVERED   |
 | `server/src/services/threatScoring.types.ts`                                                |   0.00% |  100.00% |   100.00% | UNCOVERED |
@@ -462,15 +462,15 @@ Files: 224
 | `server/src/services/visint/visintScorer.ts`                                                | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/wigle/api.ts`                                                          | 100.00% |   98.03% |   100.00% | COVERED   |
 | `server/src/services/wigle/database.ts`                                                     |  97.89% |   87.93% |   100.00% | COVERED   |
-| `server/src/services/wigle/detail.ts`                                                       |  63.88% |   66.04% |    50.00% | PARTIAL   |
-| `server/src/services/wigle/persistence.ts`                                                  |  63.15% |    0.00% |    14.28% | UNCOVERED |
+| `server/src/services/wigle/detail.ts`                                                       |  69.44% |   77.16% |    50.00% | PARTIAL   |
+| `server/src/services/wigle/persistence.ts`                                                  | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/wigle/shared.ts`                                                       | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/wigle/wigleGateway.ts`                                                 |  88.09% |   67.30% |   100.00% | PARTIAL   |
+| `server/src/services/wigle/wigleGateway.ts`                                                 | 100.00% |   88.33% |   100.00% | COVERED   |
 | `server/src/services/wigle/wigleKmlSyncService.ts`                                          |  93.33% |   77.91% |    78.57% | PARTIAL   |
 | `server/src/services/wigleAuditLogger.ts`                                                   |  82.35% |   74.35% |    70.00% | PARTIAL   |
-| `server/src/services/wigleClient.ts`                                                        |  90.80% |   70.00% |    77.77% | PARTIAL   |
-| `server/src/services/wigleDetailService.ts`                                                 | 100.00% |   97.77% |   100.00% | COVERED   |
-| `server/src/services/wigleDetailTransforms.ts`                                              |  78.94% |   82.05% |   100.00% | PARTIAL   |
+| `server/src/services/wigleClient.ts`                                                        |  96.55% |   76.66% |    88.88% | PARTIAL   |
+| `server/src/services/wigleDetailService.ts`                                                 | 100.00% |   97.87% |   100.00% | COVERED   |
+| `server/src/services/wigleDetailTransforms.ts`                                              | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/wigleEnrichment/mappers/enrichmentMapper.ts`                           |  91.37% |   82.45% |   100.00% | COVERED   |
 | `server/src/services/wigleEnrichment/orchestrators/WigleEnrichmentOrchestrator.ts`          |  90.81% |   88.00% |    83.33% | COVERED   |
 | `server/src/services/wigleEnrichment/repositories/enrichmentReadRepository.ts`              |  92.18% |   86.95% |    84.61% | COVERED   |
@@ -483,14 +483,14 @@ Files: 224
 | `server/src/services/wigleEnrichmentFetcher.ts`                                             |  88.23% |   60.00% |   100.00% | PARTIAL   |
 | `server/src/services/wigleEnrichmentService.ts`                                             | 100.00% |  100.00% |    71.42% | PARTIAL   |
 | `server/src/services/wigleImport/authProvider.ts`                                           | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/wigleImport/btApiClient.ts`                                            |  32.14% |   46.15% |    50.00% | UNCOVERED |
-| `server/src/services/wigleImport/btPageProcessor.ts`                                        |  25.92% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/services/wigleImport/btApiClient.ts`                                            | 100.00% |   92.30% |   100.00% | COVERED   |
+| `server/src/services/wigleImport/btPageProcessor.ts`                                        | 100.00% |   60.00% |   100.00% | PARTIAL   |
 | `server/src/services/wigleImport/btParams.ts`                                               |  86.59% |   78.26% |    90.00% | PARTIAL   |
-| `server/src/services/wigleImport/mappers/buildCreateImportRunInput.ts`                      |  60.86% |   76.47% |    66.66% | PARTIAL   |
+| `server/src/services/wigleImport/mappers/buildCreateImportRunInput.ts`                      | 100.00% |   94.11% |   100.00% | COVERED   |
 | `server/src/services/wigleImport/orchestrators/WigleImportRunOrchestrator.ts`               |  96.20% |   84.15% |   100.00% | COVERED   |
 | `server/src/services/wigleImport/pageProcessor.ts`                                          |  88.88% |   71.42% |   100.00% | PARTIAL   |
 | `server/src/services/wigleImport/params.ts`                                                 |  97.59% |   92.18% |   100.00% | COVERED   |
-| `server/src/services/wigleImport/rateLimitingStrategy.ts`                                   |  53.84% |  100.00% |     0.00% | UNCOVERED |
+| `server/src/services/wigleImport/rateLimitingStrategy.ts`                                   | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/wigleImport/repositories/runReadRepository.ts`                         |  93.10% |   80.00% |    85.71% | COVERED   |
 | `server/src/services/wigleImport/runRepository.ts`                                          |  99.20% |   94.82% |    95.45% | COVERED   |
 | `server/src/services/wigleImport/runStateManager.ts`                                        |  98.18% |   91.30% |   100.00% | COVERED   |
@@ -503,9 +503,11 @@ Files: 224
 | `server/src/services/wigleImport/wigleBluetoothImportService.ts`                            |  98.03% |   83.33% |    83.33% | COVERED   |
 | `server/src/services/wigleImportRunService.ts`                                              | 100.00% |  100.00% |    66.66% | PARTIAL   |
 | `server/src/services/wigleImportService.ts`                                                 | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/wigleRequestLedger.ts`                                                 |  98.59% |   86.66% |   100.00% | COVERED   |
+| `server/src/services/wigleLimits.ts`                                                        |  73.33% |   52.38% |    80.00% | PARTIAL   |
+| `server/src/services/wigleRequestLedger.ts`                                                 |  98.66% |   88.67% |   100.00% | COVERED   |
 | `server/src/services/wigleRequestUtils.ts`                                                  | 100.00% |   97.14% |   100.00% | COVERED   |
-| `server/src/services/wigleSearchApiService.ts`                                              |  92.85% |   89.47% |   100.00% | COVERED   |
+| `server/src/services/wigleScheduler.ts`                                                     | 100.00% |   92.30% |   100.00% | COVERED   |
+| `server/src/services/wigleSearchApiService.ts`                                              |  93.33% |   91.30% |   100.00% | COVERED   |
 | `server/src/services/wigleSearchCache.ts`                                                   | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/wigleSearchService.ts`                                                 |  86.36% |   63.33% |   100.00% | PARTIAL   |
 | `server/src/services/wigleSearchTransforms.ts`                                              |  80.43% |   62.26% |    76.92% | PARTIAL   |
@@ -517,36 +519,36 @@ Files: 23
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |       779 / 834 |   93.40% |
-| Branches   |       370 / 472 |   78.38% |
-| Functions  |       187 / 204 |   91.66% |
-| Lines      |       740 / 787 |   94.02% |
+| Statements |       802 / 847 |   94.68% |
+| Branches   |       378 / 474 |   79.74% |
+| Functions  |       191 / 206 |   92.71% |
+| Lines      |       763 / 800 |   95.37% |
 
-| File                                                         |   Lines | Branches | Functions | Verdict   |
-| ------------------------------------------------------------ | ------: | -------: | --------: | --------- |
-| `server/src/repositories/adminNetworkMediaRepository.ts`     | 100.00% |   84.00% |   100.00% | COVERED   |
-| `server/src/repositories/adminNetworkTagOuiRepository.ts`    | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/repositories/adminNetworkTagRepository.ts`       | 100.00% |   83.33% |   100.00% | COVERED   |
-| `server/src/repositories/agencyRepository.ts`                |  84.21% |   50.00% |    75.00% | PARTIAL   |
-| `server/src/repositories/baseRepository.ts`                  |  89.83% |   51.42% |   100.00% | PARTIAL   |
-| `server/src/repositories/courthouseRepository.ts`            | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/repositories/deflockRepository.ts`               |  50.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/repositories/exportRepository.ts`                | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/repositories/jobRunRepository.ts`                | 100.00% |   83.33% |   100.00% | COVERED   |
-| `server/src/repositories/keplerRepository.ts`                | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/repositories/kmlImportRepository.ts`             | 100.00% |   78.37% |   100.00% | PARTIAL   |
-| `server/src/repositories/mobileIngestRepository.ts`          |  85.36% |   50.00% |    92.30% | PARTIAL   |
-| `server/src/repositories/networkRepository.ts`               | 100.00% |   89.39% |   100.00% | COVERED   |
-| `server/src/repositories/shotspotterRepository.ts`           |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/repositories/shotspotterSensorsRepository.ts`    |  50.00% |    0.00% |     0.00% | UNCOVERED |
-| `server/src/repositories/siblingPruningRepository.ts`        | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/repositories/siblingRunRepository.ts`            | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/repositories/surveillanceDetectionRepository.ts` |  94.44% |   50.00% |   100.00% | PARTIAL   |
-| `server/src/repositories/threatRepository.ts`                |  86.66% |   57.44% |   100.00% | PARTIAL   |
-| `server/src/repositories/v2Repository.ts`                    | 100.00% |   93.58% |   100.00% | COVERED   |
-| `server/src/repositories/wigleEnrichmentRepository.ts`       |  95.45% |  100.00% |    50.00% | PARTIAL   |
-| `server/src/repositories/wiglePersistenceRepository.ts`      |  85.29% |   90.74% |    50.00% | PARTIAL   |
-| `server/src/repositories/wigleQueriesRepository.ts`          |  94.94% |   65.85% |    86.36% | PARTIAL   |
+| File                                                         |   Lines | Branches | Functions | Verdict |
+| ------------------------------------------------------------ | ------: | -------: | --------: | ------- |
+| `server/src/repositories/adminNetworkMediaRepository.ts`     |  96.77% |   85.18% |    94.11% | COVERED |
+| `server/src/repositories/adminNetworkTagOuiRepository.ts`    | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/adminNetworkTagRepository.ts`       | 100.00% |   83.33% |   100.00% | COVERED |
+| `server/src/repositories/agencyRepository.ts`                |  84.21% |   50.00% |    75.00% | PARTIAL |
+| `server/src/repositories/baseRepository.ts`                  |  89.83% |   51.42% |   100.00% | PARTIAL |
+| `server/src/repositories/courthouseRepository.ts`            | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/deflockRepository.ts`               | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/exportRepository.ts`                | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/jobRunRepository.ts`                | 100.00% |   83.33% |   100.00% | COVERED |
+| `server/src/repositories/keplerRepository.ts`                | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/kmlImportRepository.ts`             | 100.00% |   78.37% |   100.00% | PARTIAL |
+| `server/src/repositories/mobileIngestRepository.ts`          |  85.36% |   50.00% |    92.30% | PARTIAL |
+| `server/src/repositories/networkRepository.ts`               | 100.00% |   89.39% |   100.00% | COVERED |
+| `server/src/repositories/shotspotterRepository.ts`           | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/shotspotterSensorsRepository.ts`    | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/siblingPruningRepository.ts`        | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/siblingRunRepository.ts`            | 100.00% |  100.00% |   100.00% | COVERED |
+| `server/src/repositories/surveillanceDetectionRepository.ts` |  94.44% |   50.00% |   100.00% | PARTIAL |
+| `server/src/repositories/threatRepository.ts`                |  86.66% |   57.44% |   100.00% | PARTIAL |
+| `server/src/repositories/v2Repository.ts`                    | 100.00% |   93.58% |   100.00% | COVERED |
+| `server/src/repositories/wigleEnrichmentRepository.ts`       |  95.45% |  100.00% |    50.00% | PARTIAL |
+| `server/src/repositories/wiglePersistenceRepository.ts`      |  85.29% |   90.74% |    50.00% | PARTIAL |
+| `server/src/repositories/wigleQueriesRepository.ts`          |  94.94% |   65.85% |    86.36% | PARTIAL |
 
 ### `server/src/ (other)`
 
@@ -554,10 +556,10 @@ Files: 56
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     1761 / 1855 |   94.93% |
-| Branches   |     1093 / 1212 |   90.18% |
-| Functions  |       244 / 275 |   88.72% |
-| Lines      |     1743 / 1829 |   95.29% |
+| Statements |     1785 / 1855 |   96.22% |
+| Branches   |     1104 / 1212 |   91.08% |
+| Functions  |       258 / 275 |   93.81% |
+| Lines      |     1767 / 1829 |   96.61% |
 
 | File                                                   |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------ | ------: | -------: | --------: | --------- |
@@ -575,7 +577,7 @@ Files: 56
 | `server/src/core/initialization/routesInit.ts`         | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/errors/AppError.ts`                        | 100.00% |   94.11% |    92.85% | COVERED   |
 | `server/src/errors/errorHandler.ts`                    | 100.00% |   80.00% |   100.00% | COVERED   |
-| `server/src/logging/logger.ts`                         |  71.42% |   71.73% |    36.36% | UNCOVERED |
+| `server/src/logging/logger.ts`                         |  90.47% |   78.26% |    86.36% | PARTIAL   |
 | `server/src/middleware/authMiddleware.ts`              | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/middleware/cacheMiddleware.ts`             |  87.50% |   90.90% |    60.00% | PARTIAL   |
 | `server/src/middleware/commonMiddleware.ts`            |  65.00% |    6.66% |    33.33% | UNCOVERED |
@@ -583,7 +585,7 @@ Files: 56
 | `server/src/middleware/requestId.ts`                   | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/middleware/securityHeaders.ts`             | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/middleware/spaFallback.ts`                 | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/middleware/staticAssets.ts`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `server/src/middleware/staticAssets.ts`                | 100.00% |   88.88% |   100.00% | COVERED   |
 | `server/src/types/express.d.ts`                        |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/types/ml-logistic-regression.d.ts`         |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `server/src/types/surveillanceScan.ts`                 |   0.00% |  100.00% |   100.00% | UNCOVERED |
@@ -622,18 +624,18 @@ Files: 56
 
 Limited to `server/src/`; ETL and CLI scripts are excluded. Files are ranked by uncovered executable lines. The per-file verdict is determined by the weakest of Lines, Branches, and Functions coverage.
 
-| Rank | File                                                                           | Uncovered Lines |  Lines | Branches | Functions |
-| ---: | ------------------------------------------------------------------------------ | --------------: | -----: | -------: | --------: |
-|    1 | `server/src/api/routes/v1/wigle/index.ts`                                      |              24 |  0.00% |    0.00% |     0.00% |
-|    2 | `server/src/services/wigleImport/btPageProcessor.ts`                           |              20 | 25.92% |    0.00% |     0.00% |
-|    3 | `server/src/api/routes/v1/wigle/observations.ts`                               |              19 |  0.00% |    0.00% |     0.00% |
-|    4 | `server/src/services/wigleImport/btApiClient.ts`                               |              19 | 32.14% |   46.15% |    50.00% |
-|    5 | `server/src/logging/logger.ts`                                                 |              18 | 71.42% |   71.73% |    36.36% |
-|    6 | `server/src/api/routes/v1/admin.ts`                                            |              17 | 81.31% |   66.66% |    33.33% |
-|    7 | `server/src/api/routes/v1/wigle.ts`                                            |              16 |  0.00% |    0.00% |     0.00% |
-|    8 | `server/src/services/admin/siblingDetection/use-cases/cancelSiblingRefresh.ts` |              14 | 26.31% |    0.00% |     0.00% |
-|    9 | `server/src/middleware/staticAssets.ts`                                        |              12 |  0.00% |    0.00% |     0.00% |
-|   10 | `server/src/api/routes/v2/filtered/utils.ts`                                   |              11 | 62.06% |   13.63% |    60.00% |
+| Rank | File                                                                              | Uncovered Lines |  Lines | Branches | Functions |
+| ---: | --------------------------------------------------------------------------------- | --------------: | -----: | -------: | --------: |
+|    1 | `server/src/api/routes/v1/admin.ts`                                               |              17 | 81.31% |   66.66% |    33.33% |
+|    2 | `server/src/middleware/commonMiddleware.ts`                                       |               7 | 65.00% |    6.66% |    33.33% |
+|    3 | `server/src/services/geocoding/cacheStats.ts`                                     |               2 | 87.50% |  100.00% |    33.33% |
+|    4 | `server/src/api/routes/v2/filtered/handlers/analytics.ts`                         |               2 | 88.23% |   33.33% |   100.00% |
+|    5 | `server/src/api/routes/v2/filtered/types.ts`                                      |               1 |  0.00% |  100.00% |   100.00% |
+|    6 | `server/src/services/filterQueryBuilder/modules/networkFastPathPredicateTypes.ts` |               1 |  0.00% |  100.00% |   100.00% |
+|    7 | `server/src/services/filterQueryBuilder/NetworkWhereBuildContext.ts`              |               1 |  0.00% |  100.00% |   100.00% |
+|    8 | `server/src/services/filterQueryBuilder/types.ts`                                 |               1 |  0.00% |  100.00% |   100.00% |
+|    9 | `server/src/services/geocoding/types.ts`                                          |               1 |  0.00% |  100.00% |   100.00% |
+|   10 | `server/src/services/networking/types.ts`                                         |               1 |  0.00% |  100.00% |   100.00% |
 
 ## Verdict Scale
 
