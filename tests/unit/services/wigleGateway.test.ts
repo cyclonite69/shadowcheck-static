@@ -59,7 +59,7 @@ describe('wigleGateway — stats quota gate', () => {
       status: 200,
       clone: () => mockResponse,
     };
-    (fetchWigle as jest.Mock).mockResolvedValue(mockResponse);
+    (fetchWigle as jest.Mock).mockResolvedValue({ response: mockResponse, ledgerId: 1 });
 
     const result = await wigleGatewayFetch({
       kind: 'stats',

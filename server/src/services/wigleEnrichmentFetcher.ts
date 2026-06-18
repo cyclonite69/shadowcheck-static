@@ -23,7 +23,7 @@ export async function fetchAndImportDetail(
   }
 
   const endpoint = inferWigleEndpoint(type);
-  const result = await fetchOrImportDetail(netid, endpoint, true);
+  const result = await fetchOrImportDetail(netid, endpoint, true, 'enrichment');
 
   if (!result.ok) {
     if (result.status === 404) {

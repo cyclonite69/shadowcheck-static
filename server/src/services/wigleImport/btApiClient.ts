@@ -32,6 +32,7 @@ export const fetchBtPage = async (
     label: 'WiGLE BT Search API',
     entrypoint: 'bt-import-run',
     endpointType: 'v2/bluetooth/search',
+    query_source: 'import',
     // searchParams intentionally omitted — BT endpoint has a different param spec
     init: {
       headers: {

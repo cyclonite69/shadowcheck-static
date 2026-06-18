@@ -32,7 +32,7 @@ describe('wigleEnrichmentFetcher', () => {
 
     const result = await fetchAndImportDetail(bssid, type);
     expect(result).toBeNull();
-    expect(fetchOrImportDetail).toHaveBeenCalledWith(bssid, 'wifi', true);
+    expect(fetchOrImportDetail).toHaveBeenCalledWith(bssid, 'wifi', true, 'enrichment');
   });
 
   it('throws on non-404 API failures', async () => {

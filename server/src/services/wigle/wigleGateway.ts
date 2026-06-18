@@ -12,6 +12,13 @@ import { logWigleAuditEvent } from '../wigleAuditLogger';
 import { hashRecord } from '../wigleRequestUtils';
 import { assertCanRequest, updateLedgerOutcome } from '../wigleRequestLedger';
 
+/** Parse a Retry-After header value into seconds, returns null if absent or unparseable. */
+function parseRetryAfter(raw: string | null): number | null {
+  if (!raw) return null;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 export type WigleRequestKind = 'search' | 'detail' | 'stats';
 
 export interface WigleGatewayRequest {
@@ -24,12 +31,13 @@ export interface WigleGatewayRequest {
   priority?: 'interactive' | 'background';
   entrypoint?: string;
   endpointType?: string;
+  query_source?: string;
   /** If provided, params are validated against the v2 search spec before the request is sent. */
   searchParams?: URLSearchParams;
 }
 
 export type WigleGatewayResult =
-  | { ok: true; response: Response; latencyMs: number }
+  | { ok: true; response: Response; latencyMs: number; ledgerId: number | null }
   | { ok: false; error: string; status?: number; validationError?: boolean };
 
 /**
@@ -100,7 +108,7 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
   const startedAt = Date.now();
 
   try {
-    const response = await fetchWigle({
+    const { response, ledgerId } = await fetchWigle({
       kind,
       url,
       init,
@@ -111,6 +119,7 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
       entrypoint,
       paramsHash,
       endpointType,
+      query_source: req.query_source,
     });
 
     const latencyMs = Date.now() - startedAt;
@@ -126,16 +135,18 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
       kind,
     });
 
-    updateLedgerOutcome(kind, {
+    updateLedgerOutcome(kind, ledgerId, {
       status: response.ok ? 'success' : 'error',
       duration_ms: latencyMs,
       http_status: response.status,
       error_message: response.ok
         ? undefined
         : `HTTP ${response.status}: ${response.statusText || 'error'}`,
+      retry_after_hint:
+        response.status === 429 ? parseRetryAfter(response.headers.get('Retry-After')) : null,
     });
 
-    return { ok: true, response, latencyMs };
+    return { ok: true, response, latencyMs, ledgerId };
   } catch (err: any) {
     const latencyMs = Date.now() - startedAt;
     const status: number | undefined = err?.status;
@@ -159,7 +170,7 @@ export async function wigleGatewayFetch(req: WigleGatewayRequest): Promise<Wigle
         ? `HTTP ${status}: ${err?.message ?? String(err)}`
         : (err?.message ?? String(err));
 
-    updateLedgerOutcome(kind, {
+    updateLedgerOutcome(kind, null, {
       status: ledgerStatus,
       duration_ms: latencyMs,
       http_status: status,

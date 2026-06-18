@@ -28,6 +28,7 @@ export async function fetchWigleApiCreditSnapshot(): Promise<WigleApiCreditGatew
     label: 'WiGLE API Credit Check',
     entrypoint: 'stats',
     endpointType: 'v2/stats',
+    query_source: 'enrichment',
     init: { headers: { Authorization: `Basic ${encodedAuth}` } },
   });
 

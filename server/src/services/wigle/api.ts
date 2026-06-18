@@ -21,6 +21,7 @@ export async function getUserStats(): Promise<any> {
     label: 'WiGLE User Stats',
     entrypoint: 'stats',
     endpointType: 'v2/stats/user',
+    query_source: 'manual',
     init: {
       headers: {
         Authorization: `Basic ${encoded}`,

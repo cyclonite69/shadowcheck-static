@@ -57,7 +57,8 @@ export function isLocallyAdministeredMac(mac: string): boolean {
  */
 export async function fetchUpstream(
   netid: string,
-  endpoint: string
+  endpoint: string,
+  query_source = 'manual'
 ): Promise<{ ok: true; data: any } | DetailError> {
   const wigleApiName = secretsManager.get('wigle_api_name');
   const wigleApiToken = secretsManager.get('wigle_api_token');
@@ -99,6 +100,7 @@ export async function fetchUpstream(
     label: 'WiGLE Detail API',
     entrypoint: 'manual-detail',
     endpointType: `v3/detail/${endpoint}`,
+    query_source,
     init: {
       headers: {
         Authorization: `Basic ${encodedAuth}`,
@@ -192,7 +194,8 @@ export async function importObservations(
 export async function fetchOrImportDetail(
   netid: string,
   endpoint: string,
-  shouldImport: boolean
+  shouldImport: boolean,
+  query_source = 'manual'
 ): Promise<DetailResult | DetailError> {
   const recentImportHours = Math.max(1, Number(process.env.WIGLE_DETAIL_IMPORT_DEDUPE_HOURS || 24));
 
@@ -249,7 +252,7 @@ export async function fetchOrImportDetail(
   }
 
   // Upstream fetch
-  const upstream = await fetchUpstream(netid, endpoint);
+  const upstream = await fetchUpstream(netid, endpoint, query_source);
   if (!upstream.ok) return upstream;
 
   const { data } = upstream;

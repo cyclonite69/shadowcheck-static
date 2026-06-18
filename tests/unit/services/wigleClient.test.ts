@@ -116,7 +116,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
     await expect(p1).rejects.toThrow('Network error');
     const result = await p2;
 
-    expect(result.status).toBe(200);
+    expect(result.response.status).toBe(200);
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
@@ -134,7 +134,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
     await expect(p2).rejects.toThrow('Failure 2');
     const r3 = await p3;
 
-    expect(r3.status).toBe(200);
+    expect(r3.response.status).toBe(200);
     expect(global.fetch).toHaveBeenCalledTimes(3);
   });
 
@@ -162,7 +162,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
 
     // Interactive is never blocked by the breaker
     const int = await fetchWigle({ kind: 'search', url: 'http://int', priority: 'interactive' });
-    expect(int.status).toBe(200);
+    expect(int.response.status).toBe(200);
   });
 
   it('background requests get a delay when breaker is open (delay logic aligns with rejection)', async () => {
@@ -193,7 +193,7 @@ describe('wigleClient (Deterministic Hardening)', () => {
     await flushQueue();
     const result = await promise;
 
-    expect(result.status).toBe(200);
+    expect(result.response.status).toBe(200);
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,5 +1,6 @@
 import logger from '../logging/logger';
 import { adminQuery } from './adminDbService';
+import { getSafeLimitSync } from './wigleLimits';
 
 export {};
 
@@ -90,7 +91,7 @@ function assertCanRequest(kind: WigleRequestKind, priority: 'interactive' | 'bac
   if (kind === 'detail') return;
 
   const count = getCount(kind);
-  const softLimit = getSoftLimit(kind);
+  const softLimit = getSafeLimitSync(kind);
 
   if (count >= softLimit) {
     const error: any = new Error(`WiGLE ${kind} soft limit reached (${count}/${softLimit}).`);
@@ -100,31 +101,41 @@ function assertCanRequest(kind: WigleRequestKind, priority: 'interactive' | 'bac
   }
 }
 
-function recordRequest(
+/**
+ * Record an outbound WiGLE request in the quota ledger.
+ * Returns the new row id so the caller can pass it to updateLedgerOutcome,
+ * eliminating the blind ORDER-BY-LIMIT-1 race on concurrent requests.
+ * The row starts with phase='pending'; updateLedgerOutcome sets it to 'complete'.
+ */
+async function recordRequest(
   kind: WigleRequestKind,
-  outcome: {
-    status?: string;
-    duration_ms?: number;
-    error_message?: string;
-    http_status?: number;
-  } = {}
-) {
+  query_source?: string,
+  query_url?: string,
+  query_params?: Record<string, string> | null
+): Promise<number | null> {
   prune(kind);
   requestLedger[kind].push(Date.now());
 
-  const { status = 'success', duration_ms, error_message, http_status } = outcome;
-
-  // Fire-and-forget — do not await; ledger performance must not degrade
-  void adminQuery(
-    `INSERT INTO app.wigle_ledger_events (kind, status, duration_ms, error_message, http_status)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [kind, status, duration_ms ?? null, error_message ?? null, http_status ?? null]
-  ).catch((err: any) => {
+  try {
+    const { rows } = await adminQuery(
+      `INSERT INTO app.wigle_ledger_events (kind, status, phase, query_source, query_url, query_params)
+       VALUES ($1, 'success', 'pending', $2, $3, $4)
+       RETURNING id`,
+      [
+        kind,
+        query_source ?? null,
+        query_url ?? null,
+        query_params ? JSON.stringify(query_params) : null,
+      ]
+    );
+    return (rows[0]?.id as number) ?? null;
+  } catch (err: any) {
     logger.warn('[WiGLE Ledger] DB write failed — in-memory state is still accurate', {
       kind,
       error: err?.message || String(err),
     });
-  });
+    return null;
+  }
 }
 
 function resetCircuitBreaker() {
@@ -181,29 +192,43 @@ function getCircuitBreakerStatus() {
 }
 
 /**
- * Update the most recent ledger event for a given kind with outcome data.
- * Called by wigleGateway after the response is received.
+ * Update a ledger event with its outcome after the HTTP call completes.
+ * Accepts the explicit row id returned by recordRequest to avoid the
+ * ORDER-BY-LIMIT-1 race. Falls back to the heuristic only if id is null
+ * (DB write failed at insert time).
  * Fire-and-forget — never throws.
  */
 function updateLedgerOutcome(
   kind: WigleRequestKind,
-  outcome: { status: string; duration_ms: number; error_message?: string; http_status?: number }
+  id: number | null,
+  outcome: {
+    status: string;
+    duration_ms: number;
+    error_message?: string;
+    http_status?: number;
+    result_count?: number | null;
+    retry_after_hint?: number | null;
+  }
 ) {
+  const whereClause =
+    id !== null
+      ? `WHERE id = $8`
+      : `WHERE id = (SELECT id FROM app.wigle_ledger_events WHERE kind = $1 ORDER BY requested_at DESC, id DESC LIMIT 1)`;
+
   void adminQuery(
     `UPDATE app.wigle_ledger_events
-     SET status = $2, duration_ms = $3, error_message = $4, http_status = $5
-     WHERE id = (
-       SELECT id FROM app.wigle_ledger_events
-       WHERE kind = $1
-       ORDER BY requested_at DESC, id DESC
-       LIMIT 1
-     )`,
+     SET status = $2, phase = 'complete', duration_ms = $3, error_message = $4,
+         http_status = $5, result_count = $6, retry_after_hint = $7
+     ${whereClause}`,
     [
       kind,
       outcome.status,
       outcome.duration_ms,
       outcome.error_message ?? null,
       outcome.http_status ?? null,
+      outcome.result_count ?? null,
+      outcome.retry_after_hint ?? null,
+      ...(id !== null ? [id] : []),
     ]
   ).catch((err: any) => {
     logger.warn('[WiGLE Ledger] Outcome update failed', {

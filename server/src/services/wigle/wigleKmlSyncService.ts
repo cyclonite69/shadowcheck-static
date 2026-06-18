@@ -63,6 +63,7 @@ export async function listTransactions(pageStart = 0, pageEnd = 100): Promise<an
     label: 'WiGLE File Transactions',
     entrypoint: 'kml_sync',
     endpointType: 'v2/file/transactions',
+    query_source: 'scheduled',
     init: {
       headers: {
         Authorization: `Basic ${encoded}`,
@@ -110,6 +111,7 @@ export async function downloadKml(transid: string): Promise<Buffer> {
     label: 'WiGLE KML Download',
     entrypoint: 'kml_sync',
     endpointType: 'v2/file/kml',
+    query_source: 'scheduled',
     init: {
       headers: {
         Authorization: `Basic ${encoded}`,

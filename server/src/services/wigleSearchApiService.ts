@@ -3,6 +3,7 @@ import { logWigleAuditEvent } from './wigleAuditLogger';
 import { wigleGatewayFetch } from './wigle/wigleGateway';
 import { hashRecord, normalizeParams } from './wigleRequestUtils';
 import { getCachedSearchResponse, setCachedSearchResponse } from './wigleSearchCache';
+import { updateLedgerOutcome } from './wigleRequestLedger';
 
 export {};
 
@@ -13,8 +14,9 @@ async function fetchWigleSearchPage(options: {
   apiVer: 'v2';
   params: URLSearchParams;
   entrypoint: SearchEntryPoint;
+  query_source?: string;
 }) {
-  const { encodedAuth, apiVer, params, entrypoint } = options;
+  const { encodedAuth, apiVer, params, entrypoint, query_source } = options;
   const paramsHash = hashRecord({ apiVer, params: normalizeParams(params) });
   const cached = getCachedSearchResponse(paramsHash);
 
@@ -53,6 +55,7 @@ async function fetchWigleSearchPage(options: {
     entrypoint,
     endpointType: `${apiVer}/network/search`,
     searchParams: params,
+    query_source: query_source ?? (entrypoint === 'import-run' ? 'import' : 'manual'),
     init: {
       headers: {
         Authorization: `Basic ${encodedAuth}`,
@@ -71,6 +74,7 @@ async function fetchWigleSearchPage(options: {
   }
 
   const response = gatewayResult.response;
+  const ledgerId = gatewayResult.ledgerId;
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -101,6 +105,14 @@ async function fetchWigleSearchPage(options: {
         paramsObj
       )} | results=${resultCount}`
     );
+    // Patch the ledger row with the actual result count now that the body is parsed.
+    // The gateway already wrote status/duration; this only updates result_count.
+    updateLedgerOutcome('search', ledgerId, {
+      status: 'success',
+      duration_ms: gatewayResult.latencyMs,
+      http_status: response.status,
+      result_count: resultCount,
+    });
   }
   setCachedSearchResponse(paramsHash, data);
   return data;

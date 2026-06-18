@@ -70,6 +70,7 @@ const registerWiGLERoutes = ({ router, secretsManager }: { router: any; secretsM
           label: 'WiGLE Credential Test',
           entrypoint: 'settings/wigle/save',
           endpointType: 'v2/profile/user',
+          query_source: 'manual',
           init: { headers: { Accept: 'application/json', Authorization: `Basic ${encoded}` } },
         });
         if (gatewayResult.ok && gatewayResult.response.ok) {
@@ -108,6 +109,7 @@ const registerWiGLERoutes = ({ router, secretsManager }: { router: any; secretsM
         label: 'WiGLE Credential Test',
         entrypoint: 'settings/wigle/test',
         endpointType: 'v2/profile/user',
+        query_source: 'manual',
         init: { headers: { Accept: 'application/json', Authorization: `Basic ${encoded}` } },
       });
       if (gatewayResult.ok && gatewayResult.response.ok) {

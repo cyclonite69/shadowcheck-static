@@ -17,12 +17,13 @@ type WigleFetchOptions = {
   entrypoint?: string;
   paramsHash?: string;
   endpointType?: string;
+  query_source?: string;
 };
 
 // Single-slot mutex: each request captures the current tail and appends a new slot.
 // `finally { releaseSlot() }` guarantees the queue always advances, even on throw.
 let queue: Promise<void> = Promise.resolve();
-const flightMap = new Map<string, Promise<Response>>();
+const flightMap = new Map<string, Promise<WigleFetchResult>>();
 
 function isTestEnv() {
   return process.env.NODE_ENV === 'test';
@@ -75,7 +76,12 @@ async function backoff(attempt: number, response: Response | null = null) {
   await sleep(delay);
 }
 
-async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
+export interface WigleFetchResult {
+  response: Response;
+  ledgerId: number | null;
+}
+
+async function fetchWigle(options: WigleFetchOptions): Promise<WigleFetchResult> {
   const {
     kind,
     url,
@@ -85,6 +91,7 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
     label = 'WiGLE',
     priority = 'background',
     endpointType,
+    query_source,
   } = options;
 
   const bodyKey = typeof init?.body === 'string' ? init.body : JSON.stringify(init?.body ?? null);
@@ -133,7 +140,7 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
           // a single logical request can burn up to N quota slots on network failure.
           // This is an intentional conservative policy — prefer over-counting to
           // under-counting to avoid WiGLE burst/ban risk. Do NOT change the logic.
-          recordRequest(kind);
+          const ledgerId = await recordRequest(kind, query_source, url, params);
           const response = await fetchWithTimeout(url, init, timeoutMs);
 
           if (response.status === 429) {
@@ -167,7 +174,7 @@ async function fetchWigle(options: WigleFetchOptions): Promise<Response> {
               )}`
             );
           }
-          return response;
+          return { response, ledgerId };
         } catch (e: any) {
           if (attempt >= maxRetries) {
             logger.error(

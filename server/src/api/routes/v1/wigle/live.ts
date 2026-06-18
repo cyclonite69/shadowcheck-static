@@ -41,6 +41,7 @@ router.get(
         label: 'WiGLE Live API',
         entrypoint: 'live-route',
         endpointType: 'v3/detail/wifi',
+        query_source: 'manual',
         init: {
           headers: {
             Authorization: `Basic ${encodedAuth}`,

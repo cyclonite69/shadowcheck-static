@@ -19,6 +19,14 @@ jest.mock('../../../server/src/services/wigleClient', () => ({
   fetchWigle: jest.fn(),
 }));
 
+jest.mock('../../../server/src/services/wigleRequestLedger', () => ({
+  assertCanRequest: jest.fn(),
+  recordRequest: jest.fn().mockResolvedValue(null),
+  updateLedgerOutcome: jest.fn(),
+  recordConsecutive429: jest.fn(),
+  getCircuitBreakerStatus: jest.fn().mockReturnValue({ isOpen: false }),
+}));
+
 jest.mock('../../../server/src/services/secretsManager', () => ({
   get: jest.fn(),
 }));
@@ -111,9 +119,12 @@ describe('wigleService', () => {
     it('should throw if fetchWigle returns non-ok response', async () => {
       secretsManager.get.mockReturnValue('value');
       fetchWigle.mockResolvedValue({
-        ok: false,
-        status: 401,
-        json: () => Promise.resolve({ message: 'Unauthorized' }),
+        response: {
+          ok: false,
+          status: 401,
+          json: () => Promise.resolve({ message: 'Unauthorized' }),
+        },
+        ledgerId: null,
       });
       await expect(getUserStats()).rejects.toThrow('Unauthorized');
     });
@@ -121,9 +132,12 @@ describe('wigleService', () => {
     it('should throw if fetchWigle returns non-ok response without message', async () => {
       secretsManager.get.mockReturnValue('value');
       fetchWigle.mockResolvedValue({
-        ok: false,
-        status: 500,
-        json: () => Promise.reject(new Error('JSON parse error')),
+        response: {
+          ok: false,
+          status: 500,
+          json: () => Promise.reject(new Error('JSON parse error')),
+        },
+        ledgerId: null,
       });
       await expect(getUserStats()).rejects.toThrow('WiGLE API error: 500');
     });
@@ -158,9 +172,12 @@ describe('wigleService', () => {
         },
       };
       fetchWigle.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(rawPayload),
+        response: {
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(rawPayload),
+        },
+        ledgerId: null,
       });
 
       const stats = await getUserStats();
