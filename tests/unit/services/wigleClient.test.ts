@@ -196,4 +196,62 @@ describe('wigleClient (Deterministic Hardening)', () => {
     expect(result.response.status).toBe(200);
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
+
+  // ── Branch Coverage Enhancements ──────────────────────────────────────────
+
+  it('covers sleep and jitter when not in test env', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+
+    const p1 = fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 0 });
+
+    // Advance timers enough to pass the sleep(jitter(150, 300))
+    await jest.advanceTimersByTimeAsync(400);
+
+    const result = await p1;
+    expect(result.response.status).toBe(200);
+
+    process.env.NODE_ENV = originalEnv;
+  });
+
+  it('handles invalid URLs gracefully during param extraction and logging', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Invalid URL in fetch'));
+
+    await expect(
+      fetchWigle({
+        kind: 'search',
+        url: 'not-a-valid-url',
+        maxRetries: 0,
+      })
+    ).rejects.toThrow('Invalid URL in fetch');
+  });
+
+  it('handles non-string request bodies for deduplication hash', async () => {
+    const p1 = fetchWigle({
+      kind: 'search',
+      url: 'http://test',
+      init: { body: { key: 'value' } as any },
+    });
+    const p2 = fetchWigle({
+      kind: 'search',
+      url: 'http://test',
+      init: { body: { key: 'value' } as any },
+    });
+
+    await Promise.all([p1, p2]);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles response.text() failure when response is not ok', async () => {
+    const badResponse = makeResponse({}, false, 500);
+    badResponse.text = jest.fn().mockRejectedValue(new Error('Text parsing failed'));
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce(badResponse);
+
+    const promise = fetchWigle({ kind: 'search', url: 'http://test', maxRetries: 0 });
+    await flushQueue();
+    const result = await promise;
+
+    expect(result.response.status).toBe(500);
+  });
 });
