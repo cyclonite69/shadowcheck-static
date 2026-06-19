@@ -2,12 +2,18 @@
 
 import { normalizePhones } from './process-agencies';
 
-if (require.main === module) {
-  const dryRun = process.argv.includes('--dry-run') || !process.argv.includes('--live');
-  normalizePhones({ dryRun }).catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+export async function main(isMain = require.main === module, args = process.argv) {
+  if (isMain) {
+    const dryRun = args.includes('--dry-run') || !args.includes('--live');
+    try {
+      await normalizePhones({ dryRun });
+    } catch (error) {
+      console.error(error);
+      process.exit(1);
+    }
+  }
 }
+
+main();
 
 export { normalizePhones };

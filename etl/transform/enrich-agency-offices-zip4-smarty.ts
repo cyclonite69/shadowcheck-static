@@ -49,11 +49,13 @@ function parseArgs(argv: string[]): EnrichOptions {
   };
 }
 
-if (require.main === module) {
-  enrichZip4(parseArgs(process.argv.slice(2))).catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+export function handleRunError(error: any): void {
+  console.error(error);
+  process.exit(1);
 }
 
-export { enrichZip4 };
+if (require.main === module) {
+  enrichZip4(parseArgs(process.argv.slice(2))).catch(handleRunError);
+}
+
+export { enrichZip4, parseArgs };

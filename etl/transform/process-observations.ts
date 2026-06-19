@@ -119,18 +119,18 @@ export async function deduplicateObservations(): Promise<DeduplicationResult> {
   }
 }
 
-async function main() {
-  try {
-    await normalizeObservations();
-    await deduplicateObservations();
-  } finally {
-    await pool.end();
+export async function main(isMain = require.main === module) {
+  if (isMain) {
+    try {
+      await normalizeObservations();
+      await deduplicateObservations();
+    } finally {
+      await pool.end();
+    }
   }
 }
 
-if (require.main === module) {
-  main().catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
-}
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

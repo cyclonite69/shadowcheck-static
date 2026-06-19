@@ -173,4 +173,4 @@ if (require.main === module) {
   });
 }
 
-export { enrichGeocoding };
+export { enrichGeocoding, parseNumberArg, parseStringArg, parseArgs, toNumber, printStats };

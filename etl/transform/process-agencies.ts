@@ -631,18 +631,18 @@ export async function normalizePhones(options: { dryRun: boolean }): Promise<voi
   }
 }
 
-async function main() {
-  const options = parseArgs(process.argv.slice(2));
-  await enrichZip4(options);
-  await normalizePhones(options);
+export async function main(isMain = require.main === module, args = process.argv) {
+  if (isMain) {
+    const options = parseArgs(args.slice(2));
+    await enrichZip4(options);
+    await normalizePhones(options);
+  }
 }
 
-if (require.main === module) {
-  main().catch((err: unknown) => {
-    const e = err as Error;
-    console.error(`\n❌ Agency processing failed: ${e.message}`);
-    process.exit(1);
-  });
-}
+main().catch((err: unknown) => {
+  const e = err as Error;
+  console.error(`\n❌ Agency processing failed: ${e.message}`);
+  process.exit(1);
+});
 
 export { enrichZip4 };

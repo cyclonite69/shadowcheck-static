@@ -144,7 +144,7 @@
 - **backup:** make ec2 backups full and durable ([11ee746](https://github.com/cyclonite69/shadowcheck-web/commit/11ee746b543c7fdaccc167cdb32f0e2aa9e6cd96))
 - **backup:** restrict admin pg_dump to app/public schemas by default ([8a18d26](https://github.com/cyclonite69/shadowcheck-web/commit/8a18d261682b10c7e08ad63b8263016e069d90cf))
 - **backup:** run admin UI backups with DB admin credentials ([102ae23](https://github.com/cyclonite69/shadowcheck-web/commit/102ae2385195ae52ed8b49553c59a098c60d4a94))
-- **badges:** honor Badge Studio flag in Explorer ([7addd74](https://github.com/cyclonite69/shadowcheck-web/commit/7addd74d9958857cce8d9620d8c8327acdddb64f))
+- **badges:** honor Badge Studio flag in Explorer ([1e78300](https://github.com/cyclonite69/shadowcheck-web/commit/1e78300f7c58a42c396dc65ecd6307d20245c427))
 - **baseline:** resolve view dependency and column reference issues in baselines 005-006 ([c29400a](https://github.com/cyclonite69/shadowcheck-web/commit/c29400a7cb015a4958c54e9ef2767373e554a888))
 - batch v3 enrichment import — restore error logging and observation tracking ([9cebeea](https://github.com/cyclonite69/shadowcheck-web/commit/9cebeeadd71881132e508ebbcfea53ff8dae654f))
 - batch v3 enrichment import — restore error logging and observation tracking ([c487cfd](https://github.com/cyclonite69/shadowcheck-web/commit/c487cfd2346b1417cf7ccbb3b9da00bb2371065c))
