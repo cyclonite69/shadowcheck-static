@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import * as fs from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import '../loadEnv';
 
 interface GeocodeData {
@@ -21,13 +21,13 @@ const pool = new Pool({
 async function importGeocodes(): Promise<void> {
   const INPUT_FILE = process.argv[2] || 'locations_reverse_geocoded.csv';
 
-  if (!fs.existsSync(INPUT_FILE)) {
+  if (!existsSync(INPUT_FILE)) {
     console.error(`❌ File not found: ${INPUT_FILE}`);
     process.exit(1);
   }
 
   console.log('📥 Reading CSV...');
-  const input = fs.readFileSync(INPUT_FILE, 'utf8');
+  const input = readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
 
   const data: GeocodeData[] = lines
