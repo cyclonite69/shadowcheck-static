@@ -1,19 +1,19 @@
 # Coverage Report
 
-- Generated: 2026-06-19T14:13:54.340Z
-- Git SHA: `3c30d218`
+- Generated: 2026-06-19T20:04:55.263Z
+- Git SHA: `ddb7e83d`
 - Source: `coverage/coverage-summary.json`
-- Coverage artifact modified: 2026-06-19T14:13:53.673Z
+- Coverage artifact modified: 2026-06-19T20:04:54.615Z
 - Global threshold: 60% per metric
 
 ## Global Totals
 
 | Metric     | Covered / Total | Actual | Threshold | Status |
 | ---------- | --------------: | -----: | --------: | ------ |
-| Statements |   16482 / 24548 | 67.14% |       60% | PASS   |
-| Branches   |    9471 / 15453 | 61.28% |       60% | PASS   |
-| Functions  |     2352 / 3717 | 63.27% |       60% | PASS   |
-| Lines      |   16028 / 23342 | 68.66% |       60% | PASS   |
+| Statements |   17621 / 24380 | 72.27% |       60% | PASS   |
+| Branches   |   10051 / 15254 | 65.89% |       60% | PASS   |
+| Functions  |     2525 / 3663 | 68.93% |       60% | PASS   |
+| Lines      |   17082 / 23240 | 73.50% |       60% | PASS   |
 
 > Coverage totals reflect the collection scope of the source artifact. Layer aggregates are calculated from covered and total counters, not averages of file percentages.
 
@@ -25,10 +25,10 @@ Files: 56
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |      722 / 3409 |   21.17% |
-| Branches   |      351 / 2225 |   15.77% |
-| Functions  |       120 / 526 |   22.81% |
-| Lines      |      685 / 3142 |   21.80% |
+| Statements |     1103 / 3427 |   32.18% |
+| Branches   |      539 / 2232 |   24.14% |
+| Functions  |       170 / 526 |   32.31% |
+| Lines      |     1054 / 3160 |   33.35% |
 
 | File                                                             |   Lines | Branches | Functions | Verdict   |
 | ---------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -75,17 +75,17 @@ Files: 56
 | `etl/promote/validate-data.ts`                                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/repair/repair-missing-networks.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/run-pipeline.ts`                                            |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/deduplicate.ts`                                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `etl/transform/deduplicate.ts`                                   | 100.00% |  100.00% |   100.00% | COVERED   |
 | `etl/transform/enrich-agency-offices-coords-mapbox-forward.ts`   |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/transform/enrich-agency-offices-coords-nominatim.ts`        |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/transform/enrich-agency-offices-coords-opencage-forward.ts` |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/enrich-agency-offices-zip4-smarty.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/enrich-geocoding.ts`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/normalize-agency-offices-phone.ts`                |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/normalize-observations.ts`                        |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/process-agencies.ts`                              |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/process-observations.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/utils/db.ts`                                                |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `etl/transform/enrich-agency-offices-zip4-smarty.ts`             |  96.66% |   90.00% |    87.50% | COVERED   |
+| `etl/transform/enrich-geocoding.ts`                              |  92.85% |   96.87% |    88.88% | COVERED   |
+| `etl/transform/normalize-agency-offices-phone.ts`                | 100.00% |  100.00% |   100.00% | COVERED   |
+| `etl/transform/normalize-observations.ts`                        | 100.00% |  100.00% |   100.00% | COVERED   |
+| `etl/transform/process-agencies.ts`                              |  91.62% |   71.51% |    92.30% | PARTIAL   |
+| `etl/transform/process-observations.ts`                          |  95.91% |  100.00% |    80.00% | COVERED   |
+| `etl/utils/db.ts`                                                |  29.62% |   46.15% |    33.33% | UNCOVERED |
 | `etl/utils/deadLetter.ts`                                        |  83.33% |   62.16% |    70.00% | PARTIAL   |
 | `etl/utils/schemas.ts`                                           | 100.00% |  100.00% |   100.00% | COVERED   |
 
@@ -95,10 +95,10 @@ Files: 50
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |      119 / 4508 |    2.63% |
-| Branches   |       93 / 2554 |    3.64% |
-| Functions  |        18 / 784 |    2.29% |
-| Lines      |      111 / 4086 |    2.71% |
+| Statements |      879 / 4322 |   20.33% |
+| Branches   |      489 / 2348 |   20.82% |
+| Functions  |       141 / 730 |   19.31% |
+| Lines      |      798 / 3966 |   20.12% |
 
 | File                                                       |   Lines | Branches | Functions | Verdict   |
 | ---------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -121,21 +121,21 @@ Files: 50
 | `scripts/generate-coverage-report.js`                      |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `scripts/generate-password.ts`                             |  79.31% |   63.15% |    70.00% | PARTIAL   |
 | `scripts/generate-sitemap.js`                              | 100.00% |  100.00% |   100.00% | COVERED   |
-| `scripts/geocoding/export-missing-geocodes.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/geocode-addresses.ts`                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/geocode-batch.ts`                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/export-missing-geocodes.ts`             | 100.00% |   75.00% |   100.00% | PARTIAL   |
+| `scripts/geocoding/geocode-addresses.ts`                   |  91.56% |   71.18% |    86.36% | PARTIAL   |
+| `scripts/geocoding/geocode-batch.ts`                       |  91.35% |   72.72% |    83.33% | PARTIAL   |
 | `scripts/geocoding/geocode-wigle.ts`                       |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-ap-addresses.ts`                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-final-geocodes.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-geocodes.ts`                     |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-missing-geocodes.ts`             |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/import-network-addresses.ts`            |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-batch.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-observations-sample.ts` |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-parallel.ts`            |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/geocoding/reverse-geocode-smart.ts`               |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `scripts/geocoding/import-ap-addresses.ts`                 |  95.45% |   87.50% |   100.00% | COVERED   |
+| `scripts/geocoding/import-final-geocodes.ts`               |  95.23% |   83.33% |   100.00% | COVERED   |
+| `scripts/geocoding/import-geocodes.ts`                     |  97.05% |   85.71% |   100.00% | COVERED   |
+| `scripts/geocoding/import-missing-geocodes.ts`             | 100.00% |  100.00% |   100.00% | COVERED   |
+| `scripts/geocoding/import-network-addresses.ts`            | 100.00% |  100.00% |   100.00% | COVERED   |
+| `scripts/geocoding/reverse-geocode-batch.ts`               |  91.48% |   71.64% |    85.71% | PARTIAL   |
+| `scripts/geocoding/reverse-geocode-observations-sample.ts` |  89.61% |   76.43% |    85.71% | PARTIAL   |
+| `scripts/geocoding/reverse-geocode-parallel.ts`            |  90.00% |   69.86% |    88.00% | PARTIAL   |
+| `scripts/geocoding/reverse-geocode-smart.ts`               |  89.01% |   69.35% |    80.00% | PARTIAL   |
 | `scripts/import/import-wigle-parallel.ts`                  |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `scripts/loadEnv.ts`                                       |   0.00% |  100.00% |   100.00% | UNCOVERED |
+| `scripts/loadEnv.ts`                                       | 100.00% |  100.00% |   100.00% | COVERED   |
 | `scripts/manual-ingest.js`                                 |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `scripts/manual/run-geocoding-sample.ts`                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `scripts/ml/ml-logistic-regression.d.ts`                   |   0.00% |    0.00% |     0.00% | UNCOVERED |
@@ -159,10 +159,10 @@ Files: 106
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     4418 / 4753 |   92.95% |
-| Branches   |     2245 / 2742 |   81.87% |
+| Statements |     4416 / 4753 |   92.90% |
+| Branches   |     2241 / 2742 |   81.72% |
 | Functions  |       480 / 521 |   92.13% |
-| Lines      |     4353 / 4678 |   93.05% |
+| Lines      |     4351 / 4678 |   93.00% |
 
 | File                                                                |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -210,7 +210,7 @@ Files: 106
 | `server/src/api/routes/v1/federalCourthouses.ts`                    | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/geocoding.ts`                             | 100.00% |   90.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/geospatial.ts`                            |  93.33% |   79.22% |    69.23% | PARTIAL   |
-| `server/src/api/routes/v1/health.ts`                                |  89.18% |   73.52% |    69.23% | PARTIAL   |
+| `server/src/api/routes/v1/health.ts`                                |  86.48% |   67.64% |    69.23% | PARTIAL   |
 | `server/src/api/routes/v1/home-location.ts`                         |  90.62% |   86.36% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/kepler.ts`                                |  91.66% |   69.04% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/keplerHelpers.ts`                         | 100.00% |  100.00% |   100.00% | COVERED   |
