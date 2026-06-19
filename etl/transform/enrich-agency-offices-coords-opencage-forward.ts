@@ -325,8 +325,20 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  const e = err as Error;
-  console.error(`\nOpenCage forward coords enrichment failed: ${e.message}`);
-  process.exit(1);
-});
+export {
+  main,
+  parseArgs,
+  resolveDbHost,
+  loadSecretsManager,
+  buildQuery,
+  opencageForward,
+  normalizeZip5,
+};
+
+if (require.main === module) {
+  main().catch((err) => {
+    const e = err as Error;
+    console.error(`\nOpenCage forward coords enrichment failed: ${e.message}`);
+    process.exit(1);
+  });
+}
