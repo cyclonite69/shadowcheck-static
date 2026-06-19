@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import * as fs from 'fs';
+import { readFileSync } from 'fs';
 import { Pool } from 'pg';
 import '../loadEnv';
 
@@ -13,7 +13,7 @@ const pool = new Pool({
 
 async function main(): Promise<void> {
   const filename = process.argv[2] || 'ap_centroids_geocoded.csv';
-  const data = fs.readFileSync(filename, 'utf8');
+  const data = readFileSync(filename, 'utf8');
   const lines = data.trim().split('\n').slice(1);
 
   let updated = 0;
