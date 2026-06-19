@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import { Pool, QueryResult } from 'pg';
-import * as fs from 'fs';
+import { writeFileSync } from 'fs';
 import '../loadEnv';
 
 interface LocationRow {
@@ -37,7 +37,7 @@ async function exportMissingGeocodes(): Promise<void> {
     csv.push(`${row.lat},${row.lon},${row.bssid},${row.ssid || ''}`);
   });
 
-  fs.writeFileSync('locations_to_reverse_geocode.csv', csv.join('\n'));
+  writeFileSync('locations_to_reverse_geocode.csv', csv.join('\n'));
   console.log(`✓ Exported ${result.rows.length} locations to locations_to_reverse_geocode.csv`);
 
   await pool.end();
