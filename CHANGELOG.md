@@ -395,6 +395,7 @@
 - **geospatial:** prevent multiple simultaneous tooltip popups ([b240e2f](https://github.com/cyclonite69/shadowcheck-web/commit/b240e2f76e2177bd48b17133608a43602554985b))
 - **geospatial:** project activity metrics in explorer list queries ([a150e6b](https://github.com/cyclonite69/shadowcheck-web/commit/a150e6bb59ff7a98eed7c914e80baf3e9b992c40))
 - **geospatial:** propagate session expiry to auth flow ([127f0d5](https://github.com/cyclonite69/shadowcheck-web/commit/127f0d54314a0f5963938d0172d275541f9a50e8))
+- **geospatial:** propagate session expiry to auth flow ([e364c70](https://github.com/cyclonite69/shadowcheck-web/commit/e364c70a747ed064faec07e6a53fa4fab588ac07))
 - **geospatial:** reduce WiGLE marker size and stroke weight ([6f1267d](https://github.com/cyclonite69/shadowcheck-web/commit/6f1267d4764395e264cadaa101d23d31594b0353))
 - **geospatial:** remove header scrollbar and align sticky column offsets ([ba76b6e](https://github.com/cyclonite69/shadowcheck-web/commit/ba76b6ef5e79aeccd15cbbec7139e26ea058c304))
 - **geospatial:** render related media in visible network menu ([0b8f5b6](https://github.com/cyclonite69/shadowcheck-web/commit/0b8f5b6282fdb601106c511c75fa7aaa9b0963c1))
