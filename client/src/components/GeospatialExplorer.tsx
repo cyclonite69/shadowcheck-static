@@ -3,6 +3,7 @@ import { usePageFilters } from '../hooks/usePageFilters';
 import { useNetworkData } from '../hooks/useNetworkData';
 import { useObservations } from '../hooks/useObservations';
 import { useAuth } from '../hooks/useAuth';
+import { useAdminRuntimeConfig } from '../hooks/useAdminRuntimeConfig';
 import { logError } from '../logging/clientLogger';
 import { GeospatialLayout } from './geospatial/GeospatialLayout';
 import { GeospatialFiltersPanel } from './geospatial/panels/GeospatialFiltersPanel';
@@ -23,6 +24,8 @@ import { MapRadiusContextMenu } from './geospatial/MapRadiusContextMenu';
 export default function GeospatialExplorer() {
   usePageFilters('geospatial');
   const { isAdmin } = useAuth();
+  const runtimeConfig = useAdminRuntimeConfig(isAdmin);
+  const badgeStudioEnabled = runtimeConfig?.featureFlags?.badgeStudio === true;
 
   const [locationMode, setLocationMode] = useState('latest_observation');
   const [showNetworkSummaries, setShowNetworkSummaries] = useState(false);
@@ -217,6 +220,7 @@ export default function GeospatialExplorer() {
             onToggleMediaLocations={setShowMediaLocations}
           />
           <GeospatialTableContent
+            badgeStudioEnabled={badgeStudioEnabled}
             state={state}
             networks={networks}
             loadingNetworks={loadingNetworks}

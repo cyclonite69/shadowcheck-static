@@ -6,11 +6,13 @@ Badge Studio is an advanced forensic customization tool that allows analysts to 
 
 ## 1. Feature Flag & Access Gating
 
-Badge Studio is gated under a central database-backed feature flag structure.
+Badge Studio is gated by the database-backed `badge_studio` runtime feature flag.
 
 - **Config file**: `client/src/components/admin/hooks/useConfigurationFlags.ts`
-- **Flag Definition**: `"Badge Studio"`: `"Enable Badge Studio tools for column badge rendering, palettes, and badge configuration experiments."`
+- **Runtime source**: `GET /api/admin/settings/runtime` returns the flag as `featureFlags.badgeStudio`.
+- **Flag definition**: `"Badge Studio"`: `"Enable Badge Studio tools for column badge rendering, palettes, and badge configuration experiments."`
 - **UI Mounting**: Rendered inside [AdminPage.tsx](../../client/src/components/AdminPage.tsx) under the `badge-studio` tab content, mapping to [BadgeStudioTab.tsx](../../client/src/components/admin/tabs/BadgeStudioTab.tsx).
+- **Explorer behavior**: When the flag is disabled or unavailable, Explorer withholds stored badge configs from both cell rendering and the column chooser. Existing local configurations remain stored and become active again when the flag is enabled.
 
 ---
 
@@ -19,7 +21,8 @@ Badge Studio is gated under a central database-backed feature flag structure.
 Badge Studio configuration properties persist client-side.
 
 - **Persistence Method**: Browser `localStorage`
-- **Storage Key**: `'shadowcheck_badge_column_configs'` (aliased as `BADGE_COLUMN_CONFIGS_STORAGE_KEY` inside `useBadgeConfigs.ts`)
+- **Current storage key**: `'shadowcheck.badgeStudio.columnConfigs.v1'` (`BADGE_COLUMN_CONFIGS_STORAGE_KEY` inside `useBadgeConfigs.ts`)
+- **Legacy storage key**: `'shadowcheck_badge_column_configs'`; it is migrated to the current key on read when the current key is absent.
 - **Key Operations**:
   - `readStoredColumnBadgeConfigs()`: Loads active layouts.
   - `writeStoredColumnBadgeConfigs(configs)`: Persists manual column badge maps.
@@ -31,8 +34,10 @@ Badge Studio configuration properties persist client-side.
 
 Badge Studio configurations directly feed into virtualized list rendering pipelines.
 
-- **Grid Integration**: Confirmed in [NetworkTableRow](../../client/src/components/explorer/NetworkTableRow.tsx).
-- The parent grid extracts stored `badgeConfigs` and passes them to `renderNetworkTableCell(column, value, configs)`.
+- **Grid Integration**: Confirmed in [GeospatialTableContent](../../client/src/components/geospatial/GeospatialTableContent.tsx) and [NetworkTableRow](../../client/src/components/geospatial/table/NetworkTableRow.tsx).
+- `GeospatialExplorer` resolves the runtime feature flag and passes `badgeStudioEnabled` to `GeospatialTableContent`.
+- When enabled, the table passes stored `badgeConfigs` through the Explorer section and row renderer to `renderNetworkTableCell(context, badgeConfigs)`.
+- When disabled, `badgeConfigs` is withheld, so the normal per-column renderers are used and the column chooser does not show active Badge indicators.
 - This maps the user-defined HSL color shifts, styles (`solid`, `outlined`, `ghost`, `text-only`), and visibility options per column directly in the explorer tables.
 
 ---

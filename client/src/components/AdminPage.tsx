@@ -14,10 +14,9 @@ import { UsersTab } from './admin/tabs/UsersTab';
 import { JobsTab } from './admin/tabs/JobsTab';
 import { WigleStatsTab } from './admin/tabs/WigleStatsTab';
 import { DbStatsTab } from './admin/tabs/DbStatsTab';
-import { adminApi } from '../api/adminApi';
-import type { AdminRuntimeConfig } from '../types/admin';
 import { SigintLibraryTab } from './admin/tabs/SigintLibraryTab';
 import { BadgeStudioTab } from './admin/tabs/BadgeStudioTab';
+import { useAdminRuntimeConfig } from '../hooks/useAdminRuntimeConfig';
 
 const ConfigurationTab = lazy(() => import('./admin/tabs/ConfigurationTab'));
 const MLTrainingTab = lazy(() => import('./admin/tabs/MLTrainingTab'));
@@ -282,37 +281,7 @@ const CameraIcon = ({ size = 24, className = '' }) => (
 const AdminPage: React.FC = () => {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('config');
-  const [runtimeConfig, setRuntimeConfig] = useState<AdminRuntimeConfig | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadRuntimeConfig = async () => {
-      try {
-        const data = await adminApi.getRuntimeConfig();
-        if (!cancelled) {
-          setRuntimeConfig(data);
-        }
-      } catch {
-        if (!cancelled) {
-          setRuntimeConfig(null);
-        }
-      }
-    };
-    void loadRuntimeConfig();
-
-    const handleRuntimeConfigChange = (event: Event) => {
-      const customEvent = event as CustomEvent<AdminRuntimeConfig>;
-      if (!cancelled && customEvent.detail) {
-        setRuntimeConfig(customEvent.detail);
-      }
-    };
-
-    window.addEventListener('admin-runtime-config-changed', handleRuntimeConfigChange);
-    return () => {
-      cancelled = true;
-      window.removeEventListener('admin-runtime-config-changed', handleRuntimeConfigChange);
-    };
-  }, []);
+  const runtimeConfig = useAdminRuntimeConfig(isAdmin);
 
   const showMlTab =
     runtimeConfig?.featureFlags?.adminAllowMlTraining === true ||

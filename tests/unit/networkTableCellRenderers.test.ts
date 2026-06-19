@@ -3,6 +3,11 @@ import type { ColumnBadgeConfig } from '../../client/src/types/badgeConfig';
 import { NETWORK_COLUMNS } from '../../client/src/constants/network';
 import { renderNetworkTableCell } from '../../client/src/components/geospatial/networkTable/cellRenderers';
 import React from 'react';
+
+jest.mock('../../client/src/api/client', () => ({
+  apiClient: { get: jest.fn() },
+}));
+
 import {
   emitDetectionEvidence,
   DETECTION_EVIDENCE_EVENT,

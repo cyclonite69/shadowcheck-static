@@ -1,8 +1,9 @@
 import { NetworkExplorerSection } from './panels/NetworkExplorerSection';
 import { NETWORK_COLUMNS } from '../../constants/network';
-import { useBadgeConfigs } from '../badgeStudio';
+import { getActiveBadgeConfigs, useBadgeConfigs } from '../badgeStudio';
 
 interface GeospatialTableContentProps {
+  badgeStudioEnabled: boolean;
   state: any;
   networks: any[];
   loadingNetworks: boolean;
@@ -40,6 +41,7 @@ interface GeospatialTableContentProps {
 }
 
 const GeospatialTableContentComponent = ({
+  badgeStudioEnabled,
   state,
   networks: _networks,
   loadingNetworks,
@@ -128,7 +130,7 @@ const GeospatialTableContentComponent = ({
       nonRenderableBssids={nonRenderableBssids}
       missingDbBssids={missingDbBssids}
       siblingHydrating={siblingHydrating}
-      badgeConfigs={badgeConfigs}
+      badgeConfigs={getActiveBadgeConfigs(badgeConfigs, badgeStudioEnabled)}
     />
   );
 };

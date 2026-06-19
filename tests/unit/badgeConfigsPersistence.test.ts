@@ -2,6 +2,7 @@ import type { ColumnBadgeConfig } from '../../client/src/types/badgeConfig';
 import {
   BADGE_COLUMN_CONFIGS_STORAGE_KEY,
   createFallbackBadgeConfig,
+  getActiveBadgeConfigs,
   readStoredColumnBadgeConfigs,
   removeStoredColumnBadgeConfig,
   writeStoredColumnBadgeConfigs,
@@ -80,5 +81,13 @@ describe('Badge Studio column config persistence', () => {
       shape: 'pill',
       fill: 'ghost',
     });
+  });
+
+  it('withholds saved configs when Badge Studio is disabled without mutating them', () => {
+    const configs = { threat_score: makeConfig(true) };
+
+    expect(getActiveBadgeConfigs(configs, false)).toBeUndefined();
+    expect(configs.threat_score.enabled).toBe(true);
+    expect(getActiveBadgeConfigs(configs, true)).toBe(configs);
   });
 });

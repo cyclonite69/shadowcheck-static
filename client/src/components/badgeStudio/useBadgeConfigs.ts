@@ -84,6 +84,13 @@ export function createFallbackBadgeConfig(column: string): ColumnBadgeConfig {
   };
 }
 
+export function getActiveBadgeConfigs(
+  configs: Record<string, ColumnBadgeConfig>,
+  badgeStudioEnabled: boolean
+): Record<string, ColumnBadgeConfig> | undefined {
+  return badgeStudioEnabled ? configs : undefined;
+}
+
 /**
  * Merge order (last wins): BADGE_DEFAULTS → active preset columns → unsaved per-column overrides.
  * All configs start with enabled: false — nothing renders until the user opts in.
