@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import { existsSync as fsExistsSync } from 'fs';
 import type { Pool } from 'pg';
 
 export interface SqliteImportReaderLike {
@@ -10,8 +10,10 @@ export interface ImportPreflightOptions {
   sourceTag: string;
   pool: Pool;
   sqliteReader: SqliteImportReaderLike;
-  existsSync?: (path: fs.PathLike) => boolean;
+  existsSync?: (path: fsExistsSyncLike) => boolean;
 }
+
+type fsExistsSyncLike = string | URL;
 
 export interface ImportPreflightResult {
   postgresUser: string;
@@ -20,7 +22,7 @@ export interface ImportPreflightResult {
 export async function runImportPreflight(
   options: ImportPreflightOptions
 ): Promise<ImportPreflightResult> {
-  const existsSync = options.existsSync || fs.existsSync;
+  const existsSync = options.existsSync || fsExistsSync;
 
   if (!existsSync(options.sqliteFile)) {
     throw new Error(`SQLite file not found: ${options.sqliteFile}`);
