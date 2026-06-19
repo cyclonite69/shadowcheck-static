@@ -15,6 +15,13 @@ export interface LedgerRow {
   pagesFetched?: number;
   durationMs?: number;
   error?: string;
+  phase?: 'pending' | 'complete';
+  querySource?: string;
+  queryUrl?: string;
+  queryParams?: Record<string, string>;
+  resultCount?: number;
+  retryAfterHint?: number;
+  httpStatus?: number;
 }
 
 /**

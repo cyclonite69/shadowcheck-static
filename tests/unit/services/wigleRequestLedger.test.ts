@@ -204,12 +204,34 @@ describe('wigleRequestLedger', () => {
       updateLedgerOutcome('search', 12345, {
         status: 'success',
         duration_ms: 100,
+        error_message: 'no-error',
+        http_status: 200,
+        result_count: 5,
+        retry_after_hint: null,
       });
 
-      expect(adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE id = $8'),
-        expect.arrayContaining([12345])
-      );
+      expect(adminQuery).toHaveBeenCalledTimes(1);
+      const [sql, params] = (adminQuery as jest.Mock).mock.calls[0];
+
+      // 1. Should use WHERE id = $7 (or sequential placeholders)
+      expect(sql).toContain('WHERE id = $7');
+      expect(sql).toContain('status = $1');
+      expect(sql).toContain('duration_ms = $2');
+      expect(sql).toContain('error_message = $3');
+      expect(sql).toContain('http_status = $4');
+      expect(sql).toContain('result_count = $5');
+      expect(sql).toContain('retry_after_hint = $6');
+
+      // 2. Should set phase='complete'
+      expect(sql).toContain("phase = 'complete'");
+
+      // 3. Should not pass kind ('search') as a parameter in the params array
+      expect(params).not.toContain('search');
+      expect(params).toEqual(['success', 100, 'no-error', 200, 5, null, 12345]);
+
+      // 4. Parameter count matches SQL placeholders
+      const placeholderCount = (sql.match(/\$\d+/g) || []).length;
+      expect(params.length).toBe(placeholderCount);
     });
 
     it('falls back to heuristic update when ID is null', async () => {
@@ -218,12 +240,25 @@ describe('wigleRequestLedger', () => {
       updateLedgerOutcome('search', null, {
         status: 'success',
         duration_ms: 100,
+        error_message: null,
+        http_status: 200,
+        result_count: 10,
+        retry_after_hint: null,
       });
 
-      expect(adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('ORDER BY requested_at DESC, id DESC LIMIT 1'),
-        expect.arrayContaining(['search'])
-      );
+      expect(adminQuery).toHaveBeenCalledTimes(1);
+      const [sql, params] = (adminQuery as jest.Mock).mock.calls[0];
+
+      expect(sql).toContain('ORDER BY requested_at DESC, id DESC');
+      expect(sql).toContain('LIMIT 1');
+      expect(sql).toContain("phase = 'pending'"); // subquery filter
+      expect(sql).toContain("phase = 'complete'"); // update SET
+      expect(sql).toContain('kind = $7');
+
+      expect(params).toEqual(['success', 100, null, 200, 10, null, 'search']);
+
+      const placeholderCount = (sql.match(/\$\d+/g) || []).length;
+      expect(params.length).toBe(placeholderCount);
     });
 
     it('stores retry-after hint on 429 responses', async () => {
@@ -236,10 +271,10 @@ describe('wigleRequestLedger', () => {
         retry_after_hint: 60,
       });
 
-      expect(adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('retry_after_hint = $7'),
-        expect.arrayContaining([60])
-      );
+      expect(adminQuery).toHaveBeenCalledTimes(1);
+      const [sql, params] = (adminQuery as jest.Mock).mock.calls[0];
+      expect(sql).toContain('retry_after_hint = $6');
+      expect(params[5]).toBe(60); // index 5 is retry_after_hint
     });
   });
 });

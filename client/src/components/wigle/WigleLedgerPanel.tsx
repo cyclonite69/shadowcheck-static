@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { wigleApi, type LedgerRow } from '../../api/wigleApi';
 import { formatShortDate, formatISODate } from '../../utils/formatDate';
 
@@ -30,6 +30,7 @@ export function WigleLedgerPanel() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const atTop = useRef(true);
@@ -139,7 +140,7 @@ export function WigleLedgerPanel() {
             )}
             {rows.length > 0 && (
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-slate-800 text-slate-400 uppercase tracking-wider">
+                <thead className="sticky top-0 bg-slate-800 text-slate-400 uppercase tracking-wider select-none">
                   <tr>
                     <th className="px-3 py-2 text-left font-semibold">Timestamp</th>
                     <th className="px-3 py-2 text-left font-semibold">Source</th>
@@ -151,41 +152,144 @@ export function WigleLedgerPanel() {
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="border-t border-slate-700/30 hover:bg-slate-800/40"
-                      title={row.error || undefined}
-                    >
-                      <td
-                        className="px-3 py-1.5 text-slate-400 whitespace-nowrap font-mono"
-                        title={formatISODate(row.timestamp)}
+                    <Fragment key={row.id}>
+                      <tr
+                        className={`border-t border-slate-700/30 hover:bg-slate-800/60 cursor-pointer transition-colors ${
+                          expandedRowId === row.id ? 'bg-slate-850' : ''
+                        }`}
+                        onClick={() => setExpandedRowId(expandedRowId === row.id ? null : row.id)}
+                        title="Click to toggle details"
                       >
-                        {formatShortDate(row.timestamp)}
-                      </td>
-                      <td className="px-3 py-1.5">
-                        <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${SOURCE_BADGE[row.source] ?? ''}`}
+                        <td
+                          className="px-3 py-1.5 text-slate-400 whitespace-nowrap font-mono"
+                          title={formatISODate(row.timestamp)}
                         >
-                          {row.source}
-                        </span>
-                      </td>
-                      <td className="px-3 py-1.5 text-slate-300 max-w-[160px] truncate">
-                        {row.kind || '—'}
-                      </td>
-                      <td className="px-3 py-1.5">
-                        <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${STATUS_BADGE[row.status] ?? ''}`}
-                        >
-                          {row.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-3 py-1.5 text-right text-slate-400 font-mono">
-                        {row.rowsInserted != null ? row.rowsInserted.toLocaleString() : '—'}
-                      </td>
-                      <td className="px-3 py-1.5 text-right text-slate-400 font-mono">
-                        {fmtDuration(row.durationMs)}
-                      </td>
-                    </tr>
+                          <span className="flex items-center gap-1.5">
+                            {row.phase === 'pending' && (
+                              <span
+                                className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"
+                                title="Pending execution"
+                              />
+                            )}
+                            {formatShortDate(row.timestamp)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${SOURCE_BADGE[row.source] ?? ''}`}
+                          >
+                            {row.source}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5 text-slate-300 max-w-[160px] truncate">
+                          {row.kind || '—'}
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${STATUS_BADGE[row.status] ?? ''}`}
+                          >
+                            {row.status.replace('_', ' ')}
+                            {row.httpStatus != null && ` (${row.httpStatus})`}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-slate-400 font-mono">
+                          {row.rowsInserted != null
+                            ? row.rowsInserted.toLocaleString()
+                            : row.resultCount != null
+                              ? row.resultCount.toLocaleString()
+                              : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-slate-400 font-mono">
+                          {fmtDuration(row.durationMs)}
+                        </td>
+                      </tr>
+                      {expandedRowId === row.id && (
+                        <tr className="bg-slate-950/60 font-mono text-[11px] text-slate-400 border-t border-slate-800">
+                          <td colSpan={6} className="px-4 py-3 select-text">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-1.5">
+                                <div>
+                                  <span className="text-slate-500 font-semibold">Phase:</span>{' '}
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                      row.phase === 'pending'
+                                        ? 'bg-amber-950/60 text-amber-400 border border-amber-800/40'
+                                        : 'bg-green-950/60 text-green-400 border border-green-800/40'
+                                    }`}
+                                  >
+                                    {row.phase || '—'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 font-semibold">
+                                    Query Source:
+                                  </span>{' '}
+                                  <span className="text-slate-300">{row.querySource || '—'}</span>
+                                </div>
+                                {row.httpStatus != null && (
+                                  <div>
+                                    <span className="text-slate-500 font-semibold">
+                                      HTTP Status:
+                                    </span>{' '}
+                                    <span
+                                      className={`font-bold ${row.httpStatus >= 400 ? 'text-red-400' : 'text-green-400'}`}
+                                    >
+                                      {row.httpStatus}
+                                    </span>
+                                  </div>
+                                )}
+                                {row.resultCount != null && (
+                                  <div>
+                                    <span className="text-slate-500 font-semibold">
+                                      Result Count:
+                                    </span>{' '}
+                                    <span className="text-slate-300">{row.resultCount}</span>
+                                  </div>
+                                )}
+                                {row.retryAfterHint != null && (
+                                  <div>
+                                    <span className="text-slate-500 font-semibold">
+                                      Retry-After Hint:
+                                    </span>{' '}
+                                    <span className="text-amber-400 font-bold">
+                                      {row.retryAfterHint}s
+                                    </span>
+                                  </div>
+                                )}
+                                {row.error && (
+                                  <div className="text-red-400 border border-red-955/40 bg-red-950/20 p-2 rounded max-w-md mt-1">
+                                    <span className="text-red-500 font-semibold">
+                                      Error Message:
+                                    </span>{' '}
+                                    <span className="break-all">{row.error}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="space-y-1.5">
+                                {row.queryUrl && (
+                                  <div className="max-w-md">
+                                    <span className="text-slate-500 font-semibold">Query URL:</span>
+                                    <div className="text-slate-300 break-all bg-slate-900 p-1.5 rounded border border-slate-800/60 max-h-16 overflow-y-auto font-mono text-[10px]">
+                                      {row.queryUrl}
+                                    </div>
+                                  </div>
+                                )}
+                                {row.queryParams && Object.keys(row.queryParams).length > 0 && (
+                                  <div>
+                                    <span className="text-slate-500 font-semibold">
+                                      Query Params:
+                                    </span>
+                                    <pre className="mt-1 p-2 rounded bg-slate-900 border border-slate-800/60 max-w-md overflow-x-auto text-[10px] text-slate-300 max-h-24 overflow-y-auto">
+                                      {JSON.stringify(row.queryParams, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

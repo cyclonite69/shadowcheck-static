@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-18)
+# 1.0.0 (2026-06-19)
 
 ### Bug Fixes
 
@@ -940,6 +940,7 @@
 - **wigle:** catch quota/circuit-breaker throws in fetchUpstream, return 429/503 instead of 500 ([68200af](https://github.com/cyclonite69/shadowcheck-web/commit/68200af060ae3106b5a7b79a2c76e2dee61651cd))
 - **wigle:** clamp bbox to [-180,180]/[-90,90] before aggregated fetch ([b16467f](https://github.com/cyclonite69/shadowcheck-web/commit/b16467f9fa45f751fff16e0725d838bc9507dc2d))
 - **wigle:** clarify farthest WiGLE-only tooltip wording ([f6d74e1](https://github.com/cyclonite69/shadowcheck-web/commit/f6d74e1624568a93fbc2c287637304ced865ce8f))
+- **wigle:** complete ledger outcome updates ([78a4af2](https://github.com/cyclonite69/shadowcheck-web/commit/78a4af2cbaea33bc76cffed4e30bda45ebffb2aa))
 - **wigle:** compute farthest distance from WiGLE-only sightings ([705262e](https://github.com/cyclonite69/shadowcheck-web/commit/705262e329c1fe65ab73bbb92c12aaf74710cccb))
 - **wigle:** correct API endpoint paths for observations ([264bb86](https://github.com/cyclonite69/shadowcheck-web/commit/264bb86fcbbc2de7e96a83813f7bc77e5ce687b6))
 - **wigle:** correct batch enrichment API paths and resumption handler ([90e35d2](https://github.com/cyclonite69/shadowcheck-web/commit/90e35d268f7f70c1622e3e027dbb3eb3af1089c5))

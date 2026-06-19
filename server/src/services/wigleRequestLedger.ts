@@ -210,32 +210,56 @@ function updateLedgerOutcome(
     retry_after_hint?: number | null;
   }
 ) {
-  const whereClause =
-    id !== null
-      ? `WHERE id = $8`
-      : `WHERE id = (SELECT id FROM app.wigle_ledger_events WHERE kind = $1 ORDER BY requested_at DESC, id DESC LIMIT 1)`;
-
-  void adminQuery(
-    `UPDATE app.wigle_ledger_events
-     SET status = $2, phase = 'complete', duration_ms = $3, error_message = $4,
-         http_status = $5, result_count = $6, retry_after_hint = $7
-     ${whereClause}`,
-    [
-      kind,
-      outcome.status,
-      outcome.duration_ms,
-      outcome.error_message ?? null,
-      outcome.http_status ?? null,
-      outcome.result_count ?? null,
-      outcome.retry_after_hint ?? null,
-      ...(id !== null ? [id] : []),
-    ]
-  ).catch((err: any) => {
-    logger.warn('[WiGLE Ledger] Outcome update failed', {
-      kind,
-      error: err?.message || String(err),
+  if (id !== null) {
+    void adminQuery(
+      `UPDATE app.wigle_ledger_events
+       SET status = $1, phase = 'complete', duration_ms = $2, error_message = $3,
+           http_status = $4, result_count = $5, retry_after_hint = $6
+       WHERE id = $7`,
+      [
+        outcome.status,
+        outcome.duration_ms,
+        outcome.error_message ?? null,
+        outcome.http_status ?? null,
+        outcome.result_count ?? null,
+        outcome.retry_after_hint ?? null,
+        id,
+      ]
+    ).catch((err: any) => {
+      logger.warn('[WiGLE Ledger] Outcome update failed', {
+        kind,
+        error: err?.message || String(err),
+      });
     });
-  });
+  } else {
+    void adminQuery(
+      `UPDATE app.wigle_ledger_events
+       SET status = $1, phase = 'complete', duration_ms = $2, error_message = $3,
+           http_status = $4, result_count = $5, retry_after_hint = $6
+       WHERE id = (
+         SELECT id
+         FROM app.wigle_ledger_events
+         WHERE kind = $7
+           AND phase = 'pending'
+         ORDER BY requested_at DESC, id DESC
+         LIMIT 1
+       )`,
+      [
+        outcome.status,
+        outcome.duration_ms,
+        outcome.error_message ?? null,
+        outcome.http_status ?? null,
+        outcome.result_count ?? null,
+        outcome.retry_after_hint ?? null,
+        kind,
+      ]
+    ).catch((err: any) => {
+      logger.warn('[WiGLE Ledger] Outcome update failed', {
+        kind,
+        error: err?.message || String(err),
+      });
+    });
+  }
 }
 
 export {
