@@ -1,19 +1,19 @@
 # Coverage Report
 
-- Generated: 2026-06-19T20:04:55.263Z
-- Git SHA: `ddb7e83d`
+- Generated: 2026-06-19T20:40:48.627Z
+- Git SHA: `fea090c5`
 - Source: `coverage/coverage-summary.json`
-- Coverage artifact modified: 2026-06-19T20:04:54.615Z
+- Coverage artifact modified: 2026-06-19T20:40:48.061Z
 - Global threshold: 60% per metric
 
 ## Global Totals
 
 | Metric     | Covered / Total | Actual | Threshold | Status |
 | ---------- | --------------: | -----: | --------: | ------ |
-| Statements |   17621 / 24380 | 72.27% |       60% | PASS   |
-| Branches   |   10051 / 15254 | 65.89% |       60% | PASS   |
-| Functions  |     2525 / 3663 | 68.93% |       60% | PASS   |
-| Lines      |   17082 / 23240 | 73.50% |       60% | PASS   |
+| Statements |   18031 / 24406 | 73.87% |       60% | PASS   |
+| Branches   |   10291 / 15260 | 67.43% |       60% | PASS   |
+| Functions  |     2574 / 3663 | 70.27% |       60% | PASS   |
+| Lines      |   17480 / 23266 | 75.13% |       60% | PASS   |
 
 > Coverage totals reflect the collection scope of the source artifact. Layer aggregates are calculated from covered and total counters, not averages of file percentages.
 
@@ -25,10 +25,10 @@ Files: 56
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     1103 / 3427 |   32.18% |
-| Branches   |      539 / 2232 |   24.14% |
-| Functions  |       170 / 526 |   32.31% |
-| Lines      |     1054 / 3160 |   33.35% |
+| Statements |     1510 / 3453 |   43.73% |
+| Branches   |      774 / 2238 |   34.58% |
+| Functions  |       219 / 526 |   41.63% |
+| Lines      |     1449 / 3186 |   45.48% |
 
 | File                                                             |   Lines | Branches | Functions | Verdict   |
 | ---------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -76,9 +76,9 @@ Files: 56
 | `etl/repair/repair-missing-networks.ts`                          |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/run-pipeline.ts`                                            |   0.00% |    0.00% |     0.00% | UNCOVERED |
 | `etl/transform/deduplicate.ts`                                   | 100.00% |  100.00% |   100.00% | COVERED   |
-| `etl/transform/enrich-agency-offices-coords-mapbox-forward.ts`   |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/enrich-agency-offices-coords-nominatim.ts`        |   0.00% |    0.00% |     0.00% | UNCOVERED |
-| `etl/transform/enrich-agency-offices-coords-opencage-forward.ts` |   0.00% |    0.00% |     0.00% | UNCOVERED |
+| `etl/transform/enrich-agency-offices-coords-mapbox-forward.ts`   |  94.20% |   74.07% |    94.11% | PARTIAL   |
+| `etl/transform/enrich-agency-offices-coords-nominatim.ts`        |  80.66% |   62.58% |    94.73% | PARTIAL   |
+| `etl/transform/enrich-agency-offices-coords-opencage-forward.ts` |  89.47% |   70.83% |    93.75% | PARTIAL   |
 | `etl/transform/enrich-agency-offices-zip4-smarty.ts`             |  96.66% |   90.00% |    87.50% | COVERED   |
 | `etl/transform/enrich-geocoding.ts`                              |  92.85% |   96.87% |    88.88% | COVERED   |
 | `etl/transform/normalize-agency-offices-phone.ts`                | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -159,10 +159,10 @@ Files: 106
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     4416 / 4753 |   92.90% |
-| Branches   |     2241 / 2742 |   81.72% |
+| Statements |     4418 / 4753 |   92.95% |
+| Branches   |     2245 / 2742 |   81.87% |
 | Functions  |       480 / 521 |   92.13% |
-| Lines      |     4351 / 4678 |   93.00% |
+| Lines      |     4353 / 4678 |   93.05% |
 
 | File                                                                |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -210,7 +210,7 @@ Files: 106
 | `server/src/api/routes/v1/federalCourthouses.ts`                    | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/geocoding.ts`                             | 100.00% |   90.00% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/geospatial.ts`                            |  93.33% |   79.22% |    69.23% | PARTIAL   |
-| `server/src/api/routes/v1/health.ts`                                |  86.48% |   67.64% |    69.23% | PARTIAL   |
+| `server/src/api/routes/v1/health.ts`                                |  89.18% |   73.52% |    69.23% | PARTIAL   |
 | `server/src/api/routes/v1/home-location.ts`                         |  90.62% |   86.36% |   100.00% | COVERED   |
 | `server/src/api/routes/v1/kepler.ts`                                |  91.66% |   69.04% |   100.00% | PARTIAL   |
 | `server/src/api/routes/v1/keplerHelpers.ts`                         | 100.00% |  100.00% |   100.00% | COVERED   |
@@ -279,10 +279,10 @@ Files: 226
 
 | Metric     | Covered / Total | Coverage |
 | ---------- | --------------: | -------: |
-| Statements |     8636 / 9176 |   94.11% |
-| Branches   |     5300 / 6246 |   84.85% |
+| Statements |     8637 / 9176 |   94.12% |
+| Branches   |     5301 / 6246 |   84.87% |
 | Functions  |     1285 / 1405 |   91.45% |
-| Lines      |     8349 / 8807 |   94.79% |
+| Lines      |     8350 / 8807 |   94.81% |
 
 | File                                                                                        |   Lines | Branches | Functions | Verdict   |
 | ------------------------------------------------------------------------------------------- | ------: | -------: | --------: | --------- |
@@ -427,7 +427,7 @@ Files: 226
 | `server/src/services/ml/scoringService.ts`                                                  | 100.00% |   94.44% |   100.00% | COVERED   |
 | `server/src/services/ml/trainer.ts`                                                         |  97.67% |   91.89% |   100.00% | COVERED   |
 | `server/src/services/mlTrainingLock.ts`                                                     | 100.00% |  100.00% |   100.00% | COVERED   |
-| `server/src/services/mobileIngestService.ts`                                                |  83.59% |   68.26% |    78.26% | PARTIAL   |
+| `server/src/services/mobileIngestService.ts`                                                |  84.37% |   69.23% |    78.26% | PARTIAL   |
 | `server/src/services/networking/filterBuilders.ts`                                          | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/networking/filterBuilders/locationFilters.ts`                          | 100.00% |  100.00% |   100.00% | COVERED   |
 | `server/src/services/networking/filterBuilders/securityRadioFilters.ts`                     | 100.00% |   91.66% |   100.00% | COVERED   |
