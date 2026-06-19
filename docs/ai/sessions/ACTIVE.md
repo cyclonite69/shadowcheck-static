@@ -4,64 +4,6 @@ Update this file manually when handing off a task or starting a new session. Age
 
 ---
 
-## ⛔ HARD RULE — RESERVED LANE: etl/ AND scripts/ (added 2026-06-19)
-
-**These directories contain in-progress work owned by another agent. Do not touch them.**
-
-The working tree WILL appear dirty because of these files. That is expected and correct.
-
-### Forbidden actions on these paths:
-
-- Do NOT edit any file under `etl/` or `scripts/`
-- Do NOT run formatters, linters, or type-checkers that auto-fix `etl/` or `scripts/`
-- Do NOT run `git restore etl/` or `git restore scripts/` or any restore on those paths
-- Do NOT run `git stash`, `git stash pop`, `git stash apply`, or `git clean` — these would capture or destroy the other agent's work
-- Do NOT run `git add .`, `git add -A`, or any broad/wildcard staging command
-- If a commit hook auto-formats or stages files in `etl/` or `scripts/`, **stop immediately and report**
-
-### Required start-of-task verification:
-
-```bash
-git status -sb
-git status --short --untracked-files=all
-git diff --name-status -- etl scripts
-git stash list --format='%gd %H %gs'
-```
-
-Report this before proceeding with any task:
-
-```
-Reserved Lane Status
-Reserved dirty paths: [list etl/ and scripts/ dirty files]
-Current task allowed paths: [list only paths relevant to current task]
-Safe to continue without touching reserved lane: yes/no
-```
-
-### Staging discipline:
-
-Always use explicit file paths only, e.g.:
-
-```bash
-git add client/src/components/wigle/WigleLedgerPanel.tsx
-```
-
-Before every commit, verify the staged set does NOT include `etl/` or `scripts/`:
-
-```bash
-git diff --cached --name-status
-git diff --cached --stat
-git diff --cached --check
-```
-
-After every commit, confirm reserved files are still present and unmodified:
-
-```bash
-git status --short --untracked-files=all
-git diff --name-status -- etl scripts
-```
-
----
-
 ## ⛔ HARD RULE — DATABASE WRITE PROTECTION (added 2026-06-07)
 
 **This is not a disposable local dev database. This is THE working database —
@@ -161,7 +103,7 @@ ordinary DB, backend, or architecture investigations.
 
 ## Current Status
 
-_No active workstreams. Geospatial session-expiry fix and ledger badge polish both confirmed done as of 2026-06-19. Next: WiGLE V2 Coverage Grid → V2→V3 orphan/selector design → WiGLE resume stash (after ETL/scripts agent returns)._
+_ETL/geocoding coverage batch completed and pushed. Broader test coverage work remains open and should continue by explicit module scope. Current ownership map: Claude owns grid work, Codex Badge Studio lane is finished, Gemini completed the current ETL/geocoding coverage batch._
 
 ---
 
@@ -216,6 +158,9 @@ Before starting work, understand the subsystem layouts and workflow guides:
 
 | Task                                                                                                   | Status |
 | ------------------------------------------------------------------------------------------------------ | ------ |
+| test(etl/geocoding): achieve 80%+ coverage for transform modules and geocoding scripts                 | ✅     |
+| — 22 unit test suites added (113 tests passing successfully)                                           | ✅     |
+| — updated coverage records in docs/metrics/coverage_report.md                                          | ✅     |
 | fix(geospatial): propagate session expiry to auth flow (`e364c70a`)                                    | ✅     |
 | — `networkApi.ts`: `isHandledAuthError` helper + re-throw in 3 catch blocks                            | ✅     |
 | — `DetectionEvidenceModal.tsx`: raw `fetch()` → `apiClient.get()` so 401 routes through shared handler | ✅     |
@@ -245,11 +190,10 @@ Before starting work, understand the subsystem layouts and workflow guides:
 
 ### Priority Queue (ordered)
 
-1. **Preserve reserved ETL/scripts lane** — `etl/` and `scripts/` are dirty and owned by another agent. Do not touch until that agent returns.
-2. **Commit ACTIVE.md** — doc-only update capturing queue corrections and reserved-lane rule.
-3. **WiGLE V2 Coverage Grid** _(see full spec below)_
-4. **V2→V3 Orphan/Selector Design** — which already-imported V2 rows deserve V3 enrichment detail; do not conflate with coverage.
-5. **Inspect WiGLE Resume Stash** — review stashed resume/pagination work only after ETL/scripts agent has returned and committed its work.
+1. **WiGLE V2 Coverage Grid** _(Claude-owned grid lane; do not start from Gemini unless reassigned)_
+2. **Targeted test coverage follow-ups** — choose next module explicitly before writing tests.
+3. **V2→V3 Orphan/Selector Design** — which already-imported V2 rows deserve V3 enrichment detail; do not conflate with coverage.
+4. **Inspect WiGLE Resume Stash** — review stashed resume/pagination work after active lanes are stable.
 
 ---
 
