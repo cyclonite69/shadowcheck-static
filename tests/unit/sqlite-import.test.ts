@@ -42,15 +42,12 @@ jest.mock('fs', () => ({
 }));
 
 jest.mock('../../etl/loadEnv', () => ({}));
-jest.mock('../../etl/load/sqlite/validateAndEnrich', () => ({
-  validateAndEnrich: jest.fn(),
+jest.mock('../../etl/load/sqlite/importObservations', () => ({
+  importObservationRows: jest.fn(),
 }));
 jest.mock('../../etl/load/sqlite/schemaSetup', () => ({
   ensureDeviceSource: jest.fn(),
   ensureNetworksOrphansTable: jest.fn(),
-}));
-jest.mock('../../etl/load/sqlite/insertObservations', () => ({
-  insertBatch: jest.fn(),
 }));
 jest.mock('../../etl/load/sqlite/networkReconciliation', () => ({
   upsertNetworks: jest.fn(),
@@ -62,8 +59,7 @@ jest.mock('../../etl/load/sqlite/networkReconciliation', () => ({
 // 3. Imports
 import { IncrementalImporter } from '../../etl/load/sqlite-import';
 import { ensureDeviceSource } from '../../etl/load/sqlite/schemaSetup';
-import { insertBatch } from '../../etl/load/sqlite/insertObservations';
-import { validateAndEnrich } from '../../etl/load/sqlite/validateAndEnrich';
+import { importObservationRows } from '../../etl/load/sqlite/importObservations';
 
 describe('sqlite-import - IncrementalImporter', () => {
   const sqliteFile = '/tmp/test.sqlite';
@@ -78,6 +74,7 @@ describe('sqlite-import - IncrementalImporter', () => {
     // Silence console
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
   });
 
@@ -101,10 +98,13 @@ describe('sqlite-import - IncrementalImporter', () => {
       cb(null, [{ _id: 1, bssid: 'AA:BB:CC', time: 2000 }])
     ); // importNewObservations
 
-    (insertBatch as jest.Mock).mockResolvedValue({ inserted: 1, failed: 0, errors: [] });
+    (importObservationRows as jest.Mock).mockImplementationOnce(async ({ onProgress }) => {
+      if (onProgress) {
+        onProgress({ imported: 1, totalRows: 1, startTime: Date.now(), processedRows: 1 });
+      }
+      return { imported: 1, failed: 0, errors: [] };
+    });
     mockQuery.mockResolvedValueOnce({ rows: [{ view_name: 'view1' }] }); // refreshMaterializedViews
-
-    (validateAndEnrich as jest.Mock).mockReturnValue({ bssid: 'AA:BB:CC' });
 
     const summary = await importer.start();
 
@@ -128,7 +128,7 @@ describe('sqlite-import - IncrementalImporter', () => {
     const summary = await importer.start();
 
     expect(summary.imported).toBe(0);
-    expect(insertBatch).not.toHaveBeenCalled();
+    expect(importObservationRows).not.toHaveBeenCalled();
   });
 
   it('handles batch insert errors gracefully', async () => {
@@ -145,12 +145,72 @@ describe('sqlite-import - IncrementalImporter', () => {
       cb(null, [{ _id: 1, bssid: 'AA:BB:CC', time: 100 }])
     );
 
-    (validateAndEnrich as jest.Mock).mockReturnValue({ bssid: 'AA:BB:CC' });
-    (insertBatch as jest.Mock).mockRejectedValue(new Error('Insert failed'));
+    (importObservationRows as jest.Mock).mockResolvedValueOnce({
+      imported: 0,
+      failed: 1,
+      errors: ['Final batch error: Insert failed'],
+    });
 
     const summary = await importer.start();
 
     expect(summary.imported).toBe(0);
     expect(summary.errors).toContain('Final batch error: Insert failed');
+  });
+
+  it('throws error and closes pool when validateInputs fails', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ user: 'admin' }] });
+    // Make countLocations throw a sqlite error to fail preflight/validation
+    mockSqliteGet.mockImplementationOnce((_sql: any, cb: any) =>
+      cb(new Error('SQLite file corrupt'))
+    );
+
+    await expect(importer.start()).rejects.toThrow('SQLite file corrupt');
+    expect(mockEnd).toHaveBeenCalled();
+  });
+
+  it('handles empty latestTimeMs and logs no existing records', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ user: 'admin' }] }); // validateInputs
+    mockSqliteGet.mockImplementationOnce((_sql: any, cb: any) => cb(null, { count: 1 })); // validateInputs
+
+    mockQuery.mockResolvedValueOnce({ rows: [{ latest_ms: null }] }); // getLatestImportedTime (evaluates to 0)
+
+    // total = 10, alreadyImported = 0
+    mockSqliteGet.mockImplementationOnce((_sql: any, cb: any) => cb(null, { count: 10 }));
+    mockSqliteGet.mockImplementationOnce((_sql: any, _params: any, cb: any) =>
+      cb(null, { count: 0 })
+    );
+
+    mockSqliteAll.mockImplementationOnce((_sql: any, cb: any) => cb(null, []));
+    mockSqliteAll.mockImplementationOnce((_sql: any, _params: any, cb: any) => cb(null, []));
+
+    (importObservationRows as jest.Mock).mockResolvedValue({ imported: 0, failed: 0, errors: [] });
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // refreshMaterializedViews
+
+    await importer.start();
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('SELECT COALESCE(MAX(time_ms)'),
+      [sourceTag]
+    );
+  });
+
+  it('handles materialized view refresh failure gracefully', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ user: 'admin' }] }); // validateInputs
+    mockSqliteGet.mockImplementationOnce((_sql: any, cb: any) => cb(null, { count: 1 })); // validateInputs
+    mockQuery.mockResolvedValueOnce({ rows: [{ latest_ms: '0' }] });
+    mockSqliteGet.mockImplementationOnce((_sql: any, cb: any) => cb(null, { count: 5 }));
+    mockSqliteGet.mockImplementationOnce((_sql: any, _params: any, cb: any) =>
+      cb(null, { count: 0 })
+    );
+    mockSqliteAll.mockImplementationOnce((_sql: any, cb: any) => cb(null, []));
+    mockSqliteAll.mockImplementationOnce((_sql: any, _params: any, cb: any) => cb(null, []));
+
+    (importObservationRows as jest.Mock).mockResolvedValue({ imported: 5, failed: 0, errors: [] });
+
+    // Make refreshing MVs fail
+    mockQuery.mockRejectedValueOnce(new Error('MV lock timeout'));
+
+    const summary = await importer.start();
+    expect(summary.imported).toBe(5);
+    expect(mockEnd).toHaveBeenCalled();
   });
 });

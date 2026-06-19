@@ -12,7 +12,7 @@
  *   npx tsx etl/load/sqlite-import.ts ~/Downloads/backup.sqlite s22_new
  */
 
-import * as fs from 'fs';
+import { existsSync } from 'fs';
 import { Pool } from 'pg';
 import '../loadEnv';
 
@@ -159,7 +159,7 @@ class IncrementalImporter {
       sourceTag: this.sourceTag,
       pool: this.pool,
       sqliteReader: this.sqliteReader,
-      existsSync: fs.existsSync,
+      existsSync,
     });
 
     console.log(`✅ PostgreSQL connected as ${preflight.postgresUser}`);
@@ -257,6 +257,7 @@ class IncrementalImporter {
   }
 }
 
+/* istanbul ignore next */
 if (require.main === module) {
   const parseResult = parseIncrementalImportCliArgs(process.argv.slice(2));
 
