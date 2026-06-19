@@ -247,6 +247,13 @@ export function WigleLedgerPanel() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
+                                  <span className="text-slate-500 font-semibold w-24">Status:</span>
+                                  <Badge
+                                    text={row.status.replace('_', ' ')}
+                                    type={statusToBadgeType(row.status)}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
                                   <span className="text-slate-500 font-semibold w-24">Phase:</span>
                                   {row.phase ? (
                                     <Badge text={row.phase} type={phaseToBadgeType(row.phase)} />
@@ -299,7 +306,7 @@ export function WigleLedgerPanel() {
                                   </div>
                                 )}
                                 {row.error && (
-                                  <div className="text-red-400 border border-red-955/40 bg-red-950/20 p-2 rounded max-w-md mt-1">
+                                  <div className="text-red-400 border border-red-700/40 bg-red-950/20 p-2 rounded max-w-md mt-1">
                                     <span className="text-red-500 font-semibold">
                                       Error Message:
                                     </span>{' '}

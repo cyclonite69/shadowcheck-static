@@ -507,6 +507,7 @@
 - **layout:** map viewport accounts for header height on WiGLE page ([7c97d59](https://github.com/cyclonite69/shadowcheck-web/commit/7c97d59555261047a815b409599c199a75bf997f))
 - **layout:** revert panels to left side — sidebars belong on the left ([bea94ea](https://github.com/cyclonite69/shadowcheck-web/commit/bea94ea5e812401b46313572c7696921af3faa7a))
 - **layout:** subtract header height from map viewport on WiGLE and Kepler pages ([c93686b](https://github.com/cyclonite69/shadowcheck-web/commit/c93686ba42bd178a97dc811370784e2924880362))
+- **ledger-ui:** add authoritative status badge to detail panel and fix invalid border class ([47ed098](https://github.com/cyclonite69/shadowcheck-web/commit/47ed09891e5e1bf1e41a46bda14b7505c3873941))
 - **ledger:** prevent integer overflow on long-running import run durations ([a60c278](https://github.com/cyclonite69/shadowcheck-web/commit/a60c27899bb71f51a77d2047ca9192269a228279))
 - long-running pool, d_third_octet, completion tracking, drop redundant columns ([ab8d33a](https://github.com/cyclonite69/shadowcheck-web/commit/ab8d33abd9fe7b0f1e6d18599b95da983ff83369))
 - make entrypoint gracefully fall back to existing env credentials ([c8421bc](https://github.com/cyclonite69/shadowcheck-web/commit/c8421bc77bb61351181d6f275db41f9f660f1cef))
