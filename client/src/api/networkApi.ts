@@ -5,6 +5,14 @@
 import { apiClient } from './client';
 import { NetworkTag } from '../types/network';
 
+/**
+ * Returns true for errors thrown by apiClient after a 401 session-expiry has
+ * already been forwarded to authController. These must be re-thrown so the
+ * AuthProvider can clear the session — never swallowed.
+ */
+const isHandledAuthError = (err: unknown): boolean =>
+  typeof err === 'object' && err !== null && (err as any).handled === true;
+
 interface AddNoteRequest {
   bssid: string;
   content: string;
@@ -255,7 +263,8 @@ export const networkApi = {
   async getNetworkByBssid(bssid: string): Promise<any | null> {
     try {
       return await apiClient.get<any>(`/explorer/network/${encodeURIComponent(bssid)}`);
-    } catch {
+    } catch (err) {
+      if (isHandledAuthError(err)) throw err;
       return null;
     }
   },
@@ -272,7 +281,8 @@ export const networkApi = {
         data: Array.isArray(res?.data) ? res.data : [],
         unresolved: res?.unresolved || {},
       };
-    } catch {
+    } catch (err) {
+      if (isHandledAuthError(err)) throw err;
       return { data: [], unresolved: {} };
     }
   },
@@ -284,7 +294,8 @@ export const networkApi = {
         `/v2/networks/${encodeURIComponent(bssid)}/media`
       );
       return Array.isArray(res?.media) ? res.media : [];
-    } catch {
+    } catch (err) {
+      if (isHandledAuthError(err)) throw err;
       return [];
     }
   },

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { formatShortDate, formatISODate } from '../../../utils/formatDate';
 import { formatDeviceType } from '../../../utils/deviceClassUtils';
+import { apiClient } from '../../../api/client';
 
 // ─── Event bus (mirrors VendorIntelDrawer pattern) ────────────────────────────
 
@@ -44,16 +45,14 @@ export const DetectionEvidenceModal: React.FC<DetectionEvidenceModalProps> = ({
     const fetchDetections = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `/api/admin/networks/${encodeURIComponent(bssid)}/detection-evidence`
+        const data = await apiClient.get<{ evidence: DetectionRecord[] }>(
+          `/admin/networks/${encodeURIComponent(bssid)}/detection-evidence`
         );
-        if (!response.ok) {
-          throw new Error(`Failed to fetch: ${response.statusText}`);
-        }
-        const data = await response.json();
         setDetections(data.evidence || []);
         setError(null);
       } catch (err: any) {
+        // Re-throw auth-expiry errors so AuthProvider clears the session.
+        if (err?.handled === true) throw err;
         console.error('Failed to fetch detection evidence:', err);
         setError(err.message);
         setDetections([]);
