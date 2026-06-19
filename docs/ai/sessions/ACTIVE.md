@@ -103,7 +103,7 @@ ordinary DB, backend, or architecture investigations.
 
 ## Current Status
 
-_No active workstreams. Decoupling hook logic (Gap 2), database-driven surveillance OUI refactoring (Gap 4), and VisINT pipeline extraction (Gap 1) successfully completed as of 2026-05-31._
+_No active workstreams. Geospatial Explorer session-expiry auth fix shipped 2026-06-19 (`e364c70a`). Next up: CI warning/log cleanup → credential rotation → ledger badge polish → WiGLE V2 Coverage Grid → V2→V3 orphan/selector design._
 
 ---
 
@@ -154,7 +154,18 @@ Before starting work, understand the subsystem layouts and workflow guides:
 
 ---
 
-## Recently Completed (this session — 2026-05-31)
+## Recently Completed (2026-06-19)
+
+| Task                                                                                                   | Status |
+| ------------------------------------------------------------------------------------------------------ | ------ |
+| fix(geospatial): propagate session expiry to auth flow (`e364c70a`)                                    | ✅     |
+| — `networkApi.ts`: `isHandledAuthError` helper + re-throw in 3 catch blocks                            | ✅     |
+| — `DetectionEvidenceModal.tsx`: raw `fetch()` → `apiClient.get()` so 401 routes through shared handler | ✅     |
+| — `tests/unit/geospatial/networkApiAuth401.test.ts`: 9 new regression tests (all passing)              | ✅     |
+
+---
+
+## Recently Completed (2026-05-31)
 
 | Task                                                                                 | Status |
 | ------------------------------------------------------------------------------------ | ------ |
@@ -171,11 +182,56 @@ Before starting work, understand the subsystem layouts and workflow guides:
 
 ## Open Backlog Items
 
+### Priority Queue (ordered)
+
+1. **CI Warning/Log Cleanup** — finish any pending CI noise/warning cleanup if still open.
+2. **Credential Rotation** — rotate exposed WiGLE credential; verify Grafana rotation script (written, never executed on EC2).
+3. **Ledger Badge Polish** — finish any outstanding ledger badge styling work.
+4. **WiGLE V2 Coverage Grid** _(see full spec below)_
+5. **V2→V3 Orphan/Selector Design** — which already-imported V2 rows deserve V3 enrichment detail; do not conflate with coverage.
+6. **Inspect WiGLE Resume Stash** — review stashed resume/pagination work before incorporating.
+
+---
+
+### WiGLE V2 Coverage Grid — Full Spec
+
+> **Purpose**: Answer _where should we spend V2 search/import API credits?_
+> This is distinct from the Import Player (paginated import workflow) and from V2→V3 selector (which rows get enriched).
+
+**Correct behavior:**
+
+- For each of the 56 jurisdictions (50 states + DC + 5 territories: AS, GU, MP, PR, VI):
+  - Run a lightweight V2 search probe (page 1 only where possible).
+  - Read WiGLE's `totalResults` / available count from the probe response.
+  - Compare against local rows / local unique BSSIDs from `app.wigle_v2_networks_search`.
+  - Display: coverage %, gap count, opportunity score.
+- Persist latest coverage snapshots if not already persisted (so the grid doesn't require a live probe on every load).
+
+**What coverage must NOT use:**
+
+- `wigle_import_runs.rows_inserted` — that is import progress, not coverage truth.
+- Import Player page lifecycle state.
+
+**Territory handling concern:**
+
+- AS / GU / MP / PR / VI may not behave like normal state region codes under `country=US`.
+- WiGLE may represent territories differently. Verify before building the probe logic.
+- Fix territory handling so the grid does not silently omit or miscount territory data.
+
+**Coverage truth tables:**
+
+- Local unique BSSIDs: `app.wigle_v2_networks_search`
+- Remote availability: page-1 `totalResults` from V2 search probe
+- Do not derive coverage from import run history.
+
+---
+
+### Remaining Open Items (unordered)
+
 - **UI Integration**: Wire `VisIntUploader` component into a dashboard tab/page (no entry point yet).
 - **Forensic Visualization**: Add map representation/marker query for `VISINT_UNMATCHED` cellular ghost nodes.
 - **Local Dev Configs**: Commit `.env.example`, `.gitignore`, `docker-compose.dev.yml`, and `local-dev-aliases.sh` as a separate, clean commit.
 - **Sibling Verification**: Run/verify `20260528_prune_invalid_laa_vehicle_class_b_siblings.sql` against migration `030`, then commit sibling test changes separately.
-- **Credential Rotation**: Verify Grafana credential rotation script (written, never executed on EC2).
 - **Modularity Health Monitor**: Define threshold metrics from existing
   `scripts/check-modularity.js` output, add a scheduled GitHub Actions run,
   alert on threshold breach, and supersede ad-hoc agent-generated audit files.
