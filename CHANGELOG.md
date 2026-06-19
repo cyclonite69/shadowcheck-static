@@ -704,7 +704,7 @@
 - **security:** normalize placeholder labels in SQL projection ([b781dc6](https://github.com/cyclonite69/shadowcheck-web/commit/b781dc6fc9091e980d406137cbcd08a241ffa3dd))
 - **security:** parameterize SQL interval in mlScoringService ([d98ab6a](https://github.com/cyclonite69/shadowcheck-web/commit/d98ab6a1c3e93f60f65b5e81899c183ab3bcd747))
 - **security:** prefer backend security label over raw capabilities ([4884c77](https://github.com/cyclonite69/shadowcheck-web/commit/4884c77eb7975ee8cc7e45446894c744a5b44c12))
-- **security:** resolve audit and secret hygiene issues ([89f665e](https://github.com/cyclonite69/shadowcheck-web/commit/89f665e3e0dedc91e339e9caf057adff11dcab3e))
+- **security:** resolve audit and secret hygiene issues ([4f1e085](https://github.com/cyclonite69/shadowcheck-web/commit/4f1e08509f18e29d24d56c7633f2edc3eabc91ec))
 - separate row click (preview) from checkbox (selection) in v3 enrichment table ([ddd9d40](https://github.com/cyclonite69/shadowcheck-web/commit/ddd9d4079dd9b76cb0e72cda163af4961c112ae6))
 - **server:** add .default for ES6 module imports ([8574278](https://github.com/cyclonite69/shadowcheck-web/commit/8574278c7ff2e80d6814a7ad128ee5de8bdb9df6))
 - **server:** add missing WiGLE fields to tooltip data pipelines ([3a3990d](https://github.com/cyclonite69/shadowcheck-web/commit/3a3990df10054c1c32c2ae25d7d637eca95ce181))
