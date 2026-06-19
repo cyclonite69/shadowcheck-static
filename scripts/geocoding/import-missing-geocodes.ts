@@ -1,12 +1,12 @@
 #!/usr/bin/env tsx
-import * as fs from 'fs';
+import { readFileSync } from 'fs';
 import { Pool } from 'pg';
 import '../loadEnv';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function main(): Promise<void> {
-  const data = fs.readFileSync('missing_geocodes_result.csv', 'utf8');
+  const data = readFileSync('missing_geocodes_result.csv', 'utf8');
   const lines = data.trim().split('\n').slice(1);
 
   let updated = 0;
