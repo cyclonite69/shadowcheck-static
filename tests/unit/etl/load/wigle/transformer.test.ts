@@ -74,4 +74,72 @@ describe('etl/load/wigle/transformer', () => {
       expect.stringContaining('Validation failed')
     );
   });
+
+  it('handles clean-to-empty strings, undefined network cache hits, and missing optional row fields', () => {
+    const rowWithMissingFields = {
+      _id: 8,
+      bssid: 'bb:cc:dd:ee:ff:00',
+      level: -60,
+      lat: 43.02,
+      lon: -83.69,
+      time: Date.UTC(2026, 0, 1),
+    };
+
+    const networkWithEmptyStrings = {
+      bssid: 'BB:CC:DD:EE:FF:00',
+      ssid: '\x00 ', // cleans to empty
+      frequency: 0,
+      capabilities: undefined,
+      lasttime: 0,
+      lastlat: 0,
+      lastlon: 0,
+      type: '',
+      bestlevel: 0,
+      bestlat: 0,
+      bestlon: 0,
+      rcois: null,
+      mfgrid: 0,
+      service: '',
+    };
+
+    const result = validateWigleObservation(
+      rowWithMissingFields as any,
+      new Map([[networkWithEmptyStrings.bssid, networkWithEmptyStrings as any]]),
+      'field_unit'
+    );
+
+    expect(result).toMatchObject({
+      source_pk: '8',
+      device_id: 'field_unit',
+      bssid: 'BB:CC:DD:EE:FF:00',
+      ssid: null,
+      radio_type: 'W',
+      radio_frequency: null,
+      radio_capabilities: null,
+      radio_service: null,
+      radio_rcois: null,
+      radio_lasttime_ms: null,
+      altitude: 0,
+      accuracy: 0,
+      external: false,
+      mfgrid: 0,
+    });
+  });
+
+  it('handles completely missing network cache entry', () => {
+    const result = validateWigleObservation(locationRow, new Map(), 'field_unit');
+
+    expect(result).toMatchObject({
+      source_pk: '7',
+      device_id: 'field_unit',
+      bssid: 'AA:BB:CC:DD:EE:FF',
+      ssid: null,
+      radio_type: 'W',
+      radio_frequency: null,
+      radio_capabilities: null,
+      radio_service: null,
+      radio_rcois: null,
+      radio_lasttime_ms: null,
+    });
+  });
 });
