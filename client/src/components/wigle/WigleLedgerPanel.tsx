@@ -5,16 +5,60 @@ import { formatShortDate, formatISODate } from '../../utils/formatDate';
 const STATUS_FILTERS = ['all', 'success', 'error', 'rate_limited', 'skipped'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
-const STATUS_BADGE: Record<string, string> = {
+const BADGE_STYLES = {
   success: 'bg-green-900/60 text-green-300 border border-green-700/40',
   error: 'bg-red-900/60 text-red-300 border border-red-700/40',
-  rate_limited: 'bg-amber-900/60 text-amber-300 border border-amber-700/40',
-  skipped: 'bg-slate-700/60 text-slate-400 border border-slate-600/40',
+  warning: 'bg-amber-900/60 text-amber-300 border border-amber-700/40',
+  info: 'bg-blue-900/60 text-blue-300 border border-blue-700/40',
+  neutral: 'bg-slate-700/60 text-slate-400 border border-slate-600/40',
 };
 
-const SOURCE_BADGE: Record<string, string> = {
-  import: 'bg-blue-900/60 text-blue-300 border border-blue-700/40',
-  event: 'bg-slate-700/60 text-slate-400 border border-slate-600/40',
+function Badge({
+  text,
+  type,
+  isMono = false,
+}: {
+  text: string | number;
+  type: keyof typeof BADGE_STYLES;
+  isMono?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${BADGE_STYLES[type]} ${
+        isMono ? 'font-mono' : ''
+      }`}
+    >
+      {text}
+    </span>
+  );
+}
+
+const statusToBadgeType = (status: string): keyof typeof BADGE_STYLES => {
+  if (status === 'success') return 'success';
+  if (status === 'error') return 'error';
+  if (status === 'rate_limited') return 'warning';
+  return 'neutral';
+};
+
+const sourceToBadgeType = (source: string): keyof typeof BADGE_STYLES => {
+  return source === 'import' ? 'info' : 'neutral';
+};
+
+const phaseToBadgeType = (phase: string): keyof typeof BADGE_STYLES => {
+  if (phase === 'pending') return 'warning';
+  if (phase === 'complete') return 'success';
+  return 'neutral';
+};
+
+const querySourceToBadgeType = (qs: string): keyof typeof BADGE_STYLES => {
+  if (qs === 'manual' || qs === 'scheduled' || qs === 'import') return 'info';
+  return 'neutral';
+};
+
+const httpStatusToBadgeType = (status: number): keyof typeof BADGE_STYLES => {
+  if (status === 429) return 'warning';
+  if (status >= 400) return 'error';
+  return 'success';
 };
 
 function fmtDuration(ms?: number) {
@@ -175,22 +219,16 @@ export function WigleLedgerPanel() {
                           </span>
                         </td>
                         <td className="px-3 py-1.5">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${SOURCE_BADGE[row.source] ?? ''}`}
-                          >
-                            {row.source}
-                          </span>
+                          <Badge text={row.source} type={sourceToBadgeType(row.source)} />
                         </td>
                         <td className="px-3 py-1.5 text-slate-300 max-w-[160px] truncate">
                           {row.kind || '—'}
                         </td>
                         <td className="px-3 py-1.5">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${STATUS_BADGE[row.status] ?? ''}`}
-                          >
-                            {row.status.replace('_', ' ')}
-                            {row.httpStatus != null && ` (${row.httpStatus})`}
-                          </span>
+                          <Badge
+                            text={`${row.status.replace('_', ' ')}${row.httpStatus != null ? ` (${row.httpStatus})` : ''}`}
+                            type={statusToBadgeType(row.status)}
+                          />
                         </td>
                         <td className="px-3 py-1.5 text-right text-slate-400 font-mono">
                           {row.rowsInserted != null
@@ -207,53 +245,57 @@ export function WigleLedgerPanel() {
                         <tr className="bg-slate-950/60 font-mono text-[11px] text-slate-400 border-t border-slate-800">
                           <td colSpan={6} className="px-4 py-3 select-text">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-1.5">
-                                <div>
-                                  <span className="text-slate-500 font-semibold">Phase:</span>{' '}
-                                  <span
-                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                      row.phase === 'pending'
-                                        ? 'bg-amber-950/60 text-amber-400 border border-amber-800/40'
-                                        : 'bg-green-950/60 text-green-400 border border-green-800/40'
-                                    }`}
-                                  >
-                                    {row.phase || '—'}
-                                  </span>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500 font-semibold w-24">Phase:</span>
+                                  {row.phase ? (
+                                    <Badge text={row.phase} type={phaseToBadgeType(row.phase)} />
+                                  ) : (
+                                    <span>—</span>
+                                  )}
                                 </div>
-                                <div>
-                                  <span className="text-slate-500 font-semibold">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-slate-500 font-semibold w-24">
                                     Query Source:
-                                  </span>{' '}
-                                  <span className="text-slate-300">{row.querySource || '—'}</span>
+                                  </span>
+                                  {row.querySource ? (
+                                    <Badge
+                                      text={row.querySource}
+                                      type={querySourceToBadgeType(row.querySource)}
+                                    />
+                                  ) : (
+                                    <span>—</span>
+                                  )}
                                 </div>
                                 {row.httpStatus != null && (
-                                  <div>
-                                    <span className="text-slate-500 font-semibold">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-slate-500 font-semibold w-24">
                                       HTTP Status:
-                                    </span>{' '}
-                                    <span
-                                      className={`font-bold ${row.httpStatus >= 400 ? 'text-red-400' : 'text-green-400'}`}
-                                    >
-                                      {row.httpStatus}
                                     </span>
+                                    <Badge
+                                      text={row.httpStatus}
+                                      type={httpStatusToBadgeType(row.httpStatus)}
+                                    />
                                   </div>
                                 )}
                                 {row.resultCount != null && (
-                                  <div>
-                                    <span className="text-slate-500 font-semibold">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-slate-500 font-semibold w-24">
                                       Result Count:
-                                    </span>{' '}
-                                    <span className="text-slate-300">{row.resultCount}</span>
+                                    </span>
+                                    <Badge text={row.resultCount} type="neutral" isMono={true} />
                                   </div>
                                 )}
                                 {row.retryAfterHint != null && (
-                                  <div>
-                                    <span className="text-slate-500 font-semibold">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-slate-500 font-semibold w-24">
                                       Retry-After Hint:
-                                    </span>{' '}
-                                    <span className="text-amber-400 font-bold">
-                                      {row.retryAfterHint}s
                                     </span>
+                                    <Badge
+                                      text={`${row.retryAfterHint}s`}
+                                      type="warning"
+                                      isMono={true}
+                                    />
                                   </div>
                                 )}
                                 {row.error && (
