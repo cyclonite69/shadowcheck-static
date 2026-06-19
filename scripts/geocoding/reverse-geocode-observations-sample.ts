@@ -1,9 +1,8 @@
-#!/usr/bin/env tsx
 import * as https from 'https';
 import { Pool, QueryResult } from 'pg';
 import '../loadEnv';
 
-interface RoundedRow {
+export interface RoundedRow {
   lat_round: number;
   lon_round: number;
   obs_count: number;
@@ -14,7 +13,7 @@ interface MapboxResponseV6 {
   features?: Array<unknown>;
 }
 
-interface MapboxFeatureV5 {
+export interface MapboxFeatureV5 {
   text?: string;
   place_name?: string;
   place_type?: string[];
@@ -33,56 +32,20 @@ interface MapboxResponseV5 {
   features?: MapboxFeatureV5[];
 }
 
-const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
-if (!MAPBOX_TOKEN) {
-  console.error('❌ MAPBOX_TOKEN not found in .env');
-  process.exit(1);
-}
-
-const LIMIT = parseInt(process.argv[2] || '1000', 10);
-const PRECISION = parseInt(process.argv[3] || '5', 10);
-const PER_MINUTE = parseInt(process.env.MAPBOX_PER_MINUTE || '200', 10);
-const DELAY_MS = Math.max(1, Math.floor(60000 / PER_MINUTE));
-const PERMANENT = process.argv.includes('--permanent');
-const INCLUDE_POI = process.argv.includes('--poi'); // Uses v5 endpoint (POI not in v6)
-const ADDRESS_ONLY = process.argv.includes('--address-only');
-const POI_ONLY = process.argv.includes('--poi-only');
-const STORE = !process.argv.includes('--no-store');
-const MODE = POI_ONLY
-  ? 'poi-only'
-  : ADDRESS_ONLY
-    ? 'address-only'
-    : INCLUDE_POI
-      ? 'both'
-      : 'address-only';
-
-const POI_EXCLUDE_DEFAULT = [
+export const POI_EXCLUDE_DEFAULT = [
   '814 Martin Luther King Jr Avenue, Flint, Michigan 48503, United States',
   '816 Martin Luther King Jr Avenue, Flint, Michigan 48503, United States',
 ];
 
-const shouldSkipPoi = (address?: string | null): boolean => {
+export const shouldSkipPoi = (address?: string | null): boolean => {
   if (!address) return false;
   const normalized = address.toLowerCase();
   return (
     normalized.includes('814 martin luther king') || normalized.includes('816 martin luther king')
   );
 };
-const poiExcludeArg = process.argv.find((arg) => arg.startsWith('--poi-exclude='));
-const POI_EXCLUDE =
-  poiExcludeArg && poiExcludeArg.includes('=')
-    ? poiExcludeArg.split('=')[1]?.split('|').filter(Boolean)
-    : POI_EXCLUDE_DEFAULT;
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-});
-
-function parseContext(context?: MapboxFeatureV5['context']): {
+export function parseContext(context?: MapboxFeatureV5['context']): {
   city?: string;
   state?: string;
   postal?: string;
@@ -108,9 +71,12 @@ function parseContext(context?: MapboxFeatureV5['context']): {
   return data;
 }
 
-async function reverseGeocode(
+export async function reverseGeocode(
   lat: number,
-  lon: number
+  lon: number,
+  token: string,
+  mode: string,
+  permanent: boolean
 ): Promise<{
   ok: boolean;
   poiName?: string;
@@ -124,10 +90,10 @@ async function reverseGeocode(
   confidence?: number;
   raw?: unknown;
 }> {
-  if (MODE === 'both' || MODE === 'poi-only') {
+  if (mode === 'both' || mode === 'poi-only') {
     // v5 endpoint supports POI; v6 geocoding does not.
-    const permanentParam = PERMANENT ? '&permanent=true' : '';
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&types=poi,address&limit=5${permanentParam}`;
+    const permanentParam = permanent ? '&permanent=true' : '';
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${token}&types=poi,address&limit=5${permanentParam}`;
     return new Promise((resolve, reject) => {
       https
         .get(url, (res) => {
@@ -169,8 +135,8 @@ async function reverseGeocode(
     });
   }
 
-  const permanentParam = PERMANENT ? '&permanent=true' : '';
-  const url = `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lon}&latitude=${lat}&types=address&limit=1&access_token=${MAPBOX_TOKEN}${permanentParam}`;
+  const permanentParam = permanent ? '&permanent=true' : '';
+  const url = `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lon}&latitude=${lat}&types=address&limit=1&access_token=${token}${permanentParam}`;
 
   return new Promise((resolve, reject) => {
     https
@@ -196,14 +162,19 @@ async function reverseGeocode(
   });
 }
 
-async function storeResult(
+export async function storeResult(
+  pool: Pool,
   row: RoundedRow,
-  geo: Awaited<ReturnType<typeof reverseGeocode>>
+  geo: Awaited<ReturnType<typeof reverseGeocode>>,
+  precision: number,
+  mode: string,
+  permanent: boolean,
+  store: boolean
 ): Promise<void> {
-  if (!STORE || !geo.ok) return;
+  if (!store || !geo.ok) return;
 
-  const providerBase = MODE === 'both' || MODE === 'poi-only' ? 'mapbox_v5' : 'mapbox_v6';
-  const provider = PERMANENT ? `${providerBase}_permanent` : providerBase;
+  const providerBase = mode === 'both' || mode === 'poi-only' ? 'mapbox_v5' : 'mapbox_v6';
+  const provider = permanent ? `${providerBase}_permanent` : providerBase;
 
   await pool.query(
     `
@@ -245,7 +216,7 @@ async function storeResult(
       raw_response = COALESCE(app.geocoding_cache.raw_response, EXCLUDED.raw_response);
   `,
     [
-      PRECISION,
+      precision,
       row.lat_round,
       row.lon_round,
       row.lat_round,
@@ -266,7 +237,44 @@ async function storeResult(
   );
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
+  const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
+  if (!MAPBOX_TOKEN) {
+    console.error('❌ MAPBOX_TOKEN not found in .env');
+    process.exit(1);
+  }
+
+  const LIMIT = parseInt(process.argv[2] || '1000', 10);
+  const PRECISION = parseInt(process.argv[3] || '5', 10);
+  const PER_MINUTE = parseInt(process.env.MAPBOX_PER_MINUTE || '200', 10);
+  const DELAY_MS = Math.max(1, Math.floor(60000 / PER_MINUTE));
+  const PERMANENT = process.argv.includes('--permanent');
+  const INCLUDE_POI = process.argv.includes('--poi');
+  const ADDRESS_ONLY = process.argv.includes('--address-only');
+  const POI_ONLY = process.argv.includes('--poi-only');
+  const STORE = !process.argv.includes('--no-store');
+  const MODE = POI_ONLY
+    ? 'poi-only'
+    : ADDRESS_ONLY
+      ? 'address-only'
+      : INCLUDE_POI
+        ? 'both'
+        : 'address-only';
+
+  const poiExcludeArg = process.argv.find((arg) => arg.startsWith('--poi-exclude='));
+  const POI_EXCLUDE =
+    poiExcludeArg && poiExcludeArg.includes('=')
+      ? poiExcludeArg.split('=')[1]?.split('|').filter(Boolean)
+      : POI_EXCLUDE_DEFAULT;
+
+  const pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: parseInt(process.env.DB_PORT || '5432', 10),
+  });
+
   console.log(
     `🧭 Sampling ${LIMIT} unique blocks at precision ${PRECISION} (rate ${PER_MINUTE}/min, delay ${DELAY_MS}ms)`
   );
@@ -341,13 +349,13 @@ async function main(): Promise<void> {
 
   for (const row of result.rows) {
     try {
-      const result = await reverseGeocode(row.lat_round, row.lon_round);
-      if (result.ok) {
+      const res = await reverseGeocode(row.lat_round, row.lon_round, MAPBOX_TOKEN, MODE, PERMANENT);
+      if (res.ok) {
         successful++;
-        if (result.poiName) {
+        if (res.poiName) {
           poiHits++;
         }
-        await storeResult(row, result);
+        await storeResult(pool, row, res, PRECISION, MODE, PERMANENT, STORE);
       }
     } catch (err) {
       const error = err as Error;
@@ -373,7 +381,9 @@ async function main(): Promise<void> {
   await pool.end();
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

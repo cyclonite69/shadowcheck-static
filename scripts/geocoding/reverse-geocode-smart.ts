@@ -1,35 +1,31 @@
-import * as fs from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import * as https from 'https';
 import '../loadEnv';
 
-interface ReverseGeocodeResult {
+export interface ReverseGeocodeResult {
   address: string | null;
   venue: string | null;
 }
 
-interface LocationData {
+export interface LocationData {
   bssid: string;
   lat: number;
   lon: number;
 }
 
-const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
-const INPUT_FILE = process.argv[2] || 'locations_to_reverse_geocode.csv';
-const OUTPUT_FILE = process.argv[3] || 'locations_reverse_geocoded.csv';
 const CONCURRENT = 20;
 const PRECISION = 4; // ~11m accuracy
 
-if (!MAPBOX_TOKEN) {
-  console.error('❌ MAPBOX_TOKEN not found in .env');
-  process.exit(1);
-}
-
-function roundCoord(val: number): string {
+export function roundCoord(val: number): string {
   return parseFloat(val.toString()).toFixed(PRECISION);
 }
 
-async function reverseGeocode(lat: number, lon: number): Promise<ReverseGeocodeResult> {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
+export async function reverseGeocode(
+  lat: number,
+  lon: number,
+  token: string
+): Promise<ReverseGeocodeResult> {
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${token}&limit=1`;
 
   return new Promise((resolve, reject) => {
     https
@@ -57,14 +53,23 @@ async function reverseGeocode(lat: number, lon: number): Promise<ReverseGeocodeR
   });
 }
 
-async function main(): Promise<void> {
-  if (!fs.existsSync(INPUT_FILE)) {
+export async function main(): Promise<void> {
+  const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
+  const INPUT_FILE = process.argv[2] || 'locations_to_reverse_geocode.csv';
+  const OUTPUT_FILE = process.argv[3] || 'locations_reverse_geocoded.csv';
+
+  if (!MAPBOX_TOKEN) {
+    console.error('❌ MAPBOX_TOKEN not found in .env');
+    process.exit(1);
+  }
+
+  if (!existsSync(INPUT_FILE)) {
     console.error(`❌ Input file not found: ${INPUT_FILE}`);
     process.exit(1);
   }
 
   console.log('📥 Reading locations...');
-  const input = fs.readFileSync(INPUT_FILE, 'utf8');
+  const input = readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
 
   const locations: LocationData[] = lines
@@ -93,7 +98,7 @@ async function main(): Promise<void> {
 
     const promises = batch.map(async (location) => {
       try {
-        const result = await reverseGeocode(location.lat, location.lon);
+        const result = await reverseGeocode(location.lat, location.lon, MAPBOX_TOKEN);
 
         if (result.address) {
           successful++;
@@ -119,10 +124,12 @@ async function main(): Promise<void> {
     }
   }
 
-  fs.writeFileSync(OUTPUT_FILE, results.join('\n'));
+  writeFileSync(OUTPUT_FILE, results.join('\n'));
 
   console.log(`\n✅ Complete: ${successful}/${locations.length} locations geocoded`);
   console.log(`📄 Results saved to: ${OUTPUT_FILE}`);
 }
 
-main().catch(console.error);
+if (require.main === module) {
+  main().catch(console.error);
+}

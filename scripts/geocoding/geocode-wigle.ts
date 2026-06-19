@@ -1,5 +1,4 @@
-#!/usr/bin/env tsx
-import * as fs from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import * as https from 'https';
 import '../loadEnv';
 
@@ -66,13 +65,13 @@ async function geocodeAddress(address: string): Promise<GeocodeResult> {
 }
 
 async function main(): Promise<void> {
-  if (!fs.existsSync(INPUT_FILE)) {
+  if (!existsSync(INPUT_FILE)) {
     console.error(`❌ Input file not found: ${INPUT_FILE}`);
     console.log('Create a CSV with: address column');
     process.exit(1);
   }
 
-  const input = fs.readFileSync(INPUT_FILE, 'utf8');
+  const input = readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
 
@@ -127,7 +126,7 @@ async function main(): Promise<void> {
     }
   }
 
-  fs.writeFileSync(OUTPUT_FILE, wigleLines.join('\n'));
+  writeFileSync(OUTPUT_FILE, wigleLines.join('\n'));
 
   console.log(`\n✓ Complete: ${wigleLines.length - 1} records`);
   console.log(`✓ Output: ${OUTPUT_FILE}`);

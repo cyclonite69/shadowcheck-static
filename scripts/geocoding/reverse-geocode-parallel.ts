@@ -1,19 +1,18 @@
-#!/usr/bin/env tsx
-import * as fs from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import * as https from 'https';
 import '../loadEnv';
 
-interface ReverseGeocodeResult {
+export interface ReverseGeocodeResult {
   address: string | null;
 }
 
-interface LocationRecord {
+export interface LocationRecord {
   lat: string;
   lon: string;
   [key: string]: string | number | null | undefined;
 }
 
-interface IndexedResult extends LocationRecord, ReverseGeocodeResult {
+export interface IndexedResult extends LocationRecord, ReverseGeocodeResult {
   index: number;
 }
 
@@ -23,20 +22,16 @@ interface MapboxResponse {
   }>;
 }
 
-const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
-const INPUT_FILE = process.argv[2] || 'locations_to_reverse_geocode.csv';
-const OUTPUT_FILE = process.argv[3] || 'locations_reverse_geocoded.csv';
 const CONCURRENT = 10;
 const PER_MINUTE = 1000;
 const MINUTES = 10;
 
-if (!MAPBOX_TOKEN) {
-  console.error('❌ MAPBOX_TOKEN not found in .env');
-  process.exit(1);
-}
-
-async function reverseGeocode(lat: string, lon: string): Promise<ReverseGeocodeResult> {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
+export async function reverseGeocode(
+  lat: string,
+  lon: string,
+  token: string
+): Promise<ReverseGeocodeResult> {
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${token}&limit=1`;
 
   return new Promise((resolve, reject) => {
     https
@@ -60,17 +55,18 @@ async function reverseGeocode(lat: string, lon: string): Promise<ReverseGeocodeR
   });
 }
 
-async function processBatch(
+export async function processBatch(
   locations: LocationRecord[],
   startIdx: number,
-  endIdx: number
+  endIdx: number,
+  token: string
 ): Promise<IndexedResult[]> {
   const results: IndexedResult[] = [];
   const promises: Promise<IndexedResult>[] = [];
 
   for (let i = startIdx; i < endIdx && i < locations.length; i++) {
     const loc = locations[i];
-    const promise = reverseGeocode(loc.lat, loc.lon)
+    const promise = reverseGeocode(loc.lat, loc.lon, token)
       .then((geo) => ({ ...loc, ...geo, index: i }))
       .catch(() => ({ ...loc, address: null, index: i }));
 
@@ -91,14 +87,27 @@ async function processBatch(
   return results.sort((a, b) => a.index - b.index);
 }
 
-async function main(): Promise<void> {
-  if (!fs.existsSync(INPUT_FILE)) {
+export async function main(): Promise<void> {
+  const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
+  const INPUT_FILE = process.argv[2] || 'locations_to_reverse_geocode.csv';
+  const OUTPUT_FILE = process.argv[3] || 'locations_reverse_geocoded.csv';
+
+  if (!MAPBOX_TOKEN) {
+    console.error('❌ MAPBOX_TOKEN not found in .env');
+    process.exit(1);
+  }
+
+  if (!existsSync(INPUT_FILE)) {
     console.error(`❌ Input file not found: ${INPUT_FILE}`);
     process.exit(1);
   }
 
-  const input = fs.readFileSync(INPUT_FILE, 'utf8');
+  const input = readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
+  if (lines.length === 0 || !lines[0]) {
+    writeFileSync(OUTPUT_FILE, 'address');
+    return;
+  }
   const headers = lines[0].split(',');
 
   const locations: LocationRecord[] = lines.slice(1).map((line) => {
@@ -126,7 +135,7 @@ async function main(): Promise<void> {
     console.log(`\n⏱️  Minute ${min + 1}/${MINUTES} - Processing ${start}-${end}...`);
     const minStart = Date.now();
 
-    const results = await processBatch(locations, start, end);
+    const results = await processBatch(locations, start, end, MAPBOX_TOKEN);
     allResults.push(...results);
 
     const elapsed = (Date.now() - minStart) / 1000;
@@ -146,7 +155,7 @@ async function main(): Promise<void> {
     ),
   ];
 
-  fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
+  writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
 
   const success = allResults.filter((r) => r.address !== null).length;
   const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
@@ -154,4 +163,6 @@ async function main(): Promise<void> {
   console.log(`✓ Output: ${OUTPUT_FILE}`);
 }
 
-main().catch(console.error);
+if (require.main === module) {
+  main().catch(console.error);
+}

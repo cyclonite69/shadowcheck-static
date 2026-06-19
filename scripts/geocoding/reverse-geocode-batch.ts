@@ -1,13 +1,13 @@
 #!/usr/bin/env tsx
-import * as fs from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import * as https from 'https';
 import '../loadEnv';
 
-interface ReverseGeocodeResult {
+export interface ReverseGeocodeResult {
   address: string | null;
 }
 
-interface LocationRecord {
+export interface LocationRecord {
   lat: string;
   lon: string;
   [key: string]: string | null;
@@ -19,20 +19,16 @@ interface MapboxResponse {
   }>;
 }
 
-const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
-const INPUT_FILE = process.argv[2] || 'locations_to_reverse_geocode.csv';
-const OUTPUT_FILE = process.argv[3] || 'locations_reverse_geocoded.csv';
 const PER_MINUTE = 1000;
 const MINUTES = 10;
 const DELAY_MS = 60;
 
-if (!MAPBOX_TOKEN) {
-  console.error('❌ MAPBOX_TOKEN not found in .env');
-  process.exit(1);
-}
-
-async function reverseGeocode(lat: string, lon: string): Promise<ReverseGeocodeResult> {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
+export async function reverseGeocode(
+  lat: string,
+  lon: string,
+  token: string
+): Promise<ReverseGeocodeResult> {
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${token}&limit=1`;
 
   return new Promise((resolve, reject) => {
     https
@@ -56,14 +52,27 @@ async function reverseGeocode(lat: string, lon: string): Promise<ReverseGeocodeR
   });
 }
 
-async function main(): Promise<void> {
-  if (!fs.existsSync(INPUT_FILE)) {
+export async function main(): Promise<void> {
+  const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
+  const INPUT_FILE = process.argv[2] || 'locations_to_reverse_geocode.csv';
+  const OUTPUT_FILE = process.argv[3] || 'locations_reverse_geocoded.csv';
+
+  if (!MAPBOX_TOKEN) {
+    console.error('❌ MAPBOX_TOKEN not found in .env');
+    process.exit(1);
+  }
+
+  if (!existsSync(INPUT_FILE)) {
     console.error(`❌ Input file not found: ${INPUT_FILE}`);
     process.exit(1);
   }
 
-  const input = fs.readFileSync(INPUT_FILE, 'utf8');
+  const input = readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
+  if (lines.length === 0 || !lines[0]) {
+    writeFileSync(OUTPUT_FILE, 'address');
+    return;
+  }
   const headers = lines[0].split(',');
 
   const locations: LocationRecord[] = lines.slice(1).map((line) => {
@@ -92,7 +101,7 @@ async function main(): Promise<void> {
       const loc = locations[i];
 
       try {
-        const geo = await reverseGeocode(loc.lat, loc.lon);
+        const geo = await reverseGeocode(loc.lat, loc.lon, MAPBOX_TOKEN);
         results.push({ ...loc, ...geo });
         if ((i + 1) % 100 === 0) {
           console.log(`  ✓ ${i + 1}/${total}`);
@@ -112,7 +121,7 @@ async function main(): Promise<void> {
     ),
   ];
 
-  fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
+  writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
 
   const success = results.filter((r) => r.address !== null).length;
   const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
@@ -120,4 +129,6 @@ async function main(): Promise<void> {
   console.log(`✓ Output: ${OUTPUT_FILE}`);
 }
 
-main().catch(console.error);
+if (require.main === module) {
+  main().catch(console.error);
+}

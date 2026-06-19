@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import * as https from 'https';
 import '../loadEnv';
 
@@ -48,13 +48,12 @@ async function geocodeAddress(address: string): Promise<GeocodeResult> {
 }
 
 async function main(): Promise<void> {
-  if (!fs.existsSync(INPUT_FILE)) {
+  if (!existsSync(INPUT_FILE)) {
     console.error(`❌ Input file not found: ${INPUT_FILE}`);
     process.exit(1);
   }
 
-  const addresses = fs
-    .readFileSync(INPUT_FILE, 'utf8')
+  const addresses = readFileSync(INPUT_FILE, 'utf8')
     .split('\n')
     .filter((line) => line.trim())
     .map((line) => line.trim());
@@ -93,7 +92,7 @@ async function main(): Promise<void> {
     }
   }
 
-  fs.writeFileSync(OUTPUT_FILE, results.join('\n'));
+  writeFileSync(OUTPUT_FILE, results.join('\n'));
 
   console.log(`\n✅ Complete: ${successful}/${addresses.length} addresses geocoded`);
   console.log(`📄 Results saved to: ${OUTPUT_FILE}`);

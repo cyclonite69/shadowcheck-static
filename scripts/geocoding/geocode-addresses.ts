@@ -1,5 +1,4 @@
-#!/usr/bin/env tsx
-import * as fs from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import * as https from 'https';
 import '../loadEnv';
 
@@ -80,12 +79,12 @@ async function processBatch(
 }
 
 async function main(): Promise<void> {
-  if (!fs.existsSync(INPUT_FILE)) {
+  if (!existsSync(INPUT_FILE)) {
     console.error(`❌ Input file not found: ${INPUT_FILE}`);
     process.exit(1);
   }
 
-  const input = fs.readFileSync(INPUT_FILE, 'utf8');
+  const input = readFileSync(INPUT_FILE, 'utf8');
   const lines = input.trim().split('\n');
   const headers = lines[0].split(',');
 
@@ -113,7 +112,7 @@ async function main(): Promise<void> {
     ),
   ];
 
-  fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
+  writeFileSync(OUTPUT_FILE, outputLines.join('\n'));
 
   const success = results.filter((r) => r.lat !== null).length;
   console.log(`\n✓ Complete: ${success}/${addresses.length} geocoded`);
