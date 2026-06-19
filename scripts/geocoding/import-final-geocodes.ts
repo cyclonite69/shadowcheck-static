@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import * as fs from 'fs';
+import { readFileSync } from 'fs';
 import { Pool } from 'pg';
 import '../loadEnv';
 
@@ -12,7 +12,7 @@ const pool = new Pool({
 });
 
 async function main(): Promise<void> {
-  const data = fs.readFileSync('missing_final_result.csv', 'utf8');
+  const data = readFileSync('missing_final_result.csv', 'utf8');
   const lines = data.trim().split('\n').slice(1);
 
   let updated = 0;
