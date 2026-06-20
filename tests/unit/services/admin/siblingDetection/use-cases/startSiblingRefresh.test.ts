@@ -59,10 +59,22 @@ describe('startSiblingRefresh', () => {
     expect(state.running).toBe(true);
     expect(state.startedAt).toBeTruthy();
     expect(state.options?.maxBatches).toBe(5);
-    expect(adminQuery).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO app.background_job_runs'),
-      expect.arrayContaining(['siblingDetection', 'running', null])
-    );
+    expect(adminQuery).toHaveBeenCalled();
+    const [insertQuery, insertParams] = (adminQuery as jest.Mock).mock.calls[0];
+    expect(insertQuery).toContain('INSERT INTO app.background_job_runs');
+    expect(insertQuery).toContain('job_name');
+    expect(insertQuery).toContain('status');
+    expect(insertQuery).toContain('cron');
+    expect(insertQuery).toContain('started_at');
+    expect(insertQuery).toContain('details');
+    expect(insertQuery).toContain('VALUES ($1, $2, $3, now(), $4)');
+    expect(insertParams).toEqual([
+      'siblingDetection',
+      'running',
+      null,
+      JSON.stringify(state.options),
+    ]);
+
     expect(runSiblingRefreshJob).toHaveBeenCalledWith(state.options);
 
     // Resolve the job
@@ -81,10 +93,18 @@ describe('startSiblingRefresh', () => {
     });
     expect(state.running).toBe(false);
     expect(state.finishedAt).toBeTruthy();
-    expect(adminQuery).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE app.background_job_runs'),
-      expect.arrayContaining(['completed', 'siblingDetection', 'running', 10, 5, 'test', 123])
-    );
+    const [updateQuery, updateParams] = (adminQuery as jest.Mock).mock.calls[1];
+    expect(updateQuery).toContain('UPDATE app.background_job_runs');
+    expect(updateQuery).toContain('SET status = $1');
+    expect(updateQuery).toContain('finished_at = now()');
+    expect(updateQuery).toContain('details = jsonb_build_object(');
+    expect(updateQuery).toContain("'pairs_inserted', $4");
+    expect(updateQuery).toContain("'networks_scanned', $5");
+    expect(updateQuery).toContain("'run_mode', $6");
+    expect(updateQuery).toContain("'sibling_run_id', $7");
+    expect(updateQuery).toContain('WHERE job_name = $2 AND status = $3');
+    expect(updateQuery).toContain('ORDER BY id DESC LIMIT 1');
+    expect(updateParams).toEqual(['completed', 'siblingDetection', 'running', 10, 5, 'test', 123]);
   });
 
   it('should handle background job creation failure gracefully', async () => {
@@ -143,13 +163,34 @@ describe('startSiblingRefresh', () => {
 
     expect(state.lastError).toBe('Job failed internally');
     expect(state.running).toBe(false);
-    expect(adminQuery).toHaveBeenCalledWith(
-      expect.stringContaining('SELECT id FROM app.sibling_runs')
+    // Find the SELECT call
+    const selectCall = (adminQuery as jest.Mock).mock.calls.find((c) =>
+      c[0].includes('SELECT id FROM app.sibling_runs')
     );
-    expect(adminQuery).toHaveBeenCalledWith(
-      expect.stringContaining('error = $2'),
-      expect.arrayContaining(['failed', 'Job failed internally', 'siblingDetection', 'full', 999])
+    expect(selectCall).toBeTruthy();
+    expect(selectCall[0]).toContain('SELECT id FROM app.sibling_runs');
+    expect(selectCall[0]).toContain("WHERE status = 'running'");
+    expect(selectCall[0]).toContain('ORDER BY id DESC LIMIT 1');
+
+    // Find the failed job update call
+    const updateFailedCall = (adminQuery as jest.Mock).mock.calls.find(
+      (c) => c[0].includes('UPDATE app.background_job_runs') && c[0].includes('error = $2')
     );
+    expect(updateFailedCall).toBeTruthy();
+    const [failedQuery, failedParams] = updateFailedCall;
+    expect(failedQuery).toContain('UPDATE app.background_job_runs');
+    expect(failedQuery).toContain('SET status = $1');
+    expect(failedQuery).toContain('finished_at = now()');
+    expect(failedQuery).toContain('error = $2');
+    expect(failedQuery).toContain("WHERE job_name = $3 AND status = 'running'");
+    expect(failedQuery).toContain('ORDER BY id DESC LIMIT 1');
+    expect(failedParams).toEqual([
+      'failed',
+      'Job failed internally',
+      'siblingDetection',
+      'full',
+      999,
+    ]);
   });
 
   it('should handle job failure and failure to query sibling_runs', async () => {

@@ -23,10 +23,17 @@ describe('adminSiblingService', () => {
         'note',
         0.9
       );
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('set_network_sibling_override'),
-        ['AA:BB:CC:DD:EE:FF', '11:22:33:44:55:66', 'sibling', 'user1', 'note', 0.9]
-      );
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toContain('SELECT app.set_network_sibling_override($1, $2, $3, $4, $5, $6)');
+      expect(params).toEqual([
+        'AA:BB:CC:DD:EE:FF',
+        '11:22:33:44:55:66',
+        'sibling',
+        'user1',
+        'note',
+        0.9,
+      ]);
     });
 
     test('defaults notes to null and confidence to 1.0', async () => {
@@ -37,7 +44,10 @@ describe('adminSiblingService', () => {
         'not_sibling',
         'user1'
       );
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(expect.any(String), [
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toContain('SELECT app.set_network_sibling_override($1, $2, $3, $4, $5, $6)');
+      expect(params).toEqual([
         'AA:BB:CC:DD:EE:FF',
         '11:22:33:44:55:66',
         'not_sibling',
@@ -62,9 +72,23 @@ describe('adminSiblingService', () => {
       adminDbService.adminQuery.mockResolvedValue({ rows: mockRows });
       const result = await svc.getNetworkSiblingLinks('AA:BB:CC:DD:EE:FF');
       expect(result).toEqual(mockRows);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(expect.any(String), [
-        'AA:BB:CC:DD:EE:FF',
-      ]);
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toContain('SELECT');
+      expect(sql).toContain('CASE');
+      expect(sql).toContain('WHEN bssid1 = $1 THEN bssid2');
+      expect(sql).toContain('ELSE bssid1');
+      expect(sql).toContain('END AS sibling_bssid');
+      expect(sql).toContain('source');
+      expect(sql).toContain('rule');
+      expect(sql).toContain('pair_strength');
+      expect(sql).toContain('confidence');
+      expect(sql).toContain('FROM app.network_siblings_effective');
+      expect(sql).toContain('WHERE bssid1 = $1 OR bssid2 = $1');
+      expect(sql).toContain('ORDER BY');
+      expect(sql).toContain('confidence DESC NULLS LAST');
+      expect(sql).toContain('sibling_bssid ASC');
+      expect(params).toEqual(['AA:BB:CC:DD:EE:FF']);
     });
   });
 
@@ -130,6 +154,24 @@ describe('adminSiblingService', () => {
       adminDbService.adminQuery.mockResolvedValue({ rows: mockRows });
       const result = await svc.getNetworkSiblingLinksBatch(['AA:BB:CC:DD:EE:FF']);
       expect(result).toEqual(mockRows);
+
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toContain('SELECT');
+      expect(sql).toContain('bssid1 AS bssid_a');
+      expect(sql).toContain('bssid2 AS bssid_b');
+      expect(sql).toContain('source');
+      expect(sql).toContain('rule');
+      expect(sql).toContain('pair_strength');
+      expect(sql).toContain('confidence');
+      expect(sql).toContain('FROM app.network_siblings_effective');
+      expect(sql).toContain('WHERE bssid1 = ANY($1::text[])');
+      expect(sql).toContain('OR bssid2 = ANY($1::text[])');
+      expect(sql).toContain('ORDER BY');
+      expect(sql).toContain('confidence DESC NULLS LAST');
+      expect(sql).toContain('bssid1 ASC');
+      expect(sql).toContain('bssid2 ASC');
+      expect(params).toEqual([['AA:BB:CC:DD:EE:FF']]);
     });
   });
 
@@ -199,6 +241,47 @@ describe('adminSiblingService', () => {
       // Query for the bssid2 endpoint — should still return the pair
       const result = await svc.getNetworkSiblingLinksBatch(['11:22:33:44:55:66']);
       expect(result).toEqual(mockRows);
+    });
+  });
+
+  describe('getSiblingComponentBssids', () => {
+    test('returns empty array for empty inputs without calling database', async () => {
+      const res1 = await svc.getSiblingComponentBssids('');
+      expect(res1).toEqual([]);
+      expect(adminDbService.adminQuery).not.toHaveBeenCalled();
+
+      const res2 = await svc.getSiblingComponentBssids(null);
+      expect(res2).toEqual([]);
+      expect(adminDbService.adminQuery).not.toHaveBeenCalled();
+    });
+
+    test('normalizes input BSSID and asserts query structure and params', async () => {
+      adminDbService.adminQuery.mockResolvedValue({
+        rows: [{ bssid: '  11:22:33:44:55:66  ' }, { bssid: 'AA:BB:CC:DD:EE:FF' }],
+      });
+
+      const res = await svc.getSiblingComponentBssids('  aa:bb:cc:dd:ee:ff  ');
+
+      // Assert mapped array output behavior
+      expect(res).toEqual(['11:22:33:44:55:66', 'AA:BB:CC:DD:EE:FF']);
+
+      // Assert parameter passing behavior
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(params).toEqual(['AA:BB:CC:DD:EE:FF']);
+
+      // Assert query structure
+      expect(sql).toContain('WITH RECURSIVE');
+      expect(sql).toContain('seed AS (SELECT $1::text AS bssid)');
+      expect(sql).toContain('edges AS (');
+      expect(sql).toContain('SELECT upper(bssid1) AS a, upper(bssid2) AS b');
+      expect(sql).toContain('FROM app.network_siblings_effective');
+      expect(sql).toContain('comp AS (');
+      expect(sql).toContain('SELECT (SELECT bssid FROM seed) AS bssid');
+      expect(sql).toContain('UNION');
+      expect(sql).toContain('SELECT CASE WHEN e.a = c.bssid THEN e.b ELSE e.a END');
+      expect(sql).toContain('FROM comp c');
+      expect(sql).toContain('JOIN edges e ON e.a = c.bssid OR e.b = c.bssid');
+      expect(sql).toContain('SELECT bssid FROM comp ORDER BY bssid');
     });
   });
 });

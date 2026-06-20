@@ -395,15 +395,15 @@ _Long-tail services, utilities, ETL scripts, and remaining files._
   - **Rationale:** Service contains 5 SQL keyword occurrences and direct query calls.
   - **Required Verification:** `npx jest tests/unit/services/admin/settingsAdminService.test.ts --no-coverage --runInBand`
 
-- [ ] `server/src/services/admin/siblingDetection/orchestrators/SiblingDetectionOrchestrator.ts`
+- [x] `server/src/services/admin/siblingDetection/orchestrators/SiblingDetectionOrchestrator.ts`
   - **Rationale:** service module exceeds: 192 largest function lines > 180.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
-- [ ] `server/src/services/admin/siblingDetection/use-cases/reconcileSiblingState.ts`
+- [x] `server/src/services/admin/siblingDetection/use-cases/reconcileSiblingState.ts`
   - **Rationale:** Service contains 4 SQL keyword occurrences and direct query calls.
   - **Required Verification:** `npx jest tests/unit/services/admin/siblingDetection/use-cases/reconcileSiblingState.test.ts --no-coverage --runInBand`
 
-- [ ] `server/src/services/admin/siblingDetection/use-cases/startSiblingRefresh.ts`
+- [x] `server/src/services/admin/siblingDetection/use-cases/startSiblingRefresh.ts`
   - **Rationale:** Service contains 7 SQL keyword occurrences and direct query calls.
   - **Required Verification:** `npx jest tests/unit/services/admin/siblingDetection/use-cases/startSiblingRefresh.test.ts --no-coverage --runInBand`
 
@@ -427,7 +427,7 @@ _Long-tail services, utilities, ETL scripts, and remaining files._
   - **Rationale:** Service contains 8 SQL keyword occurrences and direct query calls.
   - **Required Verification:** `npx jest tests/unit/services/adminSettingsService.test.ts --no-coverage --runInBand`
 
-- [ ] `server/src/services/adminSiblingService.ts`
+- [x] `server/src/services/adminSiblingService.ts`
   - **Rationale:** Service contains 9 SQL keyword occurrences and direct query calls.
   - **Required Verification:** `npx jest tests/unit/adminSiblingService.test.ts --no-coverage --runInBand; npx jest tests/unit/services/adminSiblingService.test.ts --no-coverage --runInBand`
 
