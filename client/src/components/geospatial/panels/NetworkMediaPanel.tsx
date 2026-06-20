@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { networkApi, NetworkMediaItem } from '../../../api/networkApi';
 
 /**
@@ -39,7 +39,7 @@ export const NetworkMediaPanel = ({ bssid }: NetworkMediaPanelProps) => {
           setLoading(false);
         }
       })
-      .catch((err) => {
+      .catch(() => {
         if (!cancelled) {
           setError('Could not load media.');
           setLoading(false);

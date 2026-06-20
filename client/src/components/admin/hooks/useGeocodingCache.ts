@@ -19,6 +19,9 @@ type GeocodingRunOptions = {
 
 type GeocodingDaemonOptions = GeocodingDaemonConfig;
 
+const getErrMsg = (err: unknown, fallback: string): string =>
+  err instanceof Error ? err.message : fallback;
+
 export const useGeocodingCache = (precision = 5) => {
   const [stats, setStats] = useState<GeocodingStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,9 +47,8 @@ export const useGeocodingCache = (precision = 5) => {
       setStats(data.stats);
       setLastResult(data.stats?.last_run?.result || null);
       setDaemon(data.stats?.daemon || null);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load geocoding stats';
-      setError(errorMessage);
+    } catch (err) {
+      setError(getErrMsg(err, 'Failed to load geocoding stats'));
     } finally {
       setIsLoading(false);
     }
@@ -62,15 +64,10 @@ export const useGeocodingCache = (precision = 5) => {
         setActionMessage(data.message || 'Geocoding run started in background');
         setLastResult(data.result || null);
         await refreshStats();
-        window.setTimeout(() => {
-          void refreshStats();
-        }, 5000);
-        window.setTimeout(() => {
-          void refreshStats();
-        }, 15000);
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Geocoding run failed';
-        setError(errorMessage);
+        window.setTimeout(() => void refreshStats(), 5000);
+        window.setTimeout(() => void refreshStats(), 15000);
+      } catch (err) {
+        setError(getErrMsg(err, 'Geocoding run failed'));
       } finally {
         setActionLoading(false);
       }
@@ -84,9 +81,8 @@ export const useGeocodingCache = (precision = 5) => {
     try {
       const data = await adminApi.testGeocodingProvider(options);
       setProbeResult(data.result || null);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Provider test failed';
-      setError(errorMessage);
+    } catch (err) {
+      setError(getErrMsg(err, 'Provider test failed'));
     } finally {
       setProbeLoading(false);
     }
@@ -106,10 +102,8 @@ export const useGeocodingCache = (precision = 5) => {
             : 'Geocoding daemon started.'
         );
         await refreshStats();
-      } catch (err: unknown) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to start geocoding daemon';
-        setError(errorMessage);
+      } catch (err) {
+        setError(getErrMsg(err, 'Failed to start geocoding daemon'));
       } finally {
         setActionLoading(false);
       }
@@ -128,9 +122,8 @@ export const useGeocodingCache = (precision = 5) => {
         data.stopped ? 'Geocoding daemon stop requested.' : 'Geocoding daemon is already stopped.'
       );
       await refreshStats();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to stop geocoding daemon';
-      setError(errorMessage);
+    } catch (err) {
+      setError(getErrMsg(err, 'Failed to stop geocoding daemon'));
     } finally {
       setActionLoading(false);
     }
@@ -160,9 +153,8 @@ export const useGeocodingCache = (precision = 5) => {
           : 'No failed records to re-queue'
       );
       await refreshStats();
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Re-queue failed';
-      setError(errorMessage);
+    } catch (err) {
+      setError(getErrMsg(err, 'Re-queue failed'));
     } finally {
       setActionLoading(false);
     }

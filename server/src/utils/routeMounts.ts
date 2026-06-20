@@ -114,36 +114,7 @@ function mountApiRoutes(app: Express, deps: ApiRouteDependencies): void {
       };
 
   // Debug: Check for undefined routes
-  const routes = {
-    healthRoutes,
-    geospatialRoutes,
-    networksRoutes,
-    threatsRoutes,
-    wigleRoutes,
-    adminRoutes,
-    explorerRoutes,
-    mlRoutes,
-    analyticsRoutes,
-    networksV2Routes,
-    threatsV2Routes,
-    filteredRoutes,
-    homeLocationRoutes,
-    keplerRoutes,
-    backupRoutes,
-    exportRoutes,
-    analyticsPublicRoutes,
-    settingsRoutes,
-    networkTagsRoutes,
-    authRoutes,
-    geocodingRoutes,
-    wigleImportRoutes,
-    dataQualityRoutes,
-    claudeRoutes,
-    threatReportRoutes,
-    mobileIngestRoutes,
-  };
-
-  for (const [name, route] of Object.entries(routes)) {
+  for (const [name, route] of Object.entries(deps)) {
     if (!route) {
       console.error(`[ROUTE ERROR] ${name} is undefined!`);
     }

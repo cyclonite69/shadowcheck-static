@@ -1,8 +1,6 @@
 const logger = require('../logging/logger');
 const { query } = require('../config/database');
 
-export {};
-
 import type {
   GeocodeDaemonConfig,
   GeocodeMode,
@@ -62,6 +60,136 @@ const GEOCODE_PROVIDERS: Set<GeocodeProvider> = new Set([
   'locationiq',
 ]);
 
+interface GeocodeProcessContext {
+  options: GeocodeRunOptions;
+  credentials: GeocodeProviderCredentials;
+  fallbackProviders: GeocodingDaemonProviderConfig[];
+  providerLabel: string;
+  pendingWrites: GeocodeCacheWrite[];
+  consecutiveRateLimits: number;
+  successful: number;
+  poiHits: number;
+  rateLimited: number;
+  precision: number;
+  processed: number;
+  syncProgress: () => Promise<void>;
+  flushPendingWrites: () => Promise<void>;
+}
+
+const processGeocodeRow = async (
+  row: GeocodeRow,
+  ctx: GeocodeProcessContext
+): Promise<{ breakLoop: boolean }> => {
+  try {
+    let result: GeocodeResult = await executeProviderLookup(
+      ctx.options.provider,
+      ctx.options.mode,
+      row.lat_round,
+      row.lon_round,
+      Boolean(ctx.options.permanent),
+      ctx.credentials
+    );
+
+    // FALLBACK CHAIN: If primary provider failed and we have alternatives, try them
+    if (!result.ok && ctx.fallbackProviders.length > 0) {
+      for (const fallback of ctx.fallbackProviders) {
+        try {
+          const fallbackCreds = await resolveProviderCredentials(fallback.provider);
+          ensureProviderReady(fallback.provider, fallbackCreds);
+
+          const fallbackResult = await executeProviderLookup(
+            fallback.provider,
+            fallback.mode || ctx.options.mode,
+            row.lat_round,
+            row.lon_round,
+            fallback.permanent !== undefined
+              ? Boolean(fallback.permanent)
+              : Boolean(ctx.options.permanent),
+            fallbackCreds
+          );
+
+          if (fallbackResult.ok) {
+            logger.info('[Geocoding] Fallback successful', {
+              primary: ctx.options.provider,
+              fallback: fallback.provider,
+              lat: row.lat_round,
+              lon: row.lon_round,
+            });
+            result = fallbackResult;
+            break;
+          }
+        } catch (fErr) {
+          // Silently continue to next fallback
+        }
+      }
+    }
+
+    ctx.consecutiveRateLimits = 0;
+    if (result.ok) {
+      ctx.successful++;
+      if (result.poiName) {
+        ctx.poiHits++;
+      }
+    }
+    const rawProvider =
+      result.raw && typeof result.raw === 'object' && 'provider' in result.raw
+        ? (result.raw as { provider?: string }).provider
+        : undefined;
+    const resolvedProvider =
+      rawProvider && GEOCODE_PROVIDERS.has(rawProvider as GeocodeProvider)
+        ? (rawProvider as GeocodeProvider)
+        : ctx.options.provider;
+    ctx.pendingWrites.push({
+      row,
+      provider: result.ok
+        ? getProviderLabel(resolvedProvider as GeocodeProvider, Boolean(ctx.options.permanent))
+        : ctx.providerLabel,
+      result,
+      mode: ctx.options.mode,
+    });
+    if (ctx.pendingWrites.length >= GEOCODING_UPSERT_BATCH_SIZE) {
+      await ctx.flushPendingWrites();
+    }
+  } catch (err) {
+    const error = err as Error;
+    if (error.message === 'rate_limit' || error.message?.includes('rate_limit')) {
+      ctx.rateLimited++;
+      ctx.consecutiveRateLimits++;
+      const backoffMs = calculateRateLimitBackoffMs(
+        ctx.options.provider,
+        ctx.consecutiveRateLimits
+      );
+      logger.warn('[Geocoding] Rate limited, backing off', {
+        provider: ctx.options.provider,
+        backoffMs,
+        consecutiveRateLimits: ctx.consecutiveRateLimits,
+      });
+      await ctx.flushPendingWrites();
+      await ctx.syncProgress();
+      await sleep(backoffMs);
+    } else if (error.message === 'missing_key' || error.message?.includes('missing_key')) {
+      logger.warn('[Geocoding] Missing API key for provider');
+      await ctx.flushPendingWrites();
+      await ctx.syncProgress();
+      return { breakLoop: true };
+    } else {
+      logger.warn('[Geocoding] Provider error, recording attempt', { error: error.message });
+      // Push a failed result so address_attempts is incremented in the DB,
+      // preventing endless silent retries of the same coordinates.
+      ctx.pendingWrites.push({
+        row,
+        provider: ctx.providerLabel,
+        result: { ok: false, error: error.message },
+        mode: ctx.options.mode,
+      });
+      if (ctx.pendingWrites.length >= GEOCODING_UPSERT_BATCH_SIZE) {
+        await ctx.flushPendingWrites();
+      }
+    }
+  }
+  return { breakLoop: false };
+};
+
 const runGeocodeCacheUpdateInternal = async (
   options: GeocodeRunOptions,
   credentials: GeocodeProviderCredentials,
@@ -95,176 +223,80 @@ const runGeocodeCacheUpdateInternal = async (
   const providerLabel = getProviderLabel(options.provider, Boolean(options.permanent));
 
   const startedAt = Date.now();
-  let processed = 0;
-  let successful = 0;
-  let poiHits = 0;
-  let rateLimited = 0;
-  let consecutiveRateLimits = 0;
-  const pendingWrites: GeocodeCacheWrite[] = [];
-
-  const syncProgress = async () => {
-    if (!jobId) return;
-    const durationMs = Date.now() - startedAt;
-    const result = {
-      processed,
-      successful,
-      poiHits,
-      rateLimited,
-    };
-    await updateJobRunProgress(jobId, result, durationMs);
-    if (currentRunSnapshot?.id === jobId) {
-      currentRunSnapshot = {
-        ...currentRunSnapshot,
-        result: {
-          precision,
-          mode: options.mode,
-          provider: providerLabel,
-          processed,
-          successful,
-          poiHits,
-          rateLimited,
-          durationMs,
-        },
+  const ctx: GeocodeProcessContext = {
+    options,
+    credentials,
+    fallbackProviders,
+    providerLabel,
+    pendingWrites: [],
+    consecutiveRateLimits: 0,
+    successful: 0,
+    poiHits: 0,
+    rateLimited: 0,
+    precision,
+    syncProgress: async () => {
+      if (!jobId) return;
+      const durationMs = Date.now() - startedAt;
+      const result = {
+        processed: ctx.processed,
+        successful: ctx.successful,
+        poiHits: ctx.poiHits,
+        rateLimited: ctx.rateLimited,
       };
-    }
-  };
-
-  const flushPendingWrites = async () => {
-    if (pendingWrites.length === 0) return;
-    const batch = pendingWrites.splice(0, pendingWrites.length);
-    try {
-      await upsertGeocodeCacheBatch(precision, batch);
-      await syncProgress();
-    } catch (err) {
-      // Restore the batch so data is not silently dropped on a transient DB error
-      pendingWrites.unshift(...batch);
-      throw err;
-    }
+      await updateJobRunProgress(jobId, result, durationMs);
+      if (currentRunSnapshot?.id === jobId) {
+        currentRunSnapshot = {
+          ...currentRunSnapshot,
+          result: {
+            precision,
+            mode: options.mode,
+            provider: providerLabel,
+            processed: ctx.processed,
+            successful: ctx.successful,
+            poiHits: ctx.poiHits,
+            rateLimited: ctx.rateLimited,
+            durationMs,
+          },
+        };
+      }
+    },
+    flushPendingWrites: async () => {
+      if (ctx.pendingWrites.length === 0) return;
+      const batch = ctx.pendingWrites.splice(0, ctx.pendingWrites.length);
+      try {
+        await upsertGeocodeCacheBatch(precision, batch);
+        await ctx.syncProgress();
+      } catch (err) {
+        // Restore the batch so data is not silently dropped on a transient DB error
+        ctx.pendingWrites.unshift(...batch);
+        throw err;
+      }
+    },
+    processed: 0,
   };
 
   for (const row of rows) {
-    try {
-      let result: GeocodeResult = await executeProviderLookup(
-        options.provider,
-        options.mode,
-        row.lat_round,
-        row.lon_round,
-        Boolean(options.permanent),
-        credentials
-      );
-
-      // FALLBACK CHAIN: If primary provider failed and we have alternatives, try them
-      if (!result.ok && fallbackProviders.length > 0) {
-        for (const fallback of fallbackProviders) {
-          try {
-            const fallbackCreds = await resolveProviderCredentials(fallback.provider);
-            ensureProviderReady(fallback.provider, fallbackCreds);
-
-            const fallbackResult = await executeProviderLookup(
-              fallback.provider,
-              fallback.mode || options.mode,
-              row.lat_round,
-              row.lon_round,
-              fallback.permanent !== undefined
-                ? Boolean(fallback.permanent)
-                : Boolean(options.permanent),
-              fallbackCreds
-            );
-
-            if (fallbackResult.ok) {
-              logger.info('[Geocoding] Fallback successful', {
-                primary: options.provider,
-                fallback: fallback.provider,
-                lat: row.lat_round,
-                lon: row.lon_round,
-              });
-              result = fallbackResult;
-              break;
-            }
-          } catch (fErr) {
-            // Silently continue to next fallback
-          }
-        }
-      }
-
-      consecutiveRateLimits = 0;
-      if (result.ok) {
-        successful++;
-        if (result.poiName) {
-          poiHits++;
-        }
-      }
-      const rawProvider =
-        result.raw && typeof result.raw === 'object' && 'provider' in result.raw
-          ? (result.raw as { provider?: string }).provider
-          : undefined;
-      const resolvedProvider =
-        rawProvider && GEOCODE_PROVIDERS.has(rawProvider as GeocodeProvider)
-          ? (rawProvider as GeocodeProvider)
-          : options.provider;
-      pendingWrites.push({
-        row,
-        provider: result.ok
-          ? getProviderLabel(resolvedProvider as GeocodeProvider, Boolean(options.permanent))
-          : providerLabel,
-        result,
-        mode: options.mode,
-      });
-      if (pendingWrites.length >= GEOCODING_UPSERT_BATCH_SIZE) {
-        await flushPendingWrites();
-      }
-    } catch (err) {
-      const error = err as Error;
-      if (error.message === 'rate_limit' || error.message?.includes('rate_limit')) {
-        rateLimited++;
-        consecutiveRateLimits++;
-        const backoffMs = calculateRateLimitBackoffMs(options.provider, consecutiveRateLimits);
-        logger.warn('[Geocoding] Rate limited, backing off', {
-          provider: options.provider,
-          backoffMs,
-          consecutiveRateLimits,
-        });
-        await flushPendingWrites();
-        await syncProgress();
-        await sleep(backoffMs);
-      } else if (error.message === 'missing_key' || error.message?.includes('missing_key')) {
-        logger.warn('[Geocoding] Missing API key for provider');
-        await flushPendingWrites();
-        await syncProgress();
-        break;
-      } else {
-        logger.warn('[Geocoding] Provider error, recording attempt', { error: error.message });
-        // Push a failed result so address_attempts is incremented in the DB,
-        // preventing endless silent retries of the same coordinates.
-        pendingWrites.push({
-          row,
-          provider: providerLabel,
-          result: { ok: false, error: error.message },
-          mode: options.mode,
-        });
-        if (pendingWrites.length >= GEOCODING_UPSERT_BATCH_SIZE) {
-          await flushPendingWrites();
-        }
-      }
+    const { breakLoop } = await processGeocodeRow(row, ctx);
+    if (breakLoop) {
+      break;
     }
-
-    processed++;
-    if (processed < rows.length) {
+    ctx.processed++;
+    if (ctx.processed < rows.length) {
       await sleep(delayMs);
     }
   }
 
-  await flushPendingWrites();
+  await ctx.flushPendingWrites();
 
   const durationMs = Date.now() - startedAt;
   return {
     precision,
     mode: options.mode,
     provider: providerLabel,
-    processed,
-    successful,
-    poiHits,
-    rateLimited,
+    processed: ctx.processed,
+    successful: ctx.successful,
+    poiHits: ctx.poiHits,
+    rateLimited: ctx.rateLimited,
     durationMs,
   };
 };
