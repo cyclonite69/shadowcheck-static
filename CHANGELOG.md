@@ -1016,7 +1016,7 @@
 - **wigle:** use API search_after cursor directly in computeNextCursor ([37a74e4](https://github.com/cyclonite69/shadowcheck-web/commit/37a74e4f0083ba72ef147cbb279ef685e5c10b4b))
 - **wigle:** use bssid field for v3 rows in field data fetch ([5acc4aa](https://github.com/cyclonite69/shadowcheck-web/commit/5acc4aa81920fdd423ad5f673a4cde2f77486682))
 - **wigle:** use CTE proportional count distribution for exact totals with DBSCAN sampling ([1c3a906](https://github.com/cyclonite69/shadowcheck-web/commit/1c3a906886822373560cdf8a3be3ff49bad8c88f))
-- **wigle:** use local counts in coverage grid ([362de93](https://github.com/cyclonite69/shadowcheck-web/commit/362de93b8244eab226ca9c5e19fa91c721a99045))
+- **wigle:** use local counts in coverage grid ([3568ec0](https://github.com/cyclonite69/shadowcheck-web/commit/3568ec0acfc7d6bf0cfe0ca4b1a9d985464d7a85))
 - **wigle:** validate API credit before making orphan lookup requests ([3bfb952](https://github.com/cyclonite69/shadowcheck-web/commit/3bfb9524d35ef4522cc15ae7a3ca9e216042505a))
 - **wigle:** widen varchar column + prevent single-row abort ([01a0225](https://github.com/cyclonite69/shadowcheck-web/commit/01a02259c55bc66fdb8aaf5fac1dd9b935071ab7))
 - **wigle:** wire field data into Mapbox cluster source ([87facec](https://github.com/cyclonite69/shadowcheck-web/commit/87facec08bda30aba20931d2a0efed3423e79b09))
