@@ -63,6 +63,17 @@ describe('WiGLE Detail & Import Routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
+
+      expect(mockQuery).toHaveBeenCalled();
+      const [sqlQuery, sqlParams] = mockQuery.mock.calls[0];
+      expect(sqlParams).toEqual([['AA:BB:CC:DD:EE:FF', '11:22:33:44:55:66']]);
+      expect(sqlQuery).toContain('SELECT DISTINCT ON (bssid)');
+      expect(sqlQuery).toContain('bssid');
+      expect(sqlQuery).toContain('type');
+      expect(sqlQuery).toContain('FROM app.networks');
+      expect(sqlQuery).toContain('WHERE bssid = ANY($1::text[])');
+      expect(sqlQuery).toContain('ORDER BY bssid, type');
+
       expect(res.body.results).toEqual([
         { bssid: 'AA:BB:CC:DD:EE:FF', success: true, importedObservations: 5 },
         { bssid: '11:22:33:44:55:66', success: false, error: 'WiGLE API rate limit' },

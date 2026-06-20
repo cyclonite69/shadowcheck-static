@@ -73,6 +73,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('healthy');
     expect(response.body).toHaveProperty('timestamp');
@@ -94,6 +95,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(200);
     expect(response.body.database).toBe('unknown');
     expect(response.body.checks.database.database).toBe('unknown');
@@ -105,6 +107,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(503);
     expect(response.body.status).toBe('unhealthy');
     expect(response.body.checks.database.status).toBe('error');
@@ -117,6 +120,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(503);
     expect(response.body.status).toBe('unhealthy');
     expect(response.body.checks.secrets.status).toBe('error');
@@ -131,6 +135,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('degraded');
     expect(response.body.checks.secrets.status).toBe('degraded');
@@ -144,6 +149,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.body.checks.secrets.sm_error).toBe('AWS Secrets Manager client failure');
   });
 
@@ -154,6 +160,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('healthy');
     expect(response.body.checks.secrets.status).toBe('ok');
@@ -174,6 +181,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('degraded');
     expect(response.body.checks.memory.status).toBe('warning');
@@ -195,6 +203,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('healthy');
     expect(response.body.checks.memory.status).toBe('warning');
@@ -214,6 +223,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(503);
     expect(response.body.status).toBe('unhealthy');
     expect(response.body.checks.memory.status).toBe('warning');
@@ -227,6 +237,7 @@ describe('Health Check Endpoint', () => {
 
     const response = await request(app).get('/health');
 
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(response.status).toBe(503);
     expect(response.body.status).toBe('unhealthy');
     expect(response.body.checks.secrets.status).toBe('degraded');

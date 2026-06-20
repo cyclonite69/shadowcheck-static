@@ -47,6 +47,7 @@ describe('GET /api/health', () => {
   it('should return 200 and healthy status', async () => {
     (pool.query as jest.Mock).mockResolvedValue({ rows: [{ db_name: 'shadowcheck_test' }] });
     const res = await request(app).get('/api/health');
+    expect(pool.query).toHaveBeenCalledWith('SELECT current_database() AS db_name');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('healthy');
   });

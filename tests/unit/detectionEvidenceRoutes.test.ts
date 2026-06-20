@@ -53,9 +53,27 @@ describe('detection evidence routes', () => {
       bssid: 'AA:BB:CC:DD:EE:FF',
       evidence: [{ device_type: 'camera' }],
     });
-    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('ORDER BY'), [
-      'AA:BB:CC:DD:EE:FF',
-    ]);
+
+    const [sqlQuery, sqlParams] = mockQuery.mock.calls[0];
+    expect(sqlParams).toEqual(['AA:BB:CC:DD:EE:FF']);
+
+    // Check query structure components separately to avoid formatting brittleness
+    expect(sqlQuery).toContain('FROM app.surveillance_detections');
+    expect(sqlQuery).toContain('LEFT JOIN app.network_tags');
+    expect(sqlQuery).toContain('WHERE sd.bssid = $1');
+    expect(sqlQuery).toContain('ORDER BY sd.detected_at DESC');
+
+    // Check all individual columns selected
+    expect(sqlQuery).toContain('sd.device_type');
+    expect(sqlQuery).toContain('sd.confidence');
+    expect(sqlQuery).toContain('sd.threat_score');
+    expect(sqlQuery).toContain('sd.detected_at');
+    expect(sqlQuery).toContain('sd.detection_method');
+    expect(sqlQuery).toContain('sd.matched_signals');
+    expect(sqlQuery).toContain('sd.false_positive');
+    expect(sqlQuery).toContain('sd.fp_reason');
+    expect(sqlQuery).toContain('sd.notes');
+    expect(sqlQuery).toContain('nt.tags');
   });
 
   it('reports evidence query failures', async () => {

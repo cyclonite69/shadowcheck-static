@@ -68,17 +68,18 @@ _DI backbone and high-leverage orchestration dependencies must be role locked be
 
 _Locks down API clients and core query-heavy route modules._
 
-- [ ] `server/src/api/routes/v1/admin/detectionEvidence.ts`
+- [x] `server/src/api/routes/v1/admin/detectionEvidence.ts`
   - **Rationale:** Route module contains 1 SQL keyword occurrences.
   - **Required Verification:** `npx jest tests/unit/detectionEvidenceRoutes.test.ts --no-coverage --runInBand`
 
-- [ ] `server/src/api/routes/v1/health.ts`
+- [x] `server/src/api/routes/v1/health.ts`
   - **Rationale:** Route module contains 1 SQL keyword occurrences.
   - **Required Verification:** `npx jest tests/integration/api/v1/health.test.ts --no-coverage --runInBand; npx jest tests/unit/health.test.ts --no-coverage --runInBand`
 
-- [ ] `server/src/api/routes/v1/wigle/detail.ts`
+- [x] `server/src/api/routes/v1/wigle/detail.ts`
   - **Rationale:** Route module contains 1 SQL keyword occurrences.
   - **Required Verification:** `npx jest tests/integration/api/v1/wigleDetail.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigle/detail.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigleDetailService.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigleDetailTransforms.test.ts --no-coverage --runInBand`
+  - **Note:** Mock-based test design of `tests/integration/api/v1/wigleDetail.test.ts` was identified as a unit test in integration clothing. Transitioning mock-integration routes to the DB-hitting integration runner environment is explicitly deferred to Stage 3.
 
 - [ ] `client/src/api/adminApi.ts`
   - **Rationale:** other module exceeds: 69 functions > 28.
