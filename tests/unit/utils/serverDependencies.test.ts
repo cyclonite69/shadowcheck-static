@@ -90,16 +90,54 @@ describe('serverDependencies', () => {
   it('should load route modules correctly', () => {
     const routeModules = loadRouteModules();
 
-    expect(routeModules).toHaveProperty('healthRoutes');
-    expect(routeModules).toHaveProperty('networksRoutes');
-    expect(routeModules).toHaveProperty('explorerRoutes');
-    expect(routeModules).toHaveProperty('threatsRoutes');
-    expect(routeModules).toHaveProperty('wigleRoutes');
+    const expectedRouteKeys = [
+      'healthRoutes',
+      'networksRoutes',
+      'explorerRoutes',
+      'threatsRoutes',
+      'wigleRoutes',
+      'adminRoutes',
+      'mlRoutes',
+      'geospatialRoutes',
+      'analyticsRoutes',
+      'networksV2Routes',
+      'threatsV2Routes',
+      'filteredRoutes',
+      'dashboardRoutes',
+      'locationMarkersRoutes',
+      'homeLocationRoutes',
+      'keplerRoutes',
+      'backupRoutes',
+      'exportRoutes',
+      'analyticsPublicRoutes',
+      'settingsRoutes',
+      'networkTagsRoutes',
+      'authRoutes',
+      'geocodingRoutes',
+      'wigleImportRoutes',
+      'dataQualityRoutes',
+      'claudeRoutes',
+      'threatReportRoutes',
+      'mobileIngestRoutes',
+      'agencyOfficesRoutes',
+      'federalCourthousesRoutes',
+      'deflockCamerasRoutes',
+      'shotspotterZonesRoutes',
+      'shotspotterSensorsRoutes',
+      'networkAgenciesRoutes',
+    ];
+
+    expect(Object.keys(routeModules).length).toBe(expectedRouteKeys.length);
+
+    expectedRouteKeys.forEach((key) => {
+      expect(routeModules).toHaveProperty(key);
+      const val = routeModules[key as keyof typeof routeModules];
+      expect(val).toBeDefined();
+      expect(['function', 'object']).toContain(typeof val);
+    });
+
     expect(routeModules.wigleRoutes).toBe(mockWigleIndexRoute.default);
     expect(routeModules.wigleImportRoutes).toBe(mockRoute.default);
     expect(routeModules.wigleRoutes).not.toBe(routeModules.wigleImportRoutes);
-    expect(routeModules).toHaveProperty('agencyOfficesRoutes');
-    expect(routeModules).toHaveProperty('federalCourthousesRoutes');
-    expect(routeModules).toHaveProperty('networkAgenciesRoutes');
   });
 });

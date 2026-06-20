@@ -42,23 +42,23 @@ This file tracks the status of Stage 1 (Role Locks & Characterization Tests) tar
 
 _DI backbone and high-leverage orchestration dependencies must be role locked before modularity refactors on service layers scale._
 
-- [ ] `server/src/config/container.ts`
+- [x] `server/src/config/container.ts`
   - **Rationale:** Static fan-out is 57 internal modules. other module exceeds: 57 imports > 18.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
-- [ ] `server/src/utils/serverDependencies.ts`
+- [x] `server/src/utils/serverDependencies.ts`
   - **Rationale:** Static fan-out is 37 internal modules. other module exceeds: 42 imports > 18.
   - **Required Verification:** `npx jest tests/unit/utils/serverDependencies.test.ts --no-coverage --runInBand`
 
-- [ ] `tests/unit/utils/serverDependencies.test.ts`
+- [x] `tests/unit/utils/serverDependencies.test.ts`
   - **Rationale:** Static fan-out is 38 internal modules. test module exceeds: 40 imports > 30.
   - **Required Verification:** `npx jest tests/unit/utils/serverDependencies.test.ts --no-coverage --runInBand`
 
-- [ ] `client/src/components/geospatial/hooks/useGeospatialExplorerState.ts`
+- [x] `client/src/components/geospatial/hooks/useGeospatialExplorerState.ts`
   - **Rationale:** Static fan-out is 33 internal modules. hook module exceeds: 505 lines > 350; 36 imports > 15; 437 largest function lines > 150.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
-- [ ] `client/src/components/WiglePage.tsx`
+- [x] `client/src/components/WiglePage.tsx`
   - **Rationale:** Static fan-out is 34 internal modules. component module exceeds: 666 lines > 500; 38 imports > 20; 42 functions > 28; 616 largest function lines > 260.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
