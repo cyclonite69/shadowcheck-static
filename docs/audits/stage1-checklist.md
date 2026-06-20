@@ -38,29 +38,9 @@ This file tracks the status of Stage 1 (Role Locks & Characterization Tests) tar
 
 ---
 
-## Batch B — Dependency Injection Backbone (In Progress / Next)
+## Batch B — Dependency Injection & Orchestrator Backbone (In Progress / Next)
 
-_DI backbone dependencies must be role locked before modularity refactors on service layers scale._
-
-- [ ] `client/src/components/geospatial/hooks/useGeospatialExplorerState.ts`
-  - **Rationale:** Static fan-out is 33 internal modules. hook module exceeds: 505 lines > 350; 36 imports > 15; 437 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/WiglePage.tsx`
-  - **Rationale:** Static fan-out is 34 internal modules. component module exceeds: 666 lines > 500; 38 imports > 20; 42 functions > 28; 616 largest function lines > 260.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `server/src/api/routes/v1/admin/detectionEvidence.ts`
-  - **Rationale:** Route module contains 1 SQL keyword occurrences.
-  - **Required Verification:** `npx jest tests/unit/detectionEvidenceRoutes.test.ts --no-coverage --runInBand`
-
-- [ ] `server/src/api/routes/v1/health.ts`
-  - **Rationale:** Route module contains 1 SQL keyword occurrences.
-  - **Required Verification:** `npx jest tests/integration/api/v1/health.test.ts --no-coverage --runInBand; npx jest tests/unit/health.test.ts --no-coverage --runInBand`
-
-- [ ] `server/src/api/routes/v1/wigle/detail.ts`
-  - **Rationale:** Route module contains 1 SQL keyword occurrences.
-  - **Required Verification:** `npx jest tests/integration/api/v1/wigleDetail.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigle/detail.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigleDetailService.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigleDetailTransforms.test.ts --no-coverage --runInBand`
+_DI backbone and high-leverage orchestration dependencies must be role locked before modularity refactors on service layers scale._
 
 - [ ] `server/src/config/container.ts`
   - **Rationale:** Static fan-out is 57 internal modules. other module exceeds: 57 imports > 18.
@@ -74,9 +54,31 @@ _DI backbone dependencies must be role locked before modularity refactors on ser
   - **Rationale:** Static fan-out is 38 internal modules. test module exceeds: 40 imports > 30.
   - **Required Verification:** `npx jest tests/unit/utils/serverDependencies.test.ts --no-coverage --runInBand`
 
+- [ ] `client/src/components/geospatial/hooks/useGeospatialExplorerState.ts`
+  - **Rationale:** Static fan-out is 33 internal modules. hook module exceeds: 505 lines > 350; 36 imports > 15; 437 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/WiglePage.tsx`
+  - **Rationale:** Static fan-out is 34 internal modules. component module exceeds: 666 lines > 500; 38 imports > 20; 42 functions > 28; 616 largest function lines > 260.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
 ---
 
-## Batch C — Services, Controllers, and Components (Unstarted)
+## Batch C — Core Route Handler & API Client Locks (Unstarted)
+
+_Locks down API clients and core query-heavy route modules._
+
+- [ ] `server/src/api/routes/v1/admin/detectionEvidence.ts`
+  - **Rationale:** Route module contains 1 SQL keyword occurrences.
+  - **Required Verification:** `npx jest tests/unit/detectionEvidenceRoutes.test.ts --no-coverage --runInBand`
+
+- [ ] `server/src/api/routes/v1/health.ts`
+  - **Rationale:** Route module contains 1 SQL keyword occurrences.
+  - **Required Verification:** `npx jest tests/integration/api/v1/health.test.ts --no-coverage --runInBand; npx jest tests/unit/health.test.ts --no-coverage --runInBand`
+
+- [ ] `server/src/api/routes/v1/wigle/detail.ts`
+  - **Rationale:** Route module contains 1 SQL keyword occurrences.
+  - **Required Verification:** `npx jest tests/integration/api/v1/wigleDetail.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigle/detail.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigleDetailService.test.ts --no-coverage --runInBand; npx jest tests/unit/services/wigleDetailTransforms.test.ts --no-coverage --runInBand`
 
 - [ ] `client/src/api/adminApi.ts`
   - **Rationale:** other module exceeds: 69 functions > 28.
@@ -90,25 +92,57 @@ _DI backbone dependencies must be role locked before modularity refactors on ser
   - **Rationale:** other module exceeds: 36 functions > 28.
   - **Required Verification:** `npx jest tests/unit/services/wigleApi.test.ts --no-coverage --runInBand`
 
+---
+
+## Batch D — Geolocation & Map Hook Locks (Unstarted)
+
+_Locks down geospatial analysis, mapping, and link-tracing hooks._
+
+- [ ] `client/src/components/geospatial/hooks/useCoreObservationLayers.ts`
+  - **Rationale:** hook module exceeds: 198 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/geospatial/hooks/useMapLayers.ts`
+  - **Rationale:** hook module exceeds: 407 lines > 350; 377 largest function lines > 150.
+  - **Required Verification:** `npx jest tests/unit/useMapLayers.test.ts --no-coverage --runInBand`
+
+- [ ] `client/src/components/geospatial/hooks/useMapLayersToggle.ts`
+  - **Rationale:** hook module exceeds: 274 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/geospatial/hooks/useMapStyleControls.ts`
+  - **Rationale:** hook module exceeds: 433 lines > 350; 401 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/geospatial/hooks/useNetworkContextMenu.ts`
+  - **Rationale:** hook module exceeds: 29 functions > 20; 318 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/geospatial/hooks/useNetworkNotes.ts`
+  - **Rationale:** hook module exceeds: 209 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/geospatial/hooks/useSiblingLinks.ts`
+  - **Rationale:** React hook contains graph/adjacency algorithm signals alongside hydration or effect coordination. hook module exceeds: 359 lines > 350; 21 functions > 20; 332 largest function lines > 150.
+  - **Required Verification:** `npx jest tests/unit/useSiblingLinks.test.ts --no-coverage --runInBand`
+
+- [ ] `client/src/components/geospatial/hooks/useSummaryLayers.ts`
+  - **Rationale:** hook module exceeds: 174 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/geospatial/hooks/useWigleLayers.ts`
+  - **Rationale:** hook module exceeds: 378 lines > 350; 27 functions > 20; 310 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+---
+
+## Batch E — Core Tab & Component Locks (Unstarted)
+
+_Locks down tab layouts, UI modal controls, and core frontend pages._
+
 - [ ] `client/src/components/admin/components/WigleRunsCard.tsx`
   - **Rationale:** component module exceeds: 618 lines > 500; 37 functions > 28; 408 largest function lines > 260.
   - **Required Verification:** `npx jest tests/unit/wigleRunsCardJurisdiction.test.ts --no-coverage --runInBand`
-
-- [ ] `client/src/components/admin/hooks/useApiTesting.ts`
-  - **Rationale:** hook module exceeds: 354 lines > 350; 329 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/admin/hooks/useConfiguration.ts`
-  - **Rationale:** hook module exceeds: 484 lines > 350; 36 functions > 20; 443 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/admin/hooks/useDataImport.ts`
-  - **Rationale:** hook module exceeds: 157 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/admin/hooks/useWigleSearch.ts`
-  - **Rationale:** hook module exceeds: 280 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
 - [ ] `client/src/components/admin/tabs/ApiTestingTab.tsx`
   - **Rationale:** component module exceeds: 590 lines > 500; 524 largest function lines > 260.
@@ -162,6 +196,52 @@ _DI backbone dependencies must be role locked before modularity refactors on ser
   - **Rationale:** Static fan-out is 21 internal modules. component module exceeds: 22 imports > 20.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
+- [ ] `client/src/components/DashboardPage.tsx`
+  - **Rationale:** component module exceeds: 382 largest function lines > 260.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/geospatial/modals/NetworkNoteModal.tsx`
+  - **Rationale:** component module exceeds: 516 lines > 500; 488 largest function lines > 260.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/geospatial/networkTable/cellRenderers.tsx`
+  - **Rationale:** component module exceeds: 691 lines > 500; 33 functions > 28.
+  - **Required Verification:** `npx jest tests/unit/networkTableCellRenderers.test.ts --no-coverage --runInBand`
+
+- [ ] `client/src/components/geospatial/table/NetworkTableBodyGrid.tsx`
+  - **Rationale:** component module exceeds: 32 functions > 28; 396 largest function lines > 260.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/modals/NetworkTimeFrequencyModal.tsx`
+  - **Rationale:** component module exceeds: 32 functions > 28; 409 largest function lines > 260.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/StartPage.tsx`
+  - **Rationale:** component module exceeds: 279 largest function lines > 260.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+---
+
+## Batch F — Other Services & Auxiliary Module Locks (Unstarted)
+
+_Long-tail services, utilities, ETL scripts, and remaining files._
+
+- [ ] `client/src/components/admin/hooks/useApiTesting.ts`
+  - **Rationale:** hook module exceeds: 354 lines > 350; 329 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/admin/hooks/useConfiguration.ts`
+  - **Rationale:** hook module exceeds: 484 lines > 350; 36 functions > 20; 443 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/admin/hooks/useDataImport.ts`
+  - **Rationale:** hook module exceeds: 157 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
+- [ ] `client/src/components/admin/hooks/useWigleSearch.ts`
+  - **Rationale:** hook module exceeds: 280 largest function lines > 150.
+  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
+
 - [ ] `client/src/components/analytics/components/AnalyticsCharts.tsx`
   - **Rationale:** component module exceeds: 542 lines > 500; 442 largest function lines > 260.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
@@ -174,60 +254,8 @@ _DI backbone dependencies must be role locked before modularity refactors on ser
   - **Rationale:** hook module exceeds: 24 functions > 20.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
-- [ ] `client/src/components/DashboardPage.tsx`
-  - **Rationale:** component module exceeds: 382 largest function lines > 260.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/hooks/useCoreObservationLayers.ts`
-  - **Rationale:** hook module exceeds: 198 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/hooks/useMapLayers.ts`
-  - **Rationale:** hook module exceeds: 407 lines > 350; 377 largest function lines > 150.
-  - **Required Verification:** `npx jest tests/unit/useMapLayers.test.ts --no-coverage --runInBand`
-
-- [ ] `client/src/components/geospatial/hooks/useMapLayersToggle.ts`
-  - **Rationale:** hook module exceeds: 274 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/hooks/useMapStyleControls.ts`
-  - **Rationale:** hook module exceeds: 433 lines > 350; 401 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/hooks/useNetworkContextMenu.ts`
-  - **Rationale:** hook module exceeds: 29 functions > 20; 318 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/hooks/useNetworkNotes.ts`
-  - **Rationale:** hook module exceeds: 209 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/hooks/useSiblingLinks.ts`
-  - **Rationale:** React hook contains graph/adjacency algorithm signals alongside hydration or effect coordination. hook module exceeds: 359 lines > 350; 21 functions > 20; 332 largest function lines > 150.
-  - **Required Verification:** `npx jest tests/unit/useSiblingLinks.test.ts --no-coverage --runInBand`
-
-- [ ] `client/src/components/geospatial/hooks/useSummaryLayers.ts`
-  - **Rationale:** hook module exceeds: 174 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/hooks/useWigleLayers.ts`
-  - **Rationale:** hook module exceeds: 378 lines > 350; 27 functions > 20; 310 largest function lines > 150.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/modals/NetworkNoteModal.tsx`
-  - **Rationale:** component module exceeds: 516 lines > 500; 488 largest function lines > 260.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/networkTable/cellRenderers.tsx`
-  - **Rationale:** component module exceeds: 691 lines > 500; 33 functions > 28.
-  - **Required Verification:** `npx jest tests/unit/networkTableCellRenderers.test.ts --no-coverage --runInBand`
-
 - [ ] `client/src/components/geospatial/networkTagMenu/DetectionEvidenceModal.tsx`
   - **Rationale:** component module exceeds: 355 largest function lines > 260.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/geospatial/table/NetworkTableBodyGrid.tsx`
-  - **Rationale:** component module exceeds: 32 functions > 28; 396 largest function lines > 260.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
 - [ ] `client/src/components/geospatial/utils/siblingGroupGraph.ts`
@@ -242,16 +270,8 @@ _DI backbone dependencies must be role locked before modularity refactors on ser
   - **Rationale:** hook module exceeds: 417 lines > 350; 25 functions > 20; 187 largest function lines > 150.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
-- [ ] `client/src/components/modals/NetworkTimeFrequencyModal.tsx`
-  - **Rationale:** component module exceeds: 32 functions > 28; 409 largest function lines > 260.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
 - [ ] `client/src/components/Navigation.tsx`
   - **Rationale:** component module exceeds: 267 largest function lines > 260.
-  - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
-
-- [ ] `client/src/components/StartPage.tsx`
-  - **Rationale:** component module exceeds: 279 largest function lines > 260.
   - **Required Verification:** `Add or identify focused characterization tests before refactoring.; npm run type-check`
 
 - [ ] `client/src/components/visint/VisIntUploader.tsx`
