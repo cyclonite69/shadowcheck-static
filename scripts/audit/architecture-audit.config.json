@@ -1,0 +1,101 @@
+{
+  "roots": ["client/src", "server/src", "etl", "scripts", "tests"],
+  "excludes": [
+    "node_modules",
+    "dist",
+    "coverage",
+    ".git",
+    ".claude",
+    ".codex",
+    "client/public",
+    "docs/references/vendor_docs"
+  ],
+  "entrypoints": [
+    "client/src/main.tsx",
+    "server/src/server.ts",
+    "server/server.js",
+    "scripts/**",
+    "etl/**/index.ts"
+  ],
+  "envIgnore": [
+    "NODE_ENV",
+    "HOME",
+    "PATH",
+    "CI",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "AWS_DEFAULT_REGION",
+    "AWS_REGION",
+    "AWS_CONTAINER_CREDENTIALS_FULL_URI",
+    "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
+  ],
+  "roles": {
+    "registry": {
+      "maxLines": 3000,
+      "maxImports": 10,
+      "maxFunctions": 10,
+      "maxFunctionLines": 300
+    },
+    "route": {
+      "maxLines": 350,
+      "maxImports": 15,
+      "maxFunctions": 18,
+      "maxFunctionLines": 140
+    },
+    "repository": {
+      "maxLines": 450,
+      "maxImports": 15,
+      "maxFunctions": 24,
+      "maxFunctionLines": 180
+    },
+    "service": {
+      "maxLines": 500,
+      "maxImports": 18,
+      "maxFunctions": 28,
+      "maxFunctionLines": 180
+    },
+    "hook": {
+      "maxLines": 350,
+      "maxImports": 15,
+      "maxFunctions": 20,
+      "maxFunctionLines": 150
+    },
+    "component": {
+      "maxLines": 500,
+      "maxImports": 20,
+      "maxFunctions": 28,
+      "maxFunctionLines": 260
+    },
+    "store": {
+      "maxLines": 450,
+      "maxImports": 15,
+      "maxFunctions": 24,
+      "maxFunctionLines": 180
+    },
+    "etl": {
+      "maxLines": 700,
+      "maxImports": 20,
+      "maxFunctions": 35,
+      "maxFunctionLines": 240
+    },
+    "script": {
+      "maxLines": 700,
+      "maxImports": 20,
+      "maxFunctions": 35,
+      "maxFunctionLines": 240
+    },
+    "test": {
+      "maxLines": 900,
+      "maxImports": 30,
+      "maxFunctions": 60,
+      "maxFunctionLines": 400
+    },
+    "other": {
+      "maxLines": 500,
+      "maxImports": 18,
+      "maxFunctions": 28,
+      "maxFunctionLines": 200
+    }
+  }
+}

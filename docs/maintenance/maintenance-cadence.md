@@ -145,3 +145,36 @@ All major findings from previous work and incident post-mortems must be integrat
 4. **Sibling Candidates vs. Effective Truth**: Sibling matches remain candidates until validated through confidence metrics and effective override policies.
 5. **Documentation Integrity**: Documentation must represent the current state. Do not leave obsolete flags, features, or paths documented alongside new features. Update the body of documentation rather than adding append-only update logs.
 6. **Diagram Maintenance**: If a subsystem changes, its Mermaid diagrams in both the repo and `.github/wiki/` must be synchronized to prevent diagram-code drift.
+
+---
+
+## 6. Repeatable Architecture Audit Tooling
+
+The architecture audit lane separates cheap enforcement from narrative evidence generation:
+
+### Per PR / Before Commit
+
+```bash
+npm run policy:modularity
+npm run lint:boundaries
+npm run type-check
+```
+
+### Weekly or After a Major Subsystem Merge
+
+```bash
+npm run audit:cruft
+npm run audit:modularity:light
+```
+
+### Monthly / Roadmap Refresh
+
+```bash
+npm run audit:modularity
+npm run audit:architecture
+npm run audit:roadmap
+```
+
+The generators write only dated Markdown reports under `docs/audits/`. Pass `--stdout` to any entry point for a no-write preview. They never delete files, change dependencies, run migrations, connect to a database, or refactor code.
+
+Audit findings are candidates with confidence levels. Static “unreferenced” and “unused export” findings still require dynamic-import, route-registration, deployment, and focused-test verification before deletion. The roadmap always sequences role locks and characterization tests before pure extraction, side-effect isolation, SQL splitting, or cruft removal.
