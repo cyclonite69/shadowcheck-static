@@ -1012,6 +1012,7 @@
 - **wigle:** stabilize map layer rendering and event binding ([1ce43ce](https://github.com/cyclonite69/shadowcheck-web/commit/1ce43ce462bc4c33e07d59e1370263ff519a27d8))
 - **wigle:** stabilize overlay lifecycle and field data loading ([6e0205a](https://github.com/cyclonite69/shadowcheck-web/commit/6e0205af65af72a7ca0a85b202dab53be16e8bcc))
 - **wigle:** standardize KML layer initialization via callback ([f52f6b2](https://github.com/cyclonite69/shadowcheck-web/commit/f52f6b2c160f2fa4da098cbd5b63e7ae979bc039))
+- **wigle:** surface ledger coverage without auto probes ([212075d](https://github.com/cyclonite69/shadowcheck-web/commit/212075d72f7a7451f1654af04435fcad193f801c))
 - **wigle:** swap v3 observation timestamps and fix address locality ([9d73034](https://github.com/cyclonite69/shadowcheck-web/commit/9d73034c939a3ed385c89f6437a286e4e278d66a))
 - **wigle:** use API search_after cursor directly in computeNextCursor ([37a74e4](https://github.com/cyclonite69/shadowcheck-web/commit/37a74e4f0083ba72ef147cbb279ef685e5c10b4b))
 - **wigle:** use bssid field for v3 rows in field data fetch ([5acc4aa](https://github.com/cyclonite69/shadowcheck-web/commit/5acc4aa81920fdd423ad5f673a4cde2f77486682))

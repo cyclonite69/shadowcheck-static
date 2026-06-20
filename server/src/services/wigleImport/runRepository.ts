@@ -320,18 +320,33 @@ const getImportCompletenessSummary = async (
 ) => {
   const { searchTerm, state } = options;
   const params: any[] = [];
-  const latestRunWhere = [`source IN ('wigle', 'v3_batch', 'v3_manual')`, `state IS NOT NULL`];
+  const latestRunWhere = [
+    `source IN ('wigle', 'wigle_v2', 'v3_batch', 'v3_manual')`,
+    `state IS NOT NULL`,
+  ];
   const tableCountWhere = [`country = 'US'`, `region IS NOT NULL`, `LENGTH(TRIM(region)) = 2`];
+  const ledgerWhere = [
+    `e.kind = 'search'`,
+    `e.phase = 'complete'`,
+    `e.query_params->>'region' IS NOT NULL`,
+    `LENGTH(TRIM(e.query_params->>'region')) = 2`,
+    `TRIM(UPPER(e.query_params->>'country')) = 'US'`,
+  ];
 
   if (searchTerm) {
     params.push(searchTerm);
     latestRunWhere.push(`LOWER(search_term) = LOWER($${params.length})`);
     tableCountWhere.push(`ssid ILIKE $${params.length}`);
+    ledgerWhere.push(`LOWER(e.query_params->>'ssidlike') = LOWER($${params.length})`);
+  } else {
+    // Ledger availability is only meaningful for a selected SSID term.
+    ledgerWhere.push('FALSE');
   }
   if (state) {
     params.push(state.trim().toUpperCase());
     latestRunWhere.push(`TRIM(UPPER(state)) = $${params.length}`);
     tableCountWhere.push(`TRIM(UPPER(region)) = $${params.length}`);
+    ledgerWhere.push(`TRIM(UPPER(e.query_params->>'region')) = $${params.length}`);
   }
 
   const result = await query(
@@ -369,10 +384,28 @@ const getImportCompletenessSummary = async (
        WHERE ${tableCountWhere.join(' AND ')}
        GROUP BY TRIM(UPPER(region))
      ),
+     ledger_events AS (
+       SELECT
+         TRIM(UPPER(e.query_params->>'region')) AS state,
+         e.status AS ledger_status,
+         e.requested_at AS ledger_requested_at,
+         e.http_status AS ledger_http_status,
+         e.result_count AS ledger_result_count,
+         e.retry_after_hint AS ledger_retry_after_hint,
+         e.error_message AS ledger_error,
+         ROW_NUMBER() OVER (
+           PARTITION BY TRIM(UPPER(e.query_params->>'region'))
+           ORDER BY e.requested_at DESC, e.id DESC
+         ) AS rn
+       FROM app.wigle_ledger_events e
+       WHERE ${ledgerWhere.join(' AND ')}
+     ),
      states AS (
        SELECT state FROM latest_runs
        UNION
        SELECT state FROM table_counts
+       UNION
+       SELECT state FROM ledger_events
      )
      SELECT
        s.state,
@@ -397,6 +430,12 @@ const getImportCompletenessSummary = async (
        lr.started_at,
        lr.updated_at,
        lr.completed_at,
+       le.ledger_status,
+       le.ledger_requested_at,
+       le.ledger_http_status,
+       le.ledger_result_count,
+       le.ledger_retry_after_hint,
+       le.ledger_error,
        CASE
          WHEN lr.api_total_results IS NULL THEN NULL
          ELSE GREATEST(lr.api_total_results - COALESCE(lr.rows_returned, 0), 0)
@@ -408,6 +447,7 @@ const getImportCompletenessSummary = async (
      FROM states s
      LEFT JOIN table_counts tc ON tc.state = s.state
      LEFT JOIN latest_runs lr ON lr.state = s.state AND lr.rn = 1
+     LEFT JOIN ledger_events le ON le.state = s.state AND le.rn = 1
      ORDER BY s.state`,
     params
   );

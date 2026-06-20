@@ -11,7 +11,11 @@ import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
 import { wigleApi } from '../../../api/wigleApi';
 import { getCoverageStatusMeta } from './wigleCoverageStatusMeta';
-import { getCoverageCountDisplay, mergeCoverageStates } from '../hooks/wigleCoverageHelpers';
+import {
+  getCoverageCountDisplay,
+  getCoverageRemoteDisplay,
+  mergeCoverageStates,
+} from '../hooks/wigleCoverageHelpers';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -190,6 +194,7 @@ export const WigleSearchTab: React.FC = () => {
                     const isUnverified = s.probeStatus === 'unverified';
                     const isActive = s.isQueried || s.hasLocalData;
                     const countDisplay = getCoverageCountDisplay(s);
+                    const remoteDisplay = getCoverageRemoteDisplay(s);
                     const statusMeta = isUnverified
                       ? getCoverageStatusMeta(s.status, s.rowsInserted, s.probeStatus)
                       : s.isQueried
@@ -219,9 +224,11 @@ export const WigleSearchTab: React.FC = () => {
                         title={
                           isUnverified
                             ? statusMeta.title
-                            : s.lastError
-                              ? `Note: ${s.lastError}`
-                              : statusMeta.title || undefined
+                            : s.lastLedgerError
+                              ? `Ledger: ${s.lastLedgerError}`
+                              : s.lastError
+                                ? `Note: ${s.lastError}`
+                                : statusMeta.title || undefined
                         }
                       >
                         <div className="flex justify-between items-start mb-1 gap-2">
@@ -256,6 +263,28 @@ export const WigleSearchTab: React.FC = () => {
                         <div className="text-[9px] text-slate-500 uppercase font-semibold">
                           {countDisplay.label}
                         </div>
+                        {!isUnverified && (
+                          <div className="mt-1.5 pt-1.5 border-t border-slate-800/50 text-[9px] leading-tight text-slate-400 space-y-0.5">
+                            <div>{remoteDisplay.availabilityLabel}</div>
+                            {remoteDisplay.gapLabel && <div>{remoteDisplay.gapLabel}</div>}
+                            {remoteDisplay.statusLabel && (
+                              <div
+                                className={
+                                  s.ledgerStatus === 'rate_limited'
+                                    ? 'text-amber-300'
+                                    : 'text-red-300'
+                                }
+                              >
+                                {remoteDisplay.statusLabel}
+                              </div>
+                            )}
+                            {s.lastLedgerProbeAt && (
+                              <div className="text-slate-600">
+                                Checked {formatShortDate(s.lastLedgerProbeAt)}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   });

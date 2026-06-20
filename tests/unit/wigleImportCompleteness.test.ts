@@ -65,6 +65,12 @@ describe('wigleImportRunService completeness report', () => {
         started_at: '2026-04-03T12:00:00.000Z',
         updated_at: '2026-04-03T12:05:00.000Z',
         completed_at: null,
+        ledger_status: 'success',
+        ledger_requested_at: '2026-04-03T12:04:00.000Z',
+        ledger_http_status: 200,
+        ledger_result_count: 100,
+        ledger_retry_after_hint: null,
+        ledger_error: null,
         missing_api_rows: 693,
         missing_insert_rows: 1488,
       },
@@ -82,6 +88,12 @@ describe('wigleImportRunService completeness report', () => {
         localRows: 1810,
         localUniqueBssids: 1795,
         storedCount: 1795,
+        knownRemoteAvailable: 2393,
+        gap: 598,
+        lastLedgerProbeAt: '2026-04-03T12:04:00.000Z',
+        lastLedgerHttpStatus: 200,
+        lastLedgerResultCount: 100,
+        ledgerStatus: 'known',
         runId: 19,
         status: 'failed',
         apiTotalResults: 2393,
@@ -103,6 +115,10 @@ describe('wigleImportRunService completeness report', () => {
         run_id: null,
         status: null,
         rows_inserted: null,
+        ledger_status: 'success',
+        ledger_requested_at: '2026-06-19T02:36:07.000Z',
+        ledger_http_status: 200,
+        ledger_result_count: 100,
       },
     ]);
 
@@ -117,9 +133,66 @@ describe('wigleImportRunService completeness report', () => {
         state: 'CA',
         localRows: 2104,
         localUniqueBssids: 2104,
+        knownRemoteAvailable: null,
+        gap: null,
+        lastLedgerResultCount: 100,
+        ledgerStatus: 'unknown',
         runId: null,
         rowsInserted: null,
       })
     );
+  });
+
+  it('surfaces rate-limit and error ledger outcomes without making a WiGLE request', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch');
+    mockGetImportCompletenessSummary.mockResolvedValue([
+      {
+        state: 'CA',
+        local_rows: 10,
+        local_unique_bssids: 9,
+        api_total_results: 20,
+        ledger_status: 'rate_limited',
+        ledger_requested_at: '2026-06-19T12:00:00.000Z',
+        ledger_http_status: 429,
+        ledger_retry_after_hint: 60,
+        ledger_error: 'HTTP 429',
+      },
+      {
+        state: 'TX',
+        local_rows: 5,
+        local_unique_bssids: 5,
+        api_total_results: null,
+        ledger_status: 'error',
+        ledger_requested_at: '2026-06-19T13:00:00.000Z',
+        ledger_http_status: 500,
+        ledger_error: 'HTTP 500',
+      },
+    ]);
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const service = require('../../server/src/services/wigleImportRunService');
+    const report = await service.getImportCompletenessReport({ searchTerm: 'fbi' });
+
+    expect(report.states[0]).toEqual(
+      expect.objectContaining({
+        knownRemoteAvailable: 20,
+        gap: 11,
+        ledgerStatus: 'rate_limited',
+        lastLedgerHttpStatus: 429,
+        lastLedgerRetryAfterHint: 60,
+        lastLedgerError: 'HTTP 429',
+      })
+    );
+    expect(report.states[1]).toEqual(
+      expect.objectContaining({
+        knownRemoteAvailable: null,
+        gap: null,
+        ledgerStatus: 'error',
+        lastLedgerHttpStatus: 500,
+        lastLedgerError: 'HTTP 500',
+      })
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
   });
 });

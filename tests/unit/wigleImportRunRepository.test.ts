@@ -357,10 +357,14 @@ describe('wigleImportRunRepository', () => {
       });
       const [sql, params] = query.mock.calls[0];
       expect(sql).toContain('WITH latest_runs AS');
+      expect(sql).toContain("source IN ('wigle', 'wigle_v2', 'v3_batch', 'v3_manual')");
       expect(sql).toContain('LOWER(search_term) = LOWER($1)');
       expect(sql).toContain('ssid ILIKE $1');
       expect(sql).toContain('COUNT(*)::integer AS local_rows');
       expect(sql).toContain('COUNT(DISTINCT bssid)::integer AS local_unique_bssids');
+      expect(sql).toContain('FROM app.wigle_ledger_events e');
+      expect(sql).toContain("LOWER(e.query_params->>'ssidlike') = LOWER($1)");
+      expect(sql).toContain("TRIM(UPPER(e.query_params->>'region')) = $2");
       expect(params).toEqual(['fbi', 'IL']);
       expect(result[0].state).toBe('IL');
     });

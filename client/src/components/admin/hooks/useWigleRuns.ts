@@ -7,6 +7,14 @@ export interface WigleCompletenessState {
   localRows: number;
   localUniqueBssids: number;
   storedCount: number;
+  knownRemoteAvailable: number | null;
+  gap: number | null;
+  lastLedgerProbeAt: string | null;
+  lastLedgerHttpStatus: number | null;
+  lastLedgerResultCount: number | null;
+  lastLedgerRetryAfterHint: number | null;
+  lastLedgerError: string | null;
+  ledgerStatus: 'known' | 'unknown' | 'rate_limited' | 'error';
   runId: number | null;
   searchTerm: string | null;
   status: string | null;

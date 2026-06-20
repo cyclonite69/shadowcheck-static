@@ -20,7 +20,7 @@ for setting real rate limits.
 | `query_url`        | text        | The full URL requested from WiGLE (forensic audit trail)                                                                                               |
 | `query_params`     | jsonb       | The parameters sent with the request                                                                                                                   |
 | `duration_ms`      | integer     | Round-trip latency in milliseconds                                                                                                                     |
-| `result_count`     | integer     | Number of results returned (search kind only)                                                                                                          |
+| `result_count`     | integer     | Number of rows returned by this request page (search kind only); this is **not** WiGLE `totalResults`                                                  |
 | `retry_after_hint` | integer     | Seconds from WiGLE `Retry-After` header on 429 responses                                                                                               |
 | `error_message`    | text        | Human-readable error reason                                                                                                                            |
 | `http_status`      | integer     | Actual HTTP status code returned by WiGLE (e.g. 200, 404, 429). NULL for pre-2026-05-02 rows and for errors that threw before a response was received. |
@@ -59,6 +59,8 @@ Used to track the origin of WiGLE requests for quota attribution and behavior an
 - Rows older than 25 hours are pruned on each server startup (`hydrateLedger()`).
 - The in-memory `requestLedger` is hydrated from this table on startup so the 24h quota window survives container restarts.
 - Self-tuning logic uses `app.v_wigle_rate_limit_events` to calculate safe limits based on empirical wall-hit data.
+- Coverage Grid reads these rows for the latest request timestamp, HTTP status, rate-limit hint, and error only. Known remote availability comes from existing `app.wigle_import_runs.api_total_results`; `result_count` must never be treated as remote availability or used to compute a gap.
+- Passive Coverage Grid rendering and term selection are read-only and must never create ledger events or trigger WiGLE requests.
 
 ## Useful queries
 

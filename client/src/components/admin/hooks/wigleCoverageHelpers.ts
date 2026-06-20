@@ -1,11 +1,21 @@
 import type { WigleImportRun } from '../../../types/admin';
 import type { JurisdictionProbeStatus } from '../../../constants/network';
 
+export type CoverageLedgerStatus = 'known' | 'unknown' | 'rate_limited' | 'error';
+
 export interface CoverageStateRow {
   state: string;
   name: string;
   localRows: number;
   localUniqueBssids: number;
+  knownRemoteAvailable: number | null;
+  gap: number | null;
+  lastLedgerProbeAt: string | null;
+  lastLedgerHttpStatus: number | null;
+  lastLedgerResultCount: number | null;
+  lastLedgerRetryAfterHint: number | null;
+  lastLedgerError: string | null;
+  ledgerStatus: CoverageLedgerStatus;
   rowsInserted: number | null;
   runId: number | null;
   status: string | null;
@@ -20,6 +30,14 @@ export interface ReportStateEntry {
   localRows?: number | null;
   localUniqueBssids?: number | null;
   storedCount?: number | null;
+  knownRemoteAvailable?: number | null;
+  gap?: number | null;
+  lastLedgerProbeAt?: string | null;
+  lastLedgerHttpStatus?: number | null;
+  lastLedgerResultCount?: number | null;
+  lastLedgerRetryAfterHint?: number | null;
+  lastLedgerError?: string | null;
+  ledgerStatus?: CoverageLedgerStatus | null;
   rowsInserted?: number | null;
   runId?: number | null;
   status?: string | null;
@@ -85,6 +103,14 @@ export function mergeCoverageStates(
       name: stateObj.name,
       localRows,
       localUniqueBssids,
+      knownRemoteAvailable: matched?.knownRemoteAvailable ?? null,
+      gap: matched?.gap ?? null,
+      lastLedgerProbeAt: matched?.lastLedgerProbeAt ?? null,
+      lastLedgerHttpStatus: matched?.lastLedgerHttpStatus ?? null,
+      lastLedgerResultCount: matched?.lastLedgerResultCount ?? null,
+      lastLedgerRetryAfterHint: matched?.lastLedgerRetryAfterHint ?? null,
+      lastLedgerError: matched?.lastLedgerError ?? null,
+      ledgerStatus: matched?.ledgerStatus ?? 'unknown',
       rowsInserted: matched?.rowsInserted ?? null,
       runId: matched ? (matched.runId ?? null) : null,
       status: matched ? (matched.status ?? null) : null,
@@ -104,4 +130,32 @@ export function getCoverageCountDisplay(row: CoverageStateRow): {
     return { value: null, label: 'Not auto-probed' };
   }
   return { value: row.localUniqueBssids, label: 'Local BSSIDs' };
+}
+
+export function getCoverageRemoteDisplay(row: CoverageStateRow): {
+  availabilityLabel: string;
+  gapLabel: string | null;
+  statusLabel: string | null;
+} {
+  if (row.probeStatus === 'unverified') {
+    return {
+      availabilityLabel: 'Remote not auto-probed',
+      gapLabel: null,
+      statusLabel: null,
+    };
+  }
+
+  const availabilityLabel =
+    row.knownRemoteAvailable === null
+      ? 'Remote unknown'
+      : `Known available: ${row.knownRemoteAvailable.toLocaleString()}`;
+  const gapLabel = row.gap === null ? null : `Gap: ${row.gap.toLocaleString()}`;
+  const statusLabel =
+    row.ledgerStatus === 'rate_limited'
+      ? 'Rate limited'
+      : row.ledgerStatus === 'error'
+        ? 'Last probe failed'
+        : null;
+
+  return { availabilityLabel, gapLabel, statusLabel };
 }

@@ -3,6 +3,7 @@ export {};
 import {
   buildCoverageTerms,
   getCoverageCountDisplay,
+  getCoverageRemoteDisplay,
   mergeCoverageStates,
 } from '../../client/src/components/admin/hooks/wigleCoverageHelpers';
 import { US_STATES } from '../../client/src/constants/network';
@@ -221,6 +222,65 @@ describe('mergeCoverageStates', () => {
     expect(getCoverageCountDisplay(tx)).toEqual({ value: 10, label: 'Local BSSIDs' });
   });
 
+  test('displays known availability and gap separately from the local count', () => {
+    const [ca] = mergeCoverageStates(
+      [
+        {
+          state: 'CA',
+          localRows: 90,
+          localUniqueBssids: 80,
+          knownRemoteAvailable: 100,
+          gap: 20,
+          ledgerStatus: 'known',
+          lastLedgerProbeAt: '2026-06-19T12:00:00.000Z',
+        },
+      ],
+      [{ code: 'CA', name: 'California' }]
+    );
+
+    expect(getCoverageCountDisplay(ca)).toEqual({ value: 80, label: 'Local BSSIDs' });
+    expect(getCoverageRemoteDisplay(ca)).toEqual({
+      availabilityLabel: 'Known available: 100',
+      gapLabel: 'Gap: 20',
+      statusLabel: null,
+    });
+  });
+
+  test('shows remote availability as unknown when no durable total exists', () => {
+    const [tx] = mergeCoverageStates(
+      [
+        {
+          state: 'TX',
+          localRows: 12,
+          localUniqueBssids: 10,
+          knownRemoteAvailable: null,
+          gap: null,
+          ledgerStatus: 'unknown',
+          lastLedgerResultCount: 100,
+        },
+      ],
+      [{ code: 'TX', name: 'Texas' }]
+    );
+
+    expect(getCoverageRemoteDisplay(tx)).toEqual({
+      availabilityLabel: 'Remote unknown',
+      gapLabel: null,
+      statusLabel: null,
+    });
+  });
+
+  test.each([
+    ['rate_limited', 'Rate limited'],
+    ['error', 'Last probe failed'],
+  ] as const)('surfaces %s ledger state', (ledgerStatus, statusLabel) => {
+    const [row] = mergeCoverageStates(
+      [{ state: 'CA', ledgerStatus }],
+      [{ code: 'CA', name: 'California' }]
+    );
+
+    expect(getCoverageRemoteDisplay(row).statusLabel).toBe(statusLabel);
+  });
+
   test('keeps unverified territory display inactive even if local counts are returned', () => {
     const [americanSamoa] = mergeCoverageStates(
       [{ state: 'AS', localRows: 4, localUniqueBssids: 3 }],
@@ -230,6 +290,11 @@ describe('mergeCoverageStates', () => {
     expect(getCoverageCountDisplay(americanSamoa)).toEqual({
       value: null,
       label: 'Not auto-probed',
+    });
+    expect(getCoverageRemoteDisplay(americanSamoa)).toEqual({
+      availabilityLabel: 'Remote not auto-probed',
+      gapLabel: null,
+      statusLabel: null,
     });
   });
 });

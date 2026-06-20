@@ -169,6 +169,8 @@ Future updates must strictly distinguish between **Import Run Progress** and **D
 - **Source of Truth**: Always calculate network/BSSID coverage by running a `COUNT(DISTINCT bssid)` against `app.wigle_v2_networks_search` or checking `stored_count`. Never use `rows_inserted` from `app.wigle_import_runs` as a measure of total network coverage, as it will undercount existing networks skipped during idempotent duplicates checks.
 - **Coverage Grid query**: For a selected SSID search term, group `COUNT(*) AS local_rows` and `COUNT(DISTINCT bssid) AS local_unique_bssids` by normalized `region`. Apply the term to `ssid` with case-insensitive `ILIKE` using the same pattern supplied to WiGLE's `ssidlike` parameter; do not automatically add wildcards.
 - **Coverage Grid display**: `local_unique_bssids` is the primary local coverage number. Import-run `rows_inserted` and run status remain secondary progress metadata.
+- **Known remote availability**: Use an already-recorded `app.wigle_import_runs.api_total_results` only. Compute gap as `GREATEST(api_total_results - local_unique_bssids, 0)`. If no durable total exists, remote availability and gap are unknown; do not trigger a WiGLE request.
+- **Ledger status**: `app.wigle_ledger_events` supplies the last matching request timestamp, HTTP/rate-limit/error state, and page telemetry. Its `result_count` is a page row count, not remote availability.
 - See [WiGLE Import Player & V2 Ingestion Subsystem](../features/wigle-import-player.md) for full execution lifecycle, status transitions, and rate-limiting details.
 
 ---

@@ -99,7 +99,10 @@ The query returns `result.rowCount`. This returned count is added to the page's 
 - American Samoa (`AS`), Guam (`GU`), the Northern Mariana Islands (`MP`), and the U.S. Virgin Islands (`VI`) are marked `unverified`. The daemon excludes them from automatic starts and resumes until their WiGLE behavior is explicitly verified and the policy is changed.
 - The Coverage Grid keeps unverified territories visible but labels them **Unverified**, displays no numeric import count when no report row exists, and does not present them as failed or zero-result coverage.
 - The Coverage Grid's primary number is the selected term's local unique-BSSID count from `app.wigle_v2_networks_search`, grouped by region. Local row counts are returned alongside it; import-run `rows_inserted` and status remain secondary progress metadata.
-- Local term matching uses case-insensitive `ILIKE` with the same pattern supplied to the WiGLE `ssidlike` search. Remote `totalResults`, snapshots, and gap scoring are separate future coverage work.
+- Local term matching uses case-insensitive `ILIKE` with the same pattern supplied to the WiGLE `ssidlike` search.
+- Known remote availability is surfaced only from an existing `wigle_import_runs.api_total_results`. The grid computes a non-negative gap against local unique BSSIDs when that total exists; otherwise it displays **Remote unknown**.
+- Existing `wigle_ledger_events` records supply the last request timestamp and HTTP/rate-limit/error state. Ledger `result_count` is only a page row count and is never used as remote availability.
+- Grid load, term selection, and passive refresh are read-only. They never call WiGLE, start or resume imports, or create ledger events. A future manual probe must be an explicit quota-warning action.
 
 ---
 
