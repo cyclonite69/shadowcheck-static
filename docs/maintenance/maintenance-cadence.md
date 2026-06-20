@@ -6,6 +6,12 @@ This cadence divides development and audit tasks into four distinct lanes: **Fea
 
 ---
 
+## 0. Gate Before Every Lane: Existing Work Audit
+
+Every substantive lane begins with the read-only [Existing Work Audit](../workflow/EXISTING_WORK_AUDIT.md). Agents must establish current implementation, tests, docs, scripts, schema, dirty files, prior work, and lane ownership; report the evidence; and wait for explicit scope approval before editing. `Continue` means re-audit and resume only the verified interrupted lane, never restart from memory.
+
+---
+
 ## 1. The Four Maintenance Lanes
 
 ```

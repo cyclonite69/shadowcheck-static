@@ -4,6 +4,12 @@ This workflow guide ensures project documentation remains a durable, reliable so
 
 ---
 
+## 0. Existing Work Audit Gate
+
+Before creating or rewriting documentation, complete the read-only [Existing Work Audit](../workflow/EXISTING_WORK_AUDIT.md) and receive scope approval. Search current subsystem docs, ADRs, session notes, generated reports, README indexes, wiki mirrors, and git history first. Update or link the canonical document instead of creating parallel documentation.
+
+---
+
 ## 1. Documentation Map by Subsystem
 
 Reference the following documentation files when reviewing changes to respective subsystems:

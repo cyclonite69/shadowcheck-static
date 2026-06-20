@@ -22,6 +22,13 @@ Before starting work, understand the subsystem layouts and workflow guides:
 - [docs/FILTERS.md](docs/FILTERS.md) — Universal pipeline filters query syntax.
 - [docs/TESTING.md](docs/TESTING.md) — Frontend & backend test environments.
 - [docs/workflow/TESTING_STANDARDS.md](docs/workflow/TESTING_STANDARDS.md) — Comprehensive coverage and regression test standards.
+- [docs/workflow/EXISTING_WORK_AUDIT.md](docs/workflow/EXISTING_WORK_AUDIT.md) — Mandatory read-only audit and approval gate before implementation.
+
+---
+
+## Hard Workflow Law — Existing Work Audit First
+
+Before implementing, rewriting, deleting, refactoring, documenting, testing, or continuing substantive work, complete the read-only [Existing Work Audit](docs/workflow/EXISTING_WORK_AUDIT.md), report the current implementation and lane ownership, and wait for explicit scope approval. Reuse or extend existing work before creating a parallel system. Generic prompts such as `Write tests for @filename` do not bypass this gate.
 
 ---
 

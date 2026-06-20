@@ -8,6 +8,8 @@ This document provides actionable guidance for AI coding agents (Claude, Copilot
 
 **Critical Constraint**: PostgreSQL runs in Docker. Never use local system PostgreSQL. If running API locally, stop it: `sudo systemctl stop postgresql`
 
+**HARD WORKFLOW LAW**: Before implementing, rewriting, deleting, refactoring, documenting, testing, or continuing substantive work, complete the read-only [Existing Work Audit](../docs/workflow/EXISTING_WORK_AUDIT.md), report current implementation and lane ownership, and wait for explicit scope approval. Reuse or extend existing work before creating parallel systems. Generic prompts such as `Write tests for @filename` do not bypass this gate.
+
 **IMMUTABLE SECURITY RULE #1**: NEVER write secrets to disk. All credentials must be injected at runtime via environment variables or AWS Secrets Manager. Violating this rule is a security breach.
 
 **IMMUTABLE SECURITY RULE #2**: EC2 instances have NO public ingress ports. All access to EC2 instances is ONLY through AWS Systems Manager (SSM) Session Manager. Do NOT open SSH (port 22), HTTP (80), HTTPS (443), or any other inbound ports directly to instances.
