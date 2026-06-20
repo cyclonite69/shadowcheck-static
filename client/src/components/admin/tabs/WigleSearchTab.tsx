@@ -187,27 +187,44 @@ export const WigleSearchTab: React.FC = () => {
                   const mergedStates = mergeCoverageStates(termReport?.states, US_STATES);
 
                   return mergedStates.map((s) => {
-                    const statusMeta = s.isQueried
-                      ? getCoverageStatusMeta(s.status, s.rowsInserted)
-                      : {
-                          className: 'text-slate-500 bg-slate-500/5',
-                          label: 'Not Queried',
-                          title: 'Not Queried',
-                        };
+                    const isUnverified = s.probeStatus === 'unverified';
+                    const statusMeta = isUnverified
+                      ? getCoverageStatusMeta(s.status, s.rowsInserted, s.probeStatus)
+                      : s.isQueried
+                        ? getCoverageStatusMeta(s.status, s.rowsInserted)
+                        : {
+                            className: 'text-slate-500 bg-slate-500/5',
+                            label: 'Not Queried',
+                            title: 'Not Queried',
+                          };
 
                     return (
                       <div
                         key={s.state}
                         className={`p-2 rounded flex flex-col justify-between ${
-                          s.isQueried
-                            ? 'bg-slate-900/40 border border-slate-800/60'
-                            : 'bg-slate-900/10 border border-slate-800/30 opacity-60'
+                          isUnverified
+                            ? 'bg-amber-500/5 border border-amber-500/20'
+                            : s.isQueried
+                              ? 'bg-slate-900/40 border border-slate-800/60'
+                              : 'bg-slate-900/10 border border-slate-800/30 opacity-60'
                         }`}
-                        title={s.lastError ? `Note: ${s.lastError}` : statusMeta.title || undefined}
+                        title={
+                          isUnverified
+                            ? statusMeta.title
+                            : s.lastError
+                              ? `Note: ${s.lastError}`
+                              : statusMeta.title || undefined
+                        }
                       >
                         <div className="flex justify-between items-start mb-1 gap-2">
                           <span
-                            className={`text-xs font-black ${s.isQueried ? 'text-white' : 'text-slate-400'}`}
+                            className={`text-xs font-black ${
+                              isUnverified
+                                ? 'text-amber-200'
+                                : s.isQueried
+                                  ? 'text-white'
+                                  : 'text-slate-400'
+                            }`}
                           >
                             {s.state}
                           </span>
@@ -218,12 +235,18 @@ export const WigleSearchTab: React.FC = () => {
                           </span>
                         </div>
                         <div
-                          className={`text-lg font-bold ${s.isQueried ? 'text-slate-100' : 'text-slate-500'}`}
+                          className={`text-lg font-bold ${
+                            isUnverified
+                              ? 'text-amber-200/70'
+                              : s.isQueried
+                                ? 'text-slate-100'
+                                : 'text-slate-500'
+                          }`}
                         >
-                          {(s.rowsInserted ?? 0).toLocaleString()}
+                          {s.rowsInserted === null ? '—' : s.rowsInserted.toLocaleString()}
                         </div>
                         <div className="text-[9px] text-slate-500 uppercase font-semibold">
-                          Imported
+                          {isUnverified ? 'Not auto-probed' : 'Imported'}
                         </div>
                       </div>
                     );

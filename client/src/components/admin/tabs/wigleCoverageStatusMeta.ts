@@ -1,7 +1,16 @@
 export function getCoverageStatusMeta(
   status: string | null,
-  rowsInserted: number | null | undefined
+  rowsInserted: number | null | undefined,
+  probeStatus: 'supported' | 'unverified' = 'supported'
 ) {
+  if (probeStatus === 'unverified') {
+    return {
+      className: 'text-amber-300 bg-amber-500/10',
+      label: 'Unverified',
+      title: 'WiGLE support is unverified; excluded from automatic probes',
+    };
+  }
+
   if (status === 'completed' && (rowsInserted ?? 0) === 0) {
     return {
       className: 'text-amber-400 bg-amber-500/5',

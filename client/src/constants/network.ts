@@ -499,10 +499,18 @@ export const MAP_STYLES: MapStyleOption[] = [
   { value: 'google-earth', label: '🌍 Export to Google Earth', isGoogle: true },
 ] as const;
 
-// US states for WiGLE API search filters
-export const US_STATES = [
+export type JurisdictionProbeStatus = 'supported' | 'unverified';
+
+export interface USJurisdiction {
+  code: string;
+  name: string;
+  probeStatus?: JurisdictionProbeStatus;
+}
+
+// US jurisdictions for WiGLE API search filters and coverage display.
+export const US_STATES: USJurisdiction[] = [
   { code: 'AL', name: 'Alabama' },
-  { code: 'AS', name: 'American Samoa' },
+  { code: 'AS', name: 'American Samoa', probeStatus: 'unverified' },
   { code: 'AK', name: 'Alaska' },
   { code: 'AZ', name: 'Arizona' },
   { code: 'AR', name: 'Arkansas' },
@@ -513,7 +521,7 @@ export const US_STATES = [
   { code: 'DC', name: 'District of Columbia' },
   { code: 'FL', name: 'Florida' },
   { code: 'GA', name: 'Georgia' },
-  { code: 'GU', name: 'Guam' },
+  { code: 'GU', name: 'Guam', probeStatus: 'unverified' },
   { code: 'HI', name: 'Hawaii' },
   { code: 'ID', name: 'Idaho' },
   { code: 'IL', name: 'Illinois' },
@@ -538,12 +546,12 @@ export const US_STATES = [
   { code: 'NY', name: 'New York' },
   { code: 'NC', name: 'North Carolina' },
   { code: 'ND', name: 'North Dakota' },
-  { code: 'MP', name: 'Northern Mariana Islands' },
+  { code: 'MP', name: 'Northern Mariana Islands', probeStatus: 'unverified' },
   { code: 'OH', name: 'Ohio' },
   { code: 'OK', name: 'Oklahoma' },
   { code: 'OR', name: 'Oregon' },
   { code: 'PA', name: 'Pennsylvania' },
-  { code: 'PR', name: 'Puerto Rico' },
+  { code: 'PR', name: 'Puerto Rico', probeStatus: 'supported' },
   { code: 'RI', name: 'Rhode Island' },
   { code: 'SC', name: 'South Carolina' },
   { code: 'SD', name: 'South Dakota' },
@@ -552,7 +560,7 @@ export const US_STATES = [
   { code: 'UT', name: 'Utah' },
   { code: 'VT', name: 'Vermont' },
   { code: 'VA', name: 'Virginia' },
-  { code: 'VI', name: 'U.S. Virgin Islands' },
+  { code: 'VI', name: 'U.S. Virgin Islands', probeStatus: 'unverified' },
   { code: 'WA', name: 'Washington' },
   { code: 'WV', name: 'West Virginia' },
   { code: 'WI', name: 'Wisconsin' },

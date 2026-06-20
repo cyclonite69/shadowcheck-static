@@ -107,19 +107,42 @@ describe('mergeCoverageStates', () => {
     expect(ca.rowsInserted).toBe(99);
   });
 
-  test('unqueried states render as isQueried=false with zero rowsInserted', () => {
+  test('unqueried supported jurisdictions render with zero rowsInserted', () => {
     const result = mergeCoverageStates(
       [{ state: 'TX', rowsInserted: 500, runId: 7, status: 'completed', lastError: null }],
       US_STATES
     );
-    const unqueried = result.filter((r) => r.state !== 'TX');
+    const unqueried = result.filter((r) => r.state !== 'TX' && r.probeStatus === 'supported');
     expect(unqueried.every((r) => !r.isQueried)).toBe(true);
     expect(unqueried.every((r) => r.rowsInserted === 0)).toBe(true);
   });
 
-  test('null reportStates renders all states as unqueried with zero rows', () => {
+  test('null reportStates leaves all supported jurisdictions unqueried with zero rows', () => {
     const result = mergeCoverageStates(null, US_STATES);
     expect(result.every((r) => !r.isQueried)).toBe(true);
-    expect(result.every((r) => r.rowsInserted === 0)).toBe(true);
+    expect(
+      result.filter((r) => r.probeStatus === 'supported').every((r) => r.rowsInserted === 0)
+    ).toBe(true);
+  });
+
+  test('keeps Puerto Rico on the normal supported path', () => {
+    const result = mergeCoverageStates(null, US_STATES);
+    expect(result.find((r) => r.state === 'PR')).toEqual(
+      expect.objectContaining({
+        probeStatus: 'supported',
+        rowsInserted: 0,
+        isQueried: false,
+      })
+    );
+  });
+
+  test('marks unverified territories without implying zero-result coverage', () => {
+    const result = mergeCoverageStates(null, US_STATES);
+    const unverified = result.filter((r) => ['AS', 'GU', 'MP', 'VI'].includes(r.state));
+
+    expect(unverified).toHaveLength(4);
+    expect(unverified.every((r) => r.probeStatus === 'unverified')).toBe(true);
+    expect(unverified.every((r) => r.rowsInserted === null)).toBe(true);
+    expect(unverified.every((r) => !r.isQueried)).toBe(true);
   });
 });

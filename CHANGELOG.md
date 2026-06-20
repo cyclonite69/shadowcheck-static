@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-19)
+# 1.0.0 (2026-06-20)
 
 ### Bug Fixes
 
@@ -938,6 +938,7 @@
 - **wigle:** add style.load recovery to useWigleFieldData; log silent source miss ([8d0dc36](https://github.com/cyclonite69/shadowcheck-web/commit/8d0dc366b82b121695d67da740c6c614c4135658))
 - **wigle:** add zoom-scaled row cap to DBSCAN inner queries to prevent 504s at low zoom ([2225864](https://github.com/cyclonite69/shadowcheck-web/commit/222586478cea8ba011a3e21095950c262887203e))
 - **wigle:** aggregate V2 and V3 timestamps when importing network detail ([944a57c](https://github.com/cyclonite69/shadowcheck-web/commit/944a57c1065e502a6512157d6994383693284b61))
+- **wigle:** align coverage grid territory handling ([2ae6f93](https://github.com/cyclonite69/shadowcheck-web/commit/2ae6f937585691825e67a8b2009bd251c4312533))
 - **wigle:** align stats soft limit fallback ([4dd1613](https://github.com/cyclonite69/shadowcheck-web/commit/4dd1613b8f9ee61bb91d49609647f4bf276de8da))
 - **wigle:** always hide Mapbox cluster layers — aggregated layer owns display ([e2f2018](https://github.com/cyclonite69/shadowcheck-web/commit/e2f2018bbb0f3d3c38ac8b241b272f85692b4b63))
 - **wigle:** apply clustering toggle to KML and agency layers ([45c5812](https://github.com/cyclonite69/shadowcheck-web/commit/45c5812a446617371992ab2c8b0bd7081cfe6b56))

@@ -92,6 +92,14 @@ The query returns `result.rowCount`. This returned count is added to the page's 
 - **Database Coverage** (`stored_count`) is the actual count of unique, distinct BSSIDs successfully stored locally in the database.
 - **Forensic Distinction**: Because duplicate rows are skipped via `ON CONFLICT DO NOTHING`, `rows_inserted` will always be equal to or less than `rows_returned`. To find the true coverage of a search region, operators must check `stored_count` from `app.wigle_v2_networks_search` (using `COUNT(DISTINCT bssid)`), which aggregates all historic imports, rather than reviewing progress totals on individual runs.
 
+### Jurisdiction Probe Policy
+
+- `server/src/constants/jurisdictions.ts` is the canonical server-side list for automated US jurisdiction dispatch. The client mirrors the same 56-entry display list because client code cannot import server modules.
+- The daemon sends supported jurisdictions as `country=US&region=<code>`. Puerto Rico (`PR`) follows this normal supported path along with the 50 states and District of Columbia.
+- American Samoa (`AS`), Guam (`GU`), the Northern Mariana Islands (`MP`), and the U.S. Virgin Islands (`VI`) are marked `unverified`. The daemon excludes them from automatic starts and resumes until their WiGLE behavior is explicitly verified and the policy is changed.
+- The Coverage Grid keeps unverified territories visible but labels them **Unverified**, displays no numeric import count when no report row exists, and does not present them as failed or zero-result coverage.
+- Coverage Grid import counts remain run-progress metadata; they do not replace the stored database coverage truth described above.
+
 ---
 
 ## 5. Rate-Limit Safety & Circuit Breakers

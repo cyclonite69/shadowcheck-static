@@ -20,4 +20,14 @@ describe('getCoverageStatusMeta', () => {
       })
     );
   });
+
+  it('renders unverified probe support instead of a failed or zero-result status', () => {
+    expect(getCoverageStatusMeta('failed', 0, 'unverified')).toEqual(
+      expect.objectContaining({
+        className: 'text-amber-300 bg-amber-500/10',
+        label: 'Unverified',
+        title: 'WiGLE support is unverified; excluded from automatic probes',
+      })
+    );
+  });
 });

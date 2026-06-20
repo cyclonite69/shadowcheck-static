@@ -1,13 +1,15 @@
 import type { WigleImportRun } from '../../../types/admin';
+import type { JurisdictionProbeStatus } from '../../../constants/network';
 
 export interface CoverageStateRow {
   state: string;
   name: string;
-  rowsInserted: number;
+  rowsInserted: number | null;
   runId: number | null;
   status: string | null;
   lastError: string | null;
   isQueried: boolean;
+  probeStatus: JurisdictionProbeStatus;
 }
 
 export interface ReportStateEntry {
@@ -45,12 +47,17 @@ export function buildCoverageTerms(runs: WigleImportRun[]): string[] {
 /**
  * Merges backend per-state report data with the canonical US_STATES list.
  * States present in the backend report are marked isQueried=true and carry
- * their backend values. All remaining US_STATES entries render with
- * isQueried=false and zero rows.
+ * their backend values. Supported entries without report data render with
+ * zero rows. Unverified territories render with a null count so the UI does
+ * not imply that an automatic probe failed or returned zero results.
  */
 export function mergeCoverageStates(
   reportStates: ReportStateEntry[] | null | undefined,
-  usStates: Array<{ code: string; name: string }>
+  usStates: Array<{
+    code: string;
+    name: string;
+    probeStatus?: JurisdictionProbeStatus;
+  }>
 ): CoverageStateRow[] {
   const reportStatesMap = new Map<string, ReportStateEntry>();
   if (reportStates) {
@@ -63,14 +70,16 @@ export function mergeCoverageStates(
   return usStates.map((stateObj) => {
     const code = stateObj.code.toUpperCase();
     const matched = reportStatesMap.get(code);
+    const probeStatus = stateObj.probeStatus ?? 'supported';
     return {
       state: stateObj.code,
       name: stateObj.name,
-      rowsInserted: matched ? (matched.rowsInserted ?? 0) : 0,
+      rowsInserted: matched ? (matched.rowsInserted ?? 0) : probeStatus === 'unverified' ? null : 0,
       runId: matched ? (matched.runId ?? null) : null,
       status: matched ? (matched.status ?? null) : null,
       lastError: matched ? (matched.lastError ?? null) : null,
       isQueried: !!matched,
+      probeStatus,
     };
   });
 }
