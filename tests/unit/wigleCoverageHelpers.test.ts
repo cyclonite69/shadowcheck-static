@@ -2,6 +2,7 @@ export {};
 
 import {
   buildCoverageTerms,
+  getCoverageCountDisplay,
   mergeCoverageStates,
 } from '../../client/src/components/admin/hooks/wigleCoverageHelpers';
 import { US_STATES } from '../../client/src/constants/network';
@@ -87,11 +88,21 @@ describe('mergeCoverageStates', () => {
 
   test('queried states carry backend values and isQueried=true', () => {
     const reportStates = [
-      { state: 'CA', rowsInserted: 1234, runId: 42, status: 'completed', lastError: null },
+      {
+        state: 'CA',
+        localRows: 1100,
+        localUniqueBssids: 1000,
+        rowsInserted: 1234,
+        runId: 42,
+        status: 'completed',
+        lastError: null,
+      },
     ];
     const result = mergeCoverageStates(reportStates, US_STATES);
     const ca = result.find((r) => r.state === 'CA')!;
     expect(ca.isQueried).toBe(true);
+    expect(ca.localRows).toBe(1100);
+    expect(ca.localUniqueBssids).toBe(1000);
     expect(ca.rowsInserted).toBe(1234);
     expect(ca.runId).toBe(42);
     expect(ca.status).toBe('completed');
@@ -99,29 +110,51 @@ describe('mergeCoverageStates', () => {
 
   test('backend state matching is case-insensitive (lowercase state code)', () => {
     const result = mergeCoverageStates(
-      [{ state: 'ca', rowsInserted: 99, runId: 1, status: 'completed', lastError: null }],
+      [
+        {
+          state: 'ca',
+          localRows: 80,
+          localUniqueBssids: 75,
+          rowsInserted: 99,
+          runId: 1,
+          status: 'completed',
+          lastError: null,
+        },
+      ],
       US_STATES
     );
     const ca = result.find((r) => r.state === 'CA')!;
     expect(ca.isQueried).toBe(true);
+    expect(ca.localUniqueBssids).toBe(75);
     expect(ca.rowsInserted).toBe(99);
   });
 
-  test('unqueried supported jurisdictions render with zero rowsInserted', () => {
+  test('unqueried supported jurisdictions render with zero local counts', () => {
     const result = mergeCoverageStates(
-      [{ state: 'TX', rowsInserted: 500, runId: 7, status: 'completed', lastError: null }],
+      [
+        {
+          state: 'TX',
+          localRows: 450,
+          localUniqueBssids: 425,
+          rowsInserted: 500,
+          runId: 7,
+          status: 'completed',
+          lastError: null,
+        },
+      ],
       US_STATES
     );
     const unqueried = result.filter((r) => r.state !== 'TX' && r.probeStatus === 'supported');
     expect(unqueried.every((r) => !r.isQueried)).toBe(true);
-    expect(unqueried.every((r) => r.rowsInserted === 0)).toBe(true);
+    expect(unqueried.every((r) => r.localRows === 0)).toBe(true);
+    expect(unqueried.every((r) => r.localUniqueBssids === 0)).toBe(true);
   });
 
-  test('null reportStates leaves all supported jurisdictions unqueried with zero rows', () => {
+  test('null reportStates leaves all supported jurisdictions with zero local counts', () => {
     const result = mergeCoverageStates(null, US_STATES);
     expect(result.every((r) => !r.isQueried)).toBe(true);
     expect(
-      result.filter((r) => r.probeStatus === 'supported').every((r) => r.rowsInserted === 0)
+      result.filter((r) => r.probeStatus === 'supported').every((r) => r.localRows === 0)
     ).toBe(true);
   });
 
@@ -130,7 +163,8 @@ describe('mergeCoverageStates', () => {
     expect(result.find((r) => r.state === 'PR')).toEqual(
       expect.objectContaining({
         probeStatus: 'supported',
-        rowsInserted: 0,
+        localRows: 0,
+        localUniqueBssids: 0,
         isQueried: false,
       })
     );
@@ -144,5 +178,58 @@ describe('mergeCoverageStates', () => {
     expect(unverified.every((r) => r.probeStatus === 'unverified')).toBe(true);
     expect(unverified.every((r) => r.rowsInserted === null)).toBe(true);
     expect(unverified.every((r) => !r.isQueried)).toBe(true);
+  });
+
+  test('uses local unique BSSIDs when local data exists without an import run', () => {
+    const [ca] = mergeCoverageStates(
+      [
+        {
+          state: 'CA',
+          localRows: 2104,
+          localUniqueBssids: 2100,
+          rowsInserted: null,
+          runId: null,
+          status: null,
+        },
+      ],
+      [{ code: 'CA', name: 'California' }]
+    );
+
+    expect(ca.isQueried).toBe(false);
+    expect(ca.hasLocalData).toBe(true);
+    expect(getCoverageCountDisplay(ca)).toEqual({
+      value: 2100,
+      label: 'Local BSSIDs',
+    });
+  });
+
+  test('does not use rowsInserted as the displayed local coverage count', () => {
+    const [tx] = mergeCoverageStates(
+      [
+        {
+          state: 'TX',
+          localRows: 12,
+          localUniqueBssids: 10,
+          rowsInserted: 500,
+          runId: 7,
+          status: 'completed',
+        },
+      ],
+      [{ code: 'TX', name: 'Texas' }]
+    );
+
+    expect(getCoverageCountDisplay(tx)).toEqual({ value: 10, label: 'Local BSSIDs' });
+  });
+
+  test('keeps unverified territory display inactive even if local counts are returned', () => {
+    const [americanSamoa] = mergeCoverageStates(
+      [{ state: 'AS', localRows: 4, localUniqueBssids: 3 }],
+      [{ code: 'AS', name: 'American Samoa', probeStatus: 'unverified' }]
+    );
+
+    expect(getCoverageCountDisplay(americanSamoa)).toEqual({
+      value: null,
+      label: 'Not auto-probed',
+    });
   });
 });

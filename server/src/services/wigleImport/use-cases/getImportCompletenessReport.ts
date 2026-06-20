@@ -15,7 +15,9 @@ export const getImportCompletenessReport = async (options: ImportCompletenessOpt
     generatedAt: new Date().toISOString(),
     states: rows.map((row: any) => ({
       state: row.state,
-      storedCount: Number(row.stored_count || 0),
+      localRows: Number(row.local_rows || 0),
+      localUniqueBssids: Number(row.local_unique_bssids || 0),
+      storedCount: Number(row.local_unique_bssids ?? row.stored_count ?? 0),
       runId: row.run_id === null ? null : Number(row.run_id),
       searchTerm: row.search_term || null,
       requestParams: row.request_params || null,

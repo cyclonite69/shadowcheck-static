@@ -98,7 +98,8 @@ The query returns `result.rowCount`. This returned count is added to the page's 
 - The daemon sends supported jurisdictions as `country=US&region=<code>`. Puerto Rico (`PR`) follows this normal supported path along with the 50 states and District of Columbia.
 - American Samoa (`AS`), Guam (`GU`), the Northern Mariana Islands (`MP`), and the U.S. Virgin Islands (`VI`) are marked `unverified`. The daemon excludes them from automatic starts and resumes until their WiGLE behavior is explicitly verified and the policy is changed.
 - The Coverage Grid keeps unverified territories visible but labels them **Unverified**, displays no numeric import count when no report row exists, and does not present them as failed or zero-result coverage.
-- Coverage Grid import counts remain run-progress metadata; they do not replace the stored database coverage truth described above.
+- The Coverage Grid's primary number is the selected term's local unique-BSSID count from `app.wigle_v2_networks_search`, grouped by region. Local row counts are returned alongside it; import-run `rows_inserted` and status remain secondary progress metadata.
+- Local term matching uses case-insensitive `ILIKE` with the same pattern supplied to the WiGLE `ssidlike` search. Remote `totalResults`, snapshots, and gap scoring are separate future coverage work.
 
 ---
 

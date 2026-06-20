@@ -4,16 +4,22 @@ import type { JurisdictionProbeStatus } from '../../../constants/network';
 export interface CoverageStateRow {
   state: string;
   name: string;
+  localRows: number;
+  localUniqueBssids: number;
   rowsInserted: number | null;
   runId: number | null;
   status: string | null;
   lastError: string | null;
   isQueried: boolean;
+  hasLocalData: boolean;
   probeStatus: JurisdictionProbeStatus;
 }
 
 export interface ReportStateEntry {
   state?: string | null;
+  localRows?: number | null;
+  localUniqueBssids?: number | null;
+  storedCount?: number | null;
   rowsInserted?: number | null;
   runId?: number | null;
   status?: string | null;
@@ -46,10 +52,8 @@ export function buildCoverageTerms(runs: WigleImportRun[]): string[] {
 
 /**
  * Merges backend per-state report data with the canonical US_STATES list.
- * States present in the backend report are marked isQueried=true and carry
- * their backend values. Supported entries without report data render with
- * zero rows. Unverified territories render with a null count so the UI does
- * not imply that an automatic probe failed or returned zero results.
+ * Local database counts are independent from import-run progress. A report
+ * entry can therefore contain local data without a matching import run.
  */
 export function mergeCoverageStates(
   reportStates: ReportStateEntry[] | null | undefined,
@@ -71,15 +75,33 @@ export function mergeCoverageStates(
     const code = stateObj.code.toUpperCase();
     const matched = reportStatesMap.get(code);
     const probeStatus = stateObj.probeStatus ?? 'supported';
+    const localRows = matched?.localRows ?? 0;
+    const localUniqueBssids = matched?.localUniqueBssids ?? matched?.storedCount ?? 0;
+    const isQueried = Boolean(
+      matched && (matched.runId != null || matched.status != null || matched.rowsInserted != null)
+    );
     return {
       state: stateObj.code,
       name: stateObj.name,
-      rowsInserted: matched ? (matched.rowsInserted ?? 0) : probeStatus === 'unverified' ? null : 0,
+      localRows,
+      localUniqueBssids,
+      rowsInserted: matched?.rowsInserted ?? null,
       runId: matched ? (matched.runId ?? null) : null,
       status: matched ? (matched.status ?? null) : null,
       lastError: matched ? (matched.lastError ?? null) : null,
-      isQueried: !!matched,
+      isQueried,
+      hasLocalData: localRows > 0 || localUniqueBssids > 0,
       probeStatus,
     };
   });
+}
+
+export function getCoverageCountDisplay(row: CoverageStateRow): {
+  value: number | null;
+  label: 'Local BSSIDs' | 'Not auto-probed';
+} {
+  if (row.probeStatus === 'unverified') {
+    return { value: null, label: 'Not auto-probed' };
+  }
+  return { value: row.localUniqueBssids, label: 'Local BSSIDs' };
 }

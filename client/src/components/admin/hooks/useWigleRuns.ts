@@ -4,6 +4,8 @@ import type { WigleImportRun } from '../../../types/admin';
 
 export interface WigleCompletenessState {
   state: string;
+  localRows: number;
+  localUniqueBssids: number;
   storedCount: number;
   runId: number | null;
   searchTerm: string | null;

@@ -304,6 +304,14 @@ const listImportRuns = async (
   };
 };
 
+/**
+ * Return per-jurisdiction import metadata plus local WiGLE v2 coverage counts.
+ *
+ * Import metadata is matched to the exact selected term, case-insensitively.
+ * Stored network `ssid` values use the same case-insensitive pattern semantics
+ * as WiGLE's `ssidlike` parameter. Local coverage is calculated independently
+ * of run progress so duplicate-safe imports cannot undercount stored data.
+ */
 const getImportCompletenessSummary = async (
   options: {
     searchTerm?: string;
@@ -316,8 +324,9 @@ const getImportCompletenessSummary = async (
   const tableCountWhere = [`country = 'US'`, `region IS NOT NULL`, `LENGTH(TRIM(region)) = 2`];
 
   if (searchTerm) {
-    params.push(`%${searchTerm}%`);
-    latestRunWhere.push(`search_term ILIKE $${params.length}`);
+    params.push(searchTerm);
+    latestRunWhere.push(`LOWER(search_term) = LOWER($${params.length})`);
+    tableCountWhere.push(`ssid ILIKE $${params.length}`);
   }
   if (state) {
     params.push(state.trim().toUpperCase());
@@ -354,7 +363,8 @@ const getImportCompletenessSummary = async (
      table_counts AS (
        SELECT
          TRIM(UPPER(region)) AS state,
-         COUNT(DISTINCT bssid)::integer AS stored_count
+         COUNT(*)::integer AS local_rows,
+         COUNT(DISTINCT bssid)::integer AS local_unique_bssids
        FROM app.wigle_v2_networks_search
        WHERE ${tableCountWhere.join(' AND ')}
        GROUP BY TRIM(UPPER(region))
@@ -366,7 +376,9 @@ const getImportCompletenessSummary = async (
      )
      SELECT
        s.state,
-       COALESCE(tc.stored_count, 0) AS stored_count,
+       COALESCE(tc.local_rows, 0) AS local_rows,
+       COALESCE(tc.local_unique_bssids, 0) AS local_unique_bssids,
+       COALESCE(tc.local_unique_bssids, 0) AS stored_count,
        lr.id AS run_id,
        lr.search_term,
        lr.request_params,

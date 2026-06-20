@@ -348,15 +348,20 @@ describe('wigleImportRunRepository', () => {
 
   describe('getImportCompletenessSummary', () => {
     it('should return completeness summary', async () => {
-      query.mockResolvedValueOnce({ rows: [{ state: 'IL', stored_count: 100 }] });
+      query.mockResolvedValueOnce({
+        rows: [{ state: 'IL', local_rows: 105, local_unique_bssids: 100 }],
+      });
       const result = await repository.getImportCompletenessSummary({
         searchTerm: 'fbi',
         state: 'IL',
       });
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('WITH latest_runs AS'), [
-        '%fbi%',
-        'IL',
-      ]);
+      const [sql, params] = query.mock.calls[0];
+      expect(sql).toContain('WITH latest_runs AS');
+      expect(sql).toContain('LOWER(search_term) = LOWER($1)');
+      expect(sql).toContain('ssid ILIKE $1');
+      expect(sql).toContain('COUNT(*)::integer AS local_rows');
+      expect(sql).toContain('COUNT(DISTINCT bssid)::integer AS local_unique_bssids');
+      expect(params).toEqual(['fbi', 'IL']);
       expect(result[0].state).toBe('IL');
     });
   });

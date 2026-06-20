@@ -46,6 +46,8 @@ describe('wigleImportRunService completeness report', () => {
     mockGetImportCompletenessSummary.mockResolvedValue([
       {
         state: 'PA',
+        local_rows: 1810,
+        local_unique_bssids: 1795,
         stored_count: 1795,
         run_id: 19,
         search_term: 'fbi',
@@ -77,6 +79,8 @@ describe('wigleImportRunService completeness report', () => {
     expect(report.states[0]).toEqual(
       expect.objectContaining({
         state: 'PA',
+        localRows: 1810,
+        localUniqueBssids: 1795,
         storedCount: 1795,
         runId: 19,
         status: 'failed',
@@ -86,6 +90,35 @@ describe('wigleImportRunService completeness report', () => {
         missingApiRows: 693,
         missingInsertRows: 1488,
         resumable: true,
+      })
+    );
+  });
+
+  it('returns local counts when no matching import run exists', async () => {
+    mockGetImportCompletenessSummary.mockResolvedValue([
+      {
+        state: 'CA',
+        local_rows: 2104,
+        local_unique_bssids: 2104,
+        run_id: null,
+        status: null,
+        rows_inserted: null,
+      },
+    ]);
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const service = require('../../server/src/services/wigleImportRunService');
+    const report = await service.getImportCompletenessReport({
+      searchTerm: 'fbi surveillance van',
+    });
+
+    expect(report.states[0]).toEqual(
+      expect.objectContaining({
+        state: 'CA',
+        localRows: 2104,
+        localUniqueBssids: 2104,
+        runId: null,
+        rowsInserted: null,
       })
     );
   });

@@ -11,7 +11,7 @@ import { formatShortDate } from '../../../utils/formatDate';
 import { WigleRunsCard } from '../components/WigleRunsCard';
 import { wigleApi } from '../../../api/wigleApi';
 import { getCoverageStatusMeta } from './wigleCoverageStatusMeta';
-import { mergeCoverageStates } from '../hooks/wigleCoverageHelpers';
+import { getCoverageCountDisplay, mergeCoverageStates } from '../hooks/wigleCoverageHelpers';
 
 const SearchIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -188,15 +188,23 @@ export const WigleSearchTab: React.FC = () => {
 
                   return mergedStates.map((s) => {
                     const isUnverified = s.probeStatus === 'unverified';
+                    const isActive = s.isQueried || s.hasLocalData;
+                    const countDisplay = getCoverageCountDisplay(s);
                     const statusMeta = isUnverified
                       ? getCoverageStatusMeta(s.status, s.rowsInserted, s.probeStatus)
                       : s.isQueried
                         ? getCoverageStatusMeta(s.status, s.rowsInserted)
-                        : {
-                            className: 'text-slate-500 bg-slate-500/5',
-                            label: 'Not Queried',
-                            title: 'Not Queried',
-                          };
+                        : s.hasLocalData
+                          ? {
+                              className: 'text-emerald-300 bg-emerald-500/10',
+                              label: 'Local',
+                              title: 'Local records found without matching import-run metadata',
+                            }
+                          : {
+                              className: 'text-slate-500 bg-slate-500/5',
+                              label: 'Not Queried',
+                              title: 'Not Queried',
+                            };
 
                     return (
                       <div
@@ -204,7 +212,7 @@ export const WigleSearchTab: React.FC = () => {
                         className={`p-2 rounded flex flex-col justify-between ${
                           isUnverified
                             ? 'bg-amber-500/5 border border-amber-500/20'
-                            : s.isQueried
+                            : isActive
                               ? 'bg-slate-900/40 border border-slate-800/60'
                               : 'bg-slate-900/10 border border-slate-800/30 opacity-60'
                         }`}
@@ -221,7 +229,7 @@ export const WigleSearchTab: React.FC = () => {
                             className={`text-xs font-black ${
                               isUnverified
                                 ? 'text-amber-200'
-                                : s.isQueried
+                                : isActive
                                   ? 'text-white'
                                   : 'text-slate-400'
                             }`}
@@ -238,15 +246,15 @@ export const WigleSearchTab: React.FC = () => {
                           className={`text-lg font-bold ${
                             isUnverified
                               ? 'text-amber-200/70'
-                              : s.isQueried
+                              : isActive
                                 ? 'text-slate-100'
                                 : 'text-slate-500'
                           }`}
                         >
-                          {s.rowsInserted === null ? '—' : s.rowsInserted.toLocaleString()}
+                          {countDisplay.value === null ? '—' : countDisplay.value.toLocaleString()}
                         </div>
                         <div className="text-[9px] text-slate-500 uppercase font-semibold">
-                          {isUnverified ? 'Not auto-probed' : 'Imported'}
+                          {countDisplay.label}
                         </div>
                       </div>
                     );
