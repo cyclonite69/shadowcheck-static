@@ -98,6 +98,9 @@ If any of these are undefined, stop and define them before implementing.
 
 ### On the geospatial map (media layer)
 
+Matched-media component grouping and interaction semantics are defined in
+[`docs/ai/decisions/20260620_matched_media_map_layer_visual_spec.md`](../ai/decisions/20260620_matched_media_map_layer_visual_spec.md).
+
 Two categories, visually distinct:
 
 | Category                                     | Plot location               | Style              |

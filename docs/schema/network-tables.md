@@ -202,9 +202,13 @@ Stores VisINT and forensic photo evidence attachments.
   - `media_data` (bytea binary blob)
   - `thumbnail` (bytea preview blob, optional)
   - `description` (text, contains correlation distances or manual notes)
-  - `exif_lat` (numeric, GPS latitude extracted from image EXIF)
-  - `exif_lon` (numeric, GPS longitude extracted from image EXIF)
+  - `exif_lat` (numeric(10,8), GPS latitude extracted from image EXIF)
+  - `exif_lon` (numeric(11,8), GPS longitude extracted from image EXIF)
   - `exif_captured_at` (timestamptz, image capture timestamp from EXIF)
+  - `exif_make`, `exif_model` (varchar, optional camera manufacturer/model)
+  - `exif_altitude` (numeric(9,3), optional GPS altitude in meters)
+  - `exif_bearing` (numeric(6,3), optional GPS image direction in degrees)
+  - `exif_width`, `exif_height` (integer, optional original image dimensions)
 
 ### `app.network_media_summary`
 

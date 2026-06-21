@@ -118,3 +118,6 @@ Before any further media UI or API work, the following must be defined first:
 - The Explorer network popup needs a media panel calling `GET /api/admin/network-media/:bssid`.
 
 See `docs/workflow/media-evidence-workflow.md` for the step-by-step procedure.
+
+The approved component-level visual contract is documented in
+[`20260620_matched_media_map_layer_visual_spec.md`](20260620_matched_media_map_layer_visual_spec.md).

@@ -300,3 +300,24 @@ All 10 items verified complete as of 2026-05-01.
 | 8        | server/src/services/keplerService.ts             | ORCHESTRATOR CANDIDATE            | ✅ DONE — keplerRepository.ts extracted             |
 | 9        | server/src/api/routes/v1/wigle/search.ts         | THIN ROUTER VIOLATION             | ✅ DONE — getSavedSsidTerms() in wigleSearchService |
 | 10       | server/src/api/routes/v1/settings.ts             | THIN ROUTER VIOLATION             | ✅ DONE — setAwsRegion() in adminSettingsService    |
+
+---
+
+2026-06-20 — Migration 058 session (network_media EXIF columns)
+
+Out-of-scope changes bundled into this session, NOT part of approved
+migration 058 work:
+
+- tests/unit/services/adminSettingsService.test.ts — fixed pre-existing
+  assertion mismatch (expect(params).toEqual([]) -> toBeUndefined()).
+  Was already failing/modified before this session started (visible in
+  git status from the start of tonight's work). Unrelated to network_media.
+- tests/unit/services/admin/importExportAdminService.test.ts — fixed
+  pre-existing brittle multiline toContain assertions, split into
+  granular checks. Also pre-existing, unrelated to network_media.
+
+Both fixes appear correct on inspection but were not part of the approved
+scope (migration 058 + view dependency fix). Flagging per audit discipline
+— not reverting, just recording that scope expanded mid-session.
+
+---
