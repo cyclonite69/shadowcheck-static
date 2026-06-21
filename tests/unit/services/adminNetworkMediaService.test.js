@@ -39,6 +39,16 @@ describe('adminNetworkMediaService', () => {
     expect(result).toBe(rows);
   });
 
+  test('getMatchedMediaPoints delegates without changing repository rows', async () => {
+    const rows = [{ component_id: 'AA:BB:CC:DD:EE:FF', media_count: 2 }];
+    adminNetworkMediaRepository.selectMatchedMediaPoints.mockResolvedValue(rows);
+
+    const result = await adminNetworkMediaService.getMatchedMediaPoints();
+
+    expect(adminNetworkMediaRepository.selectMatchedMediaPoints).toHaveBeenCalledWith();
+    expect(result).toBe(rows);
+  });
+
   test('addNetworkNotation calls repository', async () => {
     adminNetworkMediaRepository.insertNetworkNotation.mockResolvedValue(true);
     const result = await adminNetworkMediaService.addNetworkNotation(1, 'note');

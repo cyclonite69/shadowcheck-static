@@ -393,4 +393,64 @@ describe('adminNetworkMediaRepository', () => {
       expect(query).toHaveBeenNthCalledWith(2, expect.any(String), ['AA:BB:CC:DD:EE:FF']);
     });
   });
+
+  describe('selectMatchedMediaPoints', () => {
+    it('uses sibling component grouping and component_location provenance when mv_sibling_groups exists', async () => {
+      const mockRows = [
+        {
+          component_id: 'AA:BB:CC:DD:EE:FF',
+          lat: '43.02',
+          lon: '-83.69',
+          media_count: 3,
+          media_ids: ['10', '11', '12'],
+          member_bssids: ['AA:BB:CC:DD:EE:FF', 'AA:BB:CC:DD:EE:FE'],
+          location_provenance: 'component_location',
+        },
+      ];
+      query
+        .mockResolvedValueOnce({ rows: [{ oid: 'app.mv_sibling_groups' }] })
+        .mockResolvedValueOnce({ rows: mockRows });
+
+      const result = await repository.selectMatchedMediaPoints();
+      expect(result).toEqual(mockRows);
+
+      expect(query).toHaveBeenCalledTimes(2);
+      expect(query).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("to_regclass('app.mv_sibling_groups')"),
+        []
+      );
+      const combinedSql = (query as jest.Mock).mock.calls[1][0] as string;
+      expect(combinedSql).toContain("nm.bssid != 'VISINT_UNMATCHED'");
+      expect(combinedSql).toContain('LEFT JOIN app.mv_sibling_groups');
+      expect(combinedSql).toContain('location_provenance');
+      expect(combinedSql).not.toContain('inferred_subject_location');
+    });
+
+    it('falls back to linked_network_location provenance when mv_sibling_groups is absent', async () => {
+      const mockRows = [
+        {
+          component_id: 'AA:BB:CC:DD:EE:FF',
+          lat: '43.02',
+          lon: '-83.69',
+          media_count: 1,
+          media_ids: ['10'],
+          member_bssids: ['AA:BB:CC:DD:EE:FF'],
+          location_provenance: 'linked_network_location',
+        },
+      ];
+      query
+        .mockResolvedValueOnce({ rows: [{ oid: null }] })
+        .mockResolvedValueOnce({ rows: mockRows });
+
+      const result = await repository.selectMatchedMediaPoints();
+      expect(result).toEqual(mockRows);
+
+      expect(query).toHaveBeenCalledTimes(2);
+      const combinedSql = (query as jest.Mock).mock.calls[1][0] as string;
+      expect(combinedSql).toContain("nm.bssid != 'VISINT_UNMATCHED'");
+      expect(combinedSql).not.toContain('LEFT JOIN app.mv_sibling_groups');
+      expect(combinedSql).toContain('location_provenance');
+    });
+  });
 });

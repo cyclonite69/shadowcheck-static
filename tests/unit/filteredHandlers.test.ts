@@ -2,6 +2,7 @@ import { createHandlers } from '../../server/src/api/routes/v2/filteredHandlers'
 
 jest.mock('../../server/src/services/adminNetworkMediaService', () => ({
   getUnmatchedMediaPoints: jest.fn(),
+  getMatchedMediaPoints: jest.fn(),
 }));
 
 describe('filteredHandlers (unit)', () => {
@@ -113,6 +114,52 @@ describe('filteredHandlers (unit)', () => {
               captured_at: '2026-06-12T00:00:00Z',
               thumbnail_url: '/api/v2/networks/media/123/thumbnail',
               inline_url: '/api/v2/networks/media/123/inline',
+            },
+          },
+        ],
+      });
+    });
+  });
+
+  describe('matchedMedia handler', () => {
+    it('should return matched media points in GeoJSON format', async () => {
+      const mockPoints = [
+        {
+          component_id: 'AA:BB:CC:DD:EE:FF',
+          lat: '43.02',
+          lon: '-83.69',
+          media_count: 2,
+          media_ids: ['10', '11'],
+          member_bssids: ['AA:BB:CC:DD:EE:FF', 'AA:BB:CC:DD:EE:FE'],
+          location_provenance: 'component_location',
+        },
+      ];
+
+      const {
+        getMatchedMediaPoints,
+      } = require('../../server/src/services/adminNetworkMediaService');
+      getMatchedMediaPoints.mockResolvedValue(mockPoints);
+
+      const res = { json: jest.fn() };
+      await handlers.matchedMedia({} as any, res as any);
+
+      expect(res.json).toHaveBeenCalledWith({
+        ok: true,
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [-83.69, 43.02],
+            },
+            properties: {
+              component_id: 'AA:BB:CC:DD:EE:FF',
+              media_count: 2,
+              media_ids: ['10', '11'],
+              member_bssids: ['AA:BB:CC:DD:EE:FF', 'AA:BB:CC:DD:EE:FE'],
+              location_provenance: 'component_location',
+              location_confidence: null,
             },
           },
         ],

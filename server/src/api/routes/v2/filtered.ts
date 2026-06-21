@@ -32,6 +32,7 @@ const handlers = createHandlers({
 router.get('/', asyncHandler(handlers.list));
 router.get('/geospatial', asyncHandler(handlers.geospatial));
 router.get('/unmatched-media', asyncHandler(handlers.unmatchedMedia));
+router.get('/matched-media', asyncHandler(handlers.matchedMedia));
 router.get('/observations', asyncHandler(handlers.getObservations));
 router.post('/observations', asyncHandler(handlers.postObservations));
 router.get('/analytics', asyncHandler(handlers.analytics));

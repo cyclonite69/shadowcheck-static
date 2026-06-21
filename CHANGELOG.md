@@ -1196,6 +1196,7 @@
 - geospatial.html uses base-components ([8b9b1c2](https://github.com/cyclonite69/shadowcheck-web/commit/8b9b1c27d6eaee441ecd2240a6005a9a124f0400))
 - **geospatial:** add bounded popup cards for wigle and agency markers ([1f7576a](https://github.com/cyclonite69/shadowcheck-web/commit/1f7576a5bcbfc199c7d55a4584b99e69822d7bc0))
 - **geospatial:** add cell actions for device classes and emitDetectionEvidence event bus ([b85535f](https://github.com/cyclonite69/shadowcheck-web/commit/b85535f1a8f2e34306bdb74a2fcf5f5dc7dbcf3f))
+- **geospatial:** add matched media GeoJSON endpoint ([c3407d4](https://github.com/cyclonite69/shadowcheck-web/commit/c3407d4325fb390dd88821f76889c399739bd095))
 - **geospatial:** add sibling columns to explorer table ([b35c4ea](https://github.com/cyclonite69/shadowcheck-web/commit/b35c4ea7d9d8b42cff89acd932eb6081163201c2))
 - **geospatial:** bake sibling summary into explorer mv ([6e0f554](https://github.com/cyclonite69/shadowcheck-web/commit/6e0f554f9e354355345b3c88188b234e7ff5c527))
 - **geospatial:** cluster visible sibling rows ([7e02ee8](https://github.com/cyclonite69/shadowcheck-web/commit/7e02ee8d493595b971f7d0b886a4e24058ba5153))

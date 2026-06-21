@@ -186,6 +186,67 @@ export async function selectUnmatchedMediaPoints(): Promise<any[]> {
   return result.rows;
 }
 
+export async function selectMatchedMediaPoints(): Promise<any[]> {
+  const viewCheck = await query(`SELECT to_regclass('app.mv_sibling_groups') AS oid`, []);
+  const hasSiblingGroups = viewCheck.rows[0]?.oid != null;
+
+  let sql;
+  if (hasSiblingGroups) {
+    sql = `
+      WITH component_groups AS (
+        SELECT DISTINCT
+          COALESCE(sg.group_id, nm.bssid) AS component_id,
+          nm.bssid AS member_bssid,
+          nm.id AS media_id
+        FROM app.network_media nm
+        LEFT JOIN app.mv_sibling_groups sg ON UPPER(sg.bssid) = UPPER(nm.bssid)
+        WHERE nm.bssid != 'VISINT_UNMATCHED'
+      ),
+      component_locations AS (
+        SELECT
+          cg.component_id,
+          cg.media_id,
+          cg.member_bssid,
+          ne.lat,
+          ne.lon
+        FROM component_groups cg
+        JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(cg.member_bssid)
+        WHERE ne.lat IS NOT NULL AND ne.lon IS NOT NULL
+      )
+      SELECT
+        component_id,
+        MIN(lat)::numeric(10,8) AS lat,
+        MIN(lon)::numeric(11,8) AS lon,
+        COUNT(DISTINCT media_id)::integer AS media_count,
+        array_agg(DISTINCT media_id::text) AS media_ids,
+        array_agg(DISTINCT member_bssid) AS member_bssids,
+        'component_location'::text AS location_provenance
+      FROM component_locations
+      GROUP BY component_id
+    `;
+  } else {
+    sql = `
+      SELECT
+        nm.bssid AS component_id,
+        ne.lat::numeric(10,8) AS lat,
+        ne.lon::numeric(11,8) AS lon,
+        COUNT(DISTINCT nm.id)::integer AS media_count,
+        array_agg(DISTINCT nm.id::text) AS media_ids,
+        ARRAY[nm.bssid::text] AS member_bssids,
+        'linked_network_location'::text AS location_provenance
+      FROM app.network_media nm
+      JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(nm.bssid)
+      WHERE nm.bssid != 'VISINT_UNMATCHED'
+        AND ne.lat IS NOT NULL
+        AND ne.lon IS NOT NULL
+      GROUP BY nm.bssid, ne.lat, ne.lon
+    `;
+  }
+
+  const result = await query(sql);
+  return result.rows;
+}
+
 export async function insertNetworkNotation(
   bssid: string,
   text: string,

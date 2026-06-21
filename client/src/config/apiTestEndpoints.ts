@@ -809,6 +809,13 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
     method: 'GET',
     requiresAuth: true,
   },
+  {
+    category: 'Networks v2',
+    label: 'Universal Filter: Matched Media',
+    path: '/api/v2/networks/filtered/matched-media',
+    method: 'GET',
+    requiresAuth: true,
+  },
 
   // ── Public Analytics ────────────────────────────────────────────────────────
   {

@@ -8,6 +8,7 @@ import {
 } from './handlers/observations';
 import { createAnalyticsHandler } from './handlers/analytics';
 import { createUnmatchedMediaHandler } from './handlers/unmatchedMedia';
+import { createMatchedMediaHandler } from './handlers/matchedMedia';
 
 const createHandlers = (deps: HandlerDeps) => ({
   list: createListHandler(deps),
@@ -16,6 +17,7 @@ const createHandlers = (deps: HandlerDeps) => ({
   postObservations: createPostObservationsHandler(deps),
   analytics: createAnalyticsHandler(deps),
   unmatchedMedia: createUnmatchedMediaHandler(deps),
+  matchedMedia: createMatchedMediaHandler(deps),
   debug: (_req: Request, res: Response) => {
     res.json({ message: 'Debug route works', timestamp: new Date().toISOString() });
   },
