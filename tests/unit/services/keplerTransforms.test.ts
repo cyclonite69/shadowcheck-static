@@ -57,6 +57,7 @@ describe('keplerTransforms', () => {
     it('infers Bluetooth B or E based on low energy capabilities', () => {
       expect(inferRadioType(null, 'BLUETOOTH_HEADSET', null, 'CLASSIC')).toBe('B');
       expect(inferRadioType(null, 'BLUETOOTH_TAG', null, 'BLE')).toBe('E');
+      expect(inferRadioType(null, 'BLUETOOTH_TAG', null, 'LOW ENERGY')).toBe('E');
     });
 
     it('infers WiFi W from frequency', () => {
@@ -72,6 +73,13 @@ describe('keplerTransforms', () => {
 
     it('returns ? as fallback for unrecognized patterns', () => {
       expect(inferRadioType(null, 'PlainNet', null, 'NONE')).toBe('?');
+      expect(inferRadioType(null, null, 1200, null)).toBe('?');
+    });
+
+    it('infers WiFi W from 6GHz frequency boundaries', () => {
+      expect(inferRadioType(null, null, 5925, null)).toBe('W');
+      expect(inferRadioType(null, null, 7125, null)).toBe('W');
+      expect(inferRadioType(null, null, 7200, null)).toBe('?');
     });
   });
 
@@ -195,6 +203,151 @@ describe('keplerTransforms', () => {
       expect(properties.max_distance_km).toBe(1);
       expect(properties.stationary_confidence).toBe(0.9);
       expect(properties.geocoded_address).toBe('123 Main St');
+    });
+
+    it('buildActualCounts falls back observations count to 0 if rowCount is null or undefined', () => {
+      const geojsonNull = buildKeplerDataGeoJson([], null);
+      expect(geojsonNull.actualCounts.observations).toBe(0);
+
+      const geojsonUndefined = buildKeplerDataGeoJson([], undefined);
+      expect(geojsonUndefined.actualCounts.observations).toBe(0);
+    });
+
+    it('buildKeplerDataGeoJson uses fallback values for missing or null properties', () => {
+      const incompleteRows: KeplerNetworkRow[] = [
+        {
+          bssid: '00:11:22:33:44:55',
+          ssid: null,
+          signal: null,
+          lon: -122.4,
+          lat: 37.7,
+          first_seen: null,
+          last_seen: null,
+          observed_at: null,
+          manufacturer: null,
+          type: null,
+          frequency: null,
+          capabilities: null,
+          last_altitude_m: null,
+          accuracy_meters: null,
+          observations: null,
+          threat: null,
+          distance_from_home_km: null,
+          max_distance_meters: null,
+          unique_days: null,
+          first_observed_at: null,
+          last_observed_at: null,
+        },
+      ];
+
+      const geojson = buildKeplerDataGeoJson(incompleteRows, 0);
+      const props = geojson.features[0].properties;
+
+      expect(props.ssid).toBe('Hidden Network');
+      expect(props.bestlevel).toBe(0);
+      expect(props.signal).toBe(0);
+      expect(props.level).toBe(0);
+      expect(props.manufacturer).toBe('Unknown');
+      expect(props.type).toBe('?');
+      expect(props.threat_level).toBeNull();
+      expect(props.threat_score).toBeNull();
+      expect(props.observation_count).toBe(0);
+      expect(props.obs_count).toBe(0);
+      expect(props.unique_days).toBe(0);
+      expect(props.max_distance_meters).toBe(0);
+    });
+
+    it('buildKeplerObservationsGeoJson uses fallback values for missing or null properties and timespans', () => {
+      const incompleteObsRows: KeplerObsRow[] = [
+        {
+          bssid: '00:11:22:33:44:55',
+          ssid: null,
+          level: null,
+          lon: -122.4,
+          lat: 37.7,
+          time: null,
+          manufacturer: null,
+          radio_type: null,
+          radio_frequency: null,
+          radio_capabilities: null,
+          device_id: null,
+          source_tag: null,
+          altitude: null,
+          accuracy: null,
+          threat_level: null,
+          threat_score: null,
+          distance_from_home_km: null,
+          first_observed_at: null,
+          last_observed_at: null,
+          observations: null,
+          unique_days: null,
+          max_distance_meters: null,
+          stationary_confidence: null,
+        },
+      ];
+
+      const geojson = buildKeplerObservationsGeoJson(incompleteObsRows, 0);
+      const props = geojson.features[0].properties;
+
+      expect(props.ssid).toBe('Hidden Network');
+      expect(props.bestlevel).toBe(0);
+      expect(props.signal).toBe(0);
+      expect(props.level).toBe(0);
+      expect(props.manufacturer).toBe('Unknown');
+      expect(props.type).toBe('?');
+      expect(props.threat_level).toBeNull();
+      expect(props.threat_score).toBeNull();
+      expect(props.observation_count).toBe(0);
+      expect(props.obs_count).toBe(0);
+      expect(props.unique_days).toBe(0);
+      expect(props.max_distance_meters).toBe(0);
+      expect(props.max_distance_km).toBe(0);
+      expect(props.timespan_days).toBe(0);
+      expect(props.stationary_confidence).toBeNull();
+    });
+
+    it('buildKeplerNetworksGeoJson uses fallback values for missing or null properties', () => {
+      const incompleteRows: KeplerNetworkRow[] = [
+        {
+          bssid: '00:11:22:33:44:55',
+          ssid: null,
+          signal: null,
+          lon: -122.4,
+          lat: 37.7,
+          first_seen: null,
+          last_seen: null,
+          observed_at: null,
+          manufacturer: null,
+          type: null,
+          frequency: null,
+          capabilities: null,
+          last_altitude_m: null,
+          accuracy_meters: null,
+          observations: null,
+          threat: null,
+          distance_from_home_km: null,
+          max_distance_meters: null,
+          unique_days: null,
+          first_observed_at: null,
+          last_observed_at: null,
+        },
+      ];
+
+      const geojson = buildKeplerNetworksGeoJson(incompleteRows, 0);
+      const props = geojson.features[0].properties;
+
+      expect(props.ssid).toBe('Hidden Network');
+      expect(props.bestlevel).toBe(0);
+      expect(props.signal).toBe(0);
+      expect(props.level).toBe(0);
+      expect(props.manufacturer).toBe('Unknown');
+      expect(props.type).toBe('?');
+      expect(props.threat_level).toBeNull();
+      expect(props.threat_score).toBeNull();
+      expect(props.observation_count).toBe(0);
+      expect(props.obs_count).toBe(0);
+      expect(props.unique_days).toBe(0);
+      expect(props.max_distance_meters).toBe(0);
     });
   });
 });
