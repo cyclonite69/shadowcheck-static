@@ -37,14 +37,12 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('useAuth');
     expect(source).toContain('useAdminRuntimeConfig');
     expect(source).toContain('useNetworkData');
-    expect(source).toContain('useNetworkContextMenu');
+    expect(source).toContain('useGeospatialOverlayOrchestration');
     expect(source).toContain('useNetworkSelection');
     expect(source).toContain('useObservations');
     expect(source).toContain('useGeospatialExplorerState');
     expect(source).toContain('useNearestAgencies');
     expect(source).toContain('useNearestCourthouses');
-    expect(source).toContain('useNetworkNotes');
-    expect(source).toContain('useTimeFrequencyModal');
     expect(source).toContain('useAgencyLayer');
     expect(source).toContain('useFederalCourthouses');
   });
@@ -72,9 +70,7 @@ describe('GeospatialExplorer component structure', () => {
 
     // GeospatialOverlayContent props
     expect(source).toContain('<GeospatialOverlayContent');
-    expect(source).toContain('contextMenu={contextMenu}');
-    expect(source).toContain('timeFreqModal={timeFreqModal}');
-    expect(source).toContain('showNoteModal={showNoteModal}');
+    expect(source).toContain('{...overlay}');
 
     // MapRadiusContextMenu props
     expect(source).toContain('<MapRadiusContextMenu');
@@ -84,8 +80,7 @@ describe('GeospatialExplorer component structure', () => {
   test('keeps the current overlay orchestration boundary in the page component', () => {
     expect(source).toContain('useNearestAgencies(');
     expect(source).toContain('useNearestCourthouses(');
-    expect(source).toContain('useNetworkNotes({ logError })');
-    expect(source).toContain('useTimeFrequencyModal()');
+    expect(source).toContain('useGeospatialOverlayOrchestration({');
     expect(source).toContain('useAgencyLayer({');
     expect(source).toContain('useFederalCourthouses(');
     expect(source).toContain('<GeospatialOverlayContent');

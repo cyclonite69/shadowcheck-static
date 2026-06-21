@@ -9,10 +9,8 @@ import { GeospatialLayout } from './geospatial/GeospatialLayout';
 import { GeospatialFiltersPanel } from './geospatial/panels/GeospatialFiltersPanel';
 import { useNearestAgencies } from './geospatial/hooks/useNearestAgencies';
 import { useNearestCourthouses } from './geospatial/hooks/useNearestCourthouses';
-import { useNetworkContextMenu } from './geospatial/hooks/useNetworkContextMenu';
-import { useNetworkNotes } from './geospatial/hooks/useNetworkNotes';
 import { useNetworkSelection } from './geospatial/hooks/useNetworkSelection';
-import { useTimeFrequencyModal } from './geospatial/hooks/useTimeFrequencyModal';
+import { useGeospatialOverlayOrchestration } from './geospatial/hooks/useGeospatialOverlayOrchestration';
 import { useGeospatialExplorerState } from './geospatial/hooks/useGeospatialExplorerState';
 import { useAgencyLayer } from '../hooks/useAgencyLayer';
 import { useFederalCourthouses } from './hooks/useFederalCourthouses';
@@ -49,22 +47,16 @@ export default function GeospatialExplorer() {
   } = useNetworkData({ locationMode });
 
   // High-level context menu & Dialogs
+  const overlay = useGeospatialOverlayOrchestration({ logError, resetPagination });
   const {
     contextMenu,
-    tagLoading,
-    contextMenuRef,
     openContextMenu,
-    closeContextMenu,
-    handleTagAction,
-    handleGenerateThreatReportPdf,
-    wigleLookupDialog,
-    closeWigleLookupDialog,
-    handleWigleLookup,
+    clearWigleObservations,
     wigleObservations,
     loadWigleObservations,
     loadBatchWigleObservations,
-    clearWigleObservations,
-  } = useNetworkContextMenu({ logError, onTagUpdated: resetPagination });
+    closeContextMenu,
+  } = overlay;
 
   // Selection
   const {
@@ -155,35 +147,6 @@ export default function GeospatialExplorer() {
       : null
   );
 
-  // Notes & Modals
-  const {
-    showNoteModal,
-    setShowNoteModal,
-    selectedBssid,
-    hasExistingNote,
-    noteSaving,
-    noteDeleting,
-    noteError,
-    clearNoteError,
-    noteContent,
-    setNoteContent,
-    noteType,
-    setNoteType,
-    noteAttachments,
-    existingNoteMedia,
-    fileInputRef,
-    openNoteModalForBssid,
-    resetNoteState,
-    handleSaveNote,
-    handleDeleteNote,
-    handleDeleteExistingMedia,
-    openExistingMedia,
-    handleAddAttachment,
-    removeAttachment,
-  } = useNetworkNotes({ logError });
-
-  const { timeFreqModal, openTimeFrequency, closeTimeFrequency } = useTimeFrequencyModal();
-
   // Map Layer Integration (Hook-based)
   useAgencyLayer({
     mapReady: state.mapReady,
@@ -261,48 +224,11 @@ export default function GeospatialExplorer() {
         <>
           <GeospatialOverlayContent
             state={state}
-            contextMenu={contextMenu}
-            tagLoading={tagLoading}
-            contextMenuRef={contextMenuRef}
-            handleTagAction={handleTagAction}
-            closeContextMenu={closeContextMenu}
-            openTimeFrequency={openTimeFrequency}
-            timeFreqModal={timeFreqModal}
-            openNoteModalForBssid={openNoteModalForBssid}
-            handleGenerateThreatReportPdf={handleGenerateThreatReportPdf}
             toggleWigleForBssids={state.toggleWigleForBssids}
-            wigleObservations={wigleObservations}
             selectedNetworks={selectedNetworks}
             manualSiblingTarget={state.manualSiblingTarget}
             handleMarkSiblingPair={state.handleMarkSiblingPair}
             siblingPairLoading={state.siblingPairLoading}
-            showNoteModal={showNoteModal}
-            setShowNoteModal={setShowNoteModal}
-            selectedBssid={selectedBssid}
-            hasExistingNote={hasExistingNote}
-            noteSaving={noteSaving}
-            noteDeleting={noteDeleting}
-            noteError={noteError}
-            clearNoteError={clearNoteError}
-            noteType={noteType}
-            noteContent={noteContent}
-            noteAttachments={noteAttachments}
-            existingNoteMedia={existingNoteMedia}
-            fileInputRef={fileInputRef}
-            setNoteType={setNoteType}
-            setNoteContent={setNoteContent}
-            handleAddAttachment={handleAddAttachment}
-            removeAttachment={removeAttachment}
-            resetNoteState={resetNoteState}
-            handleSaveNote={handleSaveNote}
-            handleDeleteNote={handleDeleteNote}
-            handleDeleteExistingMedia={handleDeleteExistingMedia}
-            openExistingMedia={openExistingMedia}
-            closeTimeFrequency={closeTimeFrequency}
-            wigleLookupDialog={wigleLookupDialog}
-            handleWigleLookup={handleWigleLookup}
-            closeWigleLookupDialog={closeWigleLookupDialog}
-            clearWigleObservations={clearWigleObservations}
             agencies={agencies}
             agenciesLoading={agenciesLoading}
             agenciesError={agenciesError}
@@ -310,6 +236,7 @@ export default function GeospatialExplorer() {
             courthousesLoading={courthousesLoading}
             courthousesError={courthousesError}
             mapRef={state.mapRef}
+            {...overlay}
           />
           <MapRadiusContextMenu
             menu={state.radiusContextMenu}
