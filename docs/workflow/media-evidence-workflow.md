@@ -103,12 +103,32 @@ Matched-media component grouping and interaction semantics are defined in
 
 Two categories, visually distinct:
 
-| Category                                     | Plot location               | Style              |
-| -------------------------------------------- | --------------------------- | ------------------ |
-| Matched media (`bssid != VISINT_UNMATCHED`)  | Network `lat`/`lon` from MV | Teal/green dot     |
-| Unmatched media (`bssid = VISINT_UNMATCHED`) | EXIF `exif_lat`/`exif_lon`  | Pink dot (current) |
+| Category                                     | Plot location               | Style              | Popup Wording                                                                               |
+| -------------------------------------------- | --------------------------- | ------------------ | ------------------------------------------------------------------------------------------- |
+| Matched media (`bssid != VISINT_UNMATCHED`)  | Network `lat`/`lon` from MV | Teal/green dot     | `Media linked to component members` (for component) / `Linked network location` (for BSSID) |
+| Unmatched media (`bssid = VISINT_UNMATCHED`) | EXIF `exif_lat`/`exif_lon`  | Pink dot (current) | `Captured here`                                                                             |
 
-Clicking either plots an inline popup with the image, filename, source BSSID, and capture timestamp.
+#### Location Provenance & Precision Semantics
+
+To prevent false precision and avoid misleading analysts, implementations must enforce a strict separation of `location_provenance` claims. Never silently collapse the following three locations into a single meaning:
+
+1. **Capture Location (`capture_location`)**:
+   - The media file was physically captured at these coordinates.
+   - Source: EXIF `exif_lat`/`exif_lon`.
+   - Wording on map popup: `Captured here` (used for unmatched media).
+   - _Constraint:_ This does not necessarily mean the visible subject/device was located there at the time of capture.
+2. **Linked Network Location (`linked_network_location` / `component_location`)**:
+   - The media is associated with a specific BSSID, network, or sibling component.
+   - Source: network MV location, component marker position, observation relation, or sibling grouping.
+   - Wording on map popup: `Linked network location` or `Media linked to component members`.
+   - _Constraint:_ This is an association or estimated hardware marker, not a claim that the camera was standing at these coordinates.
+3. **Inferred Subject Location (`inferred_subject_location` - Future)**:
+   - The visible subject/device itself is estimated to be here.
+   - Source: Visual analysis, map context, camera perspective, RSSI/SNR, distance estimate, bearing, or other chained inference.
+   - Wording on map popup: `Inferred subject location`.
+   - _Constraint:_ This requires explicit `location_confidence` and provenance metadata and must never be merged with or represented as the capture or network location.
+
+Clicking either plots an inline popup with the image, filename, source BSSID, and capture timestamp, adhering to the above wording guidelines.
 
 ---
 

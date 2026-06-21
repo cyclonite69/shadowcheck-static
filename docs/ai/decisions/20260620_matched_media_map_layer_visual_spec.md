@@ -19,6 +19,25 @@ Not covered here:
 - unmatched-media styling, which remains the existing pink marker;
 - exact pixel-level styling.
 
+## Location Provenance & Precision Semantics
+
+To prevent false precision and ensure clear evidence distinction on the map, the system must enforce strict `location_provenance` semantics. We recognize three distinct locations:
+
+1. **Capture Location (`capture_location`)**:
+   - Popup wording: `Captured here`.
+   - Source: EXIF coordinates (`exif_lat`/`exif_lon`).
+   - Meaning: Where the image/video was captured, NOT necessarily where the radio/device was.
+2. **Linked Network Location (`linked_network_location` / `component_location`)**:
+   - Popup wording: `Linked network location` (for BSSID) or `Media linked to component members` (for component).
+   - Source: Network MV location, component marker position, observation relation, or sibling grouping.
+   - Meaning: The estimated location of the associated radio hardware, NOT the camera's location.
+3. **Inferred Subject Location (`inferred_subject_location` - Future)**:
+   - Popup wording: `Inferred subject location`.
+   - Source: Visual or spatial-temporal inference (visual analysis, bearing, RSSI/SNR bounds).
+   - Meaning: Estimates the visible target's position. Requires explicit `location_confidence` metrics.
+
+**Immutable Rule:** Never silently collapse or conflate these different location types into a single marker meaning.
+
 ## Core Decision: One Marker per Sibling Component
 
 Matched media clusters at the physical sibling-component level, not at the individual
