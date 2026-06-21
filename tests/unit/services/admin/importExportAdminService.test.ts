@@ -29,6 +29,16 @@ describe('importExportAdminService', () => {
       const result = await getBackupData();
       expect(databaseService.query).toHaveBeenCalledTimes(3);
       expect(result).toEqual({ networks: [], observations: [], tags: [] });
+
+      const calls = databaseService.query.mock.calls;
+      expect(calls[0][0]).toEqual('SELECT * FROM app.network_entries ORDER BY bssid');
+      expect(calls[0][1]).toEqual([]);
+
+      expect(calls[1][0]).toEqual('SELECT * FROM app.observations ORDER BY time DESC LIMIT 10000');
+      expect(calls[1][1]).toEqual([]);
+
+      expect(calls[2][0]).toEqual('SELECT * FROM app.network_tags ORDER BY bssid');
+      expect(calls[2][1]).toEqual([]);
     });
 
     it('should propagate database error', async () => {
@@ -42,6 +52,27 @@ describe('importExportAdminService', () => {
       databaseService.query.mockResolvedValue({ rows: [{ bssid: 'AA' }] });
       const result = await exportMLTrainingData();
       expect(result).toEqual([{ bssid: 'AA' }]);
+
+      expect(databaseService.query).toHaveBeenCalled();
+      const [sql, params] = databaseService.query.mock.calls[0];
+      expect(sql).toContain('SELECT');
+      expect(sql).toContain('ne.bssid');
+      expect(sql).toContain('ne.ssid');
+      expect(sql).toContain('ne.observations AS observation_count');
+      expect(sql).toContain('ne.unique_days');
+      expect(sql).toContain('ne.unique_locations');
+      expect(sql).toContain('ne.signal AS max_signal');
+      expect(sql).toContain('ne.max_distance_meters');
+      expect(sql).toContain(
+        "CASE WHEN nt.threat_tag IN ('THREAT', 'INVESTIGATE') THEN 1 ELSE 0 END AS is_threat"
+      );
+      expect(sql).toContain('nt.threat_tag');
+      expect(sql).toContain('nt.is_ignored');
+      expect(sql).toContain('FROM app.network_entries ne');
+      expect(sql).toContain('LEFT JOIN app.network_tags nt ON ne.bssid = nt.bssid');
+      expect(sql).toContain('WHERE nt.threat_tag IS NOT NULL');
+      expect(sql).toContain('ORDER BY ne.bssid');
+      expect(params).toEqual([]);
     });
 
     it('should propagate database error', async () => {
@@ -57,6 +88,13 @@ describe('importExportAdminService', () => {
         .mockResolvedValueOnce({ rows: [{ count: '5' }] });
       const result = await getCountsImportExport();
       expect(result).toEqual({ observations: 10, networks: 5 });
+
+      const calls = databaseService.query.mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][0]).toEqual('SELECT COUNT(*) as count FROM app.observations');
+      expect(calls[0][1]).toEqual([]);
+      expect(calls[1][0]).toEqual('SELECT COUNT(*) as count FROM app.network_entries');
+      expect(calls[1][1]).toEqual([]);
     });
 
     it('should propagate database error', async () => {
@@ -70,10 +108,14 @@ describe('importExportAdminService', () => {
       adminDbService.adminQuery.mockResolvedValue({ rows: [] });
       await truncateAllData();
       expect(adminDbService.adminQuery).toHaveBeenCalledTimes(3);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('TRUNCATE TABLE app.observations'),
-        []
-      );
+
+      const calls = adminDbService.adminQuery.mock.calls;
+      expect(calls[0][0]).toEqual('TRUNCATE TABLE app.observations CASCADE');
+      expect(calls[0][1]).toEqual([]);
+      expect(calls[1][0]).toEqual('TRUNCATE TABLE app.network_entries CASCADE');
+      expect(calls[1][1]).toEqual([]);
+      expect(calls[2][0]).toEqual('TRUNCATE TABLE app.network_tags CASCADE');
+      expect(calls[2][1]).toEqual([]);
     });
 
     it('should propagate database error', async () => {

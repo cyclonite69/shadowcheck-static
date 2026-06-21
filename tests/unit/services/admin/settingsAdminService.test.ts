@@ -23,10 +23,12 @@ describe('settingsAdminService', () => {
       const result = await settingsAdminService.getAllSettings();
 
       expect(result).toEqual(mockRows);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT key, value, description, updated_at FROM app.settings'),
-        []
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'SELECT key, value, description, updated_at FROM app.settings ORDER BY key'
       );
+      expect(params).toEqual([]);
     });
   });
 
@@ -38,10 +40,12 @@ describe('settingsAdminService', () => {
       const result = await settingsAdminService.getSettingByKey('k1');
 
       expect(result).toEqual(mockRow);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE key = $1'),
-        ['k1']
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'SELECT key, value, description, updated_at FROM app.settings WHERE key = $1'
       );
+      expect(params).toEqual(['k1']);
     });
 
     it('should return null if setting not found', async () => {
@@ -61,10 +65,12 @@ describe('settingsAdminService', () => {
       const result = await settingsAdminService.updateSetting('k1', 'new_val');
 
       expect(result).toEqual(mockRow);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE app.settings SET value = $1'),
-        ['new_val', 'k1']
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'UPDATE app.settings SET value = $1, updated_at = NOW() WHERE key = $2 RETURNING *'
       );
+      expect(params).toEqual(['new_val', 'k1']);
     });
   });
 
@@ -80,10 +86,18 @@ describe('settingsAdminService', () => {
       );
 
       expect(result).toEqual(mockRow);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO app.settings'),
-        ['badge_studio', 'true', 'badge_studio runtime feature flag']
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toContain('INSERT INTO app.settings (key, value, description)');
+      expect(sql).toContain('VALUES ($1, $2::jsonb, $3)');
+      expect(sql).toContain('ON CONFLICT (key) DO UPDATE');
+      expect(sql).toContain('SET value = EXCLUDED.value');
+      expect(sql).toContain(
+        'description = COALESCE(app.settings.description, EXCLUDED.description)'
       );
+      expect(sql).toContain('updated_at = NOW()');
+      expect(sql).toContain('RETURNING *');
+      expect(params).toEqual(['badge_studio', 'true', 'badge_studio runtime feature flag']);
     });
   });
 

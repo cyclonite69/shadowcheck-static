@@ -28,7 +28,14 @@ describe('AdminMaintenanceService', () => {
       const stats = await getDuplicateObservationStats();
 
       expect(stats).toEqual(mockResult);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('SELECT COUNT(*) as total'));
+      expect(query).toHaveBeenCalled();
+      const [sql] = (query as jest.Mock).mock.calls[0];
+      expect(sql).toContain('SELECT COUNT(*) as total');
+      expect(sql).toContain(
+        'COUNT(DISTINCT (bssid, observed_at, lat, lon, accuracy)) as unique_obs'
+      );
+      expect(sql).toContain('FROM app.observations');
+      expect(sql).toContain('WHERE lat IS NOT NULL AND lon IS NOT NULL');
     });
 
     it('should return default stats if no rows returned', async () => {
@@ -52,9 +59,20 @@ describe('AdminMaintenanceService', () => {
       const result = await deleteDuplicateObservations();
 
       expect(result).toBe(20);
-      expect(adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('DELETE FROM app.observations')
-      );
+      expect(adminQuery).toHaveBeenCalled();
+      const [sql] = (adminQuery as jest.Mock).mock.calls[0];
+      expect(sql).toContain('DELETE FROM app.observations');
+      expect(sql).toContain('WHERE id IN (');
+      expect(sql).toContain('SELECT id');
+      expect(sql).toContain('SELECT id,');
+      expect(sql).toContain('ROW_NUMBER() OVER (');
+      expect(sql).toContain('PARTITION BY bssid, observed_at, lat, lon, accuracy');
+      expect(sql).toContain('ORDER BY id');
+      expect(sql).toContain(') as rn');
+      expect(sql).toContain('FROM app.observations');
+      expect(sql).toContain('WHERE lat IS NOT NULL AND lon IS NOT NULL');
+      expect(sql).toContain(') t');
+      expect(sql).toContain('WHERE rn > 1');
     });
 
     it('should return 0 if rowCount is null', async () => {
@@ -78,7 +96,11 @@ describe('AdminMaintenanceService', () => {
       const count = await getObservationCount();
 
       expect(count).toBe(150);
-      expect(query).toHaveBeenCalledWith(expect.stringContaining('SELECT COUNT(*) as total'));
+      expect(query).toHaveBeenCalled();
+      const [sql] = (query as jest.Mock).mock.calls[0];
+      expect(sql).toContain('SELECT COUNT(*) as total');
+      expect(sql).toContain('FROM app.observations');
+      expect(sql).toContain('WHERE lat IS NOT NULL AND lon IS NOT NULL');
     });
 
     it('should return 0 if no results returned', async () => {
@@ -107,12 +129,8 @@ describe('AdminMaintenanceService', () => {
       await truncateAllData();
 
       expect(adminQuery).toHaveBeenCalledTimes(2);
-      expect(adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('TRUNCATE TABLE app.observations')
-      );
-      expect(adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('TRUNCATE TABLE app.networks')
-      );
+      expect(adminQuery).toHaveBeenNthCalledWith(1, 'TRUNCATE TABLE app.observations CASCADE');
+      expect(adminQuery).toHaveBeenNthCalledWith(2, 'TRUNCATE TABLE app.networks CASCADE');
     });
 
     it('should propagate database error', async () => {

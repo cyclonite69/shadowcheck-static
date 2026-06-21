@@ -907,7 +907,7 @@
 - **validation:** add missing validateString overload for WiGLE credentials ([01b4308](https://github.com/cyclonite69/shadowcheck-web/commit/01b43087e6d1a23a2caa7ee023a5b3b9afac3d78))
 - **visint:** auto-rotate thumbnails using EXIF orientation tag ([00dee4c](https://github.com/cyclonite69/shadowcheck-web/commit/00dee4c79f36b6994a5b8b844b4523c6471d90e3))
 - **visint:** parse and apply EXIF timezone offset ([5c8bcf8](https://github.com/cyclonite69/shadowcheck-web/commit/5c8bcf8bf7da8385e915a0148446528368c0fd2a))
-- **visint:** persist observation_id on VISINT media attachment ([1d6d6a6](https://github.com/cyclonite69/shadowcheck-web/commit/1d6d6a612ade4bd2c05e06fe6031b0f51629a63e))
+- **visint:** persist observation_id on VISINT media attachment ([5c9df44](https://github.com/cyclonite69/shadowcheck-web/commit/5c9df440fd886bd98526f9b9b1406bd00111a0f2))
 - **visint:** prevent silent fallback writes ([271fda4](https://github.com/cyclonite69/shadowcheck-web/commit/271fda4881daf66de2ce0dff6fa8a0242a52bc7d))
 - weather fx and redundant header text ([4f42201](https://github.com/cyclonite69/shadowcheck-web/commit/4f42201bf63f7abe7bcf7f6c860a0636a265e009))
 - weather routes import causing server crash ([e51df81](https://github.com/cyclonite69/shadowcheck-web/commit/e51df816da5a4acdbac4ec4039b6af14a975e060))

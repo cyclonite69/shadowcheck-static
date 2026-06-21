@@ -29,6 +29,10 @@ describe('networkTagsAdminService', () => {
 
       expect(result).toEqual({ bssid, updated: true });
       expect(adminDbService.adminQuery).toHaveBeenCalledTimes(4); // check + 3 updates
+
+      const calls = adminDbService.adminQuery.mock.calls;
+      expect(calls[0][0]).toEqual('SELECT bssid FROM app.network_tags WHERE bssid = $1');
+      expect(calls[0][1]).toEqual([bssid]);
     });
 
     it('should insert new tag when bssid does not exist', async () => {
@@ -45,6 +49,10 @@ describe('networkTagsAdminService', () => {
 
       expect(result).toEqual({ bssid, inserted: true });
       expect(adminDbService.adminQuery).toHaveBeenCalledTimes(4); // check + 3 inserts
+
+      const calls = adminDbService.adminQuery.mock.calls;
+      expect(calls[0][0]).toEqual('SELECT bssid FROM app.network_tags WHERE bssid = $1');
+      expect(calls[0][1]).toEqual([bssid]);
     });
 
     it('should only perform actions for non-null parameters', async () => {
@@ -98,55 +106,67 @@ describe('networkTagsAdminService', () => {
     it('updateNetworkTagIgnore should call UPDATE', async () => {
       adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
       await networkTagsAdminService.updateNetworkTagIgnore(bssid, true);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE app.network_tags SET is_ignored = $1'),
-        [true, bssid]
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'UPDATE app.network_tags SET is_ignored = $1, updated_at = NOW() WHERE bssid = $2 RETURNING *'
       );
+      expect(params).toEqual([true, bssid]);
     });
 
     it('insertNetworkTagIgnore should call INSERT', async () => {
       adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
       await networkTagsAdminService.insertNetworkTagIgnore(bssid, true);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO app.network_tags (bssid, is_ignored)'),
-        [bssid, true]
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'INSERT INTO app.network_tags (bssid, is_ignored) VALUES ($1, $2) RETURNING *'
       );
+      expect(params).toEqual([bssid, true]);
     });
 
     it('updateNetworkThreatTag should call UPDATE', async () => {
       adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
       await networkTagsAdminService.updateNetworkThreatTag(bssid, 'threat');
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE app.network_tags SET threat_tag = $1'),
-        ['threat', bssid]
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'UPDATE app.network_tags SET threat_tag = $1, updated_at = NOW() WHERE bssid = $2 RETURNING *'
       );
+      expect(params).toEqual(['threat', bssid]);
     });
 
     it('insertNetworkThreatTag should call INSERT', async () => {
       adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
       await networkTagsAdminService.insertNetworkThreatTag(bssid, 'threat');
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO app.network_tags (bssid, threat_tag)'),
-        [bssid, 'threat']
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'INSERT INTO app.network_tags (bssid, threat_tag) VALUES ($1, $2) RETURNING *'
       );
+      expect(params).toEqual([bssid, 'threat']);
     });
 
     it('updateNetworkTagNotes should call UPDATE', async () => {
       adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
       await networkTagsAdminService.updateNetworkTagNotes(bssid, 'notes');
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE app.network_tags SET notes = $1'),
-        ['notes', bssid]
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'UPDATE app.network_tags SET notes = $1, updated_at = NOW() WHERE bssid = $2 RETURNING *'
       );
+      expect(params).toEqual(['notes', bssid]);
     });
 
     it('insertNetworkTagNotes should call INSERT', async () => {
       adminDbService.adminQuery.mockResolvedValueOnce({ rows: [mockRow] });
       await networkTagsAdminService.insertNetworkTagNotes(bssid, 'notes');
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO app.network_tags (bssid, notes)'),
-        [bssid, 'notes']
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual(
+        'INSERT INTO app.network_tags (bssid, notes) VALUES ($1, $2) RETURNING *'
       );
+      expect(params).toEqual([bssid, 'notes']);
     });
   });
 
@@ -155,10 +175,10 @@ describe('networkTagsAdminService', () => {
       adminDbService.adminQuery.mockResolvedValueOnce({ rowCount: 1 });
       const result = await networkTagsAdminService.deleteNetworkTag(bssid);
       expect(result).toBe(1);
-      expect(adminDbService.adminQuery).toHaveBeenCalledWith(
-        expect.stringContaining('DELETE FROM app.network_tags WHERE bssid = $1'),
-        [bssid]
-      );
+      expect(adminDbService.adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminDbService.adminQuery.mock.calls[0];
+      expect(sql).toEqual('DELETE FROM app.network_tags WHERE bssid = $1');
+      expect(params).toEqual([bssid]);
     });
   });
 });

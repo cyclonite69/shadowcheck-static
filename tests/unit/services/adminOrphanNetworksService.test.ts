@@ -60,12 +60,29 @@ describe('adminOrphanNetworksService', () => {
       const result = await listOrphanNetworks();
       expect(result.length).toBe(1);
       expect(adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminQuery.mock.calls[0];
+      expect(sql).toContain('o.bssid');
+      expect(sql).toContain('o.ssid');
+      expect(sql).toContain('o.type');
+      expect(sql).toContain('o.frequency');
+      expect(sql).toContain('o.capabilities');
+      expect(sql).toContain('FROM app.networks_orphans o');
+      expect(sql).toContain('LEFT JOIN app.orphan_network_backfills ob ON ob.bssid = o.bssid');
+      expect(sql).toContain('ORDER BY o.moved_at DESC, o.bssid ASC');
+      expect(sql).toContain('LIMIT $1');
+      expect(sql).toContain('OFFSET $2');
+      expect(params).toEqual([50, 0]);
     });
 
     it('should list orphan networks with search', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ bssid: 'test' }] });
       const result = await listOrphanNetworks({ search: 'query' });
       expect(result.length).toBe(1);
+      expect(adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminQuery.mock.calls[0];
+      expect(sql).toContain('o.bssid ILIKE $1 ESCAPE');
+      expect(sql).toContain('o.ssid ILIKE $2 ESCAPE');
+      expect(params).toEqual(['%query%', '%query%', 50, 0]);
     });
 
     it('should handle empty results', async () => {
@@ -91,12 +108,23 @@ describe('adminOrphanNetworksService', () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ total: 5 }] });
       const result = await getOrphanNetworkCounts();
       expect(result.total).toBe(5);
+      expect(adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminQuery.mock.calls[0];
+      expect(sql).toContain('SELECT COUNT(*)::int AS total');
+      expect(sql).toContain('FROM app.networks_orphans');
+      expect(params).toEqual([]);
     });
 
     it('should get count with search', async () => {
       adminQuery.mockResolvedValueOnce({ rows: [{ total: 2 }] });
       const result = await getOrphanNetworkCounts({ search: 'query' });
       expect(result.total).toBe(2);
+      expect(adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminQuery.mock.calls[0];
+      expect(sql).toContain('SELECT COUNT(*)::int AS total');
+      expect(sql).toContain('FROM app.networks_orphans');
+      expect(sql).toContain('WHERE (bssid ILIKE $1 ESCAPE');
+      expect(params).toEqual(['%query%', '%query%']);
     });
 
     it('should return 0 when no records found', async () => {
@@ -117,6 +145,13 @@ describe('adminOrphanNetworksService', () => {
       await expect(backfillOrphanNetworkFromWigle('00:11:22')).rejects.toThrow(
         'Orphan network not found'
       );
+      expect(adminQuery).toHaveBeenCalled();
+      const [sql, params] = adminQuery.mock.calls[0];
+      expect(sql).toContain('SELECT bssid, ssid, type');
+      expect(sql).toContain('FROM app.networks_orphans');
+      expect(sql).toContain('WHERE bssid = $1');
+      expect(sql).toContain('LIMIT 1');
+      expect(params).toEqual(['00:11:22']);
     });
 
     it('should return error status when upstream payload is invalid', async () => {
@@ -128,6 +163,22 @@ describe('adminOrphanNetworksService', () => {
       });
       const res = await backfillOrphanNetworkFromWigle('00:11:22');
       expect(res.status).toBe('error');
+
+      const calls = adminQuery.mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][0]).toContain('SELECT bssid, ssid, type');
+      expect(calls[0][0]).toContain('FROM app.networks_orphans');
+      expect(calls[0][0]).toContain('WHERE bssid = $1');
+      expect(calls[0][0]).toContain('LIMIT 1');
+      expect(calls[1][0]).toContain('INSERT INTO app.orphan_network_backfills');
+      expect(calls[1][1]).toEqual([
+        '00:11:22',
+        'error',
+        null,
+        false,
+        0,
+        'API response missing network data',
+      ]);
     });
 
     it('should handle API 404', async () => {
@@ -141,6 +192,15 @@ describe('adminOrphanNetworksService', () => {
 
       const res = await backfillOrphanNetworkFromWigle('00:11:22');
       expect(res.status).toBe('no_wigle_match');
+
+      const calls = adminQuery.mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][0]).toContain('SELECT bssid, ssid, type');
+      expect(calls[0][0]).toContain('FROM app.networks_orphans');
+      expect(calls[0][0]).toContain('WHERE bssid = $1');
+      expect(calls[0][0]).toContain('LIMIT 1');
+      expect(calls[1][0]).toContain('INSERT INTO app.orphan_network_backfills');
+      expect(calls[1][1]).toEqual(['00:11:22', 'no_wigle_match', null, false, 0, null]);
     });
 
     it('should return error on API non-ok status', async () => {
@@ -154,6 +214,22 @@ describe('adminOrphanNetworksService', () => {
 
       const res = await backfillOrphanNetworkFromWigle('00:11:22');
       expect(res.status).toBe('error');
+
+      const calls = adminQuery.mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][0]).toContain('SELECT bssid, ssid, type');
+      expect(calls[0][0]).toContain('FROM app.networks_orphans');
+      expect(calls[0][0]).toContain('WHERE bssid = $1');
+      expect(calls[0][0]).toContain('LIMIT 1');
+      expect(calls[1][0]).toContain('INSERT INTO app.orphan_network_backfills');
+      expect(calls[1][1]).toEqual([
+        '00:11:22',
+        'error',
+        null,
+        false,
+        0,
+        'API response missing network data',
+      ]);
     });
 
     it('should successfully backfill network', async () => {
@@ -182,6 +258,15 @@ describe('adminOrphanNetworksService', () => {
       expect(res.ok).toBe(true);
       expect(res.status).toBe('wigle_match_imported_v3');
       expect(res.importedObservations).toBe(1);
+
+      const calls = adminQuery.mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][0]).toContain('SELECT bssid, ssid, type');
+      expect(calls[0][0]).toContain('FROM app.networks_orphans');
+      expect(calls[0][0]).toContain('WHERE bssid = $1');
+      expect(calls[0][0]).toContain('LIMIT 1');
+      expect(calls[1][0]).toContain('INSERT INTO app.orphan_network_backfills');
+      expect(calls[1][1]).toEqual(['00:11:22', 'wigle_match_imported_v3', 'NET1', true, 1, null]);
     });
 
     it('should handle API rate limit response', async () => {
