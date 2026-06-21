@@ -293,6 +293,47 @@ describe('Observations API v1', () => {
         '2026-06-05T00:00:00.000Z',
         false,
         null,
+        null,
+      ]);
+    });
+
+    it('accepts multipart VISINT attachment uploads with observation_id', async () => {
+      const image = Buffer.from('fake-visint-attachment-with-obs');
+      mockContainer.observationService.saveVisINTAttachment.mockResolvedValue(['VISINT_VERIFIED']);
+
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('filename', 'visint.jpg')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('status', 'MATCHED')
+        .field('detection_score', '3')
+        .field('dist_meters', '12.5')
+        .field('delta_minutes', '4.25')
+        .field('lat', '39.1')
+        .field('lon', '-76.2')
+        .field('ts', '2026-06-05T00:00:00.000Z')
+        .field('manual_override', 'false')
+        .field('observation_id', '987654');
+
+      expect(res.status).toBe(200);
+      expect(res.body.tags_applied).toEqual(['VISINT_VERIFIED']);
+      const call = mockContainer.observationService.saveVisINTAttachment.mock.calls[0];
+      expect(Buffer.isBuffer(call[0])).toBe(true);
+      expect(call[0].equals(image)).toBe(true);
+      expect(call.slice(1)).toEqual([
+        'visint.jpg',
+        'AA:BB:CC:DD:EE:FF',
+        'MATCHED',
+        3,
+        12.5,
+        4.25,
+        39.1,
+        -76.2,
+        '2026-06-05T00:00:00.000Z',
+        false,
+        null,
+        '987654',
       ]);
     });
 

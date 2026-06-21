@@ -52,6 +52,48 @@ describe('adminNetworkMediaRepository', () => {
         -75.2,
         '2026-06-13T00:00:00Z',
         thumbnail,
+        null,
+      ]
+    );
+  });
+
+  it('inserts network media with observation_id', async () => {
+    const row = { id: 6, filename: 'evidence2.jpg' };
+    adminQuery.mockResolvedValueOnce({ rows: [row] });
+    const media = Buffer.from('full');
+    const thumbnail = Buffer.from('thumb');
+
+    await expect(
+      repository.insertNetworkMedia(
+        'AA:BB:CC:DD:EE:FF',
+        'image',
+        'evidence2.jpg',
+        2048,
+        'image/jpeg',
+        media,
+        'front door',
+        40.1,
+        -75.2,
+        '2026-06-13T00:00:00Z',
+        thumbnail,
+        12345
+      )
+    ).resolves.toEqual(row);
+    expect(adminQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO app.network_media'),
+      [
+        'AA:BB:CC:DD:EE:FF',
+        'image',
+        'evidence2.jpg',
+        2048,
+        'image/jpeg',
+        media,
+        'front door',
+        40.1,
+        -75.2,
+        '2026-06-13T00:00:00Z',
+        thumbnail,
+        12345,
       ]
     );
   });

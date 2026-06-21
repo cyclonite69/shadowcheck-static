@@ -150,7 +150,8 @@ export async function saveVisINTAttachment(
   lon?: number,
   ts?: string,
   isManualOverride: boolean = false,
-  deviceType: string | null = null
+  deviceType: string | null = null,
+  observationId: number | string | null = null
 ): Promise<string[]> {
   const mimeType = String(filename).toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
 
@@ -191,7 +192,8 @@ export async function saveVisINTAttachment(
     resolvedLat,
     resolvedLon,
     resolvedTs,
-    thumbnailBuffer
+    thumbnailBuffer,
+    observationId
   );
 
   const tagsToApply = deriveVisintTags(targetBssid, detectionScore, deviceType, isManualOverride);
@@ -290,7 +292,8 @@ export async function correlateVisINT(
       lon,
       ts,
       false, // correlateVisINT is always auto — not manual
-      deviceType
+      deviceType,
+      observationId
     );
   } else {
     // Preview tags — derive without committing

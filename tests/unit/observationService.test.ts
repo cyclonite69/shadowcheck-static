@@ -322,7 +322,8 @@ describe('Observation Service', () => {
         43.023,
         -83.696,
         '2026-05-06 20:29:10',
-        expect.any(Buffer)
+        expect.any(Buffer),
+        null
       );
     });
 
@@ -368,7 +369,8 @@ describe('Observation Service', () => {
         43.023,
         -83.696,
         '2026-05-06 20:29:10',
-        null
+        null,
+        '12345'
       );
 
       expect(insertNetworkTagWithNotes).toHaveBeenCalledWith(
@@ -460,6 +462,7 @@ describe('Observation Service', () => {
         43.023,
         -83.696,
         '2026-05-06 20:29:10',
+        null,
         null
       );
 

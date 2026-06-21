@@ -473,6 +473,7 @@ router.post(
     const ts = req.body.ts || undefined;
     const isManualOverride = req.body.manual_override === 'true';
     const deviceType: string | null = req.body.device_type || null;
+    const observationId = req.body.observation_id || req.body.observationId || null;
 
     // Sentinel guard: attaching to the fallback BSSID requires explicit opt-in.
     // Prevents agent/curl calls from silently writing unmatched fallback rows.
@@ -501,7 +502,8 @@ router.post(
         lon,
         ts,
         isManualOverride,
-        deviceType
+        deviceType,
+        observationId
       );
       res.json({ ok: true, success: true, tags_applied: tagsApplied });
     } catch (error: any) {

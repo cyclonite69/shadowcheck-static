@@ -27,12 +27,13 @@ export async function insertNetworkMedia(
   exifLat: number | null = null,
   exifLon: number | null = null,
   exifCapturedAt: string | null = null,
-  thumbnail: Buffer | null = null
+  thumbnail: Buffer | null = null,
+  observationId: number | string | null = null
 ): Promise<any> {
   const result = await adminQuery(
     `INSERT INTO app.network_media
-      (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by, exif_lat, exif_lon, exif_captured_at, thumbnail)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11)
+      (bssid, media_type, filename, file_size, mime_type, media_data, description, uploaded_by, exif_lat, exif_lon, exif_captured_at, thumbnail, observation_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'admin', $8, $9, $10, $11, $12)
      RETURNING id, filename, file_size, created_at`,
     [
       bssid,
@@ -46,6 +47,7 @@ export async function insertNetworkMedia(
       exifLon,
       exifCapturedAt,
       thumbnail,
+      observationId ? parseInt(String(observationId), 10) : null,
     ]
   );
   return result.rows[0];
