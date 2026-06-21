@@ -50,6 +50,11 @@ describe('server/src/middleware/staticAssets', () => {
         'Cache-Control',
         'no-cache, no-store, must-revalidate'
       );
+
+      const resOther = { setHeader: jest.fn() };
+      fallbackOptions.setHeaders(resOther, '/dist/main.js');
+      expect(resOther.setHeader).not.toHaveBeenCalled();
+
       expect(staticMock.mock.calls[2][0]).toBe('/dist');
       expect(staticMock.mock.calls[2][1]).toMatchObject({ maxAge: 0, etag: true });
     });
