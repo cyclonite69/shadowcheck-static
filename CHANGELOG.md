@@ -355,6 +355,7 @@
 - **geospatial:** avoid duplicate sibling unresolved warnings ([ef38729](https://github.com/cyclonite69/shadowcheck-web/commit/ef38729dc0af5e82126e5dc2dc7afd1551fad432))
 - **geospatial:** batch hydrate sibling expansion rows ([9a7db9b](https://github.com/cyclonite69/shadowcheck-web/commit/9a7db9b1f0758bc551996d34112a858d3a09f82a))
 - **geospatial:** build sibling links from precomputed payload ([9bf5e11](https://github.com/cyclonite69/shadowcheck-web/commit/9bf5e1183bdd221d8996e34908424f9ab9331e9d))
+- **geospatial:** clarify media overlay behavior ([24a5aa7](https://github.com/cyclonite69/shadowcheck-web/commit/24a5aa75334c008f73ffd3004ef9ef7be28f7697))
 - **geospatial:** classify sibling hydration diagnostics ([046ad08](https://github.com/cyclonite69/shadowcheck-web/commit/046ad08ed782c21560e14d3bb316be9147f6fc10))
 - **geospatial:** clear stale sibling links immediately on input change ([b0ded3d](https://github.com/cyclonite69/shadowcheck-web/commit/b0ded3d087c4ff95dcf9df78776f386f0088c6de))
 - **geospatial:** correct anchor BSSID source and guard repeat component calls ([5a19010](https://github.com/cyclonite69/shadowcheck-web/commit/5a19010a68b26e328544d941fa3cbd839ec75c6e))

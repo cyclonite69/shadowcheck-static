@@ -43,6 +43,7 @@ describe('server/src/api/routes/v2/filtered/handlers/unmatchedMedia', () => {
             filename: 'field.jpg',
             captured_at: '2026-06-12T01:02:03Z',
             thumbnail_url: '/api/v2/networks/media/42/thumbnail',
+            inline_url: '/api/v2/networks/media/42/inline',
           },
         },
       ],

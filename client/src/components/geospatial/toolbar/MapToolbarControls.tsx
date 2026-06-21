@@ -1,3 +1,5 @@
+import type { MediaLocationStatus } from '../hooks/useMediaLocationLayers';
+
 interface ViewControlsProps {
   onToggle3DBuildings: () => void;
   is3DBuildingsAvailable: boolean;
@@ -88,6 +90,7 @@ interface OverlayTogglesProps {
   selectedCount?: number;
   showMediaLocations?: boolean;
   onToggleMediaLocations?: (value: boolean) => void;
+  mediaLocationStatus?: MediaLocationStatus;
 }
 
 export const OverlayToggles = ({
@@ -100,7 +103,15 @@ export const OverlayToggles = ({
   selectedCount,
   showMediaLocations = false,
   onToggleMediaLocations,
+  mediaLocationStatus = 'idle',
 }: OverlayTogglesProps) => {
+  const mediaStatusText: Partial<Record<MediaLocationStatus, string>> = {
+    loading: 'Loading media locations…',
+    active: 'Unmatched media with GPS',
+    empty: 'No unmatched media with GPS found',
+    error: 'Failed to load media locations',
+  };
+
   return (
     <div
       style={{
@@ -129,24 +140,39 @@ export const OverlayToggles = ({
         <span className="hidden-narrow">Markers</span>
       </button>
       {onToggleMediaLocations && (
-        <button
-          onClick={() => onToggleMediaLocations(!showMediaLocations)}
-          title="Show/hide photo precise locations from unmatched VISINT media attachments"
-          style={{
-            height: '30px',
-            padding: '0 10px',
-            borderRadius: '6px',
-            border: 'none',
-            fontSize: '11px',
-            ...mono,
-            letterSpacing: '0.04em',
-            cursor: 'pointer',
-            background: showMediaLocations ? 'rgba(236,72,153,0.12)' : 'transparent',
-            color: showMediaLocations ? '#ec4899' : 'var(--nav-text-inactive)',
-          }}
-        >
-          <span className="hidden-narrow">Photos</span>
-        </button>
+        <>
+          <button
+            onClick={() => onToggleMediaLocations(!showMediaLocations)}
+            title="Show media locations"
+            style={{
+              height: '30px',
+              padding: '0 10px',
+              borderRadius: '6px',
+              border: 'none',
+              fontSize: '11px',
+              ...mono,
+              letterSpacing: '0.04em',
+              cursor: 'pointer',
+              background: showMediaLocations ? 'rgba(236,72,153,0.12)' : 'transparent',
+              color: showMediaLocations ? '#ec4899' : 'var(--nav-text-inactive)',
+            }}
+          >
+            <span className="hidden-narrow">Media</span>
+          </button>
+          {showMediaLocations && mediaStatusText[mediaLocationStatus] && (
+            <span
+              role="status"
+              style={{
+                ...mono,
+                color: mediaLocationStatus === 'error' ? '#f87171' : '#94a3b8',
+                fontSize: '10px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {mediaStatusText[mediaLocationStatus]}
+            </span>
+          )}
+        </>
       )}
       {onWigle && (
         <button

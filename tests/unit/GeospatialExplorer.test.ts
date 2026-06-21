@@ -4,9 +4,14 @@ import path from 'path';
 describe('GeospatialExplorer component structure', () => {
   const filePath = path.resolve(process.cwd(), 'client/src/components/GeospatialExplorer.tsx');
   let source: string;
+  let mapContentSource: string;
 
   beforeAll(() => {
     source = fs.readFileSync(filePath, 'utf8');
+    mapContentSource = fs.readFileSync(
+      path.resolve(process.cwd(), 'client/src/components/geospatial/GeospatialMapContent.tsx'),
+      'utf8'
+    );
   });
 
   test('imports all required layout components and hooks', () => {
@@ -57,6 +62,7 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('showNetworkSummaries={showNetworkSummaries}');
     expect(source).toContain('showMediaLocations={showMediaLocations}');
     expect(source).toContain('onToggleMediaLocations={setShowMediaLocations}');
+    expect(mapContentSource).toContain('mediaLocationStatus={state.mediaLocationStatus}');
 
     // GeospatialTableContent props
     expect(source).toContain('<GeospatialTableContent');

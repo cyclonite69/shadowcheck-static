@@ -23,6 +23,7 @@ export const createUnmatchedMediaHandler =
         filename: point.filename,
         captured_at: point.exif_captured_at,
         thumbnail_url: `/api/v2/networks/media/${point.id}/thumbnail`,
+        inline_url: `/api/v2/networks/media/${point.id}/inline`,
       },
     }));
 

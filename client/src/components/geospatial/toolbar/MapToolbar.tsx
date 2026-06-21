@@ -4,6 +4,7 @@ import { MapToolbarSearch } from './MapToolbarSearch';
 import { MapToolbarNav } from './MapToolbarNav';
 import { ViewControls, OverlayToggles } from './MapToolbarControls';
 import { LayersDropdown, MapStyleDropdown } from './MapToolbarDropdowns';
+import type { MediaLocationStatus } from '../hooks/useMediaLocationLayers';
 
 interface MapStyleOption {
   value: string;
@@ -52,6 +53,7 @@ interface MapToolbarProps {
   onToggleNetworkSummaries?: (value: boolean) => void;
   showMediaLocations?: boolean;
   onToggleMediaLocations?: (value: boolean) => void;
+  mediaLocationStatus?: MediaLocationStatus;
   onResetBearing?: () => void;
   onResetPitch?: () => void;
 }
@@ -138,6 +140,7 @@ export const MapToolbar = ({
   onToggleNetworkSummaries,
   showMediaLocations = false,
   onToggleMediaLocations,
+  mediaLocationStatus = 'idle',
   onResetBearing,
   onResetPitch,
 }: MapToolbarProps) => {
@@ -221,6 +224,7 @@ export const MapToolbar = ({
           selectedCount={selectedCount}
           showMediaLocations={showMediaLocations}
           onToggleMediaLocations={onToggleMediaLocations}
+          mediaLocationStatus={mediaLocationStatus}
         />
 
         <Separator />

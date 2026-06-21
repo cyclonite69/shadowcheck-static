@@ -69,12 +69,14 @@ export const useObservationLayers = (props: ObservationLayerProps) => {
     showNetworkSummaries: props.showNetworkSummaries,
   });
 
-  // 4. Photo locations layer
-  useMediaLocationLayers({
+  // 4. Media locations layer
+  const mediaLocationStatus = useMediaLocationLayers({
     mapReady: props.mapReady,
     mapRef: props.mapRef,
     mapboxRef: props.mapboxRef,
     mapStyle: props.mapStyle,
     showMediaLocations: !!props.showMediaLocations,
   });
+
+  return { mediaLocationStatus };
 };

@@ -10,6 +10,7 @@ const mockV2Service = {
   checkNetworksExist: jest.fn(),
 };
 const mockMediaService = {
+  getNetworkMediaFile: jest.fn(),
   getNetworkMediaThumbnail: jest.fn(),
   getRelatedNetworkMediaForBssid: jest.fn(),
 };
@@ -107,6 +108,38 @@ describe('v2 network routes', () => {
     expect(response.body.error.message).toBe('Thumbnail not found');
   });
 
+  it('returns full media inline under the v2 user route', async () => {
+    mockMediaService.getNetworkMediaFile.mockResolvedValue({
+      media_data: Buffer.from('full-image'),
+      mime_type: 'image/jpeg',
+    });
+
+    const response = await request(app).get('/api/v2/networks/media/7/inline');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('image/jpeg');
+    expect(response.headers['content-disposition']).toBe('inline');
+    expect(mockMediaService.getNetworkMediaFile).toHaveBeenCalledWith('7');
+  });
+
+  it('returns 404 when full media is missing', async () => {
+    mockMediaService.getNetworkMediaFile.mockResolvedValue(null);
+
+    const response = await request(app).get('/api/v2/networks/media/7/inline');
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.message).toBe('Media not found');
+  });
+
+  it('returns 404 when a media record has no full data', async () => {
+    mockMediaService.getNetworkMediaFile.mockResolvedValue({ media_data: null });
+
+    const response = await request(app).get('/api/v2/networks/media/7/inline');
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.message).toBe('Media data not found');
+  });
+
   it('passes service failures to error middleware', async () => {
     mockV2Service.getDashboardMetrics.mockRejectedValue(new Error('metrics failed'));
 
@@ -147,7 +180,7 @@ describe('v2 network routes', () => {
       expect(item.is_direct).toBe(true);
       expect(item.source_kind).toBe('direct');
       expect(item.thumbnail_url).toBe('/api/v2/networks/media/11/thumbnail');
-      expect(item.inline_url).toBe('/api/admin/network-media/11/inline');
+      expect(item.inline_url).toBe('/api/v2/networks/media/11/inline');
       expect(item).not.toHaveProperty('media_data');
     });
 

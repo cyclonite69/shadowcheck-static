@@ -121,6 +121,7 @@ const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
             onToggleNetworkSummaries={onToggleNetworkSummaries}
             showMediaLocations={showMediaLocations}
             onToggleMediaLocations={onToggleMediaLocations}
+            mediaLocationStatus={state.mediaLocationStatus}
           />
         }
         mapError={state.mapError}

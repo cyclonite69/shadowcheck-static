@@ -1,9 +1,11 @@
 // Mock React's useEffect to capture/run the callback
 let effectCallback: any = null;
+const mockSetMediaStatus = jest.fn();
 jest.mock('react', () => ({
   useEffect: (cb: any) => {
     effectCallback = cb;
   },
+  useState: (initialValue: any) => [initialValue, mockSetMediaStatus],
 }));
 
 import { useMediaLocationLayers } from '../../client/src/components/geospatial/hooks/useMediaLocationLayers';
@@ -89,6 +91,7 @@ describe('useMediaLocationLayers', () => {
 
     expect(mockMap.removeSource).not.toHaveBeenCalled();
     expect(mockMap.removeLayer).not.toHaveBeenCalled();
+    expect(mockSetMediaStatus).toHaveBeenCalledWith('idle');
   });
 
   it('removes existing sources/layers when showMediaLocations becomes false', () => {
@@ -109,6 +112,7 @@ describe('useMediaLocationLayers', () => {
     expect(mockMap.removeLayer).toHaveBeenCalledWith('media-location-icons');
     expect(mockMap.removeLayer).toHaveBeenCalledWith('media-location-markers');
     expect(mockMap.removeSource).toHaveBeenCalledWith('media-locations');
+    expect(mockSetMediaStatus).toHaveBeenCalledWith('idle');
   });
 
   it('adds an empty GeoJSON source and layers when the endpoint has no features', async () => {
@@ -152,6 +156,8 @@ describe('useMediaLocationLayers', () => {
       'media-location-markers',
       expect.any(Function)
     );
+    expect(mockSetMediaStatus).toHaveBeenNthCalledWith(1, 'loading');
+    expect(mockSetMediaStatus).toHaveBeenNthCalledWith(2, 'empty');
 
     // Test cleanup return
     if (cleanup) {
@@ -187,11 +193,13 @@ describe('useMediaLocationLayers', () => {
     expect(consoleError).toHaveBeenCalledWith('Failed to load media locations', error);
     expect(mockMap.addSource).not.toHaveBeenCalled();
     expect(mockMap.addLayer).not.toHaveBeenCalled();
+    expect(mockSetMediaStatus).toHaveBeenNthCalledWith(1, 'loading');
+    expect(mockSetMediaStatus).toHaveBeenNthCalledWith(2, 'error');
 
     cleanup?.();
   });
 
-  it('renders popup metadata and opens the current admin inline URL from the thumbnail', async () => {
+  it('renders popup metadata and opens the user-safe inline URL from the thumbnail', async () => {
     (networkApi.getUnmatchedMediaGeoJson as jest.Mock).mockResolvedValue({
       type: 'FeatureCollection',
       features: [
@@ -203,6 +211,7 @@ describe('useMediaLocationLayers', () => {
             filename: 'field.jpg',
             captured_at: '2026-06-12T01:02:03Z',
             thumbnail_url: '/api/v2/networks/media/42/thumbnail',
+            inline_url: '/api/v2/networks/media/42/inline',
           },
         },
       ],
@@ -227,6 +236,7 @@ describe('useMediaLocationLayers', () => {
             filename: 'field.jpg',
             captured_at: '2026-06-12T01:02:03Z',
             thumbnail_url: '/api/v2/networks/media/42/thumbnail',
+            inline_url: '/api/v2/networks/media/42/inline',
           },
         },
       ],
@@ -239,6 +249,8 @@ describe('useMediaLocationLayers', () => {
     expect(mockPopup.setHTML).toHaveBeenCalledWith(
       expect.stringContaining('/api/v2/networks/media/42/thumbnail')
     );
+    expect(mockSetMediaStatus).toHaveBeenNthCalledWith(1, 'loading');
+    expect(mockSetMediaStatus).toHaveBeenNthCalledWith(2, 'active');
 
     const mediaTarget = {
       getAttribute: jest.fn().mockReturnValue('42'),
@@ -250,7 +262,7 @@ describe('useMediaLocationLayers', () => {
     });
 
     expect((globalThis as any).window.open).toHaveBeenCalledWith(
-      '/api/admin/network-media/42/inline',
+      '/api/v2/networks/media/42/inline',
       '_blank'
     );
 

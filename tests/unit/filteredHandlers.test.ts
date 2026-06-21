@@ -112,6 +112,7 @@ describe('filteredHandlers (unit)', () => {
               filename: 'test.jpg',
               captured_at: '2026-06-12T00:00:00Z',
               thumbnail_url: '/api/v2/networks/media/123/thumbnail',
+              inline_url: '/api/v2/networks/media/123/inline',
             },
           },
         ],

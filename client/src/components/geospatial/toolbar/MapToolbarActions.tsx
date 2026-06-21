@@ -5,6 +5,7 @@ import { MapToolbar } from './MapToolbar';
 import { LocationSearchResult } from '../hooks/useLocationSearch';
 import type { MapStyleOption } from '../../../constants/network';
 import { fitBoundsWithZoomInset } from '../../../utils/geospatial/mapViewUtils';
+import type { MediaLocationStatus } from '../hooks/useMediaLocationLayers';
 
 interface MapToolbarActionsProps {
   locationSearchRef: React.RefObject<HTMLDivElement | null>;
@@ -54,6 +55,7 @@ interface MapToolbarActionsProps {
   onToggleNetworkSummaries?: (value: boolean) => void;
   showMediaLocations?: boolean;
   onToggleMediaLocations?: (value: boolean) => void;
+  mediaLocationStatus?: MediaLocationStatus;
 }
 
 export const MapToolbarActions = ({
@@ -99,6 +101,7 @@ export const MapToolbarActions = ({
   onToggleNetworkSummaries,
   showMediaLocations = false,
   onToggleMediaLocations,
+  mediaLocationStatus = 'idle',
 }: MapToolbarActionsProps) => {
   return (
     <MapToolbar
@@ -177,6 +180,7 @@ export const MapToolbarActions = ({
       onToggleNetworkSummaries={onToggleNetworkSummaries}
       showMediaLocations={showMediaLocations}
       onToggleMediaLocations={onToggleMediaLocations}
+      mediaLocationStatus={mediaLocationStatus}
       onResetBearing={() => {
         mapRef.current?.resetNorth({ duration: 500 });
       }}

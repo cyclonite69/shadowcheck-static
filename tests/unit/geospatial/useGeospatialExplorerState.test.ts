@@ -79,7 +79,12 @@ describe('useGeospatialExplorerState hook structure', () => {
     expect(source).toContain('showMediaLocations');
   });
 
-  test('asserts all 74 expected return keys are present in return statement', () => {
+  test('returns the media layer status from observation-layer orchestration', () => {
+    expect(source).toContain('const { mediaLocationStatus } = useObservationLayers({');
+    expect(source).toContain('mediaLocationStatus,');
+  });
+
+  test('asserts all 75 expected return keys are present in return statement', () => {
     const expectedReturnKeys = [
       'mapHeight',
       'containerHeight',
@@ -155,6 +160,7 @@ describe('useGeospatialExplorerState hook structure', () => {
       'setRadiusFromContextMenu',
       'clearRadiusFilter',
       'siblingHydrating',
+      'mediaLocationStatus',
     ];
 
     expectedReturnKeys.forEach((key) => {

@@ -122,7 +122,7 @@ router.get(
       is_direct: m.is_direct,
       source_kind: m.source_kind,
       thumbnail_url: `/api/v2/networks/media/${m.id}/thumbnail`,
-      inline_url: `/api/admin/network-media/${m.id}/inline`,
+      inline_url: `/api/v2/networks/media/${m.id}/inline`,
     }));
 
     res.json({ bssid, media: items, count: items.length });
@@ -159,6 +159,39 @@ router.get(
     });
 
     res.send(media.thumbnail);
+  })
+);
+
+/**
+ * Serve full network media inline under user permissions
+ * GET /api/v2/networks/media/:id/inline
+ *
+ * @param {string} req.params.id Media record ID
+ */
+router.get(
+  '/v2/networks/media/:id/inline',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const media = await adminNetworkMediaService.getNetworkMediaFile(id);
+
+    if (!media) {
+      return res.status(404).json({
+        error: { message: 'Media not found' },
+      });
+    }
+
+    if (!media.media_data) {
+      return res.status(404).json({
+        error: { message: 'Media data not found' },
+      });
+    }
+
+    res.set({
+      'Content-Type': media.mime_type || 'application/octet-stream',
+      'Content-Disposition': 'inline',
+    });
+
+    res.send(media.media_data);
   })
 );
 

@@ -246,7 +246,7 @@ export const useGeospatialExplorerState = ({
     columnConfig: NETWORK_COLUMNS,
   });
 
-  useObservationLayers({
+  const { mediaLocationStatus } = useObservationLayers({
     mapReady,
     mapRef,
     mapboxRef,
@@ -501,5 +501,6 @@ export const useGeospatialExplorerState = ({
     setRadiusFromContextMenu,
     clearRadiusFilter,
     siblingHydrating,
+    mediaLocationStatus,
   };
 };

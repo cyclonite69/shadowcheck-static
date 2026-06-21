@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { networkApi } from '../../../api/networkApi';
@@ -11,6 +11,8 @@ type MediaLocationProps = {
   showMediaLocations: boolean;
 };
 
+export type MediaLocationStatus = 'idle' | 'loading' | 'active' | 'empty' | 'error';
+
 /**
  * Hook to manage media location layers and interaction popups.
  */
@@ -21,12 +23,15 @@ export const useMediaLocationLayers = ({
   mapStyle,
   showMediaLocations,
 }: MediaLocationProps) => {
+  const [status, setStatus] = useState<MediaLocationStatus>('idle');
+
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
     const mapboxgl = mapboxRef.current;
 
     if (!showMediaLocations) {
+      setStatus('idle');
       // Clean up layers and source
       if (map.getLayer('media-location-icons')) {
         map.removeLayer('media-location-icons');
@@ -41,6 +46,7 @@ export const useMediaLocationLayers = ({
     }
 
     let active = true;
+    setStatus('loading');
 
     const handleMediaClick = (e: any) => {
       if (!e.features || e.features.length === 0) return;
@@ -79,7 +85,10 @@ export const useMediaLocationLayers = ({
             if (target) {
               const mediaId = target.getAttribute('data-media-id');
               if (mediaId) {
-                window.open(`/api/admin/network-media/${mediaId}/inline`, '_blank');
+                window.open(
+                  props.inline_url || `/api/v2/networks/media/${mediaId}/inline`,
+                  '_blank'
+                );
               }
             }
           });
@@ -123,8 +132,12 @@ export const useMediaLocationLayers = ({
 
           map.on('click', 'media-location-markers', handleMediaClick);
         }
+
+        setStatus(data.features?.length > 0 ? 'active' : 'empty');
       } catch (err) {
+        if (!active) return;
         console.error('Failed to load media locations', err);
+        setStatus('error');
       }
     };
 
@@ -145,4 +158,6 @@ export const useMediaLocationLayers = ({
       }
     };
   }, [mapReady, mapRef, mapboxRef, showMediaLocations, mapStyle]);
+
+  return status;
 };

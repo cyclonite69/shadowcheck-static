@@ -795,6 +795,15 @@ export const API_ENDPOINTS: ApiEndpointConfig[] = [
   },
   {
     category: 'Networks v2',
+    label: 'Network Media Inline (v2)',
+    description: 'Get full network media inline under user permissions.',
+    path: '/api/v2/networks/media/:id/inline',
+    method: 'GET',
+    requiresAuth: true,
+    params: [{ name: 'id', label: 'Media ID', placeholder: '123' }],
+  },
+  {
+    category: 'Networks v2',
     label: 'Universal Filter: Unmatched Media',
     path: '/api/v2/networks/filtered/unmatched-media',
     method: 'GET',
