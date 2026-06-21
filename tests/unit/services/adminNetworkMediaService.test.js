@@ -29,6 +29,16 @@ describe('adminNetworkMediaService', () => {
     expect(result).toEqual('file_data');
   });
 
+  test('getUnmatchedMediaPoints delegates without changing repository rows', async () => {
+    const rows = [{ id: '42', bssid: 'VISINT_UNMATCHED' }];
+    adminNetworkMediaRepository.selectUnmatchedMediaPoints.mockResolvedValue(rows);
+
+    const result = await adminNetworkMediaService.getUnmatchedMediaPoints();
+
+    expect(adminNetworkMediaRepository.selectUnmatchedMediaPoints).toHaveBeenCalledWith();
+    expect(result).toBe(rows);
+  });
+
   test('addNetworkNotation calls repository', async () => {
     adminNetworkMediaRepository.insertNetworkNotation.mockResolvedValue(true);
     const result = await adminNetworkMediaService.addNetworkNotation(1, 'note');

@@ -55,6 +55,8 @@ describe('GeospatialExplorer component structure', () => {
     expect(source).toContain('state={state}');
     expect(source).toContain('selectedNetworks={selectedNetworks}');
     expect(source).toContain('showNetworkSummaries={showNetworkSummaries}');
+    expect(source).toContain('showMediaLocations={showMediaLocations}');
+    expect(source).toContain('onToggleMediaLocations={setShowMediaLocations}');
 
     // GeospatialTableContent props
     expect(source).toContain('<GeospatialTableContent');
@@ -71,6 +73,17 @@ describe('GeospatialExplorer component structure', () => {
     // MapRadiusContextMenu props
     expect(source).toContain('<MapRadiusContextMenu');
     expect(source).toContain('menu={state.radiusContextMenu}');
+  });
+
+  test('keeps the current overlay orchestration boundary in the page component', () => {
+    expect(source).toContain('useNearestAgencies(');
+    expect(source).toContain('useNearestCourthouses(');
+    expect(source).toContain('useNetworkNotes({ logError })');
+    expect(source).toContain('useTimeFrequencyModal()');
+    expect(source).toContain('useAgencyLayer({');
+    expect(source).toContain('useFederalCourthouses(');
+    expect(source).toContain('<GeospatialOverlayContent');
+    expect(source).toContain('<MapRadiusContextMenu');
   });
 
   test('initializes UI and layout local states', () => {

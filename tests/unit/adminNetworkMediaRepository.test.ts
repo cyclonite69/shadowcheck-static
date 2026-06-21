@@ -137,6 +137,28 @@ describe('adminNetworkMediaRepository', () => {
     );
   });
 
+  it('selects unmatched media only when both EXIF coordinates are present', async () => {
+    const rows = [
+      {
+        id: '42',
+        bssid: 'VISINT_UNMATCHED',
+        filename: 'field.jpg',
+        exif_lat: '43.02',
+        exif_lon: '-83.69',
+      },
+    ];
+    query.mockResolvedValueOnce({ rows });
+
+    await expect(repository.selectUnmatchedMediaPoints()).resolves.toBe(rows);
+
+    const [sql, params] = query.mock.calls[0];
+    expect(params).toBeUndefined();
+    expect(sql).toContain("WHERE bssid = 'VISINT_UNMATCHED'");
+    expect(sql).toContain('AND exif_lat IS NOT NULL');
+    expect(sql).toContain('AND exif_lon IS NOT NULL');
+    expect(sql).toContain('ORDER BY exif_captured_at DESC, id DESC');
+  });
+
   it('inserts and selects legacy network notations', async () => {
     adminQuery.mockResolvedValueOnce({ rows: [{ notation: { text: 'seen' } }] });
     query
