@@ -405,6 +405,14 @@ describe('adminNetworkMediaRepository', () => {
           media_ids: ['10', '11', '12'],
           member_bssids: ['AA:BB:CC:DD:EE:FF', 'AA:BB:CC:DD:EE:FE'],
           location_provenance: 'component_location',
+          marker_location_source: 'observation',
+          observation_id: 123,
+          capture_lat: '43.01',
+          capture_lon: '-83.68',
+          observation_lat: '43.02',
+          observation_lon: '-83.69',
+          network_lat: '43.03',
+          network_lon: '-83.70',
         },
       ];
       query
@@ -424,7 +432,19 @@ describe('adminNetworkMediaRepository', () => {
       expect(combinedSql).toContain("nm.bssid != 'VISINT_UNMATCHED'");
       expect(combinedSql).toContain('LEFT JOIN app.mv_sibling_groups');
       expect(combinedSql).toContain('location_provenance');
-      expect(combinedSql).not.toContain('inferred_subject_location');
+      expect(combinedSql).toContain('LEFT JOIN app.observations o ON o.id = nm.observation_id');
+      expect(combinedSql).not.toContain('COALESCE(o.lat, nm.exif_lat, ne.lat)');
+      expect(combinedSql).toContain('WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN o.lat');
+      expect(combinedSql).toContain('WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN o.lon');
+      expect(combinedSql).toContain(
+        "WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN 'observation'"
+      );
+      expect(combinedSql).toContain('WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN 1');
+      expect(combinedSql).toContain('priority_score');
+      expect(combinedSql).toContain('ROW_NUMBER() OVER (');
+      expect(combinedSql).toContain('PARTITION BY component_id');
+      expect(combinedSql).toContain('ORDER BY priority_score ASC');
+      expect(combinedSql).toContain('rc.rn = 1');
     });
 
     it('falls back to linked_network_location provenance when mv_sibling_groups is absent', async () => {
@@ -437,6 +457,14 @@ describe('adminNetworkMediaRepository', () => {
           media_ids: ['10'],
           member_bssids: ['AA:BB:CC:DD:EE:FF'],
           location_provenance: 'linked_network_location',
+          marker_location_source: 'exif',
+          observation_id: null,
+          capture_lat: '43.02',
+          capture_lon: '-83.69',
+          observation_lat: null,
+          observation_lon: null,
+          network_lat: '43.03',
+          network_lon: '-83.70',
         },
       ];
       query
@@ -451,6 +479,19 @@ describe('adminNetworkMediaRepository', () => {
       expect(combinedSql).toContain("nm.bssid != 'VISINT_UNMATCHED'");
       expect(combinedSql).not.toContain('LEFT JOIN app.mv_sibling_groups');
       expect(combinedSql).toContain('location_provenance');
+      expect(combinedSql).toContain('LEFT JOIN app.observations o ON o.id = nm.observation_id');
+      expect(combinedSql).not.toContain('COALESCE(o.lat, nm.exif_lat, ne.lat)');
+      expect(combinedSql).toContain('WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN o.lat');
+      expect(combinedSql).toContain('WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN o.lon');
+      expect(combinedSql).toContain(
+        "WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN 'observation'"
+      );
+      expect(combinedSql).toContain('WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN 1');
+      expect(combinedSql).toContain('priority_score');
+      expect(combinedSql).toContain('ROW_NUMBER() OVER (');
+      expect(combinedSql).toContain('PARTITION BY component_id');
+      expect(combinedSql).toContain('ORDER BY priority_score ASC');
+      expect(combinedSql).toContain('rc.rn = 1');
     });
   });
 });

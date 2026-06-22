@@ -193,53 +193,166 @@ export async function selectMatchedMediaPoints(): Promise<any[]> {
   let sql;
   if (hasSiblingGroups) {
     sql = `
-      WITH component_groups AS (
-        SELECT DISTINCT
+      WITH component_media_resolved AS (
+        SELECT
           COALESCE(sg.group_id, nm.bssid) AS component_id,
+          nm.id AS media_id,
           nm.bssid AS member_bssid,
-          nm.id AS media_id
+          nm.observation_id,
+          nm.exif_lat,
+          nm.exif_lon,
+          o.lat AS observation_lat,
+          o.lon AS observation_lon,
+          ne.lat AS network_lat,
+          ne.lon AS network_lon,
+          -- Coordinate priority resolution (pair-safe CASE)
+          CASE
+            WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN o.lat
+            WHEN nm.exif_lat IS NOT NULL AND nm.exif_lon IS NOT NULL THEN nm.exif_lat
+            ELSE ne.lat
+          END AS resolved_lat,
+          CASE
+            WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN o.lon
+            WHEN nm.exif_lat IS NOT NULL AND nm.exif_lon IS NOT NULL THEN nm.exif_lon
+            ELSE ne.lon
+          END AS resolved_lon,
+          -- Coordinate source indicator
+          CASE
+            WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN 'observation'
+            WHEN nm.exif_lat IS NOT NULL AND nm.exif_lon IS NOT NULL THEN 'exif'
+            ELSE 'network'
+          END AS marker_location_source,
+          -- Priority rank (1 = observation, 2 = exif, 3 = network)
+          CASE
+            WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN 1
+            WHEN nm.exif_lat IS NOT NULL AND nm.exif_lon IS NOT NULL THEN 2
+            ELSE 3
+          END AS priority_score
         FROM app.network_media nm
         LEFT JOIN app.mv_sibling_groups sg ON UPPER(sg.bssid) = UPPER(nm.bssid)
+        LEFT JOIN app.observations o ON o.id = nm.observation_id
+        LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(nm.bssid)
         WHERE nm.bssid != 'VISINT_UNMATCHED'
       ),
-      component_locations AS (
+      ranked_components AS (
         SELECT
-          cg.component_id,
-          cg.media_id,
-          cg.member_bssid,
-          ne.lat,
-          ne.lon
-        FROM component_groups cg
-        JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(cg.member_bssid)
-        WHERE ne.lat IS NOT NULL AND ne.lon IS NOT NULL
+          *,
+          ROW_NUMBER() OVER (
+            PARTITION BY component_id
+            ORDER BY priority_score ASC, media_id ASC
+          ) AS rn
+        FROM component_media_resolved
+        WHERE resolved_lat IS NOT NULL AND resolved_lon IS NOT NULL
+      ),
+      component_aggregates AS (
+        SELECT
+          component_id,
+          COUNT(DISTINCT media_id)::integer AS media_count,
+          array_agg(DISTINCT media_id::text) AS media_ids,
+          array_agg(DISTINCT member_bssid) AS member_bssids
+        FROM component_media_resolved
+        GROUP BY component_id
       )
       SELECT
-        component_id,
-        MIN(lat)::numeric(10,8) AS lat,
-        MIN(lon)::numeric(11,8) AS lon,
-        COUNT(DISTINCT media_id)::integer AS media_count,
-        array_agg(DISTINCT media_id::text) AS media_ids,
-        array_agg(DISTINCT member_bssid) AS member_bssids,
-        'component_location'::text AS location_provenance
-      FROM component_locations
-      GROUP BY component_id
+        rc.component_id,
+        rc.resolved_lat::numeric(10,8) AS lat,
+        rc.resolved_lon::numeric(11,8) AS lon,
+        ca.media_count,
+        ca.media_ids,
+        ca.member_bssids,
+        'component_location'::text AS location_provenance,
+        rc.marker_location_source,
+        rc.observation_id,
+        rc.exif_lat::numeric(10,8) AS capture_lat,
+        rc.exif_lon::numeric(11,8) AS capture_lon,
+        rc.observation_lat::numeric(10,8) AS observation_lat,
+        rc.observation_lon::numeric(11,8) AS observation_lon,
+        rc.network_lat::numeric(10,8) AS network_lat,
+        rc.network_lon::numeric(11,8) AS network_lon
+      FROM ranked_components rc
+      JOIN component_aggregates ca ON ca.component_id = rc.component_id
+      WHERE rc.rn = 1
     `;
   } else {
     sql = `
+      WITH component_media_resolved AS (
+        SELECT
+          nm.bssid AS component_id,
+          nm.id AS media_id,
+          nm.bssid AS member_bssid,
+          nm.observation_id,
+          nm.exif_lat,
+          nm.exif_lon,
+          o.lat AS observation_lat,
+          o.lon AS observation_lon,
+          ne.lat AS network_lat,
+          ne.lon AS network_lon,
+          -- Coordinate priority resolution (pair-safe CASE)
+          CASE
+            WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN o.lat
+            WHEN nm.exif_lat IS NOT NULL AND nm.exif_lon IS NOT NULL THEN nm.exif_lat
+            ELSE ne.lat
+          END AS resolved_lat,
+          CASE
+            WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN o.lon
+            WHEN nm.exif_lat IS NOT NULL AND nm.exif_lon IS NOT NULL THEN nm.exif_lon
+            ELSE ne.lon
+          END AS resolved_lon,
+          -- Coordinate source indicator
+          CASE
+            WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN 'observation'
+            WHEN nm.exif_lat IS NOT NULL AND nm.exif_lon IS NOT NULL THEN 'exif'
+            ELSE 'network'
+          END AS marker_location_source,
+          -- Priority rank (1 = observation, 2 = exif, 3 = network)
+          CASE
+            WHEN o.lat IS NOT NULL AND o.lon IS NOT NULL THEN 1
+            WHEN nm.exif_lat IS NOT NULL AND nm.exif_lon IS NOT NULL THEN 2
+            ELSE 3
+          END AS priority_score
+        FROM app.network_media nm
+        LEFT JOIN app.observations o ON o.id = nm.observation_id
+        LEFT JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(nm.bssid)
+        WHERE nm.bssid != 'VISINT_UNMATCHED'
+      ),
+      ranked_components AS (
+        SELECT
+          *,
+          ROW_NUMBER() OVER (
+            PARTITION BY component_id
+            ORDER BY priority_score ASC, media_id ASC
+          ) AS rn
+        FROM component_media_resolved
+        WHERE resolved_lat IS NOT NULL AND resolved_lon IS NOT NULL
+      ),
+      component_aggregates AS (
+        SELECT
+          component_id,
+          COUNT(DISTINCT media_id)::integer AS media_count,
+          array_agg(DISTINCT media_id::text) AS media_ids,
+          array_agg(DISTINCT member_bssid) AS member_bssids
+        FROM component_media_resolved
+        GROUP BY component_id
+      )
       SELECT
-        nm.bssid AS component_id,
-        ne.lat::numeric(10,8) AS lat,
-        ne.lon::numeric(11,8) AS lon,
-        COUNT(DISTINCT nm.id)::integer AS media_count,
-        array_agg(DISTINCT nm.id::text) AS media_ids,
-        ARRAY[nm.bssid::text] AS member_bssids,
-        'linked_network_location'::text AS location_provenance
-      FROM app.network_media nm
-      JOIN app.api_network_explorer_mv ne ON UPPER(ne.bssid) = UPPER(nm.bssid)
-      WHERE nm.bssid != 'VISINT_UNMATCHED'
-        AND ne.lat IS NOT NULL
-        AND ne.lon IS NOT NULL
-      GROUP BY nm.bssid, ne.lat, ne.lon
+        rc.component_id,
+        rc.resolved_lat::numeric(10,8) AS lat,
+        rc.resolved_lon::numeric(11,8) AS lon,
+        ca.media_count,
+        ca.media_ids,
+        ca.member_bssids,
+        'linked_network_location'::text AS location_provenance,
+        rc.marker_location_source,
+        rc.observation_id,
+        rc.exif_lat::numeric(10,8) AS capture_lat,
+        rc.exif_lon::numeric(11,8) AS capture_lon,
+        rc.observation_lat::numeric(10,8) AS observation_lat,
+        rc.observation_lon::numeric(11,8) AS observation_lon,
+        rc.network_lat::numeric(10,8) AS network_lat,
+        rc.network_lon::numeric(11,8) AS network_lon
+      FROM ranked_components rc
+      JOIN component_aggregates ca ON ca.component_id = rc.component_id
+      WHERE rc.rn = 1
     `;
   }
 

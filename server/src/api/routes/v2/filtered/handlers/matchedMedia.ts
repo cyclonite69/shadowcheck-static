@@ -24,6 +24,14 @@ export const createMatchedMediaHandler =
         member_bssids: point.member_bssids || [],
         location_provenance: point.location_provenance || 'component_location',
         location_confidence: null,
+        marker_location_source: point.marker_location_source || null,
+        observation_id: point.observation_id != null ? Number(point.observation_id) : null,
+        capture_lat: point.capture_lat != null ? parseFloat(point.capture_lat) : null,
+        capture_lon: point.capture_lon != null ? parseFloat(point.capture_lon) : null,
+        observation_lat: point.observation_lat != null ? parseFloat(point.observation_lat) : null,
+        observation_lon: point.observation_lon != null ? parseFloat(point.observation_lon) : null,
+        network_lat: point.network_lat != null ? parseFloat(point.network_lat) : null,
+        network_lon: point.network_lon != null ? parseFloat(point.network_lon) : null,
       },
     }));
 
