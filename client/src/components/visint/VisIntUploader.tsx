@@ -215,6 +215,7 @@ export default function VisIntUploader() {
       if (!isUnmatched) {
         formData.append('dist_meters', String(Number(candidate?.dist_meters || 0)));
         formData.append('delta_minutes', String(Number(candidate?.delta_minutes || 0)));
+        formData.append('observation_id', selectedCandidateId);
       }
       formData.append('lat', String(result.exif.lat));
       formData.append('lon', String(result.exif.lon));
