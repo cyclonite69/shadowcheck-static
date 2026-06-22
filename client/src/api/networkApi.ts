@@ -304,4 +304,9 @@ export const networkApi = {
   async getUnmatchedMediaGeoJson(): Promise<any> {
     return apiClient.get<any>('/v2/networks/filtered/unmatched-media');
   },
+
+  /** Fetch matched media features as GeoJSON */
+  async getMatchedMediaGeoJson(): Promise<any> {
+    return apiClient.get<any>('/v2/networks/filtered/matched-media');
+  },
 };
