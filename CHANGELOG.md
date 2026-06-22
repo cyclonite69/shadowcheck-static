@@ -524,7 +524,7 @@
 - **map:** render federal courthouses via API and remove duplicate kepler zoom control ([6b38b5d](https://github.com/cyclonite69/shadowcheck-web/commit/6b38b5d79d2dedb55fc046421559d5580070e8b3))
 - **map:** restore weather fog and reveal 3d view ([c34f8b1](https://github.com/cyclonite69/shadowcheck-web/commit/c34f8b1eac555b2ecd58e4b322f49f3efa42063a))
 - massive performance boost for network list using api_network_explorer_mv ([26a6458](https://github.com/cyclonite69/shadowcheck-web/commit/26a6458f34d5422285b8aa3e7962a58071b1ce17))
-- **media:** prefer exact observation coordinates for matched pins ([2de7ddb](https://github.com/cyclonite69/shadowcheck-web/commit/2de7ddb4012ecd613161b99cca8afed15d57351f))
+- **media:** prefer exact observation coordinates for matched pins ([1609937](https://github.com/cyclonite69/shadowcheck-web/commit/16099375e92f3aa03d491273a2c8327b8016e8ea))
 - **metrics:** apply distance and other filter predicates to threat score aggregation ([9bca876](https://github.com/cyclonite69/shadowcheck-web/commit/9bca876f3dbbb8ec112693f51e98e74a26eb8be4))
 - **middleware:** exempt admin users from API rate limiter ([4508a61](https://github.com/cyclonite69/shadowcheck-web/commit/4508a61731122d457d28bbd25251f6b30339d35e))
 - **middleware:** exempt localhost and EC2 internal IP from API rate limiter ([1f0f3db](https://github.com/cyclonite69/shadowcheck-web/commit/1f0f3db7ef426f12c8d5542ccb384075b36cbc54))
