@@ -9,6 +9,7 @@ class CacheService {
   async connect() {
     const redisHost = process.env.REDIS_HOST || 'localhost';
     const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const redisDb = parseInt(process.env.REDIS_DB || '0', 10);
 
     try {
       this.client = createClient({
@@ -17,6 +18,7 @@ class CacheService {
           port: redisPort,
           connectTimeout: 30000,
         },
+        database: redisDb,
       });
 
       this.client.on('error', (err) => {

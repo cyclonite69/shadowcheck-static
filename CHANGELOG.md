@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-21)
+# 1.0.0 (2026-06-22)
 
 ### Bug Fixes
 
@@ -1159,6 +1159,7 @@
 - **deploy:** align grafana health check detection with other containers ([651cf90](https://github.com/cyclonite69/shadowcheck-web/commit/651cf90c30e7437a9673278fee705aa7c5256664))
 - **deploy:** self-install scs_rebuild as system-wide command on first run ([544d6e2](https://github.com/cyclonite69/shadowcheck-web/commit/544d6e2a4ba574744cf889b7e599546290e412d6))
 - **dev:** add healthcheck to api_dev container in docker-compose.dev.yml ([e17640f](https://github.com/cyclonite69/shadowcheck-web/commit/e17640f9fcc1796afa215d509e3644d7c701c8b5))
+- **dev:** add isolated test database runtime ([75539fb](https://github.com/cyclonite69/shadowcheck-web/commit/75539fbee9d43ad525e52f7538d80c5f36c9264e))
 - **device-intel:** expand SIGINT Library to Device Intel Library ([0b3a386](https://github.com/cyclonite69/shadowcheck-web/commit/0b3a38694ddcd0aa942754978e2975b35b2b07d0))
 - Disable automatic network marker loading on geospatial page ([163ccf2](https://github.com/cyclonite69/shadowcheck-web/commit/163ccf2c0c6c2dc6c143601f09f7f468e306b8c8))
 - **ec2-setup:** install nano and security-updates timer in setup-instance.sh ([be7df3c](https://github.com/cyclonite69/shadowcheck-web/commit/be7df3c0ada36df60313eee972943b867c91489c))
@@ -1196,7 +1197,7 @@
 - geospatial.html uses base-components ([8b9b1c2](https://github.com/cyclonite69/shadowcheck-web/commit/8b9b1c27d6eaee441ecd2240a6005a9a124f0400))
 - **geospatial:** add bounded popup cards for wigle and agency markers ([1f7576a](https://github.com/cyclonite69/shadowcheck-web/commit/1f7576a5bcbfc199c7d55a4584b99e69822d7bc0))
 - **geospatial:** add cell actions for device classes and emitDetectionEvidence event bus ([b85535f](https://github.com/cyclonite69/shadowcheck-web/commit/b85535f1a8f2e34306bdb74a2fcf5f5dc7dbcf3f))
-- **geospatial:** add matched media GeoJSON endpoint ([c3407d4](https://github.com/cyclonite69/shadowcheck-web/commit/c3407d4325fb390dd88821f76889c399739bd095))
+- **geospatial:** add matched media GeoJSON endpoint ([8540061](https://github.com/cyclonite69/shadowcheck-web/commit/85400616f83200a19969b4d13ca5fe2a968aebbb))
 - **geospatial:** add sibling columns to explorer table ([b35c4ea](https://github.com/cyclonite69/shadowcheck-web/commit/b35c4ea7d9d8b42cff89acd932eb6081163201c2))
 - **geospatial:** bake sibling summary into explorer mv ([6e0f554](https://github.com/cyclonite69/shadowcheck-web/commit/6e0f554f9e354355345b3c88188b234e7ff5c527))
 - **geospatial:** cluster visible sibling rows ([7e02ee8](https://github.com/cyclonite69/shadowcheck-web/commit/7e02ee8d493595b971f7d0b886a4e24058ba5153))

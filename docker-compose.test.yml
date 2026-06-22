@@ -1,0 +1,89 @@
+version: "3.8"
+
+# Test/Sandbox runtime stack for ShadowCheck.
+# Runs alongside the main stack, mapping:
+#   - frontend-test to port 8081 (target: shadowcheck_test DB)
+#   - api-test to port 3002 (target: shadowcheck_test DB)
+# Connects to the existing postgres & redis containers on the default project network.
+
+services:
+  api-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    container_name: shadowcheck_web_api_test
+    hostname: shadowcheck-test
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      NODE_OPTIONS: ${NODE_OPTIONS:---max-old-space-size=2048}
+      PORT: 3001
+      API_GATE_ENABLED: "true"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-shadowcheck_user}
+      DB_ADMIN_USER: ${DB_ADMIN_USER:-shadowcheck_admin}
+      DB_NAME: shadowcheck_test
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD:-}
+      DB_SSL: ${DB_SSL:-false}
+      FORCE_HTTPS: ${FORCE_HTTPS:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 1
+      SESSION_COOKIE_NAME: shadowcheck_session_test
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      AWS_PROFILE: ${AWS_PROFILE:-shadowcheck-sso}
+      AWS_SDK_LOAD_CONFIG: "1"
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      SHADOWCHECK_AWS_SECRET: ${SHADOWCHECK_AWS_SECRET:-shadowcheck/config}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+      ADMIN_ALLOW_DOCKER: "false"
+      API_RUN_AS_ROOT_FOR_DOCKER: "false"
+      MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
+      HOME: /home/nodejs
+    ports:
+      - "127.0.0.1:3002:3001"
+    volumes:
+      - ./data-test:/app/data
+      - ./logs-test:/app/logs
+      - ./backups-test:/app/backups
+      - ${HOME}/.aws:/home/nodejs/.aws:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  frontend-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+    container_name: shadowcheck_web_frontend_test
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - ./docker/nginx.test.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      api-test:
+        condition: service_healthy
+
+networks:
+  default:
+    name: shadowcheck-web_default
+    external: true

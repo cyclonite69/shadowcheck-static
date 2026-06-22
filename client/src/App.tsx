@@ -110,7 +110,7 @@ function AppContent() {
       <Navigation />
       <VendorIntelDrawer />
       <DetectionEvidenceGlobal />
-      <main id="main-content" className="flex h-screen">
+      <main id="main-content" className="flex h-full">
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             <Route path="/" element={demoMode ? <StartPage /> : <DashboardPage />} />
@@ -130,10 +130,31 @@ function AppContent() {
 }
 
 function App() {
+  const isTestMode =
+    String(import.meta.env.VITE_TEST_DB_BANNER || '').toLowerCase() === 'true' ||
+    window.location.port === '8081';
+
   return (
     <AuthProvider>
       <Router>
-        <AppContent />
+        <div className="flex flex-col h-screen overflow-hidden">
+          {isTestMode && (
+            <div
+              id="test-db-banner"
+              className="w-full bg-amber-600 text-white text-xs font-bold text-center z-[10002] flex items-center justify-center gap-2 uppercase tracking-wider select-none shadow-md border-b border-amber-700/50 shrink-0"
+              style={{ height: '32px' }}
+            >
+              <span className="animate-pulse">⚠️ TEST DATABASE ACTIVE</span>
+              <span>—</span>
+              <span>Target: shadowcheck_test (API Port: 3002)</span>
+              <span>—</span>
+              <span className="bg-amber-800 px-1.5 py-0.5 rounded text-[10px]">SANDBOX</span>
+            </div>
+          )}
+          <div className="flex-1 min-h-0 relative h-full">
+            <AppContent />
+          </div>
+        </div>
       </Router>
     </AuthProvider>
   );

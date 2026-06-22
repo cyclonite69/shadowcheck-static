@@ -46,7 +46,8 @@ router.post('/auth/login', loginLimiter, async (req: any, res: any) => {
     }
 
     // Set HTTP-only cookie (most secure)
-    res.cookie('session_token', result.token, {
+    const sessionCookieName = process.env.SESSION_COOKIE_NAME || 'session_token';
+    res.cookie(sessionCookieName, result.token, {
       httpOnly: true,
       secure: process.env.COOKIE_SECURE === 'true', // Require explicit opt-in for HTTPS
       sameSite: 'lax', // Allow cookie on top-level navigation (fixes SPA page-to-page auth)
@@ -78,7 +79,8 @@ router.post('/auth/logout', async (req: any, res: any) => {
     }
 
     // Clear cookie with same options used when setting it
-    res.clearCookie('session_token', {
+    const sessionCookieName = process.env.SESSION_COOKIE_NAME || 'session_token';
+    res.clearCookie(sessionCookieName, {
       httpOnly: true,
       secure: process.env.COOKIE_SECURE === 'true',
       sameSite: 'lax',

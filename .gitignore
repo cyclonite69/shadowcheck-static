@@ -39,6 +39,7 @@ pnpm-lock.yaml
 .env.*
 !.env.example
 !.env.local.example
+!.env.test.example
 deploy/aws/.env.aws
 .env.aws
 *.env.local

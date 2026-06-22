@@ -76,7 +76,8 @@ function initializeSsmWebSocket(
 
         // Auth: parse session_token from cookie
         const cookies = parseCookies(request.headers.cookie);
-        const token = cookies.session_token;
+        const cookieName = process.env.SESSION_COOKIE_NAME || 'session_token';
+        const token = cookies[cookieName];
         if (!token) {
           return destroyWithMessage(socket, 401, 'Unauthorized');
         }

@@ -46,8 +46,9 @@ function getAuthService(req: Request): AuthService | null {
  */
 function extractToken(req: Request): string | null {
   // Try cookie first (most secure)
-  if (req.cookies && req.cookies.session_token) {
-    return req.cookies.session_token;
+  const cookieName = process.env.SESSION_COOKIE_NAME || 'session_token';
+  if (req.cookies && req.cookies[cookieName]) {
+    return req.cookies[cookieName];
   }
 
   // Fallback to Authorization header

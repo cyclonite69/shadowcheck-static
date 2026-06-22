@@ -13,6 +13,11 @@ const Navigation: React.FC = () => {
   const { isAdmin, logout } = useAuth();
   const demoMode = String(import.meta.env.VITE_DEMO_MODE || '').toLowerCase() === 'true';
 
+  const isTestMode =
+    String(import.meta.env.VITE_TEST_DB_BANNER || '').toLowerCase() === 'true' ||
+    window.location.port === '8081';
+  const topOffset = isTestMode ? 32 : 0;
+
   useEffect(() => {
     const updateViewportMode = () => {
       setIsMobile(window.innerWidth < 960);
@@ -101,7 +106,8 @@ const Navigation: React.FC = () => {
           type="button"
           onClick={() => setMobileNavOpen(true)}
           aria-label="Open navigation"
-          className="fixed top-4 right-4 z-[10001] rounded-xl border border-slate-600/60 bg-slate-950/90 px-3 py-2 text-slate-200 shadow-2xl backdrop-blur-xl"
+          className="fixed right-4 z-[10001] rounded-xl border border-slate-600/60 bg-slate-950/90 px-3 py-2 text-slate-200 shadow-2xl backdrop-blur-xl"
+          style={{ top: isTestMode ? '48px' : '16px' }}
         >
           Menu
         </button>
@@ -162,7 +168,7 @@ const Navigation: React.FC = () => {
       <div
         style={{
           position: 'fixed',
-          top: 0,
+          top: topOffset,
           left: '50%',
           transform: 'translateX(-50%)',
           width: '80px',
@@ -177,7 +183,7 @@ const Navigation: React.FC = () => {
       <div
         style={{
           position: 'fixed',
-          top: '24px',
+          top: `${topOffset + 24}px`,
           left: '50%',
           transform: `translate(-50%, ${navVisible ? '0' : '-200%'})`,
           transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
@@ -239,7 +245,7 @@ const Navigation: React.FC = () => {
         <div
           style={{
             position: 'fixed',
-            top: 0,
+            top: topOffset,
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9998,
