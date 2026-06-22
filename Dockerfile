@@ -6,7 +6,7 @@
 # Stage 1: shared-builder
 # ============================================================================
 # Runs once, produces both /app/dist (frontend) and /app/dist/server (backend)
-FROM node:26.3.0-alpine AS shared-builder
+FROM node:26.3.1-alpine AS shared-builder
 
 WORKDIR /app
 
@@ -36,7 +36,7 @@ RUN npm ci --omit=dev --legacy-peer-deps
 # ============================================================================
 # Stage 2: api (Node.js production runtime)
 # ============================================================================
-FROM node:26.3.0-alpine AS api
+FROM node:26.3.1-alpine AS api
 
 # Install runtime utilities only (no build tools)
 RUN apk add --no-cache dumb-init postgresql-client aws-cli docker-cli docker-cli-compose su-exec curl exiftool
