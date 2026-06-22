@@ -77,8 +77,8 @@ describe('wigle/loader', () => {
       const [sqlCall, paramsCall] = (mockPool.query as jest.Mock).mock.calls[0];
 
       expect(sqlCall).toContain('INSERT INTO app.observations');
-      expect(sqlCall).toContain('ST_SetSRID(ST_MakePoint($13, $12), 4326)');
-      expect(sqlCall).toContain('ST_SetSRID(ST_MakePoint($34, $33), 4326)');
+      expect(sqlCall).toContain('ST_SetSRID(ST_MakePoint($12, $11), 4326)');
+      expect(sqlCall).toContain('ST_SetSRID(ST_MakePoint($33, $32), 4326)');
 
       expect(paramsCall).toHaveLength(42);
       expect(paramsCall[0]).toBe('unit_1');

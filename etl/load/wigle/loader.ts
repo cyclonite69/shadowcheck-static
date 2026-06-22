@@ -20,7 +20,7 @@ export class ObservationLoader {
         `($${idx}, $${idx + 1}, $${idx + 2}, $${idx + 3}, $${idx + 4}, $${idx + 5}, $${idx + 6}, ` +
           `$${idx + 7}, $${idx + 8}, $${idx + 9}, $${idx + 10}, $${idx + 11}, $${idx + 12}, $${idx + 13}, ` +
           `$${idx + 14}, $${idx + 15}, $${idx + 16}, $${idx + 17}, $${idx + 18}, $${idx + 19}, $${idx + 20}, ` +
-          `ST_SetSRID(ST_MakePoint($${idx + 12}, $${idx + 11}), 4326))`
+          `ST_SetSRID(ST_MakePoint($${idx + 11}, $${idx + 10}), 4326))`
       );
 
       params.push(
