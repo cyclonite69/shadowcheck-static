@@ -187,7 +187,14 @@ export const normalizeTooltipData = (raw: AnyRecord, fallbackPosition?: [number,
     wigle_observation_count: isWigleV2 ? null : wigleObsCount,
     timespan_days: isWigleV2 ? null : toNumberOrNull(raw.timespan_days),
     time: isWigleOrigin
-      ? pickFirst(raw.lasttime, raw.lastupdt, raw.time, raw.timestamp, raw.observed_at)
+      ? pickFirst(
+          raw.lasttime,
+          raw.lastupdt,
+          raw.wigle_v3_last_seen,
+          raw.time,
+          raw.timestamp,
+          raw.observed_at
+        )
       : pickFirst(raw.time, raw.timestamp, raw.observed_at, raw.lasttime),
     first_seen: isWigleOrigin
       ? pickFirst(raw.firsttime, raw.wigle_v3_first_seen, raw.wigle_v2_firsttime, raw.first_seen)

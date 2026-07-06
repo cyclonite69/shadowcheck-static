@@ -1,0 +1,17 @@
+# E2E override — swaps the frontend container to the `frontend-e2e` build target.
+# This build includes VITE_E2E=true (via client/.env.e2e + --mode e2e), which
+# exposes window test seams (e.g. __wigleHandleUnclustered) that are absent in
+# the production `frontend` target.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml build frontend
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d frontend
+#
+# Then run the e2e suite:
+#   E2E_ADMIN_PASSWORD="$(cat /tmp/.e2e_pw)" npx playwright test tests/e2e/ --reporter=list
+
+services:
+  frontend:
+    build:
+      context: .
+      target: frontend-e2e

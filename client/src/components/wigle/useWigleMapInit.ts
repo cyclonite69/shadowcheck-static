@@ -87,6 +87,10 @@ export const useWigleMapInit = ({
         });
         mapRef.current = map;
 
+        // Expose map instance on window for Playwright E2E tests.
+        // A Mapbox Map object is not sensitive — this is safe to expose in all envs.
+        (window as any).__wigleMapInstance = map;
+
         map.addControl(new (mapboxgl as any).NavigationControl(), 'top-right');
         import('../../utils/mapOrientationControls').then(
           async ({ attachMapOrientationControls }) => {

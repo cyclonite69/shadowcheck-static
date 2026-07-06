@@ -1,6 +1,8 @@
 # Unified multi-stage build for both API and Frontend services
-# Targets: `api` (Node.js runtime) and `frontend` (nginx runtime)
-# Usage: docker build --target api . or docker build --target frontend .
+# Targets: `api` (Node.js runtime), `frontend` (nginx runtime), `frontend-e2e` (nginx + e2e test seams)
+# Usage: docker build --target api .
+#        docker build --target frontend .
+#        docker compose -f docker-compose.yml -f docker-compose.e2e.yml build frontend   (e2e target)
 
 # ============================================================================
 # Stage 1: shared-builder
@@ -111,6 +113,51 @@ COPY --from=shared-builder /app/dist /usr/share/nginx/html
 COPY docker/nginx.local.conf /etc/nginx/conf.d/default.conf
 
 # Simple health check endpoint
+RUN echo "OK" > /usr/share/nginx/html/health
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost/health >/dev/null 2>&1 || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
+
+# ============================================================================
+# Stage 4: frontend-e2e-builder
+# ============================================================================
+# Builds the frontend with VITE_E2E=true (loaded from client/.env.e2e via
+# --mode e2e). Kept separate so the production `shared-builder` stage is
+# never tainted with test seams.
+FROM node:26.3.0-alpine AS frontend-e2e-builder
+
+WORKDIR /app
+
+ENV HUSKY=0 \
+    NODE_ENV=development \
+    NPM_CONFIG_PRODUCTION=false \
+    NPM_CONFIG_OMIT=
+
+RUN apk add --no-cache python3 make g++
+
+# Copy only package files first (better layer caching)
+COPY package*.json tsconfig*.json ./
+
+RUN npm ci --include=dev --legacy-peer-deps
+
+# Copy entire codebase (build:e2e script lives at root, source in client/)
+COPY . .
+
+# Build frontend in e2e mode — outputs to /app/dist (same path as shared-builder)
+RUN npm run build:e2e
+
+# ============================================================================
+# Stage 5: frontend-e2e (nginx runtime with e2e test seams)
+# ============================================================================
+FROM nginx:1.27.4-alpine AS frontend-e2e
+
+COPY --from=frontend-e2e-builder /app/dist /usr/share/nginx/html
+COPY docker/nginx.local.conf /etc/nginx/conf.d/default.conf
+
 RUN echo "OK" > /usr/share/nginx/html/health
 
 EXPOSE 80

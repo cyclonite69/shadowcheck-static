@@ -78,6 +78,16 @@ export const attachClickHandlers = (
             wigle_v3_first_seen: wigle.wigle_v3_first_seen,
             wigle_v3_last_seen: wigle.wigle_v3_last_seen,
             wigle_v3_observation_count: wigle.wigle_v3_observation_count,
+            // Derive timespan_days from v3 first/last when both are present
+            timespan_days: (() => {
+              const f = wigle.wigle_v3_first_seen;
+              const l = wigle.wigle_v3_last_seen;
+              if (!f || !l) return null;
+              const ms = new Date(l).getTime() - new Date(f).getTime();
+              return ms > 0 ? Math.round(ms / 86_400_000) : null;
+            })(),
+            // WiGLE data quality score (0–7 scale, normalizer maps to 0–1)
+            qos: wigle.qos,
             // Chosen display coordinate
             display_lat: wigle.display_lat,
             display_lon: wigle.display_lon,
@@ -131,6 +141,14 @@ export const attachClickHandlers = (
       return originalRemove();
     };
   };
+
+  // Expose handler for Playwright E2E tests — stripped from production builds.
+  // Gate: DEV (vite dev server) OR VITE_E2E (e2e build via --mode e2e).
+  // This is a callable action, not a data object — intentionally narrower scope
+  // than __wigleMapInstance which is exposed unconditionally.
+  if (import.meta.env.DEV || import.meta.env.VITE_E2E) {
+    (window as any).__wigleHandleUnclustered = handleUnclustered;
+  }
 
   const handleClusterClick = (sourceId: string, clusterLayerId: string) => (e: any) => {
     const features = map.queryRenderedFeatures(e.point, { layers: [clusterLayerId] });
