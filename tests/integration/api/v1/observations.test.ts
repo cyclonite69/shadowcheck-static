@@ -109,6 +109,199 @@ describe('Observations API v1', () => {
       expect(res.body.ok).toBe(true);
       expect(res.body.stats.wigle_total).toBe(1);
     });
+
+    it('returns 400 for invalid BSSID on wigle-observations route', async () => {
+      const res = await request(app).get('/api/networks/invalid!bssid/wigle-observations');
+      expect(res.status).toBe(400);
+    });
+
+    it('returns empty observations with message when wigle table does not exist', async () => {
+      mockContainer.observationService.checkWigleTableExists.mockResolvedValue(false);
+      const res = await request(app).get('/api/networks/00:11:22:33:44:55/wigle-observations');
+      expect(res.status).toBe(200);
+      expect(res.body.observations).toEqual([]);
+      expect(res.body.message).toContain('not available');
+    });
+
+    it('correctly maps is_matched to source field for unmatched observations', async () => {
+      const bssid = '00:11:22:33:44:55';
+      mockContainer.observationService.checkWigleTableExists.mockResolvedValue(true);
+      mockContainer.observationService.getWigleObservationsByBSSID.mockResolvedValue([
+        {
+          bssid,
+          lat: 37.0,
+          lon: -122.0,
+          time: 1600000000,
+          level: -70,
+          ssid: null,
+          frequency: null,
+          channel: null,
+          encryption: null,
+          altitude: null,
+          accuracy: null,
+          is_matched: false,
+          distance_from_our_center_m: 120,
+        },
+      ]);
+      mockContainer.observationService.getOurObservationCount.mockResolvedValue(0);
+
+      const res = await request(app).get(`/api/networks/${bssid}/wigle-observations`);
+      expect(res.body.observations[0].source).toBe('wigle_unique');
+      expect(res.body.stats.max_distance_from_our_sightings_m).toBe(120);
+    });
+  });
+
+  describe('POST /api/networks/wigle-observations/batch', () => {
+    it('returns 400 when bssids is not an array', async () => {
+      const res = await request(app)
+        .post('/api/networks/wigle-observations/batch')
+        .send({ bssids: 'not-an-array' });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('bssids array is required');
+    });
+
+    it('returns 400 when bssids array is empty', async () => {
+      const res = await request(app)
+        .post('/api/networks/wigle-observations/batch')
+        .send({ bssids: [] });
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when all provided bssids are invalid', async () => {
+      const res = await request(app)
+        .post('/api/networks/wigle-observations/batch')
+        .send({ bssids: ['invalid!', 'also-invalid!'] });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('No valid BSSIDs');
+    });
+
+    it('returns empty networks with message when wigle table does not exist', async () => {
+      mockContainer.observationService.checkWigleTableExists.mockResolvedValue(false);
+      const res = await request(app)
+        .post('/api/networks/wigle-observations/batch')
+        .send({ bssids: ['00:11:22:33:44:55'] });
+      expect(res.status).toBe(200);
+      expect(res.body.networks).toEqual([]);
+      expect(res.body.message).toContain('not available');
+    });
+
+    it('aggregates matched and unique observations across networks', async () => {
+      const bssid1 = '00:11:22:33:44:55';
+      const bssid2 = 'AA:BB:CC:DD:EE:FF';
+      mockContainer.observationService.checkWigleTableExists.mockResolvedValue(true);
+      mockContainer.observationService.getWigleObservationsBatch.mockResolvedValue([
+        {
+          bssid: bssid1,
+          lat: 37.0,
+          lon: -122.0,
+          time: 1600000000,
+          level: -60,
+          ssid: 'Net1',
+          frequency: 2437,
+          channel: 6,
+          encryption: 'WPA2',
+          altitude: null,
+          accuracy: 5,
+          is_matched: true,
+          distance_from_our_center_m: 10,
+        },
+        {
+          bssid: bssid1,
+          lat: 37.1,
+          lon: -122.1,
+          time: 1600000001,
+          level: -70,
+          ssid: 'Net1',
+          frequency: 2437,
+          channel: 6,
+          encryption: 'WPA2',
+          altitude: null,
+          accuracy: 8,
+          is_matched: false,
+          distance_from_our_center_m: 250,
+        },
+        {
+          bssid: bssid2,
+          lat: 38.0,
+          lon: -121.0,
+          time: 1600000002,
+          level: -55,
+          ssid: 'Net2',
+          frequency: 5180,
+          channel: 36,
+          encryption: 'WPA3',
+          altitude: null,
+          accuracy: 3,
+          is_matched: true,
+          distance_from_our_center_m: 5,
+        },
+      ]);
+
+      const res = await request(app)
+        .post('/api/networks/wigle-observations/batch')
+        .send({ bssids: [bssid1, bssid2] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
+      expect(res.body.stats.total_wigle).toBe(3);
+      expect(res.body.stats.total_matched).toBe(2);
+      expect(res.body.stats.total_unique).toBe(1);
+      expect(res.body.stats.network_count).toBe(2);
+
+      const net1 = res.body.networks.find((n: any) => n.bssid === bssid1.toUpperCase());
+      expect(net1.stats.wigle_total).toBe(2);
+      expect(net1.stats.matched).toBe(1);
+      expect(net1.stats.unique).toBe(1);
+      expect(net1.stats.max_distance_m).toBe(250);
+    });
+
+    it('includes networks with zero observations in the response', async () => {
+      mockContainer.observationService.checkWigleTableExists.mockResolvedValue(true);
+      // Only returns rows for one of two requested BSSIDs
+      mockContainer.observationService.getWigleObservationsBatch.mockResolvedValue([
+        {
+          bssid: '00:11:22:33:44:55',
+          lat: 37.0,
+          lon: -122.0,
+          time: 1600000000,
+          level: -60,
+          ssid: null,
+          frequency: null,
+          channel: null,
+          encryption: null,
+          altitude: null,
+          accuracy: null,
+          is_matched: false,
+          distance_from_our_center_m: null,
+        },
+      ]);
+
+      const res = await request(app)
+        .post('/api/networks/wigle-observations/batch')
+        .send({ bssids: ['00:11:22:33:44:55', 'FF:EE:DD:CC:BB:AA'] });
+
+      expect(res.status).toBe(200);
+      // Both networks should appear even though only one has data
+      expect(res.body.networks.length).toBe(2);
+      const empty = res.body.networks.find((n: any) => n.bssid === 'FF:EE:DD:CC:BB:AA');
+      expect(empty.observations).toEqual([]);
+      expect(empty.stats.wigle_total).toBe(0);
+    });
+
+    it('silently skips non-string entries in the bssids array', async () => {
+      mockContainer.observationService.checkWigleTableExists.mockResolvedValue(true);
+      mockContainer.observationService.getWigleObservationsBatch.mockResolvedValue([]);
+
+      const res = await request(app)
+        .post('/api/networks/wigle-observations/batch')
+        .send({ bssids: [123, null, '00:11:22:33:44:55'] });
+
+      expect(res.status).toBe(200);
+      // Only the valid string BSSID should reach the service
+      expect(mockContainer.observationService.getWigleObservationsBatch).toHaveBeenCalledWith([
+        '00:11:22:33:44:55',
+      ]);
+    });
   });
 
   describe('POST /api/observations/correlate-visint', () => {
@@ -253,6 +446,30 @@ describe('Observations API v1', () => {
       expect(res.status).toBe(400);
       expect(res.body.code).toBe('VISINT_INVALID_NUMERIC_PARAMS');
       expect(mockContainer.observationService.correlateVisINT).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 when no image file is attached to correlate-visint', async () => {
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .field('filename', 'visint.jpg');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('image file field is required');
+    });
+
+    it('returns 500 for unexpected service errors on correlate-visint', async () => {
+      const image = Buffer.from('fake-visint-image');
+      mockContainer.observationService.correlateVisINT.mockRejectedValue(
+        new Error('Unexpected DB failure')
+      );
+
+      const res = await request(app)
+        .post('/api/observations/correlate-visint')
+        .attach('image', image, 'visint.jpg');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('VisINT correlation failed');
+      expect(res.body.details).toBe('Unexpected DB failure');
     });
   });
 
@@ -408,6 +625,33 @@ describe('Observations API v1', () => {
       expect(res.status).toBe(400);
       expect(res.body.code).toBe('VISINT_INVALID_NUMERIC_PARAMS');
       expect(mockContainer.observationService.saveVisINTAttachment).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 when no image file is attached to attach-visint', async () => {
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('status', 'MATCHED');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('image file field is required');
+    });
+
+    it('returns 500 for unexpected service errors on attach-visint', async () => {
+      const image = Buffer.from('fake-visint-attachment');
+      mockContainer.observationService.saveVisINTAttachment.mockRejectedValue(
+        new Error('Storage failure')
+      );
+
+      const res = await request(app)
+        .post('/api/observations/attach-visint')
+        .attach('image', image, 'visint.jpg')
+        .field('bssid', 'AA:BB:CC:DD:EE:FF')
+        .field('status', 'MATCHED');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('VisINT attachment failed');
+      expect(res.body.details).toBe('Storage failure');
     });
   });
 });

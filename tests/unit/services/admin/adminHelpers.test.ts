@@ -1,9 +1,8 @@
+export {};
+
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-  upload,
-  sqlUpload,
-  kmlUpload,
   validateSQLiteMagic,
   resolveEtlCommand,
   getImportCommand,
@@ -13,18 +12,7 @@ import {
   parseRelativePathsPayload,
   getKmlImportHistoryContext,
   parseKmlImportCounts,
-  buildContextMenuDemoHtml,
 } from '../../../../server/src/services/admin/adminHelpers';
-import { query } from '../../../../server/src/config/database';
-import logger from '../../../../server/src/logging/logger';
-
-jest.mock('../../../../server/src/config/database', () => ({
-  query: jest.fn(),
-}));
-
-jest.mock('../../../../server/src/logging/logger', () => ({
-  warn: jest.fn(),
-}));
 
 jest.mock('fs', () => ({
   ...jest.requireActual('fs'),
@@ -34,82 +22,302 @@ jest.mock('fs', () => ({
   },
 }));
 
+// Mock secretsManager via container (used by getSqlImportCommand)
+jest.mock('../../../../server/src/config/container', () => ({
+  secretsManager: {
+    get: jest.fn().mockReturnValue(''),
+  },
+}));
+
+const existsSyncMock = fs.existsSync as jest.Mock;
+const openMock = fs.promises.open as jest.Mock;
+
 describe('adminHelpers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
+  // ── validateSQLiteMagic ───────────────────────────────────────────────────
+
+  describe('validateSQLiteMagic', () => {
+    const SQLITE_MAGIC = Buffer.from('53514c69746520666f726d61742033', 'hex');
+
+    test('returns true for a file with SQLite magic bytes', async () => {
+      const readMock = jest.fn().mockImplementation((_buf: Buffer) => {
+        SQLITE_MAGIC.copy(_buf);
+        return Promise.resolve({ bytesRead: SQLITE_MAGIC.length });
+      });
+      const closeMock = jest.fn().mockResolvedValue(undefined);
+      openMock.mockResolvedValue({ read: readMock, close: closeMock });
+
+      const result = await validateSQLiteMagic('/tmp/test.sqlite');
+      expect(result).toBe(true);
+      expect(closeMock).toHaveBeenCalled();
+    });
+
+    test('returns false for a non-SQLite file', async () => {
+      const readMock = jest.fn().mockImplementation((_buf: Buffer) => {
+        Buffer.alloc(SQLITE_MAGIC.length).copy(_buf); // zeros
+        return Promise.resolve({ bytesRead: SQLITE_MAGIC.length });
+      });
+      const closeMock = jest.fn().mockResolvedValue(undefined);
+      openMock.mockResolvedValue({ read: readMock, close: closeMock });
+
+      const result = await validateSQLiteMagic('/tmp/test.db');
+      expect(result).toBe(false);
+      expect(closeMock).toHaveBeenCalled();
+    });
+
+    test('closes file descriptor even when read throws', async () => {
+      const readMock = jest.fn().mockRejectedValue(new Error('read error'));
+      const closeMock = jest.fn().mockResolvedValue(undefined);
+      openMock.mockResolvedValue({ read: readMock, close: closeMock });
+
+      await expect(validateSQLiteMagic('/tmp/bad.db')).rejects.toThrow('read error');
+      expect(closeMock).toHaveBeenCalled();
+    });
+  });
+
+  // ── resolveEtlCommand ─────────────────────────────────────────────────────
+
   describe('resolveEtlCommand', () => {
-    it('should return node command if compiled script exists', () => {
-      process.env.NODE_ENV = 'production';
-      jest.spyOn(fs, 'existsSync').mockImplementation((p: any) => {
-        return typeof p === 'string' && p.endsWith('.js');
-      });
-
-      const result = resolveEtlCommand('test-script', 'arg1');
+    test('returns node runner when a compiled .js file exists', () => {
+      existsSyncMock.mockImplementation((p: any) => typeof p === 'string' && p.endsWith('.js'));
+      const result = resolveEtlCommand('sqlite-import', '--dry-run');
       expect(result.command).toBe('node');
-      expect(result.args[0]).toContain('test-script.js');
+      expect(result.args[0]).toContain('sqlite-import.js');
+      expect(result.args[1]).toBe('--dry-run');
     });
 
-    it('should fallback to tsx if compiled script not found but tsx exists', () => {
-      process.env.NODE_ENV = 'production';
-      jest.spyOn(fs, 'existsSync').mockImplementation((p: any) => {
-        return typeof p === 'string' && p.endsWith('.ts');
-      });
+    test('returns tsx runner when only the .ts source exists', () => {
+      existsSyncMock.mockImplementation((p: any) => typeof p === 'string' && p.endsWith('.ts'));
+      const result = resolveEtlCommand('kml-import');
+      expect(result.command).toBe('tsx');
+      expect(result.args[0]).toContain('kml-import.ts');
+    });
 
-      const result = resolveEtlCommand('test-script', 'arg1');
-      expect(result.command).toContain('tsx');
+    test('throws when script is not found at any candidate path', () => {
+      existsSyncMock.mockReturnValue(false);
+      expect(() => resolveEtlCommand('missing-script')).toThrow('missing-script script not found');
+    });
+
+    test('throws on invalid script base name (path traversal prevention)', () => {
+      expect(() => resolveEtlCommand('../evil')).toThrow('Invalid script base name');
+      expect(() => resolveEtlCommand('has spaces')).toThrow('Invalid script base name');
+      expect(() => resolveEtlCommand('UPPER')).toThrow('Invalid script base name');
+    });
+
+    test('cmd and command fields are identical (both returned for compatibility)', () => {
+      existsSyncMock.mockReturnValue(true);
+      const result = resolveEtlCommand('sqlite-import');
+      expect(result.cmd).toBe(result.command);
     });
   });
 
-  describe('getSqlImportCommand', () => {
-    it('should return SQL import command executing psql directly', () => {
-      const result = getSqlImportCommand('test.sql');
-      expect(result.cmd).toBe('psql');
-      expect(result.command).toBe('psql');
-      expect(result.args).toContain('-f');
-      expect(result.args).toContain('test.sql');
-      expect(result.env).toBeDefined();
-    });
-  });
+  // ── getImportCommand ──────────────────────────────────────────────────────
 
   describe('getImportCommand', () => {
-    it('should map .kismet files to kismet-import', () => {
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      const result = getImportCommand('test.kismet', 'test-tag', 'test.kismet');
-      expect(result.cmd).toBe('node');
-      expect(result.args[0]).toContain('kismet-import.js');
+    test('routes .kismet files to kismet-import', () => {
+      existsSyncMock.mockReturnValue(true);
+      const result = getImportCommand('/tmp/scan.kismet', 'tag', 'scan.kismet');
+      expect(result.args[0]).toContain('kismet-import');
     });
 
-    it('should map other files to sqlite-import', () => {
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      const result = getImportCommand('test.db', 'test-tag', 'test.db');
-      expect(result.cmd).toBe('node');
-      expect(result.args[0]).toContain('sqlite-import.js');
+    test('routes .sqlite files to sqlite-import', () => {
+      existsSyncMock.mockReturnValue(true);
+      const result = getImportCommand('/tmp/scan.sqlite', 'tag', 'scan.sqlite');
+      expect(result.args[0]).toContain('sqlite-import');
+    });
+
+    test('routes .db files to sqlite-import', () => {
+      existsSyncMock.mockReturnValue(true);
+      const result = getImportCommand('/tmp/scan.db', 'tag', 'scan.db');
+      expect(result.args[0]).toContain('sqlite-import');
+    });
+
+    test('passes sourceTag as second arg', () => {
+      existsSyncMock.mockReturnValue(true);
+      const result = getImportCommand('/tmp/scan.sqlite', 'mysource', 'scan.sqlite');
+      expect(result.args[1]).toBe('/tmp/scan.sqlite');
+      expect(result.args[2]).toBe('mysource');
     });
   });
+
+  // ── getKmlImportCommand ───────────────────────────────────────────────────
+
+  describe('getKmlImportCommand', () => {
+    test('routes to kml-import script', () => {
+      existsSyncMock.mockReturnValue(true);
+      const result = getKmlImportCommand('/tmp/scan.kml', 'kml_tag');
+      expect(result.args[0]).toContain('kml-import');
+    });
+
+    test('passes kml file path and source tag as args', () => {
+      existsSyncMock.mockReturnValue(true);
+      const result = getKmlImportCommand('/tmp/scan.kml', 'kml_tag');
+      expect(result.args).toContain('/tmp/scan.kml');
+      expect(result.args).toContain('kml_tag');
+    });
+  });
+
+  // ── getSqlImportCommand ───────────────────────────────────────────────────
+
+  describe('getSqlImportCommand', () => {
+    test('returns psql as command', () => {
+      const result = getSqlImportCommand('/tmp/migration.sql');
+      expect(result.cmd).toBe('psql');
+      expect(result.command).toBe('psql');
+    });
+
+    test('includes -f flag and sql file path', () => {
+      const result = getSqlImportCommand('/tmp/migration.sql');
+      expect(result.args).toContain('-f');
+      expect(result.args).toContain('/tmp/migration.sql');
+    });
+
+    test('includes ON_ERROR_STOP=1', () => {
+      const result = getSqlImportCommand('/tmp/migration.sql');
+      expect(result.args).toContain('ON_ERROR_STOP=1');
+    });
+
+    test('sets PGPASSWORD in env', () => {
+      const result = getSqlImportCommand('/tmp/migration.sql');
+      expect(result.env).toBeDefined();
+      expect(Object.prototype.hasOwnProperty.call(result.env, 'PGPASSWORD')).toBe(true);
+    });
+
+    test('uses DB env vars when set', () => {
+      process.env.DB_HOST = 'testhost';
+      process.env.DB_PORT = '5433';
+      process.env.DB_NAME = 'testdb';
+      const result = getSqlImportCommand('/tmp/migration.sql');
+      expect(result.args).toContain('testhost');
+      expect(result.args).toContain('5433');
+      expect(result.args).toContain('testdb');
+      delete process.env.DB_HOST;
+      delete process.env.DB_PORT;
+      delete process.env.DB_NAME;
+    });
+  });
+
+  // ── sanitizeRelativePath ──────────────────────────────────────────────────
 
   describe('sanitizeRelativePath', () => {
-    it('should sanitize paths and remove dots', () => {
-      const result = sanitizeRelativePath('../folder/nested/./capture.kml');
-      expect(path.normalize(result.replace(/\\/g, '/'))).toBe(
-        path.normalize('folder/nested/capture.kml')
-      );
+    test('strips leading ../ traversal', () => {
+      const result = sanitizeRelativePath('../etc/passwd');
+      expect(result).not.toContain('..');
     });
 
-    it('should handle empty or dot-only segments', () => {
-      const result = sanitizeRelativePath('a/./b/../c');
-      expect(path.normalize(result.replace(/\\/g, '/'))).toBe(path.normalize('a/c'));
+    test('strips multiple leading ../ segments', () => {
+      const result = sanitizeRelativePath('../../etc/passwd');
+      expect(result).not.toContain('..');
+    });
+
+    test('preserves safe relative paths', () => {
+      const result = sanitizeRelativePath('folder/file.kml');
+      expect(result).toContain('folder');
+      expect(result).toContain('file.kml');
+    });
+
+    test('normalizes ./ segments', () => {
+      const result = sanitizeRelativePath('folder/./file.kml');
+      expect(result).not.toContain('./');
     });
   });
 
+  // ── parseRelativePathsPayload ─────────────────────────────────────────────
+
+  describe('parseRelativePathsPayload', () => {
+    test('returns empty array on invalid JSON', () => {
+      expect(parseRelativePathsPayload('not json')).toEqual([]);
+    });
+
+    test('returns empty array when JSON is not an array', () => {
+      expect(parseRelativePathsPayload('{"key":"value"}')).toEqual([]);
+    });
+
+    test('sanitizes each path in a valid array', () => {
+      const input = JSON.stringify(['../evil', 'safe/path.kml']);
+      const result = parseRelativePathsPayload(input);
+      expect(result.length).toBe(2);
+      expect(result[0]).not.toContain('..');
+      expect(result[1]).toContain('safe');
+    });
+
+    test('returns empty array for empty JSON array', () => {
+      expect(parseRelativePathsPayload('[]')).toEqual([]);
+    });
+  });
+
+  // ── getKmlImportHistoryContext ────────────────────────────────────────────
+
   describe('getKmlImportHistoryContext', () => {
-    it('should fallback to defaults', () => {
+    test('uses first file path when only one file uploaded', () => {
+      const result = getKmlImportHistoryContext('scan.kml', [{}], ['/tmp/scan.kml']);
+      expect(result.filename).toBe('/tmp/scan.kml');
+    });
+
+    test('shows (+N more) suffix for multiple files', () => {
+      const result = getKmlImportHistoryContext(
+        'batch.kml',
+        [{}, {}, {}],
+        ['/tmp/a.kml', '/tmp/b.kml', '/tmp/c.kml']
+      );
+      expect(result.filename).toContain('+2 more');
+    });
+
+    test('truncates sourceTag to 50 chars', () => {
+      const longName = 'a'.repeat(100);
+      const result = getKmlImportHistoryContext(longName, [], []);
+      expect(result.sourceTag.length).toBeLessThanOrEqual(50);
+    });
+
+    test('sanitizes filename chars in sourceTag', () => {
+      const result = getKmlImportHistoryContext('MY_SCAN-2026.kml', [], []);
+      expect(result.sourceTag).toMatch(/^kml_[a-z0-9_]+$/);
+    });
+
+    test('falls back to batch.kml when no files', () => {
       const result = getKmlImportHistoryContext('', [], []);
-      expect(result).toEqual({
-        sourceTag: 'kml_',
-        filename: 'batch.kml',
-      });
+      expect(result.filename).toBe('batch.kml');
+    });
+  });
+
+  // ── parseKmlImportCounts ──────────────────────────────────────────────────
+
+  describe('parseKmlImportCounts', () => {
+    test('parses Files and Points from ETL output', () => {
+      const output = 'Processing complete.\nFiles: 3\nPoints: 1,234\n';
+      const result = parseKmlImportCounts(output, 0);
+      expect(result.filesImported).toBe(3);
+      expect(result.pointsImported).toBe(1234);
+    });
+
+    test('uses fallbackFileCount when Files line is absent', () => {
+      const output = 'Points: 500\n';
+      const result = parseKmlImportCounts(output, 7);
+      expect(result.filesImported).toBe(7);
+      expect(result.pointsImported).toBe(500);
+    });
+
+    test('returns 0 pointsImported when Points line is absent', () => {
+      const output = 'Files: 2\n';
+      const result = parseKmlImportCounts(output, 0);
+      expect(result.filesImported).toBe(2);
+      expect(result.pointsImported).toBe(0);
+    });
+
+    test('handles comma-separated numbers in Files count', () => {
+      const output = 'Files: 1,000\nPoints: 50,000\n';
+      const result = parseKmlImportCounts(output, 0);
+      expect(result.filesImported).toBe(1000);
+      expect(result.pointsImported).toBe(50000);
+    });
+
+    test('returns zeros when output is empty', () => {
+      const result = parseKmlImportCounts('', 0);
+      expect(result.filesImported).toBe(0);
+      expect(result.pointsImported).toBe(0);
     });
   });
 });

@@ -1165,7 +1165,7 @@
 - **dev:** add isolated test database runtime ([bb57eba](https://github.com/cyclonite69/shadowcheck-web/commit/bb57eba31bd30c18fb7cb3bf434b7c2b9bbbd87c))
 - **device-intel:** expand SIGINT Library to Device Intel Library ([0b3a386](https://github.com/cyclonite69/shadowcheck-web/commit/0b3a38694ddcd0aa942754978e2975b35b2b07d0))
 - Disable automatic network marker loading on geospatial page ([163ccf2](https://github.com/cyclonite69/shadowcheck-web/commit/163ccf2c0c6c2dc6c143601f09f7f468e306b8c8))
-- **e2e:** stabilize Mapbox interaction tests using window seam pattern ([176d099](https://github.com/cyclonite69/shadowcheck-web/commit/176d099c302bfab46848c336011c7c900627b69f))
+- **e2e:** stabilize Mapbox interaction tests using window seam pattern ([ef53885](https://github.com/cyclonite69/shadowcheck-web/commit/ef53885936f6b10fc55c03c5b7aae29a067d5820))
 - **ec2-setup:** install nano and security-updates timer in setup-instance.sh ([be7df3c](https://github.com/cyclonite69/shadowcheck-web/commit/be7df3c0ada36df60313eee972943b867c91489c))
 - enhance geospatial visualizations and add database migration scripts ([2403006](https://github.com/cyclonite69/shadowcheck-web/commit/24030065809df5ec9a266ea8a68549e1c3573101))
 - enhance Grafana intelligence dashboards with fleet co-occurrence and AI insights ([c6ead99](https://github.com/cyclonite69/shadowcheck-web/commit/c6ead99c9909886edf8e2db883dcf8c3c8a382cf))
