@@ -35,6 +35,8 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
       const lat = row.trilat || (row as any).lat || (row as any).latitude;
       const lon = row.trilong || (row as any).trilon || (row as any).lon || (row as any).longitude;
 
+      const isV3 = Boolean((row as any).observed_at);
+
       return {
         type: 'Feature' as const,
         geometry: {
@@ -51,9 +53,12 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
           channel: row.channel,
           frequency: row.frequency,
           observed_at: (row as any).observed_at || null,
-          firsttime: row.firsttime || (row as any).wigle_v3_first_seen || null,
-          lasttime:
-            row.lasttime || (row as any).lastupdt || (row as any).wigle_v3_last_seen || null,
+          firsttime: isV3
+            ? (row as any).wigle_v3_first_seen || row.firsttime || null
+            : row.firsttime || null,
+          lasttime: isV3
+            ? (row as any).wigle_v3_last_seen || row.lasttime || (row as any).lastupdt || null
+            : row.lasttime || (row as any).lastupdt || null,
           lastupdt: (row as any).lastupdt || null,
           accuracy: row.accuracy,
           comment: (row as any).comment || null,
@@ -71,9 +76,12 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
           geocoded_city: (row as any).geocoded_city || null,
           geocoded_state: (row as any).geocoded_state || null,
           geocoded_poi_name: (row as any).geocoded_poi_name || null,
-          first_seen: row.firsttime || (row as any).wigle_v3_first_seen || null,
-          last_seen:
-            row.lasttime || (row as any).lastupdt || (row as any).wigle_v3_last_seen || null,
+          first_seen: isV3
+            ? (row as any).wigle_v3_first_seen || row.firsttime || null
+            : row.firsttime || null,
+          last_seen: isV3
+            ? (row as any).wigle_v3_last_seen || row.lasttime || (row as any).lastupdt || null
+            : row.lasttime || (row as any).lastupdt || null,
           local_first_seen: (row as any).local_first_seen || null,
           local_last_seen: (row as any).local_last_seen || null,
           wigle_match: Boolean((row as any).wigle_match),
