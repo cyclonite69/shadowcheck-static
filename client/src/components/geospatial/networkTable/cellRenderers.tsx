@@ -1,3 +1,4 @@
+import React, { useState, useCallback } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { NetworkRow } from '../../../types/network';
 import type { NetworkColumnConfig } from '../../../constants/network';
@@ -383,6 +384,115 @@ const renderAccuracyCell = ({ value }: NetworkTableCellRendererContext) => {
   };
 };
 
+// ---------------------------------------------------------------------------
+// BSSID cell with click-to-copy
+// ---------------------------------------------------------------------------
+
+const ClipboardIcon = () => (
+  <svg
+    width="11"
+    height="11"
+    viewBox="0 0 14 14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="5" y="1" width="8" height="10" rx="1.5" />
+    <path d="M3 3H2a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg
+    width="11"
+    height="11"
+    viewBox="0 0 14 14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="2,7 6,11 12,3" />
+  </svg>
+);
+
+interface BssidCellProps {
+  label: string;
+  color: string;
+}
+
+const BssidCell: React.FC<BssidCellProps> = ({ label, color }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(label).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    },
+    [label]
+  );
+
+  return (
+    <div
+      className="bssid-cell-group"
+      style={{
+        fontFamily: 'monospace',
+        fontSize: '11px',
+        fontWeight: 700,
+        letterSpacing: '0.02em',
+        color,
+        whiteSpace: 'nowrap',
+        textOverflow: 'ellipsis',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        position: 'relative',
+      }}
+    >
+      <style>{`
+        .bssid-cell-group .bssid-copy-btn { opacity: 0; transition: opacity 0.15s; }
+        .bssid-cell-group:hover .bssid-copy-btn { opacity: 1; }
+      `}</style>
+      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>
+        {label}
+      </span>
+      <button
+        type="button"
+        className="bssid-copy-btn"
+        onClick={handleCopy}
+        aria-label={copied ? 'Copied!' : `Copy ${label}`}
+        title={copied ? 'Copied!' : 'Copy BSSID'}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '16px',
+          height: '16px',
+          padding: 0,
+          border: 'none',
+          borderRadius: '3px',
+          background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)',
+          color: copied ? '#4ade80' : 'rgba(255,255,255,0.45)',
+          cursor: 'pointer',
+          flexShrink: 0,
+          transition: 'background 0.15s, color 0.15s',
+        }}
+      >
+        {copied ? <CheckIcon /> : <ClipboardIcon />}
+      </button>
+    </div>
+  );
+};
+
 const renderBssid = ({
   value,
   row: _row,
@@ -390,27 +500,7 @@ const renderBssid = ({
   isLinkedSibling: _isLinkedSibling,
 }: NetworkTableCellRendererContext) => {
   const label = value == null ? '—' : String(value);
-  const bssidContent = (
-    <div
-      style={{
-        fontFamily: 'monospace',
-        fontSize: '11px',
-        fontWeight: 700,
-        letterSpacing: '0.02em',
-        color: macColor(_row.bssid ?? ''),
-        whiteSpace: 'nowrap',
-        textOverflow: 'ellipsis',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-      }}
-    >
-      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>
-        {label}
-      </span>
-    </div>
-  );
+  const bssidContent = <BssidCell label={label} color={macColor(_row.bssid ?? '')} />;
 
   return {
     content: label === '—' ? bssidContent : <Tooltip content={label}>{bssidContent}</Tooltip>,

@@ -1,4 +1,4 @@
-# 1.0.0 (2026-06-22)
+# 1.0.0 (2026-07-06)
 
 ### Bug Fixes
 
@@ -1181,6 +1181,7 @@
 - **etl:** implement native kismet sidecar importer and smart UI detection ([ac30afa](https://github.com/cyclonite69/shadowcheck-web/commit/ac30afa178672080d8fc043d1d5a79be066a83c5))
 - **etl:** mark quality-filtered observations before MV refresh ([0063129](https://github.com/cyclonite69/shadowcheck-web/commit/0063129ad63b4a9d031cb2ef5a0be0127550ccb2))
 - exclude ignored networks from threat scoring ([e5d3754](https://github.com/cyclonite69/shadowcheck-web/commit/e5d3754643d1372e32a8fea286a0d0e107dde6b5))
+- **explorer:** toolbar pills inline, snap handle, shimmer, BSSID click-to-copy ([ee95bed](https://github.com/cyclonite69/shadowcheck-web/commit/ee95bed7a1b9b197715cffd626101a4bbae178b5))
 - expose sibling detection tuning via admin UI ([c0aa347](https://github.com/cyclonite69/shadowcheck-web/commit/c0aa347266fe4208ae27b28f28960c7fd582eefa))
 - extend DB stats with Materialized View health and Unused Index report ([847aebd](https://github.com/cyclonite69/shadowcheck-web/commit/847aebd00653f97b88a331f6cfd371c7bd8929d3))
 - **filter:** add pipe OR syntax to SSID filter (fbi|surveillance) ([fb44b56](https://github.com/cyclonite69/shadowcheck-web/commit/fb44b56d032ba0fb68b638c5c61910f492eea08e))
@@ -1258,7 +1259,7 @@
 - **map:** add federal courthouses as toggleable layer ([3d98aad](https://github.com/cyclonite69/shadowcheck-web/commit/3d98aadb62e1835aca93ff6b3289fc6062d720cb))
 - Match Kepler tooltip styling exactly with card-like sections ([0f551d8](https://github.com/cyclonite69/shadowcheck-web/commit/0f551d86e95dc8cfebc90181f659462dbdf92c49)), closes [#60a5fa](https://github.com/cyclonite69/shadowcheck-web/issues/60a5fa) [#94a3b8](https://github.com/cyclonite69/shadowcheck-web/issues/94a3b8) [#fbbf24](https://github.com/cyclonite69/shadowcheck-web/issues/fbbf24) [#X](https://github.com/cyclonite69/shadowcheck-web/issues/X)
 - **media:** add selectUnmatchedMediaPoints + thumbnail repo methods ([7189eaa](https://github.com/cyclonite69/shadowcheck-web/commit/7189eaa1dbed8edbde9909d64376628405772a82))
-- **media:** implement matched media map layer and carousel popup ([ac7b0c5](https://github.com/cyclonite69/shadowcheck-web/commit/ac7b0c5e6124beef2a6849d2724c57ef48a7f282))
+- **media:** implement matched media map layer and carousel popup ([56c9beb](https://github.com/cyclonite69/shadowcheck-web/commit/56c9bebd812301f16b70b21e0150e68d933fe673))
 - migrate threat scoring services to TypeScript ([8594f8c](https://github.com/cyclonite69/shadowcheck-web/commit/8594f8c4eac4a091396c4db9ac8d141f4bccff17))
 - migration audit script for consolidation planning ([5ca70d4](https://github.com/cyclonite69/shadowcheck-web/commit/5ca70d4483d7f48da949f2e46fe51b4edc05a1d5))
 - **migrations:** add bootstrap tables missing from migration history ([770fa80](https://github.com/cyclonite69/shadowcheck-web/commit/770fa806c185f4d5957458b7cede0034f00340ab))

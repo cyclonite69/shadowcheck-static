@@ -11,6 +11,76 @@ import { mixBssidColors } from '../../../utils/wigle/colors';
 import { buildPatternGroupsFromCanonicalMap } from '../utils/siblingGroupGraph';
 import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 
+// ---------------------------------------------------------------------------
+// Shimmer skeleton
+// ---------------------------------------------------------------------------
+
+/** Widths (as %) for the shimmer blobs within each cell — vary them so rows
+ *  don't look identical. Pattern repeats every 5 rows. */
+const SHIMMER_WIDTHS = [55, 70, 45, 80, 60];
+
+interface SkeletonRowsProps {
+  count: number;
+  gridTemplateColumns: string;
+  totalGridWidth: number;
+}
+
+const SkeletonRows: React.FC<SkeletonRowsProps> = ({
+  count,
+  gridTemplateColumns,
+  totalGridWidth,
+}) => (
+  <div style={{ width: `${totalGridWidth}px`, minWidth: '100%' }}>
+    <style>{`
+      @keyframes sc-shimmer {
+        0%   { background-position: -600px 0; }
+        100% { background-position:  600px 0; }
+      }
+      .sc-shimmer-blob {
+        border-radius: 3px;
+        height: 10px;
+        background: linear-gradient(
+          90deg,
+          rgba(255,255,255,0.04) 25%,
+          rgba(255,255,255,0.10) 50%,
+          rgba(255,255,255,0.04) 75%
+        );
+        background-size: 600px 100%;
+        animation: sc-shimmer 1.4s ease-in-out infinite;
+      }
+    `}</style>
+    {Array.from({ length: count }, (_, i) => (
+      <div
+        key={i}
+        role="row"
+        aria-hidden="true"
+        style={{
+          display: 'grid',
+          gridTemplateColumns,
+          height: '32px',
+          alignItems: 'center',
+          padding: '0 4px',
+          borderBottom: '0.5px solid rgba(255,255,255,0.04)',
+          background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+          animationDelay: `${(i * 0.06).toFixed(2)}s`,
+        }}
+      >
+        {gridTemplateColumns.split(' ').map((_, colIdx) => (
+          <div key={colIdx} style={{ padding: '0 6px' }}>
+            <div
+              className="sc-shimmer-blob"
+              style={{
+                width: `${SHIMMER_WIDTHS[(i + colIdx) % SHIMMER_WIDTHS.length]}%`,
+                animationDelay: `${(i * 0.06 + colIdx * 0.03).toFixed(2)}s`,
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+);
+
 interface NetworkTableBodyGridProps {
   tableContainerRef: React.RefObject<HTMLDivElement | null>;
   visibleColumns: Array<keyof NetworkRow | 'select'>;
@@ -323,13 +393,18 @@ export const NetworkTableBodyGrid = ({
   // Show initial loading / empty / error states only when we have no rows yet.
   if (filteredNetworks.length === 0 || error) {
     return (
-      <div
-        ref={tableContainerRef}
-        className="flex-1 overflow-auto min-h-0 p-4 text-center text-slate-400"
-      >
-        {loadingNetworks && 'Loading networks...'}
-        {error && `Error: ${error}`}
-        {!loadingNetworks && !error && filteredNetworks.length === 0 && 'No networks found'}
+      <div ref={tableContainerRef} className="flex-1 overflow-auto min-h-0">
+        {loadingNetworks && (
+          <SkeletonRows
+            count={18}
+            gridTemplateColumns={gridTemplateColumns}
+            totalGridWidth={totalGridWidth}
+          />
+        )}
+        {error && <div className="p-4 text-center text-slate-400">{`Error: ${error}`}</div>}
+        {!loadingNetworks && !error && filteredNetworks.length === 0 && (
+          <div className="p-4 text-center text-slate-400">No networks found</div>
+        )}
       </div>
     );
   }
@@ -418,16 +493,11 @@ export const NetworkTableBodyGrid = ({
         })}
       </div>
       {isLoadingMore && (
-        <div
-          style={{
-            padding: '8px 12px',
-            textAlign: 'center',
-            color: '#94a3b8',
-            fontSize: '11px',
-          }}
-        >
-          Loading more networks...
-        </div>
+        <SkeletonRows
+          count={4}
+          gridTemplateColumns={gridTemplateColumns}
+          totalGridWidth={totalGridWidth}
+        />
       )}
     </div>
   );

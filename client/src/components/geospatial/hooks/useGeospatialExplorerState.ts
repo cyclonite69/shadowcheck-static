@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { useCurrentEnabled, useFilterStore } from '../../../stores/filterStore';
@@ -42,6 +42,9 @@ import {
 } from '../utils/siblingGroupGraph';
 import { componentSizesFromGroupMap, logSiblingTopology } from '../utils/siblingTopologyDebug';
 import { useSiblingLinks } from './useSiblingLinks';
+
+const MAP_HEADER_HEIGHT = 48;
+const MIN_TABLE_HEIGHT = 150;
 
 interface UseGeospatialExplorerStateProps {
   isAdmin: boolean;
@@ -126,6 +129,7 @@ export const useGeospatialExplorerState = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInitRef = useRef(false);
   const columnDropdownRef = useRef<HTMLDivElement>(null);
+  const lastSplitMapHeightRef = useRef(500);
 
   const {
     mapStyle,
@@ -218,6 +222,46 @@ export const useGeospatialExplorerState = ({
     setResizing: () => {},
     logDebug,
   });
+
+  useEffect(() => {
+    const mapCollapsed = mapHeight <= MAP_HEADER_HEIGHT;
+    const tableCollapsed = mapHeight >= containerHeight - 1;
+    if (!mapCollapsed && !tableCollapsed) {
+      lastSplitMapHeightRef.current = mapHeight;
+    }
+  }, [containerHeight, mapHeight]);
+
+  const handlePaneSnap = useCallback(
+    (target: 'map' | 'table') => {
+      const fallbackHeight = Math.floor(containerHeight * 0.75);
+      const restoreHeight = Math.max(
+        MAP_HEADER_HEIGHT + MIN_TABLE_HEIGHT,
+        Math.min(
+          containerHeight - MIN_TABLE_HEIGHT,
+          lastSplitMapHeightRef.current || fallbackHeight
+        )
+      );
+      const nextHeight =
+        target === 'map'
+          ? mapHeight >= containerHeight - 1
+            ? restoreHeight
+            : containerHeight
+          : mapHeight <= MAP_HEADER_HEIGHT
+            ? restoreHeight
+            : MAP_HEADER_HEIGHT;
+
+      if (nextHeight !== MAP_HEADER_HEIGHT && nextHeight !== containerHeight) {
+        lastSplitMapHeightRef.current = nextHeight;
+      }
+
+      logDebug(`Snap ${target} pane to map height: ${nextHeight}`);
+      setMapHeight(nextHeight);
+      if (mapRef.current) {
+        setTimeout(() => mapRef.current?.resize(), 0);
+      }
+    },
+    [containerHeight, logDebug, mapHeight]
+  );
 
   useGeospatialMap({
     mapStyle,
@@ -471,6 +515,7 @@ export const useGeospatialExplorerState = ({
     observationCount,
     networkLookup,
     handleMouseDown,
+    handlePaneSnap,
     searchMode,
     setSearchMode,
     directionsLoading,

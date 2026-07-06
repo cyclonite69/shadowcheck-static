@@ -54,7 +54,7 @@ export function useNetworkData(options: UseNetworkDataOptions = {}): UseNetworkD
   const { locationMode = 'latest_observation', planCheck = false } = options;
 
   const [networks, setNetworks] = useState<NetworkRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // true on mount — skeleton shows until first fetch resolves
   const [error, setError] = useState<string | null>(null);
   const [networkTotal, setNetworkTotal] = useState<number | null>(null);
   const [networkTruncated, setNetworkTruncated] = useState(false);

@@ -130,6 +130,7 @@ const GeospatialMapContentComponent: React.FC<GeospatialMapContentProps> = ({
         mapRef={state.mapRef}
         mapContainerRef={state.mapContainerRef}
         onResizeMouseDown={state.handleMouseDown}
+        onSnapPane={state.handlePaneSnap}
         onOpenContextMenu={onOpenContextMenu}
       />
     </div>
