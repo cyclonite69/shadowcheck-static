@@ -4,26 +4,31 @@ title = "ShadowCheck Gitleaks Config"
 useDefault = true
 
 # ---------------------------------------------------------------------------
-# Global path allowlists
-# Each [[allowlists]] block is evaluated globally across all rules.
-# Prefer path-scoped allowlists here over inline `// gitleaks:allow` comments
-# so all exemptions are auditable in one place.
+# Custom rules
+# These extend (not replace) the default gitleaks ruleset.
+#
+# Allowlist strategy: allowlists are keyed on the captured *value* (secretGroup),
+# not directory paths. A path-only allowlist exempts every gitleaks rule for
+# the entire tree — too broad. Value-regex allowlists are surgical: gitleaks
+# still fires if a real secret shape appears anywhere, even in test files.
+#
+# No global directory-wide [[allowlists]] blocks. All exemptions live in
+# [[rules.allowlists]] (scoped to the rule) or targeted [[allowlists]] blocks
+# that pair a path with a narrow value regex.
 # ---------------------------------------------------------------------------
 
+# Suppress the built-in generic-api-key false positive on filter parameter names.
+# The pattern key: 'wigle_v3_observation_count_min' in test data objects is a
+# filter key name, not an API key — but the rule matches on the word "key" + long value.
 [[allowlists]]
-id = "e2e-test-credentials"
-description = "E2E test auth helpers — credentials come from E2E_ADMIN_PASSWORD env var, never hardcoded"
-paths = ['''tests/e2e/''']
-
-[[allowlists]]
-id = "unit-test-credentials"
-description = "Unit/integration test fixtures use obvious placeholder values (test_password, sm-admin-pass, etc.) — not real credentials"
-paths = ['''tests/unit/''', '''tests/integration/''']
-
-[[allowlists]]
-id = "shell-scripts-pgpassword"
-description = "Shell scripts that pass DB credentials via env var interpolation ($DB_PASS) — not literals"
-paths = ['''scripts/''']
+id = "filter-key-names-not-api-keys"
+description = "Filter parameter name strings in test fixtures that match generic-api-key shape but are not credentials"
+paths = ['''tests/''']
+regexes = [
+  # Only suppresses underscore-separated snake_case filter key names (e.g. wigle_v3_observation_count_min)
+  # Real API keys don't look like SQL column names
+  '''(?i)^[a-z][a-z0-9]*(?:_[a-z][a-z0-9]*){3,}$''',
+]
 
 [[rules]]
 id = "generic-hardcoded-password-assignment"
@@ -34,12 +39,25 @@ path = '''(?i)\.(?:js|jsx|ts|tsx|sh|ya?ml|json|env|sql)$'''
 keywords = ["password", "db_password", "db_admin_password"]
 
 [[rules.allowlists]]
-description = "Ignore obvious placeholders and env interpolation"
+description = "Known placeholder values used in tests and example configs — not real credentials"
 regexes = [
-  '''(?i)^(?:test(?:[_-]?password)?|example|placeholder|changeme|dummy|sample|your[_-]?password|your[_-]?db[_-]?password|your[_-]?secure[_-]?password|password|new[_-]?password|admin|dev[_-]?password|dev[_-]?admin[_-]?password|aws[_-]?password|env[_-]?password|local[_-]?dev[_-]?nopass)$''',
+  # Generic placeholder words (exact match against captured value)
+  '''(?i)^(?:test(?:[_-]?password)?|example|placeholder|changeme|dummy|sample)$''',
+  '''(?i)^(?:your[_-]?(?:password|db[_-]?password|secure[_-]?password))$''',
+  '''(?i)^(?:password|admin|localdev|dev[_-]?password|dev[_-]?admin[_-]?password)$''',
+  '''(?i)^(?:aws[_-]?password|env[_-]?password|local[_-]?dev[_-]?nopass)$''',
+  # Patterns with numeric suffixes common in test fixtures
+  '''(?i)^(?:password|admin|test|new(?:password)?)\d{1,6}$''',
+  # Short single-word test values (8 chars or fewer that aren't real secret shapes)
+  '''(?i)^(?:existing|recovered|env_fallback|test[_-]?pass|sm[_-]?admin[_-]?pass)$''',
+  # Hyphenated/underscored test identifiers
+  '''(?i)^(?:test[_-]admin[_-]pass|sm[_-]admin[_-]pass|test[_-]pass|new[_-]?password)$''',
+  # Env var interpolation (not a literal)
   '''^<[^>]+>$''',
   '''^\$\{[^}]+\}$''',
-  '''^\$[A-Za-z_][A-Za-z0-9_]*$'''
+  '''^\$[A-Za-z_][A-Za-z0-9_]*$''',
+  # Backslash-escaped dollar in shell heredocs: \$VAR_NAME
+  '''^\\\\?\$[A-Za-z_][A-Za-z0-9_]*$'''
 ]
 
 [[rules]]
@@ -51,9 +69,12 @@ path = '''(?i)\.(?:js|jsx|ts|tsx|sh|env|ya?ml|json)$'''
 keywords = ["postgres://", "postgresql://"]
 
 [[rules.allowlists]]
-description = "Ignore placeholder connection strings"
+description = "Placeholder connection string passwords"
 regexes = [
-  '''(?i)^(?:test(?:[_-]?password)?|example|placeholder|changeme|dummy|sample|your[_-]?password|your[_-]?db[_-]?password|your[_-]?secure[_-]?password|password|new[_-]?password|admin|dev[_-]?password|dev[_-]?admin[_-]?password|aws[_-]?password|env[_-]?password|local[_-]?dev[_-]?nopass)$''',
+  '''(?i)^(?:test(?:[_-]?password)?|example|placeholder|changeme|dummy|sample)$''',
+  '''(?i)^(?:your[_-]?(?:password|db[_-]?password|secure[_-]?password))$''',
+  '''(?i)^(?:password|admin|localdev)$''',
+  '''(?i)^(?:password|admin|test|new(?:password)?)\d{1,6}$''',
   '''^\$\{[^}]+\}$''',
   '''^\$[A-Za-z_][A-Za-z0-9_]*$'''
 ]
