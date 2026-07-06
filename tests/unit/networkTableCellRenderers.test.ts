@@ -134,7 +134,15 @@ describe('renderNetworkTableCell', () => {
 
     const result = renderNetworkTableCell(context);
     expect(result.title).toBe(longId);
-    expect(getText(result.content)).toBe(longId);
+    // renderBssid now wraps in <Tooltip><BssidCell label={longId} /></Tooltip>
+    // Drill into the Tooltip child and verify the label prop carries the full value
+    const tooltipChild = React.isValidElement(result.content)
+      ? (result.content as React.ReactElement<any>).props.children
+      : null;
+    const bssidLabel = React.isValidElement(tooltipChild)
+      ? (tooltipChild as React.ReactElement<any>).props.label
+      : null;
+    expect(bssidLabel).toBe(longId);
   });
 
   it('exposes full security context from capabilities in the cell title', () => {

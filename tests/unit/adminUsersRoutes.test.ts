@@ -64,7 +64,7 @@ describe('admin users routes', () => {
     it('returns 400 if role is invalid', async () => {
       const res = await request(app)
         .post('/api/')
-        .send({ username: 'user', email: 'u@u.com', password: 'password123', role: 'invalid' }); // gitleaks:allow
+        .send({ username: 'user', email: 'u@u.com', password: 'password123', role: 'invalid' });
       expect(res.status).toBe(400);
     });
 
@@ -79,7 +79,7 @@ describe('admin users routes', () => {
       adminUsersService.createAppUser.mockResolvedValueOnce({ id: 2, username: 'newuser' });
       const res = await request(app)
         .post('/api/')
-        .send({ username: 'newuser', email: 'u@u.com', password: 'password123' }); // gitleaks:allow
+        .send({ username: 'newuser', email: 'u@u.com', password: 'password123' });
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.user.username).toBe('newuser');
@@ -91,7 +91,7 @@ describe('admin users routes', () => {
       adminUsersService.createAppUser.mockRejectedValueOnce(error);
       const res = await request(app)
         .post('/api/')
-        .send({ username: 'newuser', email: 'u@u.com', password: 'password123' }); // gitleaks:allow
+        .send({ username: 'newuser', email: 'u@u.com', password: 'password123' });
       expect(res.status).toBe(409);
       expect(res.body.error).toContain('exists');
     });
@@ -135,7 +135,7 @@ describe('admin users routes', () => {
   describe('PUT /:id/password', () => {
     it('resets password successfully', async () => {
       adminUsersService.resetAppUserPassword.mockResolvedValueOnce({ id: 3 });
-      const res = await request(app).put('/api/3/password').send({ password: 'newpassword123' }); // gitleaks:allow
+      const res = await request(app).put('/api/3/password').send({ password: 'newpassword123' });
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
     });
@@ -147,7 +147,7 @@ describe('admin users routes', () => {
 
     it('returns 404 if user not found', async () => {
       adminUsersService.resetAppUserPassword.mockResolvedValueOnce(null);
-      const res = await request(app).put('/api/3/password').send({ password: 'newpassword123' }); // gitleaks:allow
+      const res = await request(app).put('/api/3/password').send({ password: 'newpassword123' });
       expect(res.status).toBe(404);
     });
   });

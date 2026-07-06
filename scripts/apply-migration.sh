@@ -69,9 +69,9 @@ DB_PASS=\$(aws secretsmanager get-secret-value \
   --query SecretString --output text | \
   python3 -c "import sys,json; print(json.load(sys.stdin)['db_admin_password'])")
 
-echo "$SQL_CONTENT" | docker exec -i -e PGPASSWORD="\$DB_PASS" shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_test -v ON_ERROR_STOP=1 # gitleaks:allow
+echo "$SQL_CONTENT" | docker exec -i -e PGPASSWORD="\$DB_PASS" shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_test -v ON_ERROR_STOP=1
 
-docker exec -e PGPASSWORD="\$DB_PASS" shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_test -c "INSERT INTO app.schema_migrations (filename) VALUES ('$MIGRATION_FILE') ON CONFLICT DO NOTHING;" # gitleaks:allow
+docker exec -e PGPASSWORD="\$DB_PASS" shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_test -c "INSERT INTO app.schema_migrations (filename) VALUES ('$MIGRATION_FILE') ON CONFLICT DO NOTHING;"
 
 echo "shadowcheck_test: $MIGRATION_FILE applied"
 EOF
@@ -92,9 +92,9 @@ DB_PASS=\$(aws secretsmanager get-secret-value \
   --query SecretString --output text | \
   python3 -c "import sys,json; print(json.load(sys.stdin)['db_admin_password'])")
 
-echo "$SQL_CONTENT" | docker exec -i -e PGPASSWORD="\$DB_PASS" shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db -v ON_ERROR_STOP=1 # gitleaks:allow
+echo "$SQL_CONTENT" | docker exec -i -e PGPASSWORD="\$DB_PASS" shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db -v ON_ERROR_STOP=1
 
-docker exec -e PGPASSWORD="\$DB_PASS" shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db -c "INSERT INTO app.schema_migrations (filename) VALUES ('$MIGRATION_FILE') ON CONFLICT DO NOTHING;" # gitleaks:allow
+docker exec -e PGPASSWORD="\$DB_PASS" shadowcheck_postgres psql -U shadowcheck_admin -d shadowcheck_db -c "INSERT INTO app.schema_migrations (filename) VALUES ('$MIGRATION_FILE') ON CONFLICT DO NOTHING;"
 
 echo "shadowcheck_db: $MIGRATION_FILE applied"
 EOF

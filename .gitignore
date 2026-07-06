@@ -40,6 +40,9 @@ pnpm-lock.yaml
 !.env.example
 !.env.local.example
 !.env.test.example
+
+# Playwright E2E auth state (session cookies — never commit)
+tests/e2e/.auth/
 deploy/aws/.env.aws
 .env.aws
 *.env.local

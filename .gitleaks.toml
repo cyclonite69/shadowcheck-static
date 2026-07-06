@@ -3,6 +3,28 @@ title = "ShadowCheck Gitleaks Config"
 [extend]
 useDefault = true
 
+# ---------------------------------------------------------------------------
+# Global path allowlists
+# Each [[allowlists]] block is evaluated globally across all rules.
+# Prefer path-scoped allowlists here over inline `// gitleaks:allow` comments
+# so all exemptions are auditable in one place.
+# ---------------------------------------------------------------------------
+
+[[allowlists]]
+id = "e2e-test-credentials"
+description = "E2E test auth helpers — credentials come from E2E_ADMIN_PASSWORD env var, never hardcoded"
+paths = ['''tests/e2e/''']
+
+[[allowlists]]
+id = "unit-test-credentials"
+description = "Unit/integration test fixtures use obvious placeholder values (test_password, sm-admin-pass, etc.) — not real credentials"
+paths = ['''tests/unit/''', '''tests/integration/''']
+
+[[allowlists]]
+id = "shell-scripts-pgpassword"
+description = "Shell scripts that pass DB credentials via env var interpolation ($DB_PASS) — not literals"
+paths = ['''scripts/''']
+
 [[rules]]
 id = "generic-hardcoded-password-assignment"
 description = "Hardcoded password assignment"

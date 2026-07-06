@@ -56,7 +56,7 @@ beforeEach(() => {
 
 describe('adminDbService — getAdminPool', () => {
   test('creates pool when DB_ADMIN_PASSWORD env var is set', () => {
-    process.env.DB_ADMIN_PASSWORD = 'test-admin-pass'; // gitleaks:allow
+    process.env.DB_ADMIN_PASSWORD = 'test-admin-pass';
     process.env.DB_HOST = 'localhost';
     mockSecretsGet.mockReturnValue(null);
 
@@ -65,7 +65,7 @@ describe('adminDbService — getAdminPool', () => {
 
     expect(pool).not.toBeNull();
     expect(getMockPoolCtor()).toHaveBeenCalledWith(
-      expect.objectContaining({ password: 'test-admin-pass' }) // gitleaks:allow
+      expect.objectContaining({ password: 'test-admin-pass' })
     );
     delete process.env.DB_ADMIN_PASSWORD;
   });
@@ -73,14 +73,14 @@ describe('adminDbService — getAdminPool', () => {
   test('uses secretsManager value when env var not set', () => {
     delete process.env.DB_ADMIN_PASSWORD;
     process.env.DB_HOST = 'localhost';
-    mockSecretsGet.mockReturnValue('sm-admin-pass'); // gitleaks:allow
+    mockSecretsGet.mockReturnValue('sm-admin-pass');
 
     const { getAdminPool } = loadFresh();
     const pool = getAdminPool();
 
     expect(pool).not.toBeNull();
     expect(getMockPoolCtor()).toHaveBeenCalledWith(
-      expect.objectContaining({ password: 'sm-admin-pass' }) // gitleaks:allow
+      expect.objectContaining({ password: 'sm-admin-pass' })
     );
   });
 
@@ -117,7 +117,7 @@ describe('adminDbService — getAdminPool', () => {
   });
 
   test('returns cached pool on second call (no re-init)', () => {
-    process.env.DB_ADMIN_PASSWORD = 'test-pass'; // gitleaks:allow
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
     mockSecretsGet.mockReturnValue(null);
 
     const { getAdminPool } = loadFresh();
@@ -142,7 +142,7 @@ describe('adminDbService — adminQuery', () => {
   });
 
   test('executes query when pool is available', async () => {
-    process.env.DB_ADMIN_PASSWORD = 'test-pass'; // gitleaks:allow
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
     mockSecretsGet.mockReturnValue(null);
     mockPoolQuery.mockResolvedValue({ rows: [{ result: 1 }] });
 
@@ -157,7 +157,7 @@ describe('adminDbService — adminQuery', () => {
 
 describe('adminDbService — closeAdminPool', () => {
   test('calls pool.end() when pool exists', async () => {
-    process.env.DB_ADMIN_PASSWORD = 'test-pass'; // gitleaks:allow
+    process.env.DB_ADMIN_PASSWORD = 'test-pass';
     mockSecretsGet.mockReturnValue(null);
     mockPoolEnd.mockResolvedValue(undefined);
 

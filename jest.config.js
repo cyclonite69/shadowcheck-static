@@ -67,6 +67,7 @@ module.exports = {
     '/client/',
     '<rootDir>/.claude/',
     '__tests__',
+    '<rootDir>/tests/e2e/',
   ],
 
   modulePathIgnorePatterns: ['<rootDir>/.claude/'],

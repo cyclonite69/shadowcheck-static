@@ -1181,7 +1181,7 @@
 - **etl:** implement native kismet sidecar importer and smart UI detection ([ac30afa](https://github.com/cyclonite69/shadowcheck-web/commit/ac30afa178672080d8fc043d1d5a79be066a83c5))
 - **etl:** mark quality-filtered observations before MV refresh ([0063129](https://github.com/cyclonite69/shadowcheck-web/commit/0063129ad63b4a9d031cb2ef5a0be0127550ccb2))
 - exclude ignored networks from threat scoring ([e5d3754](https://github.com/cyclonite69/shadowcheck-web/commit/e5d3754643d1372e32a8fea286a0d0e107dde6b5))
-- **explorer:** toolbar pills inline, snap handle, shimmer, BSSID click-to-copy ([ee95bed](https://github.com/cyclonite69/shadowcheck-web/commit/ee95bed7a1b9b197715cffd626101a4bbae178b5))
+- **explorer:** toolbar pills inline, snap handle, shimmer, BSSID click-to-copy ([46dc498](https://github.com/cyclonite69/shadowcheck-web/commit/46dc49840efa17590ed0dd7ec812eb84b3f8059b))
 - expose sibling detection tuning via admin UI ([c0aa347](https://github.com/cyclonite69/shadowcheck-web/commit/c0aa347266fe4208ae27b28f28960c7fd582eefa))
 - extend DB stats with Materialized View health and Unused Index report ([847aebd](https://github.com/cyclonite69/shadowcheck-web/commit/847aebd00653f97b88a331f6cfd371c7bd8929d3))
 - **filter:** add pipe OR syntax to SSID filter (fbi|surveillance) ([fb44b56](https://github.com/cyclonite69/shadowcheck-web/commit/fb44b56d032ba0fb68b638c5c61910f492eea08e))

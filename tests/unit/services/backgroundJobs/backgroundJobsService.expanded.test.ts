@@ -116,14 +116,14 @@ describe('BackgroundJobsService — expanded coverage', () => {
       jest.mock('@aws-sdk/client-secrets-manager', () => ({
         SecretsManagerClient: jest.fn().mockImplementation(() => ({
           send: jest.fn().mockResolvedValue({
-            SecretString: JSON.stringify({ db_password: 'test_password' }), // gitleaks:allow
+            SecretString: JSON.stringify({ db_password: 'test_password' }),
           }),
         })),
         GetSecretValueCommand: jest.fn().mockImplementation((i) => i),
         PutSecretValueCommand: jest.fn().mockImplementation((i) => i),
       }));
 
-      process.env.DB_PASSWORD = 'test_password'; // gitleaks:allow
+      process.env.DB_PASSWORD = 'test_password';
       process.env.FORCE_AWS_SM = 'true';
       process.env.NODE_ENV = 'test';
 
