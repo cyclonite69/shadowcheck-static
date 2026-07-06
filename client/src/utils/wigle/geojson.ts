@@ -51,8 +51,9 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
           channel: row.channel,
           frequency: row.frequency,
           observed_at: (row as any).observed_at || null,
-          firsttime: row.firsttime,
-          lasttime: row.lasttime || (row as any).lastupdt,
+          firsttime: row.firsttime || (row as any).wigle_v3_first_seen || null,
+          lasttime:
+            row.lasttime || (row as any).lastupdt || (row as any).wigle_v3_last_seen || null,
           lastupdt: (row as any).lastupdt || null,
           accuracy: row.accuracy,
           comment: (row as any).comment || null,
@@ -70,8 +71,9 @@ export function rowsToGeoJSON(rows: WigleRow[]) {
           geocoded_city: (row as any).geocoded_city || null,
           geocoded_state: (row as any).geocoded_state || null,
           geocoded_poi_name: (row as any).geocoded_poi_name || null,
-          first_seen: row.firsttime || null,
-          last_seen: row.lasttime || (row as any).lastupdt || null,
+          first_seen: row.firsttime || (row as any).wigle_v3_first_seen || null,
+          last_seen:
+            row.lasttime || (row as any).lastupdt || (row as any).wigle_v3_last_seen || null,
           local_first_seen: (row as any).local_first_seen || null,
           local_last_seen: (row as any).local_last_seen || null,
           wigle_match: Boolean((row as any).wigle_match),
