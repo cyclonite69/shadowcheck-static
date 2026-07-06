@@ -46,11 +46,20 @@ export const useWigleData = ({
     const doFetch = async (endpoint: string) => {
       const payload = await wigleApi.searchLocalWigle(endpoint, params);
       const rawRows = payload.data || payload.networks || [];
+      const isV3 = endpoint.includes('networks-v3');
       const rows =
         rawRows.map((row: any) => ({
           ...row,
           bssid: row.bssid || row.netid,
-          lasttime: row.lasttime || row.lastupdt,
+          // v3 rows use observed_at; v2 rows use lasttime/lastupdt
+          lasttime: isV3
+            ? (row.observed_at ?? row.lasttime ?? row.lastupdt ?? null)
+            : (row.lasttime ?? row.lastupdt ?? null),
+          // Expose v3 temporal fields so geojson.ts can use them with correct priority
+          ...(isV3 && {
+            wigle_v3_last_seen: row.observed_at ?? null,
+            wigle_v3_first_seen: row.wigle_v3_first_seen ?? null,
+          }),
           accuracy: row.accuracy || row.acc || null,
           type: row.type || 'wifi', // V3 data often missing type
         })) || [];
