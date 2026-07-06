@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-07-06T17:01:48.341Z",
+  "gitSha": "029c8cc2",
+  "totals": {
+    "statements": {
+      "covered": 17111,
+      "total": 22663,
+      "pct": 75.5
+    },
+    "branches": {
+      "covered": 9671,
+      "total": 13489,
+      "pct": 71.69
+    },
+    "functions": {
+      "covered": 2429,
+      "total": 3319,
+      "pct": 73.18
+    },
+    "lines": {
+      "covered": 16366,
+      "total": 21464,
+      "pct": 76.24
+    }
+  }
+}
