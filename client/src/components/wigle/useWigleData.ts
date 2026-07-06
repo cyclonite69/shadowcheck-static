@@ -46,53 +46,14 @@ export const useWigleData = ({
     const doFetch = async (endpoint: string) => {
       const payload = await wigleApi.searchLocalWigle(endpoint, params);
       const rawRows = payload.data || payload.networks || [];
-      const isV3 = endpoint.includes('networks-v3');
-
-      let rows = rawRows.map((row: any) => ({
-        ...row,
-        bssid: row.bssid || row.netid,
-        lasttime: isV3
-          ? (row.observed_at ?? row.lasttime ?? row.lastupdt ?? null)
-          : (row.lasttime ?? row.lastupdt ?? null),
-        ...(isV3 && {
-          wigle_v3_last_seen: row.observed_at ?? null,
-          wigle_v3_first_seen: row.wigle_v3_first_seen ?? null,
-        }),
-        accuracy: row.accuracy || row.acc || null,
-        type: row.type || 'wifi', // V3 data often missing type
-      }));
-
-      // For v3 rows: compute network-level first/last seen (MIN/MAX observed_at
-      // grouped by netid) and annotate every row with those values. Each row
-      // is one observation (the map shows per-observation dots), but the popup
-      // is network-level UI and must show the aggregated temporal envelope.
-      if (isV3 && rows.length > 0) {
-        const envelope: Record<string, { first: string; last: string }> = {};
-        for (const row of rows) {
-          const id: string = String(row.bssid || row.netid || '');
-          const t: string | null = row.observed_at ?? null;
-          if (!id || !t) continue;
-          if (!envelope[id]) {
-            envelope[id] = { first: t, last: t };
-          } else {
-            if (t < envelope[id].first) envelope[id].first = t;
-            if (t > envelope[id].last) envelope[id].last = t;
-          }
-        }
-        rows = rows.map((row: any) => {
-          const id = String(row.bssid || row.netid || '');
-          const env = envelope[id];
-          if (!env) return row;
-          return {
-            ...row,
-            wigle_v3_first_seen: env.first,
-            wigle_v3_last_seen: env.last,
-            // lasttime drives the normalizer's `time` field (SEEN cell)
-            lasttime: env.last,
-          };
-        });
-      }
-
+      const rows =
+        rawRows.map((row: any) => ({
+          ...row,
+          bssid: row.bssid || row.netid,
+          lasttime: row.lasttime || row.lastupdt,
+          accuracy: row.accuracy || row.acc || null,
+          type: row.type || 'wifi', // V3 data often missing type
+        })) || [];
       return { rows, total: typeof payload.total === 'number' ? payload.total : null };
     };
 

@@ -953,7 +953,7 @@
 - **wigle:** clarify farthest WiGLE-only tooltip wording ([f6d74e1](https://github.com/cyclonite69/shadowcheck-web/commit/f6d74e1624568a93fbc2c287637304ced865ce8f))
 - **wigle:** complete ledger outcome updates ([1259b24](https://github.com/cyclonite69/shadowcheck-web/commit/1259b2416f06e3c189bd025d25d9e9aff51d9692))
 - **wigle:** compute farthest distance from WiGLE-only sightings ([705262e](https://github.com/cyclonite69/shadowcheck-web/commit/705262e329c1fe65ab73bbb92c12aaf74710cccb))
-- **wigle:** compute network-level temporal envelope client-side for v3 rows ([569eef2](https://github.com/cyclonite69/shadowcheck-web/commit/569eef28680bbcf47a3298dd5c9649e3370b8db2))
+- **wigle:** compute network-level temporal envelope client-side for v3 rows ([12f2c62](https://github.com/cyclonite69/shadowcheck-web/commit/12f2c622192cce90a720f4e40504b3a308008a02))
 - **wigle:** correct API endpoint paths for observations ([264bb86](https://github.com/cyclonite69/shadowcheck-web/commit/264bb86fcbbc2de7e96a83813f7bc77e5ce687b6))
 - **wigle:** correct batch enrichment API paths and resumption handler ([90e35d2](https://github.com/cyclonite69/shadowcheck-web/commit/90e35d268f7f70c1622e3e027dbb3eb3af1089c5))
 - **wigle:** correct CommonJS export for validateWigleApiCredit ([2568b2b](https://github.com/cyclonite69/shadowcheck-web/commit/2568b2b6fbbdb529fa925de3a51082343eddab71))
@@ -1474,3 +1474,4 @@
 - return all agencies within radius (natural geographic clusters) ([62318fd](https://github.com/cyclonite69/shadowcheck-web/commit/62318fd0b4aa925f3822b1fd06784954cb214ae3))
 - **tooltip:** remove kepler optimization—causes field depopulation ([9730707](https://github.com/cyclonite69/shadowcheck-web/commit/9730707570591d725e8ff89190609a971b5274cb))
 - **wigle:** remove backend aggregation — restore Mapbox client-side clustering ([f37110b](https://github.com/cyclonite69/shadowcheck-web/commit/f37110bc744a4c164cf363527ae96a0bbd639a93))
+- **wigle:** undo speculative timestamp fixes; instrument enrichment pipeline ([9ee1030](https://github.com/cyclonite69/shadowcheck-web/commit/9ee10303025f03c53c0aa739ab7467f82962de7d))

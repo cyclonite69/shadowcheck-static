@@ -31,9 +31,30 @@ export const attachClickHandlers = (
       trilong: props.trilong ?? props.trilon ?? props.longitude ?? e.lngLat.lng,
       wigle_source: props.wigle_source === 'wigle-v3' ? 'wigle-v3' : 'wigle-v2',
     };
-    const initialHTML = renderNetworkTooltip(
-      normalizeTooltipData(featureData, [e.lngLat.lng, e.lngLat.lat])
-    );
+
+    // ── INSTRUMENTATION: Stage 1 — feature properties at click ──────────────
+    console.log('[popup:1:feature]', netid, {
+      lasttime: featureData.lasttime,
+      observed_at: featureData.observed_at,
+      first_seen: featureData.first_seen,
+      last_seen: featureData.last_seen,
+      wigle_v3_first_seen: featureData.wigle_v3_first_seen,
+      wigle_v3_last_seen: featureData.wigle_v3_last_seen,
+      wigle_source: featureData.wigle_source,
+    });
+
+    const initialNormalized = normalizeTooltipData(featureData, [e.lngLat.lng, e.lngLat.lat]);
+
+    // ── INSTRUMENTATION: Stage 2 — normalizer output for initial render ──────
+    console.log('[popup:2:initial-normalized]', netid, {
+      time: initialNormalized.time,
+      first_seen: initialNormalized.first_seen,
+      last_seen: initialNormalized.last_seen,
+      timespan_days: initialNormalized.timespan_days,
+      wigle_observation_count: initialNormalized.wigle_observation_count,
+    });
+
+    const initialHTML = renderNetworkTooltip(initialNormalized);
 
     const anchor = getPopupAnchor(map, e.lngLat, initialHTML);
     const popup = new mapboxgl.Popup({
@@ -56,6 +77,15 @@ export const attachClickHandlers = (
 
           const { wigle, localLinkage } = pageResponse;
 
+          // ── INSTRUMENTATION: Stage 3 — raw enrichment API response ─────────
+          console.log('[popup:3:api-response]', netid, {
+            wigle_v3_first_seen: wigle.wigle_v3_first_seen,
+            wigle_v3_last_seen: wigle.wigle_v3_last_seen,
+            wigle_v3_observation_count: wigle.wigle_v3_observation_count,
+            wigle_v2_lasttime: wigle.wigle_v2_lasttime,
+            wigle_v2_lastupdt: wigle.wigle_v2_lastupdt,
+            wigle_source: wigle.wigle_source,
+          });
           // Build merged object: WiGLE-truth fields from structured `wigle` section only.
           // Local linkage maps to the existing flat fields the normalizer already reads.
           const mergedData: Record<string, any> = {
@@ -118,10 +148,33 @@ export const attachClickHandlers = (
             local_last_seen: localLinkage.local_last_seen,
           };
 
-          popup.setHTML(renderNetworkTooltip(normalizeTooltipData(mergedData)));
+          // ── INSTRUMENTATION: Stage 4 — mergedData before normalizer ────────
+          console.log('[popup:4:merged]', netid, {
+            lasttime: mergedData.lasttime,
+            observed_at: mergedData.observed_at,
+            wigle_v3_first_seen: mergedData.wigle_v3_first_seen,
+            wigle_v3_last_seen: mergedData.wigle_v3_last_seen,
+            wigle_v2_lasttime: mergedData.wigle_v2_lasttime,
+            timespan_days: mergedData.timespan_days,
+            wigle_v3_observation_count: mergedData.wigle_v3_observation_count,
+          });
+
+          const enrichedNormalized = normalizeTooltipData(mergedData);
+
+          // ── INSTRUMENTATION: Stage 5 — normalizer output for enriched render
+          console.log('[popup:5:enriched-normalized]', netid, {
+            time: enrichedNormalized.time,
+            first_seen: enrichedNormalized.first_seen,
+            last_seen: enrichedNormalized.last_seen,
+            timespan_days: enrichedNormalized.timespan_days,
+            wigle_observation_count: enrichedNormalized.wigle_observation_count,
+          });
+
+          popup.setHTML(renderNetworkTooltip(enrichedNormalized));
         })
-        .catch(() => {
-          // Feature props remain the source of truth if enrichment fails.
+        .catch((err) => {
+          // ── INSTRUMENTATION: enrichment request failure ────────────────────
+          console.warn('[popup:enrichment-failed]', netid, err);
         });
     }
 
