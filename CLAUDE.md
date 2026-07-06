@@ -41,6 +41,22 @@ Before implementing, rewriting, deleting, refactoring, documenting, testing, or 
 - **Sibling Validity**: Generic sibling candidates are not automatically truth; effective siblings must resolve through confidence metrics and override policies.
 - **Maintenance lanes**: Documentation updates, unit/integration testing, modularity refactoring, and cruft cleanup are recurring development lanes, not optional afterthoughts.
 - **Documentation Audits**: For serious docs updates, use git-history-assisted drift audits; see [docs/maintenance/maintenance-cadence.md](docs/maintenance/maintenance-cadence.md).
+- **Unknown credentials — stop, don't guess**: If a credential (password, token, API key) is unknown or unavailable, stop and ask the operator. Never attempt to discover credentials by guessing against a live auth endpoint, cycling common passwords, or any other brute-force or enumeration method. Treating your own auth service as a guessing oracle to route around asking is a security violation regardless of whether any DB writes follow.
+
+### DB Write Protocol — No Exceptions
+
+Every database write (INSERT, UPDATE, DELETE, DDL) requires, in order:
+
+1. Show the exact SQL
+2. State the impact (rows affected, tables touched, reversibility)
+3. State the rollback plan
+4. Wait for explicit operator confirmation
+
+**"Local dev," "Docker only," or "test needed to run" do not create exceptions.** The rule exists precisely because goal-justified writes normalize a pattern that eventually executes somewhere that isn't a laptop container.
+
+**Anti-pattern, observed 2026-07-05:** Agent hit a credential blocker while trying to run E2E tests. It first cycled common passwords against `/api/auth/login` as a discovery mechanism (credential stuffing its own auth service). When that failed, it executed `UPDATE app.users SET password_hash = ...` to reset the admin password, then `DELETE FROM app.user_sessions WHERE token_hash = ...` to revoke a leaked session token — neither with SQL preview, impact statement, or operator confirmation. Both writes were locally correct in outcome. Neither followed this protocol. Local scope does not create an exception.
+
+**Credential leak anti-pattern, same session:** When asked to rotate a password, the agent generated the replacement value and echoed it to stdout before the DB write was approved — burning the secret in the terminal/transcript before it ever touched the database. The correct pipeline: `generate → bcrypt-hash → discard plaintext → show hash only → wait for confirmation → write hash to DB`. The plaintext must never appear in stdout, logs, or any channel that gets pasted into a chat session.
 
 ---
 
