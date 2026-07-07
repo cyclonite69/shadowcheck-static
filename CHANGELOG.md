@@ -1,4 +1,4 @@
-# 1.0.0 (2026-07-06)
+# 1.0.0 (2026-07-08)
 
 ### Bug Fixes
 
@@ -1013,6 +1013,7 @@
 - **wigle:** restore tooltip on WiGLE v2 and v3 map point click ([fe66827](https://github.com/cyclonite69/shadowcheck-web/commit/fe66827c63b4a1b01d3d7c65fee45881c8163bb2))
 - **wigle:** restore v2/v3 toggle refresh and add encryption filtering ([8016359](https://github.com/cyclonite69/shadowcheck-web/commit/801635931a8d15d215c505de16192552248a4b10))
 - **wigle:** restore WiGLE-only and local-match badges on map tooltips ([4b84f0d](https://github.com/cyclonite69/shadowcheck-web/commit/4b84f0d54d2e941b9d2e3cfcc1d09f24b4080060))
+- **wigle:** return numeric epoch times for Explorer WiGLE observations ([fa848cf](https://github.com/cyclonite69/shadowcheck-web/commit/fa848cf9a3fa53acec0c19383b8b87b48b7fe9af))
 - **wigle:** run import loop in background to prevent HTTP 504 timeouts ([4c7aba3](https://github.com/cyclonite69/shadowcheck-web/commit/4c7aba3bf255ea38b4773c2dae80b1daec84e496))
 - **wigle:** seed field data bssids when wigle datasets are off ([3e33420](https://github.com/cyclonite69/shadowcheck-web/commit/3e33420b848c91033d5c7008f51b2b1e648eadbf))
 - **wigle:** serve cached detail before live lookup ([e86cb52](https://github.com/cyclonite69/shadowcheck-web/commit/e86cb52ef3506ab988727f67e7d9fe8d349bdb1c))
@@ -1474,4 +1475,4 @@
 - return all agencies within radius (natural geographic clusters) ([62318fd](https://github.com/cyclonite69/shadowcheck-web/commit/62318fd0b4aa925f3822b1fd06784954cb214ae3))
 - **tooltip:** remove kepler optimization—causes field depopulation ([9730707](https://github.com/cyclonite69/shadowcheck-web/commit/9730707570591d725e8ff89190609a971b5274cb))
 - **wigle:** remove backend aggregation — restore Mapbox client-side clustering ([f37110b](https://github.com/cyclonite69/shadowcheck-web/commit/f37110bc744a4c164cf363527ae96a0bbd639a93))
-- **wigle:** undo speculative timestamp fixes; instrument enrichment pipeline ([9ee1030](https://github.com/cyclonite69/shadowcheck-web/commit/9ee10303025f03c53c0aa739ab7467f82962de7d))
+- **wigle:** undo speculative timestamp fixes; instrument enrichment pipeline ([a9313ca](https://github.com/cyclonite69/shadowcheck-web/commit/a9313cae6d8c52a7e790540952125e1bcce5159a))

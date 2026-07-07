@@ -92,7 +92,7 @@ export async function getWigleObservationsByBSSID(bssid: string): Promise<any[]>
        FROM app.wigle_v3_observations w
        WHERE UPPER(w.netid) = $1 AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
      )
-     SELECT we.bssid, we.lat, we.lon, EXTRACT(EPOCH FROM we.time) * 1000 as time,
+     SELECT we.bssid, we.lat, we.lon, (EXTRACT(EPOCH FROM we.time) * 1000)::float8 as time,
             we.level, we.ssid, we.frequency, we.channel, we.encryption, we.altitude, we.accuracy,
             we.is_matched,
             CASE
@@ -149,7 +149,7 @@ export async function getWigleObservationsBatch(bssids: string[]): Promise<any[]
        FROM app.wigle_v3_observations w
        WHERE UPPER(w.netid) = ANY($1) AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
      )
-     SELECT we.bssid, we.lat, we.lon, EXTRACT(EPOCH FROM we.time) * 1000 as time,
+     SELECT we.bssid, we.lat, we.lon, (EXTRACT(EPOCH FROM we.time) * 1000)::float8 as time,
             we.level, we.ssid, we.frequency, we.channel, we.encryption, we.altitude, we.accuracy,
             we.is_matched,
             CASE
