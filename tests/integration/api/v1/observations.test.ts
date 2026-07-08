@@ -73,6 +73,7 @@ describe('Observations API v1', () => {
       expect(res.body.ok).toBe(true);
       expect(res.body.bssid).toBe(bssid);
       expect(res.body.observations).toEqual(mockObservations);
+      expect(typeof res.body.observations[0].time).toBe('number');
       expect(res.body.home).toEqual(mockHome);
     });
 

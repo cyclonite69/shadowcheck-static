@@ -233,6 +233,9 @@ List networks with pagination and filtering.
 
 Get all observations for a network.
 
+**Response:** `observations[].time` is a JavaScript-safe numeric epoch timestamp in
+milliseconds.
+
 ### GET /api/networks/search/:ssid
 
 Search by SSID.

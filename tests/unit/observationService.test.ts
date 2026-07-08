@@ -83,6 +83,8 @@ describe('Observation Service', () => {
 
       const result = await getObservationsByBSSID('AA:BB:CC:DD:EE:FF', -122.4194, 37.7749);
       expect(result).toEqual(mockRows);
+      const sql = (query as jest.Mock).mock.calls[0][0];
+      expect(sql).toContain('(EXTRACT(EPOCH FROM o.time) * 1000)::float8 as time');
       expect(query).toHaveBeenCalledWith(expect.stringContaining('ST_Distance'), [
         -122.4194,
         37.7749,

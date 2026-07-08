@@ -1175,8 +1175,9 @@ components:
         signal:
           type: integer
         time:
-          type: integer
-          format: int64
+          type: number
+          format: double
+          description: Epoch timestamp in milliseconds, returned as a JSON number.
         acc:
           type: number
         alt:
