@@ -117,6 +117,7 @@
     "@eslint/js": "10.0.1",
     "@jest/globals": "30.4.1",
     "@mozilla/readability": "^0.6.0",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "4.3.1",
     "@testing-library/react": "16.3.2",
     "@types/express": "5.0.6",
