@@ -32,7 +32,7 @@ export async function getObservationsByBSSID(
   const { rows } = await query(
     `SELECT ROW_NUMBER() OVER (ORDER BY o.time) as id, o.bssid,
             COALESCE(NULLIF(o.ssid, ''), '(hidden)') as ssid, o.radio_type as type,
-            o.lat, o.lon, o.level as signal, EXTRACT(EPOCH FROM o.time)::BIGINT * 1000 as time,
+            o.lat, o.lon, o.level as signal, (EXTRACT(EPOCH FROM o.time) * 1000)::float8 as time,
             COALESCE(o.accuracy, 3.79) as acc, o.altitude as alt,
             gc.address as geocoded_address, gc.city as geocoded_city, gc.state as geocoded_state,
             gc.poi_name as geocoded_poi_name,
@@ -92,7 +92,7 @@ export async function getWigleObservationsByBSSID(bssid: string): Promise<any[]>
        FROM app.wigle_v3_observations w
        WHERE UPPER(w.netid) = $1 AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
      )
-     SELECT we.bssid, we.lat, we.lon, EXTRACT(EPOCH FROM we.time) * 1000 as time,
+     SELECT we.bssid, we.lat, we.lon, (EXTRACT(EPOCH FROM we.time) * 1000)::float8 as time,
             we.level, we.ssid, we.frequency, we.channel, we.encryption, we.altitude, we.accuracy,
             we.is_matched,
             CASE
@@ -149,7 +149,7 @@ export async function getWigleObservationsBatch(bssids: string[]): Promise<any[]
        FROM app.wigle_v3_observations w
        WHERE UPPER(w.netid) = ANY($1) AND w.latitude IS NOT NULL AND w.longitude IS NOT NULL
      )
-     SELECT we.bssid, we.lat, we.lon, EXTRACT(EPOCH FROM we.time) * 1000 as time,
+     SELECT we.bssid, we.lat, we.lon, (EXTRACT(EPOCH FROM we.time) * 1000)::float8 as time,
             we.level, we.ssid, we.frequency, we.channel, we.encryption, we.altitude, we.accuracy,
             we.is_matched,
             CASE

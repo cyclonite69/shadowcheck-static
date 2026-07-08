@@ -70,15 +70,15 @@ const validateWigleNetworksQuery = validateQuery({
  * the wigle_networks_enriched view for v2-only imports.
  */
 router.get(
-  '/page/network/:netid',
+  '/page/network/:bssid',
   macParamMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { netid } = req.params;
+    const { bssid } = req.params;
     // Try MV first (single-row read); fall back to live 4-query fan-out if MV
     // is unavailable (pre-migration deployment) or returns no row.
-    let network = await wigleService.getWiglePageNetworkFromMv(netid);
+    let network = await wigleService.getWiglePageNetworkFromMv(bssid);
     if (!network) {
-      network = await wigleService.getWiglePageNetwork(netid);
+      network = await wigleService.getWiglePageNetwork(bssid);
     }
     if (!network) {
       return res.status(404).json({ error: 'Network not found in WiGLE database' });

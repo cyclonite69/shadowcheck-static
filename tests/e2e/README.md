@@ -199,3 +199,63 @@ await expect(popup).toBeVisible({ timeout: 10000 });
    `page.evaluate` to invoke it with a synthetic event.
 4. Intercept any API routes the handler calls with `page.route()` before navigating.
 5. Do not use `flyTo`, `jumpTo`, canvas clicks, or `waitForFunction` on zoom level.
+
+## Canonical Compose Stack for E2E Runs
+
+**Use `docker-compose.yml` (the base dev stack) as the API source for all E2E runs.**
+Do not run `docker compose -f docker-compose.yml -f docker-compose.e2e.yml up` for the
+API service — the `.e2e.yml` overlay only overrides the `frontend` service and must
+not be used to start a new API container.
+
+### Why this matters — the "wrong password" trap
+
+`docker-compose.e2e.yml` overrides only the `frontend` target, but running it with
+`up -d` (without specifying only `frontend`) will recreate **all** services, including
+`api`. The newly recreated API container (`shadowcheck_web_api`) boots with no
+pre-existing session state. If your `E2E_ADMIN_PASSWORD` was saved against a
+long-running `shadowcheck_web_api_dev` container, those sessions are gone and auth
+will return 401 — even with the correct password, because the new container hasn't
+issued that session token.
+
+This was observed in practice: the `shadowcheck_web_api_dev` container (running for
+hours) had existing sessions; the `.e2e.yml up -d` recreated it as
+`shadowcheck_web_api`, burning all sessions. The 401 looked like a wrong password
+but was actually a missing session in a fresh container.
+
+**Correct procedure:**
+
+```bash
+# 1. Ensure the base dev stack is fully up
+docker compose -f docker-compose.yml up -d
+
+# 2. Build and swap ONLY the frontend to the e2e image
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml build frontend
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d frontend
+
+# 3. Run e2e tests against the dev API (port 3001) + e2e frontend (port 8080)
+E2E_ADMIN_PASSWORD="$(cat /tmp/.e2e_pw)" npx playwright test --reporter=list
+
+# 4. Restore production frontend after testing
+docker compose -f docker-compose.yml up -d frontend
+```
+
+**Never run:**
+
+```bash
+# This recreates the API container, losing all sessions
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d
+```
+
+### Container inventory during e2e runs
+
+| Container                         | Role                                            | Port |
+| --------------------------------- | ----------------------------------------------- | ---- |
+| `shadowcheck_web_api` (or `_dev`) | API — **must be the long-running dev instance** | 3001 |
+| `shadowcheck_web_frontend`        | Nginx serving the **e2e build**                 | 8080 |
+| `shadowcheck_postgres_local`      | Database                                        | 5432 |
+| `shadowcheck_web_redis_dev`       | Redis                                           | 6379 |
+
+The `E2E_ADMIN_PASSWORD` in `/tmp/.e2e_pw` is valid only against the **running API
+container's database**. If the API container is recreated, global-setup must re-run
+against the fresh container (which will have no pre-existing session tokens, but the
+DB password is unchanged, so auth will succeed on the next `global-setup` run).

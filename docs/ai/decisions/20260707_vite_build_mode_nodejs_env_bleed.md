@@ -26,7 +26,7 @@ by `process.env.NODE_ENV` in the Vite process itself at build time. From Vite 8'
 (`node_modules/vite/dist/node/chunks/node.js`):
 
 ```javascript
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = process.env.NODE_ENV === 'production';
 ```
 
 `isProduction` controls the `DEV` and `PROD` values baked into the bundle.
@@ -51,10 +51,10 @@ console.log('[ENV_PROBE]', {
 
 Two builds, different `NODE_ENV`, identical `--mode production`:
 
-| Build command | Compiled output |
-|---|---|
+| Build command                                       | Compiled output                                |
+| --------------------------------------------------- | ---------------------------------------------- |
 | `NODE_ENV=development vite build --mode production` | `{DEV: true, PROD: false, MODE: "production"}` |
-| `NODE_ENV=production vite build --mode production` | `{DEV: false, PROD: true, MODE: "production"}` |
+| `NODE_ENV=production vite build --mode production`  | `{DEV: false, PROD: true, MODE: "production"}` |
 
 The second build also correctly eliminated the `window.__wigleHandleUnclustered` assignment
 from the bundle. The first did not.
@@ -77,7 +77,7 @@ eliminated and the assignment became a bare statement in every production Docker
 
 ```javascript
 // Minified output (production container) — NO guard, NO if()
-window.__wigleHandleUnclustered=i;
+window.__wigleHandleUnclustered = i;
 ```
 
 `window.__wigleHandleUnclustered` has been exposed on the global window object in every
@@ -90,7 +90,7 @@ const isDev = import.meta.env.DEV;
 
 function shouldLog(level: LogLevel) {
   if (levelOrder[level] < minLevel) return false;
-  if (!isDev && (level === 'debug' || level === 'info')) return false;  // ← suppressed in prod
+  if (!isDev && (level === 'debug' || level === 'info')) return false; // ← suppressed in prod
   return true;
 }
 ```
@@ -109,8 +109,8 @@ Note: `debug` logs were already suppressed regardless of `DEV` — the first gua
 Both use a double gate:
 
 ```typescript
-import.meta.env.DEV && import.meta.env.VITE_SIBLING_TOPOLOGY_DEBUG === 'true'
-import.meta.env.DEV && import.meta.env.VITE_SIBLING_DEBUG === 'true'
+import.meta.env.DEV && import.meta.env.VITE_SIBLING_TOPOLOGY_DEBUG === 'true';
+import.meta.env.DEV && import.meta.env.VITE_SIBLING_DEBUG === 'true';
 ```
 
 The second operand (`=== 'true'`) evaluated to `false` because neither env var is set by
@@ -139,10 +139,10 @@ not independently confirm which value was substituted for `DEV`.
 A temporary `console.log` of `import.meta.env.DEV/PROD/MODE` was added to `mapHandlers.ts`
 and two builds were compared:
 
-| Build command | Compiled output |
-|---|---|
+| Build command                                       | Compiled output                                |
+| --------------------------------------------------- | ---------------------------------------------- |
 | `NODE_ENV=development vite build --mode production` | `{DEV: true, PROD: false, MODE: "production"}` |
-| `NODE_ENV=production vite build --mode production` | `{DEV: false, PROD: true, MODE: "production"}` |
+| `NODE_ENV=production vite build --mode production`  | `{DEV: false, PROD: true, MODE: "production"}` |
 
 The second build also eliminated the `window.__wigleHandleUnclustered` assignment from the
 bundle. The first did not.
@@ -156,9 +156,11 @@ can be updated from "evidence indicates" to "confirmed by rebuilt artifact."
 
 **4. Vite 8 source confirms the mechanism.**
 `node_modules/vite/dist/node/chunks/node.js` line ~34582:
+
 ```javascript
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = process.env.NODE_ENV === 'production';
 ```
+
 `isProduction` controls the `DEV`/`PROD` values baked into the bundle. `--mode production`
 sets `MODE` and loads `.env.production` files but does not set `process.env.NODE_ENV`.
 These are independent concerns in Vite 8's internals.
@@ -208,12 +210,12 @@ invocation only, not to the entire stage.
 
 ## Blast radius of the fix
 
-| Location | Current behavior (broken) | Fixed behavior | Impact |
-|---|---|---|---|
-| `mapHandlers.ts` | `window.__wigleHandleUnclustered` exposed unconditionally | Eliminated from bundle (dead code) | Seam removed from production |
-| `clientLogger.ts` | `info` logs fire in production console | `info` logs suppressed in production | Production console quieter |
-| `siblingTopologyDebug.ts` | No change (double-gated, already off) | No change | None |
-| `NetworkExplorerSection.tsx` | No change (double-gated, already off) | No change | None |
+| Location                     | Current behavior (broken)                                 | Fixed behavior                       | Impact                       |
+| ---------------------------- | --------------------------------------------------------- | ------------------------------------ | ---------------------------- |
+| `mapHandlers.ts`             | `window.__wigleHandleUnclustered` exposed unconditionally | Eliminated from bundle (dead code)   | Seam removed from production |
+| `clientLogger.ts`            | `info` logs fire in production console                    | `info` logs suppressed in production | Production console quieter   |
+| `siblingTopologyDebug.ts`    | No change (double-gated, already off)                     | No change                            | None                         |
+| `NetworkExplorerSection.tsx` | No change (double-gated, already off)                     | No change                            | None                         |
 
 The logger change is a behavioral change that ops/dev users may notice (production browser
 console loses `[INFO]` output). This is the intended behavior that has never correctly
