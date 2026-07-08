@@ -152,6 +152,7 @@
 * batch v3 enrichment silent failure in targeted selection mode ([e61e1ed](https://github.com/cyclonite69/shadowcheck-web/commit/e61e1ed038dcca823ebabd0243f929f3bfd8adcc))
 * **bedrock:** add inference-profile ARN to IAM policy; fix missing await on getRegion log ([78c3103](https://github.com/cyclonite69/shadowcheck-web/commit/78c310311d462db5562e6b931021839e0132267d))
 * **build:** add weatherRoutes to RouteModules interface in routesInit ([f93e043](https://github.com/cyclonite69/shadowcheck-web/commit/f93e0431a0e4bf30cd641c11fe727dfde676217f))
+* **build:** ensure NODE_ENV=production during Vite frontend build to prevent env bleed ([7917b37](https://github.com/cyclonite69/shadowcheck-web/commit/7917b3753444df060888eefbe438b6c361cf51f0))
 * **build:** scope server ts types to node ([9798a6a](https://github.com/cyclonite69/shadowcheck-web/commit/9798a6a527a314eebf488d95f1601f9a7d6f3cff))
 * bundle recharts WITH React to fix load order ([258602f](https://github.com/cyclonite69/shadowcheck-web/commit/258602f811142318a0cbe014d2f3565794c8ec08))
 * calculate distance from home for specific observation location ([8520314](https://github.com/cyclonite69/shadowcheck-web/commit/8520314ebd43ae16d6132055c4f2f1544b09c24a))
