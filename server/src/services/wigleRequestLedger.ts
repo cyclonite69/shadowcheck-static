@@ -116,6 +116,13 @@ async function recordRequest(
   prune(kind);
   requestLedger[kind].push(Date.now());
 
+  // In test environment, short-circuit DB writing to keep unit tests fast and deterministic.
+  // Tests validate behavior around retries, queueing, and circuit-breaker state — the
+  // DB-backed ledger is orthogonal and can slow or leak across tests if left active.
+  if (process.env.NODE_ENV === 'test') {
+    return null;
+  }
+
   try {
     const { rows } = await adminQuery(
       `INSERT INTO app.wigle_ledger_events (kind, status, phase, query_source, query_url, query_params)
