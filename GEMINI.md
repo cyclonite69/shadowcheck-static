@@ -323,3 +323,11 @@ You are NOT:
 - NEVER modify GEMINI.md itself during a session. If you believe GEMINI.md
   needs updating, report what change you would make and why. Wait for
   explicit approval before touching it.
+
+---
+
+## Dependency Maintenance
+
+**Follow `docs/workflow/dependency-merge-policy.md` for all npm dependency updates.**
+
+Never merge `development-dependencies-*` or `multi-*` Dependabot branches after individual PRs have been merged. Merge only the latest individual branch per package. Preserve provenance using the merge ledger format documented in the policy.

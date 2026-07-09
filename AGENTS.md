@@ -267,6 +267,14 @@ See `docs/workflow/TESTING_STANDARDS.md` for complete testing guidelines.
 
 ---
 
+## Dependency Maintenance
+
+**Follow `docs/workflow/dependency-merge-policy.md` for all npm dependency updates.**
+
+Never merge `development-dependencies-*` or `multi-*` Dependabot branches after individual PRs have been merged. Merge only the latest individual branch per package. Preserve provenance using the merge ledger format documented in the policy.
+
+---
+
 ## Standards
 
 ### Every new endpoint requires:

@@ -379,6 +379,14 @@ cd /home/ssm-user/shadowcheck && ./scs_rebuild.sh
 
 ---
 
+## Dependency Maintenance
+
+**Follow `docs/workflow/dependency-merge-policy.md` for all npm dependency updates.**
+
+Never merge `development-dependencies-*` or `multi-*` Dependabot branches after individual PRs have been merged. Merge only the latest individual branch per package. Preserve provenance using the merge ledger format documented in the policy.
+
+---
+
 ## Standards
 
 ### LOC Metrics
