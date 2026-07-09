@@ -116,6 +116,8 @@ ordinary DB, backend, or architecture investigations.
 
 ## Current Status
 
+KNOWN NOTE: recordRequest performs a DB write on every retry attempt; slow DB writes can add latency to request handling and may affect retries. Investigate decoupling ledger writes or making them asynchronous to avoid request-path latency.
+
 _ETL/geocoding coverage batch completed and pushed. Broader test coverage work remains open and should continue by explicit module scope. Current ownership map: Claude owns grid work, Codex Badge Studio lane is finished, Gemini completed the current ETL/geocoding coverage batch._
 
 ---
