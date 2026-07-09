@@ -118,22 +118,17 @@ ordinary DB, backend, or architecture investigations.
 
 KNOWN NOTE: recordRequest performs a DB write on every retry attempt; slow DB writes can add latency to request handling and may affect retries. Investigate decoupling ledger writes or making them asynchronous to avoid request-path latency.
 
-### Open Investigation — Playwright TypeScript Errors
+## ✅ RESOLVED — Playwright TypeScript Errors (2026-07-09)
 
-During dependency update work, TypeScript errors appeared in Playwright specs:
+**Root cause**: `@playwright/test` dependency was lost during dependency merge conflict resolution (stale `development-dependencies-*` bundle branch took precedence). Restored from `origin/master`.
 
-```
-Cannot find module '@playwright/test'
-implicit any errors
-```
+**Status**: Dependency restored, type-check passes, full suite validates. No investigation needed.
 
-**Status: NOT YET VERIFIED as pre-existing.**
+---
 
-Do not classify these as acceptable pre-existing failures until reproduced on an unmodified `origin/master` checkout. Investigate before continuing dependency merges.
+## Current Active Work
 
-Investigation steps: see `docs/workflow/dependency-merge-policy.md` § "Regression Classification"
-
-_ETL/geocoding coverage batch completed and pushed. Broader test coverage work remains open and should continue by explicit module scope. Current ownership map: Claude owns grid work, Codex Badge Studio lane is finished, Gemini completed the current ETL/geocoding coverage batch._
+_Dependency merge policy formalized in `docs/workflow/dependency-merge-policy.md` (2026-07-09). Next session: Geospatial Explorer column sorting E2E tests (Step 1 investigation required before writing tests)._
 
 ---
 
