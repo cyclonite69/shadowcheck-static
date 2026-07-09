@@ -53,7 +53,9 @@ function extractParams(url: string): Record<string, string> | null {
 }
 
 async function sleep(ms: number) {
-  if (isTestEnv()) return;
+  // Use a real timer-based sleep so tests can control timing with jest fake timers.
+  // Returning immediately in test env caused retries to run synchronously and
+  // bleed across test cases, producing nondeterministic call counts.
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
