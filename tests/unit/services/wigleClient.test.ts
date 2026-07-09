@@ -5,6 +5,11 @@ import {
 } from '../../../server/src/services/wigleRequestLedger';
 
 jest.mock('../../../server/src/logging/logger');
+// Mock the admin DB writes used by recordRequest so unit tests avoid real I/O but still
+// exercise the recordRequest logic via a controlled double.
+jest.mock('../../../server/src/services/adminDbService', () => ({
+  adminQuery: jest.fn().mockResolvedValue({ rows: [{ id: 1 }] }),
+}));
 
 // Flushes the microtask queue and any fake timers deeply enough for a multi-hop
 // promise chain (queue slot → resolve/reject → .finally → next slot → work).
