@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAsyncData } from './useAsyncData';
 import { keplerApi } from '../api/keplerApi';
 import { logDebug, logError } from '../logging/clientLogger';
@@ -38,8 +39,6 @@ export const useKepler = (
     if (geojson.error) throw new Error(`API Error: ${geojson.error}`);
     if (!geojson.features || !Array.isArray(geojson.features))
       throw new Error(`Invalid data format`);
-    if (geojson.features.length === 0) throw new Error('No network data found');
-
     const networkData: NetworkData[] = mapKeplerGeoJsonToNetworkData(geojson);
 
     return {
@@ -52,9 +51,11 @@ export const useKepler = (
     };
   }, [adaptedFilters, datasetType]);
 
-  if (fetchError) {
-    logError('[Kepler] Load error', fetchError);
-  }
+  useEffect(() => {
+    if (fetchError) {
+      logError('[Kepler] Load error', fetchError);
+    }
+  }, [fetchError]);
 
   return {
     loading,
