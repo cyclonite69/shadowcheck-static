@@ -29,6 +29,10 @@ Items confirmed as pre-existing or deferred. Pick these up as standalone tasks �
 
 - [x] `import/kml.js`: unused `logger` variable — fixed in `233c0732` by adding `logger.error(...)` in the catch block. Lint is clean.
 
+## Frontend Modularity
+
+- [ ] `VisIntUploader.tsx` hook extraction deferred — file is 465 LOC after Phase 1 modularity pass (tag rules, sub-components extracted). Upload state lifecycle (`useVisIntUpload`) and correlation/commit orchestration (`useVisIntCorrelation`) were identified as the next extraction targets but deferred to avoid mixing a state-lifecycle refactor into a presentational-modularity pass. Pick up as a standalone modularity task; target is two custom hooks covering the `useState`/`useCallback` clusters currently inline in the component body.
+
 ## Security / Dependencies
 
 - [ ] `qs` moderate DoS vulnerability — deferred. Requires upgrading Express beyond its current version constraints (requires `npm audit fix --force`), posing a runtime compatibility/refactor risk.
