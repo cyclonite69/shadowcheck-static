@@ -1,18 +1,18 @@
 import React from 'react';
 import { AdminCard } from '../components/AdminCard';
 import { formatShortDate } from '../../../utils/formatDate';
-import {
-  useDbStats,
-  TableStat,
-  MVStat,
-  UnusedIndex,
-  UnusedIndexSummary,
-  UsedIndex,
-  UniqueEnforcementIndex,
-  DuplicateIndexGroup,
-} from '../hooks/useDbStats';
+import { useDbStats } from '../hooks/useDbStats';
 import { useSiblingStats } from '../hooks/useSiblingStats';
 import { useTableCategories } from '../hooks/useTableCategories';
+import { DbTableList } from './db-stats/DbTableList';
+import { DbMaterializedViewsList } from './db-stats/DbMaterializedViewsList';
+import {
+  UniqueEnforcementIndexesCard,
+  DuplicateIndexGroupsCard,
+  UnusedIndexReportCard,
+  UsedIndexReportCard,
+} from './db-stats/DbIndexReports';
+import { DbSiblingStatsCard } from './db-stats/DbSiblingStatsCard';
 
 const DatabaseIcon = ({ size = 24, className = '' }) => (
   <svg
@@ -64,532 +64,6 @@ export const DbStatsTab: React.FC = () => {
   const { siblingStats, siblingByRule, purgingSiblings, purgeSiblings } =
     useSiblingStats(fetchStats);
   const { coreAndInfra, wigle, kismet, uncategorized } = useTableCategories(stats);
-
-  // Unused index search and pagination states
-  const [indexSearch, setIndexSearch] = React.useState('');
-  const [indexPage, setIndexPage] = React.useState(0);
-
-  // Used index search and pagination states
-  const [usedIndexSearch, setUsedIndexSearch] = React.useState('');
-  const [usedIndexPage, setUsedIndexPage] = React.useState(0);
-
-  // Unique enforcement index panel — collapsed by default
-  const [uniqueExpanded, setUniqueExpanded] = React.useState(false);
-
-  const filteredIndexes = React.useMemo(() => {
-    if (!stats) return [];
-    const query = indexSearch.toLowerCase().trim();
-    if (!query) return stats.unused_indexes;
-    return stats.unused_indexes.filter(
-      (idx) =>
-        idx.index_name.toLowerCase().includes(query) || idx.table_name.toLowerCase().includes(query)
-    );
-  }, [stats, indexSearch]);
-
-  const paginatedIndexes = React.useMemo(() => {
-    const start = indexPage * 25;
-    return filteredIndexes.slice(start, start + 25);
-  }, [filteredIndexes, indexPage]);
-
-  const filteredUsedIndexes = React.useMemo(() => {
-    if (!stats) return [];
-    const query = usedIndexSearch.toLowerCase().trim();
-    if (!query) return stats.used_indexes;
-    return stats.used_indexes.filter(
-      (idx) =>
-        idx.index_name.toLowerCase().includes(query) || idx.table_name.toLowerCase().includes(query)
-    );
-  }, [stats, usedIndexSearch]);
-
-  const paginatedUsedIndexes = React.useMemo(() => {
-    const start = usedIndexPage * 25;
-    return filteredUsedIndexes.slice(start, start + 25);
-  }, [filteredUsedIndexes, usedIndexPage]);
-
-  const renderTableList = (tables: TableStat[]) => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs text-left border-collapse">
-        <thead>
-          <tr className="text-slate-500 border-b border-slate-800">
-            <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Table Name</th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Rows</th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Size</th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
-              Writes (I/U)
-            </th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
-              Reads (Idx/Seq)
-            </th>
-            <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">
-              Last Active
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800/50">
-          {tables.map((t) => {
-            const hasActivity = parseInt(t.total_inserts) > 0 || parseInt(t.total_updates) > 0;
-            return (
-              <tr
-                key={t.table_name}
-                className={`hover:bg-slate-800/30 transition-colors ${hasActivity ? 'bg-blue-500/5' : ''}`}
-              >
-                <td className="py-2 pr-4 font-mono text-blue-400 font-medium">{t.table_name}</td>
-                <td className="py-2 px-4 text-right tabular-nums text-slate-300">
-                  {parseInt(t.row_count).toLocaleString()}
-                </td>
-                <td className="py-2 px-4 text-right tabular-nums text-slate-400 font-medium">
-                  {t.size_pretty}
-                </td>
-                <td className="py-2 px-4 text-right tabular-nums">
-                  <span className="text-emerald-500">
-                    {parseInt(t.total_inserts).toLocaleString()}
-                  </span>
-                  <span className="text-slate-600 mx-1">/</span>
-                  <span className="text-blue-400">
-                    {parseInt(t.total_updates).toLocaleString()}
-                  </span>
-                </td>
-                <td className="py-2 px-4 text-right tabular-nums">
-                  <span className="text-purple-400">
-                    {parseInt(t.index_reads).toLocaleString()}
-                  </span>
-                  <span className="text-slate-600 mx-1">/</span>
-                  <span className="text-slate-500">
-                    {parseInt(t.sequential_reads).toLocaleString()}
-                  </span>
-                </td>
-                <td className="py-2 pl-4 text-right whitespace-nowrap text-slate-500">
-                  {t.last_active ? formatShortDate(t.last_active) : 'Never'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderMVList = (mvs: MVStat[]) => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs text-left border-collapse">
-        <thead>
-          <tr className="text-slate-500 border-b border-slate-800">
-            <th className="py-2 pr-4 font-semibold uppercase tracking-wider">View Name</th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-center">Status</th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Size</th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
-              Scans (Seq)
-            </th>
-            <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
-              Tuples Read
-            </th>
-            <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">
-              Last Active
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-800/50">
-          {mvs.map((mv) => (
-            <tr key={mv.view_name} className="hover:bg-slate-800/30 transition-colors">
-              <td className="py-2 pr-4 font-mono text-emerald-400 font-medium">{mv.view_name}</td>
-              <td className="py-2 px-4 text-center">
-                {mv.is_populated ? (
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/20">
-                    POPULATED
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-red-500/10 text-red-500 font-bold border border-red-500/20 animate-pulse">
-                    UNPOPULATED
-                  </span>
-                )}
-              </td>
-              <td className="py-2 px-4 text-right tabular-nums text-slate-400 font-medium">
-                {mv.size_pretty}
-              </td>
-              <td className="py-2 px-4 text-right tabular-nums text-purple-400">
-                {parseInt(mv.seq_scan || '0').toLocaleString()}
-              </td>
-              <td className="py-2 px-4 text-right tabular-nums text-slate-500">
-                {parseInt(mv.seq_tup_read || '0').toLocaleString()}
-              </td>
-              <td className="py-2 pl-4 text-right whitespace-nowrap text-slate-500">
-                {mv.last_active ? formatShortDate(mv.last_active) : 'Never'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderUniqueEnforcementIndexes = (indexes: UniqueEnforcementIndex[]) => {
-    const totalBytes = indexes.reduce((s, i) => s + parseInt(i.size_bytes), 0);
-    const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
-    return (
-      <div>
-        <button
-          onClick={() => setUniqueExpanded((v) => !v)}
-          className="w-full flex items-center justify-between text-left mb-3"
-        >
-          <span className="text-sm font-semibold text-slate-200">
-            Unique &amp; Primary Key Indexes ({indexes.length} · {totalMb} MB)
-          </span>
-          <span className="text-slate-500 text-xs">
-            {uniqueExpanded ? '▲ collapse' : '▼ expand'}
-          </span>
-        </button>
-        {uniqueExpanded && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left border-collapse">
-              <thead>
-                <tr className="text-slate-500 border-b border-slate-800">
-                  <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Table</th>
-                  <th className="py-2 px-4 font-semibold uppercase tracking-wider">Index</th>
-                  <th className="py-2 px-4 font-semibold uppercase tracking-wider text-center">
-                    Type
-                  </th>
-                  <th className="py-2 px-4 font-semibold uppercase tracking-wider text-center">
-                    Kind
-                  </th>
-                  <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
-                    Size
-                  </th>
-                  <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
-                    Scans
-                  </th>
-                  <th className="py-2 pl-4 font-semibold uppercase tracking-wider">Definition</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/50">
-                {indexes.map((idx) => (
-                  <tr key={idx.index_name} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-2 pr-4 font-mono text-slate-400">{idx.table_name}</td>
-                    <td className="py-2 px-4 font-mono text-blue-400 font-medium">
-                      {idx.index_name}
-                    </td>
-                    <td className="py-2 px-4 text-center">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700 text-slate-400 font-mono">
-                        {idx.index_type}
-                      </span>
-                    </td>
-                    <td className="py-2 px-4 text-center">
-                      {idx.is_primary ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-900/40 text-blue-400 border border-blue-800/40 font-bold">
-                          PK
-                        </span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-900/40 text-violet-400 border border-violet-800/40 font-bold">
-                          UNIQUE
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-4 text-right tabular-nums text-slate-400">
-                      {idx.index_size}
-                    </td>
-                    <td className="py-2 px-4 text-right tabular-nums">
-                      {parseInt(idx.times_used) === 0 ? (
-                        <span
-                          className="text-slate-600"
-                          title="0 scans — constraint enforcement only"
-                        >
-                          0
-                        </span>
-                      ) : (
-                        <span className="text-emerald-400">
-                          {parseInt(idx.times_used).toLocaleString()}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 pl-4 font-mono text-slate-600 max-w-xs">
-                      <span title={idx.index_def}>
-                        {idx.index_def.length > 80
-                          ? idx.index_def.slice(0, 80) + '…'
-                          : idx.index_def}
-                      </span>
-                      {parseInt(idx.times_used) === 0 && (
-                        <span className="ml-2 text-[10px] text-slate-700 italic">
-                          (0 scans — constraint enforcement only)
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderDuplicateIndexGroups = (groups: DuplicateIndexGroup[]) => {
-    if (groups.length === 0) {
-      return (
-        <div className="flex items-center gap-2 text-sm text-emerald-400 p-3 bg-emerald-950/30 border border-emerald-900/50 rounded-lg">
-          <span>✓</span>
-          <span>No duplicate index definitions detected</span>
-        </div>
-      );
-    }
-    return (
-      <div className="space-y-3">
-        {groups.map((g, i) => (
-          <div key={i} className="p-3 bg-amber-950/30 border border-amber-900/50 rounded-lg">
-            <div className="text-xs font-semibold text-amber-300 mb-1">
-              Table: <span className="font-mono">{g.table_name}</span>
-            </div>
-            <div className="text-xs text-slate-400">
-              Duplicates ({g.count}):{' '}
-              {g.indexes.map((name, j) => (
-                <span key={j} className="font-mono text-amber-400 mr-2">
-                  {name}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderUnusedIndexes = (_indexes: UnusedIndex[], summary?: UnusedIndexSummary) => (
-    <div>
-      {summary && summary.count > 0 && (
-        <div className="mb-4 p-3 bg-red-950/30 border border-red-900/50 rounded-lg">
-          <p className="text-sm font-medium text-red-300">
-            {summary.count} index{summary.count !== 1 ? 'es' : ''} · {summary.total_mb} MB unused (0
-            scans since stats reset
-            {stats?.stats_reset ? ` at ${formatShortDate(stats.stats_reset)}` : ''})
-          </p>
-        </div>
-      )}
-
-      {/* Search Input */}
-      <div className="mb-4 max-w-md relative">
-        <input
-          type="text"
-          placeholder="Search by index or table name..."
-          value={indexSearch}
-          onChange={(e) => {
-            setIndexSearch(e.target.value);
-            setIndexPage(0);
-          }}
-          className="w-full pl-3 pr-10 py-1.5 bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-lg text-xs text-slate-300 placeholder-slate-600 transition-colors focus:outline-none"
-        />
-        {indexSearch && (
-          <button
-            onClick={() => {
-              setIndexSearch('');
-              setIndexPage(0);
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-sm font-bold"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs text-left border-collapse">
-          <thead>
-            <tr className="text-slate-500 border-b border-slate-800">
-              <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Index Name</th>
-              <th className="py-2 px-4 font-semibold uppercase tracking-wider">Table</th>
-              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-center">Type</th>
-              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Size</th>
-              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Scans</th>
-              <th className="py-2 pl-4 font-semibold uppercase tracking-wider">Definition</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {paginatedIndexes.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-600 italic">
-                  No matching unused indexes found.
-                </td>
-              </tr>
-            ) : (
-              paginatedIndexes.map((idx) => (
-                <tr key={idx.index_name} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="py-2 pr-4 font-mono text-orange-400 font-medium">
-                    {idx.index_name}
-                  </td>
-                  <td className="py-2 px-4 font-mono text-slate-500">{idx.table_name}</td>
-                  <td className="py-2 px-4 text-center">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-700 text-slate-400 font-mono">
-                      {idx.index_type}
-                    </span>
-                  </td>
-                  <td className="py-2 px-4 text-right tabular-nums text-slate-400 font-medium">
-                    {idx.size_pretty}
-                  </td>
-                  <td className="py-2 px-4 text-right tabular-nums text-red-400 font-bold">
-                    <div>{idx.scan_count} scans</div>
-                    <div className="text-slate-600 font-normal">
-                      {parseInt(idx.idx_tup_read).toLocaleString()} rows read
-                    </div>
-                  </td>
-                  <td className="py-2 pl-4 font-mono text-slate-600 max-w-xs">
-                    <span title={idx.index_def}>
-                      {idx.index_def && idx.index_def.length > 80
-                        ? idx.index_def.slice(0, 80) + '…'
-                        : idx.index_def}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination Controls */}
-      {filteredIndexes.length > 0 && (
-        <div className="mt-4 flex items-center justify-between border-t border-slate-800/50 pt-3 text-xs text-slate-400">
-          <div>
-            Showing <span className="text-slate-300 font-semibold">{indexPage * 25 + 1}</span> to{' '}
-            <span className="text-slate-300 font-semibold">
-              {Math.min((indexPage + 1) * 25, filteredIndexes.length)}
-            </span>{' '}
-            of <span className="text-slate-300 font-semibold">{filteredIndexes.length}</span> index
-            {filteredIndexes.length !== 1 ? 'es' : ''}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setIndexPage((p) => Math.max(0, p - 1))}
-              disabled={indexPage === 0}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 font-medium rounded transition-colors border border-slate-700/50 disabled:cursor-not-allowed"
-            >
-              Prev
-            </button>
-            <button
-              onClick={() =>
-                setIndexPage((p) => Math.min(Math.ceil(filteredIndexes.length / 25) - 1, p + 1))
-              }
-              disabled={(indexPage + 1) * 25 >= filteredIndexes.length}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 font-medium rounded transition-colors border border-slate-700/50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderUsedIndexes = (indexes: UsedIndex[]) => (
-    <div>
-      <div className="mb-4 p-3 bg-emerald-950/30 border border-emerald-900/50 rounded-lg">
-        <p className="text-sm font-medium text-emerald-300">
-          Top {indexes.length} most-scanned indexes · since{' '}
-          {stats?.stats_reset ? formatShortDate(stats.stats_reset) : 'last stats reset'}
-        </p>
-      </div>
-
-      {/* Search Input */}
-      <div className="mb-4 max-w-md relative">
-        <input
-          type="text"
-          placeholder="Search by index or table name..."
-          value={usedIndexSearch}
-          onChange={(e) => {
-            setUsedIndexSearch(e.target.value);
-            setUsedIndexPage(0);
-          }}
-          className="w-full pl-3 pr-10 py-1.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-lg text-xs text-slate-300 placeholder-slate-600 transition-colors focus:outline-none"
-        />
-        {usedIndexSearch && (
-          <button
-            onClick={() => {
-              setUsedIndexSearch('');
-              setUsedIndexPage(0);
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-sm font-bold"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs text-left border-collapse">
-          <thead>
-            <tr className="text-slate-500 border-b border-slate-800">
-              <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Index Name</th>
-              <th className="py-2 px-4 font-semibold uppercase tracking-wider">Table</th>
-              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Size</th>
-              <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">Scans</th>
-              <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">
-                Tuples Read
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/50">
-            {paginatedUsedIndexes.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-600 italic">
-                  No matching used indexes found.
-                </td>
-              </tr>
-            ) : (
-              paginatedUsedIndexes.map((idx) => (
-                <tr key={idx.index_name} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="py-2 pr-4 font-mono text-emerald-400 font-medium">
-                    {idx.index_name}
-                  </td>
-                  <td className="py-2 px-4 font-mono text-slate-500">{idx.table_name}</td>
-                  <td className="py-2 px-4 text-right tabular-nums text-slate-400 font-medium">
-                    {idx.size_pretty}
-                  </td>
-                  <td className="py-2 px-4 text-right tabular-nums text-emerald-400 font-bold">
-                    {parseInt(idx.scan_count).toLocaleString()}
-                  </td>
-                  <td className="py-2 pl-4 text-right tabular-nums text-slate-500">
-                    {parseInt(idx.tuples_read).toLocaleString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination Controls */}
-      {filteredUsedIndexes.length > 0 && (
-        <div className="mt-4 flex items-center justify-between border-t border-slate-800/50 pt-3 text-xs text-slate-400">
-          <div>
-            Showing <span className="text-slate-300 font-semibold">{usedIndexPage * 25 + 1}</span>{' '}
-            to{' '}
-            <span className="text-slate-300 font-semibold">
-              {Math.min((usedIndexPage + 1) * 25, filteredUsedIndexes.length)}
-            </span>{' '}
-            of <span className="text-slate-300 font-semibold">{filteredUsedIndexes.length}</span>{' '}
-            index{filteredUsedIndexes.length !== 1 ? 'es' : ''}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setUsedIndexPage((p) => Math.max(0, p - 1))}
-              disabled={usedIndexPage === 0}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 font-medium rounded transition-colors border border-slate-700/50 disabled:cursor-not-allowed"
-            >
-              Prev
-            </button>
-            <button
-              onClick={() =>
-                setUsedIndexPage((p) =>
-                  Math.min(Math.ceil(filteredUsedIndexes.length / 25) - 1, p + 1)
-                )
-              }
-              disabled={(usedIndexPage + 1) * 25 >= filteredUsedIndexes.length}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-slate-800 text-slate-300 font-medium rounded transition-colors border border-slate-700/50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 
   if (loading && !stats) {
     return (
@@ -678,7 +152,7 @@ export const DbStatsTab: React.FC = () => {
           icon={DatabaseIcon}
           color="from-blue-600 to-indigo-700"
         >
-          {renderTableList(coreAndInfra)}
+          <DbTableList tables={coreAndInfra} />
         </AdminCard>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -688,7 +162,7 @@ export const DbStatsTab: React.FC = () => {
             icon={ActivityIcon}
             color="from-orange-500 to-red-600"
           >
-            {renderTableList(wigle)}
+            <DbTableList tables={wigle} />
           </AdminCard>
 
           {/* Kismet Sidecar */}
@@ -697,7 +171,7 @@ export const DbStatsTab: React.FC = () => {
             icon={ActivityIcon}
             color="from-purple-600 to-indigo-600"
           >
-            {renderTableList(kismet)}
+            <DbTableList tables={kismet} />
           </AdminCard>
         </div>
 
@@ -707,7 +181,7 @@ export const DbStatsTab: React.FC = () => {
           icon={ActivityIcon}
           color="from-emerald-600 to-teal-700"
         >
-          {stats && renderMVList(stats.materialized_views)}
+          {stats && <DbMaterializedViewsList mvs={stats.materialized_views} />}
         </AdminCard>
 
         {/* Unique / Constraint Indexes */}
@@ -717,7 +191,7 @@ export const DbStatsTab: React.FC = () => {
             icon={TrendingUpIcon}
             color="from-blue-600 to-indigo-700"
           >
-            {renderUniqueEnforcementIndexes(stats.unique_enforcement_indexes)}
+            <UniqueEnforcementIndexesCard indexes={stats.unique_enforcement_indexes} />
           </AdminCard>
         )}
 
@@ -728,7 +202,7 @@ export const DbStatsTab: React.FC = () => {
             icon={TrendingUpIcon}
             color="from-amber-600 to-orange-700"
           >
-            {renderDuplicateIndexGroups(stats.duplicate_index_groups)}
+            <DuplicateIndexGroupsCard groups={stats.duplicate_index_groups} />
           </AdminCard>
         )}
 
@@ -738,7 +212,13 @@ export const DbStatsTab: React.FC = () => {
           icon={TrendingUpIcon}
           color="from-orange-600 to-red-700"
         >
-          {stats && renderUnusedIndexes(stats.unused_indexes, stats.unused_indexes_summary)}
+          {stats && (
+            <UnusedIndexReportCard
+              unusedIndexes={stats.unused_indexes}
+              summary={stats.unused_indexes_summary}
+              statsReset={stats.stats_reset}
+            />
+          )}
         </AdminCard>
 
         {/* Used Index Report */}
@@ -747,7 +227,9 @@ export const DbStatsTab: React.FC = () => {
           icon={TrendingUpIcon}
           color="from-emerald-600 to-teal-700"
         >
-          {stats && renderUsedIndexes(stats.used_indexes)}
+          {stats && (
+            <UsedIndexReportCard usedIndexes={stats.used_indexes} statsReset={stats.stats_reset} />
+          )}
         </AdminCard>
 
         {/* Uncategorized Tables */}
@@ -760,7 +242,7 @@ export const DbStatsTab: React.FC = () => {
             <div className="mb-4 text-xs text-slate-500 italic">
               (not in any configured category)
             </div>
-            {renderTableList(uncategorized)}
+            <DbTableList tables={uncategorized} />
           </AdminCard>
         )}
 
@@ -770,105 +252,12 @@ export const DbStatsTab: React.FC = () => {
           icon={ActivityIcon}
           color="from-violet-600 to-purple-700"
         >
-          {siblingStats ? (
-            <div className="space-y-4">
-              {/* Summary row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  {
-                    label: 'Total Pairs',
-                    value: siblingStats.total_pairs.toLocaleString(),
-                    color: 'text-violet-400',
-                  },
-                  {
-                    label: 'Strong (≥0.97)',
-                    value: siblingStats.strong_pairs.toLocaleString(),
-                    color: 'text-emerald-400',
-                  },
-                  {
-                    label: 'Candidate',
-                    value: siblingStats.candidate_pairs.toLocaleString(),
-                    color: 'text-yellow-400',
-                  },
-                  {
-                    label: 'Avg Confidence',
-                    value: siblingStats.avg_confidence,
-                    color: 'text-blue-400',
-                  },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">
-                      {label}
-                    </div>
-                    <div className={`text-lg font-black tabular-nums ${color}`}>{value}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Last computed */}
-              {siblingStats.newest_computed_at && (
-                <div className="text-[10px] text-slate-600 italic">
-                  Last computed: {formatShortDate(siblingStats.newest_computed_at)}
-                  {siblingStats.oldest_computed_at &&
-                    siblingStats.oldest_computed_at !== siblingStats.newest_computed_at && (
-                      <> · Oldest: {formatShortDate(siblingStats.oldest_computed_at)}</>
-                    )}
-                </div>
-              )}
-              {/* By-rule breakdown */}
-              {siblingByRule.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left border-collapse">
-                    <thead>
-                      <tr className="text-slate-500 border-b border-slate-800">
-                        <th className="py-2 pr-4 font-semibold uppercase tracking-wider">Rule</th>
-                        <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
-                          Pairs
-                        </th>
-                        <th className="py-2 px-4 font-semibold uppercase tracking-wider text-right">
-                          Avg Conf
-                        </th>
-                        <th className="py-2 pl-4 font-semibold uppercase tracking-wider text-right">
-                          Last Run
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/50">
-                      {siblingByRule.map((r) => (
-                        <tr key={r.rule} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="py-2 pr-4 font-mono text-violet-400 font-medium">
-                            {r.rule}
-                          </td>
-                          <td className="py-2 px-4 text-right tabular-nums text-slate-300">
-                            {r.pair_count.toLocaleString()}
-                          </td>
-                          <td className="py-2 px-4 text-right tabular-nums text-blue-400">
-                            {r.avg_confidence}
-                          </td>
-                          <td className="py-2 pl-4 text-right whitespace-nowrap text-slate-500">
-                            {r.last_run_at ? formatShortDate(r.last_run_at) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-xs text-slate-600 italic py-4 text-center">
-              No sibling data available.
-            </div>
-          )}
-          {/* Purge button — always visible */}
-          <div className="pt-3 border-t border-slate-800/50 flex justify-end">
-            <button
-              onClick={purgeSiblings}
-              disabled={purgingSiblings}
-              className="px-3 py-1.5 text-xs font-semibold rounded bg-red-900/60 hover:bg-red-800/80 text-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {purgingSiblings ? 'Purging…' : 'Purge & Full Redetect'}
-            </button>
-          </div>
+          <DbSiblingStatsCard
+            siblingStats={siblingStats}
+            siblingByRule={siblingByRule}
+            purgingSiblings={purgingSiblings}
+            purgeSiblings={purgeSiblings}
+          />
         </AdminCard>
       </div>
 
