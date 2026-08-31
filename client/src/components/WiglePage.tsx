@@ -1,6 +1,6 @@
 import { usePageFilters } from '../hooks/usePageFilters';
-import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import type { GeoJSONSource, Map } from 'mapbox-gl';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import type { Map } from 'mapbox-gl';
 import type * as mapboxglType from 'mapbox-gl';
 import { AppHeader } from './AppHeader';
 import { WigleControlPanel } from './WigleControlPanel';
@@ -9,43 +9,29 @@ import { WigleMap } from './WigleMap';
 import { useFilterURLSync } from '../hooks/useFilterURLSync';
 import { useAdaptedFilters } from '../hooks/useAdaptedFilters';
 import { getPageCapabilities } from '../utils/filterCapabilities';
-import { resetAgencyOfficeLayers, useAgencyOffices } from './hooks/useAgencyOffices';
+import { useAgencyOffices } from './hooks/useAgencyOffices';
 import type { AgencyVisibility } from './hooks/useAgencyOffices';
-import { resetFederalCourthouseLayers, useFederalCourthouses } from './hooks/useFederalCourthouses';
-import { ensureDeflockLayers, useDeflockCameras } from './hooks/useDeflockCameras';
-import { ensureShotspotterLayers, useShotspotterZones } from './hooks/useShotspotterZones';
-import {
-  ensureShotspotterSensorLayers,
-  useShotspotterSensors,
-} from './hooks/useShotspotterSensors';
+import { useFederalCourthouses } from './hooks/useFederalCourthouses';
+import { useDeflockCameras } from './hooks/useDeflockCameras';
+import { useShotspotterZones } from './hooks/useShotspotterZones';
+import { useShotspotterSensors } from './hooks/useShotspotterSensors';
 import { useWigleLayers } from './wigle/useWigleLayers';
 import { useWigleData } from './wigle/useWigleData';
 import { useWigleClusterLayers } from './wigle/useWigleClusterLayers';
 import { useWigleKmlData } from './wigle/useWigleKmlData';
 import { useWigleFieldData } from './wigle/useWigleFieldData';
 import { useWigleMapInit } from './wigle/useWigleMapInit';
-import {
-  ensureFieldDataLayer,
-  ensureV2Layers,
-  ensureV3Layers,
-  applyLayerVisibility,
-  setPointRadius,
-  updateFieldDataSource,
-} from './wigle/mapLayers';
-import { ensureKmlLayers, kmlRowsToGeoJSON } from './wigle/kmlLayers';
-import { attachClickHandlers } from './wigle/mapHandlers';
-import { updateAllClusterColors } from './wigle/clusterColors';
+import { kmlRowsToGeoJSON } from './wigle/kmlLayers';
 import { rowsToGeoJSON, DEFAULT_LIMIT, MAP_STYLES } from '../utils/wigle';
 import { useWigleDataSync } from './wigle/useWigleDataSync';
 import { useWigleAutoFetch } from './wigle/useWigleAutoFetch';
 import { useWigleMapFeatures } from './wigle/useWigleMapFeatures';
 import { useWigleResize } from './wigle/useWigleResize';
-import { apply3dBuildings, applyTerrain, runWhenStyleReady } from './wigle/mapLifecycle';
 import { useHomeLocationLayer } from './geospatial/hooks/useHomeLocationLayer';
 import { locationApi } from '../api/locationApi';
-import { ensureHomeLocationLayers } from '../utils/mapHelpers';
 import { DEFAULT_HOME_RADIUS } from '../constants/network';
-import { fitBoundsWithZoomInset } from '../utils/geospatial/mapViewUtils';
+import { WigleHeaderActions } from './wigle/WigleHeaderActions';
+import { useWigleOverlayManager } from './wigle/useWigleOverlayManager';
 
 const WiglePage: React.FC = () => {
   usePageFilters('wigle');
@@ -192,9 +178,6 @@ const WiglePage: React.FC = () => {
     localStorage.setItem('wigle_terrain', String(enabled));
     setShowTerrainState(enabled);
   };
-  const updateAllClusterColorsCallback = useCallback(() => {
-    if (mapRef.current) updateAllClusterColors(mapRef.current, clusterColorCache);
-  }, []);
 
   const v2FeatureCollection = useMemo(() => rowsToGeoJSON(v2Rows), [v2Rows]);
   const v3FeatureCollection = useMemo(() => rowsToGeoJSON(v3Rows), [v3Rows]);
@@ -204,130 +187,41 @@ const WiglePage: React.FC = () => {
   v3FCRef.current = v3FeatureCollection;
   kmlFCRef.current = kmlFeatureCollection;
 
-  const ensureV2LayersCallback = useCallback(() => {
-    if (mapRef.current) ensureV2Layers(mapRef.current, v2FCRef, clusteringEnabledRef.current);
-  }, []);
-  const ensureV3LayersCallback = useCallback(() => {
-    if (mapRef.current) ensureV3Layers(mapRef.current, v3FCRef, clusteringEnabledRef.current);
-  }, []);
-  const ensureKmlLayersCallback = useCallback(() => {
-    if (mapRef.current) ensureKmlLayers(mapRef.current, kmlFCRef, clusteringEnabledRef.current);
-  }, []);
-  const ensureAllLayers = useCallback(() => {
-    ensureV2LayersCallback();
-    ensureV3LayersCallback();
-    ensureKmlLayersCallback();
-  }, [ensureV2LayersCallback, ensureV3LayersCallback, ensureKmlLayersCallback]);
-  const applyLayerVisibilityCallback = useCallback(() => {
-    if (mapRef.current) applyLayerVisibility(mapRef.current, layersRef.current);
-  }, []);
-  const attachClickHandlersCallback = useCallback(() => {
-    if (mapRef.current && mapboxRef.current)
-      attachClickHandlers(mapRef.current, mapboxRef.current, wigleHandlersAttachedRef);
-  }, []);
-  const applyEnabledWigleOverlays = useCallback(
-    (reason: string) => {
-      const map = mapRef.current;
-      if (!map) return undefined;
-
-      return runWhenStyleReady(map, reason, () => {
-        const currentLayers = layersRef.current;
-        const clustering = clusteringEnabledRef.current;
-
-        ensureAllLayers();
-        attachClickHandlersCallback();
-
-        const v2Source = map.getSource('wigle-v2-points') as GeoJSONSource | undefined;
-        if (v2Source && v2FCRef.current) {
-          clusterColorCache.current.v2 = {};
-          map.removeFeatureState({ source: 'wigle-v2-points' });
-          v2Source.setData(v2FCRef.current);
-        }
-
-        const v3Source = map.getSource('wigle-v3-points') as GeoJSONSource | undefined;
-        if (v3Source && v3FCRef.current) {
-          clusterColorCache.current.v3 = {};
-          map.removeFeatureState({ source: 'wigle-v3-points' });
-          v3Source.setData(v3FCRef.current);
-        }
-
-        const kmlSource = map.getSource('wigle-kml-points') as GeoJSONSource | undefined;
-        if (kmlSource && kmlFCRef.current) kmlSource.setData(kmlFCRef.current);
-
-        if (currentLayers.showFieldData && fieldDataFCRef.current) {
-          ensureFieldDataLayer(map, fieldDataFCRef, clustering);
-          updateFieldDataSource(map, fieldDataFCRef.current);
-        }
-
-        resetAgencyOfficeLayers(map, agencyData, agencyVisibility, clustering);
-        resetFederalCourthouseLayers(
-          map,
-          courthouseData,
-          currentLayers.federalCourthouses,
-          clustering
-        );
-
-        if (currentLayers.deflockCameras && deflockData?.features?.length) {
-          ensureDeflockLayers(map, deflockData, clustering);
-        }
-        if (currentLayers.shotspotterZones && shotspotterData?.features?.length) {
-          ensureShotspotterLayers(map, shotspotterData);
-        }
-        if (currentLayers.shotspotterSensors && shotspotterSensorsData?.features?.length) {
-          ensureShotspotterSensorLayers(map, shotspotterSensorsData);
-        }
-
-        ensureHomeLocationLayers(map, homeLocation, currentLayers.homeArea);
-
-        setPointRadius(map, pointSize);
-        applyLayerVisibilityCallback();
-        updateAllClusterColorsCallback();
-        apply3dBuildings(map, mapStyle, show3dBuildings);
-        applyTerrain(map, mapStyle, showTerrain);
-      });
-    },
-    [
-      agencyData,
-      agencyVisibility,
-      applyLayerVisibilityCallback,
-      attachClickHandlersCallback,
-      courthouseData,
-      deflockData,
-      ensureAllLayers,
-      homeLocation,
-      mapStyle,
-      pointSize,
-      shotspotterData,
-      shotspotterSensorsData,
-      show3dBuildings,
-      showTerrain,
-      updateAllClusterColorsCallback,
-    ]
-  );
-
-  useEffect(() => {
-    if (!mapReady) return undefined;
-    return applyEnabledWigleOverlays('overlay-state-change');
-  }, [
+  const {
+    ensureAllLayers,
+    ensureV2LayersCallback,
+    ensureV3LayersCallback,
+    ensureKmlLayersCallback,
+    applyLayerVisibilityCallback,
+    attachClickHandlersCallback,
+    updateAllClusterColorsCallback,
     applyEnabledWigleOverlays,
-    clusteringEnabled,
-    layers.deflockCameras,
-    layers.federalCourthouses,
-    layers.fieldOffices,
-    layers.kml,
-    layers.residentAgencies,
-    layers.shotspotterSensors,
-    layers.shotspotterZones,
-    layers.showFieldData,
-    layers.v2,
-    layers.v3,
-    layers.homeArea,
-    homeLocation,
+  } = useWigleOverlayManager({
+    mapRef,
+    mapboxRef,
     mapReady,
+    layers,
+    layersRef,
+    clusteringEnabled,
+    clusteringEnabledRef,
+    v2FCRef,
+    v3FCRef,
+    kmlFCRef,
+    fieldDataFCRef,
+    clusterColorCache,
+    wigleHandlersAttachedRef,
+    agencyData,
+    agencyVisibility,
+    courthouseData,
+    deflockData,
+    shotspotterData,
+    shotspotterSensorsData,
+    homeLocation,
     pointSize,
+    mapStyle,
     show3dBuildings,
     showTerrain,
-  ]);
+  });
 
   useWigleMapInit({
     mapContainerRef,
@@ -436,147 +330,17 @@ const WiglePage: React.FC = () => {
       <AppHeader
         pageLabel="WiGLE"
         afterLabel={
-          <>
-            {(
-              [
-                {
-                  key: 'layers',
-                  title: 'Layers',
-                  active: showMenu,
-                  toggle: () => setShowMenu(!showMenu),
-                  icon: (
-                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-                      <path
-                        d="M8 1l7 3.5-7 3.5L1 4.5 8 1zm0 5.5l7 3.5-7 3.5-7-3.5 7-3.5zm0 5l7 3.5-7 3.5-7-3.5 7-3.5z"
-                        opacity=".85"
-                      />
-                    </svg>
-                  ),
-                },
-                {
-                  key: 'filters',
-                  title: 'Filters',
-                  active: showFilters,
-                  toggle: () => setShowFilters(!showFilters),
-                  icon: (
-                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
-                      <path d="M1 2h14l-5 6v5l-4-2V8L1 2z" />
-                    </svg>
-                  ),
-                },
-              ] as const
-            ).map(({ key, title, active, toggle, icon }) => (
-              <button
-                key={key}
-                aria-label={active ? `Disable ${title}` : `Enable ${title}`}
-                onClick={toggle}
-                title={title}
-                style={{
-                  height: '24px',
-                  width: '28px',
-                  borderRadius: '5px',
-                  border: active
-                    ? '0.5px solid rgba(59,130,246,0.4)'
-                    : '0.5px solid rgba(255,255,255,0.10)',
-                  background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
-                  color: active ? '#60a5fa' : 'rgba(255,255,255,0.4)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {icon}
-              </button>
-            ))}
-            {/* Fit to bounds */}
-            <button
-              className="nav-icon-btn"
-              title="Fit to bounds"
-              disabled={v2Rows.length === 0 && v3Rows.length === 0}
-              onClick={() => {
-                const mapboxgl = mapboxRef.current;
-                if (!mapRef.current || !mapboxgl) return;
-                const allRows = [...v2Rows, ...v3Rows];
-                const coords = allRows
-                  .map((r: any) => {
-                    const lat = r.trilat ?? r.lat ?? r.latitude;
-                    const lon = r.trilong ?? r.trilon ?? r.lon ?? r.longitude;
-                    return lat != null && lon != null ? ([lon, lat] as [number, number]) : null;
-                  })
-                  .filter((c): c is [number, number] => c !== null);
-                if (coords.length === 0) return;
-                const bounds = coords.reduce(
-                  (b, c) => b.extend(c),
-                  new (mapboxgl as any).LngLatBounds(coords[0], coords[0])
-                );
-                fitBoundsWithZoomInset(mapRef.current, bounds, { padding: 80 });
-              }}
-              style={{
-                height: '24px',
-                width: '28px',
-                borderRadius: '5px',
-                border: '0.5px solid rgba(255,255,255,0.10)',
-                background: 'rgba(255,255,255,0.03)',
-                color:
-                  v2Rows.length === 0 && v3Rows.length === 0
-                    ? 'rgba(255,255,255,0.15)'
-                    : 'rgba(255,255,255,0.4)',
-                cursor: v2Rows.length === 0 && v3Rows.length === 0 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: v2Rows.length === 0 && v3Rows.length === 0 ? 0.4 : 1,
-              }}
-            >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 14 14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <polyline points="1,4 1,1 4,1" />
-                <polyline points="10,1 13,1 13,4" />
-                <polyline points="13,10 13,13 10,13" />
-                <polyline points="4,13 1,13 1,10" />
-              </svg>
-            </button>
-            {/* Fly home */}
-            <button
-              className="nav-icon-btn"
-              title="Fly home"
-              onClick={() => {
-                if (!mapRef.current) return;
-                mapRef.current.flyTo({ center: homeLocation.center, zoom: 17 });
-              }}
-              style={{
-                height: '24px',
-                width: '28px',
-                borderRadius: '5px',
-                border: '0.5px solid rgba(255,255,255,0.10)',
-                background: 'rgba(255,255,255,0.03)',
-                color: 'rgba(255,255,255,0.4)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 14 14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path d="M2 7L7 2L12 7" />
-                <path d="M3 7V12H6V9H8V12H11V7" />
-              </svg>
-            </button>
-          </>
+          <WigleHeaderActions
+            showMenu={showMenu}
+            setShowMenu={setShowMenu}
+            showFilters={showFilters}
+            setShowFilters={setShowFilters}
+            v2Rows={v2Rows}
+            v3Rows={v3Rows}
+            mapRef={mapRef}
+            mapboxRef={mapboxRef}
+            homeLocation={homeLocation}
+          />
         }
       />
       <WigleControlPanel

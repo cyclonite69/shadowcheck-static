@@ -1,4 +1,4 @@
-# 1.0.0 (2026-08-23)
+# 1.0.0 (2026-08-31)
 
 ### Bug Fixes
 
@@ -505,7 +505,7 @@
 - **jobs:** catch scheduled job rejections to prevent server crash on overlap ([7a6d18f](https://github.com/cyclonite69/shadowcheck-web/commit/7a6d18f0da77f0c43a723075b41bfd3fca055514))
 - kepler timeout, api testing params, threat severity counts ([2f349ac](https://github.com/cyclonite69/shadowcheck-web/commit/2f349ac383f22dc420475ed9d0b05e339b0e14b4))
 - **kepler:** debounce filter-driven data reloads ([bb2de2d](https://github.com/cyclonite69/shadowcheck-web/commit/bb2de2d442d072dee2f2e10ff1cc0a65aba30b57))
-- **kepler:** handle empty feature collections cleanly and prevent render logging loop ([033c41f](https://github.com/cyclonite69/shadowcheck-web/commit/033c41f5d88c90da5329c67f1593e5ce7c06d6c5))
+- **kepler:** handle empty feature collections cleanly and prevent render logging loop ([fea2703](https://github.com/cyclonite69/shadowcheck-web/commit/fea2703ba1524bae6963c9994a2b59159d65fcb5))
 - **kepler:** keep filters interactive during background refresh ([ec6cc74](https://github.com/cyclonite69/shadowcheck-web/commit/ec6cc74aab1b632cc70c74f0e55efbc5c1a04408))
 - **kepler:** remove default query limits for full dataset visualization ([644324a](https://github.com/cyclonite69/shadowcheck-web/commit/644324a6e2d4e3344594813b9376a9fbc44221df))
 - **kepler:** restore tooltip rendering on map point hover ([4e0e078](https://github.com/cyclonite69/shadowcheck-web/commit/4e0e078fa22ad31eee62bc252fcca50d97663d46))
