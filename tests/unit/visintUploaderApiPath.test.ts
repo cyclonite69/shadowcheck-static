@@ -54,4 +54,16 @@ describe('VisIntUploader API paths', () => {
     );
     expect(attach).not.toHaveProperty('defaultBody');
   });
+
+  test('preserves observation_id payload in attach-visint multipart submission', () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), 'client/src/components/visint/VisIntUploader.tsx'),
+      'utf8'
+    );
+
+    expect(source).toContain("formData.append('observation_id', selectedCandidateId)");
+    expect(source).toMatch(
+      /if \(!isUnmatched\) \{[\s\S]*?formData\.append\('observation_id', selectedCandidateId\);[\s\S]*?\}/
+    );
+  });
 });
