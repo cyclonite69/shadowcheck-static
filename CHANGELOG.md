@@ -1,4 +1,4 @@
-# 1.0.0 (2026-08-31)
+# 1.0.0 (2026-09-01)
 
 ### Bug Fixes
 
@@ -234,6 +234,7 @@
 - **deps:** align react-dom and react-is to 19.2.5 ([08df20a](https://github.com/cyclonite69/shadowcheck-web/commit/08df20aab5574d78d24c25553328832c81520119))
 - **deps:** bump axios to 1.15.0 ([494b337](https://github.com/cyclonite69/shadowcheck-web/commit/494b3376f5326ae01500b4288153429a5f507b1d))
 - **deps:** downgrade @vitejs/plugin-react to 5.0.3 to fix Node 22 build failure ([a539ad9](https://github.com/cyclonite69/shadowcheck-web/commit/a539ad9af823c8467e16e9227523ce0d57612d81))
+- **deps:** npm audit fix for postcss path traversal and svgo removeScripts ([beb0d71](https://github.com/cyclonite69/shadowcheck-web/commit/beb0d71b11f41a548ce2740a5cc548212ab48e4d))
 - **deps:** pin fast-xml-parser to 5.5.8 to restore AWS SDK XML parsing ([0942fac](https://github.com/cyclonite69/shadowcheck-web/commit/0942fac65022e0929fc37a047d44b26d153fbd08)), closes [#xD](https://github.com/cyclonite69/shadowcheck-web/issues/xD)
 - **deps:** restore @playwright/test (lost during react-dom merge conflict resolution) ([aa983f6](https://github.com/cyclonite69/shadowcheck-web/commit/aa983f68dbd30f337017d9b65de17ba50cfef857))
 - **dev:** add docker-cli, aws-cli, postgresql-client, curl to Dockerfile builder stage ([23b0399](https://github.com/cyclonite69/shadowcheck-web/commit/23b03991276bafe870e0870fa1a5380b7c549a01))

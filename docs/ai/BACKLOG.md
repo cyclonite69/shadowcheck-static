@@ -33,6 +33,10 @@ Items confirmed as pre-existing or deferred. Pick these up as standalone tasks �
 
 - [ ] `VisIntUploader.tsx` hook extraction deferred — file is 465 LOC after Phase 1 modularity pass (tag rules, sub-components extracted). Upload state lifecycle (`useVisIntUpload`) and correlation/commit orchestration (`useVisIntCorrelation`) were identified as the next extraction targets but deferred to avoid mixing a state-lifecycle refactor into a presentational-modularity pass. Pick up as a standalone modularity task; target is two custom hooks covering the `useState`/`useCallback` clusters currently inline in the component body.
 
+## Test Safety
+
+- [ ] **`DB_NAME` ambient env leak** — `DB_NAME=shadowcheck_db` can be present in the shell environment (e.g. from a prior `source .env` or a dotenv-loading dev script), silently overriding the `shadowcheck_test` default in both `tests/globalSetup.js` and `tests/setup.ts`. The `globalSetup.js` guard (explicit throw if `DB_NAME !== 'shadowcheck_test'`) is the only line of defense and correctly blocked a bare `npm test` invocation (caught 2026-08-31). `tests/setup.ts` has the same `||` default pattern but no guard — if a test path ever bypasses `globalSetup`, it connects to whatever `DB_NAME` is set to. Two fixes needed: (1) find and remove the source of the ambient `DB_NAME` export from the dev workflow (`.env` auto-sourcing, dotenv CLI invocation, etc.); (2) add the same explicit guard to `tests/setup.ts` so there's a second hard stop if `globalSetup` is ever skipped or bypassed.
+
 ## Security / Dependencies
 
 - [ ] `qs` moderate DoS vulnerability — deferred. Requires upgrading Express beyond its current version constraints (requires `npm audit fix --force`), posing a runtime compatibility/refactor risk.
