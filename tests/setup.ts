@@ -12,6 +12,16 @@ process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'test_password';
 process.env.DB_HOST = process.env.DB_HOST || 'localhost';
 process.env.DB_PORT = process.env.DB_PORT || '5432';
 process.env.DB_NAME = process.env.DB_NAME || 'shadowcheck_test';
+
+// Hard stop: refuse to run against the production database.
+// Mirrors the guard in tests/globalSetup.js. Defense-in-depth for test paths
+// that bypass globalSetup (e.g. --testEnvironment or direct jest worker invocation).
+if (process.env.DB_NAME !== 'shadowcheck_test') {
+  throw new Error(
+    `[setup.ts] Refusing to run tests against '${process.env.DB_NAME}'. Set DB_NAME=shadowcheck_test.`
+  );
+}
+
 process.env.PORT = process.env.PORT || '3002'; // Different port for tests
 
 // Increase timeout for database operations
