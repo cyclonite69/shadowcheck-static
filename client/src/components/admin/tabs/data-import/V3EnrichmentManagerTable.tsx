@@ -448,10 +448,13 @@ export const V3EnrichmentManagerTable: React.FC<V3EnrichmentManagerTableProps> =
 
       {/* Action Bar */}
       <div className="flex justify-between items-center py-1">
+        {/* Left: count */}
+        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+          {total.toLocaleString()} Networks Found
+        </span>
+
+        {/* Right: action buttons */}
         <div className="flex items-center gap-3">
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-            {total.toLocaleString()} Networks Found
-          </div>
           <button
             onClick={() => loadPage(1, false)}
             className="text-[10px] text-blue-400 hover:text-blue-300 font-black uppercase tracking-tighter"

@@ -52,6 +52,7 @@
 - **admin:** add .default to adminOuiRoutes require — fatal server startup error ([3b900f2](https://github.com/cyclonite69/shadowcheck-web/commit/3b900f2d935d1e784e393cf8e3ab75f5ea1ce9a4))
 - **admin:** add before-after audit metrics and history for SQL imports ([20b1e10](https://github.com/cyclonite69/shadowcheck-web/commit/20b1e1027c8943504945de3df61c3ffe8a6a0b61))
 - **admin:** add referrerPolicy and correct badge fallback in WigleStatsTab ([33b8a0c](https://github.com/cyclonite69/shadowcheck-web/commit/33b8a0c1fe44b9f3c52946a4904ad58df7983a75))
+- **admin:** align action bar in V3EnrichmentManagerTable ([4f77357](https://github.com/cyclonite69/shadowcheck-web/commit/4f77357ca148fbebb219e0d24aa7d1eed80c748d))
 - **admin:** clarify WiGLE KML sync status labels ([3b85ef1](https://github.com/cyclonite69/shadowcheck-web/commit/3b85ef111092c36f644e7fe159de745894a29058))
 - **admin:** correct api testing health detection ([a6afd58](https://github.com/cyclonite69/shadowcheck-web/commit/a6afd5854288df21ecd163e37638e7d32504f074))
 - **admin:** display status tip when all sync transactions are skipped ([dd59253](https://github.com/cyclonite69/shadowcheck-web/commit/dd59253a25fe9e81449bf695ad9989fca05865fe))
